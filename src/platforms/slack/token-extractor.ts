@@ -1,8 +1,8 @@
 import { execSync } from 'node:child_process'
 import { createDecipheriv, pbkdf2Sync } from 'node:crypto'
-import { existsSync, readdirSync, readFileSync } from 'node:fs'
+import { copyFileSync, existsSync, readdirSync, readFileSync, rmSync } from 'node:fs'
 import { createRequire } from 'node:module'
-import { homedir } from 'node:os'
+import { homedir, tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { ClassicLevel } from 'classic-level'
 
@@ -397,6 +397,19 @@ export class TokenExtractor {
   }
 
   private readCookieFromDB(dbPath: string): string {
+    // Copy the database to a temp file to avoid SQLite lock contention
+    // when Slack is running and has a write lock on the Cookies database
+    const tempDbPath = join(
+      tmpdir(),
+      `slack-cookies-${Date.now()}-${Math.random().toString(36).slice(2)}.db`
+    )
+
+    try {
+      copyFileSync(dbPath, tempDbPath)
+    } catch {
+      return ''
+    }
+
     try {
       const sql = `SELECT value, encrypted_value 
            FROM cookies 
@@ -409,12 +422,12 @@ export class TokenExtractor {
       let row: CookieRow
       if (typeof globalThis.Bun !== 'undefined') {
         const { Database } = require('bun:sqlite')
-        const db = new Database(dbPath, { readonly: true })
+        const db = new Database(tempDbPath, { readonly: true })
         row = db.query(sql).get() as CookieRow
         db.close()
       } else {
         const Database = require('better-sqlite3')
-        const db = new Database(dbPath, { readonly: true })
+        const db = new Database(tempDbPath, { readonly: true })
         row = db.prepare(sql).get() as CookieRow
         db.close()
       }
@@ -437,6 +450,10 @@ export class TokenExtractor {
       return ''
     } catch {
       return ''
+    } finally {
+      try {
+        rmSync(tempDbPath, { force: true })
+      } catch {}
     }
   }
 
