@@ -10,7 +10,8 @@
     "amsg": "./src/cli.ts",
     "agent-slack": "./src/platforms/slack/cli.ts",
     "agent-discord": "./src/platforms/discord/cli.ts",
-    "agent-teams": "./src/platforms/teams/cli.ts"
+    "agent-teams": "./src/platforms/teams/cli.ts",
+    "agent-slackbot": "./src/platforms/slackbot/cli.ts"
   },
   "scripts": {
     "build": "tsc",
