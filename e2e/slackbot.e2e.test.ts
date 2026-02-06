@@ -197,6 +197,7 @@ describe('SlackBot E2E Tests', () => {
         'message', 'send', SLACKBOT_TEST_CHANNEL_ID, `Thread reply ${testId}`,
         '--thread', parent!.ts,
       ])
+      expect(replyResult.exitCode).toBe(0)
       const reply = parseJSON<{ ts: string }>(replyResult.stdout)
       if (reply?.ts) testMessages.push(reply.ts)
 

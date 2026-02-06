@@ -5,10 +5,11 @@ import { SlackBotCredentialManager } from '../credential-manager'
 export interface BotOption {
   bot?: string
   pretty?: boolean
+  _credManager?: SlackBotCredentialManager
 }
 
 export async function getClient(options: BotOption): Promise<SlackBotClient> {
-  const credManager = new SlackBotCredentialManager()
+  const credManager = options._credManager ?? new SlackBotCredentialManager()
   const creds = await credManager.getCredentials(options.bot)
 
   if (!creds) {
