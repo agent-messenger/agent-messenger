@@ -21,7 +21,8 @@ npm install -g agent-messenger
 Or use your favorite package manager.
 
 This installs:
-- `agent-slack` — Slack CLI
+- `agent-slack` — Slack CLI (user token, zero-config)
+- `agent-slackbot` — Slack Bot CLI (bot token, for server-side/CI/CD)
 - `agent-discord` — Discord CLI
 - `agent-teams` — Microsoft Teams CLI
 
@@ -92,13 +93,14 @@ That's it. No OAuth flows. No API tokens. No configuration files.
 | File uploads | ✅ | ✅ | ✅ |
 | Workspace snapshots | ✅ | ✅ | ✅ |
 | Multi-workspace | ✅ | ✅ | ✅ |
-| Bot support | 🏗️ | 🏗️ | 🏗️ |
+| Bot support | ✅ | 🏗️ | 🏗️ |
 
 > **Note**: Teams tokens expire in 60-90 minutes. See [Teams Guide](docs/teams.md) for token refresh patterns.
 
 ## 📚 Platform Guides
 
 - **[Slack Guide](docs/slack.md)** — Full command reference for Slack
+- **[Slack Bot Guide](docs/slackbot.md)** — Bot token integration for server-side and CI/CD
 - **[Discord Guide](docs/discord.md)** — Full command reference for Discord
 - **[Teams Guide](docs/teams.md)** — Full command reference for Microsoft Teams
 
@@ -123,7 +125,7 @@ That's it. No OAuth flows. No API tokens. No configuration files.
 
 **Why not MCP?** MCP servers expose all tools at once, bloating context and confusing agents. **[Agent Skills](https://agentskills.io/) + agent-friendly CLI** offer a better approach—load what you need, when you need it. Fewer tokens, cleaner context, better output.
 
-**Why not OAuth?** OAuth requires an app and it requires workspace admin approval to install, which can take days. This tool just works—zero setup required. Bot support is on the roadmap for those who prefer it.
+**Why not OAuth?** OAuth requires an app and it requires workspace admin approval to install, which can take days. This tool just works—zero setup required. For those who prefer bot tokens (e.g., server-side or CI/CD), see [`agent-slackbot`](docs/slackbot.md).
 
 Inspired by [agent-browser](https://github.com/vercel-labs/agent-browser) from Vercel Labs.
 
