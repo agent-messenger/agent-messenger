@@ -114,6 +114,101 @@ describe('SlackBot E2E Tests', () => {
       expect(data?.text).toContain(testId)
       expect(data?.ts).toBe(sent!.ts)
     })
+
+    test('message update modifies message', async () => {
+      const testId = generateTestId()
+      const sendResult = await runCLI('slackbot', [
+        'message', 'send', SLACKBOT_TEST_CHANNEL_ID, `Original ${testId}`,
+      ])
+      const sent = parseJSON<{ ts: string }>(sendResult.stdout)
+      expect(sent?.ts).toBeTruthy()
+      if (sent?.ts) testMessages.push(sent.ts)
+
+      await waitForRateLimit()
+
+      const result = await runCLI('slackbot', [
+        'message', 'update', SLACKBOT_TEST_CHANNEL_ID, sent!.ts, `Updated ${testId}`,
+      ])
+      expect(result.exitCode).toBe(0)
+
+      await waitForRateLimit()
+
+      const getResult = await runCLI('slackbot', [
+        'message', 'get', SLACKBOT_TEST_CHANNEL_ID, sent!.ts,
+      ])
+      const data = parseJSON<{ text: string }>(getResult.stdout)
+      expect(data?.text).toContain('Updated')
+    })
+
+    test('message delete removes message', async () => {
+      const testId = generateTestId()
+      const sendResult = await runCLI('slackbot', [
+        'message', 'send', SLACKBOT_TEST_CHANNEL_ID, `Delete me ${testId}`,
+      ])
+      const sent = parseJSON<{ ts: string }>(sendResult.stdout)
+      expect(sent?.ts).toBeTruthy()
+
+      await waitForRateLimit()
+
+      const result = await runCLI('slackbot', [
+        'message', 'delete', SLACKBOT_TEST_CHANNEL_ID, sent!.ts, '--force',
+      ])
+      expect(result.exitCode).toBe(0)
+
+      const data = parseJSON<{ deleted: string }>(result.stdout)
+      expect(data?.deleted).toBe(sent!.ts)
+    })
+
+    test('message send with --thread creates reply', async () => {
+      const testId = generateTestId()
+      const sendResult = await runCLI('slackbot', [
+        'message', 'send', SLACKBOT_TEST_CHANNEL_ID, `Parent ${testId}`,
+      ])
+      const parent = parseJSON<{ ts: string }>(sendResult.stdout)
+      expect(parent?.ts).toBeTruthy()
+      if (parent?.ts) testMessages.push(parent.ts)
+
+      await waitForRateLimit()
+
+      const replyResult = await runCLI('slackbot', [
+        'message', 'send', SLACKBOT_TEST_CHANNEL_ID, `Reply ${testId}`,
+        '--thread', parent!.ts,
+      ])
+      expect(replyResult.exitCode).toBe(0)
+
+      const reply = parseJSON<{ ts: string; thread_ts: string }>(replyResult.stdout)
+      expect(reply?.thread_ts).toBe(parent!.ts)
+
+      if (reply?.ts) testMessages.push(reply.ts)
+    }, 30000)
+
+    test('message replies gets thread replies', async () => {
+      const testId = generateTestId()
+      const sendResult = await runCLI('slackbot', [
+        'message', 'send', SLACKBOT_TEST_CHANNEL_ID, `Thread parent ${testId}`,
+      ])
+      const parent = parseJSON<{ ts: string }>(sendResult.stdout)
+      expect(parent?.ts).toBeTruthy()
+      if (parent?.ts) testMessages.push(parent.ts)
+
+      await waitForRateLimit()
+
+      await runCLI('slackbot', [
+        'message', 'send', SLACKBOT_TEST_CHANNEL_ID, `Thread reply ${testId}`,
+        '--thread', parent!.ts,
+      ])
+
+      await waitForRateLimit()
+
+      const result = await runCLI('slackbot', [
+        'message', 'replies', SLACKBOT_TEST_CHANNEL_ID, parent!.ts,
+      ])
+      expect(result.exitCode).toBe(0)
+
+      const data = parseJSON<Array<{ ts: string }>>(result.stdout)
+      expect(Array.isArray(data)).toBe(true)
+      expect(data!.length).toBeGreaterThanOrEqual(2)
+    })
   })
 
   describe('channel', () => {
