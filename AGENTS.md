@@ -45,5 +45,4 @@ bun lint        # Lint with Biome
 
 ## Release
 
-Use `/release <version>` command. It bumps version, builds, tests, tags, and publishes to npm.
-Commits include `dist/` build artifacts. Tags have no `v` prefix (e.g., `1.3.0`).
+Use the **Release** GitHub Actions workflow (`workflow_dispatch`). Enter the version (e.g., `1.4.0`) — it typechecks, lints, tests, bumps version in `package.json` / `.claude-plugin/plugin.json` / `README.md`, commits, tags, publishes to npm, and creates a GitHub Release. Tags have no `v` prefix.
