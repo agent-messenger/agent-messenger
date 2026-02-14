@@ -4,6 +4,8 @@ import { formatOutput } from '../../../shared/utils/output'
 import { SlackClient } from '../client'
 import { CredentialManager } from '../credential-manager'
 
+const DEFAULT_INBOX_TYPES = 'thread_reply,message_reaction,at_user,at_channel,keyword'
+
 async function listAction(options: {
   pretty?: boolean
   unread?: boolean
@@ -24,8 +26,11 @@ async function listAction(options: {
     const mode = options.unread ? 'priority_unreads_v1' : 'chrono_reads_and_unreads'
     const limit = options.limit ? parseInt(options.limit, 10) : 20
 
+    // Slack's activity.feed can return invalid_arguments if types is omitted.
+    const types = options.types || (options.unread ? DEFAULT_INBOX_TYPES : undefined)
+
     const items = await client.getActivityFeed({
-      types: options.types,
+      types,
       mode,
       limit,
     })
@@ -45,16 +50,16 @@ async function listAction(options: {
 }
 
 export const activityCommand = new Command('activity')
-  .description('Activity feed commands')
+  .description('Activity feed commands (Slack Inbox / Activity)')
   .addCommand(
     new Command('list')
       .description('List activity feed items')
       .option('--pretty', 'Pretty print JSON output')
-      .option('--unread', 'Show only unread activity')
+      .option('--unread', 'Show only unread activity (Inbox)')
       .option('--limit <number>', 'Number of items to return (default: 20)')
       .option(
         '--types <types>',
-        'Filter by activity types (comma-separated: thread_reply,message_reaction,at_user,at_channel,keyword)',
+        'Filter by activity types (comma-separated: thread_reply,message_reaction,at_user,at_channel,keyword). If omitted with --unread, defaults to inbox types.',
       )
       .action(listAction),
   )
