@@ -475,7 +475,7 @@ export class SlackClient {
 
   async getUnreadCounts(): Promise<SlackUnreadCounts> {
     return this.withRetry(async () => {
-      const response = await (this.client as any).client.counts()
+      const response = await this.client.apiCall('client.counts') as unknown as { channels?: any[]; ok?: boolean; error?: string }
       this.checkResponse(response)
 
       const channels = (response.channels || []).map((ch: any) => ({
@@ -524,11 +524,11 @@ export class SlackClient {
 
   async getActivityFeed(options?: { types?: string; mode?: string; limit?: number }): Promise<SlackActivityItem[]> {
     return this.withRetry(async () => {
-      const response = await (this.client as any).activity.feed({
+      const response = (await this.client.apiCall('activity.feed', {
         types: options?.types,
         mode: options?.mode || 'chrono_reads_and_unreads',
         limit: options?.limit || 20,
-      })
+      })) as unknown as { items?: any[]; ok?: boolean; error?: string }
       this.checkResponse(response)
 
       const items = (response.items || []).map((item: any) => ({
