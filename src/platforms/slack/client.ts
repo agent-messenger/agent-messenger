@@ -475,20 +475,30 @@ export class SlackClient {
 
   async getUnreadCounts(): Promise<SlackUnreadCounts> {
     return this.withRetry(async () => {
-      const response = await this.client.apiCall('client.counts') as unknown as { channels?: any[]; ok?: boolean; error?: string }
+      // NOTE: This is Slack's internal API used by the desktop/web client.
+      // It reliably exposes `has_unreads`, `last_read`, and `latest` per channel.
+      const response = (await this.client.apiCall('client.counts')) as unknown as {
+        channels?: any[]
+        threads?: { has_unreads?: boolean; mention_count?: number }
+        ok?: boolean
+        error?: string
+      }
       this.checkResponse(response)
 
+      // Resolve names via conversations.list later at the command layer; keep here as a best-effort.
       const channels = (response.channels || []).map((ch: any) => ({
         id: ch.id || '',
         name: ch.name || '',
-        unread_count: ch.unread_count || 0,
+        has_unreads: Boolean(ch.has_unreads),
         mention_count: ch.mention_count || 0,
+        last_read: ch.last_read,
+        latest: ch.latest,
       }))
 
       return {
         channels,
-        total_unread: channels.reduce((sum: number, ch: any) => sum + ch.unread_count, 0),
-        total_mentions: channels.reduce((sum: number, ch: any) => sum + ch.mention_count, 0),
+        total_mentions: channels.reduce((sum: number, ch: any) => sum + (ch.mention_count || 0), 0),
+        total_unread_channels: channels.reduce((sum: number, ch: any) => sum + (ch.has_unreads ? 1 : 0), 0),
       }
     })
   }
@@ -519,6 +529,17 @@ export class SlackClient {
         ts,
       })
       this.checkResponse(response)
+    })
+  }
+
+  async getPermalink(channelId: string, messageTs: string): Promise<string> {
+    return this.withRetry(async () => {
+      const response = await this.client.chat.getPermalink({
+        channel: channelId,
+        message_ts: messageTs,
+      })
+      this.checkResponse(response)
+      return (response as any).permalink || ''
     })
   }
 

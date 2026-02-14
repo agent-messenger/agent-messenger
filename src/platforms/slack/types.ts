@@ -88,11 +88,15 @@ export interface SlackUnreadCounts {
   channels: Array<{
     id: string
     name: string
-    unread_count: number
+    // Slack's undocumented client.counts API does not always return a numeric unread_count.
+    // We rely on has_unreads + last_read/latest to determine unread state.
+    has_unreads: boolean
     mention_count: number
+    last_read?: string
+    latest?: string
   }>
-  total_unread: number
   total_mentions: number
+  total_unread_channels: number
 }
 
 export interface SlackThreadView {
