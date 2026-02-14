@@ -13,6 +13,7 @@ import {
   savedCommand,
   sectionsCommand,
   snapshotCommand,
+  inboxCommand,
   unreadCommand,
   userCommand,
   workspaceCommand,
@@ -36,6 +37,7 @@ program.addCommand(reactionCommand)
 program.addCommand(fileCommand)
 program.addCommand(snapshotCommand)
 program.addCommand(activityCommand)
+program.addCommand(inboxCommand)
 program.addCommand(draftsCommand)
 program.addCommand(savedCommand)
 program.addCommand(sectionsCommand)
