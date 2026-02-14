@@ -4,7 +4,7 @@ import { formatOutput } from '../../../shared/utils/output'
 import { SlackClient } from '../client'
 import { CredentialManager } from '../credential-manager'
 
-const DEFAULT_INBOX_TYPES = 'thread_reply,message_reaction,at_user,at_channel,keyword'
+const DEFAULT_ACTIVITY_TYPES = 'thread_reply,message_reaction,at_user,at_channel,keyword'
 
 async function listAction(options: {
   pretty?: boolean
@@ -26,8 +26,8 @@ async function listAction(options: {
     const mode = options.unread ? 'priority_unreads_v1' : 'chrono_reads_and_unreads'
     const limit = options.limit ? parseInt(options.limit, 10) : 20
 
-    // Slack's activity.feed can return invalid_arguments if types is omitted.
-    const types = options.types || (options.unread ? DEFAULT_INBOX_TYPES : undefined)
+    // Slack's activity.feed currently requires `types`.
+    const types = options.types || DEFAULT_ACTIVITY_TYPES
 
     const items = await client.getActivityFeed({
       types,
@@ -59,7 +59,7 @@ export const activityCommand = new Command('activity')
       .option('--limit <number>', 'Number of items to return (default: 20)')
       .option(
         '--types <types>',
-        'Filter by activity types (comma-separated: thread_reply,message_reaction,at_user,at_channel,keyword). If omitted with --unread, defaults to inbox types.',
+        'Filter by activity types (comma-separated: thread_reply,message_reaction,at_user,at_channel,keyword). Default is inbox-like types.',
       )
       .action(listAction),
   )
