@@ -91,6 +91,37 @@ export async function getAction(channelId: string, messageId: string, options: {
   }
 }
 
+export async function replyAction(
+  channelId: string,
+  messageId: string,
+  content: string,
+  options: { pretty?: boolean },
+): Promise<void> {
+  try {
+    const credManager = new DiscordCredentialManager()
+    const config = await credManager.load()
+
+    if (!config.token) {
+      console.log(formatOutput({ error: 'Not authenticated. Run "auth extract" first.' }, options.pretty))
+      process.exit(1)
+    }
+
+    const client = new DiscordClient(config.token)
+    const message = await client.sendReply(channelId, messageId, content)
+
+    const output = {
+      id: message.id,
+      content: message.content,
+      author: message.author.username,
+      timestamp: message.timestamp,
+    }
+
+    console.log(formatOutput(output, options.pretty))
+  } catch (error) {
+    handleError(error as Error)
+  }
+}
+
 export async function deleteAction(
   channelId: string,
   messageId: string,
@@ -232,6 +263,17 @@ export const messageCommand = new Command('message')
       .argument('<message-id>', 'Message ID')
       .option('--pretty', 'Pretty print JSON output')
       .action(getAction),
+  )
+  .addCommand(
+    new Command('reply')
+      .description('Reply to a message')
+      .argument('<channel-id>', 'Channel ID')
+      .argument('<message-id>', 'Message ID')
+      .argument('<content>', 'Message content')
+      .option('--pretty', 'Pretty print JSON output')
+      .action((channelId: string, messageId: string, content: string, options: { pretty?: boolean }) => {
+        replyAction(channelId, messageId, content, options)
+      }),
   )
   .addCommand(
     new Command('delete')

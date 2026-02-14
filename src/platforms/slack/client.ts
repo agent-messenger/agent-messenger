@@ -545,6 +545,11 @@ export class SlackClient {
 
   async getActivityFeed(options?: { types?: string; mode?: string; limit?: number }): Promise<SlackActivityItem[]> {
     return this.withRetry(async () => {
+      // NOTE: This is Slack's internal API used by the desktop/web client.
+      // Shape (as of 2026-02):
+      // {
+      //   items: [{ is_unread, feed_ts, item: { type, message: { ts, channel, thread_ts?, author_user_id? } }, key }]
+      // }
       const response = (await this.client.apiCall('activity.feed', {
         types: options?.types,
         mode: options?.mode || 'chrono_reads_and_unreads',
@@ -552,17 +557,57 @@ export class SlackClient {
       })) as unknown as { items?: any[]; ok?: boolean; error?: string }
       this.checkResponse(response)
 
-      const items = (response.items || []).map((item: any) => ({
-        id: item.id || '',
-        type: item.type || '',
-        channel: item.channel || '',
-        ts: item.ts || '',
-        text: item.text || '',
-        user: item.user || '',
-        created: item.created || 0,
-      }))
+      const channels = await this.listChannels().catch(() => [])
+      const idToName = new Map(channels.map((c) => [c.id, c.name]))
 
-      return items
+      const out: SlackActivityItem[] = []
+      for (const wrapper of response.items || []) {
+        const inner = wrapper?.item
+        const msg = inner?.message
+
+        const type = inner?.type || wrapper?.type || ''
+        const channel = msg?.channel || wrapper?.channel || ''
+        const ts = msg?.ts || wrapper?.ts || ''
+        const thread_ts = msg?.thread_ts
+
+        // Best-effort resolution of text/user.
+        let text = ''
+        let user = msg?.user || msg?.author_user_id || ''
+
+        if (channel && ts) {
+          let full = await this.getMessage(channel, ts).catch(() => null)
+
+          // Thread replies sometimes don't show up via conversations.history; fall back to conversations.replies.
+          if (!full && thread_ts) {
+            const replies = await this.getThreadReplies(channel, thread_ts, { limit: 200 }).catch(() => null)
+            full = replies?.messages?.find((m) => m.ts === ts) || null
+          }
+
+          if (full) {
+            text = full.text || text
+            user = full.user || full.username || user
+          }
+        }
+
+        const permalink = channel && ts ? await this.getPermalink(channel, ts).catch(() => '') : ''
+
+        out.push({
+          id: wrapper?.key || wrapper?.id || `${type}-${channel}-${ts}`,
+          type,
+          channel,
+          channel_name: idToName.get(channel),
+          ts,
+          thread_ts,
+          text,
+          user,
+          created: typeof wrapper?.created === 'number' ? wrapper.created : parseInt(String(wrapper?.feed_ts || '0'), 10) || 0,
+          feed_ts: wrapper?.feed_ts,
+          is_unread: Boolean(wrapper?.is_unread),
+          permalink,
+        })
+      }
+
+      return out
     })
   }
 

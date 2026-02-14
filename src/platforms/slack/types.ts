@@ -118,13 +118,28 @@ export interface SlackSavedItem {
 }
 
 export interface SlackActivityItem {
+  /** Stable identifier (best-effort). For activity.feed we use the returned `key` when available. */
   id: string
   type: string
+
+  /** Channel ID (for message-based items). */
   channel: string
+  channel_name?: string
+
+  /** Message timestamp (for message-based items). */
   ts: string
+  thread_ts?: string
+
   text: string
   user: string
+
+  /** Epoch seconds (best-effort). */
   created: number
+
+  /** Slack-internal feed timestamp / cursor (best-effort). */
+  feed_ts?: string
+  is_unread?: boolean
+  permalink?: string
 }
 
 export interface SlackDraft {

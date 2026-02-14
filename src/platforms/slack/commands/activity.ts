@@ -50,7 +50,7 @@ async function listAction(options: {
 }
 
 export const activityCommand = new Command('activity')
-  .description('Activity feed commands (Slack Inbox / Activity)')
+  .description('Activity feed commands')
   .addCommand(
     new Command('list')
       .description('List activity feed items')
