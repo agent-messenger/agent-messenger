@@ -65,7 +65,26 @@ export async function unreadAction(options: {
 
       if (!channelId || !ts) continue
 
-      const m = await client.getMessage(channelId, ts)
+      let text = ''
+
+      // Slack thread replies often do NOT appear in conversations.history unless broadcast.
+      // For thread replies, prefer conversations.replies(thread_ts) and match by ts.
+      if (threadTs) {
+        try {
+          const rep = await client.getThreadReplies(channelId, threadTs, { limit: 200 })
+          const matched = rep.messages.find((m) => m.ts === ts)
+          if (matched?.text) text = matched.text
+        } catch {
+          // fall through
+        }
+      }
+
+      // Fallback: channel history (works for top-level messages).
+      if (!text) {
+        const m = await client.getMessage(channelId, ts)
+        text = m?.text || ''
+      }
+
       const permalink = await client.getPermalink(channelId, ts).catch(() => '')
 
       items.push({
@@ -75,7 +94,7 @@ export async function unreadAction(options: {
         ts,
         thread_ts: threadTs,
         author_user_id: authorUserId,
-        text: m?.text || '',
+        text,
         permalink,
       })
     }
