@@ -5,7 +5,7 @@ import { createRequire } from 'node:module'
 import { homedir, tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { ClassicLevel } from 'classic-level'
-import { DerivedKeyCache } from '../../shared/utils/derived-key-cache'
+import { DerivedKeyCache } from '@/shared/utils/derived-key-cache'
 
 const require = createRequire(import.meta.url)
 

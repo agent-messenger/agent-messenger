@@ -1,4 +1,4 @@
-import { formatOutput } from '../../../shared/utils/output'
+import { formatOutput } from '@/shared/utils/output'
 import { SlackBotClient } from '../client'
 import { SlackBotCredentialManager } from '../credential-manager'
 

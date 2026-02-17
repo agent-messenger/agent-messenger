@@ -3,7 +3,7 @@ import { createDecipheriv, pbkdf2Sync } from 'node:crypto'
 import { copyFileSync, existsSync, readFileSync, unlinkSync } from 'node:fs'
 import { homedir, tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { DerivedKeyCache } from '../../shared/utils/derived-key-cache'
+import { DerivedKeyCache } from '@/shared/utils/derived-key-cache'
 
 export interface ExtractedTeamsToken {
   token: string
