@@ -24,7 +24,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: "22"
+          node-version: "24"
           registry-url: "https://registry.npmjs.org"
 
       - name: Install dependencies
@@ -65,9 +65,7 @@ jobs:
           git push origin HEAD --tags
 
       - name: Publish to npm
-        run: |
-          npm config delete "//registry.npmjs.org/:_authToken" --location=user
-          npm publish --provenance --access public
+        run: npm publish --provenance --access public
 
       - name: Create GitHub Release
         run: gh release create "${{ inputs.version }}" --generate-notes
