@@ -18,10 +18,11 @@ Bun runs TypeScript directly — no compilation step needed.
 `bun run build` compiles to `dist/` for npm consumers who don't have Bun.
 
 1. `tsc` compiles `src/` → `dist/src/` (JS + declarations + source maps)
-2. `scripts/postbuild.ts` replaces `#!/usr/bin/env bun` → `#!/usr/bin/env node` in CLI files
-3. `module` and `main` in `package.json` point to `dist/cli.js`
+2. `tsc-alias` resolves `@/*` path aliases in the compiled output
+3. `scripts/postbuild.ts` replaces `#!/usr/bin/env bun` → `#!/usr/bin/env node` in CLI files
+4. `module` and `main` in `package.json` point to `dist/cli.js`
 
-npm consumers run compiled JS via Node.js. The `prepublishOnly` script ensures build runs before `npm publish`.
+npm consumers run compiled JS via Node.js. The `prepublishOnly` script runs the build, then `scripts/prepublish.ts` rewrites `bin` paths from `./src/*.ts` to `dist/src/*.js`. After publish, `postpublish` restores `package.json` via `git checkout`.
 
 ### Key Distinction
 
@@ -37,10 +38,12 @@ npm consumers run compiled JS via Node.js. The `prepublishOnly` script ensures b
 ```bash
 bun install     # Install dependencies
 bun link        # Link CLI globally for local testing
-bun test        # Run tests
-bun run build   # Build dist/ for production
+bun test        # Run unit tests
+bun test:e2e    # Run e2e tests
 bun typecheck   # Type check without emitting
 bun lint        # Lint with Biome
+bun lint:fix    # Lint with Biome
+bun format      # Format with Biome
 ```
 
 ## Release
