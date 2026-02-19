@@ -73,8 +73,7 @@ async function listAction(channel: string, ts: string, options: { pretty?: boole
     }
 
     const client = new SlackClient(ws.token, ws.cookie)
-    const messages = await client.getMessages(channel, 1)
-    const message = messages.find((m) => m.ts === ts)
+    const message = await client.getMessage(channel, ts)
 
     if (!message) {
       console.log(
@@ -90,7 +89,7 @@ async function listAction(channel: string, ts: string, options: { pretty?: boole
       process.exit(1)
     }
 
-    const reactions = (message as any).reactions || []
+    const reactions = message.reactions || []
 
     console.log(
       formatOutput(

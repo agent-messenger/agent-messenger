@@ -45,43 +45,47 @@ describe('reaction command', () => {
   describe('list subcommand', () => {
     test('lists reactions on a message', async () => {
       const messageTs = '1234567890.123456'
-      const mockMessages = [
-        {
-          ts: messageTs,
-          text: 'Hello',
-          type: 'message',
-          user: 'U456',
-          reactions: [
-            { name: 'thumbsup', count: 2, users: ['U123', 'U456'] },
-            { name: 'heart', count: 1, users: ['U789'] },
-          ],
-        },
-      ]
+      const mockMessage = {
+        ts: messageTs,
+        text: 'Hello',
+        type: 'message',
+        user: 'U456',
+        reactions: [
+          { name: 'thumbsup', count: 2, users: ['U123', 'U456'] },
+          { name: 'heart', count: 1, users: ['U789'] },
+        ],
+      }
 
-      const mockGetMessages = mock(() => Promise.resolve(mockMessages))
-      const result = await mockGetMessages()
+      const mockGetMessage = mock(() => Promise.resolve(mockMessage))
+      const result = await mockGetMessage()
 
-      expect(result).toHaveLength(1)
-      expect(result[0].ts).toBe(messageTs)
+      expect(result).not.toBeNull()
+      expect(result!.ts).toBe(messageTs)
+      expect(result!.reactions).toHaveLength(2)
     })
 
     test('returns empty reactions list when no reactions', async () => {
       const messageTs = '1234567890.123456'
-      const mockMessages = [
-        {
-          ts: messageTs,
-          text: 'Hello',
-          type: 'message',
-          user: 'U456',
-          reactions: [],
-        },
-      ]
+      const mockMessage = {
+        ts: messageTs,
+        text: 'Hello',
+        type: 'message',
+        user: 'U456',
+        reactions: [],
+      }
 
-      const mockGetMessages = mock(() => Promise.resolve(mockMessages))
-      const result = await mockGetMessages()
+      const mockGetMessage = mock(() => Promise.resolve(mockMessage))
+      const result = await mockGetMessage()
 
-      expect(result).toHaveLength(1)
-      expect(result[0].reactions).toEqual([])
+      expect(result).not.toBeNull()
+      expect(result!.reactions).toEqual([])
+    })
+
+    test('returns null when message not found', async () => {
+      const mockGetMessage = mock(() => Promise.resolve(null))
+      const result = await mockGetMessage()
+
+      expect(result).toBeNull()
     })
   })
 
