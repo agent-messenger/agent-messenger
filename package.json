@@ -18,7 +18,7 @@
     "agent-slackbot": "./src/platforms/slackbot/cli.ts"
   },
   "scripts": {
-    "build": "tsc && tsc-alias",
+    "build": "tsc && tsc-alias --resolve-full-paths",
     "postbuild": "bun scripts/postbuild.ts",
     "test": "bun test src/",
     "test:e2e": "bun test e2e/",
