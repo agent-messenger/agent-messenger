@@ -286,6 +286,20 @@ Format:
 - User tokens only (no app tokens)
 - **Token expires in 60-90 minutes** - must re-authenticate frequently
 
+## Troubleshooting
+
+### `agent-teams: command not found`
+
+The `agent-messenger` package is not installed. Run it directly using a package runner. Ask the user which one to use:
+
+```bash
+npx -p agent-messenger agent-teams ...
+bunx -p agent-messenger agent-teams ...
+pnpm dlx --package agent-messenger agent-teams ...
+```
+
+If you already know the user's preferred package runner, use it directly instead of asking.
+
 ## References
 
 - [Authentication Guide](references/authentication.md)

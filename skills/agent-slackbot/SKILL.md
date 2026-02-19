@@ -279,6 +279,20 @@ Format:
 - No scheduled messages
 - Plain text messages only (no blocks/formatting)
 
+## Troubleshooting
+
+### `agent-slackbot: command not found`
+
+The `agent-messenger` package is not installed. Run it directly using a package runner. Ask the user which one to use:
+
+```bash
+npx -p agent-messenger agent-slackbot ...
+bunx -p agent-messenger agent-slackbot ...
+pnpm dlx --package agent-messenger agent-slackbot ...
+```
+
+If you already know the user's preferred package runner, use it directly instead of asking.
+
 ## References
 
 - [Authentication Guide](references/authentication.md)

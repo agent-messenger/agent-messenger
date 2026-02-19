@@ -333,6 +333,20 @@ Format:
 - Plain text messages only (no embeds in v1)
 - User tokens only (no bot tokens)
 
+## Troubleshooting
+
+### `agent-discord: command not found`
+
+The `agent-messenger` package is not installed. Run it directly using a package runner. Ask the user which one to use:
+
+```bash
+npx -p agent-messenger agent-discord ...
+bunx -p agent-messenger agent-discord ...
+pnpm dlx --package agent-messenger agent-discord ...
+```
+
+If you already know the user's preferred package runner, use it directly instead of asking.
+
 ## References
 
 - [Authentication Guide](references/authentication.md)
