@@ -4,6 +4,8 @@ const cliFiles = [
   'dist/src/cli.js',
   'dist/src/platforms/slack/cli.js',
   'dist/src/platforms/discord/cli.js',
+  'dist/src/platforms/teams/cli.js',
+  'dist/src/platforms/slackbot/cli.js',
 ]
 
 for (const file of cliFiles) {

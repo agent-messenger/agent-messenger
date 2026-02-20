@@ -7,6 +7,7 @@ import pkg from '../package.json' with { type: 'json' }
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
+const ext = __filename.endsWith('.ts') ? '.ts' : '.js'
 
 const program = new Command()
 
@@ -14,15 +15,15 @@ program.name('agent-messenger').description('Multi-platform messaging CLI for AI
 
 // Use absolute paths for CWD-independence
 program.command('slack', 'Interact with Slack workspaces', {
-  executableFile: join(__dirname, 'platforms', 'slack', 'cli.ts'),
+  executableFile: join(__dirname, 'platforms', 'slack', `cli${ext}`),
 })
 
 program.command('discord', 'Interact with Discord guilds', {
-  executableFile: join(__dirname, 'platforms', 'discord', 'cli.ts'),
+  executableFile: join(__dirname, 'platforms', 'discord', `cli${ext}`),
 })
 
 program.command('teams', 'Interact with Microsoft Teams', {
-  executableFile: join(__dirname, 'platforms', 'teams', 'cli.ts'),
+  executableFile: join(__dirname, 'platforms', 'teams', `cli${ext}`),
 })
 
 program.parse(process.argv)
