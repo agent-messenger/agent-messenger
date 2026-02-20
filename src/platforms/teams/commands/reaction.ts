@@ -13,14 +13,14 @@ export async function addAction(
 ): Promise<void> {
   try {
     const credManager = new TeamsCredentialManager()
-    const config = await credManager.loadConfig()
+    const token = await credManager.getToken()
 
-    if (!config?.token) {
+    if (!token) {
       console.log(formatOutput({ error: 'Not authenticated. Run "auth extract" first.' }, options.pretty))
       process.exit(1)
     }
 
-    const client = new TeamsClient(config.token, config.token_expires_at)
+    const client = new TeamsClient(token)
     await client.addReaction(teamId, channelId, messageId, emoji)
 
     console.log(
@@ -49,14 +49,14 @@ export async function removeAction(
 ): Promise<void> {
   try {
     const credManager = new TeamsCredentialManager()
-    const config = await credManager.loadConfig()
+    const token = await credManager.getToken()
 
-    if (!config?.token) {
+    if (!token) {
       console.log(formatOutput({ error: 'Not authenticated. Run "auth extract" first.' }, options.pretty))
       process.exit(1)
     }
 
-    const client = new TeamsClient(config.token, config.token_expires_at)
+    const client = new TeamsClient(token)
     await client.removeReaction(teamId, channelId, messageId, emoji)
 
     console.log(

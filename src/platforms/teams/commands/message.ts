@@ -13,14 +13,14 @@ export async function sendAction(
 ): Promise<void> {
   try {
     const credManager = new TeamsCredentialManager()
-    const config = await credManager.loadConfig()
+    const token = await credManager.getToken()
 
-    if (!config?.token) {
+    if (!token) {
       console.log(formatOutput({ error: 'Not authenticated. Run "auth extract" first.' }, options.pretty))
       process.exit(1)
     }
 
-    const client = new TeamsClient(config.token, config.token_expires_at)
+    const client = new TeamsClient(token)
     const message = await client.sendMessage(teamId, channelId, content)
 
     const output = {
@@ -43,14 +43,14 @@ export async function listAction(
 ): Promise<void> {
   try {
     const credManager = new TeamsCredentialManager()
-    const config = await credManager.loadConfig()
+    const token = await credManager.getToken()
 
-    if (!config?.token) {
+    if (!token) {
       console.log(formatOutput({ error: 'Not authenticated. Run "auth extract" first.' }, options.pretty))
       process.exit(1)
     }
 
-    const client = new TeamsClient(config.token, config.token_expires_at)
+    const client = new TeamsClient(token)
     const limit = options.limit || 50
     const messages = await client.getMessages(teamId, channelId, limit)
 
@@ -75,14 +75,14 @@ export async function getAction(
 ): Promise<void> {
   try {
     const credManager = new TeamsCredentialManager()
-    const config = await credManager.loadConfig()
+    const token = await credManager.getToken()
 
-    if (!config?.token) {
+    if (!token) {
       console.log(formatOutput({ error: 'Not authenticated. Run "auth extract" first.' }, options.pretty))
       process.exit(1)
     }
 
-    const client = new TeamsClient(config.token, config.token_expires_at)
+    const client = new TeamsClient(token)
     const message = await client.getMessage(teamId, channelId, messageId)
 
     if (!message) {
@@ -111,9 +111,9 @@ export async function deleteAction(
 ): Promise<void> {
   try {
     const credManager = new TeamsCredentialManager()
-    const config = await credManager.loadConfig()
+    const token = await credManager.getToken()
 
-    if (!config?.token) {
+    if (!token) {
       console.log(formatOutput({ error: 'Not authenticated. Run "auth extract" first.' }, options.pretty))
       process.exit(1)
     }
@@ -123,7 +123,7 @@ export async function deleteAction(
       process.exit(0)
     }
 
-    const client = new TeamsClient(config.token, config.token_expires_at)
+    const client = new TeamsClient(token)
     await client.deleteMessage(teamId, channelId, messageId)
 
     console.log(formatOutput({ deleted: messageId }, options.pretty))

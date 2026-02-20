@@ -7,14 +7,14 @@ import { TeamsCredentialManager } from '../credential-manager'
 async function listAction(teamId: string, options: { pretty?: boolean }): Promise<void> {
   try {
     const credManager = new TeamsCredentialManager()
-    const config = await credManager.loadConfig()
+    const token = await credManager.getToken()
 
-    if (!config?.token) {
+    if (!token) {
       console.log(formatOutput({ error: 'Not authenticated. Run "auth extract" first.' }, options.pretty))
       process.exit(1)
     }
 
-    const client = new TeamsClient(config.token, config.token_expires_at)
+    const client = new TeamsClient(token)
     const users = await client.listUsers(teamId)
 
     const output = users.map((user) => ({
@@ -33,14 +33,14 @@ async function listAction(teamId: string, options: { pretty?: boolean }): Promis
 async function infoAction(userId: string, options: { pretty?: boolean }): Promise<void> {
   try {
     const credManager = new TeamsCredentialManager()
-    const config = await credManager.loadConfig()
+    const token = await credManager.getToken()
 
-    if (!config?.token) {
+    if (!token) {
       console.log(formatOutput({ error: 'Not authenticated. Run "auth extract" first.' }, options.pretty))
       process.exit(1)
     }
 
-    const client = new TeamsClient(config.token, config.token_expires_at)
+    const client = new TeamsClient(token)
     const user = await client.getUser(userId)
 
     const output = {
@@ -59,14 +59,14 @@ async function infoAction(userId: string, options: { pretty?: boolean }): Promis
 async function meAction(options: { pretty?: boolean }): Promise<void> {
   try {
     const credManager = new TeamsCredentialManager()
-    const config = await credManager.loadConfig()
+    const token = await credManager.getToken()
 
-    if (!config?.token) {
+    if (!token) {
       console.log(formatOutput({ error: 'Not authenticated. Run "auth extract" first.' }, options.pretty))
       process.exit(1)
     }
 
-    const client = new TeamsClient(config.token, config.token_expires_at)
+    const client = new TeamsClient(token)
     const user = await client.testAuth()
 
     const output = {
