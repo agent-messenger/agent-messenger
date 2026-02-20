@@ -253,7 +253,7 @@ If tests crash before cleanup, you may have leftover messages in the `e2e-test` 
 agent-slack message list e2e-test --limit 20 --pretty
 
 # Delete specific message
-agent-slack message delete e2e-test <timestamp> --force
+agent-slack message delete e2e-test <ts> --force
 ```
 
 ### CI Environment Variables Not Working

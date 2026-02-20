@@ -15,18 +15,20 @@ This guide covers typical workflows for AI agents interacting with Microsoft Tea
 ```bash
 #!/bin/bash
 
+TEAM_ID="team-uuid-here"
+
 # First, ensure token is valid
 agent-teams auth extract 2>/dev/null || true
 
 # Get channel ID from channel list
-CHANNELS=$(agent-teams channel list)
+CHANNELS=$(agent-teams channel list "$TEAM_ID")
 CHANNEL_ID=$(echo "$CHANNELS" | jq -r '.[] | select(.name=="General") | .id')
 
 # Send message using channel ID
-agent-teams message send "$CHANNEL_ID" "Deployment completed successfully!"
+agent-teams message send "$TEAM_ID" "$CHANNEL_ID" "Deployment completed successfully!"
 
 # With error handling
-RESULT=$(agent-teams message send "$CHANNEL_ID" "Hello world")
+RESULT=$(agent-teams message send "$TEAM_ID" "$CHANNEL_ID" "Hello world")
 if echo "$RESULT" | jq -e '.id' > /dev/null 2>&1; then
   echo "Message sent!"
 else
@@ -36,7 +38,7 @@ else
   if echo "$ERROR" | grep -qi "expired\|401"; then
     echo "Token expired, refreshing..."
     agent-teams auth extract
-    agent-teams message send "$CHANNEL_ID" "Hello world"
+    agent-teams message send "$TEAM_ID" "$CHANNEL_ID" "Hello world"
   else
     echo "Failed: $ERROR"
     exit 1
@@ -53,6 +55,7 @@ fi
 ```bash
 #!/bin/bash
 
+TEAM_ID="team-uuid-here"
 CHANNEL_ID="19:abc123@thread.tacv2"
 LAST_ID=""
 TOKEN_CHECK_INTERVAL=300  # Check token every 5 minutes
@@ -81,7 +84,7 @@ while true; do
   refresh_token_if_needed
   
   # Get latest message
-  MESSAGES=$(agent-teams message list "$CHANNEL_ID" --limit 1)
+  MESSAGES=$(agent-teams message list "$TEAM_ID" "$CHANNEL_ID" --limit 1)
   
   # Handle token expiry error
   if echo "$MESSAGES" | jq -e '.error' | grep -qi "expired\|401" 2>/dev/null; then
@@ -101,7 +104,7 @@ while true; do
     
     # Process message here
     if echo "$CONTENT" | grep -q "bot"; then
-      agent-teams message send "$CHANNEL_ID" "You called?"
+      agent-teams message send "$TEAM_ID" "$CHANNEL_ID" "You called?"
     fi
   fi
   
@@ -154,10 +157,12 @@ echo "$SNAPSHOT" | jq -r '.recent_messages[] | "  [\(.channel_name)] \(.author):
 ```bash
 #!/bin/bash
 
+TEAM_ID="team-uuid-here"
+
 get_channel_id() {
   local channel_name=$1
   
-  CHANNELS=$(agent-teams channel list)
+  CHANNELS=$(agent-teams channel list "$TEAM_ID")
   CHANNEL_ID=$(echo "$CHANNELS" | jq -r --arg name "$channel_name" '.[] | select(.name==$name) | .id')
   
   if [ -z "$CHANNEL_ID" ]; then
@@ -171,7 +176,7 @@ get_channel_id() {
 # Usage
 GENERAL_ID=$(get_channel_id "General")
 if [ $? -eq 0 ]; then
-  agent-teams message send "$GENERAL_ID" "Hello!"
+  agent-teams message send "$TEAM_ID" "$GENERAL_ID" "Hello!"
 fi
 ```
 
@@ -184,6 +189,7 @@ fi
 ```bash
 #!/bin/bash
 
+TEAM_ID="team-uuid-here"
 MESSAGE="System maintenance in 30 minutes"
 CHANNEL_NAMES=("General" "Announcements" "Engineering")
 
@@ -191,7 +197,7 @@ CHANNEL_NAMES=("General" "Announcements" "Engineering")
 agent-teams auth extract
 
 # Get all channels once
-CHANNELS=$(agent-teams channel list)
+CHANNELS=$(agent-teams channel list "$TEAM_ID")
 
 for name in "${CHANNEL_NAMES[@]}"; do
   CHANNEL_ID=$(echo "$CHANNELS" | jq -r --arg n "$name" '.[] | select(.name==$n) | .id')
@@ -202,7 +208,7 @@ for name in "${CHANNEL_NAMES[@]}"; do
   fi
   
   echo "Posting to #$name..."
-  RESULT=$(agent-teams message send "$CHANNEL_ID" "$MESSAGE")
+  RESULT=$(agent-teams message send "$TEAM_ID" "$CHANNEL_ID" "$MESSAGE")
   
   if echo "$RESULT" | jq -e '.id' > /dev/null 2>&1; then
     echo "  Posted to #$name"
@@ -224,18 +230,19 @@ done
 ```bash
 #!/bin/bash
 
+TEAM_ID="team-uuid-here"
 CHANNEL_ID="19:abc123@thread.tacv2"
 REPORT_FILE="./daily-report.pdf"
 
 # Upload file
-UPLOAD_RESULT=$(agent-teams file upload "$CHANNEL_ID" "$REPORT_FILE")
+UPLOAD_RESULT=$(agent-teams file upload "$TEAM_ID" "$CHANNEL_ID" "$REPORT_FILE")
 
 if echo "$UPLOAD_RESULT" | jq -e '.id' > /dev/null 2>&1; then
   FILE_ID=$(echo "$UPLOAD_RESULT" | jq -r '.id')
   echo "File uploaded: $FILE_ID"
   
   # Send context message
-  agent-teams message send "$CHANNEL_ID" "Daily report is ready! Key highlights:
+  agent-teams message send "$TEAM_ID" "$CHANNEL_ID" "Daily report is ready! Key highlights:
 - 95% test coverage
 - 3 bugs fixed
 - 2 new features deployed"
@@ -254,11 +261,12 @@ fi
 ```bash
 #!/bin/bash
 
+TEAM_ID="team-uuid-here"
 CHANNEL_ID="19:abc123@thread.tacv2"
 USERNAME="john"
 
 # Get team members
-USERS=$(agent-teams user list)
+USERS=$(agent-teams user list "$TEAM_ID")
 USER=$(echo "$USERS" | jq -r --arg name "$USERNAME" 'first(.[] | select(.displayName | ascii_downcase | contains($name | ascii_downcase)))')
 USER_ID=$(echo "$USER" | jq -r '.id')
 USER_NAME=$(echo "$USER" | jq -r '.displayName')
@@ -269,7 +277,7 @@ if [ -z "$USER_ID" ] || [ "$USER_ID" = "null" ]; then
 fi
 
 # Send message with mention (Teams format)
-agent-teams message send "$CHANNEL_ID" "Hey <at id=\"$USER_ID\">$USER_NAME</at>, the build is ready for review!"
+agent-teams message send "$TEAM_ID" "$CHANNEL_ID" "Hey <at id=\"$USER_ID\">$USER_NAME</at>, the build is ready for review!"
 ```
 
 **When to use**: Notifications, task assignments, code review requests.
@@ -283,24 +291,25 @@ agent-teams message send "$CHANNEL_ID" "Hey <at id=\"$USER_ID\">$USER_NAME</at>,
 ```bash
 #!/bin/bash
 
+TEAM_ID="team-uuid-here"
 CHANNEL_ID="19:abc123@thread.tacv2"
 
 # Send deployment message
-RESULT=$(agent-teams message send "$CHANNEL_ID" "Deploying v2.1.0 to production...")
+RESULT=$(agent-teams message send "$TEAM_ID" "$CHANNEL_ID" "Deploying v2.1.0 to production...")
 MSG_ID=$(echo "$RESULT" | jq -r '.id')
 
 # Mark as in-progress
-agent-teams reaction add "$CHANNEL_ID" "$MSG_ID" "hourglass"
+agent-teams reaction add "$TEAM_ID" "$CHANNEL_ID" "$MSG_ID" "hourglass"
 
 # Simulate deployment
 sleep 5
 
 # Remove in-progress, add success
-agent-teams reaction remove "$CHANNEL_ID" "$MSG_ID" "hourglass"
-agent-teams reaction add "$CHANNEL_ID" "$MSG_ID" "checkmark"
+agent-teams reaction remove "$TEAM_ID" "$CHANNEL_ID" "$MSG_ID" "hourglass"
+agent-teams reaction add "$TEAM_ID" "$CHANNEL_ID" "$MSG_ID" "checkmark"
 
 # Send completion message
-agent-teams message send "$CHANNEL_ID" "Deployed v2.1.0 to production successfully!"
+agent-teams message send "$TEAM_ID" "$CHANNEL_ID" "Deployed v2.1.0 to production successfully!"
 ```
 
 **When to use**: Visual status tracking, workflow states, quick acknowledgments.
@@ -312,16 +321,19 @@ agent-teams message send "$CHANNEL_ID" "Deployed v2.1.0 to production successful
 ```bash
 #!/bin/bash
 
+TEAM_ID="team-uuid-here"
+
 send_with_retry() {
-  local channel_id=$1
-  local message=$2
+  local team_id=$1
+  local channel_id=$2
+  local message=$3
   local max_attempts=3
   local attempt=1
   
   while [ $attempt -le $max_attempts ]; do
     echo "Attempt $attempt/$max_attempts..."
     
-    RESULT=$(agent-teams message send "$channel_id" "$message")
+    RESULT=$(agent-teams message send "$team_id" "$channel_id" "$message")
     
     if echo "$RESULT" | jq -e '.id' > /dev/null 2>&1; then
       echo "Message sent successfully!"
@@ -358,7 +370,7 @@ send_with_retry() {
 
 # Usage
 CHANNEL_ID="19:abc123@thread.tacv2"
-send_with_retry "$CHANNEL_ID" "Important message!"
+send_with_retry "$TEAM_ID" "$CHANNEL_ID" "Important message!"
 ```
 
 **When to use**: Production scripts, critical notifications, unreliable networks.
@@ -383,7 +395,7 @@ if [ -n "$TARGET_TEAM" ]; then
 fi
 
 # Now operations use the new team
-agent-teams channel list
+agent-teams channel list "$TARGET_TEAM"
 ```
 
 **When to use**: Managing multiple teams, cross-team operations.
@@ -394,6 +406,8 @@ agent-teams channel list
 
 ```bash
 #!/bin/bash
+
+TEAM_ID="team-uuid-here"
 
 # Wrapper function that handles token refresh
 teams_cmd() {
@@ -415,8 +429,8 @@ teams_cmd() {
 }
 
 # Usage - wrap any agent-teams command
-CHANNELS=$(teams_cmd agent-teams channel list)
-RESULT=$(teams_cmd agent-teams message send "$CHANNEL_ID" "Hello!")
+CHANNELS=$(teams_cmd agent-teams channel list "$TEAM_ID")
+RESULT=$(teams_cmd agent-teams message send "$TEAM_ID" "$CHANNEL_ID" "Hello!")
 SNAPSHOT=$(teams_cmd agent-teams snapshot)
 ```
 
@@ -428,14 +442,14 @@ SNAPSHOT=$(teams_cmd agent-teams snapshot)
 
 ```bash
 # Good - handle token expiry
-RESULT=$(agent-teams message send "$CHANNEL_ID" "Hello")
+RESULT=$(agent-teams message send "$TEAM_ID" "$CHANNEL_ID" "Hello")
 if echo "$RESULT" | grep -qi "expired\|401"; then
   agent-teams auth extract
-  RESULT=$(agent-teams message send "$CHANNEL_ID" "Hello")
+  RESULT=$(agent-teams message send "$TEAM_ID" "$CHANNEL_ID" "Hello")
 fi
 
 # Bad - assume token is always valid
-agent-teams message send "$CHANNEL_ID" "Hello"
+agent-teams message send "$TEAM_ID" "$CHANNEL_ID" "Hello"
 ```
 
 ### 2. Refresh Token Proactively for Long-Running Scripts
@@ -454,7 +468,7 @@ done
 
 # Bad - wait for failure
 while true; do
-  agent-teams message send "$CHANNEL_ID" "Status update"  # Will fail after 60-90 min
+  agent-teams message send "$TEAM_ID" "$CHANNEL_ID" "Status update"  # Will fail after 60-90 min
   sleep 60
 done
 ```
@@ -463,19 +477,19 @@ done
 
 ```bash
 # Good - look up channel ID
-CHANNELS=$(agent-teams channel list)
+CHANNELS=$(agent-teams channel list "$TEAM_ID")
 CHANNEL_ID=$(echo "$CHANNELS" | jq -r '.[] | select(.name=="General") | .id')
-agent-teams message send "$CHANNEL_ID" "Hello"
+agent-teams message send "$TEAM_ID" "$CHANNEL_ID" "Hello"
 
 # Bad - hardcoded IDs without documentation
-agent-teams message send "19:abc123@thread.tacv2" "Hello"
+agent-teams message send "$TEAM_ID" "19:abc123@thread.tacv2" "Hello"
 ```
 
 ### 4. Check for Success
 
 ```bash
 # Good
-RESULT=$(agent-teams message send "$CHANNEL_ID" "Hello")
+RESULT=$(agent-teams message send "$TEAM_ID" "$CHANNEL_ID" "Hello")
 if echo "$RESULT" | jq -e '.id' > /dev/null 2>&1; then
   echo "Success!"
 else
@@ -483,7 +497,7 @@ else
 fi
 
 # Bad
-agent-teams message send "$CHANNEL_ID" "Hello"  # No error checking
+agent-teams message send "$TEAM_ID" "$CHANNEL_ID" "Hello"  # No error checking
 ```
 
 ### 5. Rate Limit Your Requests
@@ -491,13 +505,13 @@ agent-teams message send "$CHANNEL_ID" "Hello"  # No error checking
 ```bash
 # Good - respect Teams API limits
 for channel_id in "${CHANNEL_IDS[@]}"; do
-  agent-teams message send "$channel_id" "$MESSAGE"
+  agent-teams message send "$TEAM_ID" "$channel_id" "$MESSAGE"
   sleep 1  # 1 second between requests
 done
 
 # Bad - rapid-fire requests
 for channel_id in "${CHANNEL_IDS[@]}"; do
-  agent-teams message send "$channel_id" "$MESSAGE"
+  agent-teams message send "$TEAM_ID" "$channel_id" "$MESSAGE"
 done
 ```
 
@@ -505,17 +519,17 @@ done
 
 ```bash
 # Good - fetch once, reuse
-CHANNELS=$(agent-teams channel list)
+CHANNELS=$(agent-teams channel list "$TEAM_ID")
 for name in "${CHANNEL_NAMES[@]}"; do
   id=$(echo "$CHANNELS" | jq -r --arg n "$name" '.[] | select(.name==$n) | .id')
-  agent-teams message send "$id" "$MESSAGE"
+  agent-teams message send "$TEAM_ID" "$id" "$MESSAGE"
 done
 
 # Bad - fetch repeatedly
 for name in "${CHANNEL_NAMES[@]}"; do
-  CHANNELS=$(agent-teams channel list)  # Wasteful!
+  CHANNELS=$(agent-teams channel list "$TEAM_ID")  # Wasteful!
   id=$(echo "$CHANNELS" | jq -r --arg n "$name" '.[] | select(.name==$n) | .id')
-  agent-teams message send "$id" "$MESSAGE"
+  agent-teams message send "$TEAM_ID" "$id" "$MESSAGE"
 done
 ```
 
@@ -526,7 +540,7 @@ done
 ```bash
 # Bad - ignores the 60-90 minute token limit
 while true; do
-  agent-teams message list "$CHANNEL_ID" --limit 1
+  agent-teams message list "$TEAM_ID" "$CHANNEL_ID" --limit 1
   sleep 10
 done
 # Will fail silently after ~1 hour
@@ -538,7 +552,7 @@ while true; do
     agent-teams auth extract
   fi
   
-  agent-teams message list "$CHANNEL_ID" --limit 1
+  agent-teams message list "$TEAM_ID" "$CHANNEL_ID" --limit 1
   sleep 10
 done
 ```
@@ -548,13 +562,13 @@ done
 ```bash
 # Bad - polls every second (may get rate limited)
 while true; do
-  agent-teams message list "$CHANNEL_ID" --limit 1
+  agent-teams message list "$TEAM_ID" "$CHANNEL_ID" --limit 1
   sleep 1
 done
 
 # Good - reasonable interval
 while true; do
-  agent-teams message list "$CHANNEL_ID" --limit 1
+  agent-teams message list "$TEAM_ID" "$CHANNEL_ID" --limit 1
   sleep 10  # 10 seconds
 done
 ```
@@ -563,11 +577,11 @@ done
 
 ```bash
 # Bad
-agent-teams message send "$CHANNEL_ID" "Hello"
+agent-teams message send "$TEAM_ID" "$CHANNEL_ID" "Hello"
 # Continues even if it failed
 
 # Good
-RESULT=$(agent-teams message send "$CHANNEL_ID" "Hello")
+RESULT=$(agent-teams message send "$TEAM_ID" "$CHANNEL_ID" "Hello")
 if ! echo "$RESULT" | jq -e '.id' > /dev/null 2>&1; then
   echo "Failed to send message"
   exit 1
@@ -579,7 +593,7 @@ fi
 ```bash
 # Bad - sends 100 messages
 for i in {1..100}; do
-  agent-teams message send "$CHANNEL_ID" "Message $i"
+  agent-teams message send "$TEAM_ID" "$CHANNEL_ID" "Message $i"
 done
 
 # Good - batch into single message
@@ -587,7 +601,7 @@ MESSAGE="Updates:"
 for i in {1..100}; do
   MESSAGE="$MESSAGE\n$i. Item $i"
 done
-agent-teams message send "$CHANNEL_ID" "$MESSAGE"
+agent-teams message send "$TEAM_ID" "$CHANNEL_ID" "$MESSAGE"
 ```
 
 ## See Also
