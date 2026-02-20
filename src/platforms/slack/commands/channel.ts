@@ -56,6 +56,7 @@ async function infoAction(channel: string, options: { pretty?: boolean }): Promi
     }
 
     const client = new SlackClient(workspace.token, workspace.cookie)
+    channel = await client.resolveChannel(channel)
     const ch = await client.getChannel(channel)
 
     const output = {
@@ -86,6 +87,7 @@ async function historyAction(channel: string, options: { limit?: number; pretty?
     }
 
     const client = new SlackClient(workspace.token, workspace.cookie)
+    channel = await client.resolveChannel(channel)
     const messages = await client.getMessages(channel, options.limit || 20)
 
     const output = messages.map((msg) => ({

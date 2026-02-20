@@ -21,6 +21,7 @@ async function uploadAction(
     }
 
     const client = new SlackClient(workspace.token, workspace.cookie)
+    channel = await client.resolveChannel(channel)
 
     const filePath = resolve(path)
     const fileBuffer = readFileSync(filePath)
@@ -57,7 +58,8 @@ async function listAction(options: { channel?: string; pretty?: boolean }): Prom
     }
 
     const client = new SlackClient(workspace.token, workspace.cookie)
-    const files = await client.listFiles(options.channel)
+    const channel = options.channel ? await client.resolveChannel(options.channel) : undefined
+    const files = await client.listFiles(channel)
 
     const output = files.map((file) => ({
       id: file.id,

@@ -6,7 +6,7 @@ import { CredentialManager } from '../credential-manager'
 import type { SlackMessage } from '../types'
 
 async function sendAction(
-  channel: string,
+  channelInput: string,
   text: string,
   options: { thread?: string; pretty?: boolean },
 ): Promise<void> {
@@ -20,6 +20,7 @@ async function sendAction(
     }
 
     const client = new SlackClient(workspace.token, workspace.cookie)
+    const channel = await client.resolveChannel(channelInput)
     const message = await client.sendMessage(channel, text, options.thread)
 
     const output = {
@@ -37,7 +38,7 @@ async function sendAction(
 }
 
 async function listAction(
-  channel: string,
+  channelInput: string,
   options: { limit?: number; thread?: string; pretty?: boolean },
 ): Promise<void> {
   try {
@@ -50,6 +51,7 @@ async function listAction(
     }
 
     const client = new SlackClient(workspace.token, workspace.cookie)
+    const channel = await client.resolveChannel(channelInput)
     const limit = options.limit || 20
     const messages = await client.getMessages(channel, limit)
 
@@ -70,7 +72,7 @@ async function listAction(
   }
 }
 
-async function getAction(channel: string, ts: string, options: { pretty?: boolean }): Promise<void> {
+async function getAction(channelInput: string, ts: string, options: { pretty?: boolean }): Promise<void> {
   try {
     const credManager = new CredentialManager()
     const workspace = await credManager.getWorkspace()
@@ -81,6 +83,7 @@ async function getAction(channel: string, ts: string, options: { pretty?: boolea
     }
 
     const client = new SlackClient(workspace.token, workspace.cookie)
+    const channel = await client.resolveChannel(channelInput)
     const message = await client.getMessage(channel, ts)
 
     if (!message) {
@@ -105,7 +108,12 @@ async function getAction(channel: string, ts: string, options: { pretty?: boolea
   }
 }
 
-async function updateAction(channel: string, ts: string, text: string, options: { pretty?: boolean }): Promise<void> {
+async function updateAction(
+  channelInput: string,
+  ts: string,
+  text: string,
+  options: { pretty?: boolean },
+): Promise<void> {
   try {
     const credManager = new CredentialManager()
     const workspace = await credManager.getWorkspace()
@@ -116,6 +124,7 @@ async function updateAction(channel: string, ts: string, text: string, options: 
     }
 
     const client = new SlackClient(workspace.token, workspace.cookie)
+    const channel = await client.resolveChannel(channelInput)
     const message = await client.updateMessage(channel, ts, text)
 
     const output = {
@@ -132,7 +141,7 @@ async function updateAction(channel: string, ts: string, text: string, options: 
 }
 
 async function deleteAction(
-  channel: string,
+  channelInput: string,
   ts: string,
   options: { force?: boolean; pretty?: boolean },
 ): Promise<void> {
@@ -151,6 +160,7 @@ async function deleteAction(
     }
 
     const client = new SlackClient(workspace.token, workspace.cookie)
+    const channel = await client.resolveChannel(channelInput)
     await client.deleteMessage(channel, ts)
 
     console.log(formatOutput({ deleted: ts }, options.pretty))
@@ -196,7 +206,7 @@ async function searchAction(
 }
 
 async function repliesAction(
-  channel: string,
+  channelInput: string,
   threadTs: string,
   options: { limit?: number; oldest?: string; latest?: string; cursor?: string; pretty?: boolean },
 ): Promise<void> {
@@ -210,6 +220,7 @@ async function repliesAction(
     }
 
     const client = new SlackClient(workspace.token, workspace.cookie)
+    const channel = await client.resolveChannel(channelInput)
     const result = await client.getThreadReplies(channel, threadTs, {
       limit: options.limit,
       oldest: options.oldest,

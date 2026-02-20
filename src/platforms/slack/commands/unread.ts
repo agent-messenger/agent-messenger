@@ -45,6 +45,7 @@ export async function threadsAction(channel: string, threadTs: string, options: 
     }
 
     const client = new SlackClient(workspace.token, workspace.cookie)
+    channel = await client.resolveChannel(channel)
     const threadView = await client.getThreadView(channel, threadTs)
 
     const output = {
@@ -72,6 +73,7 @@ export async function markAction(channel: string, ts: string, options: { pretty?
     }
 
     const client = new SlackClient(workspace.token, workspace.cookie)
+    channel = await client.resolveChannel(channel)
     await client.markRead(channel, ts)
 
     console.log(formatOutput({ marked_read: true, channel, ts }, options.pretty))
