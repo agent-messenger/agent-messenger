@@ -12,9 +12,9 @@ let credManagerClearCredentialsSpy: ReturnType<typeof spyOn>
 let credManagerIsTokenExpiredSpy: ReturnType<typeof spyOn>
 
 beforeEach(() => {
-  extractorExtractSpy = spyOn(TeamsTokenExtractor.prototype, 'extract').mockResolvedValue({
-    token: 'test-skype-token-123',
-  })
+  extractorExtractSpy = spyOn(TeamsTokenExtractor.prototype, 'extract').mockResolvedValue([
+    { token: 'test-skype-token-123', accountType: 'work' as const },
+  ])
 
   clientTestAuthSpy = spyOn(TeamsClient.prototype, 'testAuth').mockResolvedValue({
     id: 'user-123',
@@ -51,8 +51,9 @@ afterEach(() => {
 test('extract: calls TeamsTokenExtractor', async () => {
   const extractor = new TeamsTokenExtractor()
   const result = await extractor.extract()
-  expect(result).toBeDefined()
-  expect(result?.token).toBe('test-skype-token-123')
+  expect(result).toHaveLength(1)
+  expect(result[0].token).toBe('test-skype-token-123')
+  expect(result[0].accountType).toBe('work')
 })
 
 test('extract: validates token with TeamsClient', async () => {
