@@ -3,9 +3,10 @@ import { handleError } from '@/shared/utils/error-handler'
 import { formatOutput } from '@/shared/utils/output'
 import { type BotOption, getClient } from './shared'
 
-async function sendAction(channel: string, text: string, options: BotOption & { thread?: string }): Promise<void> {
+async function sendAction(channelInput: string, text: string, options: BotOption & { thread?: string }): Promise<void> {
   try {
     const client = await getClient(options)
+    const channel = await client.resolveChannel(channelInput)
     const result = await client.postMessage(channel, text, {
       thread_ts: options.thread,
     })
@@ -26,9 +27,10 @@ async function sendAction(channel: string, text: string, options: BotOption & { 
   }
 }
 
-async function listAction(channel: string, options: BotOption & { limit?: string }): Promise<void> {
+async function listAction(channelInput: string, options: BotOption & { limit?: string }): Promise<void> {
   try {
     const client = await getClient(options)
+    const channel = await client.resolveChannel(channelInput)
     const limit = options.limit ? parseInt(options.limit, 10) : 20
     const messages = await client.getConversationHistory(channel, { limit })
 
@@ -38,9 +40,10 @@ async function listAction(channel: string, options: BotOption & { limit?: string
   }
 }
 
-async function getAction(channel: string, ts: string, options: BotOption): Promise<void> {
+async function getAction(channelInput: string, ts: string, options: BotOption): Promise<void> {
   try {
     const client = await getClient(options)
+    const channel = await client.resolveChannel(channelInput)
     const message = await client.getMessage(channel, ts)
 
     if (!message) {
@@ -54,9 +57,10 @@ async function getAction(channel: string, ts: string, options: BotOption): Promi
   }
 }
 
-async function updateAction(channel: string, ts: string, text: string, options: BotOption): Promise<void> {
+async function updateAction(channelInput: string, ts: string, text: string, options: BotOption): Promise<void> {
   try {
     const client = await getClient(options)
+    const channel = await client.resolveChannel(channelInput)
     const message = await client.updateMessage(channel, ts, text)
 
     console.log(
@@ -75,7 +79,7 @@ async function updateAction(channel: string, ts: string, text: string, options: 
   }
 }
 
-async function deleteAction(channel: string, ts: string, options: BotOption & { force?: boolean }): Promise<void> {
+async function deleteAction(channelInput: string, ts: string, options: BotOption & { force?: boolean }): Promise<void> {
   try {
     if (!options.force) {
       console.log(formatOutput({ warning: 'Use --force to confirm deletion', ts }, options.pretty))
@@ -83,6 +87,7 @@ async function deleteAction(channel: string, ts: string, options: BotOption & { 
     }
 
     const client = await getClient(options)
+    const channel = await client.resolveChannel(channelInput)
     await client.deleteMessage(channel, ts)
 
     console.log(formatOutput({ deleted: ts }, options.pretty))
@@ -92,12 +97,13 @@ async function deleteAction(channel: string, ts: string, options: BotOption & { 
 }
 
 async function repliesAction(
-  channel: string,
+  channelInput: string,
   threadTs: string,
   options: BotOption & { limit?: string },
 ): Promise<void> {
   try {
     const client = await getClient(options)
+    const channel = await client.resolveChannel(channelInput)
     const limit = options.limit ? parseInt(options.limit, 10) : 100
     const messages = await client.getThreadReplies(channel, threadTs, { limit })
 
@@ -112,7 +118,7 @@ export const messageCommand = new Command('message')
   .addCommand(
     new Command('send')
       .description('Send a message to a channel')
-      .argument('<channel>', 'Channel ID')
+      .argument('<channel>', 'Channel ID or name')
       .argument('<text>', 'Message text')
       .option('--thread <ts>', 'Thread timestamp for replies')
       .option('--bot <id>', 'Use specific bot')
@@ -122,7 +128,7 @@ export const messageCommand = new Command('message')
   .addCommand(
     new Command('list')
       .description('List messages in a channel')
-      .argument('<channel>', 'Channel ID')
+      .argument('<channel>', 'Channel ID or name')
       .option('--limit <n>', 'Number of messages to fetch', '20')
       .option('--bot <id>', 'Use specific bot')
       .option('--pretty', 'Pretty print JSON output')
@@ -131,7 +137,7 @@ export const messageCommand = new Command('message')
   .addCommand(
     new Command('get')
       .description('Get a single message')
-      .argument('<channel>', 'Channel ID')
+      .argument('<channel>', 'Channel ID or name')
       .argument('<ts>', 'Message timestamp')
       .option('--bot <id>', 'Use specific bot')
       .option('--pretty', 'Pretty print JSON output')
@@ -140,7 +146,7 @@ export const messageCommand = new Command('message')
   .addCommand(
     new Command('update')
       .description('Update a message')
-      .argument('<channel>', 'Channel ID')
+      .argument('<channel>', 'Channel ID or name')
       .argument('<ts>', 'Message timestamp')
       .argument('<text>', 'New message text')
       .option('--bot <id>', 'Use specific bot')
@@ -150,7 +156,7 @@ export const messageCommand = new Command('message')
   .addCommand(
     new Command('delete')
       .description('Delete a message')
-      .argument('<channel>', 'Channel ID')
+      .argument('<channel>', 'Channel ID or name')
       .argument('<ts>', 'Message timestamp')
       .option('--force', 'Skip confirmation')
       .option('--bot <id>', 'Use specific bot')
@@ -160,7 +166,7 @@ export const messageCommand = new Command('message')
   .addCommand(
     new Command('replies')
       .description('Get thread replies')
-      .argument('<channel>', 'Channel ID')
+      .argument('<channel>', 'Channel ID or name')
       .argument('<thread_ts>', 'Thread timestamp')
       .option('--limit <n>', 'Number of replies to fetch', '100')
       .option('--bot <id>', 'Use specific bot')

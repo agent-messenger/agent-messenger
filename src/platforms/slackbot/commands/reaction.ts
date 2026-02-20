@@ -3,9 +3,10 @@ import { handleError } from '@/shared/utils/error-handler'
 import { formatOutput } from '@/shared/utils/output'
 import { type BotOption, getClient } from './shared'
 
-async function addAction(channel: string, timestamp: string, emoji: string, options: BotOption): Promise<void> {
+async function addAction(channelInput: string, timestamp: string, emoji: string, options: BotOption): Promise<void> {
   try {
     const client = await getClient(options)
+    const channel = await client.resolveChannel(channelInput)
     await client.addReaction(channel, timestamp, emoji)
 
     console.log(formatOutput({ success: true, channel, timestamp, emoji }, options.pretty))
@@ -14,9 +15,10 @@ async function addAction(channel: string, timestamp: string, emoji: string, opti
   }
 }
 
-async function removeAction(channel: string, timestamp: string, emoji: string, options: BotOption): Promise<void> {
+async function removeAction(channelInput: string, timestamp: string, emoji: string, options: BotOption): Promise<void> {
   try {
     const client = await getClient(options)
+    const channel = await client.resolveChannel(channelInput)
     await client.removeReaction(channel, timestamp, emoji)
 
     console.log(formatOutput({ success: true, channel, timestamp, emoji }, options.pretty))
@@ -30,7 +32,7 @@ export const reactionCommand = new Command('reaction')
   .addCommand(
     new Command('add')
       .description('Add a reaction to a message')
-      .argument('<channel>', 'Channel ID')
+      .argument('<channel>', 'Channel ID or name')
       .argument('<timestamp>', 'Message timestamp')
       .argument('<emoji>', 'Emoji name (with or without colons)')
       .option('--bot <id>', 'Use specific bot')
@@ -40,7 +42,7 @@ export const reactionCommand = new Command('reaction')
   .addCommand(
     new Command('remove')
       .description('Remove a reaction from a message')
-      .argument('<channel>', 'Channel ID')
+      .argument('<channel>', 'Channel ID or name')
       .argument('<timestamp>', 'Message timestamp')
       .argument('<emoji>', 'Emoji name (with or without colons)')
       .option('--bot <id>', 'Use specific bot')
