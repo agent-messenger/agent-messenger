@@ -1,9 +1,12 @@
 import { execSync } from 'node:child_process'
 import { createDecipheriv, pbkdf2Sync } from 'node:crypto'
 import { copyFileSync, existsSync, readFileSync, unlinkSync } from 'node:fs'
+import { createRequire } from 'node:module'
 import { homedir, tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { DerivedKeyCache } from '@/shared/utils/derived-key-cache'
+
+const require = createRequire(import.meta.url)
 
 export interface ExtractedTeamsToken {
   token: string
