@@ -2,9 +2,11 @@ import { existsSync } from 'node:fs'
 import { mkdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
-import type { TeamsConfig } from './types'
+import type { TeamsAccount, TeamsAccountType, TeamsConfig, TeamsConfigLegacy } from './types'
 
 export class TeamsCredentialManager {
+  static accountOverride?: TeamsAccountType
+
   private configDir: string
   private credentialsPath: string
 
@@ -20,7 +22,8 @@ export class TeamsCredentialManager {
 
     try {
       const content = await readFile(this.credentialsPath, 'utf-8')
-      return JSON.parse(content) as TeamsConfig
+      const raw = JSON.parse(content)
+      return this.migrateIfNeeded(raw)
     } catch {
       return null
     }
@@ -31,47 +34,97 @@ export class TeamsCredentialManager {
     await writeFile(this.credentialsPath, JSON.stringify(config, null, 2), { mode: 0o600 })
   }
 
-  async getToken(): Promise<string | null> {
-    const config = await this.loadConfig()
-    return config?.token ?? null
+  private migrateIfNeeded(raw: TeamsConfig | TeamsConfigLegacy): TeamsConfig {
+    if ('accounts' in raw && raw.accounts) {
+      return raw as TeamsConfig
+    }
+
+    const legacy = raw as TeamsConfigLegacy
+    const account: TeamsAccount = {
+      token: legacy.token,
+      token_expires_at: legacy.token_expires_at,
+      account_type: 'work',
+      current_team: legacy.current_team,
+      teams: legacy.teams,
+    }
+    return {
+      current_account: 'work',
+      accounts: { work: account },
+    }
   }
 
-  async setToken(token: string, expiresAt?: string): Promise<void> {
+  private resolveAccountKey(config: TeamsConfig): string | null {
+    return TeamsCredentialManager.accountOverride ?? config.current_account
+  }
+
+  private getCurrentAccount(config: TeamsConfig): TeamsAccount | null {
+    const key = this.resolveAccountKey(config)
+    if (!key) return null
+    return config.accounts[key] ?? null
+  }
+
+  async getToken(): Promise<string | null> {
+    const config = await this.loadConfig()
+    if (!config) return null
+    return this.getCurrentAccount(config)?.token ?? null
+  }
+
+  async setToken(token: string, accountType: TeamsAccountType, expiresAt?: string): Promise<void> {
     let config = await this.loadConfig()
     if (!config) {
-      config = {
-        token,
-        current_team: null,
-        teams: {},
-      }
+      config = { current_account: accountType, accounts: {} }
     }
-    config.token = token
-    if (expiresAt !== undefined) {
-      config.token_expires_at = expiresAt
+    const existing = config.accounts[accountType]
+    config.accounts[accountType] = {
+      token,
+      token_expires_at: expiresAt,
+      account_type: accountType,
+      user_name: existing?.user_name,
+      current_team: existing?.current_team ?? null,
+      teams: existing?.teams ?? {},
+    }
+    if (!config.current_account) {
+      config.current_account = accountType
     }
     await this.saveConfig(config)
   }
 
   async getCurrentTeam(): Promise<{ team_id: string; team_name: string } | null> {
     const config = await this.loadConfig()
-    if (!config?.current_team) {
-      return null
-    }
-    return config.teams[config.current_team] ?? null
+    if (!config) return null
+    const account = this.getCurrentAccount(config)
+    if (!account?.current_team) return null
+    return account.teams[account.current_team] ?? null
   }
 
   async setCurrentTeam(teamId: string, teamName: string): Promise<void> {
-    let config = await this.loadConfig()
-    if (!config) {
-      config = {
-        token: '',
-        current_team: null,
-        teams: {},
-      }
-    }
-    config.current_team = teamId
-    config.teams[teamId] = { team_id: teamId, team_name: teamName }
+    const config = await this.loadConfig()
+    if (!config) return
+    const account = this.getCurrentAccount(config)
+    if (!account) return
+    account.current_team = teamId
+    account.teams[teamId] = { team_id: teamId, team_name: teamName }
     await this.saveConfig(config)
+  }
+
+  async getCurrentAccountType(): Promise<TeamsAccountType | null> {
+    const config = await this.loadConfig()
+    if (!config) return null
+    const key = this.resolveAccountKey(config)
+    return (key as TeamsAccountType) ?? null
+  }
+
+  async setCurrentAccount(accountType: TeamsAccountType): Promise<void> {
+    const config = await this.loadConfig()
+    if (!config) return
+    if (!config.accounts[accountType]) return
+    config.current_account = accountType
+    await this.saveConfig(config)
+  }
+
+  async getAccounts(): Promise<Record<string, TeamsAccount>> {
+    const config = await this.loadConfig()
+    return config?.accounts ?? {}
   }
 
   async clearCredentials(): Promise<void> {
@@ -82,11 +135,17 @@ export class TeamsCredentialManager {
 
   async isTokenExpired(): Promise<boolean> {
     const config = await this.loadConfig()
-    if (!config?.token_expires_at) {
-      return true
-    }
+    if (!config) return true
+    const account = this.getCurrentAccount(config)
+    if (!account?.token_expires_at) return true
+    return new Date(account.token_expires_at).getTime() <= Date.now()
+  }
 
-    const expiresAt = new Date(config.token_expires_at)
-    return expiresAt.getTime() <= Date.now()
+  async isAccountTokenExpired(accountType: TeamsAccountType): Promise<boolean> {
+    const config = await this.loadConfig()
+    if (!config) return true
+    const account = config.accounts[accountType]
+    if (!account?.token_expires_at) return true
+    return new Date(account.token_expires_at).getTime() <= Date.now()
   }
 }

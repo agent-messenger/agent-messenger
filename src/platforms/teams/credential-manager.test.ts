@@ -33,10 +33,16 @@ describe('TeamsCredentialManager', () => {
     testDirs.push(testConfigDir)
     const manager = new TeamsCredentialManager(testConfigDir)
     const config = {
-      token: 'test-token',
-      current_team: 'team-123',
-      teams: {
-        'team-123': { team_id: 'team-123', team_name: 'Test Team' },
+      current_account: 'work',
+      accounts: {
+        work: {
+          token: 'test-token',
+          current_team: 'team-123',
+          account_type: 'work' as const,
+          teams: {
+            'team-123': { team_id: 'team-123', team_name: 'Test Team' },
+          },
+        },
       },
     }
 
@@ -59,7 +65,7 @@ describe('TeamsCredentialManager', () => {
 
   test('setToken saves token to config', async () => {
     const manager = setup()
-    await manager.setToken('test-token-123')
+    await manager.setToken('test-token-123', 'work')
 
     const token = await manager.getToken()
     expect(token).toBe('test-token-123')
@@ -68,11 +74,11 @@ describe('TeamsCredentialManager', () => {
   test('setToken saves token with expiry', async () => {
     const manager = setup()
     const expiresAt = '2025-12-31T23:59:59Z'
-    await manager.setToken('test-token-123', expiresAt)
+    await manager.setToken('test-token-123', 'work', expiresAt)
 
     const config = await manager.loadConfig()
-    expect(config?.token).toBe('test-token-123')
-    expect(config?.token_expires_at).toBe(expiresAt)
+    expect(config?.accounts?.work?.token).toBe('test-token-123')
+    expect(config?.accounts?.work?.token_expires_at).toBe(expiresAt)
   })
 
   test('getCurrentTeam returns null when not set', async () => {
@@ -83,10 +89,10 @@ describe('TeamsCredentialManager', () => {
 
   test('getCurrentTeam returns null when current_team is set but team not in teams record', async () => {
     const manager = setup()
-    await manager.setToken('test-token')
+    await manager.setToken('test-token', 'work')
     const config = await manager.loadConfig()
-    if (config) {
-      config.current_team = 'non-existent-team'
+    if (config?.accounts?.work) {
+      config.accounts.work.current_team = 'non-existent-team'
       await manager.saveConfig(config)
     }
 
@@ -96,7 +102,7 @@ describe('TeamsCredentialManager', () => {
 
   test('setCurrentTeam saves team info', async () => {
     const manager = setup()
-    await manager.setToken('test-token')
+    await manager.setToken('test-token', 'work')
     await manager.setCurrentTeam('team-456', 'My Team')
 
     const team = await manager.getCurrentTeam()
@@ -105,7 +111,7 @@ describe('TeamsCredentialManager', () => {
 
   test('setCurrentTeam updates existing team', async () => {
     const manager = setup()
-    await manager.setToken('test-token')
+    await manager.setToken('test-token', 'work')
     await manager.setCurrentTeam('team-1', 'Team One')
     await manager.setCurrentTeam('team-2', 'Team Two')
 
@@ -113,13 +119,13 @@ describe('TeamsCredentialManager', () => {
     expect(team).toEqual({ team_id: 'team-2', team_name: 'Team Two' })
 
     const config = await manager.loadConfig()
-    expect(config?.teams['team-1']).toEqual({ team_id: 'team-1', team_name: 'Team One' })
-    expect(config?.teams['team-2']).toEqual({ team_id: 'team-2', team_name: 'Team Two' })
+    expect(config?.accounts?.work?.teams['team-1']).toEqual({ team_id: 'team-1', team_name: 'Team One' })
+    expect(config?.accounts?.work?.teams['team-2']).toEqual({ team_id: 'team-2', team_name: 'Team Two' })
   })
 
   test('clearCredentials removes all credentials', async () => {
     const manager = setup()
-    await manager.setToken('test-token', '2025-12-31T23:59:59Z')
+    await manager.setToken('test-token', 'work', '2025-12-31T23:59:59Z')
     await manager.setCurrentTeam('team-123', 'Test Team')
 
     await manager.clearCredentials()
@@ -136,7 +142,7 @@ describe('TeamsCredentialManager', () => {
 
   test('isTokenExpired returns true when no token_expires_at is set', async () => {
     const manager = setup()
-    await manager.setToken('test-token')
+    await manager.setToken('test-token', 'work')
 
     const expired = await manager.isTokenExpired()
     expect(expired).toBe(true)
@@ -145,7 +151,7 @@ describe('TeamsCredentialManager', () => {
   test('isTokenExpired returns true when token is expired', async () => {
     const manager = setup()
     const pastDate = new Date(Date.now() - 60000).toISOString()
-    await manager.setToken('test-token', pastDate)
+    await manager.setToken('test-token', 'work', pastDate)
 
     const expired = await manager.isTokenExpired()
     expect(expired).toBe(true)
@@ -154,7 +160,7 @@ describe('TeamsCredentialManager', () => {
   test('isTokenExpired returns false when token is not expired', async () => {
     const manager = setup()
     const futureDate = new Date(Date.now() + 3600000).toISOString()
-    await manager.setToken('test-token', futureDate)
+    await manager.setToken('test-token', 'work', futureDate)
 
     const expired = await manager.isTokenExpired()
     expect(expired).toBe(false)
@@ -162,14 +168,14 @@ describe('TeamsCredentialManager', () => {
 
   test('multiple operations preserve existing data', async () => {
     const manager = setup()
-    await manager.setToken('token-1', '2025-12-31T23:59:59Z')
+    await manager.setToken('token-1', 'work', '2025-12-31T23:59:59Z')
     await manager.setCurrentTeam('team-1', 'Team One')
 
-    await manager.setToken('token-2')
+    await manager.setToken('token-2', 'work')
 
     const config = await manager.loadConfig()
-    expect(config?.token).toBe('token-2')
-    expect(config?.current_team).toBe('team-1')
-    expect(config?.teams['team-1']).toEqual({ team_id: 'team-1', team_name: 'Team One' })
+    expect(config?.accounts?.work?.token).toBe('token-2')
+    expect(config?.accounts?.work?.current_team).toBe('team-1')
+    expect(config?.accounts?.work?.teams['team-1']).toEqual({ team_id: 'team-1', team_name: 'Team One' })
   })
 })
