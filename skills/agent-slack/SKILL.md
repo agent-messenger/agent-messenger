@@ -11,10 +11,7 @@ A TypeScript CLI tool that enables AI agents and humans to interact with Slack w
 ## Quick Start
 
 ```bash
-# Extract credentials from Slack desktop app (zero-config)
-agent-slack auth extract
-
-# Get workspace snapshot
+# Get workspace snapshot (credentials are extracted automatically)
 agent-slack snapshot
 
 # Send a message
@@ -26,25 +23,9 @@ agent-slack channel list
 
 ## Authentication
 
-### Seamless Token Extraction
+Credentials are extracted automatically from the Slack desktop app on first use. No manual setup required — just run any command and authentication happens silently in the background.
 
-agent-slack automatically extracts your Slack credentials from the desktop app:
-
-```bash
-# Just run this - no manual token copying needed
-agent-slack auth extract
-
-# Use --debug for troubleshooting
-agent-slack auth extract --debug
-```
-
-This command:
-- Auto-detects your platform (macOS/Linux/Windows)
-- Supports both direct download and App Store versions of Slack on macOS
-- Extracts xoxc token and xoxd cookie (with v10 decryption for sandboxed apps)
-- Validates tokens against Slack API before saving
-- Discovers ALL logged-in workspaces
-- Stores credentials securely in `~/.config/agent-messenger/`
+On macOS, the system may prompt for your Keychain password the first time (required to decrypt Slack's stored token). This is a one-time prompt.
 
 ### Multi-Workspace Support
 
@@ -281,7 +262,7 @@ All commands return consistent error format:
 ```
 
 Common errors:
-- `NO_WORKSPACE`: No authenticated workspace
+- `NO_WORKSPACE`: No authenticated workspace (auto-extraction failed — see Troubleshooting)
 - `SLACK_API_ERROR`: Slack API returned an error
 - `RATE_LIMIT`: Hit Slack rate limit (auto-retries with backoff)
 
@@ -316,6 +297,19 @@ Format:
 - Plain text messages only (no blocks/formatting in v1)
 
 ## Troubleshooting
+
+### Authentication fails or no workspace found
+
+Credentials are normally extracted automatically. If auto-extraction fails, run it manually with debug output:
+
+```bash
+agent-slack auth extract --debug
+```
+
+Common causes:
+- Slack desktop app is not installed or not logged in
+- macOS Keychain access was denied (re-run and approve the prompt)
+- Slack was installed via a method that uses a different storage path
 
 ### `agent-slack: command not found`
 

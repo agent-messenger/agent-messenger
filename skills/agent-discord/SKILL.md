@@ -11,10 +11,7 @@ A TypeScript CLI tool that enables AI agents and humans to interact with Discord
 ## Quick Start
 
 ```bash
-# Extract credentials from Discord desktop app (zero-config)
-agent-discord auth extract
-
-# Get server snapshot
+# Get server snapshot (credentials are extracted automatically)
 agent-discord snapshot
 
 # Send a message
@@ -26,24 +23,9 @@ agent-discord channel list
 
 ## Authentication
 
-### Seamless Token Extraction
+Credentials are extracted automatically from the Discord desktop app on first use. No manual setup required — just run any command and authentication happens silently in the background.
 
-agent-discord automatically extracts your Discord credentials from the desktop app:
-
-```bash
-# Just run this - no manual token copying needed
-agent-discord auth extract
-
-# Use --debug for troubleshooting
-agent-discord auth extract --debug
-```
-
-This command:
-- Auto-detects your platform (macOS/Linux/Windows)
-- Extracts user token from Discord desktop app's LevelDB storage
-- Validates token against Discord API before saving
-- Discovers ALL joined servers
-- Stores credentials securely in `~/.config/agent-messenger/`
+On macOS, the system may prompt for your Keychain password the first time (required to decrypt Discord's stored token). This is a one-time prompt.
 
 ### Multi-Server Support
 
@@ -298,7 +280,7 @@ All commands return consistent error format:
 ```
 
 Common errors:
-- `Not authenticated`: No valid token - run `auth extract`
+- `Not authenticated`: No valid token (auto-extraction failed — see Troubleshooting)
 - `No current server set`: Run `server switch <id>` first
 - `Message not found`: Invalid message ID
 - `Unknown Channel`: Invalid channel ID
@@ -334,6 +316,19 @@ Format:
 - User tokens only (no bot tokens)
 
 ## Troubleshooting
+
+### Authentication fails or no token found
+
+Credentials are normally extracted automatically. If auto-extraction fails, run it manually with debug output:
+
+```bash
+agent-discord auth extract --debug
+```
+
+Common causes:
+- Discord desktop app is not installed or not logged in
+- macOS Keychain access was denied (re-run and approve the prompt)
+- Discord is not running and LevelDB files are stale
 
 ### `agent-discord: command not found`
 

@@ -8,29 +8,10 @@ allowed-tools: Bash(agent-teams:*)
 
 A TypeScript CLI tool that enables AI agents and humans to interact with Microsoft Teams through a simple command interface. Features seamless token extraction from the Teams desktop app and multi-team support.
 
-## TOKEN EXPIRY WARNING
-
-**CRITICAL**: Microsoft Teams tokens expire in **60-90 minutes**! Unlike Discord/Slack, Teams tokens have a short lifespan. You MUST:
-
-1. Check token validity before operations
-2. Re-extract credentials when tokens expire
-3. Handle `401 Unauthorized` errors gracefully
-
-```bash
-# Always check auth status first
-agent-teams auth status
-
-# If expired, re-extract
-agent-teams auth extract
-```
-
 ## Quick Start
 
 ```bash
-# Extract credentials from Teams desktop app (zero-config)
-agent-teams auth extract
-
-# Get team snapshot
+# Get team snapshot (credentials are extracted automatically)
 agent-teams snapshot
 
 # Send a message
@@ -42,24 +23,9 @@ agent-teams channel list
 
 ## Authentication
 
-### Seamless Token Extraction
+Credentials are extracted automatically from the Teams desktop app on first use. No manual setup required — just run any command and authentication happens silently in the background.
 
-agent-teams automatically extracts your Teams credentials from the desktop app:
-
-```bash
-# Just run this - no manual token copying needed
-agent-teams auth extract
-
-# Use --debug for troubleshooting
-agent-teams auth extract --debug
-```
-
-This command:
-- Auto-detects your platform (macOS/Linux/Windows)
-- Extracts skypetoken_asm from Teams desktop app's Cookies SQLite database
-- Validates token against Teams API before saving
-- Discovers ALL joined teams
-- Stores credentials securely in `~/.config/agent-messenger/`
+Teams tokens expire in 60-90 minutes. The CLI automatically re-extracts a fresh token when the current one expires, so you don't need to manage token lifecycle manually.
 
 ### Multi-Team Support
 
@@ -247,12 +213,12 @@ All commands return consistent error format:
 ```
 
 Common errors:
-- `Not authenticated`: No valid token - run `auth extract`
-- `Token expired`: Token has expired (60-90 min limit) - run `auth extract` again
+- `Not authenticated`: No valid token (auto-extraction failed — see Troubleshooting)
+- `Token expired`: Token has expired and auto-refresh failed — see Troubleshooting
 - `No current team set`: Run `team switch <id>` first
 - `Message not found`: Invalid message ID
 - `Channel not found`: Invalid channel ID
-- `401 Unauthorized`: Token expired - re-authenticate immediately
+- `401 Unauthorized`: Token expired and auto-refresh failed — see Troubleshooting
 
 ## Configuration
 
@@ -284,9 +250,22 @@ Format:
 - No webhook support
 - Plain text messages only (no adaptive cards in v1)
 - User tokens only (no app tokens)
-- **Token expires in 60-90 minutes** - must re-authenticate frequently
+- **Token expires in 60-90 minutes** - auto-refreshed, but requires Teams desktop app to be logged in
 
 ## Troubleshooting
+
+### Authentication fails or token expired
+
+Credentials and token refresh are normally handled automatically. If auto-extraction fails, run it manually with debug output:
+
+```bash
+agent-teams auth extract --debug
+```
+
+Common causes:
+- Teams desktop app is not installed or not logged in
+- Teams Cookies database is locked or inaccessible
+- Token expired and Teams desktop app session also expired (re-login to Teams)
 
 ### `agent-teams: command not found`
 
