@@ -15,10 +15,10 @@ A TypeScript CLI tool that enables AI agents and humans to interact with Microso
 agent-teams snapshot
 
 # Send a message
-agent-teams message send <channel-id> "Hello from AI agent!"
+agent-teams message send <team-id> <channel-id> "Hello from AI agent!"
 
 # List channels
-agent-teams channel list
+agent-teams channel list <team-id>
 ```
 
 ## Authentication
@@ -49,32 +49,32 @@ agent-teams auth status
 
 ```bash
 # Send a message
-agent-teams message send <channel-id> <content>
-agent-teams message send 19:abc123@thread.tacv2 "Hello world"
+agent-teams message send <team-id> <channel-id> <content>
+agent-teams message send <team-id> 19:abc123@thread.tacv2 "Hello world"
 
 # List messages
-agent-teams message list <channel-id>
-agent-teams message list 19:abc123@thread.tacv2 --limit 50
+agent-teams message list <team-id> <channel-id>
+agent-teams message list <team-id> 19:abc123@thread.tacv2 --limit 50
 
 # Get a single message by ID
-agent-teams message get <channel-id> <message-id>
+agent-teams message get <team-id> <channel-id> <message-id>
 
 # Delete a message
-agent-teams message delete <channel-id> <message-id> --force
+agent-teams message delete <team-id> <channel-id> <message-id> --force
 ```
 
 ### Channel Commands
 
 ```bash
-# List channels in current team
-agent-teams channel list
+# List channels in a team
+agent-teams channel list <team-id>
 
 # Get channel info
-agent-teams channel info <channel-id>
-agent-teams channel info 19:abc123@thread.tacv2
+agent-teams channel info <team-id> <channel-id>
+agent-teams channel info <team-id> 19:abc123@thread.tacv2
 
 # Get channel history (alias for message list)
-agent-teams channel history <channel-id> --limit 100
+agent-teams channel history <team-id> <channel-id> --limit 100
 ```
 
 ### Team Commands
@@ -97,7 +97,7 @@ agent-teams team current
 
 ```bash
 # List team members
-agent-teams user list
+agent-teams user list <team-id>
 
 # Get user info
 agent-teams user info <user-id>
@@ -110,28 +110,25 @@ agent-teams user me
 
 ```bash
 # Add reaction (use emoji name)
-agent-teams reaction add <channel-id> <message-id> <emoji>
-agent-teams reaction add 19:abc123@thread.tacv2 1234567890 like
+agent-teams reaction add <team-id> <channel-id> <message-id> <emoji>
+agent-teams reaction add <team-id> 19:abc123@thread.tacv2 1234567890 like
 
 # Remove reaction
-agent-teams reaction remove <channel-id> <message-id> <emoji>
-
-# List reactions on a message
-agent-teams reaction list <channel-id> <message-id>
+agent-teams reaction remove <team-id> <channel-id> <message-id> <emoji>
 ```
 
 ### File Commands
 
 ```bash
 # Upload file
-agent-teams file upload <channel-id> <path>
-agent-teams file upload 19:abc123@thread.tacv2 ./report.pdf
+agent-teams file upload <team-id> <channel-id> <path>
+agent-teams file upload <team-id> 19:abc123@thread.tacv2 ./report.pdf
 
 # List files in channel
-agent-teams file list <channel-id>
+agent-teams file list <team-id> <channel-id>
 
 # Get file info
-agent-teams file info <channel-id> <file-id>
+agent-teams file info <team-id> <channel-id> <file-id>
 ```
 
 ### Snapshot Command

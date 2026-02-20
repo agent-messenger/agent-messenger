@@ -146,16 +146,14 @@ agent-slack file info <file-id>
 ### Unread Commands
 
 ```bash
-# List unread channels
-agent-slack unread list
-agent-slack unread list --pretty
+# Get unread counts for all channels
+agent-slack unread counts
 
-# Get unread counts summary
-agent-slack unread count
+# Get thread subscription details
+agent-slack unread threads <channel> <thread_ts>
 
-# Mark channel as read
-agent-slack mark read <channel>
-agent-slack mark read general
+# Mark channel as read up to timestamp
+agent-slack unread mark <channel> <ts>
 ```
 
 ### Activity Commands
@@ -164,6 +162,8 @@ agent-slack mark read general
 # List activity feed (mentions, reactions, replies)
 agent-slack activity list
 agent-slack activity list --limit 50
+agent-slack activity list --unread
+agent-slack activity list --types thread_reply,message_reaction
 ```
 
 ### Saved Items Commands
@@ -171,13 +171,7 @@ agent-slack activity list --limit 50
 ```bash
 # List saved items
 agent-slack saved list
-
-# Add item to saved
-agent-slack saved add <channel> <ts>
-agent-slack saved add general 1234567890.123456
-
-# Remove item from saved
-agent-slack saved remove <channel> <ts>
+agent-slack saved list --limit 10
 ```
 
 ### Drafts Commands
@@ -192,8 +186,8 @@ agent-slack drafts list --pretty
 
 ```bash
 # List channel sections (sidebar organization)
-agent-slack section list
-agent-slack section list --pretty
+agent-slack sections list
+agent-slack sections list --pretty
 ```
 
 ### Snapshot Command

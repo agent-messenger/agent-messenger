@@ -65,6 +65,11 @@ agent-discord message delete <channel-id> <message-id> --force
 
 # Acknowledge/mark a message as read
 agent-discord message ack <channel-id> <message-id>
+
+# Search messages in current server
+agent-discord message search <query>
+agent-discord message search "project update" --limit 10
+agent-discord message search "hello" --channel <channel-id> --author <user-id>
 ```
 
 ### Channel Commands
