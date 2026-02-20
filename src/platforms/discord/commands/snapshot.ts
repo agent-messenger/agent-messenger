@@ -86,8 +86,7 @@ export async function snapshotAction(options: {
   }
 }
 
-export const snapshotCommand = new Command()
-  .name('snapshot')
+export const snapshotCommand = new Command('snapshot')
   .description('Get comprehensive server state for AI agents')
   .option('--channels-only', 'Include only channels (exclude messages and members)')
   .option('--users-only', 'Include only members (exclude channels and messages)')
