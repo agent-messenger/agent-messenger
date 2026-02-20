@@ -147,15 +147,21 @@ describe('ensureTeamsAuth', () => {
     // given
     extractSpy.mockRejectedValue(new Error('Teams not found'))
 
-    // when/then
-    await expect(ensureTeamsAuth()).rejects.toThrow('Teams not found')
+    // when
+    await ensureTeamsAuth()
+
+    // then
+    expect(saveConfigSpy).not.toHaveBeenCalled()
   })
 
   test('silently handles auth validation failure', async () => {
     // given
     testAuthSpy.mockRejectedValue(new Error('401 Unauthorized'))
 
-    // when/then
-    await expect(ensureTeamsAuth()).rejects.toThrow('401 Unauthorized')
+    // when
+    await ensureTeamsAuth()
+
+    // then
+    expect(saveConfigSpy).not.toHaveBeenCalled()
   })
 })

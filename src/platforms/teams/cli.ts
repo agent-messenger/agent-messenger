@@ -35,9 +35,7 @@ program
 
 program.hook('preAction', async (_thisCommand, actionCommand) => {
   if (isAuthCommand(actionCommand)) return
-  try {
-    await ensureTeamsAuth()
-  } catch {}
+  await ensureTeamsAuth()
 })
 
 program.addCommand(authCommand)

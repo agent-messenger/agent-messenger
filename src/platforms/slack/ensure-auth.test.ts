@@ -146,8 +146,11 @@ describe('ensureSlackAuth', () => {
     // given
     extractSpy.mockRejectedValue(new Error('Slack directory not found'))
 
-    // when/then - should not throw
-    await expect(ensureSlackAuth()).rejects.toThrow('Slack directory not found')
+    // when/then
+    await ensureSlackAuth()
+
+    // then
+    expect(setWorkspaceSpy).not.toHaveBeenCalled()
   })
 
   test('does not save when no workspaces extracted', async () => {

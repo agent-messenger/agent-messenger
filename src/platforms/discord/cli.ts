@@ -35,9 +35,7 @@ program
 
 program.hook('preAction', async (_thisCommand, actionCommand) => {
   if (isAuthCommand(actionCommand)) return
-  try {
-    await ensureDiscordAuth()
-  } catch {}
+  await ensureDiscordAuth()
 })
 
 program.addCommand(authCommand)

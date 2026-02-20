@@ -40,9 +40,7 @@ program
 
 program.hook('preAction', async (_thisCommand, actionCommand) => {
   if (isAuthCommand(actionCommand)) return
-  try {
-    await ensureSlackAuth()
-  } catch {}
+  await ensureSlackAuth()
 })
 
 program.addCommand(authCommand)

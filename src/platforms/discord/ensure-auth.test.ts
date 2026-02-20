@@ -103,15 +103,21 @@ describe('ensureDiscordAuth', () => {
     // given
     extractSpy.mockRejectedValue(new Error('Discord not found'))
 
-    // when/then
-    await expect(ensureDiscordAuth()).rejects.toThrow('Discord not found')
+    // when
+    await ensureDiscordAuth()
+
+    // then
+    expect(saveSpy).not.toHaveBeenCalled()
   })
 
   test('silently handles auth validation failure', async () => {
     // given
     testAuthSpy.mockRejectedValue(new Error('401 Unauthorized'))
 
-    // when/then
-    await expect(ensureDiscordAuth()).rejects.toThrow('401 Unauthorized')
+    // when
+    await ensureDiscordAuth()
+
+    // then
+    expect(saveSpy).not.toHaveBeenCalled()
   })
 })
