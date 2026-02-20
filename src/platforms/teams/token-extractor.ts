@@ -5,11 +5,18 @@ import { createRequire } from 'node:module'
 import { homedir, tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { DerivedKeyCache } from '@/shared/utils/derived-key-cache'
+import type { TeamsAccountType } from './types'
 
 const require = createRequire(import.meta.url)
 
 export interface ExtractedTeamsToken {
   token: string
+  accountType: TeamsAccountType
+}
+
+interface TeamsCookiePath {
+  path: string
+  accountType: TeamsAccountType
 }
 
 interface KeychainVariant {
@@ -42,96 +49,55 @@ export class TeamsTokenExtractor {
     this.keyCache = keyCache ?? new DerivedKeyCache()
   }
 
-  getTeamsCookiesPaths(): string[] {
+  getTeamsCookiesPaths(): TeamsCookiePath[] {
     switch (this.platform) {
-      case 'darwin':
+      case 'darwin': {
+        const ebWebViewBase = join(
+          homedir(),
+          'Library',
+          'Containers',
+          'com.microsoft.teams2',
+          'Data',
+          'Library',
+          'Application Support',
+          'Microsoft',
+          'MSTeams',
+          'EBWebView',
+        )
         return [
-          join(
-            homedir(),
-            'Library',
-            'Containers',
-            'com.microsoft.teams2',
-            'Data',
-            'Library',
-            'Application Support',
-            'Microsoft',
-            'MSTeams',
-            'EBWebView',
-            'WV2Profile_tfw',
-            'Cookies',
-          ),
-          join(
-            homedir(),
-            'Library',
-            'Containers',
-            'com.microsoft.teams2',
-            'Data',
-            'Library',
-            'Application Support',
-            'Microsoft',
-            'MSTeams',
-            'EBWebView',
-            'WV2Profile_tfl',
-            'Cookies',
-          ),
-          join(
-            homedir(),
-            'Library',
-            'Containers',
-            'com.microsoft.teams2',
-            'Data',
-            'Library',
-            'Application Support',
-            'Microsoft',
-            'MSTeams',
-            'EBWebView',
-            'Default',
-            'Cookies',
-          ),
-          join(homedir(), 'Library', 'Application Support', 'Microsoft', 'Teams', 'Cookies'),
+          { path: join(ebWebViewBase, 'WV2Profile_tfw', 'Cookies'), accountType: 'work' },
+          { path: join(ebWebViewBase, 'WV2Profile_tfl', 'Cookies'), accountType: 'personal' },
+          { path: join(ebWebViewBase, 'Default', 'Cookies'), accountType: 'work' },
+          {
+            path: join(homedir(), 'Library', 'Application Support', 'Microsoft', 'Teams', 'Cookies'),
+            accountType: 'work',
+          },
         ]
+      }
       case 'linux':
-        return [join(homedir(), '.config', 'Microsoft', 'Microsoft Teams', 'Cookies')]
+        return [
+          {
+            path: join(homedir(), '.config', 'Microsoft', 'Microsoft Teams', 'Cookies'),
+            accountType: 'work',
+          },
+        ]
       case 'win32': {
         const localAppData = process.env.LOCALAPPDATA || join(homedir(), 'AppData', 'Local')
         const appdata = process.env.APPDATA || join(homedir(), 'AppData', 'Roaming')
+        const ebWebViewBase = join(
+          localAppData,
+          'Packages',
+          'MSTeams_8wekyb3d8bbwe',
+          'LocalCache',
+          'Microsoft',
+          'MSTeams',
+          'EBWebView',
+        )
         return [
-          // New Teams (MSIX/Store) - WebView2 profile paths
-          join(
-            localAppData,
-            'Packages',
-            'MSTeams_8wekyb3d8bbwe',
-            'LocalCache',
-            'Microsoft',
-            'MSTeams',
-            'EBWebView',
-            'WV2Profile_tfw',
-            'Cookies',
-          ),
-          join(
-            localAppData,
-            'Packages',
-            'MSTeams_8wekyb3d8bbwe',
-            'LocalCache',
-            'Microsoft',
-            'MSTeams',
-            'EBWebView',
-            'WV2Profile_tfl',
-            'Cookies',
-          ),
-          join(
-            localAppData,
-            'Packages',
-            'MSTeams_8wekyb3d8bbwe',
-            'LocalCache',
-            'Microsoft',
-            'MSTeams',
-            'EBWebView',
-            'Default',
-            'Cookies',
-          ),
-          // Classic Teams fallback
-          join(appdata, 'Microsoft', 'Teams', 'Cookies'),
+          { path: join(ebWebViewBase, 'WV2Profile_tfw', 'Cookies'), accountType: 'work' },
+          { path: join(ebWebViewBase, 'WV2Profile_tfl', 'Cookies'), accountType: 'personal' },
+          { path: join(ebWebViewBase, 'Default', 'Cookies'), accountType: 'work' },
+          { path: join(appdata, 'Microsoft', 'Teams', 'Cookies'), accountType: 'work' },
         ]
       }
       default:
@@ -194,15 +160,9 @@ export class TeamsTokenExtractor {
     return prefix === 'v10' || prefix === 'v11'
   }
 
-  async extract(): Promise<ExtractedTeamsToken | null> {
+  async extract(): Promise<ExtractedTeamsToken[]> {
     await this.loadCachedKey()
-
-    const cookieToken = await this.extractFromCookiesDB()
-    if (cookieToken && this.isValidSkypeToken(cookieToken)) {
-      return { token: cookieToken }
-    }
-
-    return null
+    return this.extractFromCookiesDB()
   }
 
   private async loadCachedKey(): Promise<void> {
@@ -219,18 +179,24 @@ export class TeamsTokenExtractor {
     this.cachedKey = null
   }
 
-  private async extractFromCookiesDB(): Promise<string | null> {
-    const dbPaths = this.getTeamsCookiesPaths()
+  private async extractFromCookiesDB(): Promise<ExtractedTeamsToken[]> {
+    const cookiePaths = this.getTeamsCookiesPaths()
+    const results: ExtractedTeamsToken[] = []
+    const seenAccountTypes = new Set<TeamsAccountType>()
 
-    for (const dbPath of dbPaths) {
+    for (const { path: dbPath, accountType } of cookiePaths) {
       if (!dbPath || !existsSync(dbPath)) continue
+      // Skip fallback paths if we already have a token for this account type
+      if (seenAccountTypes.has(accountType)) continue
 
-      // Try copy-first strategy to handle file locking
       const token = await this.copyAndExtract(dbPath)
-      if (token) return token
+      if (token && this.isValidSkypeToken(token)) {
+        results.push({ token, accountType })
+        seenAccountTypes.add(accountType)
+      }
     }
 
-    return null
+    return results
   }
 
   private async copyAndExtract(dbPath: string): Promise<string | null> {
@@ -242,7 +208,6 @@ export class TeamsTokenExtractor {
       this.cleanupTempFile(tempPath)
       return token
     } catch {
-      // File locked or copy failed
       this.cleanupTempFile(tempPath)
       return null
     }

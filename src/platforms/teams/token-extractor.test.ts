@@ -17,49 +17,61 @@ describe('TeamsTokenExtractor', () => {
       const paths = darwinExtractor.getTeamsCookiesPaths()
 
       expect(paths).toEqual([
-        join(
-          homedir(),
-          'Library',
-          'Containers',
-          'com.microsoft.teams2',
-          'Data',
-          'Library',
-          'Application Support',
-          'Microsoft',
-          'MSTeams',
-          'EBWebView',
-          'WV2Profile_tfw',
-          'Cookies',
-        ),
-        join(
-          homedir(),
-          'Library',
-          'Containers',
-          'com.microsoft.teams2',
-          'Data',
-          'Library',
-          'Application Support',
-          'Microsoft',
-          'MSTeams',
-          'EBWebView',
-          'WV2Profile_tfl',
-          'Cookies',
-        ),
-        join(
-          homedir(),
-          'Library',
-          'Containers',
-          'com.microsoft.teams2',
-          'Data',
-          'Library',
-          'Application Support',
-          'Microsoft',
-          'MSTeams',
-          'EBWebView',
-          'Default',
-          'Cookies',
-        ),
-        join(homedir(), 'Library', 'Application Support', 'Microsoft', 'Teams', 'Cookies'),
+        {
+          path: join(
+            homedir(),
+            'Library',
+            'Containers',
+            'com.microsoft.teams2',
+            'Data',
+            'Library',
+            'Application Support',
+            'Microsoft',
+            'MSTeams',
+            'EBWebView',
+            'WV2Profile_tfw',
+            'Cookies',
+          ),
+          accountType: 'work',
+        },
+        {
+          path: join(
+            homedir(),
+            'Library',
+            'Containers',
+            'com.microsoft.teams2',
+            'Data',
+            'Library',
+            'Application Support',
+            'Microsoft',
+            'MSTeams',
+            'EBWebView',
+            'WV2Profile_tfl',
+            'Cookies',
+          ),
+          accountType: 'personal',
+        },
+        {
+          path: join(
+            homedir(),
+            'Library',
+            'Containers',
+            'com.microsoft.teams2',
+            'Data',
+            'Library',
+            'Application Support',
+            'Microsoft',
+            'MSTeams',
+            'EBWebView',
+            'Default',
+            'Cookies',
+          ),
+          accountType: 'work',
+        },
+        {
+          path: join(homedir(), 'Library', 'Application Support', 'Microsoft', 'Teams', 'Cookies'),
+          accountType: 'work',
+        },
       ])
     })
 
@@ -67,7 +79,12 @@ describe('TeamsTokenExtractor', () => {
       const linuxExtractor = new TeamsTokenExtractor('linux')
       const paths = linuxExtractor.getTeamsCookiesPaths()
 
-      expect(paths).toEqual([join(homedir(), '.config', 'Microsoft', 'Microsoft Teams', 'Cookies')])
+      expect(paths).toEqual([
+        {
+          path: join(homedir(), '.config', 'Microsoft', 'Microsoft Teams', 'Cookies'),
+          accountType: 'work',
+        },
+      ])
     })
 
     test('returns win32 paths on Windows with New Teams first', () => {
@@ -77,40 +94,52 @@ describe('TeamsTokenExtractor', () => {
       const localAppData = process.env.LOCALAPPDATA || join(homedir(), 'AppData', 'Local')
       const appdata = process.env.APPDATA || join(homedir(), 'AppData', 'Roaming')
       expect(paths).toEqual([
-        join(
-          localAppData,
-          'Packages',
-          'MSTeams_8wekyb3d8bbwe',
-          'LocalCache',
-          'Microsoft',
-          'MSTeams',
-          'EBWebView',
-          'WV2Profile_tfw',
-          'Cookies',
-        ),
-        join(
-          localAppData,
-          'Packages',
-          'MSTeams_8wekyb3d8bbwe',
-          'LocalCache',
-          'Microsoft',
-          'MSTeams',
-          'EBWebView',
-          'WV2Profile_tfl',
-          'Cookies',
-        ),
-        join(
-          localAppData,
-          'Packages',
-          'MSTeams_8wekyb3d8bbwe',
-          'LocalCache',
-          'Microsoft',
-          'MSTeams',
-          'EBWebView',
-          'Default',
-          'Cookies',
-        ),
-        join(appdata, 'Microsoft', 'Teams', 'Cookies'),
+        {
+          path: join(
+            localAppData,
+            'Packages',
+            'MSTeams_8wekyb3d8bbwe',
+            'LocalCache',
+            'Microsoft',
+            'MSTeams',
+            'EBWebView',
+            'WV2Profile_tfw',
+            'Cookies',
+          ),
+          accountType: 'work',
+        },
+        {
+          path: join(
+            localAppData,
+            'Packages',
+            'MSTeams_8wekyb3d8bbwe',
+            'LocalCache',
+            'Microsoft',
+            'MSTeams',
+            'EBWebView',
+            'WV2Profile_tfl',
+            'Cookies',
+          ),
+          accountType: 'personal',
+        },
+        {
+          path: join(
+            localAppData,
+            'Packages',
+            'MSTeams_8wekyb3d8bbwe',
+            'LocalCache',
+            'Microsoft',
+            'MSTeams',
+            'EBWebView',
+            'Default',
+            'Cookies',
+          ),
+          accountType: 'work',
+        },
+        {
+          path: join(appdata, 'Microsoft', 'Teams', 'Cookies'),
+          accountType: 'work',
+        },
       ])
     })
 
@@ -217,10 +246,10 @@ describe('TeamsTokenExtractor', () => {
   describe('extract', () => {
     test('returns null when cookies path does not exist', async () => {
       const linuxExtractor = new TeamsTokenExtractor('linux')
-      const extractFromCookiesDBSpy = spyOn(linuxExtractor as any, 'extractFromCookiesDB').mockResolvedValue(null)
+      const extractFromCookiesDBSpy = spyOn(linuxExtractor as any, 'extractFromCookiesDB').mockResolvedValue([])
 
       const result = await linuxExtractor.extract()
-      expect(result).toBeNull()
+      expect(result).toEqual([])
 
       extractFromCookiesDBSpy.mockRestore()
     })
@@ -229,22 +258,24 @@ describe('TeamsTokenExtractor', () => {
       const mockToken = 'eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.signature_here'
 
       const linuxExtractor = new TeamsTokenExtractor('linux')
-      const extractFromCookiesDBSpy = spyOn(linuxExtractor as any, 'extractFromCookiesDB').mockResolvedValue(mockToken)
+      const extractFromCookiesDBSpy = spyOn(linuxExtractor as any, 'extractFromCookiesDB').mockResolvedValue([
+        { token: mockToken, accountType: 'work' },
+      ])
 
       const result = await linuxExtractor.extract()
 
-      expect(result).not.toBeNull()
-      expect(result?.token).toBe(mockToken)
+      expect(result).toHaveLength(1)
+      expect(result[0].token).toBe(mockToken)
 
       extractFromCookiesDBSpy.mockRestore()
     })
 
     test('returns null when extraction fails', async () => {
       const darwinExtractor = new TeamsTokenExtractor('darwin')
-      const extractFromCookiesDBSpy = spyOn(darwinExtractor as any, 'extractFromCookiesDB').mockResolvedValue(null)
+      const extractFromCookiesDBSpy = spyOn(darwinExtractor as any, 'extractFromCookiesDB').mockResolvedValue([])
 
       const result = await darwinExtractor.extract()
-      expect(result).toBeNull()
+      expect(result).toEqual([])
 
       extractFromCookiesDBSpy.mockRestore()
     })
