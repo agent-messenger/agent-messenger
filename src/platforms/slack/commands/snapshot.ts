@@ -93,8 +93,7 @@ async function snapshotAction(options: {
   }
 }
 
-export const snapshotCommand = new Command()
-  .name('snapshot')
+export const snapshotCommand = new Command('snapshot')
   .description('Get comprehensive workspace state for AI agents')
   .option('--channels-only', 'Include only channels (exclude messages and users)')
   .option('--users-only', 'Include only users (exclude channels and messages)')

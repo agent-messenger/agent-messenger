@@ -117,19 +117,27 @@ async function infoAction(fileId: string, options: { pretty?: boolean }): Promis
 }
 
 export const fileCommand = new Command('file')
-  .description('file commands')
+  .description('File commands')
   .addCommand(
     new Command('upload')
-      .description('upload file to channel')
+      .description('Upload file to channel')
       .argument('<channel>', 'channel ID or name')
       .argument('<path>', 'file path')
       .option('--filename <name>', 'override filename')
+      .option('--pretty', 'Pretty print JSON output')
       .action(uploadAction),
   )
   .addCommand(
     new Command('list')
-      .description('list files in workspace')
+      .description('List files in workspace')
       .option('--channel <id>', 'filter by channel')
+      .option('--pretty', 'Pretty print JSON output')
       .action(listAction),
   )
-  .addCommand(new Command('info').description('show file details').argument('<file>', 'file ID').action(infoAction))
+  .addCommand(
+    new Command('info')
+      .description('Show file details')
+      .argument('<file>', 'file ID')
+      .option('--pretty', 'Pretty print JSON output')
+      .action(infoAction),
+  )

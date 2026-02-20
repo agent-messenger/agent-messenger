@@ -17,12 +17,12 @@ async function getClient(pretty?: boolean): Promise<SlackClient | null> {
 }
 
 export const userCommand = new Command('user')
-  .description('user commands')
+  .description('User commands')
   .addCommand(
     new Command('list')
-      .description('list workspace users')
-      .option('--include-bots', 'include bot users')
-      .option('--pretty', 'pretty-print JSON output')
+      .description('List workspace users')
+      .option('--include-bots', 'Include bot users')
+      .option('--pretty', 'Pretty print JSON output')
       .action(async (options) => {
         try {
           const client = await getClient(options.pretty)
@@ -51,9 +51,9 @@ export const userCommand = new Command('user')
   )
   .addCommand(
     new Command('info')
-      .description('show user details')
+      .description('Show user details')
       .argument('<user>', 'user ID or username')
-      .option('--pretty', 'pretty-print JSON output')
+      .option('--pretty', 'Pretty print JSON output')
       .action(async (userArg, options) => {
         try {
           const client = await getClient(options.pretty)
@@ -80,8 +80,8 @@ export const userCommand = new Command('user')
   )
   .addCommand(
     new Command('me')
-      .description('show current authenticated user')
-      .option('--pretty', 'pretty-print JSON output')
+      .description('Show current authenticated user')
+      .option('--pretty', 'Pretty print JSON output')
       .action(async (options) => {
         try {
           const client = await getClient(options.pretty)
