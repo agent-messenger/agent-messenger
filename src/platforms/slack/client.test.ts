@@ -226,6 +226,101 @@ describe('SlackClient', () => {
     })
   })
 
+  describe('resolveChannel', () => {
+    beforeEach(() => resetMocks())
+
+    test('returns channel ID unchanged when input starts with C', async () => {
+      const client = new SlackClient('xoxc-token', 'xoxd-cookie')
+      const channel = await client.resolveChannel('C123ABC')
+      expect(channel).toBe('C123ABC')
+    })
+
+    test('returns channel ID unchanged when input starts with D', async () => {
+      const client = new SlackClient('xoxc-token', 'xoxd-cookie')
+      const channel = await client.resolveChannel('D123ABC')
+      expect(channel).toBe('D123ABC')
+    })
+
+    test('returns channel ID unchanged when input starts with G', async () => {
+      const client = new SlackClient('xoxc-token', 'xoxd-cookie')
+      const channel = await client.resolveChannel('G123ABC')
+      expect(channel).toBe('G123ABC')
+    })
+
+    test('resolves channel name to ID by calling listChannels', async () => {
+      mockWebClient.conversations.list.mockResolvedValue({
+        ok: true,
+        channels: [
+          {
+            id: 'C123',
+            name: 'general',
+            is_private: false,
+            is_archived: false,
+            created: 1234567890,
+            creator: 'U123',
+          },
+        ],
+      })
+
+      const client = new SlackClient('xoxc-token', 'xoxd-cookie')
+      // @ts-expect-error - accessing private property for testing
+      client.client = mockWebClient as unknown as WebClient
+
+      const channel = await client.resolveChannel('general')
+      expect(channel).toBe('C123')
+      expect(mockWebClient.conversations.list).toHaveBeenCalledTimes(1)
+    })
+
+    test('strips leading # from channel name', async () => {
+      mockWebClient.conversations.list.mockResolvedValue({
+        ok: true,
+        channels: [
+          {
+            id: 'C123',
+            name: 'general',
+            is_private: false,
+            is_archived: false,
+            created: 1234567890,
+            creator: 'U123',
+          },
+        ],
+      })
+
+      const client = new SlackClient('xoxc-token', 'xoxd-cookie')
+      // @ts-expect-error - accessing private property for testing
+      client.client = mockWebClient as unknown as WebClient
+
+      const channel = await client.resolveChannel('#general')
+      expect(channel).toBe('C123')
+      expect(mockWebClient.conversations.list).toHaveBeenCalledTimes(1)
+    })
+
+    test("throws SlackError with code 'channel_not_found' when name is not found", async () => {
+      mockWebClient.conversations.list.mockResolvedValue({
+        ok: true,
+        channels: [
+          {
+            id: 'C123',
+            name: 'general',
+            is_private: false,
+            is_archived: false,
+            created: 1234567890,
+            creator: 'U123',
+          },
+        ],
+      })
+
+      const client = new SlackClient('xoxc-token', 'xoxd-cookie')
+      // @ts-expect-error - accessing private property for testing
+      client.client = mockWebClient as unknown as WebClient
+
+      await expect(client.resolveChannel('missing-channel')).rejects.toMatchObject({
+        name: 'SlackError',
+        code: 'channel_not_found',
+      })
+    })
+  })
+
   describe('getMessages', () => {
     beforeEach(() => resetMocks())
 
