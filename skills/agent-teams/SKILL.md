@@ -290,15 +290,21 @@ Format:
 
 ### `agent-teams: command not found`
 
-The `agent-messenger` package is not installed. Run it directly using a package runner. Ask the user which one to use:
+**`agent-teams` is NOT the npm package name.** The npm package is `agent-messenger`.
+
+If the package is installed globally, use `agent-teams` directly:
 
 ```bash
-npx -p agent-messenger agent-teams ...
-bunx -p agent-messenger agent-teams ...
-pnpm dlx --package agent-messenger agent-teams ...
+agent-teams message list general
 ```
 
-If you already know the user's preferred package runner, use it directly instead of asking.
+If the package is NOT installed, use `bunx agent-messenger teams`:
+
+```bash
+bunx agent-messenger teams message list general
+```
+
+**NEVER run `bunx agent-teams`** — it will fail or install a wrong package since `agent-teams` is not the npm package name.
 
 ## References
 

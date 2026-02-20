@@ -319,15 +319,21 @@ Format:
 
 ### `agent-slack: command not found`
 
-The `agent-messenger` package is not installed. Run it directly using a package runner. Ask the user which one to use:
+**`agent-slack` is NOT the npm package name.** The npm package is `agent-messenger`.
+
+If the package is installed globally, use `agent-slack` directly:
 
 ```bash
-npx -p agent-messenger agent-slack ...
-bunx -p agent-messenger agent-slack ...
-pnpm dlx --package agent-messenger agent-slack ...
+agent-slack message list general
 ```
 
-If you already know the user's preferred package runner, use it directly instead of asking.
+If the package is NOT installed, use `bunx agent-messenger slack` (note: `slack` subcommand, not `agent-slack`):
+
+```bash
+bunx agent-messenger slack message list general
+```
+
+**NEVER run `bunx agent-slack`** — a separate, unrelated npm package named `agent-slack` exists on npm. It will silently install the **wrong package** with different (fewer) commands.
 
 ## References
 

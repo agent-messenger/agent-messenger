@@ -337,15 +337,21 @@ Format:
 
 ### `agent-discord: command not found`
 
-The `agent-messenger` package is not installed. Run it directly using a package runner. Ask the user which one to use:
+**`agent-discord` is NOT the npm package name.** The npm package is `agent-messenger`.
+
+If the package is installed globally, use `agent-discord` directly:
 
 ```bash
-npx -p agent-messenger agent-discord ...
-bunx -p agent-messenger agent-discord ...
-pnpm dlx --package agent-messenger agent-discord ...
+agent-discord message list general
 ```
 
-If you already know the user's preferred package runner, use it directly instead of asking.
+If the package is NOT installed, use `bunx agent-messenger discord`:
+
+```bash
+bunx agent-messenger discord message list general
+```
+
+**NEVER run `bunx agent-discord`** — it will fail or install a wrong package since `agent-discord` is not the npm package name.
 
 ## References
 
