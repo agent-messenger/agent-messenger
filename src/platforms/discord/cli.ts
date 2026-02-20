@@ -1,5 +1,6 @@
 #!/usr/bin/env bun
 
+import type { Command as CommandType } from 'commander'
 import { Command } from 'commander'
 import pkg from '../../../package.json' with { type: 'json' }
 import {
@@ -12,6 +13,16 @@ import {
   snapshotCommand,
   userCommand,
 } from './commands'
+import { ensureDiscordAuth } from './ensure-auth'
+
+function isAuthCommand(command: CommandType): boolean {
+  let cmd: CommandType | null = command
+  while (cmd) {
+    if (cmd.name() === 'auth') return true
+    cmd = cmd.parent
+  }
+  return false
+}
 
 const program = new Command()
 
@@ -21,6 +32,13 @@ program
   .version(pkg.version)
   .option('--pretty', 'Pretty-print JSON output')
   .option('--server <id>', 'Use specific server')
+
+program.hook('preAction', async (_thisCommand, actionCommand) => {
+  if (isAuthCommand(actionCommand)) return
+  try {
+    await ensureDiscordAuth()
+  } catch {}
+})
 
 program.addCommand(authCommand)
 program.addCommand(serverCommand)
