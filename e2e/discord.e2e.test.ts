@@ -123,9 +123,9 @@ describe('Discord E2E Tests', () => {
       const result = await runCLI('discord', ['message', 'search', 'test', '--limit', '5'])
       expect(result.exitCode).toBe(0)
 
-      const data = parseJSON<{ results: unknown[]; total: number }>(result.stdout)
+      const data = parseJSON<{ results: unknown[]; total_results: number }>(result.stdout)
       expect(data?.results).toBeDefined()
-      expect(typeof data?.total).toBe('number')
+      expect(typeof data?.total_results).toBe('number')
     })
   })
 
