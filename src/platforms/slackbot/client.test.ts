@@ -313,6 +313,17 @@ describe('SlackBotClient', () => {
       expect(mockConversations.list).toHaveBeenCalled()
     })
 
+    test('returns channel ID unchanged when input is #C prefixed ID', async () => {
+      // given
+      const client = new SlackBotClient('xoxb-test-token')
+
+      // when
+      const channel = await client.resolveChannel('#C123ABC')
+
+      // then
+      expect(channel).toBe('C123ABC')
+    })
+
     test('throws channel_not_found error when name is not found', async () => {
       // given
       const client = new SlackBotClient('xoxb-test-token')

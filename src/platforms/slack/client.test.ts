@@ -295,6 +295,12 @@ describe('SlackClient', () => {
       expect(mockWebClient.conversations.list).toHaveBeenCalledTimes(1)
     })
 
+    test('returns channel ID unchanged when input is #C prefixed ID', async () => {
+      const client = new SlackClient('xoxc-token', 'xoxd-cookie')
+      const channel = await client.resolveChannel('#C123ABC')
+      expect(channel).toBe('C123ABC')
+    })
+
     test("throws SlackError with code 'channel_not_found' when name is not found", async () => {
       mockWebClient.conversations.list.mockResolvedValue({
         ok: true,

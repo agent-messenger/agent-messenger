@@ -162,11 +162,13 @@ export class SlackClient {
   }
 
   async resolveChannel(channel: string): Promise<string> {
-    if (/^[CDG][A-Z0-9]+$/.test(channel)) {
-      return channel
+    const normalized = channel.replace(/^#/, '')
+
+    if (/^[CDG][A-Z0-9]+$/.test(normalized)) {
+      return normalized
     }
 
-    const name = channel.replace(/^#/, '')
+    const name = normalized
 
     const channels = await this.listChannels()
     const found = channels.find((ch) => ch.name === name)
