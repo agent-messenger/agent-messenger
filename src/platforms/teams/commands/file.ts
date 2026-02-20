@@ -105,30 +105,30 @@ export async function infoAction(
 }
 
 export const fileCommand = new Command('file')
-  .description('file commands')
+  .description('File commands')
   .addCommand(
     new Command('upload')
-      .description('upload file to channel')
-      .argument('<team>', 'team ID')
-      .argument('<channel>', 'channel ID')
-      .argument('<path>', 'file path')
+      .description('Upload file to channel')
+      .argument('<team-id>', 'Team ID')
+      .argument('<channel-id>', 'Channel ID')
+      .argument('<path>', 'File path')
       .option('--pretty', 'Pretty print JSON output')
       .action(uploadAction),
   )
   .addCommand(
     new Command('list')
-      .description('list files in channel')
-      .argument('<team>', 'team ID')
-      .argument('<channel>', 'channel ID')
+      .description('List files in channel')
+      .argument('<team-id>', 'Team ID')
+      .argument('<channel-id>', 'Channel ID')
       .option('--pretty', 'Pretty print JSON output')
       .action(listAction),
   )
   .addCommand(
     new Command('info')
-      .description('show file details')
-      .argument('<team>', 'team ID')
-      .argument('<channel>', 'channel ID')
-      .argument('<file>', 'file ID')
+      .description('Show file details')
+      .argument('<team-id>', 'Team ID')
+      .argument('<channel-id>', 'Channel ID')
+      .argument('<file-id>', 'File ID')
       .option('--pretty', 'Pretty print JSON output')
       .action(infoAction),
   )
