@@ -6,11 +6,18 @@ import pkg from '../../../package.json' with { type: 'json' }
 import {
   authCommand,
   channelCommand,
+  dmCommand,
   fileCommand,
+  friendCommand,
+  memberCommand,
+  mentionCommand,
   messageCommand,
+  noteCommand,
+  profileCommand,
   reactionCommand,
   serverCommand,
   snapshotCommand,
+  threadCommand,
   userCommand,
 } from './commands'
 import { ensureDiscordAuth } from './ensure-auth'
@@ -41,10 +48,17 @@ program.hook('preAction', async (_thisCommand, actionCommand) => {
 program.addCommand(authCommand)
 program.addCommand(serverCommand)
 program.addCommand(channelCommand)
+program.addCommand(dmCommand)
 program.addCommand(fileCommand)
+program.addCommand(friendCommand)
+program.addCommand(memberCommand)
+program.addCommand(mentionCommand)
 program.addCommand(messageCommand)
+program.addCommand(noteCommand)
+program.addCommand(profileCommand)
 program.addCommand(reactionCommand)
 program.addCommand(snapshotCommand)
+program.addCommand(threadCommand)
 program.addCommand(userCommand)
 
 program.parse(process.argv)
