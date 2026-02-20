@@ -15,9 +15,9 @@ export async function snapshotAction(options: {
 }): Promise<void> {
   try {
     const credManager = new TeamsCredentialManager()
-    const token = await credManager.getToken()
+    const cred = await credManager.getTokenWithExpiry()
 
-    if (!token) {
+    if (!cred) {
       console.log(formatOutput({ error: 'Not authenticated. Run "auth extract" first.' }, options.pretty))
       process.exit(1)
     }
@@ -31,7 +31,7 @@ export async function snapshotAction(options: {
       process.exit(1)
     }
 
-    const client = new TeamsClient(token)
+    const client = new TeamsClient(cred.token, cred.tokenExpiresAt)
     const messageLimit = options.limit || 20
 
     const snapshot: Record<string, unknown> = {}

@@ -14,14 +14,14 @@ export async function uploadAction(
 ): Promise<void> {
   try {
     const credManager = new TeamsCredentialManager()
-    const token = await credManager.getToken()
+    const cred = await credManager.getTokenWithExpiry()
 
-    if (!token) {
+    if (!cred) {
       console.log(formatOutput({ error: 'Not authenticated. Run "auth extract" first.' }, options.pretty))
       process.exit(1)
     }
 
-    const client = new TeamsClient(token)
+    const client = new TeamsClient(cred.token, cred.tokenExpiresAt)
     const filePath = resolve(path)
     const file = await client.uploadFile(teamId, channelId, filePath)
 
@@ -42,14 +42,14 @@ export async function uploadAction(
 export async function listAction(teamId: string, channelId: string, options: { pretty?: boolean }): Promise<void> {
   try {
     const credManager = new TeamsCredentialManager()
-    const token = await credManager.getToken()
+    const cred = await credManager.getTokenWithExpiry()
 
-    if (!token) {
+    if (!cred) {
       console.log(formatOutput({ error: 'Not authenticated. Run "auth extract" first.' }, options.pretty))
       process.exit(1)
     }
 
-    const client = new TeamsClient(token)
+    const client = new TeamsClient(cred.token, cred.tokenExpiresAt)
     const files = await client.listFiles(teamId, channelId)
 
     const output = files.map((file: TeamsFile) => ({
@@ -74,14 +74,14 @@ export async function infoAction(
 ): Promise<void> {
   try {
     const credManager = new TeamsCredentialManager()
-    const token = await credManager.getToken()
+    const cred = await credManager.getTokenWithExpiry()
 
-    if (!token) {
+    if (!cred) {
       console.log(formatOutput({ error: 'Not authenticated. Run "auth extract" first.' }, options.pretty))
       process.exit(1)
     }
 
-    const client = new TeamsClient(token)
+    const client = new TeamsClient(cred.token, cred.tokenExpiresAt)
     const files = await client.listFiles(teamId, channelId)
     const fileData = files.find((f) => f.id === fileId)
 
