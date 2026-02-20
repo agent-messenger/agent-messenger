@@ -182,15 +182,22 @@ async function extractManualToken(token: string, options: { pretty?: boolean; de
       teamMap[team.id] = { team_id: team.id, team_name: team.name }
     }
 
-    await credManager.setToken(token, accountType, new Date(Date.now() + 60 * 60 * 1000).toISOString())
-
-    const config = await credManager.loadConfig()
-    if (config) {
-      config.accounts[accountType].user_name = authInfo.displayName
-      config.accounts[accountType].current_team = teams[0].id
-      config.accounts[accountType].teams = teamMap
-      await credManager.saveConfig(config)
+    const account: TeamsAccount = {
+      token,
+      token_expires_at: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+      account_type: accountType,
+      user_name: authInfo.displayName,
+      current_team: teams[0].id,
+      teams: teamMap,
     }
+
+    const existingConfig = await credManager.loadConfig()
+    const config: TeamsConfig = existingConfig ?? { current_account: accountType, accounts: {} }
+    config.accounts[accountType] = account
+    if (!config.current_account) {
+      config.current_account = accountType
+    }
+    await credManager.saveConfig(config)
 
     if (options.debug) {
       console.error('[debug] ✓ Credentials saved')
