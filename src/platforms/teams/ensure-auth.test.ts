@@ -189,4 +189,78 @@ describe('ensureTeamsAuth', () => {
     // then
     expect(saveConfigSpy).not.toHaveBeenCalled()
   })
+
+  test('extracts and saves multiple accounts', async () => {
+    // given
+    extractSpy.mockResolvedValue([
+      { token: 'work-token', accountType: 'work' },
+      { token: 'personal-token', accountType: 'personal' },
+    ])
+
+    testAuthSpy
+      .mockResolvedValueOnce({ id: 'user-1', displayName: 'Work User' })
+      .mockResolvedValueOnce({ id: 'user-2', displayName: 'Personal User' })
+
+    listTeamsSpy
+      .mockResolvedValueOnce([{ id: 'team-w', name: 'Work Team' }])
+      .mockResolvedValueOnce([{ id: 'team-p', name: 'Personal Team' }])
+
+    // when
+    await ensureTeamsAuth()
+
+    // then
+    expect(saveConfigSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        current_account: 'work',
+        accounts: expect.objectContaining({
+          work: expect.objectContaining({ token: 'work-token', current_team: 'team-w' }),
+          personal: expect.objectContaining({ token: 'personal-token', current_team: 'team-p' }),
+        }),
+      }),
+    )
+  })
+
+  test('skips failed account but saves successful ones', async () => {
+    // given
+    extractSpy.mockResolvedValue([
+      { token: 'work-token', accountType: 'work' },
+      { token: 'bad-token', accountType: 'personal' },
+    ])
+
+    testAuthSpy
+      .mockResolvedValueOnce({ id: 'user-1', displayName: 'Work User' })
+      .mockRejectedValueOnce(new Error('401 Unauthorized'))
+
+    listTeamsSpy.mockResolvedValueOnce([{ id: 'team-w', name: 'Work Team' }])
+
+    // when
+    await ensureTeamsAuth()
+
+    // then
+    const savedConfig = saveConfigSpy.mock.calls[0][0]
+    expect(savedConfig.accounts.work).toBeDefined()
+    expect(savedConfig.accounts.personal).toBeUndefined()
+  })
+
+  test('re-extracts when token is empty string', async () => {
+    // given
+    loadConfigSpy.mockResolvedValue({
+      current_account: 'work',
+      accounts: {
+        work: {
+          token: '',
+          token_expires_at: new Date(Date.now() + 3600000).toISOString(),
+          account_type: 'work',
+          current_team: 'team-1',
+          teams: { 'team-1': { team_id: 'team-1', team_name: 'Team One' } },
+        },
+      },
+    })
+
+    // when
+    await ensureTeamsAuth()
+
+    // then
+    expect(extractSpy).toHaveBeenCalled()
+  })
 })

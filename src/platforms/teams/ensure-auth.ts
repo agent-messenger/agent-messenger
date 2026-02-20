@@ -46,7 +46,9 @@ export async function ensureTeamsAuth(): Promise<void> {
         if (!newConfig.current_account) {
           newConfig.current_account = accountType
         }
-      } catch {}
+      } catch (error) {
+        console.error(`[agent-teams] Skipping ${accountType} account: ${(error as Error).message}`)
+      }
     }
 
     if (Object.keys(newConfig.accounts).length > 0) {
@@ -59,6 +61,6 @@ function hasValidToken(config: TeamsConfig): boolean {
   const key = TeamsCredentialManager.accountOverride ?? config.current_account
   if (!key) return false
   const account = config.accounts[key]
-  if (!account?.token_expires_at) return false
+  if (!account?.token || !account.token_expires_at) return false
   return new Date(account.token_expires_at).getTime() > Date.now()
 }
