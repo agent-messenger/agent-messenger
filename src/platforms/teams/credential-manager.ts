@@ -57,7 +57,15 @@ export class TeamsCredentialManager {
     return TeamsCredentialManager.accountOverride ?? config.current_account
   }
 
-  private getCurrentAccount(config: TeamsConfig): TeamsAccount | null {
+  async getCurrentAccount(): Promise<TeamsAccount | null> {
+    const config = await this.loadConfig()
+    if (!config) return null
+    const key = this.resolveAccountKey(config)
+    if (!key) return null
+    return config.accounts[key] ?? null
+  }
+
+  private resolveCurrentAccount(config: TeamsConfig): TeamsAccount | null {
     const key = this.resolveAccountKey(config)
     if (!key) return null
     return config.accounts[key] ?? null
@@ -66,7 +74,15 @@ export class TeamsCredentialManager {
   async getToken(): Promise<string | null> {
     const config = await this.loadConfig()
     if (!config) return null
-    return this.getCurrentAccount(config)?.token ?? null
+    return this.resolveCurrentAccount(config)?.token ?? null
+  }
+
+  async getTokenWithExpiry(): Promise<{ token: string; tokenExpiresAt?: string } | null> {
+    const config = await this.loadConfig()
+    if (!config) return null
+    const account = this.resolveCurrentAccount(config)
+    if (!account?.token) return null
+    return { token: account.token, tokenExpiresAt: account.token_expires_at }
   }
 
   async setToken(token: string, accountType: TeamsAccountType, expiresAt?: string): Promise<void> {
@@ -92,7 +108,7 @@ export class TeamsCredentialManager {
   async getCurrentTeam(): Promise<{ team_id: string; team_name: string } | null> {
     const config = await this.loadConfig()
     if (!config) return null
-    const account = this.getCurrentAccount(config)
+    const account = this.resolveCurrentAccount(config)
     if (!account?.current_team) return null
     return account.teams[account.current_team] ?? null
   }
@@ -100,7 +116,7 @@ export class TeamsCredentialManager {
   async setCurrentTeam(teamId: string, teamName: string): Promise<void> {
     const config = await this.loadConfig()
     if (!config) return
-    const account = this.getCurrentAccount(config)
+    const account = this.resolveCurrentAccount(config)
     if (!account) return
     account.current_team = teamId
     account.teams[teamId] = { team_id: teamId, team_name: teamName }
@@ -136,7 +152,7 @@ export class TeamsCredentialManager {
   async isTokenExpired(): Promise<boolean> {
     const config = await this.loadConfig()
     if (!config) return true
-    const account = this.getCurrentAccount(config)
+    const account = this.resolveCurrentAccount(config)
     if (!account?.token_expires_at) return true
     return new Date(account.token_expires_at).getTime() <= Date.now()
   }
