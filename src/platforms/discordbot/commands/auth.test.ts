@@ -105,8 +105,7 @@ describe('auth commands', () => {
         Promise.resolve({
           id: 'user123',
           username: 'testuser',
-          bot: undefined,
-        } as any),
+        } as unknown as Awaited<ReturnType<typeof mockTestAuth>>),
       )
 
       const manager = new DiscordBotCredentialManager(tempDir)
