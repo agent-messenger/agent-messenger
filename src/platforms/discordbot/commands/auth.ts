@@ -97,8 +97,8 @@ export async function statusAction(options: ActionOptions): Promise<ActionResult
 
     return {
       valid,
-      bot_id: creds.bot_id,
-      bot_name: creds.bot_name,
+      bot_id: authInfo?.id ?? creds.bot_id,
+      bot_name: authInfo?.username ?? creds.bot_name,
       server_id: creds.server_id,
       server_name: creds.server_name,
     }

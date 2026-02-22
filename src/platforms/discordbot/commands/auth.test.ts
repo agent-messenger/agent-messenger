@@ -167,8 +167,8 @@ describe('auth commands', () => {
       const result = await statusAction({ _credManager: manager })
 
       expect(result.valid).toBe(true)
-      expect(result.bot_id).toBe('mybot')
-      expect(result.bot_name).toBe('My Bot')
+      expect(result.bot_id).toBe('bot123')
+      expect(result.bot_name).toBe('testbot')
     })
 
     test('returns status for specific --bot', async () => {
@@ -187,7 +187,7 @@ describe('auth commands', () => {
       const result = await statusAction({ bot: 'bot1', _credManager: manager })
 
       expect(result.valid).toBe(true)
-      expect(result.bot_id).toBe('bot1')
+      expect(result.bot_id).toBe('bot123')
     })
 
     test('returns invalid when token test fails', async () => {
