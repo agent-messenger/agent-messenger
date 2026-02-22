@@ -79,7 +79,7 @@ export async function validateDiscordEnvironment() {
 // DiscordBot Test Environment (same server as Discord, bot token)
 export const DISCORDBOT_TEST_SERVER_ID = process.env.E2E_DISCORDBOT_SERVER_ID || '1467039439770357844'
 export const DISCORDBOT_TEST_SERVER_NAME = process.env.E2E_DISCORDBOT_SERVER_NAME || 'Agent Messenger'
-export const DISCORDBOT_TEST_CHANNEL_ID = process.env.E2E_DISCORDBOT_CHANNEL_ID || '1467062262996144162'
+export const DISCORDBOT_TEST_CHANNEL_ID = '1467062262996144162'
 export const DISCORDBOT_TEST_CHANNEL = 'e2e-test'
 
 export async function validateDiscordBotEnvironment() {
