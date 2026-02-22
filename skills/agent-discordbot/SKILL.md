@@ -64,7 +64,7 @@ After creating the application:
 
 ### Message Content Privileged Intent
 
-For servers (guilds) with 100 or more members, the Message Content intent must be enabled:
+Bots in 100 or more servers require verification (you can apply once you reach 75+ servers), and verified bots must apply for access to the Message Content intent. Enable it to read message content:
 
 1. Go to [discord.com/developers/applications](https://discord.com/developers/applications)
 2. Select your application
@@ -72,7 +72,7 @@ For servers (guilds) with 100 or more members, the Message Content intent must b
 4. Under **Privileged Gateway Intents**, enable **Message Content Intent**
 5. Save changes
 
-Without this, the bot won't receive message content in large servers.
+Without this, verified bots receive empty `content` fields (DMs and mentions are exempt).
 
 ### Multi-Bot Management
 
@@ -360,7 +360,7 @@ Format:
 - No DMs or friend management
 - Bot can only edit/delete its own messages
 - Bot must be invited to the server and have appropriate permissions
-- Message Content intent required for guilds with 100+ members
+- Message Content intent required for verified bots (100+ servers)
 - Plain text messages only (no embeds in v1)
 
 ## Troubleshooting
@@ -392,7 +392,7 @@ Enable the **Message Content Intent** in the Developer Portal:
 3. Enable **Message Content Intent** under Privileged Gateway Intents
 4. Save changes
 
-This is required for any server with 100 or more members.
+This is required for verified bots (those in 100 or more servers).
 
 ### "Missing Access" or "Missing Permissions"
 

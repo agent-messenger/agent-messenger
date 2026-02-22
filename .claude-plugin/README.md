@@ -53,6 +53,14 @@ Enables AI agents to interact with messaging platforms through CLI interfaces:
 - **Manage reactions** (add/remove/list)
 - Designed for **server-side and CI/CD** use cases
 
+### Discord Bot (`agent-discordbot`)
+- **Send messages** using bot tokens
+- **Read channels** and message history
+- **Manage reactions** (add/remove)
+- **Upload files** to channels
+- **Multi-bot management** with easy switching
+- Designed for **server-side and CI/CD** use cases
+
 ## Key Features
 
 ### Zero-Config Authentication
@@ -165,4 +173,5 @@ agent-discord file upload <channel-id> ./report.pdf
 - [Slack Skill Documentation](https://github.com/devxoul/agent-messenger/blob/main/skills/agent-slack/SKILL.md)
 - [Slack Bot Skill Documentation](https://github.com/devxoul/agent-messenger/blob/main/skills/agent-slackbot/SKILL.md)
 - [Discord Skill Documentation](https://github.com/devxoul/agent-messenger/blob/main/skills/agent-discord/SKILL.md)
+- [Discord Bot Skill Documentation](https://github.com/devxoul/agent-messenger/blob/main/skills/agent-discordbot/SKILL.md)
 - [Teams Skill Documentation](https://github.com/devxoul/agent-messenger/blob/main/skills/agent-teams/SKILL.md)
