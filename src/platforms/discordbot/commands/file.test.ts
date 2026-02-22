@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, mock } from 'bun:test'
+import { afterEach, beforeEach, describe, expect, it, mock } from 'bun:test'
 import { DiscordBotCredentialManager } from '../credential-manager'
 import { listAction, uploadAction } from './file'
 import type { BotOption } from './shared'
@@ -6,15 +6,67 @@ import type { BotOption } from './shared'
 describe('file commands', () => {
   let mockCredManager: DiscordBotCredentialManager
   let options: BotOption
+  const originalFetch = globalThis.fetch
 
   beforeEach(() => {
     mockCredManager = {
       getCurrentServer: mock(async () => 'server-123'),
+      getCredentials: mock(async () => ({
+        token: 'test-bot-token',
+        bot_id: 'bot-123',
+        bot_name: 'Test Bot',
+      })),
     } as unknown as DiscordBotCredentialManager
+
+    ;(globalThis as Record<string, unknown>).fetch = async (url: string | URL | Request): Promise<Response> => {
+      const urlStr = url.toString()
+
+      if (urlStr.includes('/guilds/') && urlStr.includes('/channels')) {
+        return new Response(JSON.stringify([{ id: 'ch-general', guild_id: 'server-123', name: 'general', type: 0 }]), {
+          status: 200,
+          headers: {
+            'Content-Type': 'application/json',
+            'X-RateLimit-Remaining': '10',
+            'X-RateLimit-Reset': String(Date.now() / 1000 + 60),
+            'X-RateLimit-Bucket': 'test-bucket',
+          },
+        })
+      }
+
+      if (urlStr.includes('/channels/') && urlStr.includes('/messages')) {
+        return new Response(
+          JSON.stringify([
+            {
+              id: 'msg1',
+              channel_id: 'ch-general',
+              author: { id: 'bot-123', username: 'bot' },
+              content: '',
+              timestamp: new Date().toISOString(),
+              attachments: [{ id: 'att1', filename: 'test.txt', size: 12, url: 'https://cdn.discord.com/test.txt' }],
+            },
+          ]),
+          {
+            status: 200,
+            headers: {
+              'Content-Type': 'application/json',
+              'X-RateLimit-Remaining': '10',
+              'X-RateLimit-Reset': String(Date.now() / 1000 + 60),
+              'X-RateLimit-Bucket': 'test-bucket',
+            },
+          },
+        )
+      }
+
+      return new Response(JSON.stringify({ message: 'Not Found' }), { status: 404 })
+    }
 
     options = {
       _credManager: mockCredManager,
     }
+  })
+
+  afterEach(() => {
+    globalThis.fetch = originalFetch
   })
 
   describe('uploadAction', () => {
