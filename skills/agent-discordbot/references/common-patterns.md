@@ -37,7 +37,7 @@ CHANNEL="1234567890123456789"
 
 # Create a thread for the conversation
 RESULT=$(agent-discordbot thread create "$CHANNEL" "Deployment Progress")
-THREAD_ID=$(echo "$RESULT" | jq -r '.id')
+THREAD_ID=$(echo "$RESULT" | jq -r '.thread.id')
 
 # Send updates in the thread
 agent-discordbot message send "$THREAD_ID" "Building application..."
@@ -66,10 +66,10 @@ LAST_ID=""
 
 while true; do
   MESSAGES=$(agent-discordbot message list "$CHANNEL" --limit 1)
-  LATEST_ID=$(echo "$MESSAGES" | jq -r '.[0].id // ""')
+  LATEST_ID=$(echo "$MESSAGES" | jq -r '.messages[0].id // ""')
 
   if [ "$LATEST_ID" != "$LAST_ID" ] && [ -n "$LAST_ID" ]; then
-    CONTENT=$(echo "$MESSAGES" | jq -r '.[0].content // ""')
+    CONTENT=$(echo "$MESSAGES" | jq -r '.messages[0].content // ""')
     echo "New message: $CONTENT"
 
     if echo "$CONTENT" | grep -qi "help"; then
@@ -181,7 +181,7 @@ send_with_retry "1234567890123456789" "Important notification!"
 ```bash
 #!/bin/bash
 
-agent-discordbot server info "$(agent-discordbot server current | jq -r '.server_id')"
+agent-discordbot server info "$(agent-discordbot server current | jq -r '.id')"
 
 echo "Channels:"
 agent-discordbot channel list --pretty
@@ -214,7 +214,7 @@ done
 ### 3. Use Threads for Related Messages
 
 ```bash
-THREAD=$(agent-discordbot thread create "$CHANNEL" "Task Progress" | jq -r '.id')
+THREAD=$(agent-discordbot thread create "$CHANNEL" "Task Progress" | jq -r '.thread.id')
 agent-discordbot message send "$THREAD" "Step 1 done"
 agent-discordbot message send "$THREAD" "Step 2 done"
 ```

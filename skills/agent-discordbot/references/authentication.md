@@ -35,14 +35,14 @@ agent-discordbot uses Discord Bot tokens obtained from the Discord Developer Por
 
 ### Message Content Privileged Intent
 
-For servers with 100 or more members, the Message Content intent is required:
+Bots in 75 or more servers require verification, and verified bots must enable the Message Content intent to read message content. Without it, the bot receives empty `content` fields (DMs and mentions are exempt):
 
 1. Go to [discord.com/developers/applications](https://discord.com/developers/applications)
 2. Select your application > **Bot**
 3. Under **Privileged Gateway Intents**, enable **Message Content Intent**
 4. Save changes
 
-Without this, the bot receives empty message content in large servers.
+Even for unverified bots, enabling this intent is recommended to avoid surprises as the bot grows.
 
 ### Setting the Token
 
