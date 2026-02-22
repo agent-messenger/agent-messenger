@@ -85,6 +85,13 @@ export class DiscordBotClient {
     return new Promise((resolve) => setTimeout(resolve, ms))
   }
 
+  private handleErrorResponse(response: Response, errorBody: Record<string, string | number>): never {
+    throw new DiscordBotError(
+      (errorBody.message as string) || `HTTP ${response.status}`,
+      errorBody.code?.toString() || `http_${response.status}`,
+    )
+  }
+
   private async request<T>(method: string, path: string, body?: unknown): Promise<T> {
     const url = `${BASE_URL}${path}`
     const bucketKey = this.getBucketKey(method, path)
@@ -104,7 +111,18 @@ export class DiscordBotClient {
         options.body = JSON.stringify(body)
       }
 
-      const response = await fetch(url, options)
+      let response: Response
+      try {
+        response = await fetch(url, options)
+      } catch (error) {
+        lastError = error instanceof Error ? error : new Error(String(error))
+        if (attempt < MAX_RETRIES) {
+          await this.sleep(BASE_BACKOFF_MS * 2 ** attempt)
+          continue
+        }
+        throw new DiscordBotError(`Network error: ${lastError.message}`, 'network_error')
+      }
+
       this.updateBucket(bucketKey, response)
 
       if (response.status === 429) {
@@ -123,11 +141,7 @@ export class DiscordBotClient {
 
       if (!response.ok) {
         const errorBody = await response.json().catch(() => ({}))
-        const err = errorBody as Record<string, string | number>
-        throw new DiscordBotError(
-          (err.message as string) || `HTTP ${response.status}`,
-          err.code?.toString() || `http_${response.status}`,
-        )
+        this.handleErrorResponse(response, errorBody as Record<string, string | number>)
       }
 
       if (response.status === 204) {
@@ -143,31 +157,57 @@ export class DiscordBotClient {
   private async requestFormData<T>(path: string, formData: FormData): Promise<T> {
     const url = `${BASE_URL}${path}`
     const bucketKey = this.getBucketKey('POST', path)
+    let lastError: Error | undefined
 
-    await this.waitForRateLimit(bucketKey)
+    for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+      await this.waitForRateLimit(bucketKey)
 
-    const headers: Record<string, string> = {
-      Authorization: `Bot ${this.token}`,
-      'User-Agent': 'DiscordBot (https://github.com/devxoul/agent-messenger, 1.0)',
+      const headers: Record<string, string> = {
+        Authorization: `Bot ${this.token}`,
+        'User-Agent': 'DiscordBot (https://github.com/devxoul/agent-messenger, 1.0)',
+      }
+
+      let response: Response
+      try {
+        response = await fetch(url, {
+          method: 'POST',
+          headers,
+          body: formData,
+        })
+      } catch (error) {
+        lastError = error instanceof Error ? error : new Error(String(error))
+        if (attempt < MAX_RETRIES) {
+          await this.sleep(BASE_BACKOFF_MS * 2 ** attempt)
+          continue
+        }
+        throw new DiscordBotError(`Network error: ${lastError.message}`, 'network_error')
+      }
+
+      this.updateBucket(bucketKey, response)
+
+      if (response.status === 429) {
+        if (attempt < MAX_RETRIES) {
+          await this.handleRateLimitResponse(response)
+          continue
+        }
+        const errorBody = await response.json().catch(() => ({}))
+        throw new DiscordBotError((errorBody as Record<string, string>).message || 'Rate limited', 'rate_limited')
+      }
+
+      if (response.status >= 500 && attempt < MAX_RETRIES) {
+        await this.sleep(BASE_BACKOFF_MS * 2 ** attempt)
+        continue
+      }
+
+      if (!response.ok) {
+        const errorBody = await response.json().catch(() => ({}))
+        this.handleErrorResponse(response, errorBody as Record<string, string | number>)
+      }
+
+      return response.json() as Promise<T>
     }
-    const response = await fetch(url, {
-      method: 'POST',
-      headers,
-      body: formData,
-    })
 
-    this.updateBucket(bucketKey, response)
-
-    if (!response.ok) {
-      const errorBody = await response.json().catch(() => ({}))
-      const err = errorBody as Record<string, string | number>
-      throw new DiscordBotError(
-        (err.message as string) || `HTTP ${response.status}`,
-        err.code?.toString() || `http_${response.status}`,
-      )
-    }
-
-    return response.json() as Promise<T>
+    throw lastError || new DiscordBotError('Request failed after retries', 'max_retries')
   }
 
   async testAuth(): Promise<DiscordUser> {
@@ -247,6 +287,10 @@ export class DiscordBotClient {
       attachments: DiscordFile[]
     }
     const message = await this.requestFormData<MessageWithAttachments>(`/channels/${channelId}/messages`, formData)
+
+    if (!message.attachments || message.attachments.length === 0) {
+      throw new DiscordBotError('Upload succeeded but no attachments returned', 'no_attachments')
+    }
 
     return message.attachments[0]
   }

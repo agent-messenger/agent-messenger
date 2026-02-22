@@ -258,7 +258,9 @@ describe('DiscordBotClient', () => {
 
   describe('uploadFile', () => {
     test('uploads file to channel', async () => {
-      const tempFile = '/tmp/test-discordbot-upload.txt'
+      const { tmpdir } = await import('node:os')
+      const { join } = await import('node:path')
+      const tempFile = join(tmpdir(), 'test-discordbot-upload.txt')
       await Bun.write(tempFile, 'test content')
 
       mockResponse({
