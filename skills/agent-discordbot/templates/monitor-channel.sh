@@ -38,7 +38,7 @@ FIRST_RUN=true
 
 check_messages() {
   MESSAGES=$(agent-discordbot message list "$CHANNEL" --limit 1 2>&1)
-  LATEST_ID=$(echo "$MESSAGES" | jq -r '.[0].id // ""')
+  LATEST_ID=$(echo "$MESSAGES" | jq -r '.messages[0].id // ""')
 
   if [ -z "$LATEST_ID" ]; then
     if [ "$FIRST_RUN" = true ]; then
@@ -50,8 +50,8 @@ check_messages() {
 
   if [ "$LATEST_ID" != "$LAST_ID" ]; then
     if [ "$FIRST_RUN" = false ] && [ -n "$LAST_ID" ]; then
-      CONTENT=$(echo "$MESSAGES" | jq -r '.[0].content // ""')
-      AUTHOR=$(echo "$MESSAGES" | jq -r '.[0].author // "Unknown"')
+      CONTENT=$(echo "$MESSAGES" | jq -r '.messages[0].content // ""')
+      AUTHOR=$(echo "$MESSAGES" | jq -r '.messages[0].author // "Unknown"')
 
       echo ""
       echo -e "${GREEN}========================================${NC}"
@@ -71,6 +71,12 @@ check_messages() {
 if ! command -v agent-discordbot &> /dev/null; then
   echo -e "${RED}Error: agent-discordbot not found${NC}"
   echo "Install: npm install -g agent-messenger"
+  exit 1
+fi
+
+if ! command -v jq &> /dev/null; then
+  echo -e "${RED}Error: jq not found${NC}"
+  echo "Install: https://jqlang.github.io/jq/download/"
   exit 1
 fi
 

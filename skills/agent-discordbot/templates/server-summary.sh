@@ -33,7 +33,7 @@ if ! command -v agent-discordbot &> /dev/null; then
   exit 1
 fi
 
-AUTH_STATUS=$(agent-discordbot auth status 2>&1)
+AUTH_STATUS=$(agent-discordbot auth status 2>&1) || true
 VALID=$(echo "$AUTH_STATUS" | jq -r '.valid // false')
 
 if [ "$VALID" != "true" ]; then
@@ -44,8 +44,8 @@ fi
 BOT_NAME=$(echo "$AUTH_STATUS" | jq -r '.bot_name // "Unknown"')
 
 SERVER_INFO=$(agent-discordbot server current 2>&1)
-SERVER_NAME=$(echo "$SERVER_INFO" | jq -r '.server_name // "Unknown"')
-SERVER_ID=$(echo "$SERVER_INFO" | jq -r '.server_id // "Unknown"')
+SERVER_NAME=$(echo "$SERVER_INFO" | jq -r '.name // "Unknown"')
+SERVER_ID=$(echo "$SERVER_INFO" | jq -r '.id // "Unknown"')
 
 echo -e "${YELLOW}Fetching server data...${NC}" >&2
 
