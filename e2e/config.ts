@@ -94,6 +94,18 @@ export async function validateDiscordBotEnvironment() {
   if (!data?.valid) {
     throw new Error('DiscordBot token is invalid or expired. Please run: agent-discordbot auth set <token>')
   }
+
+  const currentResult = await runCLI('discordbot', ['server', 'current'])
+  const server = parseJSON<{ server_id: string }>(currentResult.stdout)
+  if (server?.server_id !== DISCORDBOT_TEST_SERVER_ID) {
+    const switchResult = await runCLI('discordbot', ['server', 'switch', DISCORDBOT_TEST_SERVER_ID])
+    if (switchResult.exitCode !== 0) {
+      throw new Error(
+        `Failed to switch to test server. Expected: ${DISCORDBOT_TEST_SERVER_NAME} (${DISCORDBOT_TEST_SERVER_ID}). ` +
+        `Make sure the bot has been added to the test server.`
+      )
+    }
+  }
 }
 
 // Teams Test Environment

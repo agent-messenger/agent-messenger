@@ -1,5 +1,3 @@
-import { $ } from 'bun'
-
 export interface CLIResult {
   exitCode: number
   stdout: string
@@ -15,21 +13,17 @@ export async function runCLI(platform: string, args: string[]): Promise<CLIResul
     teams: 'agent-teams',
   }
   const command = commandMap[platform] || platform
-  
-  try {
-    const result = await $`${command} ${args}`.quiet()
-    return {
-      exitCode: result.exitCode,
-      stdout: result.stdout.toString(),
-      stderr: result.stderr.toString(),
-    }
-  } catch (error: any) {
-    return {
-      exitCode: error.exitCode || 1,
-      stdout: error.stdout?.toString() || '',
-      stderr: error.stderr?.toString() || '',
-    }
-  }
+
+  const proc = Bun.spawn([command, ...args], {
+    stdout: 'pipe',
+    stderr: 'pipe',
+  })
+  const [stdout, stderr, exitCode] = await Promise.all([
+    new Response(proc.stdout).text(),
+    new Response(proc.stderr).text(),
+    proc.exited,
+  ])
+  return { exitCode, stdout, stderr }
 }
 
 export function parseJSON<T>(output: string): T | null {

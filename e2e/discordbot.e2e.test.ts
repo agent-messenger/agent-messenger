@@ -82,8 +82,8 @@ describe('DiscordBot E2E Tests', () => {
       ])
       expect(result.exitCode).toBe(0)
 
-      const data = parseJSON<Array<{ id: string }>>(result.stdout)
-      expect(Array.isArray(data)).toBe(true)
+      const data = parseJSON<{ messages: Array<{ id: string }> }>(result.stdout)
+      expect(Array.isArray(data?.messages)).toBe(true)
     })
 
     test('message get retrieves specific message', async () => {
@@ -171,46 +171,51 @@ describe('DiscordBot E2E Tests', () => {
       if (reply?.id) testMessages.push(reply.id)
     }, 30000)
 
-    test('message replies gets thread replies', async () => {
+    test('message replies gets thread messages', async () => {
       const testId = generateTestId()
+
+      // given: create a real thread channel
+      const threadResult = await runCLI('discordbot', [
+        'thread', 'create', DISCORDBOT_TEST_CHANNEL_ID, `Thread ${testId}`,
+      ])
+      expect(threadResult.exitCode).toBe(0)
+      const thread = parseJSON<{ thread: { id: string } }>(threadResult.stdout)
+      expect(thread?.thread?.id).toBeTruthy()
+      const threadId = thread!.thread.id
+
+      await waitForRateLimit()
+
+      // when: send a message to the thread
       const sendResult = await runCLI('discordbot', [
-        'message', 'send', DISCORDBOT_TEST_CHANNEL_ID, `Thread parent ${testId}`,
+        'message', 'send', threadId, `Reply in thread ${testId}`,
       ])
-      const parent = parseJSON<{ id: string }>(sendResult.stdout)
-      expect(parent?.id).toBeTruthy()
-      if (parent?.id) testMessages.push(parent.id)
+      expect(sendResult.exitCode).toBe(0)
 
       await waitForRateLimit()
 
-      const replyResult = await runCLI('discordbot', [
-        'message', 'send', DISCORDBOT_TEST_CHANNEL_ID, `Thread reply ${testId}`,
-        '--thread', parent!.id,
-      ])
-      expect(replyResult.exitCode).toBe(0)
-      const reply = parseJSON<{ id: string }>(replyResult.stdout)
-      if (reply?.id) testMessages.push(reply.id)
-
-      await waitForRateLimit()
-
+      // then: replies returns messages from the thread
       const result = await runCLI('discordbot', [
-        'message', 'replies', DISCORDBOT_TEST_CHANNEL_ID, parent!.id,
+        'message', 'replies', DISCORDBOT_TEST_CHANNEL_ID, threadId,
       ])
       expect(result.exitCode).toBe(0)
 
-      const data = parseJSON<Array<{ id: string }>>(result.stdout)
-      expect(Array.isArray(data)).toBe(true)
-      expect(data!.length).toBeGreaterThanOrEqual(1)
+      const data = parseJSON<{ messages: Array<{ id: string }> }>(result.stdout)
+      expect(Array.isArray(data?.messages)).toBe(true)
+      expect(data!.messages.length).toBeGreaterThanOrEqual(1)
+
+      // cleanup: archive the thread
+      await runCLI('discordbot', ['thread', 'archive', threadId])
     })
   })
 
   describe('channel', () => {
     test('channel list returns channels array', async () => {
-      const result = await runCLI('discordbot', ['channel', 'list', '--limit', '10'])
+      const result = await runCLI('discordbot', ['channel', 'list'])
       expect(result.exitCode).toBe(0)
 
-      const data = parseJSON<Array<{ id: string; name: string }>>(result.stdout)
-      expect(Array.isArray(data)).toBe(true)
-      expect(data!.length).toBeGreaterThan(0)
+      const data = parseJSON<{ channels: Array<{ id: string; name: string }> }>(result.stdout)
+      expect(Array.isArray(data?.channels)).toBe(true)
+      expect(data!.channels.length).toBeGreaterThan(0)
     })
 
     test('channel info returns channel details', async () => {
@@ -225,12 +230,12 @@ describe('DiscordBot E2E Tests', () => {
 
   describe('user', () => {
     test('user list returns users array', async () => {
-      const result = await runCLI('discordbot', ['user', 'list', '--limit', '10'])
+      const result = await runCLI('discordbot', ['user', 'list'])
       expect(result.exitCode).toBe(0)
 
-      const data = parseJSON<Array<{ id: string; username: string }>>(result.stdout)
-      expect(Array.isArray(data)).toBe(true)
-      expect(data!.length).toBeGreaterThan(0)
+      const data = parseJSON<{ users: Array<{ id: string; username: string }> }>(result.stdout)
+      expect(Array.isArray(data?.users)).toBe(true)
+      expect(data!.users.length).toBeGreaterThan(0)
     })
 
     test('user info returns user details', async () => {
@@ -290,17 +295,17 @@ describe('DiscordBot E2E Tests', () => {
       const result = await runCLI('discordbot', ['server', 'list'])
       expect(result.exitCode).toBe(0)
 
-      const data = parseJSON<Array<{ id: string; name: string }>>(result.stdout)
-      expect(Array.isArray(data)).toBe(true)
-      expect(data!.length).toBeGreaterThan(0)
+      const data = parseJSON<{ servers: Array<{ id: string; name: string }> }>(result.stdout)
+      expect(Array.isArray(data?.servers)).toBe(true)
+      expect(data!.servers.length).toBeGreaterThan(0)
     })
 
     test('server current returns current server', async () => {
       const result = await runCLI('discordbot', ['server', 'current'])
       expect(result.exitCode).toBe(0)
 
-      const data = parseJSON<{ server_id: string; server_name: string }>(result.stdout)
-      expect(data?.server_id).toBe(DISCORDBOT_TEST_SERVER_ID)
+      const data = parseJSON<{ id: string; name: string }>(result.stdout)
+      expect(data?.id).toBe(DISCORDBOT_TEST_SERVER_ID)
     })
   })
 })
