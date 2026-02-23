@@ -47,5 +47,12 @@ bun format      # Format with Biome
 ```
 
 ## Release
+Use the **Release** GitHub Actions workflow (`workflow_dispatch`). It typechecks, lints, tests, bumps version in `package.json` / `.claude-plugin/plugin.json` / `README.md` / `skills/*/SKILL.md`, commits, tags, publishes to npm, and creates a GitHub Release. Tags have no `v` prefix.
 
-Use the **Release** GitHub Actions workflow (`workflow_dispatch`). Enter the version (e.g., `1.4.0`) — it typechecks, lints, tests, bumps version in `package.json` / `.claude-plugin/plugin.json` / `README.md`, commits, tags, publishes to npm, and creates a GitHub Release. Tags have no `v` prefix.
+### Version Decision
+
+- If the user specifies an exact version (e.g., `1.5.0`), use it as-is.
+ Otherwise, the agent decides the bump level based on the changes since the last release (never bump major unless user explicitly asks):
+  - **minor** — New features, new commands, new platform support, breaking changes
+  - **patch** — Bug fixes, refactors, docs, dependency updates, minor improvements
+- Never ask the user which version to bump. Decide and proceed.
