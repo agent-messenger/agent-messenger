@@ -4,6 +4,19 @@
 
 A unified, agent-friendly CLI for messaging platforms. Zero-config credential extraction from your desktop apps—no OAuth flows, no API keys, no admin approval needed. Works out of the box.
 
+## Table of Contents
+
+- [Why Agent Messenger?](#-why-agent-messenger)
+- [Installation](#-installation)
+- [Agent Skills](#-agent-skills)
+- [Quick Start](#-quick-start)
+- [Supported Platforms](#-supported-platforms)
+- [Platform Guides](#-platform-guides)
+- [Use Cases](#-use-cases)
+- [Philosophy](#-philosophy)
+- [Contributing](#-contributing)
+- [License](#-license)
+
 ## 🤔 Why Agent Messenger?
 
 Messaging platforms only offer Bot tokens for API access—your AI agent can never act **as you**. Agent Messenger extracts user credentials directly from your installed desktop apps, letting your agent operate on your behalf. Bot tokens are fully supported too for server-side and CI/CD use cases.
