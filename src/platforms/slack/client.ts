@@ -509,6 +509,7 @@ export class SlackClient {
               ts: msg.edited.ts || '',
             }
           : undefined,
+        reactions: msg.reactions,
         files: msg.files?.map((f: any) => ({
           id: f.id!,
           name: f.name!,

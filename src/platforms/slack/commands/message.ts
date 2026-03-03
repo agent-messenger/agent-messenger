@@ -64,6 +64,7 @@ async function listAction(
       thread_ts: msg.thread_ts,
       reply_count: msg.reply_count,
       edited: msg.edited,
+      reactions: msg.reactions,
       files: msg.files,
     }))
 
@@ -101,6 +102,7 @@ async function getAction(channelInput: string, ts: string, options: { pretty?: b
       thread_ts: message.thread_ts,
       reply_count: message.reply_count,
       edited: message.edited,
+      reactions: message.reactions,
       files: message.files,
     }
 
@@ -239,6 +241,7 @@ async function repliesAction(
       thread_ts: msg.thread_ts,
       reply_count: msg.reply_count,
       edited: msg.edited,
+      reactions: msg.reactions,
       files: msg.files,
     }))
 
