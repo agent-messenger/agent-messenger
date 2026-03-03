@@ -55,6 +55,20 @@ agent-discord auth status
 
 ## Commands
 
+### Auth Commands
+
+```bash
+# Extract token from Discord desktop app (usually automatic)
+agent-discord auth extract
+agent-discord auth extract --debug
+
+# Check auth status
+agent-discord auth status
+
+# Logout from Discord
+agent-discord auth logout
+```
+
 ### Message Commands
 
 ```bash
@@ -352,13 +366,13 @@ Common causes:
 If the package is installed globally, use `agent-discord` directly:
 
 ```bash
-agent-discord message list general
+agent-discord server list
 ```
 
 If the package is NOT installed, use `bunx agent-messenger discord`:
 
 ```bash
-bunx agent-messenger discord message list general
+bunx agent-messenger discord server list
 ```
 
 **NEVER run `bunx agent-discord`** — it will fail or install a wrong package since `agent-discord` is not the npm package name.

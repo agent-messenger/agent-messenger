@@ -53,7 +53,37 @@ agent-teams team current
 agent-teams auth status
 ```
 
+### Multi-Account Support (Work / Personal)
+
+```bash
+# Switch between work and personal accounts
+agent-teams auth switch-account work
+agent-teams auth switch-account personal
+
+# Use a specific account for one command (without switching)
+agent-teams snapshot --account work
+```
+
 ## Commands
+
+### Auth Commands
+
+```bash
+# Extract token from Teams desktop app (usually automatic)
+agent-teams auth extract
+agent-teams auth extract --debug
+
+# Check auth status (includes token expiry info)
+agent-teams auth status
+
+# Logout from Microsoft Teams
+agent-teams auth logout
+
+# Switch between work and personal accounts
+agent-teams auth switch-account <account-type>
+agent-teams auth switch-account work
+agent-teams auth switch-account personal
+```
 
 ### Message Commands
 
@@ -101,6 +131,9 @@ agent-teams team switch <team-id>
 
 # Show current team
 agent-teams team current
+
+# Remove a team from config
+agent-teams team remove <team-id>
 ```
 
 ### User Commands
@@ -281,13 +314,13 @@ Common causes:
 If the package is installed globally, use `agent-teams` directly:
 
 ```bash
-agent-teams message list general
+agent-teams team list
 ```
 
 If the package is NOT installed, use `bunx agent-messenger teams`:
 
 ```bash
-bunx agent-messenger teams message list general
+bunx agent-messenger teams team list
 ```
 
 **NEVER run `bunx agent-teams`** — it will fail or install a wrong package since `agent-teams` is not the npm package name.

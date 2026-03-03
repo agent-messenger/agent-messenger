@@ -49,11 +49,29 @@ agent-slack workspace switch <workspace-id>
 # Show current workspace
 agent-slack workspace current
 
+# Remove a workspace
+agent-slack workspace remove <workspace-id>
+
 # Check auth status
 agent-slack auth status
 ```
 
 ## Commands
+
+### Auth Commands
+
+```bash
+# Extract tokens from Slack desktop app (usually automatic)
+agent-slack auth extract
+agent-slack auth extract --debug
+
+# Check auth status
+agent-slack auth status
+
+# Logout from a workspace (defaults to current)
+agent-slack auth logout
+agent-slack auth logout <workspace-id>
+```
 
 ### Message Commands
 
