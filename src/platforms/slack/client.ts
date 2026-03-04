@@ -415,7 +415,11 @@ export class SlackClient {
       })
       this.checkResponse(response)
 
-      const f = response.file as any
+      const completionFiles = (response as any).files?.[0]?.files
+      const f = completionFiles?.[0]
+      if (!f) {
+        throw new SlackError('No file returned in upload response', 'file_not_found')
+      }
       return {
         id: f.id!,
         name: f.name!,
