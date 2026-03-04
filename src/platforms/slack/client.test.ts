@@ -699,16 +699,23 @@ describe('SlackClient', () => {
     test('uploads file to channels', async () => {
       mockWebClient.files.uploadV2.mockResolvedValue({
         ok: true,
-        file: {
-          id: 'F123',
-          name: 'test.txt',
-          title: 'test.txt',
-          mimetype: 'text/plain',
-          size: 100,
-          url_private: 'https://...',
-          created: 1234567890,
-          user: 'U123',
-        },
+        files: [
+          {
+            ok: true,
+            files: [
+              {
+                id: 'F123',
+                name: 'test.txt',
+                title: 'test.txt',
+                mimetype: 'text/plain',
+                size: 100,
+                url_private: 'https://...',
+                created: 1234567890,
+                user: 'U123',
+              },
+            ],
+          },
+        ],
       })
 
       const client = new SlackClient('xoxc-token', 'xoxd-cookie')
@@ -726,6 +733,32 @@ describe('SlackClient', () => {
       mockWebClient.files.uploadV2.mockResolvedValue({
         ok: false,
         error: 'file_upload_failed',
+      })
+
+      const client = new SlackClient('xoxc-token', 'xoxd-cookie')
+      // @ts-expect-error - accessing private property for testing
+      client.client = mockWebClient as unknown as WebClient
+
+      await expect(client.uploadFile(['C123'], Buffer.from('test'), 'test.txt')).rejects.toThrow(SlackError)
+    })
+
+    test('throws SlackError when response has empty files array', async () => {
+      mockWebClient.files.uploadV2.mockResolvedValue({
+        ok: true,
+        files: [],
+      })
+
+      const client = new SlackClient('xoxc-token', 'xoxd-cookie')
+      // @ts-expect-error - accessing private property for testing
+      client.client = mockWebClient as unknown as WebClient
+
+      await expect(client.uploadFile(['C123'], Buffer.from('test'), 'test.txt')).rejects.toThrow(SlackError)
+    })
+
+    test('throws SlackError when completion has no inner files', async () => {
+      mockWebClient.files.uploadV2.mockResolvedValue({
+        ok: true,
+        files: [{ ok: true, files: [] }],
       })
 
       const client = new SlackClient('xoxc-token', 'xoxd-cookie')
