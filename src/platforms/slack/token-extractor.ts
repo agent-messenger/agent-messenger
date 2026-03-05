@@ -487,6 +487,9 @@ export class TokenExtractor {
       if (this.platform === 'win32') {
         return this.decryptV10CookieWindows(encrypted)
       }
+      if (this.platform === 'linux') {
+        return this.decryptV10CookieLinux(encrypted)
+      }
       return this.decryptV10Cookie(encrypted)
     }
 
@@ -519,6 +522,23 @@ export class TokenExtractor {
       const result = decrypted.toString('utf8')
 
       // Extract xoxd- token from decrypted data (may have padding/garbage before it)
+      const match = result.match(/xoxd-[A-Za-z0-9%]+/)
+      return match ? match[0] : null
+    } catch {
+      return null
+    }
+  }
+
+  private decryptV10CookieLinux(encrypted: Buffer): string | null {
+    try {
+      const key = pbkdf2Sync('peanuts', 'saltysalt', 1, 16, 'sha1')
+      const iv = Buffer.alloc(16, ' ')
+      const ciphertext = encrypted.subarray(3)
+
+      const decipher = createDecipheriv('aes-128-cbc', key, iv)
+      const decrypted = Buffer.concat([decipher.update(ciphertext), decipher.final()])
+      const result = decrypted.toString('utf8')
+
       const match = result.match(/xoxd-[A-Za-z0-9%]+/)
       return match ? match[0] : null
     } catch {

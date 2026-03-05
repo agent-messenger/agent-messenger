@@ -116,6 +116,45 @@ describe('TokenExtractor LevelDB fragmentation markers', () => {
   })
 })
 
+describe('TokenExtractor Linux cookie decryption', () => {
+  test('decrypts v10 cookie using peanuts password on Linux', async () => {
+    // given — LevelDB with valid token + v10-encrypted cookie using Linux key
+    const slackDir = mkdtempSync(join(tmpdir(), 'slack-linux-'))
+    tempDirs.push(slackDir)
+
+    const cookiePlaintext = 'xoxd-linuxTestCookie%2Bvalue'
+    const key = require('node:crypto').pbkdf2Sync('peanuts', 'saltysalt', 1, 16, 'sha1')
+    const iv = Buffer.alloc(16, ' ')
+    const cipher = createCipheriv('aes-128-cbc', key, iv)
+    const ciphertext = Buffer.concat([cipher.update(cookiePlaintext, 'utf8'), cipher.final()])
+    const encryptedCookie = Buffer.concat([Buffer.from('v10'), ciphertext])
+
+    createCookiesDb(join(slackDir, 'Cookies'), [
+      {
+        name: 'd',
+        value: '',
+        encrypted_value: new Uint8Array(encryptedCookie),
+        host_key: '.slack.com',
+        last_access_utc: 1,
+      },
+    ])
+
+    const token = `xoxc-1111111111-2222222222-3333333333-${'a'.repeat(64)}`
+    const leveldbDir = join(slackDir, 'Local Storage', 'leveldb')
+    mkdirSync(leveldbDir, { recursive: true })
+    writeFileSync(join(leveldbDir, '000001.log'), `"${token}"T12345678"name":"test-workspace"`)
+
+    // when
+    const extractor = new TokenExtractor('linux', slackDir)
+    const result = await extractor.extract()
+
+    // then
+    expect(result.length).toBe(1)
+    expect(result[0].cookie).toBe(cookiePlaintext)
+    expect(result[0].token).toBe(token)
+  })
+})
+
 describe('TokenExtractor Windows DPAPI', () => {
   test('decryptDPAPI returns null on non-win32 platform', () => {
     const extractor = new TokenExtractor('darwin', '/tmp/slack-test')
