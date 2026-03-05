@@ -6,6 +6,7 @@ import { TokenExtractor } from './token-extractor'
 
 let getWorkspaceSpy: ReturnType<typeof spyOn>
 let extractSpy: ReturnType<typeof spyOn>
+let extractCookieSpy: ReturnType<typeof spyOn>
 let testAuthSpy: ReturnType<typeof spyOn>
 let setWorkspaceSpy: ReturnType<typeof spyOn>
 let loadSpy: ReturnType<typeof spyOn>
@@ -22,6 +23,8 @@ beforeEach(() => {
       cookie: 'xoxd-test-cookie',
     },
   ])
+
+  extractCookieSpy = spyOn(TokenExtractor.prototype, 'extractCookie').mockResolvedValue('xoxd-fresh-cookie')
 
   testAuthSpy = spyOn(SlackClient.prototype, 'testAuth').mockResolvedValue({
     user_id: 'U123',
@@ -43,6 +46,7 @@ beforeEach(() => {
 afterEach(() => {
   getWorkspaceSpy?.mockRestore()
   extractSpy?.mockRestore()
+  extractCookieSpy?.mockRestore()
   testAuthSpy?.mockRestore()
   setWorkspaceSpy?.mockRestore()
   loadSpy?.mockRestore()
@@ -50,7 +54,7 @@ afterEach(() => {
 })
 
 describe('ensureSlackAuth', () => {
-  test('skips extraction when credentials already exist', async () => {
+  test('skips extraction when stored credentials are valid', async () => {
     // given
     getWorkspaceSpy.mockResolvedValue({
       workspace_id: 'T123',
@@ -63,7 +67,56 @@ describe('ensureSlackAuth', () => {
     await ensureSlackAuth()
 
     // then
+    expect(testAuthSpy).toHaveBeenCalled()
     expect(extractSpy).not.toHaveBeenCalled()
+  })
+
+  test('refreshes cookie when stored credentials are stale', async () => {
+    // given
+    getWorkspaceSpy.mockResolvedValue({
+      workspace_id: 'T123',
+      workspace_name: 'existing',
+      token: 'xoxc-existing',
+      cookie: 'xoxd-old-cookie',
+    })
+    let callCount = 0
+    testAuthSpy.mockImplementation(() => {
+      callCount++
+      if (callCount === 1) throw new Error('invalid_auth')
+      return Promise.resolve({ user_id: 'U1', team_id: 'T123', user: 'user', team: 'Team' })
+    })
+    loadSpy.mockResolvedValue({
+      current_workspace: 'T123',
+      workspaces: {
+        T123: { workspace_id: 'T123', workspace_name: 'existing', token: 'xoxc-existing', cookie: 'xoxd-old-cookie' },
+      },
+    })
+
+    // when
+    await ensureSlackAuth()
+
+    // then — cookie refreshed, no full extraction
+    expect(extractCookieSpy).toHaveBeenCalled()
+    expect(extractSpy).not.toHaveBeenCalled()
+    expect(setWorkspaceSpy).toHaveBeenCalledWith(expect.objectContaining({ cookie: 'xoxd-fresh-cookie' }))
+  })
+
+  test('falls through to full extraction when cookie refresh fails', async () => {
+    // given
+    getWorkspaceSpy.mockResolvedValue({
+      workspace_id: 'T123',
+      workspace_name: 'existing',
+      token: 'xoxc-existing',
+      cookie: 'xoxd-old-cookie',
+    })
+    testAuthSpy.mockRejectedValue(new Error('invalid_auth'))
+    extractCookieSpy.mockResolvedValue('')
+
+    // when
+    await ensureSlackAuth()
+
+    // then — falls through to full extraction
+    expect(extractSpy).toHaveBeenCalled()
   })
 
   test('extracts and saves credentials when none exist', async () => {
