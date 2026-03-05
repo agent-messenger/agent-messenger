@@ -484,7 +484,7 @@ export class TokenExtractor {
 
     // Windows pre-v80: DPAPI applied directly (no version prefix)
     if (this.platform === 'win32' && encrypted.length > 0) {
-      const decrypted = this.decryptDpapi(encrypted)
+      const decrypted = this.decryptDPAPI(encrypted)
       if (decrypted) {
         const text = decrypted.toString('utf8')
         const match = text.match(/xoxd-[A-Za-z0-9%]+/)
@@ -522,7 +522,7 @@ export class TokenExtractor {
     try {
       const masterKey = this.getWindowsMasterKey()
       if (!masterKey) {
-        const decrypted = this.decryptDpapi(encrypted.subarray(3))
+        const decrypted = this.decryptDPAPI(encrypted.subarray(3))
         if (!decrypted) return null
         const text = decrypted.toString('utf8')
         const match = text.match(/xoxd-[A-Za-z0-9%]+/)
@@ -539,7 +539,7 @@ export class TokenExtractor {
       const decrypted = Buffer.concat([decipher.update(ciphertext), decipher.final()]).toString('utf8')
 
       const match = decrypted.match(/xoxd-[A-Za-z0-9%]+/)
-      return match ? match[0] : decrypted
+      return match ? match[0] : null
     } catch {
       return null
     }
@@ -565,13 +565,13 @@ export class TokenExtractor {
         return null
       }
 
-      return this.decryptDpapi(encryptedKey.subarray(5))
+      return this.decryptDPAPI(encryptedKey.subarray(5))
     } catch {
       return null
     }
   }
 
-  decryptDpapi(encrypted: Buffer): Buffer | null {
+  decryptDPAPI(encrypted: Buffer): Buffer | null {
     if (this.platform !== 'win32') {
       return null
     }

@@ -31,9 +31,9 @@ function createCookiesDb(
 }
 
 describe('TokenExtractor Windows DPAPI', () => {
-  test('decryptDpapi returns null on non-win32 platform', () => {
+  test('decryptDPAPI returns null on non-win32 platform', () => {
     const extractor = new TokenExtractor('darwin', '/tmp/slack-test')
-    expect(extractor.decryptDpapi(Buffer.from('test'))).toBeNull()
+    expect(extractor.decryptDPAPI(Buffer.from('test'))).toBeNull()
   })
 
   test('decryptV10CookieWindows decrypts AES-256-GCM with master key from Local State', () => {
@@ -65,7 +65,7 @@ describe('TokenExtractor Windows DPAPI', () => {
       override getWindowsMasterKey(): null {
         return null
       }
-      override decryptDpapi(_encrypted: Buffer): Buffer | null {
+      override decryptDPAPI(_encrypted: Buffer): Buffer | null {
         return Buffer.from('xoxd-dpapiDirectCookie%2B')
       }
     }
@@ -78,7 +78,7 @@ describe('TokenExtractor Windows DPAPI', () => {
 
   test('tryDecryptCookie handles Windows pre-v80 cookies without version prefix', () => {
     class TestTokenExtractor extends TokenExtractor {
-      override decryptDpapi(_encrypted: Buffer): Buffer | null {
+      override decryptDPAPI(_encrypted: Buffer): Buffer | null {
         return Buffer.from('xoxd-preV80Cookie%2B')
       }
     }
@@ -101,7 +101,7 @@ describe('TokenExtractor Windows DPAPI', () => {
     writeFileSync(join(slackDir, 'Local State'), JSON.stringify(localState))
 
     class TestTokenExtractor extends TokenExtractor {
-      override decryptDpapi(encrypted: Buffer): Buffer | null {
+      override decryptDPAPI(encrypted: Buffer): Buffer | null {
         if (encrypted.equals(dpapiPayload)) {
           return fakeDecryptedKey
         }
@@ -167,7 +167,7 @@ describe('TokenExtractor Windows DPAPI', () => {
     writeFileSync(join(leveldbDir, '000001.log'), `"${token}"T12345678"name":"test-workspace"`)
 
     class TestTokenExtractor extends TokenExtractor {
-      override decryptDpapi(encrypted: Buffer): Buffer | null {
+      override decryptDPAPI(encrypted: Buffer): Buffer | null {
         if (encrypted.equals(dpapiPayload)) {
           return masterKey
         }
