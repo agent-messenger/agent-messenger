@@ -53,7 +53,12 @@ export async function switchAction(teamId: string, options: { pretty?: boolean }
     const account = await credManager.getCurrentAccount()
 
     if (!account?.teams?.[teamId]) {
-      console.log(formatOutput({ error: `Team not found: ${teamId}` }, options.pretty))
+      console.log(
+        formatOutput(
+          { error: `Team not found: ${teamId}`, hint: 'Run "team list" to see available teams.' },
+          options.pretty,
+        ),
+      )
       process.exit(1)
     }
 
@@ -87,18 +92,23 @@ export async function removeAction(teamId: string, options: { pretty?: boolean }
     const config = await credManager.loadConfig()
 
     if (!config) {
-      console.log(formatOutput({ error: 'No configuration found.' }, options.pretty))
+      console.log(formatOutput({ error: 'No configuration found. Run "auth extract" first.' }, options.pretty))
       process.exit(1)
     }
 
     const account = await credManager.getCurrentAccount()
     if (!account) {
-      console.log(formatOutput({ error: 'No active account.' }, options.pretty))
+      console.log(formatOutput({ error: 'No active account. Run "auth extract" first.' }, options.pretty))
       process.exit(1)
     }
 
     if (!account.teams[teamId]) {
-      console.log(formatOutput({ error: `Team not found: ${teamId}` }, options.pretty))
+      console.log(
+        formatOutput(
+          { error: `Team not found: ${teamId}`, hint: 'Run "team list" to see available teams.' },
+          options.pretty,
+        ),
+      )
       process.exit(1)
     }
 

@@ -86,7 +86,7 @@ export class TeamsClient {
 
   private async request<T>(method: string, path: string, body?: unknown, baseUrl: string = MSG_API_BASE): Promise<T> {
     if (this.isTokenExpired()) {
-      throw new TeamsError('Token has expired', 'token_expired')
+      throw new TeamsError('Token has expired. Run "auth extract" to refresh.', 'token_expired')
     }
 
     const url = `${baseUrl}${path}`
@@ -151,7 +151,7 @@ export class TeamsClient {
 
   private async requestFormData<T>(path: string, formData: FormData, baseUrl: string = MSG_API_BASE): Promise<T> {
     if (this.isTokenExpired()) {
-      throw new TeamsError('Token has expired', 'token_expired')
+      throw new TeamsError('Token has expired. Run "auth extract" to refresh.', 'token_expired')
     }
 
     const url = `${baseUrl}${path}`
