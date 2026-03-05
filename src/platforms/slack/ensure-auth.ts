@@ -27,7 +27,9 @@ export async function ensureSlackAuth(): Promise<void> {
       await credManager.setCurrentWorkspace(validWorkspaces[0].workspace_id)
     }
   } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === 'EBUSY' || (error as Error).message.includes('locking the cookie')) {
+    const code = typeof error === 'object' && error !== null ? (error as NodeJS.ErrnoException).code : undefined
+    const message = error instanceof Error ? error.message : String(error)
+    if (code === 'EBUSY' || message.includes('locking the cookie')) {
       throw error
     }
     // Silently ignore other extraction errors (e.g. Slack not installed)

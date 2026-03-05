@@ -153,10 +153,12 @@ describe('TokenExtractor Windows DPAPI', () => {
     })
 
     // when — then
-    const extractor = new TokenExtractor('darwin', slackDir)
-    await expect(extractor.extract()).rejects.toThrow('Quit the Slack app completely and try again')
-
-    copyFileSyncSpy.mockRestore()
+    try {
+      const extractor = new TokenExtractor('darwin', slackDir)
+      await expect(extractor.extract()).rejects.toThrow('Quit the Slack app completely and try again')
+    } finally {
+      copyFileSyncSpy.mockRestore()
+    }
   })
 
   test('extract decrypts Windows v10 cookies end-to-end with mocked DPAPI', async () => {
