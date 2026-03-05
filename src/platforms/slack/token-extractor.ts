@@ -1,6 +1,6 @@
 import { execSync } from 'node:child_process'
 import { createDecipheriv, pbkdf2Sync } from 'node:crypto'
-import { copyFileSync, existsSync, readdirSync, readFileSync, rmSync, statSync } from 'node:fs'
+import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { homedir, tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -81,6 +81,26 @@ export class TokenExtractor {
       default:
         throw new Error(`Unsupported platform: ${this.platform}`)
     }
+  }
+
+  async extractCookie(): Promise<string> {
+    if (!existsSync(this.slackDir)) {
+      return ''
+    }
+
+    await this.getDerivedKeyAsync()
+
+    const cookie = await this.extractCookieFromSQLite()
+    if (!cookie && this.usedCachedKey) {
+      await this.clearKeyCache()
+      this.cachedKey = this.getDerivedKeyFromKeychain()
+      if (this.cachedKey) {
+        await this.keyCache.set('slack', this.cachedKey)
+        return await this.extractCookieFromSQLite()
+      }
+    }
+
+    return cookie
   }
 
   async extract(): Promise<ExtractedWorkspace[]> {
@@ -194,25 +214,57 @@ export class TokenExtractor {
   }
 
   private async extractFromLevelDB(dbPath: string): Promise<TokenInfo[]> {
-    const tokens: TokenInfo[] = []
+    // ClassicLevel on a copy avoids LevelDB prefix-compression artifacts
+    // that corrupt tokens when reading raw .ldb files
+    const classicLevelTokens = await this.extractViaClassicLevelCopy(dbPath)
+    if (classicLevelTokens.length > 0) {
+      return classicLevelTokens
+    }
 
-    // First try reading LDB files directly (more reliable for sandboxed apps)
     const directTokens = this.extractTokensFromLDBFiles(dbPath)
     if (directTokens.length > 0) {
       return directTokens
     }
 
-    // Fallback to ClassicLevel for standard installations
+    return this.extractViaClassicLevel(dbPath)
+  }
+
+  private async extractViaClassicLevelCopy(dbPath: string): Promise<TokenInfo[]> {
+    const tempDir = join(tmpdir(), `slack-leveldb-${Date.now()}-${Math.random().toString(36).slice(2)}`)
+
+    try {
+      mkdirSync(tempDir, { recursive: true })
+
+      const files = readdirSync(dbPath)
+      for (const file of files) {
+        if (file === 'LOCK') continue // ClassicLevel creates its own
+        const src = join(dbPath, file)
+        try {
+          if (statSync(src).isFile()) {
+            copyFileSync(src, join(tempDir, file))
+          }
+        } catch {}
+      }
+
+      return await this.extractViaClassicLevel(tempDir)
+    } catch {
+      return []
+    } finally {
+      try {
+        rmSync(tempDir, { recursive: true, force: true })
+      } catch {}
+    }
+  }
+
+  private async extractViaClassicLevel(dbPath: string): Promise<TokenInfo[]> {
+    const tokens: TokenInfo[] = []
     let db: ClassicLevel<string, string> | null = null
     try {
       db = new ClassicLevel(dbPath, { valueEncoding: 'utf8' })
 
       for await (const [key, value] of db.iterator()) {
         if (typeof value === 'string' && value.includes('xoxc-')) {
-          const extracted = this.parseTokenData(key, value)
-          if (extracted) {
-            tokens.push(extracted)
-          }
+          tokens.push(...this.parseTokenValue(key, value))
         }
       }
     } catch {
@@ -223,7 +275,6 @@ export class TokenExtractor {
         } catch {}
       }
     }
-
     return tokens
   }
 
@@ -392,33 +443,57 @@ export class TokenExtractor {
     return { token, teamId, teamName }
   }
 
-  private parseTokenData(_key: string, value: string): TokenInfo | null {
-    const tokenMatch = value.match(/xoxc-[a-zA-Z0-9-]+/)
-    if (!tokenMatch) {
-      return null
-    }
+  private parseTokenValue(_key: string, value: string): TokenInfo[] {
+    // LevelDB values may have leading control characters (e.g. 0x01).
+    // Built dynamically to satisfy biome's noControlCharactersInRegex.
+    const controlChars = new RegExp(
+      `[${String.fromCharCode(0)}-${String.fromCharCode(8)}${String.fromCharCode(11)}${String.fromCharCode(12)}${String.fromCharCode(14)}-${String.fromCharCode(31)}]`,
+      'g',
+    )
+    const cleaned = value.replace(controlChars, '')
+    try {
+      const parsed = JSON.parse(cleaned)
+      if (parsed?.teams && typeof parsed.teams === 'object') {
+        return this.parseTeamsObject(parsed.teams)
+      }
+    } catch {}
 
-    const token = tokenMatch[0]
+    const single = this.parseSingleToken(cleaned)
+    return single ? [single] : []
+  }
+
+  private parseTeamsObject(teams: Record<string, any>): TokenInfo[] {
+    const tokens: TokenInfo[] = []
+    for (const [teamId, team] of Object.entries(teams)) {
+      if (!team?.token || typeof team.token !== 'string' || !team.token.startsWith('xoxc-')) continue
+      tokens.push({
+        token: team.token,
+        teamId: team.id || teamId,
+        teamName: team.name || 'unknown',
+      })
+    }
+    return tokens
+  }
+
+  private parseSingleToken(value: string): TokenInfo | null {
+    const tokenMatch = value.match(/xoxc-[a-zA-Z0-9-]+/)
+    if (!tokenMatch) return null
 
     let teamId = 'unknown'
     let teamName = 'unknown'
 
     const teamIdMatch = value.match(/"team_id"\s*:\s*"(T[A-Z0-9]+)"/)
-    if (teamIdMatch) {
-      teamId = teamIdMatch[1]
-    }
+    if (teamIdMatch) teamId = teamIdMatch[1]
 
     const teamNameMatch = value.match(/"team_name"\s*:\s*"([^"]+)"/)
     if (teamNameMatch) {
       teamName = teamNameMatch[1]
     } else {
       const domainMatch = value.match(/"domain"\s*:\s*"([^"]+)"/)
-      if (domainMatch) {
-        teamName = domainMatch[1]
-      }
+      if (domainMatch) teamName = domainMatch[1]
     }
 
-    return { token, teamId, teamName }
+    return { token: tokenMatch[0], teamId, teamName }
   }
 
   private async extractCookieFromSQLite(): Promise<string> {
