@@ -31,6 +31,58 @@ function createCookiesDb(
   db.close()
 }
 
+describe('TokenExtractor token deduplication', () => {
+  test('keeps first token per team and upgrades unknown team name', async () => {
+    // given — two .log entries for the same team: first has unknown name, second has a name
+    const slackDir = mkdtempSync(join(tmpdir(), 'slack-dedup-'))
+    tempDirs.push(slackDir)
+
+    const hex64a = 'a'.repeat(64)
+    const hex64b = 'b'.repeat(64)
+    const tokenA = `xoxc-1111111111-2222222222-3333333333-${hex64a}`
+    const tokenB = `xoxc-4444444444-5555555555-6666666666-${hex64b}`
+
+    const leveldbDir = join(slackDir, 'Local Storage', 'leveldb')
+    mkdirSync(leveldbDir, { recursive: true })
+    // First entry: tokenA with team ID but no name
+    // Second entry: tokenB with same team ID and a name
+    writeFileSync(join(leveldbDir, '000001.log'), `"${tokenA}"T12345678xxx"${tokenB}"T12345678"name":"workspace-name"`)
+
+    // when
+    const extractor = new TokenExtractor('darwin', slackDir)
+    const result = await extractor.extract()
+
+    // then — first token wins, but team name is upgraded
+    expect(result.length).toBe(1)
+    expect(result[0].token).toBe(tokenA)
+    expect(result[0].workspace_name).toBe('workspace-name')
+  })
+
+  test('prefers .log tokens over .ldb tokens for same team', async () => {
+    // given — same team ID in both .log (fresh) and .ldb (stale)
+    const slackDir = mkdtempSync(join(tmpdir(), 'slack-dedup-order-'))
+    tempDirs.push(slackDir)
+
+    const hex64fresh = 'f'.repeat(64)
+    const hex64stale = 's'.repeat(64)
+    const freshToken = `xoxc-1111111111-2222222222-3333333333-${hex64fresh}`
+    const staleToken = `xoxc-9999999999-8888888888-7777777777-${hex64stale}`
+
+    const leveldbDir = join(slackDir, 'Local Storage', 'leveldb')
+    mkdirSync(leveldbDir, { recursive: true })
+    writeFileSync(join(leveldbDir, '000001.log'), `"${freshToken}"T12345678"name":"fresh-workspace"`)
+    writeFileSync(join(leveldbDir, '000002.ldb'), `"${staleToken}"T12345678"team_name":"stale-workspace"`)
+
+    // when
+    const extractor = new TokenExtractor('darwin', slackDir)
+    const result = await extractor.extract()
+
+    // then — .log token wins
+    expect(result.length).toBe(1)
+    expect(result[0].token).toBe(freshToken)
+  })
+})
+
 describe('TokenExtractor LevelDB fragmentation markers', () => {
   function buildFragmentedLdbContent(tokenParts: string[], marker: number[]): Buffer {
     // given — build binary content simulating LevelDB fragmentation:
