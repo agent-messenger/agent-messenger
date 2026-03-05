@@ -5,7 +5,16 @@ import { TokenExtractor } from './token-extractor'
 export async function ensureSlackAuth(): Promise<void> {
   const credManager = new CredentialManager()
   const workspace = await credManager.getWorkspace()
-  if (workspace) return
+
+  if (workspace) {
+    try {
+      const client = new SlackClient(workspace.token, workspace.cookie)
+      await client.testAuth()
+      return
+    } catch {
+      if (await refreshCookie(workspace.token, credManager)) return
+    }
+  }
 
   try {
     const extractor = new TokenExtractor()
@@ -32,6 +41,27 @@ export async function ensureSlackAuth(): Promise<void> {
     if (code === 'EBUSY' || message.includes('locking the cookie')) {
       throw error
     }
-    // Silently ignore other extraction errors (e.g. Slack not installed)
+  }
+}
+
+export async function refreshCookie(
+  token: string,
+  credManager: CredentialManager,
+): Promise<{ user_id: string; team_id: string; user?: string; team?: string } | null> {
+  try {
+    const extractor = new TokenExtractor()
+    const freshCookie = await extractor.extractCookie()
+    if (!freshCookie) return null
+
+    const client = new SlackClient(token, freshCookie)
+    const authInfo = await client.testAuth()
+
+    const config = await credManager.load()
+    for (const ws of Object.values(config.workspaces)) {
+      await credManager.setWorkspace({ ...ws, cookie: freshCookie })
+    }
+    return authInfo
+  } catch {
+    return null
   }
 }

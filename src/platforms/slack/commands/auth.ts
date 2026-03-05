@@ -3,6 +3,7 @@ import { handleError } from '@/shared/utils/error-handler'
 import { formatOutput } from '@/shared/utils/output'
 import { SlackClient, SlackError } from '../client'
 import { CredentialManager } from '../credential-manager'
+import { refreshCookie } from '../ensure-auth'
 import { TokenExtractor } from '../token-extractor'
 
 async function extractAction(options: { pretty?: boolean; debug?: boolean }): Promise<void> {
@@ -162,7 +163,8 @@ async function statusAction(options: { pretty?: boolean }): Promise<void> {
       authInfo = await client.testAuth()
       valid = true
     } catch {
-      valid = false
+      authInfo = await refreshCookie(ws.token, credManager)
+      valid = authInfo !== null
     }
 
     const output = {
