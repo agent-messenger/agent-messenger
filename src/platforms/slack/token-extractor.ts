@@ -26,8 +26,14 @@ export class TokenExtractor {
   private platform: NodeJS.Platform
   private slackDir: string
   private keyCache: DerivedKeyCache
+  private debugLog: ((message: string) => void) | null
 
-  constructor(platform?: NodeJS.Platform, slackDir?: string, keyCache?: DerivedKeyCache) {
+  constructor(
+    platform?: NodeJS.Platform,
+    slackDir?: string,
+    keyCache?: DerivedKeyCache,
+    debugLog?: (message: string) => void,
+  ) {
     this.platform = platform ?? process.platform
 
     if (!['darwin', 'linux', 'win32'].includes(this.platform)) {
@@ -36,6 +42,11 @@ export class TokenExtractor {
 
     this.slackDir = slackDir ?? this.getSlackDir()
     this.keyCache = keyCache ?? new DerivedKeyCache()
+    this.debugLog = debugLog ?? null
+  }
+
+  private debug(message: string): void {
+    this.debugLog?.(message)
   }
 
   getSlackDir(): string {
@@ -415,10 +426,13 @@ export class TokenExtractor {
     if (!existsSync(cookiesPath)) {
       const networkCookiesPath = join(this.slackDir, 'Network', 'Cookies')
       if (!existsSync(networkCookiesPath)) {
+        this.debug(`Cookie file not found at ${cookiesPath} or ${networkCookiesPath}`)
         return ''
       }
+      this.debug(`Using Network cookies path: ${networkCookiesPath}`)
       return this.readCookieFromDB(networkCookiesPath)
     }
+    this.debug(`Using cookies path: ${cookiesPath}`)
     return this.readCookieFromDB(cookiesPath)
   }
 
@@ -436,6 +450,7 @@ export class TokenExtractor {
             'Quit the Slack app completely and try again.',
         )
       }
+      this.debug(`Failed to copy cookie DB: ${(error as Error).message}`)
       return ''
     }
 
@@ -462,22 +477,29 @@ export class TokenExtractor {
       }
 
       if (!row) {
+        this.debug('No cookie row found in database')
         return ''
       }
 
       if (row.value?.startsWith('xoxd-')) {
+        this.debug('Found plaintext cookie')
         return row.value
       }
 
       if (row.encrypted_value && row.encrypted_value.length > 0) {
+        this.debug(`Found encrypted cookie (${row.encrypted_value.length} bytes)`)
         const decrypted = this.tryDecryptCookie(Buffer.from(row.encrypted_value))
         if (decrypted) {
+          this.debug('Cookie decrypted successfully')
           return decrypted
         }
+        this.debug('Cookie decryption failed')
       }
 
+      this.debug('No usable cookie value in row')
       return ''
-    } catch {
+    } catch (error) {
+      this.debug(`Cookie DB query failed: ${(error as Error).message}`)
       return ''
     } finally {
       try {
@@ -638,6 +660,7 @@ export class TokenExtractor {
 
   private async getDerivedKeyAsync(): Promise<Buffer | null> {
     if (this.platform !== 'darwin') {
+      this.debug(`Skipping Keychain key derivation (platform: ${this.platform})`)
       return null
     }
 
@@ -645,6 +668,7 @@ export class TokenExtractor {
     if (cached) {
       this.cachedKey = cached
       this.usedCachedKey = true
+      this.debug('Using cached derived key')
       return cached
     }
 
@@ -653,6 +677,9 @@ export class TokenExtractor {
       this.cachedKey = key
       await this.keyCache.set('slack', key)
       this.usedCachedKey = false
+      this.debug('Derived key from Keychain')
+    } else {
+      this.debug('Failed to derive key from Keychain')
     }
     return key
   }

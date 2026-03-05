@@ -7,7 +7,8 @@ import { TokenExtractor } from '../token-extractor'
 
 async function extractAction(options: { pretty?: boolean; debug?: boolean }): Promise<void> {
   try {
-    const extractor = new TokenExtractor()
+    const debugLog = options.debug ? (msg: string) => console.error(`[debug] ${msg}`) : undefined
+    const extractor = new TokenExtractor(undefined, undefined, undefined, debugLog)
 
     if (process.platform === 'darwin') {
       console.log('')

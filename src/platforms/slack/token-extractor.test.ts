@@ -207,6 +207,37 @@ describe('TokenExtractor Linux cookie decryption', () => {
   })
 })
 
+describe('TokenExtractor debug logging', () => {
+  test('calls debugLog callback during extraction', async () => {
+    // given
+    const slackDir = mkdtempSync(join(tmpdir(), 'slack-debug-'))
+    tempDirs.push(slackDir)
+    mkdirSync(join(slackDir, 'storage'), { recursive: true })
+
+    const messages: string[] = []
+    const debugLog = (msg: string) => messages.push(msg)
+
+    // when
+    const extractor = new TokenExtractor('darwin', slackDir, undefined, debugLog)
+    await extractor.extract()
+
+    // then — should have emitted debug messages
+    expect(messages.length).toBeGreaterThan(0)
+  })
+
+  test('does not throw when debugLog is not provided', async () => {
+    // given
+    const slackDir = mkdtempSync(join(tmpdir(), 'slack-no-debug-'))
+    tempDirs.push(slackDir)
+    mkdirSync(join(slackDir, 'storage'), { recursive: true })
+
+    // when — then — should not throw
+    const extractor = new TokenExtractor('darwin', slackDir)
+    const result = await extractor.extract()
+    expect(result).toEqual([])
+  })
+})
+
 describe('TokenExtractor Windows DPAPI', () => {
   test('decryptDPAPI returns null on non-win32 platform', () => {
     const extractor = new TokenExtractor('darwin', '/tmp/slack-test')
