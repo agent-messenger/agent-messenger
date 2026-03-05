@@ -1,6 +1,6 @@
 import { execSync } from 'node:child_process'
 import { createDecipheriv, pbkdf2Sync } from 'node:crypto'
-import { copyFileSync, existsSync, readdirSync, readFileSync, rmSync } from 'node:fs'
+import { copyFileSync, existsSync, readdirSync, readFileSync, rmSync, statSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { homedir, tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -142,8 +142,11 @@ export class TokenExtractor {
   private deduplicateTokens(tokens: TokenInfo[]): TokenInfo[] {
     const seen = new Map<string, TokenInfo>()
     for (const token of tokens) {
-      if (!seen.has(token.teamId) || token.teamName !== 'unknown') {
+      const existing = seen.get(token.teamId)
+      if (!existing) {
         seen.set(token.teamId, token)
+      } else if (existing.teamName === 'unknown' && token.teamName !== 'unknown') {
+        seen.set(token.teamId, { ...token, token: existing.token })
       }
     }
     return Array.from(seen.values())
@@ -219,7 +222,13 @@ export class TokenExtractor {
       // Prioritize .log files (not compacted, have clean data)
       // Then fall back to .ldb files
       const logFiles = readdirSync(dbPath).filter((f) => f.endsWith('.log'))
-      const ldbFiles = readdirSync(dbPath).filter((f) => f.endsWith('.ldb'))
+      const ldbFiles = readdirSync(dbPath)
+        .filter((f) => f.endsWith('.ldb'))
+        .sort((a, b) => {
+          const statA = statSync(join(dbPath, a))
+          const statB = statSync(join(dbPath, b))
+          return statB.mtimeMs - statA.mtimeMs
+        })
       const files = [...logFiles, ...ldbFiles]
 
       for (const file of files) {
