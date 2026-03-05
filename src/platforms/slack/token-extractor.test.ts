@@ -31,6 +31,91 @@ function createCookiesDb(
   db.close()
 }
 
+describe('TokenExtractor LevelDB fragmentation markers', () => {
+  function buildFragmentedLdbContent(tokenParts: string[], marker: number[]): Buffer {
+    // given — build binary content simulating LevelDB fragmentation:
+    // token segments joined by 4-byte marker instead of hyphens
+    const segments: Buffer[] = []
+    for (let i = 0; i < tokenParts.length; i++) {
+      segments.push(Buffer.from(tokenParts[i]))
+      if (i < tokenParts.length - 1) {
+        segments.push(Buffer.from(marker))
+      }
+    }
+    // Surround with team ID context and a terminator
+    const prefix = Buffer.from('"team_name":"test-workspace"T12345678')
+    const suffix = Buffer.from('"')
+    return Buffer.concat([prefix, segments[0] ? Buffer.concat(segments) : Buffer.alloc(0), suffix])
+  }
+
+  test('extracts token with old fragmentation marker [19 0d f0 NN]', async () => {
+    // given
+    const slackDir = mkdtempSync(join(tmpdir(), 'slack-marker-old-'))
+    tempDirs.push(slackDir)
+
+    const hex64 = 'a'.repeat(64)
+    const tokenParts = ['xoxc-1111111111', '2222222222', '3333333333', hex64]
+    const content = buildFragmentedLdbContent(tokenParts, [0x19, 0x0d, 0xf0, 0x5e])
+
+    const leveldbDir = join(slackDir, 'Local Storage', 'leveldb')
+    mkdirSync(leveldbDir, { recursive: true })
+    writeFileSync(join(leveldbDir, '000001.ldb'), content)
+
+    // when
+    const extractor = new TokenExtractor('darwin', slackDir)
+    const result = await extractor.extract()
+
+    // then
+    expect(result.length).toBe(1)
+    expect(result[0].token).toBe(`xoxc-1111111111-2222222222-3333333333-${hex64}`)
+  })
+
+  test('extracts token with new fragmentation marker [15 0b f0 43]', async () => {
+    // given — marker whose 4th byte (0x43 = "C") is a valid hex char
+    const slackDir = mkdtempSync(join(tmpdir(), 'slack-marker-new-'))
+    tempDirs.push(slackDir)
+
+    const hex64 = 'b'.repeat(64)
+    const tokenParts = ['xoxc-4063338523', '4063338531', '8150876260673', hex64]
+    const content = buildFragmentedLdbContent(tokenParts, [0x15, 0x0b, 0xf0, 0x43])
+
+    const leveldbDir = join(slackDir, 'Local Storage', 'leveldb')
+    mkdirSync(leveldbDir, { recursive: true })
+    writeFileSync(join(leveldbDir, '000001.ldb'), content)
+
+    // when
+    const extractor = new TokenExtractor('darwin', slackDir)
+    const result = await extractor.extract()
+
+    // then — 0x43 ("C") must NOT leak into the token
+    expect(result.length).toBe(1)
+    expect(result[0].token).toBe(`xoxc-4063338523-4063338531-8150876260673-${hex64}`)
+    expect(result[0].token).not.toContain('C')
+  })
+
+  test('extracts token with new fragmentation marker [15 0b f0 58]', async () => {
+    // given — marker whose 4th byte (0x58 = "X") is not a valid hex char
+    const slackDir = mkdtempSync(join(tmpdir(), 'slack-marker-58-'))
+    tempDirs.push(slackDir)
+
+    const hex64 = 'c'.repeat(64)
+    const tokenParts = ['xoxc-5555555555', '6666666666', '7777777777', hex64]
+    const content = buildFragmentedLdbContent(tokenParts, [0x15, 0x0b, 0xf0, 0x58])
+
+    const leveldbDir = join(slackDir, 'Local Storage', 'leveldb')
+    mkdirSync(leveldbDir, { recursive: true })
+    writeFileSync(join(leveldbDir, '000001.ldb'), content)
+
+    // when
+    const extractor = new TokenExtractor('darwin', slackDir)
+    const result = await extractor.extract()
+
+    // then
+    expect(result.length).toBe(1)
+    expect(result[0].token).toBe(`xoxc-5555555555-6666666666-7777777777-${hex64}`)
+  })
+})
+
 describe('TokenExtractor Windows DPAPI', () => {
   test('decryptDPAPI returns null on non-win32 platform', () => {
     const extractor = new TokenExtractor('darwin', '/tmp/slack-test')

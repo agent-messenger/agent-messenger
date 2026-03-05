@@ -305,8 +305,10 @@ export class TokenExtractor {
         i++
       } else {
         // Check for 4-byte fragmentation marker pattern
-        // Pattern: 0x19 0x0d 0xf0 0xNN (where NN varies)
-        if (i + 3 < chunk.length && chunk[i] === 0x19 && chunk[i + 1] === 0x0d && chunk[i + 2] === 0xf0) {
+        // LevelDB compaction inserts 4-byte markers where hyphens should be.
+        // Known patterns: [19 0d f0 NN], [15 0b f0 NN] — the 3rd byte (0xf0) is consistent.
+        // Match any 4-byte sequence where byte at offset +2 is 0xf0.
+        if (i + 3 < chunk.length && chunk[i + 2] === 0xf0) {
           // Skip the 4 garbage bytes and insert a hyphen
           result.push(0x2d) // hyphen
           i += 4
