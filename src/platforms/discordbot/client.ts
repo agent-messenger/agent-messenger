@@ -334,7 +334,10 @@ export class DiscordBotClient {
     const channels = await this.listChannels(guildId)
     const found = channels.find((c) => c.name === channel || c.name === channel.replace(/^#/, ''))
     if (!found) {
-      throw new DiscordBotError(`Channel not found: "${channel}"`, 'channel_not_found')
+      throw new DiscordBotError(
+        `Channel not found: "${channel}". Use channel ID or exact channel name.`,
+        'channel_not_found',
+      )
     }
     return found.id
   }

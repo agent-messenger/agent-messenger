@@ -54,7 +54,12 @@ export async function switchAction(serverId: string, options: { pretty?: boolean
     const config = await credManager.load()
 
     if (!config.servers[serverId]) {
-      console.log(formatOutput({ error: `Server not found: ${serverId}` }, options.pretty))
+      console.log(
+        formatOutput(
+          { error: `Server not found: ${serverId}`, hint: 'Run "server list" to see available servers.' },
+          options.pretty,
+        ),
+      )
       process.exit(1)
     }
 
@@ -78,7 +83,15 @@ export async function currentAction(options: { pretty?: boolean }): Promise<void
     const server = config.servers[config.current_server]
 
     if (!server) {
-      console.log(formatOutput({ error: 'Current server not found in configuration.' }, options.pretty))
+      console.log(
+        formatOutput(
+          {
+            error: 'Current server not found in configuration.',
+            hint: 'Run "auth extract" to refresh, or "server switch <server-id>".',
+          },
+          options.pretty,
+        ),
+      )
       process.exit(1)
     }
 
