@@ -418,7 +418,13 @@ export class TokenExtractor {
 
     try {
       copyFileSync(dbPath, tempDbPath)
-    } catch {
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === 'EBUSY') {
+        throw new Error(
+          'Failed to read Slack cookies. The Slack app is currently running and locking the cookie database. ' +
+            'Quit the Slack app completely and try again.',
+        )
+      }
       return ''
     }
 

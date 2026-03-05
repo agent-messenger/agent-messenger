@@ -3,11 +3,11 @@ import { CredentialManager } from './credential-manager'
 import { TokenExtractor } from './token-extractor'
 
 export async function ensureSlackAuth(): Promise<void> {
-  try {
-    const credManager = new CredentialManager()
-    const workspace = await credManager.getWorkspace()
-    if (workspace) return
+  const credManager = new CredentialManager()
+  const workspace = await credManager.getWorkspace()
+  if (workspace) return
 
+  try {
     const extractor = new TokenExtractor()
     const workspaces = await extractor.extract()
 
@@ -26,5 +26,10 @@ export async function ensureSlackAuth(): Promise<void> {
     if (!config.current_workspace && validWorkspaces.length > 0) {
       await credManager.setCurrentWorkspace(validWorkspaces[0].workspace_id)
     }
-  } catch {}
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'EBUSY' || (error as Error).message.includes('locking the cookie')) {
+      throw error
+    }
+    // Silently ignore other extraction errors (e.g. Slack not installed)
+  }
 }

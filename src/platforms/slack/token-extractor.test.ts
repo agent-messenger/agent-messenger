@@ -1,6 +1,7 @@
 import { Database } from 'bun:sqlite'
-import { afterEach, describe, expect, test } from 'bun:test'
+import { afterEach, describe, expect, spyOn, test } from 'bun:test'
 import { createCipheriv, randomBytes } from 'node:crypto'
+import * as fs from 'node:fs'
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -131,6 +132,31 @@ describe('TokenExtractor Windows DPAPI', () => {
 
     const extractor = new TokenExtractor('win32', slackDir)
     expect(extractor.getWindowsMasterKey()).toBeNull()
+  })
+
+  test('extract throws descriptive error when cookie file is locked (EBUSY)', async () => {
+    // given — LevelDB with a valid token but Cookies file locked by Slack
+    const slackDir = mkdtempSync(join(tmpdir(), 'slack-ebusy-'))
+    tempDirs.push(slackDir)
+
+    const token = `xoxc-1111111111-2222222222-3333333333-${'a'.repeat(64)}`
+    const leveldbDir = join(slackDir, 'Local Storage', 'leveldb')
+    mkdirSync(leveldbDir, { recursive: true })
+    writeFileSync(join(leveldbDir, '000001.log'), `"${token}"T12345678"name":"test-workspace"`)
+
+    writeFileSync(join(slackDir, 'Cookies'), 'placeholder')
+
+    const copyFileSyncSpy = spyOn(fs, 'copyFileSync').mockImplementation(() => {
+      const err = new Error('resource busy or locked') as NodeJS.ErrnoException
+      err.code = 'EBUSY'
+      throw err
+    })
+
+    // when — then
+    const extractor = new TokenExtractor('darwin', slackDir)
+    await expect(extractor.extract()).rejects.toThrow('Quit the Slack app completely and try again')
+
+    copyFileSyncSpy.mockRestore()
   })
 
   test('extract decrypts Windows v10 cookies end-to-end with mocked DPAPI', async () => {

@@ -153,6 +153,19 @@ describe('ensureSlackAuth', () => {
     expect(setWorkspaceSpy).not.toHaveBeenCalled()
   })
 
+  test('propagates cookie lock error when Slack app is running', async () => {
+    // given
+    const error = new Error(
+      'Failed to read Slack cookies. The Slack app is currently running and locking the cookie database. ' +
+        'Quit the Slack app completely and try again.',
+    )
+    ;(error as NodeJS.ErrnoException).code = 'EBUSY'
+    extractSpy.mockRejectedValue(error)
+
+    // when — then
+    await expect(ensureSlackAuth()).rejects.toThrow('locking the cookie')
+  })
+
   test('does not save when no workspaces extracted', async () => {
     // given
     extractSpy.mockResolvedValue([])
