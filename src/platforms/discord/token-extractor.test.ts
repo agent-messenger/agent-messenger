@@ -79,6 +79,31 @@ describe('DiscordTokenExtractor', () => {
     })
   })
 
+  describe('Linux token decryption', () => {
+    test('decrypts encrypted token using peanuts password on Linux', () => {
+      // given — AES-128-CBC encrypted token with Linux Chromium key
+      const { createCipheriv, pbkdf2Sync } = require('node:crypto')
+      const plainToken = 'XXXXXXXXXXXXXXXXXXXXXXXX.YYYYYY.ZZZZZZZZZZZZZZZZZZZZZZZZZ'
+      const key = pbkdf2Sync('peanuts', 'saltysalt', 1, 16, 'sha1')
+      const iv = Buffer.alloc(16, 0x20)
+      const cipher = createCipheriv('aes-128-cbc', key, iv)
+      const ciphertext = Buffer.concat([cipher.update(plainToken, 'utf8'), cipher.final()])
+      // v10 prefix (3 bytes) + ciphertext
+      const encrypted = Buffer.concat([Buffer.from('v10'), ciphertext])
+      const encryptedToken = `dQw4w9WgXcQ:${encrypted.toString('base64')}`
+
+      const linuxExtractor = new DiscordTokenExtractor('linux')
+      const decryptTokenSpy = spyOn(linuxExtractor as any, 'decryptToken')
+      decryptTokenSpy.mockRestore()
+
+      // when
+      const result = (linuxExtractor as any).decryptToken(encryptedToken, '/home/user/.config/discord')
+
+      // then
+      expect(result).toBe(plainToken)
+    })
+  })
+
   describe('extract', () => {
     test('returns null when no Discord directories exist on linux', async () => {
       const linuxExtractor = new DiscordTokenExtractor('linux')
