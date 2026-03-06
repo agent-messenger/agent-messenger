@@ -828,4 +828,30 @@ export class TokenExtractor {
     await this.keyCache.clear('slack')
     this.cachedKey = null
   }
+
+  getWorkspaceDomains(): Record<string, string> {
+    const rootStatePath = join(this.slackDir, 'storage', 'root-state.json')
+    if (!existsSync(rootStatePath)) {
+      this.debug(`root-state.json not found at ${rootStatePath}`)
+      return {}
+    }
+
+    try {
+      const content = readFileSync(rootStatePath, 'utf8')
+      const data = JSON.parse(content) as {
+        workspaces?: Record<string, { domain?: string }>
+      }
+      const domains: Record<string, string> = {}
+      for (const [teamId, ws] of Object.entries(data.workspaces ?? {})) {
+        if (ws.domain) {
+          domains[teamId] = ws.domain
+        }
+      }
+      this.debug(`Found ${Object.keys(domains).length} workspace domain(s) in root-state.json`)
+      return domains
+    } catch {
+      this.debug('Failed to parse root-state.json')
+      return {}
+    }
+  }
 }

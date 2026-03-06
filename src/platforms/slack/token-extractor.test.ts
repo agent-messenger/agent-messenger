@@ -502,3 +502,85 @@ describe('TokenExtractor Windows DPAPI', () => {
     ])
   })
 })
+
+describe('TokenExtractor getWorkspaceDomains', () => {
+  test('reads workspace domains from root-state.json', () => {
+    // given
+    const slackDir = mkdtempSync(join(tmpdir(), 'slack-domains-'))
+    tempDirs.push(slackDir)
+
+    const storageDir = join(slackDir, 'storage')
+    mkdirSync(storageDir, { recursive: true })
+    writeFileSync(
+      join(storageDir, 'root-state.json'),
+      JSON.stringify({
+        workspaces: {
+          T111: { domain: 'acme-corp', name: 'Acme', url: 'https://acme-corp.slack.com/' },
+          T222: { domain: 'devteam', name: 'Dev', url: 'https://devteam.slack.com/' },
+        },
+      }),
+    )
+
+    // when
+    const extractor = new TokenExtractor('darwin', slackDir)
+    const domains = extractor.getWorkspaceDomains()
+
+    // then
+    expect(domains).toEqual({ T111: 'acme-corp', T222: 'devteam' })
+  })
+
+  test('returns empty when root-state.json is missing', () => {
+    // given
+    const slackDir = mkdtempSync(join(tmpdir(), 'slack-no-rootstate-'))
+    tempDirs.push(slackDir)
+
+    // when
+    const extractor = new TokenExtractor('darwin', slackDir)
+    const domains = extractor.getWorkspaceDomains()
+
+    // then
+    expect(domains).toEqual({})
+  })
+
+  test('returns empty when root-state.json has no workspaces', () => {
+    // given
+    const slackDir = mkdtempSync(join(tmpdir(), 'slack-empty-rootstate-'))
+    tempDirs.push(slackDir)
+
+    const storageDir = join(slackDir, 'storage')
+    mkdirSync(storageDir, { recursive: true })
+    writeFileSync(join(storageDir, 'root-state.json'), JSON.stringify({ settings: {} }))
+
+    // when
+    const extractor = new TokenExtractor('darwin', slackDir)
+    const domains = extractor.getWorkspaceDomains()
+
+    // then
+    expect(domains).toEqual({})
+  })
+
+  test('skips workspaces without domain field', () => {
+    // given
+    const slackDir = mkdtempSync(join(tmpdir(), 'slack-partial-rootstate-'))
+    tempDirs.push(slackDir)
+
+    const storageDir = join(slackDir, 'storage')
+    mkdirSync(storageDir, { recursive: true })
+    writeFileSync(
+      join(storageDir, 'root-state.json'),
+      JSON.stringify({
+        workspaces: {
+          T111: { domain: 'acme-corp', name: 'Acme' },
+          T222: { name: 'NoDomain' },
+        },
+      }),
+    )
+
+    // when
+    const extractor = new TokenExtractor('darwin', slackDir)
+    const domains = extractor.getWorkspaceDomains()
+
+    // then
+    expect(domains).toEqual({ T111: 'acme-corp' })
+  })
+})
