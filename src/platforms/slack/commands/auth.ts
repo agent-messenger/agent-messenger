@@ -3,7 +3,7 @@ import { handleError } from '@/shared/utils/error-handler'
 import { formatOutput } from '@/shared/utils/output'
 import { SlackClient, SlackError } from '../client'
 import { CredentialManager } from '../credential-manager'
-import { refreshCookie } from '../ensure-auth'
+import { refreshCookie, tryWebTokenRefresh } from '../ensure-auth'
 import { type ExtractedWorkspace, TokenExtractor } from '../token-extractor'
 
 export function formatCredentialDebug(ws: ExtractedWorkspace, showSecrets?: boolean): string {
@@ -69,6 +69,7 @@ async function extractAction(options: {
 
     const credManager = new CredentialManager()
     const config = await credManager.load()
+    const workspaceDomains = extractor.getWorkspaceDomains()
 
     const validWorkspaces = []
     const failureReasons: string[] = []
@@ -94,6 +95,26 @@ async function extractAction(options: {
         }
         if (options.debug) {
           console.error(`[debug] ✗ Invalid: ${(error as Error).message}`)
+        }
+
+        if (options.debug) {
+          const domain = workspaceDomains[ws.workspace_id]
+          console.error(
+            `[debug] Attempting web token refresh for ${ws.workspace_id}${domain ? ` (${domain}.slack.com)` : ''}...`,
+          )
+        }
+        const refreshed = await tryWebTokenRefresh(ws, workspaceDomains)
+        if (refreshed) {
+          ws.token = refreshed.token
+          ws.workspace_name = refreshed.workspace_name
+          validWorkspaces.push(ws)
+          await credManager.setWorkspace(ws)
+
+          if (options.debug) {
+            console.error(`[debug] ✓ Web refresh succeeded: ${refreshed.workspace_name}`)
+          }
+        } else if (options.debug) {
+          console.error('[debug] ✗ Web refresh failed')
         }
       }
     }
