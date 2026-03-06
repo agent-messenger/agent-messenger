@@ -108,6 +108,83 @@ agent-discordbot auth remove deploy
 
 The `--bot <id>` flag is available on all commands to override the active bot for a single invocation.
 
+## Memory
+
+The agent maintains a `~/.config/agent-messenger/MEMORY.md` file as persistent memory across sessions. This is agent-managed — the CLI does not read or write this file. Use the `Read` and `Write` tools to manage your memory file.
+
+### Reading Memory
+
+At the **start of every task**, read `~/.config/agent-messenger/MEMORY.md` using the `Read` tool to load any previously discovered server IDs, channel IDs, user IDs, and preferences.
+
+- If the file doesn't exist yet, that's fine — proceed without it and create it when you first have useful information to store.
+- If the file can't be read (permissions, missing directory), proceed without memory — don't error out.
+
+### Writing Memory
+
+After discovering useful information, update `~/.config/agent-messenger/MEMORY.md` using the `Write` tool. Write triggers include:
+
+- After discovering server IDs and names (from `server list`, etc.)
+- After discovering useful channel IDs and names (from `channel list`, etc.)
+- After discovering user IDs and names (from `user list`, etc.)
+- After the user gives you an alias or preference ("call this the alerts bot", "my main server is X")
+- After setting up bot identifiers (from `auth list`)
+
+When writing, include the **complete file content** — the `Write` tool overwrites the entire file.
+
+### What to Store
+
+- Server IDs with names
+- Channel IDs with names and categories
+- User IDs with display names
+- Bot identifiers and their purposes
+- User-given aliases ("alerts bot", "announcements channel")
+- Any user preference expressed during interaction
+
+### What NOT to Store
+
+Never store bot tokens, credentials, or any sensitive data. Never store full message content (just IDs and channel context). Never store file upload contents.
+
+### Handling Stale Data
+
+If a memorized ID returns an error (channel not found, server not found), remove it from `MEMORY.md`. Don't blindly trust memorized data — verify when something seems off. Prefer re-listing over using a memorized ID that might be stale.
+
+### Format / Example
+
+```markdown
+# Agent Messenger Memory
+
+## Discord Servers (Bot)
+
+- `1234567890123456` — Acme Dev
+
+## Bots (Acme Dev)
+
+- `deploy` — Deploy Bot (active)
+- `alert` — Alert Bot
+
+## Channels (Acme Dev)
+
+- `1111111111111111` — #general (General category)
+- `2222222222222222` — #engineering (Engineering category)
+- `3333333333333333` — #deploys (Engineering category)
+
+## Users (Acme Dev)
+
+- `4444444444444444` — Alice (server owner)
+- `5555555555555555` — Bob
+
+## Aliases
+
+- "deploys" → `3333333333333333` (#deploys in Acme Dev)
+
+## Notes
+
+- Deploy Bot is used for CI/CD notifications
+- Alert Bot is used for error monitoring
+```
+
+> Memory lets you skip repeated `channel list` and `server list` calls. When you already know an ID from a previous session, use it directly.
+
 ## Commands
 
 ### Auth Commands

@@ -118,6 +118,83 @@ export E2E_SLACKBOT_WORKSPACE_ID=T123456
 export E2E_SLACKBOT_WORKSPACE_NAME="My Workspace"
 ```
 
+## Memory
+
+The agent maintains a `~/.config/agent-messenger/MEMORY.md` file as persistent memory across sessions. This is agent-managed — the CLI does not read or write this file. Use the `Read` and `Write` tools to manage your memory file.
+
+### Reading Memory
+
+At the **start of every task**, read `~/.config/agent-messenger/MEMORY.md` using the `Read` tool to load any previously discovered workspace IDs, channel IDs, user IDs, and preferences.
+
+- If the file doesn't exist yet, that's fine — proceed without it and create it when you first have useful information to store.
+- If the file can't be read (permissions, missing directory), proceed without memory — don't error out.
+
+### Writing Memory
+
+After discovering useful information, update `~/.config/agent-messenger/MEMORY.md` using the `Write` tool. Write triggers include:
+
+- After discovering workspace IDs (from `auth status`)
+- After discovering useful channel IDs and names (from `channel list`, etc.)
+- After discovering user IDs and names (from `user list`, etc.)
+- After the user gives you an alias or preference ("call this the alerts bot", "my main workspace is X")
+- After setting up bot identifiers (from `auth list`)
+
+When writing, include the **complete file content** — the `Write` tool overwrites the entire file.
+
+### What to Store
+
+- Workspace IDs with names
+- Channel IDs with names and purpose
+- User IDs with display names
+- Bot identifiers and their purposes
+- User-given aliases ("alerts bot", "deploys channel")
+- Any user preference expressed during interaction
+
+### What NOT to Store
+
+Never store bot tokens, credentials, or any sensitive data. Never store full message content (just IDs and channel context). Never store file upload contents.
+
+### Handling Stale Data
+
+If a memorized ID returns an error (channel not found, user not found), remove it from `MEMORY.md`. Don't blindly trust memorized data — verify when something seems off. Prefer re-listing over using a memorized ID that might be stale.
+
+### Format / Example
+
+```markdown
+# Agent Messenger Memory
+
+## Slack Workspaces (Bot)
+
+- `T0ABC1234` — Acme Corp
+
+## Bots (Acme Corp)
+
+- `deploy` — Deploy Bot (active)
+- `alert` — Alert Bot
+
+## Channels (Acme Corp)
+
+- `C012ABC` — #general (company-wide announcements)
+- `C034DEF` — #engineering (team discussion)
+- `C056GHI` — #deploys (CI/CD notifications)
+
+## Users (Acme Corp)
+
+- `U0ABC123` — Alice (engineering lead)
+- `U0DEF456` — Bob (backend)
+
+## Aliases
+
+- "deploys" → `C056GHI` (#deploys in Acme Corp)
+
+## Notes
+
+- Deploy Bot is used for CI/CD notifications
+- Alert Bot is used for error monitoring
+```
+
+> Memory lets you skip repeated `channel list` and `auth list` calls. When you already know an ID from a previous session, use it directly.
+
 ## Commands
 
 ### Message Commands
