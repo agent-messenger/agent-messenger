@@ -1,6 +1,6 @@
 import { SlackClient } from './client'
 import { CredentialManager } from './credential-manager'
-import { TokenExtractor } from './token-extractor'
+import { type ExtractedWorkspace, TokenExtractor } from './token-extractor'
 
 export async function ensureSlackAuth(): Promise<void> {
   const credManager = new CredentialManager()
@@ -19,6 +19,7 @@ export async function ensureSlackAuth(): Promise<void> {
   try {
     const extractor = new TokenExtractor()
     const workspaces = await extractor.extract()
+    const workspaceDomains = extractor.getWorkspaceDomains()
 
     const validWorkspaces = []
     for (const ws of workspaces) {
@@ -28,7 +29,15 @@ export async function ensureSlackAuth(): Promise<void> {
         ws.workspace_name = authInfo.team || ws.workspace_name
         await credManager.setWorkspace(ws)
         validWorkspaces.push(ws)
-      } catch {}
+      } catch {
+        const refreshed = await tryWebTokenRefresh(ws, workspaceDomains)
+        if (refreshed) {
+          ws.token = refreshed.token
+          ws.workspace_name = refreshed.workspace_name
+          await credManager.setWorkspace(ws)
+          validWorkspaces.push(ws)
+        }
+      }
     }
 
     const config = await credManager.load()
@@ -41,6 +50,44 @@ export async function ensureSlackAuth(): Promise<void> {
     if (code === 'EBUSY' || message.includes('locking the cookie')) {
       throw error
     }
+  }
+}
+
+export async function tryWebTokenRefresh(
+  ws: ExtractedWorkspace,
+  workspaceDomains: Record<string, string>,
+): Promise<{ token: string; workspace_name: string } | null> {
+  if (!ws.cookie) return null
+  const domain = workspaceDomains[ws.workspace_id]
+  if (!domain) return null
+
+  try {
+    const freshToken = await refreshTokenFromWeb(domain, ws.cookie)
+    if (!freshToken) return null
+
+    const client = new SlackClient(freshToken, ws.cookie)
+    const authInfo = await client.testAuth()
+    return { token: freshToken, workspace_name: authInfo.team || ws.workspace_name }
+  } catch {
+    return null
+  }
+}
+
+const TOKEN_REGEX = /"api_token":"(xoxc-[a-zA-Z0-9-]+)"/
+
+export async function refreshTokenFromWeb(domain: string, cookie: string): Promise<string | null> {
+  try {
+    const response = await fetch(`https://${domain}.slack.com/ssb/redirect`, {
+      headers: { Cookie: `d=${cookie}` },
+      redirect: 'follow',
+    })
+    if (!response.ok) return null
+
+    const html = await response.text()
+    const match = html.match(TOKEN_REGEX)
+    return match?.[1] ?? null
+  } catch {
+    return null
   }
 }
 
