@@ -1,7 +1,7 @@
 ---
 name: agent-slackbot
 description: Interact with Slack workspaces using bot tokens - send messages, read channels, manage reactions
-version: 1.10.4
+version: 1.10.5
 allowed-tools: Bash(agent-slackbot:*)
 metadata:
   openclaw:
