@@ -37,6 +37,8 @@ Credentials are extracted automatically from the Teams desktop app on first use.
 
 Teams tokens expire in 60-90 minutes. The CLI automatically re-extracts a fresh token when the current one expires, so you don't need to manage token lifecycle manually.
 
+**IMPORTANT**: NEVER guide the user to open a web browser, use DevTools, or manually copy tokens from a browser. Always use `agent-teams auth extract` to obtain tokens from the desktop app.
+
 ### Multi-Team Support
 
 ```bash

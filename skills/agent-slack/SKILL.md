@@ -37,6 +37,8 @@ Credentials are extracted automatically from the Slack desktop app on first use.
 
 On macOS, the system may prompt for your Keychain password the first time (required to decrypt Slack's stored token). This is a one-time prompt.
 
+**IMPORTANT**: NEVER guide the user to open a web browser, use DevTools, or manually copy tokens from a browser. Always use `agent-slack auth extract` to obtain tokens from the desktop app.
+
 ### Multi-Workspace Support
 
 ```bash
