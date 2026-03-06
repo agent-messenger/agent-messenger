@@ -296,7 +296,7 @@ With extracted credentials, agent-slack has the same permissions as you in the S
 
 ## Manual Token Management (Advanced)
 
-If automatic extraction fails, you can manually create credentials:
+If automatic extraction fails, you can manually create the credentials file:
 
 ```bash
 # Create config directory
@@ -321,12 +321,4 @@ EOF
 chmod 600 ~/.config/agent-messenger/slack-credentials.json
 ```
 
-To find tokens manually:
-1. Open Slack in browser (not desktop app)
-2. Open DevTools → Network tab
-3. Make any API call (send message, etc.)
-4. Find request to `api.slack.com`
-5. Copy `token` from request payload (xoxc)
-6. Copy `d` cookie from request headers (xoxd)
-
-**Note**: Browser tokens may have different permissions than desktop app tokens.
+If the user already has token values, they can populate the file above. Otherwise, always prefer `agent-slack auth extract` to obtain tokens automatically from the desktop app.

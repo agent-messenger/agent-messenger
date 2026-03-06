@@ -260,7 +260,7 @@ With extracted credentials, agent-discord has the same permissions as you in Dis
 
 ## Manual Token Management (Advanced)
 
-If automatic extraction fails, you can manually create credentials:
+If automatic extraction fails, you can manually create the credentials file:
 
 ```bash
 # Create config directory
@@ -284,11 +284,6 @@ EOF
 chmod 600 ~/.config/agent-messenger/discord-credentials.json
 ```
 
-To find your token manually:
-1. Open Discord in browser (not desktop app)
-2. Open DevTools -> Network tab
-3. Make any API call (send message, etc.)
-4. Find request to `discord.com/api`
-5. Copy `Authorization` header value
+If the user already has a token value, they can populate the file above. Otherwise, always prefer `agent-discord auth extract` to obtain the token automatically from the desktop app.
 
 **Warning**: Self-botting (using user tokens for automation) may violate Discord's Terms of Service. Use responsibly and at your own risk.

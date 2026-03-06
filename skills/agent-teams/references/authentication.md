@@ -340,7 +340,7 @@ With extracted credentials, agent-teams has the same permissions as you in Teams
 
 ## Manual Token Management (Advanced)
 
-If automatic extraction fails, you can manually create credentials:
+If automatic extraction fails, you can manually create the credentials file:
 
 ```bash
 # Create config directory
@@ -365,11 +365,6 @@ EOF
 chmod 600 ~/.config/agent-messenger/teams-credentials.json
 ```
 
-To find your token manually:
-1. Open Teams in browser (teams.microsoft.com)
-2. Open DevTools -> Application tab
-3. Go to Cookies -> teams.microsoft.com
-4. Find `skypetoken_asm` cookie
-5. Copy the value
+If the user already has a token value, they can populate the file above. Otherwise, always prefer `agent-teams auth extract` to obtain the token automatically from the desktop app.
 
 **Warning**: Using user tokens for automation may violate Microsoft's Terms of Service. Use responsibly and at your own risk.
