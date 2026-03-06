@@ -503,6 +503,108 @@ describe('TokenExtractor Windows DPAPI', () => {
   })
 })
 
+describe('TokenExtractor IndexedDB blob files', () => {
+  test('extracts token from blob file when not in LevelDB', async () => {
+    // given — token only exists in an IndexedDB blob file, not in LevelDB
+    const slackDir = mkdtempSync(join(tmpdir(), 'slack-blob-'))
+    tempDirs.push(slackDir)
+
+    const hex64 = 'a'.repeat(64)
+    const token = `xoxc-1111111111-2222222222-3333333333-${hex64}`
+
+    const blobDir = join(slackDir, 'IndexedDB', 'https_app.slack.com_0.indexeddb.blob', '2', '05')
+    mkdirSync(blobDir, { recursive: true })
+    writeFileSync(join(blobDir, '584'), `"team_name":"blob-workspace"T12345678"token":"${token}"`)
+
+    // when
+    const extractor = new TokenExtractor('darwin', slackDir)
+    const result = await extractor.extract()
+
+    // then
+    expect(result.length).toBe(1)
+    expect(result[0].token).toBe(token)
+    expect(result[0].workspace_id).toBe('T12345678')
+  })
+
+  test('extracts tokens from both LevelDB and blob files for different teams', async () => {
+    // given — one workspace token in LevelDB, another in blob file
+    const slackDir = mkdtempSync(join(tmpdir(), 'slack-blob-multi-'))
+    tempDirs.push(slackDir)
+
+    const hex64a = 'a'.repeat(64)
+    const hex64b = 'b'.repeat(64)
+    const tokenA = `xoxc-1111111111-2222222222-3333333333-${hex64a}`
+    const tokenB = `xoxc-4444444444-5555555555-6666666666-${hex64b}`
+
+    const leveldbDir = join(slackDir, 'IndexedDB', 'https_app.slack.com_0.indexeddb.leveldb')
+    mkdirSync(leveldbDir, { recursive: true })
+    writeFileSync(join(leveldbDir, '000001.log'), `"${tokenA}"TAAAAAAAA"name":"leveldb-ws"`)
+
+    const blobDir = join(slackDir, 'IndexedDB', 'https_app.slack.com_0.indexeddb.blob', '2', '05')
+    mkdirSync(blobDir, { recursive: true })
+    writeFileSync(join(blobDir, '584'), `"team_name":"blob-ws"TBBBBBBBBB"token":"${tokenB}"`)
+
+    // when
+    const extractor = new TokenExtractor('darwin', slackDir)
+    const result = await extractor.extract()
+
+    // then — both workspaces are extracted
+    expect(result.length).toBe(2)
+    const teamIds = result.map((r) => r.workspace_id).sort()
+    expect(teamIds).toEqual(['TAAAAAAAA', 'TBBBBBBBBB'])
+  })
+
+  test('LevelDB token wins over blob file token for same team', async () => {
+    // given — same team in both LevelDB (.log = highest raw priority) and blob file
+    const slackDir = mkdtempSync(join(tmpdir(), 'slack-blob-dedup-'))
+    tempDirs.push(slackDir)
+
+    const hex64ldb = 'a'.repeat(64)
+    const hex64blob = 'b'.repeat(64)
+    const ldbToken = `xoxc-1111111111-2222222222-3333333333-${hex64ldb}`
+    const blobToken = `xoxc-4444444444-5555555555-6666666666-${hex64blob}`
+
+    const leveldbDir = join(slackDir, 'IndexedDB', 'https_app.slack.com_0.indexeddb.leveldb')
+    mkdirSync(leveldbDir, { recursive: true })
+    writeFileSync(join(leveldbDir, '000001.log'), `"${ldbToken}"T12345678"name":"ldb-workspace"`)
+
+    const blobDir = join(slackDir, 'IndexedDB', 'https_app.slack.com_0.indexeddb.blob', '2', '05')
+    mkdirSync(blobDir, { recursive: true })
+    writeFileSync(join(blobDir, '584'), `"team_name":"blob-workspace"T12345678"token":"${blobToken}"`)
+
+    // when
+    const extractor = new TokenExtractor('darwin', slackDir)
+    const result = await extractor.extract()
+
+    // then — .log source (priority 3) beats blob-file (priority 1)
+    expect(result.length).toBe(1)
+    expect(result[0].token).toBe(ldbToken)
+  })
+
+  test('skips blob files larger than 10MB', async () => {
+    // given — blob file exceeds size limit
+    const slackDir = mkdtempSync(join(tmpdir(), 'slack-blob-large-'))
+    tempDirs.push(slackDir)
+
+    const hex64 = 'a'.repeat(64)
+    const token = `xoxc-1111111111-2222222222-3333333333-${hex64}`
+
+    const blobDir = join(slackDir, 'IndexedDB', 'https_app.slack.com_0.indexeddb.blob', '1', '00')
+    mkdirSync(blobDir, { recursive: true })
+
+    const largeContent = Buffer.alloc(11 * 1024 * 1024)
+    Buffer.from(`"team_name":"large"T12345678"${token}"`).copy(largeContent)
+    writeFileSync(join(blobDir, '1'), largeContent)
+
+    // when
+    const extractor = new TokenExtractor('darwin', slackDir)
+    const result = await extractor.extract()
+
+    // then
+    expect(result.length).toBe(0)
+  })
+})
+
 describe('TokenExtractor getWorkspaceDomains', () => {
   test('reads workspace domains from root-state.json', () => {
     // given

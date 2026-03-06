@@ -16,7 +16,7 @@ export interface ExtractedWorkspace {
   cookie: string
 }
 
-type TokenSource = 'json-teams' | 'json-single' | 'log-file' | 'ldb-file' | 'classic-level'
+type TokenSource = 'json-teams' | 'json-single' | 'log-file' | 'ldb-file' | 'classic-level' | 'blob-file'
 type TokenDirTier = 'storage' | 'local-storage' | 'indexeddb'
 
 interface RawTokenInfo {
@@ -36,6 +36,7 @@ const SOURCE_PRIORITY: Record<TokenSource, number> = {
   'json-single': 4,
   'log-file': 3,
   'classic-level': 2,
+  'blob-file': 1,
   'ldb-file': 1,
 }
 
@@ -188,6 +189,10 @@ export class TokenExtractor {
           tokens.push(...extracted)
         } catch {}
       }
+
+      // Chromium offloads large IndexedDB values to external *.indexeddb.blob/ files
+      const blobTokens = this.extractTokensFromBlobFiles(baseDir, tier)
+      tokens.push(...blobTokens)
     }
 
     return this.deduplicateTokens(tokens)
@@ -309,6 +314,56 @@ export class TokenExtractor {
       }
     }
     return tokens
+  }
+
+  private extractTokensFromBlobFiles(baseDir: string, dirTier: TokenDirTier): TokenInfo[] {
+    const tokens: TokenInfo[] = []
+    try {
+      const entries = readdirSync(baseDir, { withFileTypes: true })
+      for (const entry of entries) {
+        if (!entry.isDirectory() || !entry.name.endsWith('.indexeddb.blob')) continue
+
+        const blobDir = join(baseDir, entry.name)
+        this.debug(`Scanning blob directory: ${blobDir}`)
+        const files = this.findFilesRecursive(blobDir)
+
+        for (const filePath of files) {
+          try {
+            const stat = statSync(filePath)
+            if (stat.size > 10 * 1024 * 1024) continue
+
+            const content = readFileSync(filePath)
+            const xoxcMarker = Buffer.from('xoxc-')
+            let idx = content.indexOf(xoxcMarker, 0)
+            while (idx !== -1) {
+              const tokenData = this.extractTokenFromBuffer(content, idx)
+              if (tokenData) {
+                this.debug(`Found token in blob file: ${filePath}`)
+                tokens.push({ ...tokenData, source: 'blob-file', dirTier })
+              }
+              idx = content.indexOf(xoxcMarker, idx + 5)
+            }
+          } catch {}
+        }
+      }
+    } catch {}
+    return tokens
+  }
+
+  private findFilesRecursive(dir: string): string[] {
+    const files: string[] = []
+    try {
+      const entries = readdirSync(dir, { withFileTypes: true })
+      for (const entry of entries) {
+        const fullPath = join(dir, entry.name)
+        if (entry.isDirectory()) {
+          files.push(...this.findFilesRecursive(fullPath))
+        } else if (entry.isFile()) {
+          files.push(fullPath)
+        }
+      }
+    } catch {}
+    return files
   }
 
   private extractTokensFromLDBFiles(dbPath: string, dirTier: TokenDirTier): TokenInfo[] {
