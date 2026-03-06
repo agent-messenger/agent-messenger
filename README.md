@@ -39,6 +39,7 @@ Messaging platforms only offer Bot tokens for API access—your AI agent can nev
 - **Zero setup** — Credentials are auto-extracted on first command. No manual auth step required
 - **One interface, multiple platforms** — Learn once, use everywhere (Slack, Discord, Teams)
 - **AI-agent friendly** — JSON output by default, perfect for LLM tool use
+- **Agent memory** — Remembers workspace IDs, channel names, and preferences across sessions
 - **Human friendly too** — Add `--pretty` for readable output
 - **Token efficient** — CLI, not MCP. Load only what you need. ([Why not MCP?](#philosophy))
 
