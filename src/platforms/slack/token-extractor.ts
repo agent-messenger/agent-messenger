@@ -76,10 +76,59 @@ export class TokenExtractor {
       }
       case 'linux':
         return join(homedir(), '.config', 'Slack')
-      case 'win32':
+      case 'win32': {
+        // Check MSIX (Microsoft Store / GPO) package path first
+        const msixPath = this.findMsixSlackDir()
+        if (msixPath) {
+          return msixPath
+        }
+        // Direct download version
         return join(process.env.APPDATA || join(homedir(), 'AppData', 'Roaming'), 'Slack')
+      }
       default:
         throw new Error(`Unsupported platform: ${this.platform}`)
+    }
+  }
+
+  private findMsixSlackDir(): string | null {
+    const packagesDir = join(
+      process.env.LOCALAPPDATA || join(homedir(), 'AppData', 'Local'),
+      'Packages',
+    )
+    if (!existsSync(packagesDir)) {
+      this.debug('MSIX Packages directory not found')
+      return null
+    }
+
+    try {
+      const entries = readdirSync(packagesDir, { withFileTypes: true })
+      let best: { path: string; mtimeMs: number } | null = null
+
+      for (const entry of entries) {
+        if (!entry.isDirectory() || !entry.name.toLowerCase().includes('slack')) {
+          continue
+        }
+        const slackData = join(packagesDir, entry.name, 'LocalCache', 'Roaming', 'Slack')
+        this.debug(`Found MSIX candidate: ${entry.name}`)
+        if (!existsSync(join(slackData, 'storage')) && !existsSync(join(slackData, 'Local Storage'))) {
+          this.debug(`  No Slack data at ${slackData}`)
+          continue
+        }
+        const mtime = statSync(slackData).mtimeMs
+        this.debug(`  Valid Slack data found (mtime: ${new Date(mtime).toISOString()})`)
+        if (!best || mtime > best.mtimeMs) {
+          best = { path: slackData, mtimeMs: mtime }
+        }
+      }
+
+      if (best) {
+        this.debug(`Using MSIX Slack dir: ${best.path}`)
+      } else {
+        this.debug('No valid MSIX Slack data found, falling back to APPDATA')
+      }
+      return best?.path ?? null
+    } catch {
+      return null
     }
   }
 
