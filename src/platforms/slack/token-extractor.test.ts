@@ -581,6 +581,32 @@ describe('TokenExtractor IndexedDB blob files', () => {
     expect(result[0].token).toBe(ldbToken)
   })
 
+  test('merges same token from LDB and blob with different teamIds', async () => {
+    // given — same token in LevelDB (correct teamId) and blob file (false-positive teamId from binary)
+    const slackDir = mkdtempSync(join(tmpdir(), 'slack-blob-dup-'))
+    tempDirs.push(slackDir)
+
+    const hex64 = 'a'.repeat(64)
+    const token = `xoxc-1111111111-2222222222-3333333333-${hex64}`
+
+    const leveldbDir = join(slackDir, 'IndexedDB', 'https_app.slack.com_0.indexeddb.leveldb')
+    mkdirSync(leveldbDir, { recursive: true })
+    writeFileSync(join(leveldbDir, '000001.log'), `"${token}"TREAL12345"name":"real-workspace"`)
+
+    const blobDir = join(slackDir, 'IndexedDB', 'https_app.slack.com_0.indexeddb.blob', '2', '05')
+    mkdirSync(blobDir, { recursive: true })
+    writeFileSync(join(blobDir, '584'), `"team_name":"blob-name"TFAKEGARBG"token":"${token}"`)
+
+    // when
+    const extractor = new TokenExtractor('darwin', slackDir)
+    const result = await extractor.extract()
+
+    // then — single entry with the correct teamId from LDB (higher priority source)
+    expect(result.length).toBe(1)
+    expect(result[0].workspace_id).toBe('TREAL12345')
+    expect(result[0].token).toBe(token)
+  })
+
   test('skips blob files larger than 10MB', async () => {
     // given — blob file exceeds size limit
     const slackDir = mkdtempSync(join(tmpdir(), 'slack-blob-large-'))

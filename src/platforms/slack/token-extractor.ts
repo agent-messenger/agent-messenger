@@ -245,8 +245,32 @@ export class TokenExtractor {
   }
 
   private deduplicateTokens(tokens: TokenInfo[]): TokenInfo[] {
+    // Phase 1: Merge entries with identical token values.
+    // The same xoxc token found in LDB and blob files may carry different
+    // teamId/teamName because extractTokenFromBuffer regex-matches on raw
+    // binary bytes, which can produce false-positive team IDs in blob files.
+    const byTokenValue = new Map<string, TokenInfo>()
+    for (const t of tokens) {
+      const existing = byTokenValue.get(t.token)
+      if (!existing) {
+        byTokenValue.set(t.token, t)
+        continue
+      }
+      const existingScore = SOURCE_PRIORITY[existing.source] * 10 + DIR_TIER_PRIORITY[existing.dirTier]
+      const candidateScore = SOURCE_PRIORITY[t.source] * 10 + DIR_TIER_PRIORITY[t.dirTier]
+      const winner = candidateScore > existingScore ? t : existing
+      const loser = candidateScore > existingScore ? existing : t
+      byTokenValue.set(t.token, {
+        ...winner,
+        teamId: winner.teamId !== 'unknown' ? winner.teamId : loser.teamId,
+        teamName: winner.teamName !== 'unknown' ? winner.teamName : loser.teamName,
+      })
+    }
+
+    // Phase 2: Deduplicate by teamId — different tokens for the same team
+    // keep the one from the highest-priority source.
     const seen = new Map<string, TokenInfo>()
-    for (const token of tokens) {
+    for (const token of byTokenValue.values()) {
       const existing = seen.get(token.teamId)
       if (!existing) {
         seen.set(token.teamId, token)
