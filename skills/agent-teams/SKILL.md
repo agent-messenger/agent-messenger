@@ -338,24 +338,7 @@ Common errors:
 
 ## Configuration
 
-Credentials stored in: `~/.config/agent-messenger/teams-credentials.json`
-
-Format:
-```json
-{
-  "token": "skypetoken_asm_value_here",
-  "token_extracted_at": "2024-01-15T10:00:00.000Z",
-  "current_team": "team-uuid-here",
-  "teams": {
-    "team-uuid-here": {
-      "team_id": "team-uuid-here",
-      "team_name": "My Team"
-    }
-  }
-}
-```
-
-**Security**: File permissions set to 0600 (owner read/write only)
+Credentials stored in `~/.config/agent-messenger/teams-credentials.json` (0600 permissions). See [references/authentication.md](references/authentication.md) for format and security details.
 
 ## Limitations
 
@@ -369,19 +352,6 @@ Format:
 - **Token expires in 60-90 minutes** - auto-refreshed, but requires Teams desktop app to be logged in
 
 ## Troubleshooting
-
-### Authentication fails or token expired
-
-Credentials and token refresh are normally handled automatically. If auto-extraction fails, run it manually with debug output:
-
-```bash
-agent-teams auth extract --debug
-```
-
-Common causes:
-- Teams desktop app is not installed or not logged in
-- Teams Cookies database is locked or inaccessible
-- Token expired and Teams desktop app session also expired (re-login to Teams)
 
 ### `agent-teams: command not found`
 
@@ -400,6 +370,8 @@ bunx agent-messenger teams team list
 ```
 
 **NEVER run `bunx agent-teams`** — it will fail or install a wrong package since `agent-teams` is not the npm package name.
+
+For other troubleshooting (auth extraction, token expiry, permissions), see [references/authentication.md](references/authentication.md).
 
 ## References
 

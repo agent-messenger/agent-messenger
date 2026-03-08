@@ -366,24 +366,7 @@ Common errors:
 
 ## Configuration
 
-Credentials stored in: `~/.config/agent-messenger/slack-credentials.json`
-
-Format:
-```json
-{
-  "current_workspace": "T123456",
-  "workspaces": {
-    "T123456": {
-      "workspace_id": "T123456",
-      "workspace_name": "My Workspace",
-      "token": "xoxc-...",
-      "cookie": "xoxd-..."
-    }
-  }
-}
-```
-
-**Security**: File permissions set to 0600 (owner read/write only)
+Credentials stored in `~/.config/agent-messenger/slack-credentials.json` (0600 permissions). See [references/authentication.md](references/authentication.md) for format and security details.
 
 ## Limitations
 
@@ -395,19 +378,6 @@ Format:
 - Plain text messages only (no blocks/formatting in v1)
 
 ## Troubleshooting
-
-### Authentication fails or no workspace found
-
-Credentials are normally extracted automatically. If auto-extraction fails, run it manually with debug output:
-
-```bash
-agent-slack auth extract --debug
-```
-
-Common causes:
-- Slack desktop app is not installed or not logged in
-- macOS Keychain access was denied (re-run and approve the prompt)
-- Slack was installed via a method that uses a different storage path
 
 ### `agent-slack: command not found`
 
@@ -426,6 +396,8 @@ bunx agent-messenger slack message list general
 ```
 
 **NEVER run `bunx agent-slack`** — a separate, unrelated npm package named `agent-slack` exists on npm. It will silently install the **wrong package** with different (fewer) commands.
+
+For other troubleshooting (auth extraction, token issues, Keychain), see [references/authentication.md](references/authentication.md).
 
 ## References
 

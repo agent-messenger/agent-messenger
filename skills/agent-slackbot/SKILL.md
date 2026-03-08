@@ -84,39 +84,7 @@ agent-slackbot auth use T123456/deploy
 
 The `--bot <id>` flag is available on all commands to override the active bot for a single invocation.
 
-### Getting a Bot Token
-
-1. Go to [api.slack.com/apps](https://api.slack.com/apps)
-2. Create New App (or select existing)
-3. Go to **OAuth & Permissions**
-4. Add required bot token scopes (see below)
-5. Install app to workspace
-6. Copy the **Bot User OAuth Token** (starts with `xoxb-`)
-
-### Required Bot Token Scopes
-
-| Scope | Used For |
-|-------|----------|
-| `chat:write` | Sending messages |
-| `channels:history` | Reading public channel messages |
-| `channels:read` | Listing public channels |
-| `channels:join` | Joining public channels |
-| `groups:history` | Reading private channel messages |
-| `groups:read` | Listing private channels |
-| `users:read` | Listing users |
-| `users:read.email` | Reading user email addresses |
-| `reactions:write` | Adding/removing reactions |
-| `reactions:read` | Listing reactions |
-
-### Environment Variables (CI/CD)
-
-For CI/CD pipelines, set these environment variables instead of using `auth set`:
-
-```bash
-export E2E_SLACKBOT_TOKEN=xoxb-your-bot-token
-export E2E_SLACKBOT_WORKSPACE_ID=T123456
-export E2E_SLACKBOT_WORKSPACE_NAME="My Workspace"
-```
+For bot token setup (Slack App creation, required scopes, app manifest) and CI/CD environment variables, see [references/authentication.md](references/authentication.md).
 
 ## Memory
 
@@ -310,37 +278,7 @@ Common errors:
 
 ## Configuration
 
-Credentials stored in: `~/.config/agent-messenger/slackbot-credentials.json`
-
-Format:
-```json
-{
-  "current": {
-    "workspace_id": "T123456",
-    "bot_id": "deploy"
-  },
-  "workspaces": {
-    "T123456": {
-      "workspace_id": "T123456",
-      "workspace_name": "My Workspace",
-      "bots": {
-        "deploy": {
-          "bot_id": "deploy",
-          "bot_name": "Deploy Bot",
-          "token": "xoxb-..."
-        },
-        "alert": {
-          "bot_id": "alert",
-          "bot_name": "Alert Bot",
-          "token": "xoxb-..."
-        }
-      }
-    }
-  }
-}
-```
-
-**Security**: File permissions set to 0600 (owner read/write only)
+Credentials stored in `~/.config/agent-messenger/slackbot-credentials.json` (0600 permissions). See [references/authentication.md](references/authentication.md) for format and security details.
 
 ## Key Differences from agent-slack
 
@@ -385,6 +323,8 @@ bunx agent-messenger slackbot message send general "Hello"
 ```
 
 **NEVER run `bunx agent-slackbot`** — it will fail or install a wrong package since `agent-slackbot` is not the npm package name.
+
+For other troubleshooting (token issues, scopes, permissions), see [references/authentication.md](references/authentication.md).
 
 ## References
 

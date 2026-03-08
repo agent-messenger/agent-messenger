@@ -392,23 +392,7 @@ Common errors:
 
 ## Configuration
 
-Credentials stored in: `~/.config/agent-messenger/discord-credentials.json`
-
-Format:
-```json
-{
-  "token": "user_token_here",
-  "current_server": "1234567890123456789",
-  "servers": {
-    "1234567890123456789": {
-      "server_id": "1234567890123456789",
-      "server_name": "My Server"
-    }
-  }
-}
-```
-
-**Security**: File permissions set to 0600 (owner read/write only)
+Credentials stored in `~/.config/agent-messenger/discord-credentials.json` (0600 permissions). See [references/authentication.md](references/authentication.md) for format and security details.
 
 ## Limitations
 
@@ -421,19 +405,6 @@ Format:
 - User tokens only (no bot tokens)
 
 ## Troubleshooting
-
-### Authentication fails or no token found
-
-Credentials are normally extracted automatically. If auto-extraction fails, run it manually with debug output:
-
-```bash
-agent-discord auth extract --debug
-```
-
-Common causes:
-- Discord desktop app is not installed or not logged in
-- macOS Keychain access was denied (re-run and approve the prompt)
-- Discord is not running and LevelDB files are stale
 
 ### `agent-discord: command not found`
 
@@ -452,6 +423,8 @@ bunx agent-messenger discord server list
 ```
 
 **NEVER run `bunx agent-discord`** — it will fail or install a wrong package since `agent-discord` is not the npm package name.
+
+For other troubleshooting (auth extraction, token issues, permissions), see [references/authentication.md](references/authentication.md).
 
 ## References
 

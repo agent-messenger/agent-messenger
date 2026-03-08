@@ -54,59 +54,7 @@ agent-discordbot auth status
 agent-discordbot auth clear
 ```
 
-### Getting a Bot Token
-
-1. Go to [discord.com/developers/applications](https://discord.com/developers/applications)
-2. Click **New Application**, give it a name, and create
-3. Go to **Bot** in the left sidebar
-4. Click **Reset Token** (or **Copy** if the token is still visible)
-5. Copy the token and store it securely
-
-### Inviting the Bot to a Server
-
-After creating the application:
-
-1. Go to **OAuth2** > **URL Generator** in the left sidebar
-2. Under **Scopes**, select `bot`
-3. Under **Bot Permissions**, select the permissions your bot needs (Send Messages, Read Message History, etc.)
-4. Copy the generated URL and open it in your browser
-5. Select the server and authorize
-
-### Message Content Privileged Intent
-
-Bots in 100 or more servers require verification (you can apply once you reach 75+ servers), and verified bots must apply for access to the Message Content intent. Enable it to read message content:
-
-1. Go to [discord.com/developers/applications](https://discord.com/developers/applications)
-2. Select your application
-3. Go to **Bot** in the left sidebar
-4. Under **Privileged Gateway Intents**, enable **Message Content Intent**
-5. Save changes
-
-Without this, verified bots receive empty `content` fields (DMs and mentions are exempt).
-
-### Multi-Bot Management
-
-Store multiple bot tokens and switch between them:
-
-```bash
-# Add multiple bots
-agent-discordbot auth set deploy-bot-token --bot deploy --name "Deploy Bot"
-agent-discordbot auth set alert-bot-token --bot alert --name "Alert Bot"
-
-# List all stored bots
-agent-discordbot auth list
-
-# Switch active bot
-agent-discordbot auth use deploy
-
-# Use a specific bot for one command (without switching)
-agent-discordbot message send 1234567890123456789 "Alert!" --bot alert
-
-# Remove a stored bot
-agent-discordbot auth remove deploy
-```
-
-The `--bot <id>` flag is available on all commands to override the active bot for a single invocation.
+For bot token setup, server invite flow, Message Content Intent, and multi-bot management, see [references/authentication.md](references/authentication.md).
 
 ## Memory
 
@@ -380,46 +328,11 @@ All commands return consistent error format:
 }
 ```
 
-Common errors:
-- `missing_token`: No credentials configured
-- `invalid_token`: Token is invalid or expired
-- `Missing Access`: Bot lacks permission for this action
-- `Unknown Channel`: Invalid channel ID
-- `Missing Permissions`: Bot role doesn't have the required permission
+Common errors: `missing_token`, `invalid_token`, `Missing Access`, `Unknown Channel`, `Missing Permissions`.
 
 ## Configuration
 
-Credentials stored in: `~/.config/agent-messenger/discordbot-credentials.json`
-
-Format:
-```json
-{
-  "current": {
-    "server_id": "1234567890123456789",
-    "bot_id": "deploy"
-  },
-  "bots": {
-    "deploy": {
-      "bot_id": "deploy",
-      "bot_name": "Deploy Bot",
-      "token": "MTIz..."
-    },
-    "alert": {
-      "bot_id": "alert",
-      "bot_name": "Alert Bot",
-      "token": "NDU2..."
-    }
-  },
-  "servers": {
-    "1234567890123456789": {
-      "server_id": "1234567890123456789",
-      "server_name": "My Server"
-    }
-  }
-}
-```
-
-**Security**: File permissions set to 0600 (owner read/write only)
+Credentials stored in `~/.config/agent-messenger/discordbot-credentials.json` (0600 permissions). See [references/authentication.md](references/authentication.md) for format and security details.
 
 ## Key Differences from agent-discord
 
@@ -470,37 +383,7 @@ bunx agent-messenger discordbot message send 1234567890123456789 "Hello"
 
 **NEVER run `bunx agent-discordbot`** -- it will fail or install a wrong package since `agent-discordbot` is not the npm package name.
 
-### Bot can't read messages in large servers
-
-Enable the **Message Content Intent** in the Developer Portal:
-
-1. Go to [discord.com/developers/applications](https://discord.com/developers/applications)
-2. Select your application > **Bot**
-3. Enable **Message Content Intent** under Privileged Gateway Intents
-4. Save changes
-
-This is required for verified bots (those in 100 or more servers).
-
-### "Missing Access" or "Missing Permissions"
-
-The bot's role doesn't have the required permissions in that channel:
-
-1. Check the bot's role permissions in Server Settings > Roles
-2. Check channel-specific permission overrides
-3. Make sure the bot can see and send messages in the target channel
-
-### "Unknown Channel"
-
-The channel ID is invalid, or the bot doesn't have access to it. Use `channel list` to find valid channel IDs.
-
-### Token expired or invalid
-
-Bot tokens don't expire on their own, but they can be reset:
-
-1. Go to [discord.com/developers/applications](https://discord.com/developers/applications)
-2. Select your application > **Bot** > **Reset Token**
-3. Copy the new token
-4. Run `agent-discordbot auth set <new-token>`
+For other troubleshooting (permissions, token issues, Message Content Intent), see [references/authentication.md](references/authentication.md).
 
 ## References
 
