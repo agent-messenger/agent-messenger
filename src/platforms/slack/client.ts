@@ -537,10 +537,10 @@ export class SlackClient {
 
   async getUnreadCounts(): Promise<SlackUnreadCounts> {
     return this.withRetry(async () => {
-      const response = await (this.client as any).client.counts()
+      const response = await this.client.apiCall('client.counts')
       this.checkResponse(response)
 
-      const channels = (response.channels || []).map((ch: any) => ({
+      const channels = ((response as any).channels || []).map((ch: any) => ({
         id: ch.id || '',
         name: ch.name || '',
         unread_count: ch.unread_count || 0,

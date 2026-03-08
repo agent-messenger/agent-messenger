@@ -102,12 +102,13 @@ export async function cleanupMessages(
   channel: string,
   messageIds: string[]
 ): Promise<void> {
-  for (const id of messageIds) {
-    try {
-      await deleteTestMessage(platform, channel, id)
-      await waitForRateLimit(500)
-    } catch (error) {
-      console.warn(`Failed to cleanup message ${id}:`, error)
-    }
-  }
+  await Promise.all(
+    messageIds.map(async (id) => {
+      try {
+        await deleteTestMessage(platform, channel, id)
+      } catch (error) {
+        console.warn(`Failed to cleanup message ${id}:`, error)
+      }
+    })
+  )
 }
