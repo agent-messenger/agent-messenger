@@ -11,19 +11,19 @@ export const DISCORD_TEST_CHANNEL = 'e2e-test'
 
 export async function validateSlackEnvironment() {
   const { runCLI, parseJSON } = await import('./helpers')
-  
+
   const result = await runCLI('slack', ['auth', 'status'])
   if (result.exitCode !== 0) {
     throw new Error('Slack authentication failed. Please run: agent-messenger slack auth login')
   }
-  
+
   const data = parseJSON<{ workspace_id: string; workspace_name: string }>(result.stdout)
   if (data?.workspace_id !== SLACK_TEST_WORKSPACE_ID) {
     const switchResult = await runCLI('slack', ['workspace', 'switch', SLACK_TEST_WORKSPACE_ID])
     if (switchResult.exitCode !== 0) {
       throw new Error(
         `Failed to switch to test workspace. Expected: ${SLACK_TEST_WORKSPACE_NAME} (${SLACK_TEST_WORKSPACE_ID}). ` +
-        `Make sure you have access to the test workspace.`
+          `Make sure you have access to the test workspace.`,
       )
     }
   }
@@ -50,19 +50,19 @@ export async function validateSlackBotEnvironment() {
   if (data?.workspace_id !== SLACKBOT_TEST_WORKSPACE_ID) {
     throw new Error(
       `Wrong SlackBot workspace. Expected: ${SLACKBOT_TEST_WORKSPACE_NAME} (${SLACKBOT_TEST_WORKSPACE_ID}), ` +
-      `Got: ${data?.workspace_id}`
+        `Got: ${data?.workspace_id}`,
     )
   }
 }
 
 export async function validateDiscordEnvironment() {
   const { runCLI, parseJSON } = await import('./helpers')
-  
+
   const result = await runCLI('discord', ['auth', 'status'])
   if (result.exitCode !== 0) {
     throw new Error('Discord authentication failed. Please run: agent-messenger discord auth login')
   }
-  
+
   const currentResult = await runCLI('discord', ['server', 'current'])
   const data = parseJSON<{ server_id: string; server_name: string }>(currentResult.stdout)
   if (data?.server_id !== DISCORD_TEST_SERVER_ID) {
@@ -70,7 +70,7 @@ export async function validateDiscordEnvironment() {
     if (switchResult.exitCode !== 0) {
       throw new Error(
         `Failed to switch to test server. Expected: ${DISCORD_TEST_SERVER_NAME} (${DISCORD_TEST_SERVER_ID}). ` +
-        `Make sure you have access to the test server.`
+          `Make sure you have access to the test server.`,
       )
     }
   }
@@ -102,7 +102,7 @@ export async function validateDiscordBotEnvironment() {
     if (switchResult.exitCode !== 0) {
       throw new Error(
         `Failed to switch to test server. Expected: ${DISCORDBOT_TEST_SERVER_NAME} (${DISCORDBOT_TEST_SERVER_ID}). ` +
-        `Make sure the bot has been added to the test server.`
+          `Make sure the bot has been added to the test server.`,
       )
     }
   }
@@ -140,7 +140,7 @@ export async function validateTeamsEnvironment() {
     if (switchResult.exitCode !== 0) {
       throw new Error(
         `Failed to switch to test team. Expected: ${TEAMS_TEST_TEAM_NAME} (${TEAMS_TEST_TEAM_ID}). ` +
-        `Make sure you have access to the test team.`,
+          `Make sure you have access to the test team.`,
       )
     }
   }

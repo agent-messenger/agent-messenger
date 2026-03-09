@@ -53,6 +53,7 @@ agent-discordbot auth set your-bot-token --bot deploy --name "Deploy Bot"
 ```
 
 This command:
+
 1. Validates the token against the Discord API
 2. Stores the bot with its ID and name
 3. Sets this bot as the current active bot
@@ -122,6 +123,7 @@ agent-discordbot auth status
 ```
 
 Output when authenticated:
+
 ```json
 {
   "valid": true,
@@ -133,6 +135,7 @@ Output when authenticated:
 ```
 
 Output when not authenticated:
+
 ```json
 {
   "valid": false,
@@ -153,6 +156,7 @@ agent-discordbot auth clear
 ### When Tokens Stop Working
 
 Bot tokens can be invalidated when:
+
 - The token is manually reset in the Developer Portal
 - The bot is removed from the server
 - The application is deleted
@@ -167,20 +171,21 @@ agent-discordbot auth status
 
 ## Required Bot Permissions
 
-| Permission | Used For |
-|-----------|----------|
-| Send Messages | Sending messages to channels |
-| Read Message History | Reading channel messages |
-| View Channels | Listing and accessing channels |
-| Add Reactions | Adding and removing emoji reactions |
-| Attach Files | Uploading files to channels |
-| Manage Threads | Creating and archiving threads |
+| Permission           | Used For                            |
+| -------------------- | ----------------------------------- |
+| Send Messages        | Sending messages to channels        |
+| Read Message History | Reading channel messages            |
+| View Channels        | Listing and accessing channels      |
+| Add Reactions        | Adding and removing emoji reactions |
+| Attach Files         | Uploading files to channels         |
+| Manage Threads       | Creating and archiving threads      |
 
 ## Troubleshooting
 
 ### "Missing Access" Error
 
 The bot doesn't have access to the channel or server:
+
 1. Verify the bot is in the server (`server list`)
 2. Check the bot's role has View Channel permission for that channel
 3. Check channel-specific permission overrides
@@ -188,6 +193,7 @@ The bot doesn't have access to the channel or server:
 ### "Missing Permissions" Error
 
 The bot's role lacks the required permission:
+
 1. Go to Server Settings > Roles in Discord
 2. Find the bot's role
 3. Enable the missing permission
@@ -195,6 +201,7 @@ The bot's role lacks the required permission:
 ### Empty message content in large servers
 
 Enable the Message Content Intent:
+
 1. Go to [discord.com/developers/applications](https://discord.com/developers/applications)
 2. Select your application > **Bot**
 3. Enable **Message Content Intent** under Privileged Gateway Intents
@@ -203,6 +210,7 @@ Enable the Message Content Intent:
 ### Token invalid after reset
 
 If someone reset the token in the Developer Portal:
+
 1. Go to the Developer Portal > your application > **Bot**
 2. Click **Reset Token** and copy the new one
 3. Run `agent-discordbot auth set <new-token>`

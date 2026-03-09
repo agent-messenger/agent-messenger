@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, spyOn, test } from 'bun:test'
+
 import { SlackClient } from './client'
 import { CredentialManager } from './credential-manager'
 import { ensureSlackAuth, refreshTokenFromWeb } from './ensure-auth'

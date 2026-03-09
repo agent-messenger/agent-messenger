@@ -1,7 +1,9 @@
 import { Command } from 'commander'
+
 import { parallelMap } from '@/shared/utils/concurrency'
 import { handleError } from '@/shared/utils/error-handler'
 import { formatOutput } from '@/shared/utils/output'
+
 import { SlackClient } from '../client'
 import { CredentialManager } from '../credential-manager'
 import type { SlackChannel } from '../types'

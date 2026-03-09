@@ -1,6 +1,8 @@
 import { Command } from 'commander'
+
 import { handleError } from '@/shared/utils/error-handler'
 import { formatOutput } from '@/shared/utils/output'
+
 import { type BotOption, getClient } from './shared'
 
 async function addAction(channelInput: string, timestamp: string, emoji: string, options: BotOption): Promise<void> {

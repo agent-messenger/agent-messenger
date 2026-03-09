@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
+
 import { DiscordBotClient } from './client'
 import { DiscordBotError } from './types'
 

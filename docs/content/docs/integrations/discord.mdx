@@ -32,6 +32,7 @@ agent-discord auth extract --debug
 ```
 
 This command:
+
 - Auto-detects your platform (macOS/Linux/Windows)
 - Extracts Discord user token from the desktop app
 - Validates token against Discord API
@@ -100,6 +101,7 @@ agent-discord message search "test" --limit 10 --offset 20
 ```
 
 **Search Options:**
+
 - `--channel <id>` - Filter by specific channel
 - `--author <id>` - Filter by specific author
 - `--has <type>` - Filter by attachment type: `file`, `image`, `video`, `embed`, `link`, `sticker`
@@ -192,13 +194,13 @@ All commands support these options:
 
 ## Key Differences from Slack
 
-| Concept | Slack | Discord |
-|---------|-------|---------|
-| Server | Workspace | Server |
-| Channel ID | Alphanumeric (C01234567) | Numeric snowflake (123456789012345678) |
+| Concept    | Slack                         | Discord                                |
+| ---------- | ----------------------------- | -------------------------------------- |
+| Server     | Workspace                     | Server                                 |
+| Channel ID | Alphanumeric (C01234567)      | Numeric snowflake (123456789012345678) |
 | Message ID | Timestamp (1234567890.123456) | Numeric snowflake (123456789012345678) |
-| User ID | Alphanumeric (U01234567) | Numeric snowflake (123456789012345678) |
-| Threads | Thread timestamps | Thread channels |
+| User ID    | Alphanumeric (U01234567)      | Numeric snowflake (123456789012345678) |
+| Threads    | Thread timestamps             | Thread channels                        |
 
 ### DM Commands
 
@@ -267,5 +269,6 @@ agent-discord note set <user-id> "Met at conference"
 ## AI Agent Integration
 
 See [`skills/agent-discord/`](https://github.com/devxoul/agent-messenger/tree/main/skills/agent-discord) for:
+
 - Complete skill documentation
 - Runnable templates

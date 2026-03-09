@@ -1,4 +1,5 @@
 import { readFile } from 'node:fs/promises'
+
 import type { DiscordChannel, DiscordFile, DiscordGuild, DiscordMessage, DiscordUser } from './types'
 import { DiscordBotError } from './types'
 

@@ -52,6 +52,7 @@ npm install -g agent-messenger
 Or use your favorite package manager.
 
 This installs:
+
 - `agent-slack` — Slack CLI (user token, zero-config)
 - `agent-slackbot` — Slack Bot CLI (bot token, for server-side/CI/CD)
 - `agent-discord` — Discord CLI
@@ -102,9 +103,7 @@ Add to your `opencode.jsonc`:
 
 ```jsonc
 {
-  "plugins": [
-    "agent-messenger"
-  ]
+  "plugins": ["agent-messenger"],
 }
 ```
 
@@ -124,23 +123,23 @@ That's it. Credentials are extracted automatically from your Slack desktop app o
 
 ## Supported Platforms
 
-| Feature | Slack | Discord | Teams |
-|---------|:-----:|:-------:|:-----:|
-| Auto credential extraction | ✅ | ✅ | ✅ |
-| Send & list messages | ✅ | ✅ | ✅ |
-| Search messages | ✅ | ✅ | — |
-| Threads | ✅ | ✅ | — |
-| Channels & Users | ✅ | ✅ | ✅ |
-| Reactions | ✅ | ✅ | ✅ |
-| File uploads | ✅ | ✅ | ✅ |
-| Workspace snapshots | ✅ | ✅ | ✅ |
-| Multi-workspace | ✅ | ✅ | ✅ |
-| Activity feed | ✅ | — | — |
-| Drafts | ✅ | — | — |
-| Saved items | ✅ | — | — |
-| Unread messages | ✅ | — | — |
-| Sidebar sections | ✅ | — | — |
-| Bot support | ✅ | ✅ | — |
+| Feature                    | Slack | Discord | Teams |
+| -------------------------- | :---: | :-----: | :---: |
+| Auto credential extraction |  ✅   |   ✅    |  ✅   |
+| Send & list messages       |  ✅   |   ✅    |  ✅   |
+| Search messages            |  ✅   |   ✅    |   —   |
+| Threads                    |  ✅   |   ✅    |   —   |
+| Channels & Users           |  ✅   |   ✅    |  ✅   |
+| Reactions                  |  ✅   |   ✅    |  ✅   |
+| File uploads               |  ✅   |   ✅    |  ✅   |
+| Workspace snapshots        |  ✅   |   ✅    |  ✅   |
+| Multi-workspace            |  ✅   |   ✅    |  ✅   |
+| Activity feed              |  ✅   |    —    |   —   |
+| Drafts                     |  ✅   |    —    |   —   |
+| Saved items                |  ✅   |    —    |   —   |
+| Unread messages            |  ✅   |    —    |   —   |
+| Sidebar sections           |  ✅   |    —    |   —   |
+| Bot support                |  ✅   |   ✅    |   —   |
 
 > ⚠️ **Teams tokens expire in 60-90 minutes.** Re-run `agent-teams auth extract` to refresh. See [Teams Guide](skills/agent-teams/SKILL.md) for details.
 
@@ -199,6 +198,7 @@ Wire messaging into your CI, scripts, or agent workflows.
 ### ...and More
 
 These are just starting points. Your agent has full read/write access to Slack, Discord, and Teams — anything you'd do manually in a chat app, it can handle for you. If you build something cool with Agent Messenger, [let me know](https://x.com/devxoul)!
+
 ## Philosophy
 
 **Why not MCP?** MCP servers expose all tools at once, bloating context and confusing agents. **[Agent Skills](https://agentskills.io/) + agent-friendly CLI** offer a better approach—load what you need, when you need it. Fewer tokens, cleaner context, better output.

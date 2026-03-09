@@ -1,5 +1,7 @@
 import { describe, expect, mock, test } from 'bun:test'
+
 import { Command } from 'commander'
+
 import { activityCommand } from '@/platforms/slack/commands/activity'
 
 describe('activity command', () => {

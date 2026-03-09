@@ -311,6 +311,7 @@ agent-slack snapshot --limit 10
 ```
 
 Returns JSON with:
+
 - Workspace metadata
 - Channels (id, name, topic, purpose)
 - Recent messages (ts, text, user, channel)
@@ -345,6 +346,7 @@ See `references/common-patterns.md` for typical AI agent workflows.
 ## Templates
 
 See `templates/` directory for runnable examples:
+
 - `post-message.sh` - Send messages with error handling
 - `monitor-channel.sh` - Monitor channel for new messages
 - `workspace-summary.sh` - Generate workspace summary
@@ -360,6 +362,7 @@ All commands return consistent error format:
 ```
 
 Common errors:
+
 - `NO_WORKSPACE`: No authenticated workspace (auto-extraction failed — see Troubleshooting)
 - `SLACK_API_ERROR`: Slack API returned an error
 - `RATE_LIMIT`: Hit Slack rate limit (auto-retries with backoff)

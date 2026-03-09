@@ -18,6 +18,7 @@ agent-slack auth extract --debug
 ```
 
 This command:
+
 1. Detects your operating system (macOS, Linux, Windows)
 2. Locates the Slack desktop app data directory (supports both direct download and App Store versions on macOS)
 3. Reads the LevelDB storage containing session data
@@ -29,26 +30,31 @@ This command:
 ### Platform-Specific Paths
 
 **macOS (Direct Download):**
+
 ```
 ~/Library/Application Support/Slack/
 ```
 
 **macOS (App Store / Sandboxed):**
+
 ```
 ~/Library/Containers/com.tinyspeck.slackmacgap/Data/Library/Application Support/Slack/
 ```
 
 **Linux:**
+
 ```
 ~/.config/Slack/
 ```
 
 **Windows:**
+
 ```
 %APPDATA%\Slack\
 ```
 
 The tool searches multiple locations within these directories:
+
 - `Local Storage/leveldb/` - Primary token storage
 - `storage/` - Alternative storage location
 - `Cookies` - Encrypted cookie database (decrypted via Keychain on macOS)
@@ -73,6 +79,7 @@ agent-slack workspace list
 ```
 
 Output:
+
 ```json
 {
   "success": true,
@@ -117,6 +124,7 @@ agent-slack workspace current
 ### Location
 
 Credentials are stored in:
+
 ```
 ~/.config/agent-messenger/slack-credentials.json
 ```
@@ -158,6 +166,7 @@ agent-slack auth status
 ```
 
 Output when authenticated:
+
 ```json
 {
   "success": true,
@@ -172,6 +181,7 @@ Output when authenticated:
 ```
 
 Output when not authenticated:
+
 ```json
 {
   "success": false,
@@ -187,6 +197,7 @@ Output when not authenticated:
 ### When Tokens Expire
 
 Slack web tokens can expire or be invalidated when:
+
 - You log out of Slack desktop app
 - You change your password
 - Workspace admin revokes sessions
@@ -215,6 +226,7 @@ agent-slack auth extract --debug
 ```
 
 This shows:
+
 - Which Slack directory was found
 - How many workspaces were discovered
 - Token validation results for each workspace
@@ -224,6 +236,7 @@ This shows:
 **Cause**: Slack desktop app not installed or in non-standard location
 
 **Solution**:
+
 1. Install Slack desktop app
 2. Log in to your workspace(s)
 3. Run `agent-slack auth extract` again
@@ -233,6 +246,7 @@ This shows:
 **Cause**: Not logged into any workspaces in Slack desktop app
 
 **Solution**:
+
 1. Open Slack desktop app
 2. Sign in to at least one workspace
 3. Run `agent-slack auth extract` again
@@ -242,6 +256,7 @@ This shows:
 **Cause**: Insufficient file system permissions
 
 **Solution** (macOS):
+
 1. Grant Terminal/iTerm full disk access in System Preferences
 2. Security & Privacy → Privacy → Full Disk Access
 3. Add your terminal application
@@ -251,6 +266,7 @@ This shows:
 **Cause**: Token expired or invalidated
 
 **Solution**:
+
 ```bash
 # Re-extract fresh credentials
 agent-slack auth extract
@@ -264,6 +280,7 @@ agent-slack auth status
 **Cause**: Session may have expired or you're logged out of Slack
 
 **Solution**:
+
 1. Open Slack desktop app
 2. Make sure you're logged in (send a message to verify)
 3. Run `agent-slack auth extract --debug` to see details
@@ -274,6 +291,7 @@ agent-slack auth status
 ### What agent-slack Can Access
 
 With extracted credentials, agent-slack has the same permissions as you in the Slack desktop app:
+
 - Read all channels you have access to
 - Send messages as you
 - Upload/download files

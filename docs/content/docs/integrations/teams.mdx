@@ -32,6 +32,7 @@ agent-teams auth extract --debug
 ```
 
 This command:
+
 - Auto-detects your platform (macOS/Linux/Windows)
 - Extracts Teams access token from the desktop app
 - Validates token against Teams API
@@ -51,6 +52,7 @@ agent-teams auth extract
 ```
 
 **Best practices for AI agents:**
+
 - Always check `auth status` before operations
 - Re-run `auth extract` if you get 401 errors
 - Consider automating token refresh in long-running workflows
@@ -69,10 +71,10 @@ agent-teams auth logout
 
 agent-teams supports both **New Teams** (WebView2-based, com.microsoft.teams2) and **Classic Teams**:
 
-| Version | macOS | Windows | Linux |
-|---------|:-----:|:-------:|:-----:|
-| New Teams | ✅ | ✅ | N/A |
-| Classic Teams | ✅ | ✅ | ✅ |
+| Version       | macOS | Windows | Linux |
+| ------------- | :---: | :-----: | :---: |
+| New Teams     |  ✅   |   ✅    |  N/A  |
+| Classic Teams |  ✅   |   ✅    |  ✅   |
 
 ### Manual Token Input (Last Resort)
 
@@ -222,16 +224,16 @@ All commands support these options:
 
 ## Key Differences: Teams vs Discord vs Slack
 
-| Concept | Slack | Discord | Teams |
-|---------|-------|---------|-------|
-| Server/Workspace | Workspace | Guild | Team |
-| Channel ID format | Alphanumeric (C01234567) | Numeric snowflake | UUID (abc123-def456-...) |
-| Message ID format | Timestamp (1234567890.123456) | Numeric snowflake | UUID |
-| User ID format | Alphanumeric (U01234567) | Numeric snowflake | UUID (Azure AD Object ID) |
-| Token lifetime | Long-lived | Long-lived | **60-90 minutes** |
-| API | Slack Web API | Discord API | Teams Messaging API |
-| Threads | Thread timestamps | Thread channels | Reply chains |
-| Rate limits | Moderate | Moderate | Strict |
+| Concept           | Slack                         | Discord           | Teams                     |
+| ----------------- | ----------------------------- | ----------------- | ------------------------- |
+| Server/Workspace  | Workspace                     | Guild             | Team                      |
+| Channel ID format | Alphanumeric (C01234567)      | Numeric snowflake | UUID (abc123-def456-...)  |
+| Message ID format | Timestamp (1234567890.123456) | Numeric snowflake | UUID                      |
+| User ID format    | Alphanumeric (U01234567)      | Numeric snowflake | UUID (Azure AD Object ID) |
+| Token lifetime    | Long-lived                    | Long-lived        | **60-90 minutes**         |
+| API               | Slack Web API                 | Discord API       | Teams Messaging API       |
+| Threads           | Thread timestamps             | Thread channels   | Reply chains              |
+| Rate limits       | Moderate                      | Moderate          | Strict                    |
 
 ## Troubleshooting
 
@@ -248,6 +250,7 @@ agent-teams auth extract
 ### "No teams found"
 
 Ensure you're a member of at least one team in the Teams desktop app, then:
+
 ```bash
 agent-teams auth extract --debug
 ```
@@ -255,6 +258,7 @@ agent-teams auth extract --debug
 ### "Channel not found"
 
 Teams channel IDs are UUIDs. Make sure you're using the full ID:
+
 ```bash
 # Get channel list to find correct IDs
 agent-teams channel list --pretty
@@ -263,6 +267,7 @@ agent-teams channel list --pretty
 ### Rate Limiting (429 Too Many Requests)
 
 Teams API has strict rate limits. Wait and retry:
+
 ```bash
 # Add delays between operations in scripts
 sleep 2
@@ -271,6 +276,7 @@ sleep 2
 ### Desktop App Not Detected
 
 Ensure Teams desktop app is:
+
 1. Installed (not just web version)
 2. Currently running
 3. Signed in to your account
@@ -287,6 +293,7 @@ Some operations require specific Microsoft 365 permissions. Check with your IT a
 ## AI Agent Integration
 
 See [`skills/agent-teams/`](https://github.com/devxoul/agent-messenger/tree/main/skills/agent-teams) for:
+
 - Complete skill documentation
 - Runnable templates
 

@@ -1,5 +1,7 @@
 import { Command } from 'commander'
+
 import { formatOutput } from '@/shared/utils/output'
+
 import type { BotOption } from './shared'
 import { getClient, getCurrentServer } from './shared'
 

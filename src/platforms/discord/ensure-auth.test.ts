@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, spyOn, test } from 'bun:test'
+
 import { DiscordClient } from './client'
 import { DiscordCredentialManager } from './credential-manager'
 import { ensureDiscordAuth } from './ensure-auth'

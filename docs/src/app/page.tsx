@@ -1,7 +1,7 @@
 'use client'
 
-import Link from 'next/link'
 import { useTheme } from 'next-themes'
+import Link from 'next/link'
 import { useEffect, useState } from 'react'
 
 function KeyIcon({ className }: { className?: string }) {
@@ -146,14 +146,7 @@ function TeamsIcon({ className }: { className?: string }) {
       />
       <rect x="4.5" y="44.5" width="65.3" height="65.3" rx="4.5" fill="url(#teams-gradient)" />
       <defs>
-        <linearGradient
-          id="teams-gradient"
-          x1="4.5"
-          y1="44.5"
-          x2="69.8"
-          y2="109.8"
-          gradientUnits="userSpaceOnUse"
-        >
+        <linearGradient id="teams-gradient" x1="4.5" y1="44.5" x2="69.8" y2="109.8" gradientUnits="userSpaceOnUse">
           <stop offset="0" stopColor="#5a62c3" />
           <stop offset="0.5" stopColor="#4d55bd" />
           <stop offset="1" stopColor="#3940ab" />
@@ -223,11 +216,7 @@ function ThemeToggle() {
       className="rounded-lg p-2 text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800"
       aria-label="Toggle theme"
     >
-      {resolvedTheme === 'dark' ? (
-        <SunIcon className="h-5 w-5" />
-      ) : (
-        <MoonIcon className="h-5 w-5" />
-      )}
+      {resolvedTheme === 'dark' ? <SunIcon className="h-5 w-5" /> : <MoonIcon className="h-5 w-5" />}
     </button>
   )
 }
@@ -278,27 +267,27 @@ export default function Home() {
       </header>
 
       <section className="flex flex-col items-center justify-center px-6 pt-24 pb-20 text-center">
-        <div className="inline-flex items-center gap-2 rounded-full bg-zinc-100 px-3 py-1 text-sm font-medium text-zinc-800 dark:bg-zinc-800 dark:text-zinc-200 mb-8">
+        <div className="mb-8 inline-flex items-center gap-2 rounded-full bg-zinc-100 px-3 py-1 text-sm font-medium text-zinc-800 dark:bg-zinc-800 dark:text-zinc-200">
           <span className="relative flex h-2 w-2">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-75"></span>
+            <span className="relative inline-flex h-2 w-2 rounded-full bg-green-500"></span>
           </span>
           {npmVersion ? `v${npmVersion} Available Now` : 'Available Now'}
         </div>
-        <h1 className="max-w-4xl text-5xl font-extrabold tracking-tight text-zinc-900 dark:text-white sm:text-6xl md:text-7xl">
+        <h1 className="max-w-4xl text-5xl font-extrabold tracking-tight text-zinc-900 sm:text-6xl md:text-7xl dark:text-white">
           Give your AI agent the power to <br className="hidden sm:block" />
-          <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-400 dark:to-indigo-400">
+          <span className="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent dark:from-blue-400 dark:to-indigo-400">
             read and send messages
           </span>
         </h1>
-        <p className="mt-6 max-w-2xl text-lg text-zinc-600 dark:text-zinc-400 sm:text-xl">
-          A unified, agent-friendly CLI for messaging platforms. Zero-config credential extraction.
-          No OAuth flows. No API keys. Works out of the box.
+        <p className="mt-6 max-w-2xl text-lg text-zinc-600 sm:text-xl dark:text-zinc-400">
+          A unified, agent-friendly CLI for messaging platforms. Zero-config credential extraction. No OAuth flows. No
+          API keys. Works out of the box.
         </p>
         <div className="mt-10 flex flex-col gap-4 sm:flex-row">
           <Link
             href="/docs"
-            className="inline-flex items-center justify-center rounded-lg bg-black px-8 py-3 text-base font-semibold text-white transition-all hover:bg-zinc-800 hover:scale-105 active:scale-95 dark:bg-white dark:text-black dark:hover:bg-zinc-200"
+            className="inline-flex items-center justify-center rounded-lg bg-black px-8 py-3 text-base font-semibold text-white transition-all hover:scale-105 hover:bg-zinc-800 active:scale-95 dark:bg-white dark:text-black dark:hover:bg-zinc-200"
           >
             Get Started
           </Link>
@@ -306,7 +295,7 @@ export default function Home() {
             href="https://github.com/devxoul/agent-messenger"
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center justify-center rounded-lg border border-zinc-200 bg-white px-8 py-3 text-base font-medium text-zinc-900 transition-all hover:bg-zinc-50 hover:border-zinc-300 dark:border-zinc-800 dark:bg-zinc-900 dark:text-white dark:hover:bg-zinc-800"
+            className="inline-flex items-center justify-center rounded-lg border border-zinc-200 bg-white px-8 py-3 text-base font-medium text-zinc-900 transition-all hover:border-zinc-300 hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900 dark:text-white dark:hover:bg-zinc-800"
           >
             View on GitHub
           </a>
@@ -320,9 +309,7 @@ export default function Home() {
               <div className="mb-4 inline-flex rounded-xl bg-blue-100 p-3 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400">
                 <KeyIcon className="h-6 w-6" />
               </div>
-              <h3 className="mb-2 text-lg font-semibold text-zinc-900 dark:text-white">
-                No API keys needed
-              </h3>
+              <h3 className="mb-2 text-lg font-semibold text-zinc-900 dark:text-white">No API keys needed</h3>
               <p className="text-zinc-600 dark:text-zinc-400">
                 Automatically extracts credentials from your installed desktop apps.
               </p>
@@ -331,9 +318,7 @@ export default function Home() {
               <div className="mb-4 inline-flex rounded-xl bg-purple-100 p-3 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400">
                 <GlobeIcon className="h-6 w-6" />
               </div>
-              <h3 className="mb-2 text-lg font-semibold text-zinc-900 dark:text-white">
-                One interface
-              </h3>
+              <h3 className="mb-2 text-lg font-semibold text-zinc-900 dark:text-white">One interface</h3>
               <p className="text-zinc-600 dark:text-zinc-400">
                 Learn once, use everywhere. Unified commands for Slack, Discord, and Teams.
               </p>
@@ -342,9 +327,7 @@ export default function Home() {
               <div className="mb-4 inline-flex rounded-xl bg-green-100 p-3 text-green-600 dark:bg-green-900/30 dark:text-green-400">
                 <BotIcon className="h-6 w-6" />
               </div>
-              <h3 className="mb-2 text-lg font-semibold text-zinc-900 dark:text-white">
-                AI-agent friendly
-              </h3>
+              <h3 className="mb-2 text-lg font-semibold text-zinc-900 dark:text-white">AI-agent friendly</h3>
               <p className="text-zinc-600 dark:text-zinc-400">
                 JSON output by default. Perfect for LLM tool use and automation.
               </p>
@@ -353,9 +336,7 @@ export default function Home() {
               <div className="mb-4 inline-flex rounded-xl bg-amber-100 p-3 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400">
                 <ZapIcon className="h-6 w-6" />
               </div>
-              <h3 className="mb-2 text-lg font-semibold text-zinc-900 dark:text-white">
-                Token efficient
-              </h3>
+              <h3 className="mb-2 text-lg font-semibold text-zinc-900 dark:text-white">Token efficient</h3>
               <p className="text-zinc-600 dark:text-zinc-400">
                 CLI approach, not MCP. Load only what you need to keep context small.
               </p>
@@ -367,27 +348,23 @@ export default function Home() {
       <section className="bg-zinc-100 px-6 py-20 dark:bg-zinc-900">
         <div className="mx-auto max-w-5xl">
           <div className="mb-12 text-center">
-            <h2 className="text-3xl font-bold text-zinc-900 dark:text-white sm:text-4xl">
+            <h2 className="text-3xl font-bold text-zinc-900 sm:text-4xl dark:text-white">
               Get up and running in 30 seconds
             </h2>
-            <p className="mt-4 text-lg text-zinc-600 dark:text-zinc-400">
-              No configuration files. No lengthy setups.
-            </p>
+            <p className="mt-4 text-lg text-zinc-600 dark:text-zinc-400">No configuration files. No lengthy setups.</p>
           </div>
 
-          <div className="overflow-hidden rounded-2xl bg-zinc-950 shadow-2xl border border-zinc-800">
+          <div className="overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-950 shadow-2xl">
             <div className="flex items-center gap-2 border-b border-zinc-800 bg-zinc-900/50 px-4 py-3">
               <div className="h-3 w-3 rounded-full bg-red-500" />
               <div className="h-3 w-3 rounded-full bg-yellow-500" />
               <div className="h-3 w-3 rounded-full bg-green-500" />
               <span className="ml-2 text-xs font-medium text-zinc-500">bash</span>
             </div>
-            <div className="p-6 sm:p-8 font-mono text-sm sm:text-base overflow-x-auto">
+            <div className="overflow-x-auto p-6 font-mono text-sm sm:p-8 sm:text-base">
               <pre className="text-zinc-300">
                 <code>
-                  <span className="text-zinc-500">
-                    # 1. Extract credentials from your Slack desktop app
-                  </span>
+                  <span className="text-zinc-500"># 1. Extract credentials from your Slack desktop app</span>
                   {'\n'}
                   <span className="text-purple-400">agent-slack</span> auth extract
                   {'\n\n'}
@@ -408,9 +385,7 @@ export default function Home() {
 
       <section className="px-6 py-20">
         <div className="mx-auto max-w-4xl text-center">
-          <h2 className="mb-12 text-3xl font-bold text-zinc-900 dark:text-white">
-            Supported Platforms
-          </h2>
+          <h2 className="mb-12 text-3xl font-bold text-zinc-900 dark:text-white">Supported Platforms</h2>
           <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
             <Link
               href="/docs/integrations/slack"
@@ -420,9 +395,7 @@ export default function Home() {
                 <SlackIcon className="h-12 w-12" />
               </div>
               <h3 className="text-xl font-bold text-zinc-900 dark:text-white">Slack</h3>
-              <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
-                Full messaging and thread support
-              </p>
+              <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">Full messaging and thread support</p>
             </Link>
             <Link
               href="/docs/integrations/discord"
@@ -432,9 +405,7 @@ export default function Home() {
                 <DiscordIcon className="h-12 w-12" />
               </div>
               <h3 className="text-xl font-bold text-zinc-900 dark:text-white">Discord</h3>
-              <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
-                Guilds, channels, and DMs
-              </p>
+              <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">Guilds, channels, and DMs</p>
             </Link>
             <Link
               href="/docs/integrations/teams"
@@ -444,9 +415,7 @@ export default function Home() {
                 <TeamsIcon className="h-12 w-12" />
               </div>
               <h3 className="text-xl font-bold text-zinc-900 dark:text-white">Teams</h3>
-              <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
-                Microsoft Teams support
-              </p>
+              <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">Microsoft Teams support</p>
             </Link>
             <div className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-zinc-300 p-8 dark:border-zinc-700">
               <div className="mb-4 text-zinc-400 dark:text-zinc-500">
@@ -473,11 +442,9 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="px-6 pb-32 pt-10 text-center">
+      <section className="px-6 pt-10 pb-32 text-center">
         <div className="mx-auto max-w-3xl rounded-3xl bg-zinc-900 px-6 py-16 text-center shadow-2xl dark:bg-zinc-100">
-          <h2 className="text-3xl font-bold text-white dark:text-black sm:text-4xl">
-            Ready to empower your agent?
-          </h2>
+          <h2 className="text-3xl font-bold text-white sm:text-4xl dark:text-black">Ready to empower your agent?</h2>
           <p className="mx-auto mt-4 max-w-xl text-zinc-300 dark:text-zinc-600">
             Start using Agent Messenger today. It&apos;s free and open source.
           </p>

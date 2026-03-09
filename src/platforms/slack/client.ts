@@ -1,4 +1,5 @@
 import { WebClient } from '@slack/web-api'
+
 import type {
   SlackActivityItem,
   SlackChannel,

@@ -105,14 +105,14 @@ agent-discordbot auth remove deploy
 
 ### Permissions Reference
 
-| Permission | Used For |
-|------------|----------|
-| Send Messages | Sending messages to channels |
-| Read Message History | Reading past messages in channels |
-| View Channels | Listing and accessing channels |
-| Add Reactions | Adding and removing emoji reactions |
-| Attach Files | Uploading files to channels |
-| Manage Threads | Creating and archiving threads |
+| Permission           | Used For                            |
+| -------------------- | ----------------------------------- |
+| Send Messages        | Sending messages to channels        |
+| Read Message History | Reading past messages in channels   |
+| View Channels        | Listing and accessing channels      |
+| Add Reactions        | Adding and removing emoji reactions |
+| Attach Files         | Uploading files to channels         |
+| Manage Threads       | Creating and archiving threads      |
 
 ### Environment Variables (CI/CD)
 
@@ -238,20 +238,21 @@ agent-discordbot snapshot --limit 10
 
 ## Key Differences from agent-discord
 
-| Feature | agent-discord | agent-discordbot |
-|---------|--------------|------------------|
-| Token type | User token | Bot token |
-| Token source | Auto-extracted from desktop app | Manual from Developer Portal |
-| Message search | Yes | No |
-| DM commands | Yes | No |
-| Mention/Friend/Note/Profile | Yes | No |
-| Thread management | Yes | Yes |
-| Multi-bot support | N/A | Yes (`--bot` flag) |
-| CI/CD friendly | Requires desktop app | Yes |
+| Feature                     | agent-discord                   | agent-discordbot             |
+| --------------------------- | ------------------------------- | ---------------------------- |
+| Token type                  | User token                      | Bot token                    |
+| Token source                | Auto-extracted from desktop app | Manual from Developer Portal |
+| Message search              | Yes                             | No                           |
+| DM commands                 | Yes                             | No                           |
+| Mention/Friend/Note/Profile | Yes                             | No                           |
+| Thread management           | Yes                             | Yes                          |
+| Multi-bot support           | N/A                             | Yes (`--bot` flag)           |
+| CI/CD friendly              | Requires desktop app            | Yes                          |
 
 ## AI Agent Integration
 
 See [`skills/agent-discordbot/`](https://github.com/devxoul/agent-messenger/tree/main/skills/agent-discordbot) for:
+
 - Complete skill documentation
 - Runnable templates
 - Common patterns for AI agents
@@ -260,8 +261,8 @@ See [`skills/agent-discordbot/`](https://github.com/devxoul/agent-messenger/tree
 
 All commands support these options:
 
-| Option | Description |
-|--------|-------------|
-| `--pretty` | Human-readable output instead of JSON |
-| `--bot <id>` | Use a specific bot for this command |
+| Option          | Description                            |
+| --------------- | -------------------------------------- |
+| `--pretty`      | Human-readable output instead of JSON  |
+| `--bot <id>`    | Use a specific bot for this command    |
 | `--server <id>` | Use a specific server for this command |

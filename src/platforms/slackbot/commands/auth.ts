@@ -1,5 +1,7 @@
 import { Command } from 'commander'
+
 import { formatOutput } from '@/shared/utils/output'
+
 import { SlackBotClient } from '../client'
 import { SlackBotCredentialManager } from '../credential-manager'
 

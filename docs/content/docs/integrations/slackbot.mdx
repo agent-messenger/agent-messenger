@@ -34,7 +34,7 @@ The fastest way to get started is to create an app from the manifest below:
 display_information:
   name: Agent Messenger Bot
   description: Bot for agent-messenger CLI integration
-  background_color: "#1a1a2e"
+  background_color: '#1a1a2e'
 
 features:
   bot_user:
@@ -108,18 +108,18 @@ agent-slackbot auth remove deploy
 
 ### Scopes Reference
 
-| Scope | Used For |
-|-------|----------|
-| `chat:write` | Sending and updating messages |
-| `channels:history` | Reading public channel messages |
-| `channels:read` | Listing public channels |
-| `channels:join` | Joining public channels |
-| `groups:history` | Reading private channel messages |
-| `groups:read` | Listing private channels |
-| `users:read` | Listing users |
-| `users:read.email` | Reading user emails |
-| `reactions:write` | Adding/removing reactions |
-| `reactions:read` | Listing reactions |
+| Scope              | Used For                         |
+| ------------------ | -------------------------------- |
+| `chat:write`       | Sending and updating messages    |
+| `channels:history` | Reading public channel messages  |
+| `channels:read`    | Listing public channels          |
+| `channels:join`    | Joining public channels          |
+| `groups:history`   | Reading private channel messages |
+| `groups:read`      | Listing private channels         |
+| `users:read`       | Listing users                    |
+| `users:read.email` | Reading user emails              |
+| `reactions:write`  | Adding/removing reactions        |
+| `reactions:read`   | Listing reactions                |
 
 ### Environment Variables (CI/CD)
 
@@ -195,20 +195,21 @@ agent-slackbot reaction remove <channel> <ts> <emoji>
 
 ## Key Differences from agent-slack
 
-| Feature | agent-slack | agent-slackbot |
-|---------|------------|----------------|
-| Token type | User token (xoxc-) | Bot token (xoxb-) |
-| Token source | Auto-extracted from desktop app | Manual from Slack App config |
-| Message search | Yes | No |
-| File operations | Yes | No |
-| Snapshot | Yes | No |
-| Edit/delete messages | Any message | Bot's own only |
-| Multi-bot support | N/A | Yes (`--bot` flag) |
-| CI/CD friendly | Requires desktop app | Yes |
+| Feature              | agent-slack                     | agent-slackbot               |
+| -------------------- | ------------------------------- | ---------------------------- |
+| Token type           | User token (xoxc-)              | Bot token (xoxb-)            |
+| Token source         | Auto-extracted from desktop app | Manual from Slack App config |
+| Message search       | Yes                             | No                           |
+| File operations      | Yes                             | No                           |
+| Snapshot             | Yes                             | No                           |
+| Edit/delete messages | Any message                     | Bot's own only               |
+| Multi-bot support    | N/A                             | Yes (`--bot` flag)           |
+| CI/CD friendly       | Requires desktop app            | Yes                          |
 
 ## AI Agent Integration
 
 See [`skills/agent-slackbot/`](https://github.com/devxoul/agent-messenger/tree/main/skills/agent-slackbot) for:
+
 - Complete skill documentation
 - Runnable templates
 - Common patterns for AI agents

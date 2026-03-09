@@ -40,21 +40,21 @@ while true; do
   # Get latest message
   MESSAGES=$(agent-slack message list "$CHANNEL" --limit 1)
   LATEST_TS=$(echo "$MESSAGES" | jq -r '.data.messages[0].ts')
-  
+
   # Check if new message
   if [ "$LATEST_TS" != "$LAST_TS" ] && [ -n "$LAST_TS" ]; then
     TEXT=$(echo "$MESSAGES" | jq -r '.data.messages[0].text')
     USER=$(echo "$MESSAGES" | jq -r '.data.messages[0].user')
-    
+
     echo "New message from $USER: $TEXT"
-    
+
     # Process message here
     # Example: Respond to mentions
     if echo "$TEXT" | grep -q "@bot"; then
       agent-slack message send "$CHANNEL" "You called?" --thread "$LATEST_TS"
     fi
   fi
-  
+
   LAST_TS="$LATEST_TS"
   sleep 5
 done
@@ -142,12 +142,12 @@ echo "$URGENT_MESSAGES" | jq -c '.' | while read -r msg; do
   TS=$(echo "$msg" | jq -r '.ts')
   TEXT=$(echo "$msg" | jq -r '.text')
   USER=$(echo "$msg" | jq -r '.user')
-  
+
   echo "Found urgent message from $USER: $TEXT"
-  
+
   # Add eyes reaction to acknowledge
   agent-slack reaction add "$CHANNEL" "$TS" eyes
-  
+
   # Reply in thread
   agent-slack message send "$CHANNEL" "I've flagged this for the team!" --thread "$TS"
 done
@@ -168,13 +168,13 @@ CHANNELS=("general" "engineering" "ops")
 for channel in "${CHANNELS[@]}"; do
   echo "Posting to #$channel..."
   RESULT=$(agent-slack message send "$channel" "$MESSAGE")
-  
+
   if echo "$RESULT" | jq -e '.success' > /dev/null; then
     echo "  ✓ Posted to #$channel"
   else
     echo "  ✗ Failed to post to #$channel"
   fi
-  
+
   # Rate limit: Don't spam Slack API
   sleep 1
 done
@@ -198,7 +198,7 @@ UPLOAD_RESULT=$(agent-slack file upload "$CHANNEL" "$REPORT_FILE")
 if echo "$UPLOAD_RESULT" | jq -e '.success' > /dev/null; then
   FILE_ID=$(echo "$UPLOAD_RESULT" | jq -r '.data.id')
   echo "File uploaded: $FILE_ID"
-  
+
   # Send context message
   agent-slack message send "$CHANNEL" "📊 Daily report is ready! Key highlights:
   • 95% test coverage
@@ -280,34 +280,34 @@ send_with_retry() {
   local message=$2
   local max_attempts=3
   local attempt=1
-  
+
   while [ $attempt -le $max_attempts ]; do
     echo "Attempt $attempt/$max_attempts..."
-    
+
     RESULT=$(agent-slack message send "$channel" "$message")
-    
+
     if echo "$RESULT" | jq -e '.success' > /dev/null; then
       echo "Message sent successfully!"
       return 0
     fi
-    
+
     ERROR_CODE=$(echo "$RESULT" | jq -r '.error.code')
-    
+
     # Don't retry on certain errors
     if [ "$ERROR_CODE" = "INVALID_CHANNEL" ]; then
       echo "Channel not found - not retrying"
       return 1
     fi
-    
+
     echo "Failed: $(echo "$RESULT" | jq -r '.error.message')"
-    
+
     if [ $attempt -lt $max_attempts ]; then
       sleep $((attempt * 2))  # Exponential backoff
     fi
-    
+
     attempt=$((attempt + 1))
   done
-  
+
   echo "Failed after $max_attempts attempts"
   return 1
 }
@@ -336,7 +336,7 @@ MESSAGES=$(agent-slack message list "$CHANNEL" --limit 100)
 
 # Filter messages from last 24 hours
 RECENT=$(echo "$MESSAGES" | jq --arg oldest "$OLDEST_TS" '
-  .data.messages[] | 
+  .data.messages[] |
   select((.ts | tonumber) > ($oldest | tonumber))
 ')
 
@@ -382,7 +382,7 @@ DISK_USAGE=$(df -h / | awk 'NR==2 {print $5}' | sed 's/%//')
 
 if [ "$DISK_USAGE" -gt 80 ]; then
   agent-slack message send "$CHANNEL" "⚠️ Disk usage is at ${DISK_USAGE}%! Please investigate."
-  
+
   # Add urgent reaction
   RESULT=$(agent-slack message list "$CHANNEL" --limit 1)
   MSG_TS=$(echo "$RESULT" | jq -r '.data.messages[0].ts')

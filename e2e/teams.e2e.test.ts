@@ -1,10 +1,7 @@
 import { describe, test, expect, beforeAll, afterEach } from 'bun:test'
+
+import { TEAMS_TEST_CHANNEL_ID, TEAMS_TEST_TEAM_ID, validateTeamsEnvironment } from './config'
 import { runCLI, parseJSON, generateTestId, waitForRateLimit } from './helpers'
-import {
-  TEAMS_TEST_CHANNEL_ID,
-  TEAMS_TEST_TEAM_ID,
-  validateTeamsEnvironment,
-} from './config'
 
 let testMessages: string[] = []
 
@@ -85,7 +82,13 @@ describe('Teams E2E Tests', () => {
   describe('message', () => {
     test('message send creates message', async () => {
       const testId = generateTestId()
-      const result = await runCLI('teams', ['message', 'send', TEAMS_TEST_TEAM_ID, TEAMS_TEST_CHANNEL_ID, `Test message ${testId}`])
+      const result = await runCLI('teams', [
+        'message',
+        'send',
+        TEAMS_TEST_TEAM_ID,
+        TEAMS_TEST_CHANNEL_ID,
+        `Test message ${testId}`,
+      ])
       expect(result.exitCode).toBe(0)
 
       const data = parseJSON<{ id: string }>(result.stdout)
@@ -95,7 +98,14 @@ describe('Teams E2E Tests', () => {
     })
 
     test('message list returns messages array', async () => {
-      const result = await runCLI('teams', ['message', 'list', TEAMS_TEST_TEAM_ID, TEAMS_TEST_CHANNEL_ID, '--limit', '5'])
+      const result = await runCLI('teams', [
+        'message',
+        'list',
+        TEAMS_TEST_TEAM_ID,
+        TEAMS_TEST_CHANNEL_ID,
+        '--limit',
+        '5',
+      ])
       expect(result.exitCode).toBe(0)
 
       const data = parseJSON<Array<{ id: string }>>(result.stdout)
@@ -122,7 +132,14 @@ describe('Teams E2E Tests', () => {
 
       await waitForRateLimit()
 
-      const result = await runCLI('teams', ['message', 'delete', TEAMS_TEST_TEAM_ID, TEAMS_TEST_CHANNEL_ID, id, '--force'])
+      const result = await runCLI('teams', [
+        'message',
+        'delete',
+        TEAMS_TEST_TEAM_ID,
+        TEAMS_TEST_CHANNEL_ID,
+        id,
+        '--force',
+      ])
       expect(result.exitCode).toBe(0)
     })
 
@@ -151,7 +168,14 @@ describe('Teams E2E Tests', () => {
     })
 
     test('channel history returns messages', async () => {
-      const result = await runCLI('teams', ['channel', 'history', TEAMS_TEST_TEAM_ID, TEAMS_TEST_CHANNEL_ID, '--limit', '5'])
+      const result = await runCLI('teams', [
+        'channel',
+        'history',
+        TEAMS_TEST_TEAM_ID,
+        TEAMS_TEST_CHANNEL_ID,
+        '--limit',
+        '5',
+      ])
       expect(result.exitCode).toBe(0)
 
       const data = parseJSON<Array<{ id: string }>>(result.stdout)
@@ -202,7 +226,14 @@ describe('Teams E2E Tests', () => {
 
       await waitForRateLimit(2000)
 
-      const addResult = await runCLI('teams', ['reaction', 'add', TEAMS_TEST_TEAM_ID, TEAMS_TEST_CHANNEL_ID, id, 'like'])
+      const addResult = await runCLI('teams', [
+        'reaction',
+        'add',
+        TEAMS_TEST_TEAM_ID,
+        TEAMS_TEST_CHANNEL_ID,
+        id,
+        'like',
+      ])
       expect(addResult.exitCode).toBe(0)
 
       const addData = parseJSON<{ success: boolean }>(addResult.stdout)
@@ -210,7 +241,14 @@ describe('Teams E2E Tests', () => {
 
       await waitForRateLimit(2000)
 
-      const removeResult = await runCLI('teams', ['reaction', 'remove', TEAMS_TEST_TEAM_ID, TEAMS_TEST_CHANNEL_ID, id, 'like'])
+      const removeResult = await runCLI('teams', [
+        'reaction',
+        'remove',
+        TEAMS_TEST_TEAM_ID,
+        TEAMS_TEST_CHANNEL_ID,
+        id,
+        'like',
+      ])
       expect(removeResult.exitCode).toBe(0)
 
       const removeData = parseJSON<{ success: boolean }>(removeResult.stdout)
@@ -239,7 +277,13 @@ describe('Teams E2E Tests', () => {
       await Bun.write(testFilePath, `Teams E2E test file ${testId}`)
 
       try {
-        const uploadResult = await runCLI('teams', ['file', 'upload', TEAMS_TEST_TEAM_ID, TEAMS_TEST_CHANNEL_ID, testFilePath])
+        const uploadResult = await runCLI('teams', [
+          'file',
+          'upload',
+          TEAMS_TEST_TEAM_ID,
+          TEAMS_TEST_CHANNEL_ID,
+          testFilePath,
+        ])
         expect(uploadResult.exitCode).toBe(0)
 
         const uploadData = parseJSON<{ id: string }>(uploadResult.stdout)
@@ -247,7 +291,13 @@ describe('Teams E2E Tests', () => {
 
         await waitForRateLimit(2000)
 
-        const infoResult = await runCLI('teams', ['file', 'info', TEAMS_TEST_TEAM_ID, TEAMS_TEST_CHANNEL_ID, uploadData!.id])
+        const infoResult = await runCLI('teams', [
+          'file',
+          'info',
+          TEAMS_TEST_TEAM_ID,
+          TEAMS_TEST_CHANNEL_ID,
+          uploadData!.id,
+        ])
         expect(infoResult.exitCode).toBe(0)
 
         const infoData = parseJSON<{ id: string }>(infoResult.stdout)

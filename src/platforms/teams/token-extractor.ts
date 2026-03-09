@@ -4,7 +4,9 @@ import { copyFileSync, existsSync, readFileSync, unlinkSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { homedir, tmpdir } from 'node:os'
 import { join } from 'node:path'
+
 import { DerivedKeyCache } from '@/shared/utils/derived-key-cache'
+
 import type { TeamsAccountType } from './types'
 
 const require = createRequire(import.meta.url)

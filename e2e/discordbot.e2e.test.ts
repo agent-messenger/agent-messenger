@@ -1,13 +1,14 @@
 import { describe, test, expect, beforeAll, afterEach } from 'bun:test'
-import { runCLI, parseJSON, generateTestId, waitForRateLimit } from './helpers'
+
+import { DiscordBotClient } from '../src/platforms/discordbot/client'
+import { DiscordBotCredentialManager } from '../src/platforms/discordbot/credential-manager'
 import {
   DISCORDBOT_TEST_SERVER_ID,
   DISCORDBOT_TEST_CHANNEL_ID,
   DISCORDBOT_TEST_CHANNEL,
   validateDiscordBotEnvironment,
 } from './config'
-import { DiscordBotClient } from '../src/platforms/discordbot/client'
-import { DiscordBotCredentialManager } from '../src/platforms/discordbot/credential-manager'
+import { runCLI, parseJSON, generateTestId, waitForRateLimit } from './helpers'
 
 interface TrackedMessage {
   id: string
@@ -73,9 +74,7 @@ describe('DiscordBot E2E Tests', () => {
   describe('message', () => {
     test('message send creates message and returns id', async () => {
       const testId = generateTestId()
-      const result = await runCLI('discordbot', [
-        'message', 'send', DISCORDBOT_TEST_CHANNEL_ID, `Bot test ${testId}`,
-      ])
+      const result = await runCLI('discordbot', ['message', 'send', DISCORDBOT_TEST_CHANNEL_ID, `Bot test ${testId}`])
       expect(result.exitCode).toBe(0)
 
       const data = parseJSON<{ id: string; channel_id: string }>(result.stdout)
@@ -86,9 +85,7 @@ describe('DiscordBot E2E Tests', () => {
     })
 
     test('message list returns messages array', async () => {
-      const result = await runCLI('discordbot', [
-        'message', 'list', DISCORDBOT_TEST_CHANNEL_ID, '--limit', '5',
-      ])
+      const result = await runCLI('discordbot', ['message', 'list', DISCORDBOT_TEST_CHANNEL_ID, '--limit', '5'])
       expect(result.exitCode).toBe(0)
 
       const data = parseJSON<{ messages: Array<{ id: string }> }>(result.stdout)
@@ -98,7 +95,10 @@ describe('DiscordBot E2E Tests', () => {
     test('message get retrieves specific message', async () => {
       const testId = generateTestId()
       const sendResult = await runCLI('discordbot', [
-        'message', 'send', DISCORDBOT_TEST_CHANNEL_ID, `Get test ${testId}`,
+        'message',
+        'send',
+        DISCORDBOT_TEST_CHANNEL_ID,
+        `Get test ${testId}`,
       ])
       const sent = parseJSON<{ id: string }>(sendResult.stdout)
       expect(sent?.id).toBeTruthy()
@@ -106,9 +106,7 @@ describe('DiscordBot E2E Tests', () => {
 
       await waitForRateLimit()
 
-      const result = await runCLI('discordbot', [
-        'message', 'get', DISCORDBOT_TEST_CHANNEL_ID, sent!.id,
-      ])
+      const result = await runCLI('discordbot', ['message', 'get', DISCORDBOT_TEST_CHANNEL_ID, sent!.id])
       expect(result.exitCode).toBe(0)
 
       const data = parseJSON<{ content: string; id: string }>(result.stdout)
@@ -119,7 +117,10 @@ describe('DiscordBot E2E Tests', () => {
     test('message update modifies message', async () => {
       const testId = generateTestId()
       const sendResult = await runCLI('discordbot', [
-        'message', 'send', DISCORDBOT_TEST_CHANNEL_ID, `Original ${testId}`,
+        'message',
+        'send',
+        DISCORDBOT_TEST_CHANNEL_ID,
+        `Original ${testId}`,
       ])
       const sent = parseJSON<{ id: string }>(sendResult.stdout)
       expect(sent?.id).toBeTruthy()
@@ -128,15 +129,17 @@ describe('DiscordBot E2E Tests', () => {
       await waitForRateLimit()
 
       const result = await runCLI('discordbot', [
-        'message', 'update', DISCORDBOT_TEST_CHANNEL_ID, sent!.id, `Updated ${testId}`,
+        'message',
+        'update',
+        DISCORDBOT_TEST_CHANNEL_ID,
+        sent!.id,
+        `Updated ${testId}`,
       ])
       expect(result.exitCode).toBe(0)
 
       await waitForRateLimit()
 
-      const getResult = await runCLI('discordbot', [
-        'message', 'get', DISCORDBOT_TEST_CHANNEL_ID, sent!.id,
-      ])
+      const getResult = await runCLI('discordbot', ['message', 'get', DISCORDBOT_TEST_CHANNEL_ID, sent!.id])
       const data = parseJSON<{ content: string }>(getResult.stdout)
       expect(data?.content).toContain('Updated')
     })
@@ -144,24 +147,23 @@ describe('DiscordBot E2E Tests', () => {
     test('message delete removes message', async () => {
       const testId = generateTestId()
       const sendResult = await runCLI('discordbot', [
-        'message', 'send', DISCORDBOT_TEST_CHANNEL_ID, `Delete me ${testId}`,
+        'message',
+        'send',
+        DISCORDBOT_TEST_CHANNEL_ID,
+        `Delete me ${testId}`,
       ])
       const sent = parseJSON<{ id: string }>(sendResult.stdout)
       expect(sent?.id).toBeTruthy()
 
       await waitForRateLimit()
 
-      const result = await runCLI('discordbot', [
-        'message', 'delete', DISCORDBOT_TEST_CHANNEL_ID, sent!.id, '--force',
-      ])
+      const result = await runCLI('discordbot', ['message', 'delete', DISCORDBOT_TEST_CHANNEL_ID, sent!.id, '--force'])
       expect(result.exitCode).toBe(0)
     })
 
     test('message send with --thread creates reply', async () => {
       const testId = generateTestId()
-      const sendResult = await runCLI('discordbot', [
-        'message', 'send', DISCORDBOT_TEST_CHANNEL_ID, `Parent ${testId}`,
-      ])
+      const sendResult = await runCLI('discordbot', ['message', 'send', DISCORDBOT_TEST_CHANNEL_ID, `Parent ${testId}`])
       const parent = parseJSON<{ id: string }>(sendResult.stdout)
       expect(parent?.id).toBeTruthy()
       if (parent?.id) trackMessage(parent.id)
@@ -169,8 +171,12 @@ describe('DiscordBot E2E Tests', () => {
       await waitForRateLimit()
 
       const replyResult = await runCLI('discordbot', [
-        'message', 'send', DISCORDBOT_TEST_CHANNEL_ID, `Reply ${testId}`,
-        '--thread', parent!.id,
+        'message',
+        'send',
+        DISCORDBOT_TEST_CHANNEL_ID,
+        `Reply ${testId}`,
+        '--thread',
+        parent!.id,
       ])
       expect(replyResult.exitCode).toBe(0)
 
@@ -186,7 +192,10 @@ describe('DiscordBot E2E Tests', () => {
 
       // given: create a real thread channel
       const threadResult = await runCLI('discordbot', [
-        'thread', 'create', DISCORDBOT_TEST_CHANNEL_ID, `Thread ${testId}`,
+        'thread',
+        'create',
+        DISCORDBOT_TEST_CHANNEL_ID,
+        `Thread ${testId}`,
       ])
       expect(threadResult.exitCode).toBe(0)
       const thread = parseJSON<{ thread: { id: string } }>(threadResult.stdout)
@@ -196,9 +205,7 @@ describe('DiscordBot E2E Tests', () => {
       await waitForRateLimit()
 
       // when: send a message to the thread
-      const sendResult = await runCLI('discordbot', [
-        'message', 'send', threadId, `Reply in thread ${testId}`,
-      ])
+      const sendResult = await runCLI('discordbot', ['message', 'send', threadId, `Reply in thread ${testId}`])
       expect(sendResult.exitCode).toBe(0)
       const threadMsg = parseJSON<{ id: string }>(sendResult.stdout)
       if (threadMsg?.id) trackMessage(threadMsg.id, threadId)
@@ -206,9 +213,7 @@ describe('DiscordBot E2E Tests', () => {
       await waitForRateLimit()
 
       // then: replies returns messages from the thread
-      const result = await runCLI('discordbot', [
-        'message', 'replies', DISCORDBOT_TEST_CHANNEL_ID, threadId,
-      ])
+      const result = await runCLI('discordbot', ['message', 'replies', DISCORDBOT_TEST_CHANNEL_ID, threadId])
       expect(result.exitCode).toBe(0)
 
       const data = parseJSON<{ messages: Array<{ id: string }> }>(result.stdout)
@@ -272,7 +277,10 @@ describe('DiscordBot E2E Tests', () => {
       // given: a message to react to
       const testId = generateTestId()
       const sendResult = await runCLI('discordbot', [
-        'message', 'send', DISCORDBOT_TEST_CHANNEL_ID, `Reaction test ${testId}`,
+        'message',
+        'send',
+        DISCORDBOT_TEST_CHANNEL_ID,
+        `Reaction test ${testId}`,
       ])
       const sent = parseJSON<{ id: string }>(sendResult.stdout)
       expect(sent?.id).toBeTruthy()
@@ -281,9 +289,7 @@ describe('DiscordBot E2E Tests', () => {
       await waitForRateLimit(2000)
 
       // when: add reaction
-      const addResult = await runCLI('discordbot', [
-        'reaction', 'add', DISCORDBOT_TEST_CHANNEL_ID, sent!.id, '👍',
-      ])
+      const addResult = await runCLI('discordbot', ['reaction', 'add', DISCORDBOT_TEST_CHANNEL_ID, sent!.id, '👍'])
       expect(addResult.exitCode).toBe(0)
 
       const addData = parseJSON<{ success: boolean }>(addResult.stdout)
@@ -293,7 +299,11 @@ describe('DiscordBot E2E Tests', () => {
 
       // then: remove reaction
       const removeResult = await runCLI('discordbot', [
-        'reaction', 'remove', DISCORDBOT_TEST_CHANNEL_ID, sent!.id, '👍',
+        'reaction',
+        'remove',
+        DISCORDBOT_TEST_CHANNEL_ID,
+        sent!.id,
+        '👍',
       ])
       expect(removeResult.exitCode).toBe(0)
 

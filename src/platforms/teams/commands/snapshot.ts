@@ -1,7 +1,9 @@
 import { Command } from 'commander'
+
 import { parallelMap } from '@/shared/utils/concurrency'
 import { handleError } from '@/shared/utils/error-handler'
 import { formatOutput } from '@/shared/utils/output'
+
 import { TeamsClient } from '../client'
 import { TeamsCredentialManager } from '../credential-manager'
 import type { TeamsChannel } from '../types'

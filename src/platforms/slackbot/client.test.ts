@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, mock, test } from 'bun:test'
+
 import { SlackBotClient } from './client'
 import { SlackBotError } from './types'
 

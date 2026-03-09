@@ -323,6 +323,7 @@ agent-discord snapshot --limit 10
 ```
 
 Returns JSON with:
+
 - Server metadata (id, name)
 - Channels (id, name, type, topic)
 - Recent messages (id, content, author, timestamp)
@@ -353,13 +354,13 @@ agent-discord channel list --pretty
 
 ## Key Differences from Slack
 
-| Feature | Discord | Slack |
-|---------|---------|-------|
-| Server terminology | Server | Workspace |
-| Channel identifiers | Snowflake IDs | Channel name or ID |
-| Message identifiers | Snowflake IDs | Timestamps (ts) |
-| Threads | Thread ID field | Thread timestamp |
-| Mentions | `<@user_id>` | `<@USER_ID>` |
+| Feature             | Discord         | Slack              |
+| ------------------- | --------------- | ------------------ |
+| Server terminology  | Server          | Workspace          |
+| Channel identifiers | Snowflake IDs   | Channel name or ID |
+| Message identifiers | Snowflake IDs   | Timestamps (ts)    |
+| Threads             | Thread ID field | Thread timestamp   |
+| Mentions            | `<@user_id>`    | `<@USER_ID>`       |
 
 **Important**: Discord uses Snowflake IDs (large numbers like `1234567890123456789`) for all identifiers. You cannot use channel names directly - use `channel list` to find IDs first.
 
@@ -370,6 +371,7 @@ See `references/common-patterns.md` for typical AI agent workflows.
 ## Templates
 
 See `templates/` directory for runnable examples:
+
 - `post-message.sh` - Send messages with error handling
 - `monitor-channel.sh` - Monitor channel for new messages
 - `server-summary.sh` - Generate server summary
@@ -385,6 +387,7 @@ All commands return consistent error format:
 ```
 
 Common errors:
+
 - `Not authenticated`: No valid token (auto-extraction failed — see Troubleshooting)
 - `No current server set`: Run `server switch <id>` first
 - `Message not found`: Invalid message ID

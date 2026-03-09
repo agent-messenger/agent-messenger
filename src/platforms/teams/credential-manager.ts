@@ -2,6 +2,7 @@ import { existsSync } from 'node:fs'
 import { mkdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
+
 import type { TeamsAccount, TeamsAccountType, TeamsConfig, TeamsConfigLegacy } from './types'
 
 export class TeamsCredentialManager {

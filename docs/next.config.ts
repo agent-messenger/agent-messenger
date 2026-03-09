@@ -1,10 +1,10 @@
-import { createMDX } from 'fumadocs-mdx/next';
-import type { NextConfig } from "next";
+import { createMDX } from 'fumadocs-mdx/next'
+import type { NextConfig } from 'next'
 
 const nextConfig: NextConfig = {
   /* config options here */
-};
+}
 
-const withMDX = createMDX();
+const withMDX = createMDX()
 
-export default withMDX(nextConfig);
+export default withMDX(nextConfig)

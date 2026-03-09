@@ -1,6 +1,8 @@
 import { Command } from 'commander'
+
 import { handleError } from '@/shared/utils/error-handler'
 import { formatOutput } from '@/shared/utils/output'
+
 import { CredentialManager } from '../credential-manager'
 
 async function listAction(options: { pretty?: boolean }): Promise<void> {

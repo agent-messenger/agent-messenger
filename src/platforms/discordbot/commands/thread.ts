@@ -1,6 +1,8 @@
 import { Command } from 'commander'
+
 import { handleError } from '@/shared/utils/error-handler'
 import { formatOutput } from '@/shared/utils/output'
+
 import type { BotOption } from './shared'
 import { getClient, getCurrentServer } from './shared'
 

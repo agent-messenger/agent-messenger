@@ -267,6 +267,7 @@ agent-teams snapshot --limit 10
 ```
 
 Returns JSON with:
+
 - Team metadata (id, name)
 - Channels (id, name, type, description)
 - Recent messages (id, content, author, timestamp)
@@ -297,13 +298,13 @@ agent-teams channel list --pretty
 
 ## Key Differences from Discord/Slack
 
-| Feature | Teams | Discord | Slack |
-|---------|-------|---------|-------|
-| Server terminology | Team | Guild | Workspace |
-| Channel identifiers | UUID format (19:xxx@thread.tacv2) | Snowflake IDs | Channel name or ID |
-| Token storage | Cookies SQLite | LevelDB | LevelDB |
-| Token expiry | **60-90 minutes** | Rarely expires | Rarely expires |
-| Mentions | `<at id="user-id">Name</at>` | `<@user_id>` | `<@USER_ID>` |
+| Feature             | Teams                             | Discord        | Slack              |
+| ------------------- | --------------------------------- | -------------- | ------------------ |
+| Server terminology  | Team                              | Guild          | Workspace          |
+| Channel identifiers | UUID format (19:xxx@thread.tacv2) | Snowflake IDs  | Channel name or ID |
+| Token storage       | Cookies SQLite                    | LevelDB        | LevelDB            |
+| Token expiry        | **60-90 minutes**                 | Rarely expires | Rarely expires     |
+| Mentions            | `<at id="user-id">Name</at>`      | `<@user_id>`   | `<@USER_ID>`       |
 
 **Important**: Teams uses UUID-style channel IDs (like `19:abc123@thread.tacv2`). You cannot use channel names directly - use `channel list` to find IDs first.
 
@@ -314,6 +315,7 @@ See `references/common-patterns.md` for typical AI agent workflows.
 ## Templates
 
 See `templates/` directory for runnable examples:
+
 - `post-message.sh` - Send messages with error handling
 - `monitor-channel.sh` - Monitor channel for new messages (with token refresh)
 - `team-summary.sh` - Generate team summary
@@ -329,6 +331,7 @@ All commands return consistent error format:
 ```
 
 Common errors:
+
 - `Not authenticated`: No valid token (auto-extraction failed — see Troubleshooting)
 - `Token expired`: Token has expired and auto-refresh failed — see Troubleshooting
 - `No current team set`: Run `team switch <id>` first

@@ -4,7 +4,9 @@ import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync,
 import { createRequire } from 'node:module'
 import { homedir, tmpdir } from 'node:os'
 import { join } from 'node:path'
+
 import { ClassicLevel } from 'classic-level'
+
 import { DerivedKeyCache } from '@/shared/utils/derived-key-cache'
 
 const require = createRequire(import.meta.url)
@@ -213,7 +215,10 @@ export class TokenExtractor {
   private async extractTokensFromLevelDB(): Promise<TokenInfo[]> {
     const tieredDirs: { dir: string; tier: TokenDirTier }[] = [
       { dir: join(this.slackDir, 'storage'), tier: 'storage' },
-      { dir: join(this.slackDir, 'Local Storage', 'leveldb'), tier: 'local-storage' },
+      {
+        dir: join(this.slackDir, 'Local Storage', 'leveldb'),
+        tier: 'local-storage',
+      },
       { dir: join(this.slackDir, 'IndexedDB'), tier: 'indexeddb' },
     ]
 
@@ -603,7 +608,7 @@ export class TokenExtractor {
 
   private parseTokenValue(_key: string, value: string): RawTokenInfo[] {
     // LevelDB values may have leading control characters (e.g. 0x01).
-    // Built dynamically to satisfy biome's noControlCharactersInRegex.
+    // Built dynamically to avoid control characters in regex literal.
     const controlChars = new RegExp(
       `[${String.fromCharCode(0)}-${String.fromCharCode(8)}${String.fromCharCode(11)}${String.fromCharCode(12)}${String.fromCharCode(14)}-${String.fromCharCode(31)}]`,
       'g',
@@ -695,7 +700,10 @@ export class TokenExtractor {
            ORDER BY last_access_utc DESC
            LIMIT 1`
 
-      type CookieRow = { value?: string; encrypted_value?: Uint8Array | Buffer } | null
+      type CookieRow = {
+        value?: string
+        encrypted_value?: Uint8Array | Buffer
+      } | null
 
       let row: CookieRow
       if (typeof globalThis.Bun !== 'undefined') {

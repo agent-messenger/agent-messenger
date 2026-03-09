@@ -1,5 +1,7 @@
 import { describe, expect, mock, test } from 'bun:test'
+
 import { Command } from 'commander'
+
 import { reactionCommand } from '@/platforms/slack/commands/reaction'
 
 describe('reaction command', () => {

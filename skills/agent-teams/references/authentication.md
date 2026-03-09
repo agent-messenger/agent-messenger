@@ -24,6 +24,7 @@ agent-teams auth status
 ```
 
 Output:
+
 ```json
 {
   "authenticated": true,
@@ -51,6 +52,7 @@ agent-teams auth extract --debug
 ```
 
 This command:
+
 1. Detects your operating system (macOS, Linux, Windows)
 2. Locates the Teams desktop app data directory
 3. Reads the **Cookies SQLite database** containing session data
@@ -62,21 +64,25 @@ This command:
 ### Platform-Specific Paths
 
 **macOS:**
+
 ```
 ~/Library/Application Support/Microsoft/Teams/
 ```
 
 **Linux:**
+
 ```
 ~/.config/Microsoft/Microsoft Teams/
 ```
 
 **Windows:**
+
 ```
 %APPDATA%\Microsoft\Teams\
 ```
 
 The tool searches within:
+
 - `Cookies` - SQLite database containing `skypetoken_asm`
 - `Network/Cookies` - Alternative location on some versions
 
@@ -97,6 +103,7 @@ agent-teams team list
 ```
 
 Output:
+
 ```json
 [
   {
@@ -135,6 +142,7 @@ agent-teams team current
 ### Location
 
 Credentials are stored in:
+
 ```
 ~/.config/agent-messenger/teams-credentials.json
 ```
@@ -175,6 +183,7 @@ agent-teams auth status
 ```
 
 Output when authenticated:
+
 ```json
 {
   "authenticated": true,
@@ -187,6 +196,7 @@ Output when authenticated:
 ```
 
 Output when token expired:
+
 ```json
 {
   "authenticated": false,
@@ -195,6 +205,7 @@ Output when token expired:
 ```
 
 Output when not authenticated:
+
 ```json
 {
   "error": "Not authenticated. Run \"auth extract\" first."
@@ -206,6 +217,7 @@ Output when not authenticated:
 ### When Tokens Expire
 
 Teams tokens are invalidated when:
+
 - **60-90 minutes have passed** (most common!)
 - You sign out of the desktop app
 - Your password is changed
@@ -215,6 +227,7 @@ Teams tokens are invalidated when:
 ### Re-authentication Workflow
 
 **Proactive (Recommended):**
+
 ```bash
 # Check token age before operations
 STATUS=$(agent-teams auth status)
@@ -230,13 +243,14 @@ agent-teams message send "$CHANNEL_ID" "Hello!"
 ```
 
 **Reactive (On Error):**
+
 ```bash
 RESULT=$(agent-teams message send "$CHANNEL_ID" "Hello!")
 
 if echo "$RESULT" | jq -e '.error' | grep -q "expired\|401"; then
   echo "Token expired, re-authenticating..."
   agent-teams auth extract
-  
+
   # Retry the operation
   agent-teams message send "$CHANNEL_ID" "Hello!"
 fi
@@ -253,6 +267,7 @@ agent-teams auth extract --debug
 ```
 
 This shows:
+
 - Which Teams directory was found
 - Cookies database location
 - Token extraction progress
@@ -264,6 +279,7 @@ This shows:
 **Cause**: Teams desktop app not installed or in non-standard location
 
 **Solution**:
+
 1. Install Microsoft Teams desktop app
 2. Log in to your account
 3. Run `agent-teams auth extract` again
@@ -273,6 +289,7 @@ This shows:
 **Cause**: Not logged into Teams or cookie storage corrupted
 
 **Solution**:
+
 1. Open Teams desktop app
 2. Make sure you're logged in (can see your teams)
 3. Run `agent-teams auth extract --debug` to see details
@@ -282,6 +299,7 @@ This shows:
 **Cause**: Insufficient file system permissions
 
 **Solution** (macOS):
+
 1. Grant Terminal/iTerm full disk access in System Preferences
 2. Security & Privacy -> Privacy -> Full Disk Access
 3. Add your terminal application
@@ -291,6 +309,7 @@ This shows:
 **Cause**: Token expired (most likely) or invalidated
 
 **Solution**:
+
 ```bash
 # Re-extract fresh credentials
 agent-teams auth extract
@@ -304,6 +323,7 @@ agent-teams auth status
 **Cause**: Token is older than 60-90 minutes
 
 **Solution**:
+
 ```bash
 # Simply re-extract - this is normal for Teams!
 agent-teams auth extract
@@ -316,6 +336,7 @@ agent-teams auth extract
 ### What agent-teams Can Access
 
 With extracted credentials, agent-teams has the same permissions as you in Teams:
+
 - Read all channels you have access to
 - Send messages as you
 - Upload/download files

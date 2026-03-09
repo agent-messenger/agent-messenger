@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, mock } from 'bun:test'
+
 import { DiscordBotCredentialManager } from '../credential-manager'
 import { addAction, removeAction } from './reaction'
 import type { BotOption } from './shared'

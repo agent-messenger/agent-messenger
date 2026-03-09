@@ -1,6 +1,6 @@
-import { docs, meta } from 'fumadocs-mdx:collections/server'
 import { loader } from 'fumadocs-core/source'
 import { toFumadocsSource } from 'fumadocs-mdx/runtime/server'
+import { docs, meta } from 'fumadocs-mdx:collections/server'
 import { icons } from 'lucide-react'
 import { createElement } from 'react'
 

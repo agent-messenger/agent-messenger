@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
 import { unlinkSync } from 'node:fs'
+
 import { TeamsClient } from './client'
 import { TeamsError } from './types'
 

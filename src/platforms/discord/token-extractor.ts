@@ -3,6 +3,7 @@ import { createDecipheriv, pbkdf2Sync } from 'node:crypto'
 import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
+
 import { DerivedKeyCache } from '@/shared/utils/derived-key-cache'
 
 export interface ExtractedDiscordToken {

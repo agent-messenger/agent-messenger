@@ -33,7 +33,7 @@ if echo "$RESULT" | jq -e '.id' > /dev/null 2>&1; then
   echo "Message sent!"
 else
   ERROR=$(echo "$RESULT" | jq -r '.error')
-  
+
   # Handle token expiry
   if echo "$ERROR" | grep -qi "expired\|401"; then
     echo "Token expired, refreshing..."
@@ -65,16 +65,16 @@ last_token_check=$(date +%s)
 refresh_token_if_needed() {
   local now=$(date +%s)
   local elapsed=$((now - last_token_check))
-  
+
   if [ $elapsed -gt $TOKEN_CHECK_INTERVAL ]; then
     STATUS=$(agent-teams auth status)
     EXPIRES_SOON=$(echo "$STATUS" | jq -r '.token_expires_soon // true')
-    
+
     if [ "$EXPIRES_SOON" = "true" ]; then
       echo "Token expiring soon, refreshing..."
       agent-teams auth extract
     fi
-    
+
     last_token_check=$now
   fi
 }
@@ -82,32 +82,32 @@ refresh_token_if_needed() {
 while true; do
   # Proactively refresh token
   refresh_token_if_needed
-  
+
   # Get latest message
   MESSAGES=$(agent-teams message list "$TEAM_ID" "$CHANNEL_ID" --limit 1)
-  
+
   # Handle token expiry error
   if echo "$MESSAGES" | jq -e '.error' | grep -qi "expired\|401" 2>/dev/null; then
     echo "Token expired, refreshing..."
     agent-teams auth extract
     continue
   fi
-  
+
   LATEST_ID=$(echo "$MESSAGES" | jq -r '.[0].id // ""')
-  
+
   # Check if new message
   if [ "$LATEST_ID" != "$LAST_ID" ] && [ -n "$LAST_ID" ]; then
     CONTENT=$(echo "$MESSAGES" | jq -r '.[0].content')
     AUTHOR=$(echo "$MESSAGES" | jq -r '.[0].author')
-    
+
     echo "New message from $AUTHOR: $CONTENT"
-    
+
     # Process message here
     if echo "$CONTENT" | grep -q "bot"; then
       agent-teams message send "$TEAM_ID" "$CHANNEL_ID" "You called?"
     fi
   fi
-  
+
   LAST_ID="$LATEST_ID"
   sleep 5
 done
@@ -161,15 +161,15 @@ TEAM_ID="team-uuid-here"
 
 get_channel_id() {
   local channel_name=$1
-  
+
   CHANNELS=$(agent-teams channel list "$TEAM_ID")
   CHANNEL_ID=$(echo "$CHANNELS" | jq -r --arg name "$channel_name" '.[] | select(.name==$name) | .id')
-  
+
   if [ -z "$CHANNEL_ID" ]; then
     echo "Channel #$channel_name not found" >&2
     return 1
   fi
-  
+
   echo "$CHANNEL_ID"
 }
 
@@ -201,21 +201,21 @@ CHANNELS=$(agent-teams channel list "$TEAM_ID")
 
 for name in "${CHANNEL_NAMES[@]}"; do
   CHANNEL_ID=$(echo "$CHANNELS" | jq -r --arg n "$name" '.[] | select(.name==$n) | .id')
-  
+
   if [ -z "$CHANNEL_ID" ]; then
     echo "Channel #$name not found, skipping"
     continue
   fi
-  
+
   echo "Posting to #$name..."
   RESULT=$(agent-teams message send "$TEAM_ID" "$CHANNEL_ID" "$MESSAGE")
-  
+
   if echo "$RESULT" | jq -e '.id' > /dev/null 2>&1; then
     echo "  Posted to #$name"
   else
     echo "  Failed to post to #$name"
   fi
-  
+
   # Rate limit: Don't spam Teams API
   sleep 1
 done
@@ -240,7 +240,7 @@ UPLOAD_RESULT=$(agent-teams file upload "$TEAM_ID" "$CHANNEL_ID" "$REPORT_FILE")
 if echo "$UPLOAD_RESULT" | jq -e '.id' > /dev/null 2>&1; then
   FILE_ID=$(echo "$UPLOAD_RESULT" | jq -r '.id')
   echo "File uploaded: $FILE_ID"
-  
+
   # Send context message
   agent-teams message send "$TEAM_ID" "$CHANNEL_ID" "Daily report is ready! Key highlights:
 - 95% test coverage
@@ -329,20 +329,20 @@ send_with_retry() {
   local message=$3
   local max_attempts=3
   local attempt=1
-  
+
   while [ $attempt -le $max_attempts ]; do
     echo "Attempt $attempt/$max_attempts..."
-    
+
     RESULT=$(agent-teams message send "$team_id" "$channel_id" "$message")
-    
+
     if echo "$RESULT" | jq -e '.id' > /dev/null 2>&1; then
       echo "Message sent successfully!"
       return 0
     fi
-    
+
     ERROR=$(echo "$RESULT" | jq -r '.error // "Unknown error"')
     echo "Failed: $ERROR"
-    
+
     # Handle token expiry - refresh and retry
     if echo "$ERROR" | grep -qi "expired\|401\|unauthorized"; then
       echo "Token expired, refreshing..."
@@ -350,20 +350,20 @@ send_with_retry() {
       # Don't count this as an attempt
       continue
     fi
-    
+
     # Don't retry on certain errors
     if echo "$ERROR" | grep -q "Channel not found"; then
       echo "Channel not found - not retrying"
       return 1
     fi
-    
+
     if [ $attempt -lt $max_attempts ]; then
       sleep $((attempt * 2))  # Exponential backoff
     fi
-    
+
     attempt=$((attempt + 1))
   done
-  
+
   echo "Failed after $max_attempts attempts"
   return 1
 }
@@ -412,19 +412,19 @@ TEAM_ID="team-uuid-here"
 # Wrapper function that handles token refresh
 teams_cmd() {
   local result
-  
+
   # First attempt
   result=$("$@" 2>&1)
-  
+
   # Check for token expiry
   if echo "$result" | grep -qi "expired\|401\|unauthorized"; then
     echo "Token expired, refreshing..." >&2
     agent-teams auth extract >&2
-    
+
     # Retry
     result=$("$@" 2>&1)
   fi
-  
+
   echo "$result"
 }
 
@@ -461,7 +461,7 @@ while true; do
   if [ "$(echo "$STATUS" | jq -r '.token_expires_soon')" = "true" ]; then
     agent-teams auth extract
   fi
-  
+
   # Do work...
   sleep 60
 done
@@ -551,7 +551,7 @@ while true; do
   if should_refresh_token; then
     agent-teams auth extract
   fi
-  
+
   agent-teams message list "$TEAM_ID" "$CHANNEL_ID" --limit 1
   sleep 10
 done

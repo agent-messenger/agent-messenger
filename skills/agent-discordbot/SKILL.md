@@ -271,6 +271,7 @@ agent-discordbot snapshot --limit 10
 ```
 
 Returns JSON with:
+
 - Server metadata (id, name)
 - Channels (id, name, type, topic)
 - Recent messages (id, content, author, timestamp)
@@ -301,10 +302,10 @@ agent-discordbot channel list --pretty
 
 ## Global Options
 
-| Option | Description |
-|--------|-------------|
-| `--pretty` | Human-readable output instead of JSON |
-| `--bot <id>` | Use a specific bot for this command |
+| Option          | Description                            |
+| --------------- | -------------------------------------- |
+| `--pretty`      | Human-readable output instead of JSON  |
+| `--bot <id>`    | Use a specific bot for this command    |
 | `--server <id>` | Use a specific server for this command |
 
 ## Common Patterns
@@ -314,6 +315,7 @@ See `references/common-patterns.md` for typical AI agent workflows.
 ## Templates
 
 See `templates/` directory for runnable examples:
+
 - `post-message.sh` - Send messages with error handling
 - `monitor-channel.sh` - Monitor channel for new messages
 - `server-summary.sh` - Generate server summary
@@ -336,18 +338,18 @@ Credentials stored in `~/.config/agent-messenger/discordbot-credentials.json` (0
 
 ## Key Differences from agent-discord
 
-| Feature | agent-discord | agent-discordbot |
-|---------|--------------|------------------|
-| Token type | User token | Bot token |
-| Token source | Auto-extracted from desktop app | Manual from Developer Portal |
-| Message search | Yes | No |
-| DMs | Yes | No |
-| Mentions | Yes | No |
-| Friends/Notes | Yes | No |
-| Edit/delete messages | Any message | Bot's own messages only |
-| File upload | Yes | Yes |
-| Snapshot | Yes | Yes |
-| CI/CD friendly | Requires desktop app | Yes (just set token) |
+| Feature              | agent-discord                   | agent-discordbot             |
+| -------------------- | ------------------------------- | ---------------------------- |
+| Token type           | User token                      | Bot token                    |
+| Token source         | Auto-extracted from desktop app | Manual from Developer Portal |
+| Message search       | Yes                             | No                           |
+| DMs                  | Yes                             | No                           |
+| Mentions             | Yes                             | No                           |
+| Friends/Notes        | Yes                             | No                           |
+| Edit/delete messages | Any message                     | Bot's own messages only      |
+| File upload          | Yes                             | Yes                          |
+| Snapshot             | Yes                             | Yes                          |
+| CI/CD friendly       | Requires desktop app            | Yes (just set token)         |
 
 ## Limitations
 

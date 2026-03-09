@@ -33,14 +33,14 @@ No app creation. No admin approval. No waiting.
 
 ## Key Features
 
-| Feature | Description |
-|---------|-------------|
-| **Auto-extraction** | Pulls tokens from desktop apps automatically |
-| **Multi-platform** | Slack, Discord, and Microsoft Teams |
-| **Multi-workspace** | Switch between workspaces/servers easily |
-| **JSON output** | Machine-readable by default, `--pretty` for humans |
-| **Comprehensive** | Messages, channels, users, reactions, files |
-| **Bot support** | [`agent-slackbot`](/docs/integrations/slackbot) and [`agent-discordbot`](/docs/integrations/discordbot) for server-side and CI/CD |
+| Feature             | Description                                                                                                                       |
+| ------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| **Auto-extraction** | Pulls tokens from desktop apps automatically                                                                                      |
+| **Multi-platform**  | Slack, Discord, and Microsoft Teams                                                                                               |
+| **Multi-workspace** | Switch between workspaces/servers easily                                                                                          |
+| **JSON output**     | Machine-readable by default, `--pretty` for humans                                                                                |
+| **Comprehensive**   | Messages, channels, users, reactions, files                                                                                       |
+| **Bot support**     | [`agent-slackbot`](/docs/integrations/slackbot) and [`agent-discordbot`](/docs/integrations/discordbot) for server-side and CI/CD |
 
 ## Why Not MCP?
 
@@ -50,12 +50,12 @@ MCP servers expose all their tools at once. When you connect an MCP server with 
 
 **Agent Skills + CLI is better:**
 
-| MCP Approach | Agent Skills Approach |
-|--------------|----------------------|
-| All tools loaded at once | Load only what you need |
-| Bloated context window | Minimal token usage |
+| MCP Approach              | Agent Skills Approach   |
+| ------------------------- | ----------------------- |
+| All tools loaded at once  | Load only what you need |
+| Bloated context window    | Minimal token usage     |
 | Agent confused by options | Focused, relevant tools |
-| Static tool definitions | Dynamic skill loading |
+| Static tool definitions   | Dynamic skill loading   |
 
 With Agent Messenger, your AI agent loads the skill it needs, uses the CLI, and moves on. No wasted tokens.
 
@@ -76,6 +76,7 @@ Your desktop apps already have valid session tokens. Agent Messenger extracts th
 ### When OAuth Makes Sense
 
 OAuth is better when you need:
+
 - **Server-side bots** - Running 24/7 without your desktop app
 - **Multi-user applications** - Many users authenticating separately
 - **Granular permissions** - Fine-tuned access control

@@ -9,6 +9,7 @@ Agent Skills are instruction files that teach AI coding agents how to use tools 
 ## What Are Agent Skills?
 
 When you give an AI agent access to a CLI tool, it needs to know:
+
 - What commands are available
 - How to format arguments
 - What output to expect
@@ -51,9 +52,7 @@ Add to your `opencode.jsonc`:
 
 ```jsonc
 {
-  "plugins": [
-    "agent-messenger"
-  ]
+  "plugins": ["agent-messenger"],
 }
 ```
 
@@ -74,6 +73,7 @@ With Agent Messenger skills installed, you can ask your AI agent:
 > "Send a message to #general saying the build passed"
 
 The agent will:
+
 1. Check if credentials are configured
 2. Run `agent-slack auth extract` if needed
 3. Execute `agent-slack message send general "The build passed"`
@@ -83,13 +83,13 @@ The agent will:
 
 Each platform skill includes:
 
-| Section | Description |
-|---------|-------------|
-| **Authentication** | How to extract and manage tokens |
-| **Commands** | Full command reference with examples |
-| **Output Format** | Expected JSON structure for parsing |
-| **Error Handling** | Common errors and how to recover |
-| **Best Practices** | Tips for reliable agent workflows |
+| Section            | Description                          |
+| ------------------ | ------------------------------------ |
+| **Authentication** | How to extract and manage tokens     |
+| **Commands**       | Full command reference with examples |
+| **Output Format**  | Expected JSON structure for parsing  |
+| **Error Handling** | Common errors and how to recover     |
+| **Best Practices** | Tips for reliable agent workflows    |
 
 ## Learn More
 

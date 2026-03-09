@@ -1,4 +1,5 @@
 import { formatOutput } from '@/shared/utils/output'
+
 import { DiscordBotClient } from '../client'
 import { DiscordBotCredentialManager } from '../credential-manager'
 

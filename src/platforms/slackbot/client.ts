@@ -1,4 +1,5 @@
 import { WebClient } from '@slack/web-api'
+
 import { SlackBotError, type SlackChannel, type SlackMessage, type SlackUser } from './types'
 
 const MAX_RETRIES = 3

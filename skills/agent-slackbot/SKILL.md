@@ -256,6 +256,7 @@ See `references/common-patterns.md` for typical AI agent workflows.
 ## Templates
 
 See `templates/` directory for runnable examples:
+
 - `post-message.sh` - Send messages with error handling
 - `monitor-channel.sh` - Monitor channel for new messages
 - `workspace-summary.sh` - Generate workspace summary
@@ -271,6 +272,7 @@ All commands return consistent error format:
 ```
 
 Common errors:
+
 - `missing_token`: No credentials configured
 - `invalid_token_type`: Token is not a bot token (must start with xoxb-)
 - `not_in_channel`: Bot needs to join the channel first
@@ -282,16 +284,16 @@ Credentials stored in `~/.config/agent-messenger/slackbot-credentials.json` (060
 
 ## Key Differences from agent-slack
 
-| Feature | agent-slack | agent-slackbot |
-|---------|------------|----------------|
-| Token type | User token (xoxc-) | Bot token (xoxb-) |
-| Token source | Auto-extracted from desktop app | Manual from Slack App config |
-| Message search | Yes | No (requires user token) |
-| File operations | Yes | No |
-| Snapshot | Yes | No |
-| Edit/delete messages | Any message | Bot's own messages only |
-| Workspace management | Multi-workspace | Multi-bot, multi-workspace |
-| CI/CD friendly | Requires desktop app | Yes (just set token) |
+| Feature              | agent-slack                     | agent-slackbot               |
+| -------------------- | ------------------------------- | ---------------------------- |
+| Token type           | User token (xoxc-)              | Bot token (xoxb-)            |
+| Token source         | Auto-extracted from desktop app | Manual from Slack App config |
+| Message search       | Yes                             | No (requires user token)     |
+| File operations      | Yes                             | No                           |
+| Snapshot             | Yes                             | No                           |
+| Edit/delete messages | Any message                     | Bot's own messages only      |
+| Workspace management | Multi-workspace                 | Multi-bot, multi-workspace   |
+| CI/CD friendly       | Requires desktop app            | Yes (just set token)         |
 
 ## Limitations
 

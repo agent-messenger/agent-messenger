@@ -46,21 +46,21 @@ while true; do
   # Get latest message
   MESSAGES=$(agent-discord message list "$CHANNEL_ID" --limit 1)
   LATEST_ID=$(echo "$MESSAGES" | jq -r '.[0].id // ""')
-  
+
   # Check if new message
   if [ "$LATEST_ID" != "$LAST_ID" ] && [ -n "$LAST_ID" ]; then
     CONTENT=$(echo "$MESSAGES" | jq -r '.[0].content')
     AUTHOR=$(echo "$MESSAGES" | jq -r '.[0].author')
-    
+
     echo "New message from $AUTHOR: $CONTENT"
-    
+
     # Process message here
     # Example: Respond to mentions
     if echo "$CONTENT" | grep -q "bot"; then
       agent-discord message send "$CHANNEL_ID" "You called?"
     fi
   fi
-  
+
   LAST_ID="$LATEST_ID"
   sleep 5
 done
@@ -109,15 +109,15 @@ echo "$SNAPSHOT" | jq -r '.recent_messages[] | "  [\(.channel_name)] \(.author):
 
 get_channel_id() {
   local channel_name=$1
-  
+
   CHANNELS=$(agent-discord channel list)
   CHANNEL_ID=$(echo "$CHANNELS" | jq -r --arg name "$channel_name" '.[] | select(.name==$name) | .id')
-  
+
   if [ -z "$CHANNEL_ID" ]; then
     echo "Channel #$channel_name not found" >&2
     return 1
   fi
-  
+
   echo "$CHANNEL_ID"
 }
 
@@ -145,21 +145,21 @@ CHANNELS=$(agent-discord channel list)
 
 for name in "${CHANNEL_NAMES[@]}"; do
   CHANNEL_ID=$(echo "$CHANNELS" | jq -r --arg n "$name" '.[] | select(.name==$n) | .id')
-  
+
   if [ -z "$CHANNEL_ID" ]; then
     echo "Channel #$name not found, skipping"
     continue
   fi
-  
+
   echo "Posting to #$name..."
   RESULT=$(agent-discord message send "$CHANNEL_ID" "$MESSAGE")
-  
+
   if echo "$RESULT" | jq -e '.id' > /dev/null 2>&1; then
     echo "  Posted to #$name"
   else
     echo "  Failed to post to #$name"
   fi
-  
+
   # Rate limit: Don't spam Discord API
   sleep 1
 done
@@ -183,7 +183,7 @@ UPLOAD_RESULT=$(agent-discord file upload "$CHANNEL_ID" "$REPORT_FILE")
 if echo "$UPLOAD_RESULT" | jq -e '.id' > /dev/null 2>&1; then
   FILE_ID=$(echo "$UPLOAD_RESULT" | jq -r '.id')
   echo "File uploaded: $FILE_ID"
-  
+
   # Send context message
   agent-discord message send "$CHANNEL_ID" "Daily report is ready! Key highlights:
 - 95% test coverage
@@ -265,33 +265,33 @@ send_with_retry() {
   local message=$2
   local max_attempts=3
   local attempt=1
-  
+
   while [ $attempt -le $max_attempts ]; do
     echo "Attempt $attempt/$max_attempts..."
-    
+
     RESULT=$(agent-discord message send "$channel_id" "$message")
-    
+
     if echo "$RESULT" | jq -e '.id' > /dev/null 2>&1; then
       echo "Message sent successfully!"
       return 0
     fi
-    
+
     ERROR=$(echo "$RESULT" | jq -r '.error // "Unknown error"')
     echo "Failed: $ERROR"
-    
+
     # Don't retry on certain errors
     if echo "$ERROR" | grep -q "Unknown Channel"; then
       echo "Channel not found - not retrying"
       return 1
     fi
-    
+
     if [ $attempt -lt $max_attempts ]; then
       sleep $((attempt * 2))  # Exponential backoff
     fi
-    
+
     attempt=$((attempt + 1))
   done
-  
+
   echo "Failed after $max_attempts attempts"
   return 1
 }

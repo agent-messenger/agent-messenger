@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, spyOn, test } from 'bun:test'
+
 import { TeamsClient } from './client'
 import { TeamsCredentialManager } from './credential-manager'
 import { ensureTeamsAuth } from './ensure-auth'

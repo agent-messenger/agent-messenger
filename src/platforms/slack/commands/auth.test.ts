@@ -2,6 +2,7 @@ import { afterAll, beforeEach, describe, expect, mock, test } from 'bun:test'
 import { mkdirSync, rmSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
+
 import { formatCredentialDebug, getExtractionErrorMessage } from '@/platforms/slack/commands/auth'
 import { CredentialManager } from '@/platforms/slack/credential-manager'
 import { type ExtractedWorkspace, TokenExtractor } from '@/platforms/slack/token-extractor'

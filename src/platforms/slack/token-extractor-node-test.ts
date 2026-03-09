@@ -1,7 +1,9 @@
 import { mkdirSync, mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+
 import Database from 'better-sqlite3'
+
 import { TokenExtractor } from './token-extractor'
 
 const tempDir = mkdtempSync(join(tmpdir(), 'token-extractor-test-'))

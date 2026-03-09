@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'bun:test'
+
 import { parallelMap } from './concurrency'
 
 describe('parallelMap', () => {

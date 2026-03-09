@@ -20,14 +20,14 @@ Before running E2E tests, you need:
 
 ## Test Infrastructure
 
-| File | Description |
-|------|-------------|
-| `config.ts` | Hardcoded test workspace/server IDs and validation |
-| `helpers.ts` | CLI runner, JSON parser, message cleanup utilities |
-| `slack.e2e.test.ts` | Slack command tests |
-| `slackbot.e2e.test.ts` | SlackBot command tests |
-| `discord.e2e.test.ts` | Discord command tests |
-| `teams.e2e.test.ts` | Teams command tests |
+| File                   | Description                                        |
+| ---------------------- | -------------------------------------------------- |
+| `config.ts`            | Hardcoded test workspace/server IDs and validation |
+| `helpers.ts`           | CLI runner, JSON parser, message cleanup utilities |
+| `slack.e2e.test.ts`    | Slack command tests                                |
+| `slackbot.e2e.test.ts` | SlackBot command tests                             |
+| `discord.e2e.test.ts`  | Discord command tests                              |
+| `teams.e2e.test.ts`    | Teams command tests                                |
 
 ## Running E2E Tests Locally
 
@@ -39,7 +39,7 @@ First, make sure the desktop apps (Slack/Discord) are running and logged into yo
 # Extract Slack credentials
 agent-slack auth extract
 
-# Extract Discord credentials  
+# Extract Discord credentials
 agent-discord auth extract
 
 # Extract Teams credentials
@@ -97,28 +97,28 @@ Set these secrets in your GitHub repository settings:
 
 #### Slack Secrets
 
-| Secret | Description | How to Get |
-|--------|-------------|------------|
-| `E2E_SLACK_TOKEN` | Slack auth token (xoxc-...) | `agent-slack auth extract` → check output |
-| `E2E_SLACK_COOKIE` | Slack cookie (xoxd-...) | Same as above |
-| `E2E_SLACK_WORKSPACE_ID` | Test workspace ID | `agent-slack workspace current` |
-| `E2E_SLACK_WORKSPACE_NAME` | Test workspace name | Same as above |
+| Secret                     | Description                 | How to Get                                |
+| -------------------------- | --------------------------- | ----------------------------------------- |
+| `E2E_SLACK_TOKEN`          | Slack auth token (xoxc-...) | `agent-slack auth extract` → check output |
+| `E2E_SLACK_COOKIE`         | Slack cookie (xoxd-...)     | Same as above                             |
+| `E2E_SLACK_WORKSPACE_ID`   | Test workspace ID           | `agent-slack workspace current`           |
+| `E2E_SLACK_WORKSPACE_NAME` | Test workspace name         | Same as above                             |
 
 #### Discord Secrets
 
-| Secret | Description | How to Get |
-|--------|-------------|------------|
-| `E2E_DISCORD_TOKEN` | Discord auth token | `agent-discord auth extract` → check output |
-| `E2E_DISCORD_SERVER_ID` | Test server ID | `agent-discord server current` |
+| Secret                  | Description        | How to Get                                  |
+| ----------------------- | ------------------ | ------------------------------------------- |
+| `E2E_DISCORD_TOKEN`     | Discord auth token | `agent-discord auth extract` → check output |
+| `E2E_DISCORD_SERVER_ID` | Test server ID     | `agent-discord server current`              |
 
 #### Teams Secrets
 
-| Secret | Description | How to Get |
-|--------|-------------|------------|
-| `E2E_TEAMS_TOKEN` | Teams auth token (skypetoken_asm) | `agent-teams auth extract` → check output |
-| `E2E_TEAMS_TEAM_ID` | Test team ID | `agent-teams team list` |
-| `E2E_TEAMS_CHANNEL_ID` | Test channel ID | `agent-teams channel list` |
-| `E2E_TEAMS_TEAM_NAME` | Test team name (optional) | `agent-teams team current` |
+| Secret                 | Description                       | How to Get                                |
+| ---------------------- | --------------------------------- | ----------------------------------------- |
+| `E2E_TEAMS_TOKEN`      | Teams auth token (skypetoken_asm) | `agent-teams auth extract` → check output |
+| `E2E_TEAMS_TEAM_ID`    | Test team ID                      | `agent-teams team list`                   |
+| `E2E_TEAMS_CHANNEL_ID` | Test channel ID                   | `agent-teams channel list`                |
+| `E2E_TEAMS_TEAM_NAME`  | Test team name (optional)         | `agent-teams team current`                |
 
 ### Getting Credentials for CI
 
@@ -155,59 +155,59 @@ When triggering manually, you can select which platform to test:
 
 ### Slack Tests
 
-| Command Group | Tests |
-|---------------|-------|
-| `auth` | status |
-| `workspace` | list, current |
-| `message` | send, list, get, update, delete, thread reply, replies, search |
-| `channel` | list, list --type, info, history |
-| `user` | list, me, info |
-| `reaction` | add, list, remove |
-| `file` | upload, list |
-| `unread` | counts, mark |
-| `activity` | list |
-| `saved` | list |
-| `drafts` | list |
-| `sections` | list |
-| `snapshot` | default, --channels-only, --users-only |
+| Command Group | Tests                                                          |
+| ------------- | -------------------------------------------------------------- |
+| `auth`        | status                                                         |
+| `workspace`   | list, current                                                  |
+| `message`     | send, list, get, update, delete, thread reply, replies, search |
+| `channel`     | list, list --type, info, history                               |
+| `user`        | list, me, info                                                 |
+| `reaction`    | add, list, remove                                              |
+| `file`        | upload, list                                                   |
+| `unread`      | counts, mark                                                   |
+| `activity`    | list                                                           |
+| `saved`       | list                                                           |
+| `drafts`      | list                                                           |
+| `sections`    | list                                                           |
+| `snapshot`    | default, --channels-only, --users-only                         |
 
 ### SlackBot Tests
 
-| Command Group | Tests |
-|---------------|-------|
-| `auth` | status |
-| `message` | send, list, get, update, delete, thread reply, replies |
-| `channel` | list, info |
-| `user` | list, info |
-| `reaction` | add, remove |
+| Command Group | Tests                                                  |
+| ------------- | ------------------------------------------------------ |
+| `auth`        | status                                                 |
+| `message`     | send, list, get, update, delete, thread reply, replies |
+| `channel`     | list, info                                             |
+| `user`        | list, info                                             |
+| `reaction`    | add, remove                                            |
 
 ### Discord Tests
 
-| Command Group | Tests |
-|---------------|-------|
-| `auth` | status |
-| `server` | list, current, info |
-| `message` | send, list, get\*, delete, ack, search |
-| `channel` | list, info, history |
-| `user` | list\*, me, info |
-| `reaction` | add\*, list\*, remove\* |
-| `file` | upload, list, info |
-| `snapshot` | default\*, --channels-only, --users-only\* |
+| Command Group | Tests                                      |
+| ------------- | ------------------------------------------ |
+| `auth`        | status                                     |
+| `server`      | list, current, info                        |
+| `message`     | send, list, get\*, delete, ack, search     |
+| `channel`     | list, info, history                        |
+| `user`        | list\*, me, info                           |
+| `reaction`    | add\*, list\*, remove\*                    |
+| `file`        | upload, list, info                         |
+| `snapshot`    | default\*, --channels-only, --users-only\* |
 
 \* Some Discord tests are skipped because they require Bot Token permissions not available to user tokens.
 
 ### Teams Tests
 
-| Command Group | Tests |
-|---------------|-------|
-| `auth` | status |
-| `team` | list, current, info |
-| `message` | send, list, get, delete |
-| `channel` | list, info, history |
-| `user` | list, me, info |
-| `reaction` | add, list, remove |
-| `file` | upload, list, info |
-| `snapshot` | default, --channels-only, --users-only |
+| Command Group | Tests                                  |
+| ------------- | -------------------------------------- |
+| `auth`        | status                                 |
+| `team`        | list, current, info                    |
+| `message`     | send, list, get, delete                |
+| `channel`     | list, info, history                    |
+| `user`        | list, me, info                         |
+| `reaction`    | add, list, remove                      |
+| `file`        | upload, list, info                     |
+| `snapshot`    | default, --channels-only, --users-only |
 
 > ⚠️ Teams tests require `E2E_TEAMS_TEAM_ID` and `E2E_TEAMS_CHANNEL_ID` environment variables. Teams tokens expire in 60-90 minutes.
 
@@ -229,7 +229,8 @@ Error: Wrong Slack workspace. Expected: Agent Messenger (T0AC55BSF6E), Got: My C
 Error: Slack authentication failed. Please run: agent-messenger slack auth login
 ```
 
-**Solution**: 
+**Solution**:
+
 1. Make sure the desktop app is running
 2. Run `agent-slack auth extract` or `agent-discord auth extract`
 3. For CI, check that secrets are correctly configured
@@ -295,10 +296,10 @@ Example:
 test('my new test', async () => {
   const testId = generateTestId()
   const { id } = await createTestMessage('slack', SLACK_TEST_CHANNEL_ID, `Test ${testId}`)
-  testMessages.push(id)  // Track for cleanup
-  
+  testMessages.push(id) // Track for cleanup
+
   await waitForRateLimit()
-  
+
   // Your test assertions here
   const result = await runCLI('slack', ['some', 'command', id])
   expect(result.exitCode).toBe(0)
