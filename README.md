@@ -80,7 +80,7 @@ SkillPad is a GUI app for Agent Skills. See [skillpad.dev](https://skillpad.dev/
 Skills CLI is a CLI tool for Agent Skills. See [skills.sh](https://skills.sh/) for more details.
 
 ```bash
-npx skills add devxoul/agent-messenger
+npx -y skills add devxoul/agent-messenger
 ```
 
 ### Claude Code Plugin
