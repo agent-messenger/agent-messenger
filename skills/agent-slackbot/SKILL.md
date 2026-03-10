@@ -318,13 +318,17 @@ If the package is installed globally, use `agent-slackbot` directly:
 agent-slackbot message send general "Hello"
 ```
 
-If the package is NOT installed, use `bunx agent-messenger slackbot`:
+If the package is NOT installed, run it directly using a package runner. Ask the user which one to use:
 
 ```bash
+npx -y agent-messenger slackbot message send general "Hello"
 bunx agent-messenger slackbot message send general "Hello"
+pnpm dlx agent-messenger slackbot message send general "Hello"
 ```
 
-**NEVER run `bunx agent-slackbot`** — it will fail or install a wrong package since `agent-slackbot` is not the npm package name.
+If you already know the user's preferred package runner, use it directly instead of asking.
+
+**NEVER run `npx agent-slackbot` or `bunx agent-slackbot`** — it will fail or install a wrong package since `agent-slackbot` is not the npm package name.
 
 For other troubleshooting (token issues, scopes, permissions), see [references/authentication.md](references/authentication.md).
 

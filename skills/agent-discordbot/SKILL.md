@@ -377,13 +377,17 @@ If the package is installed globally, use `agent-discordbot` directly:
 agent-discordbot message send 1234567890123456789 "Hello"
 ```
 
-If the package is NOT installed, use `bunx agent-messenger discordbot`:
+If the package is NOT installed, run it directly using a package runner. Ask the user which one to use:
 
 ```bash
+npx -y agent-messenger discordbot message send 1234567890123456789 "Hello"
 bunx agent-messenger discordbot message send 1234567890123456789 "Hello"
+pnpm dlx agent-messenger discordbot message send 1234567890123456789 "Hello"
 ```
 
-**NEVER run `bunx agent-discordbot`** -- it will fail or install a wrong package since `agent-discordbot` is not the npm package name.
+If you already know the user's preferred package runner, use it directly instead of asking.
+
+**NEVER run `npx agent-discordbot` or `bunx agent-discordbot`** -- it will fail or install a wrong package since `agent-discordbot` is not the npm package name.
 
 For other troubleshooting (permissions, token issues, Message Content Intent), see [references/authentication.md](references/authentication.md).
 
