@@ -419,13 +419,17 @@ If the package is installed globally, use `agent-discord` directly:
 agent-discord server list
 ```
 
-If the package is NOT installed, use `bunx agent-messenger discord`:
+If the package is NOT installed, run it directly using a package runner. Ask the user which one to use:
 
 ```bash
+npx -y agent-messenger discord server list
 bunx agent-messenger discord server list
+pnpm dlx agent-messenger discord server list
 ```
 
-**NEVER run `bunx agent-discord`** — it will fail or install a wrong package since `agent-discord` is not the npm package name.
+If you already know the user's preferred package runner, use it directly instead of asking.
+
+**NEVER run `npx agent-discord` or `bunx agent-discord`** — it will fail or install a wrong package since `agent-discord` is not the npm package name.
 
 For other troubleshooting (auth extraction, token issues, permissions), see [references/authentication.md](references/authentication.md).
 
