@@ -89,10 +89,10 @@ jobs:
 
       - name: Publish to ClawHub
         run: |
-          npx clawhub@latest login --token "$CLAWHUB_TOKEN" --no-browser
+          npx clawdhub@latest login --token "$CLAWHUB_TOKEN" --no-browser
           for skill_dir in skills/*/; do
             slug=$(basename "$skill_dir")
-            npx clawhub@latest publish "$skill_dir" \
+            npx clawdhub@latest publish "$skill_dir" \
               --slug "$slug" \
               --version "${{ inputs.version }}" \
               --tags latest
