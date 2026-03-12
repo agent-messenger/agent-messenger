@@ -57,7 +57,7 @@ const mockGetGroupMessages = mock(() =>
 )
 
 let capturedSendUserChatArgs: unknown[] = []
-let capturedSendGroupArgs: unknown[] = []
+let _capturedSendGroupArgs: unknown[] = []
 
 mock.module('../client', () => ({
   ChannelBotClient: class MockChannelBotClient {
@@ -69,7 +69,7 @@ mock.module('../client', () => ({
       return mockSendUserChatMessage()
     }
     sendGroupMessage = (...args: unknown[]) => {
-      capturedSendGroupArgs = args
+      _capturedSendGroupArgs = args
       return mockSendGroupMessage()
     }
     getUserChatMessages = mockGetUserChatMessages
@@ -93,7 +93,7 @@ describe('message commands', () => {
     tempDir = join(tmpdir(), `channelbot-msg-test-${Date.now()}`)
     await mkdir(tempDir, { recursive: true })
     capturedSendUserChatArgs = []
-    capturedSendGroupArgs = []
+    _capturedSendGroupArgs = []
     mockSendUserChatMessage.mockClear()
     mockSendGroupMessage.mockClear()
     mockGetUserChatMessages.mockClear()
