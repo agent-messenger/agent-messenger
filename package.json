@@ -12,6 +12,7 @@
     "agent-messenger": "./src/cli.ts",
     "agent-slack": "./src/platforms/slack/cli.ts",
     "agent-slackbot": "./src/platforms/slackbot/cli.ts",
+    "agent-channelbot": "./src/platforms/channelbot/cli.ts",
     "agent-teams": "./src/platforms/teams/cli.ts",
     "amsg": "./src/cli.ts"
   },
