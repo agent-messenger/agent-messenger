@@ -39,6 +39,19 @@ export class ChannelBotClient {
     return [{ type: 'text', value: text }]
   }
 
+  static extractText(message: ChannelBotMessage): string {
+    const parts: string[] = []
+
+    for (const block of message.blocks ?? []) {
+      if (block.value) {
+        parts.push(block.value)
+      }
+    }
+
+    if (message.plainText) parts.push(message.plainText)
+    return parts.join('\n')
+  }
+
   async getChannel(): Promise<ChannelBotChannel> {
     return this.request<ChannelBotChannel>('GET', '/channel')
   }
