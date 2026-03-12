@@ -132,7 +132,36 @@ agent-channelbot snapshot --chats-only     # Just UserChat summary
 
 **When to use**: Start of every AI agent session, periodic context refresh, workspace audits.
 
-## Pattern 6: Error Handling and Retry
+## Pattern 6: Search Messages Across Chats
+
+**Use case**: Find messages containing a keyword across all customer conversations
+
+```bash
+#!/bin/bash
+
+KEYWORD="리뷰"
+
+# Search across all chat states (opened, closed, snoozed)
+RESULTS=$(agent-channelbot message grep "$KEYWORD")
+TOTAL=$(echo "$RESULTS" | jq -r '.total_results // 0')
+
+if [ "$TOTAL" -gt 0 ]; then
+  echo "Found $TOTAL message(s) matching '$KEYWORD':"
+  echo "$RESULTS" | jq -r '.results[] | "  [\(.chat_name // .chat_id)] \(.plain_text)"'
+else
+  echo "No messages found matching '$KEYWORD'"
+fi
+
+# Search only opened chats, limit to 10 results
+agent-channelbot message grep "$KEYWORD" --state opened --limit 10
+
+# Scan more chats (default: 50)
+agent-channelbot message grep "$KEYWORD" --chat-limit 200
+```
+
+**When to use**: Finding specific customer conversations, auditing responses, searching for topics across chats.
+
+## Pattern 7: Error Handling and Retry
 
 **Use case**: Robust message sending for production
 

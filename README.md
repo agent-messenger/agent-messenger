@@ -129,7 +129,7 @@ That's it. Credentials are extracted automatically from your Slack desktop app o
 | -------------------------- | :---: | :-----: | :---: | :----------: |
 | Auto credential extraction |  ✅   |   ✅    |  ✅   |      —       |
 | Send & list messages       |  ✅   |   ✅    |  ✅   |      ✅      |
-| Search messages            |  ✅   |   ✅    |   —   |      —       |
+| Search messages            |  ✅   |   ✅    |   —   |      ✅      |
 | Threads                    |  ✅   |   ✅    |   —   |      —       |
 | Channels & Users           |  ✅   |   ✅    |  ✅   |      ✅      |
 | Reactions                  |  ✅   |   ✅    |  ✅   |      —       |
