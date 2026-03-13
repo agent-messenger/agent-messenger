@@ -72,6 +72,13 @@ describe('DiscordTokenExtractor', () => {
       expect(extractor.isValidToken('xoxc-123')).toBe(false)
     })
 
+    test('validates tokens with >24 char first segment (newer Discord user IDs)', () => {
+      // User IDs created ~2023+ produce base64 segments longer than 24 chars.
+      // e.g. user ID 1295726388820709399 -> 'MTI5NTcyNjM4ODgyMDcwOTM5OQ' (26 chars)
+      const longSegmentToken = 'MTI5NTcyNjM4ODgyMDcwOTM5OQ.YYYYYY.ZZZZZZZZZZZZZZZZZZZZZZZZZ'
+      expect(extractor.isValidToken(longSegmentToken)).toBe(true)
+    })
+
     test('detects encrypted tokens by prefix', () => {
       const encryptedToken = 'dQw4w9WgXcQ:' + 'encrypted_data'
       expect(extractor.isEncryptedToken(encryptedToken)).toBe(true)

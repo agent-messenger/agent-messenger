@@ -33,7 +33,7 @@ interface CDPMessage {
   error?: { code: number; message: string }
 }
 
-const TOKEN_REGEX = /[\w-]{24}\.[\w-]{6}\.[\w-]{25,110}/
+const TOKEN_REGEX = /[\w-]{24,}\.[\w-]{6}\.[\w-]{25,110}/
 const MFA_TOKEN_REGEX = /mfa\.[\w-]{84}/
 const ENCRYPTED_PREFIX = 'dQw4w9WgXcQ:'
 
