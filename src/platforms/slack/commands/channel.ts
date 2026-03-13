@@ -28,7 +28,14 @@ async function listAction(options: { type?: string; includeArchived?: boolean; p
     } else if (options.type === 'private') {
       channels = channels.filter((c) => c.is_private)
     } else if (options.type === 'dm') {
-      channels = []
+      const dms = await client.listDMs()
+      const dmOutput = dms.map((dm) => ({
+        id: dm.id,
+        user: dm.user,
+        is_mpim: dm.is_mpim,
+      }))
+      console.log(formatOutput(dmOutput, options.pretty))
+      return
     }
 
     const output = channels.map((ch) => ({
