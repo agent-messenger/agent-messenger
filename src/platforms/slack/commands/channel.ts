@@ -19,7 +19,7 @@ async function listAction(options: { type?: string; includeArchived?: boolean; p
     const client = new SlackClient(workspace.token, workspace.cookie)
 
     if (options.type === 'dm') {
-      const dms = await client.listDMs({ excludeArchived: !options.includeArchived })
+      const dms = await client.listDMs({ includeArchived: options.includeArchived })
       const dmOutput = dms.map((dm) => ({
         id: dm.id,
         user: dm.user,
