@@ -8,6 +8,7 @@ import { join } from 'node:path'
 import { ClassicLevel } from 'classic-level'
 
 import { DerivedKeyCache } from '@/shared/utils/derived-key-cache'
+import { lookupLinuxKeyringPassword } from '@/shared/utils/linux-keyring'
 
 const require = createRequire(import.meta.url)
 
@@ -770,6 +771,7 @@ export class TokenExtractor {
       if (this.platform === 'linux') {
         return this.decryptV11CookieLinux(encrypted)
       }
+      // TODO: macOS v11 uses keychain (not yet implemented)
     }
 
     // Windows pre-v80: DPAPI applied directly (no version prefix)
@@ -808,9 +810,8 @@ export class TokenExtractor {
     }
   }
 
-  private decryptV10CookieLinux(encrypted: Buffer): string | null {
+  private decryptLinuxCookieWithKey(encrypted: Buffer, key: Buffer): string | null {
     try {
-      const key = pbkdf2Sync('peanuts', 'saltysalt', 1, 16, 'sha1')
       const iv = Buffer.alloc(16, ' ')
       const ciphertext = encrypted.subarray(3)
 
@@ -825,11 +826,13 @@ export class TokenExtractor {
     }
   }
 
+  private decryptV10CookieLinux(encrypted: Buffer): string | null {
+    const key = pbkdf2Sync('peanuts', 'saltysalt', 1, 16, 'sha1')
+    return this.decryptLinuxCookieWithKey(encrypted, key)
+  }
+
   private getLinuxKeyringPassword(appName: string): string {
-    return execSync(
-      `secret-tool lookup xdg:schema chrome_libsecret_os_crypt_password_v2 application ${appName}`,
-      { timeout: 5000, encoding: 'utf8' },
-    ).trim()
+    return lookupLinuxKeyringPassword(appName)
   }
 
   private decryptV11CookieLinux(encrypted: Buffer): string | null {
@@ -838,13 +841,8 @@ export class TokenExtractor {
       try {
         const keyringPassword = this.getLinuxKeyringPassword(appName)
         const key = pbkdf2Sync(keyringPassword, 'saltysalt', 1, 16, 'sha1')
-        const iv = Buffer.alloc(16, ' ')
-        const ciphertext = encrypted.subarray(3)
-        const decipher = createDecipheriv('aes-128-cbc', key, iv)
-        const decrypted = Buffer.concat([decipher.update(ciphertext), decipher.final()])
-        const result = decrypted.toString('utf8')
-        const match = result.match(/xoxd-[A-Za-z0-9%]+/)
-        if (match) return match[0]
+        const result = this.decryptLinuxCookieWithKey(encrypted, key)
+        if (result) return result
       } catch {}
     }
     // Fall back to v10 peanuts key

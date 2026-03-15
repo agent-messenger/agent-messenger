@@ -5,6 +5,7 @@ import { homedir } from 'node:os'
 import { join } from 'node:path'
 
 import { DerivedKeyCache } from '@/shared/utils/derived-key-cache'
+import { lookupLinuxKeyringPassword } from '@/shared/utils/linux-keyring'
 
 export interface ExtractedDiscordToken {
   token: string
@@ -350,10 +351,7 @@ export class DiscordTokenExtractor {
   }
 
   private getLinuxKeyringPassword(appName: string): string {
-    return execSync(
-      `secret-tool lookup xdg:schema chrome_libsecret_os_crypt_password_v2 application ${appName}`,
-      { timeout: 5000, encoding: 'utf8' },
-    ).trim()
+    return lookupLinuxKeyringPassword(appName)
   }
 
   private decryptV11LinuxToken(encryptedData: Buffer): string | null {
