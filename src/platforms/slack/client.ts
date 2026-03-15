@@ -135,6 +135,39 @@ export class SlackClient {
     })
   }
 
+  async listDMs(
+    options: { excludeArchived?: boolean } = {}
+  ): Promise<{ id: string; user: string; is_mpim: boolean }[]> {
+    return this.withRetry(async () => {
+      const dms: { id: string; user: string; is_mpim: boolean }[] = []
+      let cursor: string | undefined
+
+      do {
+        const response = await this.client.conversations.list({
+          cursor,
+          limit: 200,
+          types: 'im,mpim',
+          exclude_archived: options.excludeArchived ?? false,
+        })
+        this.checkResponse(response)
+
+        if (response.channels) {
+          for (const ch of response.channels) {
+            dms.push({
+              id: ch.id!,
+              user: ch.user || (ch as any).name || '',
+              is_mpim: ch.is_mpim || false,
+            })
+          }
+        }
+
+        cursor = response.response_metadata?.next_cursor
+      } while (cursor)
+
+      return dms
+    })
+  }
+
   async getChannel(id: string): Promise<SlackChannel> {
     return this.withRetry(async () => {
       const response = await this.client.conversations.info({ channel: id })

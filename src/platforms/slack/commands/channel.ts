@@ -17,6 +17,18 @@ async function listAction(options: { type?: string; includeArchived?: boolean; p
     }
 
     const client = new SlackClient(workspace.token, workspace.cookie)
+
+    if (options.type === 'dm') {
+      const dms = await client.listDMs({ excludeArchived: !options.includeArchived })
+      const dmOutput = dms.map((dm) => ({
+        id: dm.id,
+        user: dm.user,
+        is_mpim: dm.is_mpim,
+      }))
+      console.log(formatOutput(dmOutput, options.pretty))
+      return
+    }
+
     let channels = await client.listChannels()
 
     if (!options.includeArchived) {
@@ -27,8 +39,6 @@ async function listAction(options: { type?: string; includeArchived?: boolean; p
       channels = channels.filter((c) => !c.is_private)
     } else if (options.type === 'private') {
       channels = channels.filter((c) => c.is_private)
-    } else if (options.type === 'dm') {
-      channels = []
     }
 
     const output = channels.map((ch) => ({
