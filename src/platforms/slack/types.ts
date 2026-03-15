@@ -125,6 +125,12 @@ export interface SlackActivityItem {
   created: number
 }
 
+export interface SlackDM {
+  id: string
+  user: string
+  is_mpim: boolean
+}
+
 export interface SlackDraft {
   id: string
   channel_id: string

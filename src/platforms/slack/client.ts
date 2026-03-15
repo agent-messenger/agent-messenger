@@ -4,6 +4,7 @@ import type {
   SlackActivityItem,
   SlackChannel,
   SlackChannelSection,
+  SlackDM,
   SlackDraft,
   SlackFile,
   SlackMessage,
@@ -135,11 +136,9 @@ export class SlackClient {
     })
   }
 
-  async listDMs(
-    options: { excludeArchived?: boolean } = {}
-  ): Promise<{ id: string; user: string; is_mpim: boolean }[]> {
+  async listDMs(options: { includeArchived?: boolean } = {}): Promise<SlackDM[]> {
     return this.withRetry(async () => {
-      const dms: { id: string; user: string; is_mpim: boolean }[] = []
+      const dms: SlackDM[] = []
       let cursor: string | undefined
 
       do {
@@ -147,7 +146,7 @@ export class SlackClient {
           cursor,
           limit: 200,
           types: 'im,mpim',
-          exclude_archived: options.excludeArchived ?? false,
+          exclude_archived: !options.includeArchived,
         })
         this.checkResponse(response)
 
@@ -155,7 +154,7 @@ export class SlackClient {
           for (const ch of response.channels) {
             dms.push({
               id: ch.id!,
-              user: ch.user || (ch as any).name || '',
+              user: ch.user || ch.name || '',
               is_mpim: ch.is_mpim || false,
             })
           }
