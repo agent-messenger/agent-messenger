@@ -285,6 +285,58 @@ describe('TokenExtractor Linux cookie decryption', () => {
   })
 })
 
+describe('TokenExtractor Linux v11 cookie decryption', () => {
+  test('decrypts v11 cookie using gnome-keyring password on Linux', () => {
+    // given — v11-prefixed cookie encrypted with a known keyring password
+    const { createCipheriv, pbkdf2Sync } = require('node:crypto')
+    const testPassword = 'test-gnome-keyring-password'
+    const plainCookie = 'xoxd-v11LinuxTestCookie%2BValue'
+    const key = pbkdf2Sync(testPassword, 'saltysalt', 1, 16, 'sha1')
+    const iv = Buffer.alloc(16, ' ')
+    const cipher = createCipheriv('aes-128-cbc', key, iv)
+    const ciphertext = Buffer.concat([cipher.update(plainCookie, 'utf8'), cipher.final()])
+    const encrypted = Buffer.concat([Buffer.from('v11'), ciphertext])
+
+    const extractor = new TokenExtractor('linux', '/tmp/test')
+    const keyringPasswordSpy = spyOn(extractor as any, 'getLinuxKeyringPassword').mockImplementation(
+      (appName: string) => {
+        if (appName === 'Slack') return testPassword
+        throw new Error('not found')
+      },
+    )
+
+    // when
+    const result = extractor.tryDecryptCookie(encrypted)
+
+    // then
+    expect(result).toBe(plainCookie)
+    keyringPasswordSpy.mockRestore()
+  })
+
+  test('falls back to peanuts key when keyring is unavailable for v11 cookie', () => {
+    // given — v11-prefixed cookie encrypted with peanuts (tests fallback code path)
+    const { createCipheriv, pbkdf2Sync } = require('node:crypto')
+    const key = pbkdf2Sync('peanuts', 'saltysalt', 1, 16, 'sha1')
+    const iv = Buffer.alloc(16, ' ')
+    const plainCookie = 'xoxd-peanutsFallback%2B'
+    const cipher = createCipheriv('aes-128-cbc', key, iv)
+    const ciphertext = Buffer.concat([cipher.update(plainCookie, 'utf8'), cipher.final()])
+    const encrypted = Buffer.concat([Buffer.from('v11'), ciphertext])
+
+    const extractor = new TokenExtractor('linux', '/tmp/test')
+    const keyringPasswordSpy = spyOn(extractor as any, 'getLinuxKeyringPassword').mockImplementation(() => {
+      throw new Error('gnome-keyring unavailable')
+    })
+
+    // when — keyring fails for all app names, falls back to peanuts
+    const result = extractor.tryDecryptCookie(encrypted)
+
+    // then — fallback to peanuts decrypts the peanuts-encrypted data
+    expect(result).toBe(plainCookie)
+    keyringPasswordSpy.mockRestore()
+  })
+})
+
 describe('TokenExtractor debug logging', () => {
   test('calls debugLog callback during extraction', async () => {
     // given

@@ -72,6 +72,13 @@ describe('DiscordTokenExtractor', () => {
       expect(extractor.isValidToken('xoxc-123')).toBe(false)
     })
 
+    test('validates tokens with >24 char first segment (newer Discord user IDs)', () => {
+      // User IDs created ~2023+ produce base64 segments longer than 24 chars.
+      // e.g. user ID 1295726388820709399 -> 'MTI5NTcyNjM4ODgyMDcwOTM5OQ' (26 chars)
+      const longSegmentToken = 'MTI5NTcyNjM4ODgyMDcwOTM5OQ.YYYYYY.ZZZZZZZZZZZZZZZZZZZZZZZZZ'
+      expect(extractor.isValidToken(longSegmentToken)).toBe(true)
+    })
+
     test('detects encrypted tokens by prefix', () => {
       const encryptedToken = 'dQw4w9WgXcQ:' + 'encrypted_data'
       expect(extractor.isEncryptedToken(encryptedToken)).toBe(true)
@@ -101,6 +108,61 @@ describe('DiscordTokenExtractor', () => {
 
       // then
       expect(result).toBe(plainToken)
+    })
+  })
+
+  describe('Linux v11 token decryption', () => {
+    test('decrypts v11 token using gnome-keyring password on Linux', () => {
+      // given — AES-128-CBC encrypted token with keyring-derived key and v11 prefix
+      const { createCipheriv, pbkdf2Sync } = require('node:crypto')
+      const testPassword = 'test-discord-keyring-secret'
+      const plainToken = 'XXXXXXXXXXXXXXXXXXXXXXXX.YYYYYY.ZZZZZZZZZZZZZZZZZZZZZZZZZ'
+      const key = pbkdf2Sync(testPassword, 'saltysalt', 1, 16, 'sha1')
+      const iv = Buffer.alloc(16, 0x20)
+      const cipher = createCipheriv('aes-128-cbc', key, iv)
+      const ciphertext = Buffer.concat([cipher.update(plainToken, 'utf8'), cipher.final()])
+      // v11 prefix (3 bytes) + ciphertext
+      const encrypted = Buffer.concat([Buffer.from('v11'), ciphertext])
+      const encryptedToken = `dQw4w9WgXcQ:${encrypted.toString('base64')}`
+
+      const linuxExtractor = new DiscordTokenExtractor('linux')
+      const keyringPasswordSpy = spyOn(linuxExtractor as any, 'getLinuxKeyringPassword').mockImplementation(
+        (appName: string) => {
+          if (appName === 'discord') return testPassword
+          throw new Error('not found')
+        },
+      )
+
+      // when
+      const result = (linuxExtractor as any).decryptToken(encryptedToken, '/home/user/.config/discord')
+
+      // then
+      expect(result).toBe(plainToken)
+      keyringPasswordSpy.mockRestore()
+    })
+
+    test('falls back to peanuts key when keyring is unavailable for v11 token', () => {
+      // given — v11-prefixed token encrypted with peanuts (tests fallback code path)
+      const { createCipheriv, pbkdf2Sync } = require('node:crypto')
+      const plainToken = 'XXXXXXXXXXXXXXXXXXXXXXXX.YYYYYY.ZZZZZZZZZZZZZZZZZZZZZZZZZ'
+      const key = pbkdf2Sync('peanuts', 'saltysalt', 1, 16, 'sha1')
+      const iv = Buffer.alloc(16, 0x20)
+      const cipher = createCipheriv('aes-128-cbc', key, iv)
+      const ciphertext = Buffer.concat([cipher.update(plainToken, 'utf8'), cipher.final()])
+      const encrypted = Buffer.concat([Buffer.from('v11'), ciphertext])
+      const encryptedToken = `dQw4w9WgXcQ:${encrypted.toString('base64')}`
+
+      const linuxExtractor = new DiscordTokenExtractor('linux')
+      const keyringPasswordSpy = spyOn(linuxExtractor as any, 'getLinuxKeyringPassword').mockImplementation(() => {
+        throw new Error('gnome-keyring unavailable')
+      })
+
+      // when — keyring fails for all app names, falls back to peanuts
+      const result = (linuxExtractor as any).decryptToken(encryptedToken, '/home/user/.config/discord')
+
+      // then — fallback to peanuts decrypts the peanuts-encrypted data
+      expect(result).toBe(plainToken)
+      keyringPasswordSpy.mockRestore()
     })
   })
 

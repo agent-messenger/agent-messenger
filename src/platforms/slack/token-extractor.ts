@@ -766,6 +766,12 @@ export class TokenExtractor {
       return this.decryptV10Cookie(encrypted)
     }
 
+    if (encrypted.length > 3 && encrypted.subarray(0, 3).toString() === 'v11') {
+      if (this.platform === 'linux') {
+        return this.decryptV11CookieLinux(encrypted)
+      }
+    }
+
     // Windows pre-v80: DPAPI applied directly (no version prefix)
     if (this.platform === 'win32' && encrypted.length > 0) {
       const decrypted = this.decryptDPAPI(encrypted)
@@ -817,6 +823,32 @@ export class TokenExtractor {
     } catch {
       return null
     }
+  }
+
+  private getLinuxKeyringPassword(appName: string): string {
+    return execSync(
+      `secret-tool lookup xdg:schema chrome_libsecret_os_crypt_password_v2 application ${appName}`,
+      { timeout: 5000, encoding: 'utf8' },
+    ).trim()
+  }
+
+  private decryptV11CookieLinux(encrypted: Buffer): string | null {
+    const appNames = ['Slack', 'slack']
+    for (const appName of appNames) {
+      try {
+        const keyringPassword = this.getLinuxKeyringPassword(appName)
+        const key = pbkdf2Sync(keyringPassword, 'saltysalt', 1, 16, 'sha1')
+        const iv = Buffer.alloc(16, ' ')
+        const ciphertext = encrypted.subarray(3)
+        const decipher = createDecipheriv('aes-128-cbc', key, iv)
+        const decrypted = Buffer.concat([decipher.update(ciphertext), decipher.final()])
+        const result = decrypted.toString('utf8')
+        const match = result.match(/xoxd-[A-Za-z0-9%]+/)
+        if (match) return match[0]
+      } catch {}
+    }
+    // Fall back to v10 peanuts key
+    return this.decryptV10CookieLinux(encrypted)
   }
 
   decryptV10CookieWindows(encrypted: Buffer): string | null {
