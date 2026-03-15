@@ -194,6 +194,7 @@ agent-slack message delete <channel> <ts> --force
 agent-slack channel list
 agent-slack channel list --type public
 agent-slack channel list --type private
+agent-slack channel list --type dm
 agent-slack channel list --include-archived
 
 # Get channel info
