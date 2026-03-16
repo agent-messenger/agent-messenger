@@ -99,6 +99,7 @@ describe('chat commands', () => {
       expect(result.error).toBeUndefined()
       expect(result.chats).toHaveLength(1)
       expect(result.chats?.[0].id).toBe('chat1')
+      expect(capturedListArgs[0]).toMatchObject({ state: 'opened' })
     })
 
     test('passes state filter to API', async () => {

@@ -37,6 +37,7 @@ const mockGetGroupMessages = mock(() =>
 )
 
 let capturedResolveArg: string | undefined
+let capturedGroupMessagesArgs: unknown[] = []
 
 mock.module('../client', () => ({
   ChannelBotClient: class MockChannelBotClient {
@@ -47,7 +48,10 @@ mock.module('../client', () => ({
       capturedResolveArg = arg
       return mockResolveGroup(arg)
     }
-    getGroupMessages = mockGetGroupMessages
+    getGroupMessages = (...args: unknown[]) => {
+      capturedGroupMessagesArgs = args
+      return mockGetGroupMessages()
+    }
   },
 }))
 
@@ -67,6 +71,7 @@ describe('group commands', () => {
     tempDir = join(tmpdir(), `channelbot-group-test-${Date.now()}`)
     await mkdir(tempDir, { recursive: true })
     capturedResolveArg = undefined
+    capturedGroupMessagesArgs = []
     mockListGroups.mockClear()
     mockGetGroup.mockClear()
     mockGetGroupByName.mockClear()
@@ -125,7 +130,7 @@ describe('group commands', () => {
       await messagesAction('@team-alpha', { _credManager: manager })
 
       expect(capturedResolveArg).toBe('@team-alpha')
-      expect(mockGetGroupMessages).toHaveBeenCalledTimes(1)
+      expect(capturedGroupMessagesArgs[0]).toBe('grp1')
     })
   })
 })
