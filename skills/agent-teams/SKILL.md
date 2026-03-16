@@ -374,7 +374,7 @@ bunx agent-messenger teams team list
 pnpm dlx agent-messenger teams team list
 ```
 
-> If you already know the user's preferred package runner (e.g., `bunx`, `pnpx`, `pnpm dlx`), use that instead.
+> If you already know the user's preferred package runner (e.g., `bunx`, `pnpm dlx`), use that instead.
 
 **NEVER run `npx agent-teams`, `bunx agent-teams`, or `pnpm dlx agent-teams`** — it will fail or install a wrong package since `agent-teams` is not the npm package name.
 

@@ -326,7 +326,7 @@ bunx agent-messenger slackbot message send general "Hello"
 pnpm dlx agent-messenger slackbot message send general "Hello"
 ```
 
-> If you already know the user's preferred package runner (e.g., `bunx`, `pnpx`, `pnpm dlx`), use that instead.
+> If you already know the user's preferred package runner (e.g., `bunx`, `pnpm dlx`), use that instead.
 
 **NEVER run `npx agent-slackbot`, `bunx agent-slackbot`, or `pnpm dlx agent-slackbot`** — it will fail or install a wrong package since `agent-slackbot` is not the npm package name.
 

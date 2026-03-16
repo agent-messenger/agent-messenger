@@ -427,7 +427,7 @@ bunx agent-messenger discord server list
 pnpm dlx agent-messenger discord server list
 ```
 
-> If you already know the user's preferred package runner (e.g., `bunx`, `pnpx`, `pnpm dlx`), use that instead.
+> If you already know the user's preferred package runner (e.g., `bunx`, `pnpm dlx`), use that instead.
 
 **NEVER run `npx agent-discord`, `bunx agent-discord`, or `pnpm dlx agent-discord`** — it will fail or install a wrong package since `agent-discord` is not the npm package name.
 

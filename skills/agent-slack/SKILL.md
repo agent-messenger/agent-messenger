@@ -410,7 +410,7 @@ bunx agent-messenger slack message list general
 pnpm dlx agent-messenger slack message list general
 ```
 
-> If you already know the user's preferred package runner (e.g., `bunx`, `pnpx`, `pnpm dlx`), use that instead.
+> If you already know the user's preferred package runner (e.g., `bunx`, `pnpm dlx`), use that instead.
 
 **NEVER run `npx agent-slack`, `bunx agent-slack`, or `pnpm dlx agent-slack`** — a separate, unrelated npm package named `agent-slack` exists on npm. It will silently install the **wrong package** with different (fewer) commands.
 

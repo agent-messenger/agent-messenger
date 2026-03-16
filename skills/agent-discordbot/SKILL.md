@@ -385,7 +385,7 @@ bunx agent-messenger discordbot message send 1234567890123456789 "Hello"
 pnpm dlx agent-messenger discordbot message send 1234567890123456789 "Hello"
 ```
 
-> If you already know the user's preferred package runner (e.g., `bunx`, `pnpx`, `pnpm dlx`), use that instead.
+> If you already know the user's preferred package runner (e.g., `bunx`, `pnpm dlx`), use that instead.
 
 **NEVER run `npx agent-discordbot`, `bunx agent-discordbot`, or `pnpm dlx agent-discordbot`** -- it will fail or install a wrong package since `agent-discordbot` is not the npm package name.
 
