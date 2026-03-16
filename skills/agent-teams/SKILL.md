@@ -366,7 +366,7 @@ If the package is installed globally, use `agent-teams` directly:
 agent-teams team list
 ```
 
-If the package is NOT installed, run it directly using a package runner. Ask the user which one to use:
+If the package is NOT installed, use `npx -y` by default. **Do NOT ask the user which package runner to use** — just run it:
 
 ```bash
 npx -y agent-messenger teams team list
@@ -374,7 +374,7 @@ bunx agent-messenger teams team list
 pnpm dlx agent-messenger teams team list
 ```
 
-If you already know the user's preferred package runner, use it directly instead of asking.
+> If you already know the user's preferred package runner (e.g., `bunx`, `pnpx`, `pnpm dlx`), use that instead.
 
 **NEVER run `npx agent-teams`, `bunx agent-teams`, or `pnpm dlx agent-teams`** — it will fail or install a wrong package since `agent-teams` is not the npm package name.
 

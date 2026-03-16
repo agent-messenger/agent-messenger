@@ -402,7 +402,7 @@ If the package is installed globally, use `agent-slack` directly:
 agent-slack message list general
 ```
 
-If the package is NOT installed, run it directly using a package runner. Ask the user which one to use:
+If the package is NOT installed, use `npx -y` by default. **Do NOT ask the user which package runner to use** — just run it:
 
 ```bash
 npx -y agent-messenger slack message list general
@@ -410,9 +410,19 @@ bunx agent-messenger slack message list general
 pnpm dlx agent-messenger slack message list general
 ```
 
-If you already know the user's preferred package runner, use it directly instead of asking.
+> If you already know the user's preferred package runner (e.g., `bunx`, `pnpx`, `pnpm dlx`), use that instead.
 
 **NEVER run `npx agent-slack`, `bunx agent-slack`, or `pnpm dlx agent-slack`** — a separate, unrelated npm package named `agent-slack` exists on npm. It will silently install the **wrong package** with different (fewer) commands.
+
+### `Failed to read Slack cookies`
+
+If you see:
+
+```json
+{"error":"Failed to read Slack cookies. The Slack app is currently running and locking the cookie database. Quit the Slack app completely and try again."}
+```
+
+Tell the user you need to quit the Slack app to extract credentials, and ask for confirmation. If the user agrees, quit Slack and retry the command.
 
 For other troubleshooting (auth extraction, token issues, Keychain), see [references/authentication.md](references/authentication.md).
 

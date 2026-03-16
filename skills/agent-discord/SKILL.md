@@ -419,7 +419,7 @@ If the package is installed globally, use `agent-discord` directly:
 agent-discord server list
 ```
 
-If the package is NOT installed, run it directly using a package runner. Ask the user which one to use:
+If the package is NOT installed, use `npx -y` by default. **Do NOT ask the user which package runner to use** — just run it:
 
 ```bash
 npx -y agent-messenger discord server list
@@ -427,7 +427,7 @@ bunx agent-messenger discord server list
 pnpm dlx agent-messenger discord server list
 ```
 
-If you already know the user's preferred package runner, use it directly instead of asking.
+> If you already know the user's preferred package runner (e.g., `bunx`, `pnpx`, `pnpm dlx`), use that instead.
 
 **NEVER run `npx agent-discord`, `bunx agent-discord`, or `pnpm dlx agent-discord`** — it will fail or install a wrong package since `agent-discord` is not the npm package name.
 
