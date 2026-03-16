@@ -31,6 +31,9 @@ export async function listAction(options: GroupOptions): Promise<GroupResult> {
   try {
     const client = await getClient(options)
     const limit = options.limit ? parseInt(options.limit, 10) : 25
+    if (Number.isNaN(limit) || limit < 1) {
+      return { error: 'Invalid --limit value. Must be a positive integer.' }
+    }
     const since = options.since
 
     const groups = await client.listGroups({ since, limit })
@@ -67,6 +70,9 @@ export async function messagesAction(group: string, options: GroupOptions): Prom
     const client = await getClient(options)
     const resolved = await client.resolveGroup(group)
     const limit = options.limit ? parseInt(options.limit, 10) : 25
+    if (Number.isNaN(limit) || limit < 1) {
+      return { error: 'Invalid --limit value. Must be a positive integer.' }
+    }
     const sortOrder = options.sort || 'desc'
     const since = options.since
 

@@ -30,6 +30,9 @@ export async function listAction(options: ManagerOptions): Promise<ManagerResult
   try {
     const client = await getClient(options)
     const limit = options.limit ? parseInt(options.limit, 10) : 25
+    if (Number.isNaN(limit) || limit < 1) {
+      return { error: 'Invalid --limit value. Must be a positive integer.' }
+    }
     const since = options.since
 
     const managers = await client.listManagers({ since, limit })
