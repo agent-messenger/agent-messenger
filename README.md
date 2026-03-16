@@ -4,9 +4,9 @@
 
 ![Agent Messenger](./docs/public/cover.png)
 
-**Give your AI agent the power to read and send messages across Slack, Discord, Teams, Telegram and more**
+**Give your AI agent the power to read and send messages across Slack, Discord, Teams and more**
 
-A unified, agent-friendly CLI for messaging platforms. Zero-config credential extraction from your desktop apps where possible, plus TDLib-based Telegram support for account-level access.
+A unified, agent-friendly CLI for messaging platforms. Zero-config credential extraction from your desktop apps—no OAuth flows, no API keys, no admin approval needed. Works out of the box.
 
 ## Table of Contents
 
@@ -37,7 +37,7 @@ Messaging platforms only offer Bot tokens for API access—your AI agent can nev
 - **Act as yourself, not a bot** — Extracted user tokens let your agent operate on your behalf
 - **No API keys needed** — Automatically extracts credentials from your installed desktop apps
 - **Zero setup** — Credentials are auto-extracted on first command. No manual auth step required
-- **One interface, multiple platforms** — Learn once, use everywhere (Slack, Discord, Teams, Telegram)
+- **One interface, multiple platforms** — Learn once, use everywhere (Slack, Discord, Teams)
 - **AI-agent friendly** — JSON output by default, perfect for LLM tool use
 - **Agent memory** — Remembers workspace IDs, channel names, and preferences across sessions
 - **Human friendly too** — Add `--pretty` for readable output
@@ -62,7 +62,7 @@ This installs:
 
 ## Agent Skills
 
-Agent Messenger includes [Agent Skills](https://agentskills.io/) that teach your AI agent how to use these CLIs effectively. Six skills are available:
+Agent Messenger includes [Agent Skills](https://agentskills.io/) that teach your AI agent how to use these CLIs effectively.
 
 - **`agent-slack`** — Slack (user token, zero-config)
 - **`agent-slackbot`** — Slack Bot (bot token, for server-side/CI/CD)
