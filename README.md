@@ -55,10 +55,10 @@ This installs:
 
 - `agent-slack` — Slack CLI (user token, zero-config)
 - `agent-slackbot` — Slack Bot CLI (bot token, for server-side/CI/CD)
-- `agent-discord` — Discord CLI
+- `agent-discord` — Discord CLI (user token, zero-config)
 - `agent-discordbot` — Discord Bot CLI (bot token, for server-side/CI/CD)
-- `agent-teams` — Microsoft Teams CLI
-- `agent-telegram` — Telegram CLI via TDLib
+- `agent-teams` — Microsoft Teams CLI (user token, zero-config)
+- `agent-telegram` — Telegram CLI (user account via TDLib)
 
 ## Agent Skills
 
@@ -66,10 +66,10 @@ Agent Messenger includes [Agent Skills](https://agentskills.io/) that teach your
 
 - **`agent-slack`** — Slack (user token, zero-config)
 - **`agent-slackbot`** — Slack Bot (bot token, for server-side/CI/CD)
-- **`agent-discord`** — Discord
+- **`agent-discord`** — Discord (user token, zero-config)
 - **`agent-discordbot`** — Discord Bot (bot token, for server-side/CI/CD)
-- **`agent-teams`** — Microsoft Teams
-- **`agent-telegram`** — Telegram via TDLib
+- **`agent-teams`** — Microsoft Teams (user token, zero-config)
+- **`agent-telegram`** — Telegram (user account via TDLib)
 
 ### SkillPad
 
@@ -167,15 +167,6 @@ If the env vars are missing, the CLI will prompt for them and store them locally
 - **[Discord Bot Guide](https://agent-messenger.dev/docs/integrations/discordbot)** — Bot token integration for server-side and CI/CD
 - **[Teams Guide](https://agent-messenger.dev/docs/integrations/teams)** — Full command reference for Microsoft Teams
 - **[Telegram Guide](https://agent-messenger.dev/docs/integrations/telegram)** — TDLib setup and Telegram command reference
-
-## Telegram Packaging Note
-
-If you want `agent-telegram` to work via `bunx` with minimal setup, the package needs:
-
-- Keep `prebuilt-tdlib` in dependencies so `libtdjson` arrives with `bunx`
-- Document `AGENT_TELEGRAM_API_ID` and `AGENT_TELEGRAM_API_HASH` as the official configuration path
-
-If you installed `agent-messenger` globally, then `agent-telegram ...` works directly just like `agent-slack` and `agent-discord`.
 
 ## Use Cases
 
