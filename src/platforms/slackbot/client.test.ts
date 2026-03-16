@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, mock, test } from 'bun:test'
+
 import { SlackBotClient } from './client'
 import { SlackBotError } from './types'
 
@@ -249,6 +250,93 @@ describe('SlackBotClient', () => {
       // then
       expect(channel.id).toBe('C123')
       expect(channel.name).toBe('general')
+    })
+  })
+
+  describe('resolveChannel', () => {
+    test('returns channel ID unchanged when it starts with C', async () => {
+      // given
+      const client = new SlackBotClient('xoxb-test-token')
+
+      // when
+      const channel = await client.resolveChannel('C123ABC')
+
+      // then
+      expect(channel).toBe('C123ABC')
+      expect(mockConversations.list).not.toHaveBeenCalled()
+    })
+
+    test('returns channel ID unchanged when it starts with D', async () => {
+      // given
+      const client = new SlackBotClient('xoxb-test-token')
+
+      // when
+      const channel = await client.resolveChannel('D123ABC')
+
+      // then
+      expect(channel).toBe('D123ABC')
+      expect(mockConversations.list).not.toHaveBeenCalled()
+    })
+
+    test('returns channel ID unchanged when it starts with G', async () => {
+      // given
+      const client = new SlackBotClient('xoxb-test-token')
+
+      // when
+      const channel = await client.resolveChannel('G123ABC')
+
+      // then
+      expect(channel).toBe('G123ABC')
+      expect(mockConversations.list).not.toHaveBeenCalled()
+    })
+
+    test('resolves channel name to ID', async () => {
+      // given
+      const client = new SlackBotClient('xoxb-test-token')
+
+      // when
+      const channel = await client.resolveChannel('general')
+
+      // then
+      expect(channel).toBe('C123')
+      expect(mockConversations.list).toHaveBeenCalled()
+    })
+
+    test('strips leading # from channel name', async () => {
+      // given
+      const client = new SlackBotClient('xoxb-test-token')
+
+      // when
+      const channel = await client.resolveChannel('#general')
+
+      // then
+      expect(channel).toBe('C123')
+      expect(mockConversations.list).toHaveBeenCalled()
+    })
+
+    test('returns channel ID unchanged when input is #C prefixed ID', async () => {
+      // given
+      const client = new SlackBotClient('xoxb-test-token')
+
+      // when
+      const channel = await client.resolveChannel('#C123ABC')
+
+      // then
+      expect(channel).toBe('C123ABC')
+    })
+
+    test('throws channel_not_found error when name is not found', async () => {
+      // given
+      const client = new SlackBotClient('xoxb-test-token')
+
+      // when/then
+      try {
+        await client.resolveChannel('does-not-exist')
+        throw new Error('Expected resolveChannel to throw')
+      } catch (error) {
+        expect(error).toBeInstanceOf(SlackBotError)
+        expect((error as SlackBotError).code).toBe('channel_not_found')
+      }
     })
   })
 

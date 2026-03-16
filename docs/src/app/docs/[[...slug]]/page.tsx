@@ -36,15 +36,12 @@ export default async function Page(props: PageProps) {
     notFound()
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { body: MDX, toc } = page.data as any
 
   return (
     <DocsPage toc={toc}>
-      <h1 className="text-3xl font-bold mb-2">{page.data.title}</h1>
-      {page.data.description && (
-        <p className="text-lg text-muted-foreground mb-6">{page.data.description}</p>
-      )}
+      <h1 className="mb-2 text-3xl font-bold">{page.data.title}</h1>
+      {page.data.description && <p className="text-muted-foreground mb-6 text-lg">{page.data.description}</p>}
       <DocsBody>
         <MDX />
       </DocsBody>

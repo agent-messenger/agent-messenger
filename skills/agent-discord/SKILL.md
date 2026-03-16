@@ -1,7 +1,17 @@
 ---
 name: agent-discord
 description: Interact with Discord servers - send messages, read channels, manage reactions
+version: 1.12.0
 allowed-tools: Bash(agent-discord:*)
+metadata:
+  openclaw:
+    requires:
+      bins:
+        - agent-discord
+    install:
+      - kind: node
+        package: agent-messenger
+        bins: [agent-discord]
 ---
 
 # Agent Discord
@@ -11,10 +21,7 @@ A TypeScript CLI tool that enables AI agents and humans to interact with Discord
 ## Quick Start
 
 ```bash
-# Extract credentials from Discord desktop app (zero-config)
-agent-discord auth extract
-
-# Get server snapshot
+# Get server snapshot (credentials are extracted automatically)
 agent-discord snapshot
 
 # Send a message
@@ -26,24 +33,11 @@ agent-discord channel list
 
 ## Authentication
 
-### Seamless Token Extraction
+Credentials are extracted automatically from the Discord desktop app on first use. No manual setup required — just run any command and authentication happens silently in the background.
 
-agent-discord automatically extracts your Discord credentials from the desktop app:
+On macOS, the system may prompt for your Keychain password the first time (required to decrypt Discord's stored token). This is a one-time prompt.
 
-```bash
-# Just run this - no manual token copying needed
-agent-discord auth extract
-
-# Use --debug for troubleshooting
-agent-discord auth extract --debug
-```
-
-This command:
-- Auto-detects your platform (macOS/Linux/Windows)
-- Extracts user token from Discord desktop app's LevelDB storage
-- Validates token against Discord API before saving
-- Discovers ALL joined servers
-- Stores credentials securely in `~/.config/agent-messenger/`
+**IMPORTANT**: NEVER guide the user to open a web browser, use DevTools, or manually copy tokens from a browser. Always use `agent-discord auth extract` to obtain tokens from the desktop app.
 
 ### Multi-Server Support
 
@@ -61,7 +55,95 @@ agent-discord server current
 agent-discord auth status
 ```
 
+## Memory
+
+The agent maintains a `~/.config/agent-messenger/MEMORY.md` file as persistent memory across sessions. This is agent-managed — the CLI does not read or write this file. Use the `Read` and `Write` tools to manage your memory file.
+
+### Reading Memory
+
+At the **start of every task**, read `~/.config/agent-messenger/MEMORY.md` using the `Read` tool to load any previously discovered server IDs, channel IDs, user IDs, and preferences.
+
+- If the file doesn't exist yet, that's fine — proceed without it and create it when you first have useful information to store.
+- If the file can't be read (permissions, missing directory), proceed without memory — don't error out.
+
+### Writing Memory
+
+After discovering useful information, update `~/.config/agent-messenger/MEMORY.md` using the `Write` tool. Write triggers include:
+
+- After discovering server IDs and names (from `server list`, `snapshot`, etc.)
+- After discovering useful channel IDs and names (from `channel list`, `snapshot`, etc.)
+- After discovering user IDs and names (from `user list`, `user me`, etc.)
+- After the user gives you an alias or preference ("call this the dev server", "my main channel is X")
+- After discovering channel structure (categories, voice channels)
+
+When writing, include the **complete file content** — the `Write` tool overwrites the entire file.
+
+### What to Store
+
+- Server IDs with names
+- Channel IDs with names and categories
+- User IDs with display names
+- User-given aliases ("dev server", "announcements channel")
+- Commonly used thread IDs
+- Any user preference expressed during interaction
+
+### What NOT to Store
+
+Never store tokens, credentials, or any sensitive data. Never store full message content (just IDs and channel context). Never store file upload contents.
+
+### Handling Stale Data
+
+If a memorized ID returns an error (channel not found, server not found), remove it from `MEMORY.md`. Don't blindly trust memorized data — verify when something seems off. Prefer re-listing over using a memorized ID that might be stale.
+
+### Format / Example
+
+```markdown
+# Agent Messenger Memory
+
+## Discord Servers
+
+- `1234567890123456` — Acme Dev (default)
+- `9876543210987654` — Open Source Community
+
+## Channels (Acme Dev)
+
+- `1111111111111111` — #general (General category)
+- `2222222222222222` — #engineering (Engineering category)
+- `3333333333333333` — #deploys (Engineering category)
+
+## Users (Acme Dev)
+
+- `4444444444444444` — Alice (server owner)
+- `5555555555555555` — Bob
+
+## Aliases
+
+- "dev server" → `1234567890123456` (Acme Dev)
+- "deploys" → `3333333333333333` (#deploys in Acme Dev)
+
+## Notes
+
+- User prefers --pretty output for snapshots
+- Main server is "Acme Dev"
+```
+
+> Memory lets you skip repeated `channel list` and `server list` calls. When you already know an ID from a previous session, use it directly.
+
 ## Commands
+
+### Auth Commands
+
+```bash
+# Extract token from Discord desktop app (usually automatic)
+agent-discord auth extract
+agent-discord auth extract --debug
+
+# Check auth status
+agent-discord auth status
+
+# Logout from Discord
+agent-discord auth logout
+```
 
 ### Message Commands
 
@@ -83,6 +165,11 @@ agent-discord message delete <channel-id> <message-id> --force
 
 # Acknowledge/mark a message as read
 agent-discord message ack <channel-id> <message-id>
+
+# Search messages in current server
+agent-discord message search <query>
+agent-discord message search "project update" --limit 10
+agent-discord message search "hello" --channel <channel-id> --author <user-id>
 ```
 
 ### Channel Commands
@@ -236,6 +323,7 @@ agent-discord snapshot --limit 10
 ```
 
 Returns JSON with:
+
 - Server metadata (id, name)
 - Channels (id, name, type, topic)
 - Recent messages (id, content, author, timestamp)
@@ -266,13 +354,13 @@ agent-discord channel list --pretty
 
 ## Key Differences from Slack
 
-| Feature | Discord | Slack |
-|---------|---------|-------|
-| Server terminology | Server | Workspace |
-| Channel identifiers | Snowflake IDs | Channel name or ID |
-| Message identifiers | Snowflake IDs | Timestamps (ts) |
-| Threads | Thread ID field | Thread timestamp |
-| Mentions | `<@user_id>` | `<@USER_ID>` |
+| Feature             | Discord         | Slack              |
+| ------------------- | --------------- | ------------------ |
+| Server terminology  | Server          | Workspace          |
+| Channel identifiers | Snowflake IDs   | Channel name or ID |
+| Message identifiers | Snowflake IDs   | Timestamps (ts)    |
+| Threads             | Thread ID field | Thread timestamp   |
+| Mentions            | `<@user_id>`    | `<@USER_ID>`       |
 
 **Important**: Discord uses Snowflake IDs (large numbers like `1234567890123456789`) for all identifiers. You cannot use channel names directly - use `channel list` to find IDs first.
 
@@ -283,6 +371,7 @@ See `references/common-patterns.md` for typical AI agent workflows.
 ## Templates
 
 See `templates/` directory for runnable examples:
+
 - `post-message.sh` - Send messages with error handling
 - `monitor-channel.sh` - Monitor channel for new messages
 - `server-summary.sh` - Generate server summary
@@ -298,30 +387,15 @@ All commands return consistent error format:
 ```
 
 Common errors:
-- `Not authenticated`: No valid token - run `auth extract`
+
+- `Not authenticated`: No valid token (auto-extraction failed — see Troubleshooting)
 - `No current server set`: Run `server switch <id>` first
 - `Message not found`: Invalid message ID
 - `Unknown Channel`: Invalid channel ID
 
 ## Configuration
 
-Credentials stored in: `~/.config/agent-messenger/discord-credentials.json`
-
-Format:
-```json
-{
-  "token": "user_token_here",
-  "current_server": "1234567890123456789",
-  "servers": {
-    "1234567890123456789": {
-      "server_id": "1234567890123456789",
-      "server_name": "My Server"
-    }
-  }
-}
-```
-
-**Security**: File permissions set to 0600 (owner read/write only)
+Credentials stored in `~/.config/agent-messenger/discord-credentials.json` (0600 permissions). See [references/authentication.md](references/authentication.md) for format and security details.
 
 ## Limitations
 
@@ -332,6 +406,32 @@ Format:
 - No webhook support
 - Plain text messages only (no embeds in v1)
 - User tokens only (no bot tokens)
+
+## Troubleshooting
+
+### `agent-discord: command not found`
+
+**`agent-discord` is NOT the npm package name.** The npm package is `agent-messenger`.
+
+If the package is installed globally, use `agent-discord` directly:
+
+```bash
+agent-discord server list
+```
+
+If the package is NOT installed, run it directly using a package runner. Ask the user which one to use:
+
+```bash
+npx -y agent-messenger discord server list
+bunx agent-messenger discord server list
+pnpm dlx agent-messenger discord server list
+```
+
+If you already know the user's preferred package runner, use it directly instead of asking.
+
+**NEVER run `npx agent-discord`, `bunx agent-discord`, or `pnpm dlx agent-discord`** — it will fail or install a wrong package since `agent-discord` is not the npm package name.
+
+For other troubleshooting (auth extraction, token issues, permissions), see [references/authentication.md](references/authentication.md).
 
 ## References
 

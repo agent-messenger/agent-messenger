@@ -1,9 +1,0 @@
-export { authCommand } from './auth';
-export { channelCommand } from './channel';
-export { fileCommand } from './file';
-export { messageCommand } from './message';
-export { reactionCommand } from './reaction';
-export { serverCommand } from './server';
-export { snapshotCommand } from './snapshot';
-export { userCommand } from './user';
-//# sourceMappingURL=index.js.map

@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, expect, spyOn, test } from 'bun:test'
+
 import { TeamsClient } from '../client'
 import { TeamsCredentialManager } from '../credential-manager'
 
@@ -26,11 +27,17 @@ beforeEach(() => {
   })
 
   credManagerLoadConfigSpy = spyOn(TeamsCredentialManager.prototype, 'loadConfig').mockResolvedValue({
-    token: 'test-token',
-    current_team: 'team-1',
-    teams: {
-      'team-1': { team_id: 'team-1', team_name: 'Team One' },
-      'team-2': { team_id: 'team-2', team_name: 'Team Two' },
+    current_account: 'work',
+    accounts: {
+      work: {
+        token: 'test-token',
+        account_type: 'work' as const,
+        current_team: 'team-1',
+        teams: {
+          'team-1': { team_id: 'team-1', team_name: 'Team One' },
+          'team-2': { team_id: 'team-2', team_name: 'Team Two' },
+        },
+      },
     },
   })
 
@@ -59,12 +66,13 @@ test('list: returns teams with current marker', async () => {
   const config = await credManager.loadConfig()
 
   // when: checking teams
-  expect(config?.teams).toBeDefined()
-  expect(Object.keys(config!.teams)).toHaveLength(2)
+  const account = config!.accounts.work
+  expect(account.teams).toBeDefined()
+  expect(Object.keys(account.teams)).toHaveLength(2)
 
   // then: teams are returned
-  expect(config!.teams['team-1']).toBeDefined()
-  expect(config!.teams['team-2']).toBeDefined()
+  expect(account.teams['team-1']).toBeDefined()
+  expect(account.teams['team-2']).toBeDefined()
 })
 
 test('list: marks current team', async () => {
@@ -77,7 +85,7 @@ test('list: marks current team', async () => {
   expect(current?.team_id).toBe('team-1')
 
   // then: current team is marked
-  expect(config!.current_team).toBe('team-1')
+  expect(config!.accounts.work.current_team).toBe('team-1')
 })
 
 test('info: returns team details', async () => {
@@ -129,7 +137,7 @@ test('current: returns current team info', async () => {
 
   // then: current team is returned
   expect(current?.team_id).toBe('team-1')
-  expect(config!.current_team).toBe('team-1')
+  expect(config!.accounts.work.current_team).toBe('team-1')
 })
 
 test('remove: removes team from config', async () => {
@@ -138,7 +146,7 @@ test('remove: removes team from config', async () => {
   const config = await credManager.loadConfig()
 
   // when: removing team
-  delete config!.teams['team-2']
+  delete config!.accounts.work.teams['team-2']
   await credManager.saveConfig(config!)
 
   // then: saveConfig is called

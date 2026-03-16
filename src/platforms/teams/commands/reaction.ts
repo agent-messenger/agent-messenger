@@ -1,6 +1,8 @@
 import { Command } from 'commander'
-import { handleError } from '../../../shared/utils/error-handler'
-import { formatOutput } from '../../../shared/utils/output'
+
+import { handleError } from '@/shared/utils/error-handler'
+import { formatOutput } from '@/shared/utils/output'
+
 import { TeamsClient } from '../client'
 import { TeamsCredentialManager } from '../credential-manager'
 
@@ -13,14 +15,14 @@ export async function addAction(
 ): Promise<void> {
   try {
     const credManager = new TeamsCredentialManager()
-    const config = await credManager.loadConfig()
+    const cred = await credManager.getTokenWithExpiry()
 
-    if (!config?.token) {
+    if (!cred) {
       console.log(formatOutput({ error: 'Not authenticated. Run "auth extract" first.' }, options.pretty))
       process.exit(1)
     }
 
-    const client = new TeamsClient(config.token, config.token_expires_at)
+    const client = new TeamsClient(cred.token, cred.tokenExpiresAt)
     await client.addReaction(teamId, channelId, messageId, emoji)
 
     console.log(
@@ -49,14 +51,14 @@ export async function removeAction(
 ): Promise<void> {
   try {
     const credManager = new TeamsCredentialManager()
-    const config = await credManager.loadConfig()
+    const cred = await credManager.getTokenWithExpiry()
 
-    if (!config?.token) {
+    if (!cred) {
       console.log(formatOutput({ error: 'Not authenticated. Run "auth extract" first.' }, options.pretty))
       process.exit(1)
     }
 
-    const client = new TeamsClient(config.token, config.token_expires_at)
+    const client = new TeamsClient(cred.token, cred.tokenExpiresAt)
     await client.removeReaction(teamId, channelId, messageId, emoji)
 
     console.log(

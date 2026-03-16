@@ -1,7 +1,9 @@
 import { Command } from 'commander'
-import { parallelMap } from '../../../shared/utils/concurrency'
-import { handleError } from '../../../shared/utils/error-handler'
-import { formatOutput } from '../../../shared/utils/output'
+
+import { parallelMap } from '@/shared/utils/concurrency'
+import { handleError } from '@/shared/utils/error-handler'
+import { formatOutput } from '@/shared/utils/output'
+
 import { DiscordClient } from '../client'
 import { DiscordCredentialManager } from '../credential-manager'
 import type { DiscordChannel } from '../types'
@@ -86,8 +88,7 @@ export async function snapshotAction(options: {
   }
 }
 
-export const snapshotCommand = new Command()
-  .name('snapshot')
+export const snapshotCommand = new Command('snapshot')
   .description('Get comprehensive server state for AI agents')
   .option('--channels-only', 'Include only channels (exclude messages and members)')
   .option('--users-only', 'Include only members (exclude channels and messages)')

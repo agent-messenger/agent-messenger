@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, mock, test } from 'bun:test'
+
 import { SlackClient } from '@/platforms/slack/client'
 import type { SlackSavedItem } from '@/platforms/slack/types'
 

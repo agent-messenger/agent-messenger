@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, mock, test } from 'bun:test'
+
 import { SlackClient } from '@/platforms/slack/client'
 import type { SlackMessage } from '@/platforms/slack/types'
 
@@ -339,6 +340,55 @@ describe('Message Commands', () => {
       expect(output).toHaveLength(2)
       expect(output[0].text).toBe('First')
       expect(output[1].text).toBe('Second')
+    })
+
+    test('formats message with files', () => {
+      // Given: A message with file attachments
+      const message: SlackMessage = {
+        ts: '1234567890.123456',
+        text: 'Check this screenshot',
+        type: 'message',
+        user: 'U123',
+        files: [
+          {
+            id: 'F123456',
+            name: 'screenshot.png',
+            title: 'Screenshot',
+            mimetype: 'image/png',
+            size: 2048,
+            url_private: 'https://files.slack.com/files-pri/T123-F123/screenshot.png',
+            created: 1234567890,
+            user: 'U123',
+            channels: ['C123'],
+          },
+        ],
+      }
+
+      // When: Formatting output
+      const output = { ...message }
+
+      // Then: Should include files
+      expect(output.files).toBeDefined()
+      expect(output.files).toHaveLength(1)
+      expect(output.files![0].id).toBe('F123456')
+      expect(output.files![0].name).toBe('screenshot.png')
+      expect(output.files![0].url_private).toContain('files.slack.com')
+    })
+
+    test('message without files has undefined files field', () => {
+      // Given: A message without file attachments
+      const message: SlackMessage = {
+        ts: '1234567890.123456',
+        text: 'No files here',
+        type: 'message',
+        user: 'U123',
+      }
+
+      // When: Formatting output
+      const output = { ...message }
+
+      // Then: files should be undefined
+      expect(output.files).toBeUndefined()
     })
   })
 })

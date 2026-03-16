@@ -1,7 +1,9 @@
 #!/usr/bin/env bun
 
+import type { Command as CommandType } from 'commander'
 import { Command } from 'commander'
-import pkg from '../../../package.json'
+
+import pkg from '../../../package.json' with { type: 'json' }
 import {
   authCommand,
   channelCommand,
@@ -12,6 +14,18 @@ import {
   teamCommand,
   userCommand,
 } from './commands'
+import { TeamsCredentialManager } from './credential-manager'
+import { ensureTeamsAuth } from './ensure-auth'
+import type { TeamsAccountType } from './types'
+
+function isAuthCommand(command: CommandType): boolean {
+  let cmd: CommandType | null = command
+  while (cmd) {
+    if (cmd.name() === 'auth') return true
+    cmd = cmd.parent
+  }
+  return false
+}
 
 const program = new Command()
 
@@ -21,6 +35,16 @@ program
   .version(pkg.version)
   .option('--pretty', 'Pretty-print JSON output')
   .option('--team <id>', 'Use specific team')
+  .option('--account <type>', 'Use specific account (work or personal)')
+
+program.hook('preAction', async (_thisCommand, actionCommand) => {
+  if (isAuthCommand(actionCommand)) return
+  const opts = program.opts()
+  if (opts.account) {
+    TeamsCredentialManager.accountOverride = opts.account as TeamsAccountType
+  }
+  await ensureTeamsAuth()
+})
 
 program.addCommand(authCommand)
 program.addCommand(teamCommand)

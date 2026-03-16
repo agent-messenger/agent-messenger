@@ -18,6 +18,7 @@ agent-discord auth extract --debug
 ```
 
 This command:
+
 1. Detects your operating system (macOS, Linux, Windows)
 2. Locates the Discord desktop app data directory
 3. Reads the LevelDB storage containing session data
@@ -29,21 +30,25 @@ This command:
 ### Platform-Specific Paths
 
 **macOS:**
+
 ```
 ~/Library/Application Support/discord/
 ```
 
 **Linux:**
+
 ```
 ~/.config/discord/
 ```
 
 **Windows:**
+
 ```
 %APPDATA%\discord\
 ```
 
 The tool searches within:
+
 - `Local Storage/leveldb/` - Primary token storage
 
 ### What Gets Extracted
@@ -62,6 +67,7 @@ agent-discord server list
 ```
 
 Output:
+
 ```json
 [
   {
@@ -100,6 +106,7 @@ agent-discord server current
 ### Location
 
 Credentials are stored in:
+
 ```
 ~/.config/agent-messenger/discord-credentials.json
 ```
@@ -138,6 +145,7 @@ agent-discord auth status
 ```
 
 Output when authenticated:
+
 ```json
 {
   "authenticated": true,
@@ -148,6 +156,7 @@ Output when authenticated:
 ```
 
 Output when not authenticated:
+
 ```json
 {
   "error": "Not authenticated. Run \"auth extract\" first."
@@ -159,6 +168,7 @@ Output when not authenticated:
 ### When Tokens Expire
 
 Discord user tokens can be invalidated when:
+
 - You change your password
 - You enable/disable 2FA
 - Discord forces a logout
@@ -187,6 +197,7 @@ agent-discord auth extract --debug
 ```
 
 This shows:
+
 - Which Discord directory was found
 - Token extraction progress
 - Token validation results
@@ -197,6 +208,7 @@ This shows:
 **Cause**: Discord desktop app not installed or in non-standard location
 
 **Solution**:
+
 1. Install Discord desktop app
 2. Log in to your account
 3. Run `agent-discord auth extract` again
@@ -206,6 +218,7 @@ This shows:
 **Cause**: Not logged into Discord or token storage corrupted
 
 **Solution**:
+
 1. Open Discord desktop app
 2. Make sure you're logged in (can see your servers)
 3. Run `agent-discord auth extract --debug` to see details
@@ -215,6 +228,7 @@ This shows:
 **Cause**: Insufficient file system permissions
 
 **Solution** (macOS):
+
 1. Grant Terminal/iTerm full disk access in System Preferences
 2. Security & Privacy -> Privacy -> Full Disk Access
 3. Add your terminal application
@@ -224,6 +238,7 @@ This shows:
 **Cause**: Token expired or invalidated
 
 **Solution**:
+
 ```bash
 # Re-extract fresh credentials
 agent-discord auth extract
@@ -237,6 +252,7 @@ agent-discord auth status
 ### What agent-discord Can Access
 
 With extracted credentials, agent-discord has the same permissions as you in Discord:
+
 - Read all channels you have access to
 - Send messages as you
 - Upload/download files
@@ -260,7 +276,7 @@ With extracted credentials, agent-discord has the same permissions as you in Dis
 
 ## Manual Token Management (Advanced)
 
-If automatic extraction fails, you can manually create credentials:
+If automatic extraction fails, you can manually create the credentials file:
 
 ```bash
 # Create config directory
@@ -284,11 +300,6 @@ EOF
 chmod 600 ~/.config/agent-messenger/discord-credentials.json
 ```
 
-To find your token manually:
-1. Open Discord in browser (not desktop app)
-2. Open DevTools -> Network tab
-3. Make any API call (send message, etc.)
-4. Find request to `discord.com/api`
-5. Copy `Authorization` header value
+If the user already has a token value, they can populate the file above. Otherwise, always prefer `agent-discord auth extract` to obtain the token automatically from the desktop app.
 
 **Warning**: Self-botting (using user tokens for automation) may violate Discord's Terms of Service. Use responsibly and at your own risk.

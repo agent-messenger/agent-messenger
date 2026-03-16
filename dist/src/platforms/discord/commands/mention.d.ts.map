@@ -1,1 +1,0 @@
-{"version":3,"file":"mention.d.ts","sourceRoot":"","sources":["../../../../../src/platforms/discord/commands/mention.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,OAAO,EAAE,MAAM,WAAW,CAAA;AAMnC,wBAAsB,UAAU,CAAC,OAAO,EAAE;IACxC,KAAK,CAAC,EAAE,MAAM,CAAA;IACd,KAAK,CAAC,EAAE,MAAM,CAAA;IACd,MAAM,CAAC,EAAE,OAAO,CAAA;CACjB,GAAG,OAAO,CAAC,IAAI,CAAC,CAiChB;AAED,eAAO,MAAM,cAAc,SAa1B,CAAA"}

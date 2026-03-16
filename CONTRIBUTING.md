@@ -65,6 +65,7 @@ Follow conventional commits:
 - `refactor(scope): description` - Code refactoring
 
 Examples:
+
 ```
 feat(slack): add message send command
 feat(discord): add server switching
@@ -89,12 +90,21 @@ test(channel): add channel list tests
 src/
   cli.ts                    # Main CLI entry point
   platforms/
-    slack/                  # Slack platform
+    slack/                  # Slack platform (user token)
       cli.ts                # Slack CLI entry
       client.ts             # Slack API client
       credential-manager.ts # Credential storage
       token-extractor.ts    # Auto credential extraction
+      ensure-auth.ts        # Auto-auth on first command
       types.ts              # TypeScript types
+      commands/             # Command handlers
+        auth.ts
+        channel.ts
+        message.ts
+        ...
+    slackbot/               # Slack Bot platform (bot token)
+      cli.ts                # Slack Bot CLI entry
+      client.ts             # Slack Bot API client
       commands/             # Command handlers
         auth.ts
         channel.ts
@@ -105,11 +115,25 @@ src/
       client.ts             # Discord API client
       credential-manager.ts # Credential storage
       token-extractor.ts    # Auto credential extraction
+      ensure-auth.ts        # Auto-auth on first command
       types.ts              # TypeScript types
       commands/             # Command handlers
         auth.ts
         channel.ts
         server.ts
+        message.ts
+        ...
+    teams/                  # Microsoft Teams platform
+      cli.ts                # Teams CLI entry
+      client.ts             # Teams API client
+      credential-manager.ts # Credential storage
+      token-extractor.ts    # Auto credential extraction
+      ensure-auth.ts        # Auto-auth on first command
+      types.ts              # TypeScript types
+      commands/             # Command handlers
+        auth.ts
+        channel.ts
+        team.ts
         message.ts
         ...
   shared/

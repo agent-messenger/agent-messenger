@@ -20,11 +20,40 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
+      - name: Typecheck
+        run: bun run typecheck
+
       - name: Lint
         run: bun run lint
 
       - name: Test
         run: bun run test
 
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
       - name: Build
         run: bun run build
+
+      - name: Verify built CLI runs on Node
+        run: |
+          node dist/src/cli.js --help
+          node dist/src/cli.js slack --help
+          node dist/src/cli.js slackbot --help
+          node dist/src/cli.js discord --help
+          node dist/src/cli.js discordbot --help
+          node dist/src/cli.js teams --help

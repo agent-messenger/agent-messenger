@@ -1,6 +1,6 @@
 # Agent Messenger - Claude Code Plugin
 
-Messaging platform interaction skills for AI agents and Claude Code. Supports Slack workspaces and Discord servers.
+Messaging platform interaction skills for AI agents and Claude Code. Supports Slack, Discord, and Microsoft Teams.
 
 ## Installation
 
@@ -36,13 +36,36 @@ Enables AI agents to interact with messaging platforms through CLI interfaces:
 - **Read channels** and message history
 - **Manage reactions** (add/remove/list)
 - **Upload files** to channels
+- **Search messages** across server
 - **Multi-guild support** with easy switching
+
+### Teams (`agent-teams`)
+- **Send messages** to channels
+- **Read channels** and message history
+- **Manage reactions** (add/remove)
+- **Upload files** to channels
+- **Workspace snapshots** for quick overview
+- **Multi-team support** with easy switching
+
+### Slack Bot (`agent-slackbot`)
+- **Send messages** using bot tokens (xoxb-)
+- **Read channels** and message history
+- **Manage reactions** (add/remove/list)
+- Designed for **server-side and CI/CD** use cases
+
+### Discord Bot (`agent-discordbot`)
+- **Send messages** using bot tokens
+- **Read channels** and message history
+- **Manage reactions** (add/remove)
+- **Upload files** to channels
+- **Multi-bot management** with easy switching
+- Designed for **server-side and CI/CD** use cases
 
 ## Key Features
 
 ### Zero-Config Authentication
 
-Automatically extracts credentials from desktop apps - no manual token copying needed:
+Credentials are automatically extracted from your desktop apps on first command — no manual auth step needed. You can also extract manually:
 
 ```bash
 # Slack
@@ -50,6 +73,9 @@ agent-slack auth extract
 
 # Discord
 agent-discord auth extract
+
+# Teams
+agent-teams auth extract
 ```
 
 ### AI-Friendly References (Slack)
@@ -66,7 +92,7 @@ All commands output JSON by default for easy AI consumption. Use `--pretty` for 
 
 ## Requirements
 
-- Slack desktop app and/or Discord desktop app installed and logged in
+- Desktop app installed and logged in for the platform(s) you want to use (Slack, Discord, and/or Teams)
 - Node.js 18+ or Bun runtime
 
 ## Quick Start
@@ -74,30 +100,34 @@ All commands output JSON by default for easy AI consumption. Use `--pretty` for 
 ### Slack
 
 ```bash
-# 1. Extract credentials from Slack desktop app
-agent-slack auth extract
-
-# 2. Get workspace snapshot with refs
+# Get workspace snapshot with refs
 agent-slack snapshot
 
-# 3. Send a message
+# Send a message
 agent-slack message send general "Hello from AI agent!"
 
-# 4. Use refs for AI-friendly interaction
+# Use refs for AI-friendly interaction
 agent-slack message send @c1 "Message to first channel"
 ```
 
 ### Discord
 
 ```bash
-# 1. Extract credentials from Discord desktop app
-agent-discord auth extract
-
-# 2. Get guild snapshot
+# Get guild snapshot
 agent-discord snapshot
 
-# 3. Send a message (use channel ID)
+# Send a message (use channel ID)
 agent-discord message send <channel-id> "Hello from AI agent!"
+```
+
+### Teams
+
+```bash
+# Get team snapshot
+agent-teams snapshot
+
+# Send a message
+agent-teams message send <team-id> <channel-id> "Hello from AI agent!"
 ```
 
 ## Example Usage
@@ -141,4 +171,7 @@ agent-discord file upload <channel-id> ./report.pdf
 
 - [GitHub Repository](https://github.com/devxoul/agent-messenger)
 - [Slack Skill Documentation](https://github.com/devxoul/agent-messenger/blob/main/skills/agent-slack/SKILL.md)
+- [Slack Bot Skill Documentation](https://github.com/devxoul/agent-messenger/blob/main/skills/agent-slackbot/SKILL.md)
 - [Discord Skill Documentation](https://github.com/devxoul/agent-messenger/blob/main/skills/agent-discord/SKILL.md)
+- [Discord Bot Skill Documentation](https://github.com/devxoul/agent-messenger/blob/main/skills/agent-discordbot/SKILL.md)
+- [Teams Skill Documentation](https://github.com/devxoul/agent-messenger/blob/main/skills/agent-teams/SKILL.md)

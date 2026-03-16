@@ -23,9 +23,12 @@ yarn global add agent-messenger
 bun add -g agent-messenger
 ```
 
-This installs three CLI tools:
-- `agent-slack` — Slack CLI
-- `agent-discord` — Discord CLI
+This installs five CLI tools:
+
+- `agent-slack` — Slack CLI (user token, zero-config)
+- `agent-slackbot` — Slack Bot CLI (bot token, for server-side/CI/CD)
+- `agent-discord` — Discord CLI (user token, zero-config)
+- `agent-discordbot` — Discord Bot CLI (bot token, for server-side/CI/CD)
 - `agent-teams` — Microsoft Teams CLI
 
 ## Extract Credentials
@@ -98,6 +101,8 @@ agent-slack workspace current
 ## Next Steps
 
 - [Slack Reference](/docs/integrations/slack) - Full command reference
+- [Slack Bot Reference](/docs/integrations/slackbot) - Bot token for server-side/CI/CD
 - [Discord Reference](/docs/integrations/discord) - Full command reference
+- [Discord Bot Reference](/docs/integrations/discordbot) - Bot token for server-side/CI/CD
 - [Teams Reference](/docs/integrations/teams) - Full command reference
 - [Agent Skills](/docs/agent-skills) - Integrate with AI coding agents

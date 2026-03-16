@@ -1,6 +1,7 @@
 import { afterAll, describe, expect, test } from 'bun:test'
 import { rmSync } from 'node:fs'
 import { join } from 'node:path'
+
 import { CredentialManager } from '@/platforms/slack/credential-manager'
 import type { WorkspaceCredentials } from '@/platforms/slack/types'
 

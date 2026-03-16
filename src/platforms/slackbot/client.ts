@@ -1,4 +1,5 @@
 import { WebClient } from '@slack/web-api'
+
 import { SlackBotError, type SlackChannel, type SlackMessage, type SlackUser } from './types'
 
 const MAX_RETRIES = 3
@@ -113,6 +114,17 @@ export class SlackBotClient {
               ts: msg.edited.ts || '',
             }
           : undefined,
+        files: (msg as any).files?.map((f: any) => ({
+          id: f.id!,
+          name: f.name!,
+          title: f.title || f.name || '',
+          mimetype: f.mimetype || 'application/octet-stream',
+          size: f.size || 0,
+          url_private: f.url_private || '',
+          created: f.created || 0,
+          user: f.user || '',
+          channels: f.channels,
+        })),
       }))
     })
   }
@@ -147,6 +159,17 @@ export class SlackBotClient {
               ts: msg.edited.ts || '',
             }
           : undefined,
+        files: (msg as any).files?.map((f: any) => ({
+          id: f.id!,
+          name: f.name!,
+          title: f.title || f.name || '',
+          mimetype: f.mimetype || 'application/octet-stream',
+          size: f.size || 0,
+          url_private: f.url_private || '',
+          created: f.created || 0,
+          user: f.user || '',
+          channels: f.channels,
+        })),
       }
     })
   }
@@ -259,6 +282,27 @@ export class SlackBotClient {
           : undefined,
       }
     })
+  }
+
+  async resolveChannel(channel: string): Promise<string> {
+    const normalized = channel.replace(/^#/, '')
+
+    if (/^[CDG][A-Z0-9]+$/.test(normalized)) {
+      return normalized
+    }
+
+    const name = normalized
+    const channels = await this.listChannels()
+    const found = channels.find((ch) => ch.name === name)
+
+    if (!found) {
+      throw new SlackBotError(
+        `Channel not found: "${channel}". Use channel ID or exact channel name.`,
+        'channel_not_found',
+      )
+    }
+
+    return found.id
   }
 
   async listUsers(options?: { limit?: number; cursor?: string }): Promise<SlackUser[]> {
@@ -374,6 +418,17 @@ export class SlackBotClient {
               ts: msg.edited.ts || '',
             }
           : undefined,
+        files: msg.files?.map((f: any) => ({
+          id: f.id!,
+          name: f.name!,
+          title: f.title || f.name || '',
+          mimetype: f.mimetype || 'application/octet-stream',
+          size: f.size || 0,
+          url_private: f.url_private || '',
+          created: f.created || 0,
+          user: f.user || '',
+          channels: f.channels,
+        })),
       }))
     })
   }

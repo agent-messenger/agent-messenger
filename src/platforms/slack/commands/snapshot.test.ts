@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, expect, spyOn, test } from 'bun:test'
+
 import { SlackClient } from '@/platforms/slack/client'
 import { snapshotCommand } from '@/platforms/slack/commands/snapshot'
 import { CredentialManager } from '@/platforms/slack/credential-manager'

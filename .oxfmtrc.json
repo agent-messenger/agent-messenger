@@ -1,0 +1,20 @@
+{
+  "$schema": "./node_modules/oxfmt/configuration_schema.json",
+  "printWidth": 120,
+  "useTabs": false,
+  "semi": false,
+  "singleQuote": true,
+  "sortImports": {},
+  "overrides": [
+    {
+      "files": ["docs/**"],
+      "options": {
+        "sortTailwindcss": {
+          "stylesheet": "docs/src/app/globals.css",
+          "functions": ["cn", "clsx", "cva"]
+        }
+      }
+    }
+  ],
+  "ignorePatterns": ["dist/**", ".github/**", ".claude-plugin/**", "**/*.md"]
+}

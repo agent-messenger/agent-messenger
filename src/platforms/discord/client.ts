@@ -1,4 +1,5 @@
 import { readFile } from 'node:fs/promises'
+
 import { getDiscordHeaders } from './super-properties'
 import type {
   DiscordChannel,
@@ -105,7 +106,6 @@ export class DiscordClient {
   private async request<T>(method: string, path: string, body?: unknown): Promise<T> {
     const url = `${BASE_URL}${path}`
     const bucketKey = this.getBucketKey(method, path)
-    let lastError: Error | undefined
 
     for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
       await this.waitForRateLimit(bucketKey)
@@ -154,7 +154,7 @@ export class DiscordClient {
       return response.json() as Promise<T>
     }
 
-    throw lastError || new DiscordError('Request failed after retries', 'max_retries')
+    throw new DiscordError('Request failed after retries', 'max_retries')
   }
 
   private async requestFormData<T>(path: string, formData: FormData): Promise<T> {
@@ -312,7 +312,9 @@ export class DiscordClient {
   }
 
   async setUserNote(userId: string, note: string): Promise<DiscordUserNote> {
-    return this.request<DiscordUserNote>('PUT', `/users/@me/notes/${userId}`, { note })
+    return this.request<DiscordUserNote>('PUT', `/users/@me/notes/${userId}`, {
+      note,
+    })
   }
 
   async getRelationships(): Promise<DiscordRelationship[]> {
@@ -400,6 +402,8 @@ export class DiscordClient {
   }
 
   async archiveThread(threadId: string, archived: boolean = true): Promise<DiscordChannel> {
-    return this.request<DiscordChannel>('PATCH', `/channels/${threadId}`, { archived })
+    return this.request<DiscordChannel>('PATCH', `/channels/${threadId}`, {
+      archived,
+    })
   }
 }

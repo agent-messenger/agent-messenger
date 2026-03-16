@@ -1,6 +1,8 @@
 import { Command } from 'commander'
-import { handleError } from '../../../shared/utils/error-handler'
-import { formatOutput } from '../../../shared/utils/output'
+
+import { handleError } from '@/shared/utils/error-handler'
+import { formatOutput } from '@/shared/utils/output'
+
 import { SlackClient } from '../client'
 import { CredentialManager } from '../credential-manager'
 
@@ -45,6 +47,7 @@ export async function threadsAction(channel: string, threadTs: string, options: 
     }
 
     const client = new SlackClient(workspace.token, workspace.cookie)
+    channel = await client.resolveChannel(channel)
     const threadView = await client.getThreadView(channel, threadTs)
 
     const output = {
@@ -72,6 +75,7 @@ export async function markAction(channel: string, ts: string, options: { pretty?
     }
 
     const client = new SlackClient(workspace.token, workspace.cookie)
+    channel = await client.resolveChannel(channel)
     await client.markRead(channel, ts)
 
     console.log(formatOutput({ marked_read: true, channel, ts }, options.pretty))

@@ -1,7 +1,17 @@
 ---
 name: agent-slack
 description: Interact with Slack workspaces - send messages, read channels, manage reactions
+version: 1.12.0
 allowed-tools: Bash(agent-slack:*)
+metadata:
+  openclaw:
+    requires:
+      bins:
+        - agent-slack
+    install:
+      - kind: node
+        package: agent-messenger
+        bins: [agent-slack]
 ---
 
 # Agent Slack
@@ -11,10 +21,7 @@ A TypeScript CLI tool that enables AI agents and humans to interact with Slack w
 ## Quick Start
 
 ```bash
-# Extract credentials from Slack desktop app (zero-config)
-agent-slack auth extract
-
-# Get workspace snapshot
+# Get workspace snapshot (credentials are extracted automatically)
 agent-slack snapshot
 
 # Send a message
@@ -26,25 +33,11 @@ agent-slack channel list
 
 ## Authentication
 
-### Seamless Token Extraction
+Credentials are extracted automatically from the Slack desktop app on first use. No manual setup required — just run any command and authentication happens silently in the background.
 
-agent-slack automatically extracts your Slack credentials from the desktop app:
+On macOS, the system may prompt for your Keychain password the first time (required to decrypt Slack's stored token). This is a one-time prompt.
 
-```bash
-# Just run this - no manual token copying needed
-agent-slack auth extract
-
-# Use --debug for troubleshooting
-agent-slack auth extract --debug
-```
-
-This command:
-- Auto-detects your platform (macOS/Linux/Windows)
-- Supports both direct download and App Store versions of Slack on macOS
-- Extracts xoxc token and xoxd cookie (with v10 decryption for sandboxed apps)
-- Validates tokens against Slack API before saving
-- Discovers ALL logged-in workspaces
-- Stores credentials securely in `~/.config/agent-messenger/`
+**IMPORTANT**: NEVER guide the user to open a web browser, use DevTools, or manually copy tokens from a browser. Always use `agent-slack auth extract` to obtain tokens from the desktop app.
 
 ### Multi-Workspace Support
 
@@ -58,11 +51,103 @@ agent-slack workspace switch <workspace-id>
 # Show current workspace
 agent-slack workspace current
 
+# Remove a workspace
+agent-slack workspace remove <workspace-id>
+
 # Check auth status
 agent-slack auth status
 ```
 
+## Memory
+
+The agent maintains a `~/.config/agent-messenger/MEMORY.md` file as persistent memory across sessions. This is agent-managed — the CLI does not read or write this file. Use the `Read` and `Write` tools to manage your memory file.
+
+### Reading Memory
+
+At the **start of every task**, read `~/.config/agent-messenger/MEMORY.md` using the `Read` tool to load any previously discovered workspace IDs, channel IDs, user IDs, and preferences.
+
+- If the file doesn't exist yet, that's fine — proceed without it and create it when you first have useful information to store.
+- If the file can't be read (permissions, missing directory), proceed without memory — don't error out.
+
+### Writing Memory
+
+After discovering useful information, update `~/.config/agent-messenger/MEMORY.md` using the `Write` tool. Write triggers include:
+
+- After discovering workspace IDs (from `workspace list`)
+- After discovering useful channel IDs and names (from `channel list`, `snapshot`, etc.)
+- After discovering user IDs and names (from `user list`, `user me`, etc.)
+- After the user gives you an alias or preference ("call this the deploys channel", "my main workspace is X")
+- After discovering channel structure (sidebar sections, channel categories)
+
+When writing, include the **complete file content** — the `Write` tool overwrites the entire file.
+
+### What to Store
+
+- Workspace IDs with names
+- Channel IDs with names and purpose
+- User IDs with display names
+- User-given aliases ("deploys channel", "main workspace")
+- Commonly used thread timestamps
+- Any user preference expressed during interaction
+
+### What NOT to Store
+
+Never store tokens, cookies, credentials, or any sensitive data. Never store full message content (just IDs and channel context). Never store file upload contents.
+
+### Handling Stale Data
+
+If a memorized ID returns an error (channel not found, user not found), remove it from `MEMORY.md`. Don't blindly trust memorized data — verify when something seems off. Prefer re-listing over using a memorized ID that might be stale.
+
+### Format / Example
+
+```markdown
+# Agent Messenger Memory
+
+## Slack Workspaces
+
+- `T0ABC1234` — Acme Corp (default)
+- `T0DEF5678` — Side Project
+
+## Channels (Acme Corp)
+
+- `C012ABC` — #general (company-wide announcements)
+- `C034DEF` — #engineering (team discussion)
+- `C056GHI` — #deploys (CI/CD notifications)
+
+## Users (Acme Corp)
+
+- `U0ABC123` — Alice (engineering lead)
+- `U0DEF456` — Bob (backend)
+
+## Aliases
+
+- "deploys" → `C056GHI` (#deploys in Acme Corp)
+- "main workspace" → `T0ABC1234` (Acme Corp)
+
+## Notes
+
+- User prefers --pretty output for snapshots
+- Main workspace is "Acme Corp"
+```
+
+> Memory lets you skip repeated `channel list` and `workspace list` calls. When you already know an ID from a previous session, use it directly.
+
 ## Commands
+
+### Auth Commands
+
+```bash
+# Extract tokens from Slack desktop app (usually automatic)
+agent-slack auth extract
+agent-slack auth extract --debug
+
+# Check auth status
+agent-slack auth status
+
+# Logout from a workspace (defaults to current)
+agent-slack auth logout
+agent-slack auth logout <workspace-id>
+```
 
 ### Message Commands
 
@@ -109,6 +194,7 @@ agent-slack message delete <channel> <ts> --force
 agent-slack channel list
 agent-slack channel list --type public
 agent-slack channel list --type private
+agent-slack channel list --type dm
 agent-slack channel list --include-archived
 
 # Get channel info
@@ -160,21 +246,24 @@ agent-slack file list --channel general
 
 # Get file info
 agent-slack file info <file-id>
+
+# Download file
+agent-slack file download <file-id>
+agent-slack file download <file-id> [output-path]
+agent-slack file download F0ABC123 ./downloads/
 ```
 
 ### Unread Commands
 
 ```bash
-# List unread channels
-agent-slack unread list
-agent-slack unread list --pretty
+# Get unread counts for all channels
+agent-slack unread counts
 
-# Get unread counts summary
-agent-slack unread count
+# Get thread subscription details
+agent-slack unread threads <channel> <thread_ts>
 
-# Mark channel as read
-agent-slack mark read <channel>
-agent-slack mark read general
+# Mark channel as read up to timestamp
+agent-slack unread mark <channel> <ts>
 ```
 
 ### Activity Commands
@@ -183,6 +272,8 @@ agent-slack mark read general
 # List activity feed (mentions, reactions, replies)
 agent-slack activity list
 agent-slack activity list --limit 50
+agent-slack activity list --unread
+agent-slack activity list --types thread_reply,message_reaction
 ```
 
 ### Saved Items Commands
@@ -190,13 +281,7 @@ agent-slack activity list --limit 50
 ```bash
 # List saved items
 agent-slack saved list
-
-# Add item to saved
-agent-slack saved add <channel> <ts>
-agent-slack saved add general 1234567890.123456
-
-# Remove item from saved
-agent-slack saved remove <channel> <ts>
+agent-slack saved list --limit 10
 ```
 
 ### Drafts Commands
@@ -211,8 +296,8 @@ agent-slack drafts list --pretty
 
 ```bash
 # List channel sections (sidebar organization)
-agent-slack section list
-agent-slack section list --pretty
+agent-slack sections list
+agent-slack sections list --pretty
 ```
 
 ### Snapshot Command
@@ -232,6 +317,7 @@ agent-slack snapshot --limit 10
 ```
 
 Returns JSON with:
+
 - Workspace metadata
 - Channels (id, name, topic, purpose)
 - Recent messages (ts, text, user, channel)
@@ -266,6 +352,7 @@ See `references/common-patterns.md` for typical AI agent workflows.
 ## Templates
 
 See `templates/` directory for runnable examples:
+
 - `post-message.sh` - Send messages with error handling
 - `monitor-channel.sh` - Monitor channel for new messages
 - `workspace-summary.sh` - Generate workspace summary
@@ -281,30 +368,14 @@ All commands return consistent error format:
 ```
 
 Common errors:
-- `NO_WORKSPACE`: No authenticated workspace
+
+- `NO_WORKSPACE`: No authenticated workspace (auto-extraction failed — see Troubleshooting)
 - `SLACK_API_ERROR`: Slack API returned an error
 - `RATE_LIMIT`: Hit Slack rate limit (auto-retries with backoff)
 
 ## Configuration
 
-Credentials stored in: `~/.config/agent-messenger/slack-credentials.json`
-
-Format:
-```json
-{
-  "current_workspace": "T123456",
-  "workspaces": {
-    "T123456": {
-      "workspace_id": "T123456",
-      "workspace_name": "My Workspace",
-      "token": "xoxc-...",
-      "cookie": "xoxd-..."
-    }
-  }
-}
-```
-
-**Security**: File permissions set to 0600 (owner read/write only)
+Credentials stored in `~/.config/agent-messenger/slack-credentials.json` (0600 permissions). See [references/authentication.md](references/authentication.md) for format and security details.
 
 ## Limitations
 
@@ -314,6 +385,32 @@ Format:
 - No scheduled messages
 - No user presence features
 - Plain text messages only (no blocks/formatting in v1)
+
+## Troubleshooting
+
+### `agent-slack: command not found`
+
+**`agent-slack` is NOT the npm package name.** The npm package is `agent-messenger`.
+
+If the package is installed globally, use `agent-slack` directly:
+
+```bash
+agent-slack message list general
+```
+
+If the package is NOT installed, run it directly using a package runner. Ask the user which one to use:
+
+```bash
+npx -y agent-messenger slack message list general
+bunx agent-messenger slack message list general
+pnpm dlx agent-messenger slack message list general
+```
+
+If you already know the user's preferred package runner, use it directly instead of asking.
+
+**NEVER run `npx agent-slack`, `bunx agent-slack`, or `pnpm dlx agent-slack`** — a separate, unrelated npm package named `agent-slack` exists on npm. It will silently install the **wrong package** with different (fewer) commands.
+
+For other troubleshooting (auth extraction, token issues, Keychain), see [references/authentication.md](references/authentication.md).
 
 ## References
 

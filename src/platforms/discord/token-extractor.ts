@@ -3,7 +3,9 @@ import { createDecipheriv, pbkdf2Sync } from 'node:crypto'
 import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
-import { DerivedKeyCache } from '../../shared/utils/derived-key-cache'
+
+import { DerivedKeyCache } from '@/shared/utils/derived-key-cache'
+import { lookupLinuxKeyringPassword } from '@/shared/utils/linux-keyring'
 
 export interface ExtractedDiscordToken {
   token: string
@@ -32,7 +34,7 @@ interface CDPMessage {
   error?: { code: number; message: string }
 }
 
-const TOKEN_REGEX = /[\w-]{24}\.[\w-]{6}\.[\w-]{25,110}/
+const TOKEN_REGEX = /[\w-]{24,}\.[\w-]{6}\.[\w-]{25,110}/
 const MFA_TOKEN_REGEX = /mfa\.[\w-]{84}/
 const ENCRYPTED_PREFIX = 'dQw4w9WgXcQ:'
 
@@ -260,6 +262,8 @@ export class DiscordTokenExtractor {
       return this.decryptWindowsToken(encryptedData, discordDir)
     } else if (this.platform === 'darwin') {
       return this.decryptMacToken(encryptedData, discordDir)
+    } else if (this.platform === 'linux') {
+      return this.decryptLinuxToken(encryptedData)
     }
 
     return null
@@ -332,6 +336,34 @@ export class DiscordTokenExtractor {
       } catch {}
     }
 
+    return null
+  }
+
+  private decryptLinuxToken(encryptedData: Buffer): string | null {
+    const prefix = encryptedData.subarray(0, 3).toString()
+    if (prefix === 'v11') {
+      const result = this.decryptV11LinuxToken(encryptedData)
+      if (result) return result
+    }
+    // v10 or fallback
+    const key = pbkdf2Sync('peanuts', 'saltysalt', 1, 16, 'sha1')
+    return this.decryptAESCBC(encryptedData, key)
+  }
+
+  private getLinuxKeyringPassword(appName: string): string {
+    return lookupLinuxKeyringPassword(appName)
+  }
+
+  private decryptV11LinuxToken(encryptedData: Buffer): string | null {
+    const appNames = ['discord', 'Discord']
+    for (const appName of appNames) {
+      try {
+        const keyringPassword = this.getLinuxKeyringPassword(appName)
+        const key = pbkdf2Sync(keyringPassword, 'saltysalt', 1, 16, 'sha1')
+        const result = this.decryptAESCBC(encryptedData, key)
+        if (result) return result
+      } catch {}
+    }
     return null
   }
 

@@ -3,6 +3,7 @@ import { existsSync, rmSync } from 'node:fs'
 import { mkdir, stat } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+
 import { SlackBotCredentialManager } from './credential-manager'
 
 const CREDS_A = {

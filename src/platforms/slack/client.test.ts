@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, mock, test } from 'bun:test'
+
 import type { WebClient } from '@slack/web-api'
+
 import { SlackClient, SlackError } from '@/platforms/slack/client'
 
 const mockWebClient: any = {
@@ -25,6 +27,7 @@ const mockWebClient: any = {
   files: {
     uploadV2: mock((): Promise<any> => Promise.resolve({ ok: true, file: {} })),
     list: mock((): Promise<any> => Promise.resolve({ ok: true, files: [] })),
+    info: mock((): Promise<any> => Promise.resolve({ ok: true, file: {} })),
   },
   auth: {
     test: mock((): Promise<any> => Promise.resolve({ ok: true, user_id: 'U123', team_id: 'T123' })),
@@ -223,6 +226,107 @@ describe('SlackClient', () => {
       client.client = mockWebClient as unknown as WebClient
 
       await expect(client.getChannel('C999')).rejects.toThrow(SlackError)
+    })
+  })
+
+  describe('resolveChannel', () => {
+    beforeEach(() => resetMocks())
+
+    test('returns channel ID unchanged when input starts with C', async () => {
+      const client = new SlackClient('xoxc-token', 'xoxd-cookie')
+      const channel = await client.resolveChannel('C123ABC')
+      expect(channel).toBe('C123ABC')
+    })
+
+    test('returns channel ID unchanged when input starts with D', async () => {
+      const client = new SlackClient('xoxc-token', 'xoxd-cookie')
+      const channel = await client.resolveChannel('D123ABC')
+      expect(channel).toBe('D123ABC')
+    })
+
+    test('returns channel ID unchanged when input starts with G', async () => {
+      const client = new SlackClient('xoxc-token', 'xoxd-cookie')
+      const channel = await client.resolveChannel('G123ABC')
+      expect(channel).toBe('G123ABC')
+    })
+
+    test('resolves channel name to ID by calling listChannels', async () => {
+      mockWebClient.conversations.list.mockResolvedValue({
+        ok: true,
+        channels: [
+          {
+            id: 'C123',
+            name: 'general',
+            is_private: false,
+            is_archived: false,
+            created: 1234567890,
+            creator: 'U123',
+          },
+        ],
+      })
+
+      const client = new SlackClient('xoxc-token', 'xoxd-cookie')
+      // @ts-expect-error - accessing private property for testing
+      client.client = mockWebClient as unknown as WebClient
+
+      const channel = await client.resolveChannel('general')
+      expect(channel).toBe('C123')
+      expect(mockWebClient.conversations.list).toHaveBeenCalledTimes(1)
+    })
+
+    test('strips leading # from channel name', async () => {
+      mockWebClient.conversations.list.mockResolvedValue({
+        ok: true,
+        channels: [
+          {
+            id: 'C123',
+            name: 'general',
+            is_private: false,
+            is_archived: false,
+            created: 1234567890,
+            creator: 'U123',
+          },
+        ],
+      })
+
+      const client = new SlackClient('xoxc-token', 'xoxd-cookie')
+      // @ts-expect-error - accessing private property for testing
+      client.client = mockWebClient as unknown as WebClient
+
+      const channel = await client.resolveChannel('#general')
+      expect(channel).toBe('C123')
+      expect(mockWebClient.conversations.list).toHaveBeenCalledTimes(1)
+    })
+
+    test('returns channel ID unchanged when input is #C prefixed ID', async () => {
+      const client = new SlackClient('xoxc-token', 'xoxd-cookie')
+      const channel = await client.resolveChannel('#C123ABC')
+      expect(channel).toBe('C123ABC')
+    })
+
+    test("throws SlackError with code 'channel_not_found' when name is not found", async () => {
+      mockWebClient.conversations.list.mockResolvedValue({
+        ok: true,
+        channels: [
+          {
+            id: 'C123',
+            name: 'general',
+            is_private: false,
+            is_archived: false,
+            created: 1234567890,
+            creator: 'U123',
+          },
+        ],
+      })
+
+      const client = new SlackClient('xoxc-token', 'xoxd-cookie')
+      // @ts-expect-error - accessing private property for testing
+      client.client = mockWebClient as unknown as WebClient
+
+      await expect(client.resolveChannel('missing-channel')).rejects.toMatchObject({
+        name: 'SlackError',
+        code: 'channel_not_found',
+      })
     })
   })
 
@@ -598,16 +702,23 @@ describe('SlackClient', () => {
     test('uploads file to channels', async () => {
       mockWebClient.files.uploadV2.mockResolvedValue({
         ok: true,
-        file: {
-          id: 'F123',
-          name: 'test.txt',
-          title: 'test.txt',
-          mimetype: 'text/plain',
-          size: 100,
-          url_private: 'https://...',
-          created: 1234567890,
-          user: 'U123',
-        },
+        files: [
+          {
+            ok: true,
+            files: [
+              {
+                id: 'F123',
+                name: 'test.txt',
+                title: 'test.txt',
+                mimetype: 'text/plain',
+                size: 100,
+                url_private: 'https://...',
+                created: 1234567890,
+                user: 'U123',
+              },
+            ],
+          },
+        ],
       })
 
       const client = new SlackClient('xoxc-token', 'xoxd-cookie')
@@ -625,6 +736,32 @@ describe('SlackClient', () => {
       mockWebClient.files.uploadV2.mockResolvedValue({
         ok: false,
         error: 'file_upload_failed',
+      })
+
+      const client = new SlackClient('xoxc-token', 'xoxd-cookie')
+      // @ts-expect-error - accessing private property for testing
+      client.client = mockWebClient as unknown as WebClient
+
+      await expect(client.uploadFile(['C123'], Buffer.from('test'), 'test.txt')).rejects.toThrow(SlackError)
+    })
+
+    test('throws SlackError when response has empty files array', async () => {
+      mockWebClient.files.uploadV2.mockResolvedValue({
+        ok: true,
+        files: [],
+      })
+
+      const client = new SlackClient('xoxc-token', 'xoxd-cookie')
+      // @ts-expect-error - accessing private property for testing
+      client.client = mockWebClient as unknown as WebClient
+
+      await expect(client.uploadFile(['C123'], Buffer.from('test'), 'test.txt')).rejects.toThrow(SlackError)
+    })
+
+    test('throws SlackError when completion has no inner files', async () => {
+      mockWebClient.files.uploadV2.mockResolvedValue({
+        ok: true,
+        files: [{ ok: true, files: [] }],
       })
 
       const client = new SlackClient('xoxc-token', 'xoxd-cookie')
@@ -689,6 +826,168 @@ describe('SlackClient', () => {
       client.client = mockWebClient as unknown as WebClient
 
       await expect(client.listFiles()).rejects.toThrow(SlackError)
+    })
+  })
+
+  describe('getFileInfo', () => {
+    beforeEach(() => resetMocks())
+
+    test('returns file info', async () => {
+      mockWebClient.files.info.mockResolvedValue({
+        ok: true,
+        file: {
+          id: 'F123',
+          name: 'test.txt',
+          title: 'test.txt',
+          mimetype: 'text/plain',
+          size: 1024,
+          url_private: 'https://files.slack.com/files-pri/T123-F123/test.txt',
+          created: 1234567890,
+          user: 'U123',
+          channels: ['C123'],
+        },
+      })
+
+      const client = new SlackClient('xoxc-token', 'xoxd-cookie')
+      // @ts-expect-error - accessing private property for testing
+      client.client = mockWebClient as unknown as WebClient
+
+      const file = await client.getFileInfo('F123')
+      expect(file.id).toBe('F123')
+      expect(file.name).toBe('test.txt')
+      expect(file.url_private).toBe('https://files.slack.com/files-pri/T123-F123/test.txt')
+    })
+
+    test('throws on API failure', async () => {
+      mockWebClient.files.info.mockResolvedValue({ ok: false, error: 'file_not_found' })
+
+      const client = new SlackClient('xoxc-token', 'xoxd-cookie')
+      // @ts-expect-error - accessing private property for testing
+      client.client = mockWebClient as unknown as WebClient
+
+      await expect(client.getFileInfo('F999')).rejects.toThrow(SlackError)
+    })
+  })
+
+  describe('downloadFile', () => {
+    beforeEach(() => resetMocks())
+
+    test('downloads file content', async () => {
+      mockWebClient.files.info.mockResolvedValue({
+        ok: true,
+        file: {
+          id: 'F123',
+          name: 'test.txt',
+          title: 'test.txt',
+          mimetype: 'text/plain',
+          size: 12,
+          url_private: 'https://files.slack.com/files-pri/T123-F123/test.txt',
+          created: 1234567890,
+          user: 'U123',
+        },
+      })
+
+      const originalFetch = globalThis.fetch
+      globalThis.fetch = async () => new Response(Buffer.from('test content'), { status: 200 })
+
+      try {
+        const client = new SlackClient('xoxc-token', 'xoxd-cookie')
+        // @ts-expect-error - accessing private property for testing
+        client.client = mockWebClient as unknown as WebClient
+
+        const result = await client.downloadFile('F123')
+        expect(result.file.id).toBe('F123')
+        expect(result.buffer).toBeInstanceOf(Buffer)
+        expect(result.buffer.toString()).toBe('test content')
+      } finally {
+        globalThis.fetch = originalFetch
+      }
+    })
+
+    test('throws when url_private is empty', async () => {
+      mockWebClient.files.info.mockResolvedValue({
+        ok: true,
+        file: {
+          id: 'F123',
+          name: 'test.txt',
+          title: 'test.txt',
+          mimetype: 'text/plain',
+          size: 0,
+          url_private: '',
+          created: 1234567890,
+          user: 'U123',
+        },
+      })
+
+      const client = new SlackClient('xoxc-token', 'xoxd-cookie')
+      // @ts-expect-error - accessing private property for testing
+      client.client = mockWebClient as unknown as WebClient
+
+      await expect(client.downloadFile('F123')).rejects.toThrow('File has no download URL')
+    })
+
+    test('throws on download failure', async () => {
+      mockWebClient.files.info.mockResolvedValue({
+        ok: true,
+        file: {
+          id: 'F123',
+          name: 'test.txt',
+          title: 'test.txt',
+          mimetype: 'text/plain',
+          size: 12,
+          url_private: 'https://files.slack.com/files-pri/T123-F123/test.txt',
+          created: 1234567890,
+          user: 'U123',
+        },
+      })
+
+      const originalFetch = globalThis.fetch
+      globalThis.fetch = async () => new Response('Forbidden', { status: 403, statusText: 'Forbidden' })
+
+      try {
+        const client = new SlackClient('xoxc-token', 'xoxd-cookie')
+        // @ts-expect-error - accessing private property for testing
+        client.client = mockWebClient as unknown as WebClient
+
+        await expect(client.downloadFile('F123')).rejects.toThrow('Failed to download file')
+      } finally {
+        globalThis.fetch = originalFetch
+      }
+    })
+
+    test('sends correct auth headers', async () => {
+      mockWebClient.files.info.mockResolvedValue({
+        ok: true,
+        file: {
+          id: 'F123',
+          name: 'test.txt',
+          title: 'test.txt',
+          mimetype: 'text/plain',
+          size: 12,
+          url_private: 'https://files.slack.com/files-pri/T123-F123/test.txt',
+          created: 1234567890,
+          user: 'U123',
+        },
+      })
+
+      let capturedHeaders: Headers | undefined
+      const originalFetch = globalThis.fetch
+      globalThis.fetch = async (_url: any, init?: any) => {
+        capturedHeaders = new Headers(init?.headers)
+        return new Response(Buffer.from('data'), { status: 200 })
+      }
+
+      try {
+        const client = new SlackClient('xoxc-test-token', 'xoxd-test-cookie')
+        // @ts-expect-error - accessing private property for testing
+        client.client = mockWebClient as unknown as WebClient
+
+        await client.downloadFile('F123')
+        expect(capturedHeaders?.get('Authorization')).toBe('Bearer xoxc-test-token')
+        expect(capturedHeaders?.get('Cookie')).toBe('d=xoxd-test-cookie')
+      } finally {
+        globalThis.fetch = originalFetch
+      }
     })
   })
 

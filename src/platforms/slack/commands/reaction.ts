@@ -1,6 +1,8 @@
 import { Command } from 'commander'
-import { handleError } from '../../../shared/utils/error-handler'
-import { formatOutput } from '../../../shared/utils/output'
+
+import { handleError } from '@/shared/utils/error-handler'
+import { formatOutput } from '@/shared/utils/output'
+
 import { SlackClient } from '../client'
 import { CredentialManager } from '../credential-manager'
 
@@ -10,11 +12,12 @@ async function addAction(channel: string, ts: string, emoji: string, options: { 
     const ws = await credManager.getWorkspace()
 
     if (!ws) {
-      console.log(formatOutput({ error: 'No workspace configured. Run "auth extract" first.' }, options.pretty))
+      console.log(formatOutput({ error: 'No current workspace set. Run "auth extract" first.' }, options.pretty))
       process.exit(1)
     }
 
     const client = new SlackClient(ws.token, ws.cookie)
+    channel = await client.resolveChannel(channel)
     await client.addReaction(channel, ts, emoji)
 
     console.log(
@@ -39,11 +42,12 @@ async function removeAction(channel: string, ts: string, emoji: string, options:
     const ws = await credManager.getWorkspace()
 
     if (!ws) {
-      console.log(formatOutput({ error: 'No workspace configured. Run "auth extract" first.' }, options.pretty))
+      console.log(formatOutput({ error: 'No current workspace set. Run "auth extract" first.' }, options.pretty))
       process.exit(1)
     }
 
     const client = new SlackClient(ws.token, ws.cookie)
+    channel = await client.resolveChannel(channel)
     await client.removeReaction(channel, ts, emoji)
 
     console.log(
@@ -68,19 +72,19 @@ async function listAction(channel: string, ts: string, options: { pretty?: boole
     const ws = await credManager.getWorkspace()
 
     if (!ws) {
-      console.log(formatOutput({ error: 'No workspace configured. Run "auth extract" first.' }, options.pretty))
+      console.log(formatOutput({ error: 'No current workspace set. Run "auth extract" first.' }, options.pretty))
       process.exit(1)
     }
 
     const client = new SlackClient(ws.token, ws.cookie)
-    const messages = await client.getMessages(channel, 1)
-    const message = messages.find((m) => m.ts === ts)
+    channel = await client.resolveChannel(channel)
+    const message = await client.getMessage(channel, ts)
 
     if (!message) {
       console.log(
         formatOutput(
           {
-            error: 'Message not found',
+            error: `Message not found: ${ts}`,
             channel,
             ts,
           },
@@ -90,7 +94,7 @@ async function listAction(channel: string, ts: string, options: { pretty?: boole
       process.exit(1)
     }
 
-    const reactions = (message as any).reactions || []
+    const reactions = message.reactions || []
 
     console.log(
       formatOutput(

@@ -1,7 +1,9 @@
 import { Command } from 'commander'
-import { parallelMap } from '../../../shared/utils/concurrency'
-import { handleError } from '../../../shared/utils/error-handler'
-import { formatOutput } from '../../../shared/utils/output'
+
+import { parallelMap } from '@/shared/utils/concurrency'
+import { handleError } from '@/shared/utils/error-handler'
+import { formatOutput } from '@/shared/utils/output'
+
 import { SlackClient } from '../client'
 import { CredentialManager } from '../credential-manager'
 import type { SlackChannel } from '../types'
@@ -93,8 +95,7 @@ async function snapshotAction(options: {
   }
 }
 
-export const snapshotCommand = new Command()
-  .name('snapshot')
+export const snapshotCommand = new Command('snapshot')
   .description('Get comprehensive workspace state for AI agents')
   .option('--channels-only', 'Include only channels (exclude messages and users)')
   .option('--users-only', 'Include only users (exclude channels and messages)')

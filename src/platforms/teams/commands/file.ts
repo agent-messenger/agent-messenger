@@ -1,7 +1,10 @@
 import { resolve } from 'node:path'
+
 import { Command } from 'commander'
-import { handleError } from '../../../shared/utils/error-handler'
-import { formatOutput } from '../../../shared/utils/output'
+
+import { handleError } from '@/shared/utils/error-handler'
+import { formatOutput } from '@/shared/utils/output'
+
 import { TeamsClient } from '../client'
 import { TeamsCredentialManager } from '../credential-manager'
 import type { TeamsFile } from '../types'
@@ -14,14 +17,14 @@ export async function uploadAction(
 ): Promise<void> {
   try {
     const credManager = new TeamsCredentialManager()
-    const config = await credManager.loadConfig()
+    const cred = await credManager.getTokenWithExpiry()
 
-    if (!config?.token) {
+    if (!cred) {
       console.log(formatOutput({ error: 'Not authenticated. Run "auth extract" first.' }, options.pretty))
       process.exit(1)
     }
 
-    const client = new TeamsClient(config.token, config.token_expires_at)
+    const client = new TeamsClient(cred.token, cred.tokenExpiresAt)
     const filePath = resolve(path)
     const file = await client.uploadFile(teamId, channelId, filePath)
 
@@ -42,14 +45,14 @@ export async function uploadAction(
 export async function listAction(teamId: string, channelId: string, options: { pretty?: boolean }): Promise<void> {
   try {
     const credManager = new TeamsCredentialManager()
-    const config = await credManager.loadConfig()
+    const cred = await credManager.getTokenWithExpiry()
 
-    if (!config?.token) {
+    if (!cred) {
       console.log(formatOutput({ error: 'Not authenticated. Run "auth extract" first.' }, options.pretty))
       process.exit(1)
     }
 
-    const client = new TeamsClient(config.token, config.token_expires_at)
+    const client = new TeamsClient(cred.token, cred.tokenExpiresAt)
     const files = await client.listFiles(teamId, channelId)
 
     const output = files.map((file: TeamsFile) => ({
@@ -74,14 +77,14 @@ export async function infoAction(
 ): Promise<void> {
   try {
     const credManager = new TeamsCredentialManager()
-    const config = await credManager.loadConfig()
+    const cred = await credManager.getTokenWithExpiry()
 
-    if (!config?.token) {
+    if (!cred) {
       console.log(formatOutput({ error: 'Not authenticated. Run "auth extract" first.' }, options.pretty))
       process.exit(1)
     }
 
-    const client = new TeamsClient(config.token, config.token_expires_at)
+    const client = new TeamsClient(cred.token, cred.tokenExpiresAt)
     const files = await client.listFiles(teamId, channelId)
     const fileData = files.find((f) => f.id === fileId)
 
@@ -105,30 +108,30 @@ export async function infoAction(
 }
 
 export const fileCommand = new Command('file')
-  .description('file commands')
+  .description('File commands')
   .addCommand(
     new Command('upload')
-      .description('upload file to channel')
-      .argument('<team>', 'team ID')
-      .argument('<channel>', 'channel ID')
-      .argument('<path>', 'file path')
+      .description('Upload file to channel')
+      .argument('<team-id>', 'Team ID')
+      .argument('<channel-id>', 'Channel ID')
+      .argument('<path>', 'File path')
       .option('--pretty', 'Pretty print JSON output')
       .action(uploadAction),
   )
   .addCommand(
     new Command('list')
-      .description('list files in channel')
-      .argument('<team>', 'team ID')
-      .argument('<channel>', 'channel ID')
+      .description('List files in channel')
+      .argument('<team-id>', 'Team ID')
+      .argument('<channel-id>', 'Channel ID')
       .option('--pretty', 'Pretty print JSON output')
       .action(listAction),
   )
   .addCommand(
     new Command('info')
-      .description('show file details')
-      .argument('<team>', 'team ID')
-      .argument('<channel>', 'channel ID')
-      .argument('<file>', 'file ID')
+      .description('Show file details')
+      .argument('<team-id>', 'Team ID')
+      .argument('<channel-id>', 'Channel ID')
+      .argument('<file-id>', 'File ID')
       .option('--pretty', 'Pretty print JSON output')
       .action(infoAction),
   )

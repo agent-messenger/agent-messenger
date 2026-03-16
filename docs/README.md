@@ -26,6 +26,7 @@ bun run dev
 Open [http://localhost:3000](http://localhost:3000) in your browser to see the documentation site.
 
 The site includes:
+
 - **Landing page** with hero section, features, and quick start guide
 - **Documentation pages** with sidebar navigation
 - **Search functionality** for finding documentation
@@ -75,6 +76,7 @@ src/
 ## Documentation
 
 Documentation pages are written in MDX format and located in `src/content/docs/`. Each page includes:
+
 - Front matter with title, description, and optional icon
 - Markdown content with syntax highlighting
 - Automatic table of contents generation
@@ -92,7 +94,7 @@ Documentation pages are written in MDX format and located in `src/content/docs/`
 - **Documentation**: [Fumadocs](https://fumadocs.vercel.app/) for MDX support and search
 - **Styling**: [Tailwind CSS v4](https://tailwindcss.com/) with dark mode support
 - **Fonts**: [Geist](https://vercel.com/font) font family
-- **Linting**: [Biome](https://biomejs.dev/) for code quality
+- **Linting**: [oxlint](https://oxc.rs/docs/guide/usage/linter) + [oxfmt](https://oxc.rs/docs/guide/usage/formatter) for code quality
 - **Package Manager**: [Bun](https://bun.sh/)
 
 ## Features

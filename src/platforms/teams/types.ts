@@ -53,7 +53,30 @@ export interface TeamsCredentials {
   cookie?: string
 }
 
+export type TeamsAccountType = 'work' | 'personal'
+
+export interface TeamsAccount {
+  token: string
+  token_expires_at?: string
+  account_type: TeamsAccountType
+  user_name?: string
+  current_team: string | null
+  teams: Record<
+    string,
+    {
+      team_id: string
+      team_name: string
+    }
+  >
+}
+
 export interface TeamsConfig {
+  current_account: string | null
+  accounts: Record<string, TeamsAccount>
+}
+
+/** @deprecated Legacy single-account config format for migration */
+export interface TeamsConfigLegacy {
   current_team: string | null
   token: string
   token_expires_at?: string
@@ -116,7 +139,29 @@ export const TeamsCredentialsSchema = z.object({
   cookie: z.string().optional(),
 })
 
+export const TeamsAccountTypeSchema = z.enum(['work', 'personal'])
+
+export const TeamsAccountSchema = z.object({
+  token: z.string(),
+  token_expires_at: z.string().optional(),
+  account_type: TeamsAccountTypeSchema,
+  user_name: z.string().optional(),
+  current_team: z.string().nullable(),
+  teams: z.record(
+    z.string(),
+    z.object({
+      team_id: z.string(),
+      team_name: z.string(),
+    }),
+  ),
+})
+
 export const TeamsConfigSchema = z.object({
+  current_account: z.string().nullable(),
+  accounts: z.record(z.string(), TeamsAccountSchema),
+})
+
+export const TeamsConfigLegacySchema = z.object({
   current_team: z.string().nullable(),
   token: z.string(),
   token_expires_at: z.string().optional(),

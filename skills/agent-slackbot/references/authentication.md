@@ -17,18 +17,18 @@ agent-slackbot uses Slack Bot tokens (xoxb-) obtained from the Slack App configu
 
 Add these **Bot Token Scopes**:
 
-| Scope | Purpose |
-|-------|---------|
-| `chat:write` | Send and update messages |
-| `channels:history` | Read messages in public channels |
-| `channels:read` | List and get info for public channels |
-| `channels:join` | Join public channels |
-| `groups:history` | Read messages in private channels |
-| `groups:read` | List and get info for private channels |
-| `users:read` | List workspace users |
-| `users:read.email` | Access user email addresses |
-| `reactions:write` | Add and remove emoji reactions |
-| `reactions:read` | List reactions on messages |
+| Scope              | Purpose                                |
+| ------------------ | -------------------------------------- |
+| `chat:write`       | Send and update messages               |
+| `channels:history` | Read messages in public channels       |
+| `channels:read`    | List and get info for public channels  |
+| `channels:join`    | Join public channels                   |
+| `groups:history`   | Read messages in private channels      |
+| `groups:read`      | List and get info for private channels |
+| `users:read`       | List workspace users                   |
+| `users:read.email` | Access user email addresses            |
+| `reactions:write`  | Add and remove emoji reactions         |
+| `reactions:read`   | List reactions on messages             |
 
 ### Installing the App
 
@@ -47,6 +47,7 @@ agent-slackbot auth set xoxb-your-bot-token --bot deploy --name "Deploy Bot"
 ```
 
 This command:
+
 1. Validates the token format (must start with `xoxb-`)
 2. Calls `auth.test` to verify the token against Slack API
 3. Stores the bot under the workspace with its bot ID and name
@@ -137,6 +138,7 @@ agent-slackbot auth status
 ```
 
 Output when authenticated:
+
 ```json
 {
   "valid": true,
@@ -150,6 +152,7 @@ Output when authenticated:
 ```
 
 Output when not authenticated:
+
 ```json
 {
   "valid": false,
@@ -170,6 +173,7 @@ agent-slackbot auth clear
 ### When Tokens Stop Working
 
 Bot tokens can be invalidated when:
+
 - App is uninstalled from workspace
 - App is deleted from api.slack.com
 - Token is manually revoked
@@ -199,6 +203,7 @@ The bot must join a channel before posting messages to it:
 ### "invalid_auth" Error
 
 Token is expired or revoked:
+
 1. Go to api.slack.com/apps > your app > OAuth & Permissions
 2. Check if the app is still installed
 3. Reinstall if needed and copy the new token
@@ -207,6 +212,7 @@ Token is expired or revoked:
 ### "missing_scope" Error
 
 The bot token lacks required permissions:
+
 1. Go to api.slack.com/apps > your app > OAuth & Permissions
 2. Add the missing scope under Bot Token Scopes
 3. Reinstall the app to workspace
@@ -220,7 +226,7 @@ For quick setup, use this Slack App manifest:
 display_information:
   name: Agent Messenger Bot
   description: Bot for agent-messenger CLI integration
-  background_color: "#1a1a2e"
+  background_color: '#1a1a2e'
 
 features:
   bot_user:

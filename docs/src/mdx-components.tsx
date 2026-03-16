@@ -5,8 +5,7 @@ import type { MDXComponents } from 'mdx/types'
 export function getMDXComponents(components?: MDXComponents): MDXComponents {
   return {
     ...defaultMdxComponents,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    pre: ({ ref, ...props }) => (
+    pre: ({ ref: _, ...props }) => (
       <CodeBlock {...props}>
         <Pre>{props.children}</Pre>
       </CodeBlock>

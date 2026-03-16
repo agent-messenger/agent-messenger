@@ -1,8 +1,10 @@
 import { WebClient } from '@slack/web-api'
+
 import type {
   SlackActivityItem,
   SlackChannel,
   SlackChannelSection,
+  SlackDM,
   SlackDraft,
   SlackFile,
   SlackMessage,
@@ -28,6 +30,8 @@ const RATE_LIMIT_ERROR_CODE = 'slack_webapi_rate_limited_error'
 
 export class SlackClient {
   private client: WebClient
+  private token: string
+  private cookie: string
 
   constructor(token: string, cookie: string) {
     if (!token) {
@@ -37,6 +41,8 @@ export class SlackClient {
       throw new SlackError('Cookie is required', 'missing_cookie')
     }
 
+    this.token = token
+    this.cookie = cookie
     this.client = new WebClient(token, {
       headers: { Cookie: `d=${cookie}` },
     })
@@ -130,6 +136,37 @@ export class SlackClient {
     })
   }
 
+  async listDMs(options: { includeArchived?: boolean } = {}): Promise<SlackDM[]> {
+    return this.withRetry(async () => {
+      const dms: SlackDM[] = []
+      let cursor: string | undefined
+
+      do {
+        const response = await this.client.conversations.list({
+          cursor,
+          limit: 200,
+          types: 'im,mpim',
+          exclude_archived: !options.includeArchived,
+        })
+        this.checkResponse(response)
+
+        if (response.channels) {
+          for (const ch of response.channels) {
+            dms.push({
+              id: ch.id!,
+              user: ch.user || ch.name || '',
+              is_mpim: ch.is_mpim || false,
+            })
+          }
+        }
+
+        cursor = response.response_metadata?.next_cursor
+      } while (cursor)
+
+      return dms
+    })
+  }
+
   async getChannel(id: string): Promise<SlackChannel> {
     return this.withRetry(async () => {
       const response = await this.client.conversations.info({ channel: id })
@@ -159,6 +196,28 @@ export class SlackClient {
           : undefined,
       }
     })
+  }
+
+  async resolveChannel(channel: string): Promise<string> {
+    const normalized = channel.replace(/^#/, '')
+
+    if (/^[CDG][A-Z0-9]+$/.test(normalized)) {
+      return normalized
+    }
+
+    const name = normalized
+
+    const channels = await this.listChannels()
+    const found = channels.find((ch) => ch.name === name)
+
+    if (!found) {
+      throw new SlackError(
+        `Channel not found: "${channel}". Use channel ID or exact channel name.`,
+        'channel_not_found',
+      )
+    }
+
+    return found.id
   }
 
   async sendMessage(channel: string, text: string, threadTs?: string): Promise<SlackMessage> {
@@ -198,12 +257,24 @@ export class SlackClient {
         thread_ts: msg.thread_ts,
         reply_count: msg.reply_count,
         replies: (msg as any).replies,
+        reactions: (msg as any).reactions,
         edited: msg.edited
           ? {
               user: msg.edited.user || '',
               ts: msg.edited.ts || '',
             }
           : undefined,
+        files: (msg as any).files?.map((f: any) => ({
+          id: f.id!,
+          name: f.name!,
+          title: f.title || f.name || '',
+          mimetype: f.mimetype || 'application/octet-stream',
+          size: f.size || 0,
+          url_private: f.url_private || '',
+          created: f.created || 0,
+          user: f.user || '',
+          channels: f.channels,
+        })),
       }))
     })
   }
@@ -232,12 +303,24 @@ export class SlackClient {
         thread_ts: msg.thread_ts,
         reply_count: msg.reply_count,
         replies: (msg as any).replies,
+        reactions: (msg as any).reactions,
         edited: msg.edited
           ? {
               user: msg.edited.user || '',
               ts: msg.edited.ts || '',
             }
           : undefined,
+        files: (msg as any).files?.map((f: any) => ({
+          id: f.id!,
+          name: f.name!,
+          title: f.title || f.name || '',
+          mimetype: f.mimetype || 'application/octet-stream',
+          size: f.size || 0,
+          url_private: f.url_private || '',
+          created: f.created || 0,
+          user: f.user || '',
+          channels: f.channels,
+        })),
       }
     })
   }
@@ -369,7 +452,11 @@ export class SlackClient {
       })
       this.checkResponse(response)
 
-      const f = response.file as any
+      const completionFiles = (response as any).files?.[0]?.files
+      const f = completionFiles?.[0]
+      if (!f) {
+        throw new SlackError('No file returned in upload response', 'file_not_found')
+      }
       return {
         id: f.id!,
         name: f.name!,
@@ -403,6 +490,51 @@ export class SlackClient {
         channels: f.channels,
       }))
     })
+  }
+
+  async getFileInfo(fileId: string): Promise<SlackFile> {
+    return this.withRetry(async () => {
+      const response = await this.client.files.info({ file: fileId })
+      this.checkResponse(response)
+
+      const f = response.file!
+      return {
+        id: f.id!,
+        name: f.name!,
+        title: f.title || f.name || '',
+        mimetype: f.mimetype || 'application/octet-stream',
+        size: f.size || 0,
+        url_private: f.url_private || '',
+        created: f.created || 0,
+        user: f.user || '',
+        channels: f.channels,
+      }
+    })
+  }
+
+  async downloadFile(fileId: string): Promise<{ buffer: Buffer; file: SlackFile }> {
+    const file = await this.getFileInfo(fileId)
+
+    if (!file.url_private) {
+      throw new SlackError('File has no download URL', 'no_download_url')
+    }
+
+    const response = await fetch(file.url_private, {
+      headers: {
+        Authorization: `Bearer ${this.token}`,
+        Cookie: `d=${this.cookie}`,
+      },
+    })
+
+    if (!response.ok) {
+      throw new SlackError(`Failed to download file: ${response.statusText}`, 'download_failed')
+    }
+
+    const arrayBuffer = await response.arrayBuffer()
+    return {
+      buffer: Buffer.from(arrayBuffer),
+      file,
+    }
   }
 
   async searchMessages(
@@ -463,6 +595,18 @@ export class SlackClient {
               ts: msg.edited.ts || '',
             }
           : undefined,
+        reactions: msg.reactions,
+        files: msg.files?.map((f: any) => ({
+          id: f.id!,
+          name: f.name!,
+          title: f.title || f.name || '',
+          mimetype: f.mimetype || 'application/octet-stream',
+          size: f.size || 0,
+          url_private: f.url_private || '',
+          created: f.created || 0,
+          user: f.user || '',
+          channels: f.channels,
+        })),
       }))
 
       return {
@@ -475,10 +619,10 @@ export class SlackClient {
 
   async getUnreadCounts(): Promise<SlackUnreadCounts> {
     return this.withRetry(async () => {
-      const response = await (this.client as any).client.counts()
+      const response = await this.client.apiCall('client.counts')
       this.checkResponse(response)
 
-      const channels = (response.channels || []).map((ch: any) => ({
+      const channels = ((response as any).channels || []).map((ch: any) => ({
         id: ch.id || '',
         name: ch.name || '',
         unread_count: ch.unread_count || 0,
@@ -524,14 +668,14 @@ export class SlackClient {
 
   async getActivityFeed(options?: { types?: string; mode?: string; limit?: number }): Promise<SlackActivityItem[]> {
     return this.withRetry(async () => {
-      const response = await (this.client as any).activity.feed({
-        types: options?.types,
+      const response = await this.client.apiCall('activity.feed', {
+        types: options?.types || 'thread_reply,message_reaction,at_user,at_channel,keyword',
         mode: options?.mode || 'chrono_reads_and_unreads',
         limit: options?.limit || 20,
       })
       this.checkResponse(response)
 
-      const items = (response.items || []).map((item: any) => ({
+      const items = ((response as any).items || []).map((item: any) => ({
         id: item.id || '',
         type: item.type || '',
         channel: item.channel || '',
@@ -553,7 +697,7 @@ export class SlackClient {
     return this.withRetry(async () => {
       const response = await (this.client as any).apiCall('saved.list', {
         cursor,
-        limit: 100,
+        limit: 50,
       })
       this.checkResponse(response)
 

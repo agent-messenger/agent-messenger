@@ -1,6 +1,8 @@
 import { Command } from 'commander'
-import { handleError } from '../../../shared/utils/error-handler'
-import { formatOutput } from '../../../shared/utils/output'
+
+import { handleError } from '@/shared/utils/error-handler'
+import { formatOutput } from '@/shared/utils/output'
+
 import { CredentialManager } from '../credential-manager'
 
 async function listAction(options: { pretty?: boolean }): Promise<void> {
@@ -27,7 +29,12 @@ async function switchAction(id: string, options: { pretty?: boolean }): Promise<
     const config = await credManager.load()
 
     if (!config.workspaces[id]) {
-      console.log(formatOutput({ error: `Workspace not found: ${id}` }, options.pretty))
+      console.log(
+        formatOutput(
+          { error: `Workspace not found: ${id}`, hint: 'Run "workspace list" to see available workspaces.' },
+          options.pretty,
+        ),
+      )
       process.exit(1)
     }
 
@@ -65,7 +72,12 @@ async function removeAction(id: string, options: { pretty?: boolean }): Promise<
     const config = await credManager.load()
 
     if (!config.workspaces[id]) {
-      console.log(formatOutput({ error: `Workspace not found: ${id}` }, options.pretty))
+      console.log(
+        formatOutput(
+          { error: `Workspace not found: ${id}`, hint: 'Run "workspace list" to see available workspaces.' },
+          options.pretty,
+        ),
+      )
       process.exit(1)
     }
 

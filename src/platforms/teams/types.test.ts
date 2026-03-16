@@ -1,4 +1,5 @@
 import { expect, test } from 'bun:test'
+
 import {
   TeamsChannelSchema,
   TeamsConfigSchema,
@@ -182,22 +183,41 @@ test('TeamsCredentialsSchema rejects missing token', () => {
 // TeamsConfigSchema tests
 test('TeamsConfigSchema validates correct config', () => {
   const result = TeamsConfigSchema.safeParse({
-    current_team: null,
-    token: 'token_value',
-    teams: {},
+    current_account: 'work',
+    accounts: {
+      work: {
+        token: 'token_value',
+        account_type: 'work',
+        current_team: null,
+        teams: {},
+      },
+    },
   })
   expect(result.success).toBe(true)
 })
 
-test('TeamsConfigSchema validates config with token_expires_at', () => {
+test('TeamsConfigSchema validates config with multiple accounts', () => {
   const result = TeamsConfigSchema.safeParse({
-    current_team: '19:abc123@thread.tacv2',
-    token: 'token_value',
-    token_expires_at: '2024-01-01T00:00:00.000Z',
-    teams: {
-      '19:abc123@thread.tacv2': {
-        team_id: '19:abc123@thread.tacv2',
-        team_name: 'Test Team',
+    current_account: 'work',
+    accounts: {
+      work: {
+        token: 'work_token',
+        token_expires_at: '2024-01-01T00:00:00.000Z',
+        account_type: 'work',
+        user_name: 'Work User',
+        current_team: '19:abc123@thread.tacv2',
+        teams: {
+          '19:abc123@thread.tacv2': {
+            team_id: '19:abc123@thread.tacv2',
+            team_name: 'Test Team',
+          },
+        },
+      },
+      personal: {
+        token: 'personal_token',
+        account_type: 'personal',
+        current_team: null,
+        teams: {},
       },
     },
   })
@@ -206,8 +226,7 @@ test('TeamsConfigSchema validates config with token_expires_at', () => {
 
 test('TeamsConfigSchema rejects missing required fields', () => {
   const result = TeamsConfigSchema.safeParse({
-    current_team: null,
-    token: 'token_value',
+    current_account: null,
   })
   expect(result.success).toBe(false)
 })

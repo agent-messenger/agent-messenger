@@ -1,7 +1,7 @@
 {
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
   "name": "agent-messenger",
-  "description": "Messaging platform interaction skills for AI agents - Slack workspaces and Discord servers",
+  "description": "Messaging platform interaction skills for AI agents - Slack, Discord, and Microsoft Teams",
   "owner": {
     "name": "devxoul",
     "url": "https://github.com/devxoul"
@@ -32,6 +32,45 @@
       "category": "productivity",
       "homepage": "https://github.com/devxoul/agent-messenger",
       "keywords": ["discord", "messaging", "guild", "server", "ai-agent", "cli", "communication"]
+    },
+    {
+      "name": "agent-slackbot",
+      "description": "Interact with Slack workspaces using bot tokens (xoxb-). Designed for server-side and CI/CD integrations. Supports message operations, channel management, reactions, and multi-bot/multi-workspace credential management.",
+      "version": "0.1.0",
+      "author": {
+        "name": "devxoul",
+        "url": "https://github.com/devxoul"
+      },
+      "source": "./",
+      "category": "productivity",
+      "homepage": "https://github.com/devxoul/agent-messenger",
+      "keywords": ["slack", "slackbot", "bot", "messaging", "ai-agent", "cli", "ci-cd"]
+    },
+    {
+      "name": "agent-discordbot",
+      "description": "Interact with Discord servers using bot tokens. Designed for server-side and CI/CD integrations. Supports message operations, channel management, reactions, and multi-bot/multi-guild credential management.",
+      "version": "0.1.0",
+      "author": {
+        "name": "devxoul",
+        "url": "https://github.com/devxoul"
+      },
+      "source": "./",
+      "category": "productivity",
+      "homepage": "https://github.com/devxoul/agent-messenger",
+      "keywords": ["discord", "discordbot", "bot", "messaging", "ai-agent", "cli", "ci-cd"]
+    },
+    {
+      "name": "agent-teams",
+      "description": "Interact with Microsoft Teams through a CLI interface. Features credential extraction from Teams desktop app and browser, multi-team support, message operations, channel management, reactions, and file uploads.",
+      "version": "0.1.0",
+      "author": {
+        "name": "devxoul",
+        "url": "https://github.com/devxoul"
+      },
+      "source": "./",
+      "category": "productivity",
+      "homepage": "https://github.com/devxoul/agent-messenger",
+      "keywords": ["teams", "microsoft-teams", "messaging", "ai-agent", "cli", "communication"]
     }
   ]
 }

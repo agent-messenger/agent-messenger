@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, mock, spyOn } from 'bun:test'
+
 import { SlackClient } from '../client'
 import { CredentialManager } from '../credential-manager'
 import { countsAction, markAction, threadsAction } from './unread'

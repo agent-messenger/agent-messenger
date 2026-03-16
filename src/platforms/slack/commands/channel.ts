@@ -1,6 +1,8 @@
 import { Command } from 'commander'
-import { handleError } from '../../../shared/utils/error-handler'
-import { formatOutput } from '../../../shared/utils/output'
+
+import { handleError } from '@/shared/utils/error-handler'
+import { formatOutput } from '@/shared/utils/output'
+
 import { SlackClient } from '../client'
 import { CredentialManager } from '../credential-manager'
 
@@ -15,6 +17,18 @@ async function listAction(options: { type?: string; includeArchived?: boolean; p
     }
 
     const client = new SlackClient(workspace.token, workspace.cookie)
+
+    if (options.type === 'dm') {
+      const dms = await client.listDMs({ includeArchived: options.includeArchived })
+      const dmOutput = dms.map((dm) => ({
+        id: dm.id,
+        user: dm.user,
+        is_mpim: dm.is_mpim,
+      }))
+      console.log(formatOutput(dmOutput, options.pretty))
+      return
+    }
+
     let channels = await client.listChannels()
 
     if (!options.includeArchived) {
@@ -25,8 +39,6 @@ async function listAction(options: { type?: string; includeArchived?: boolean; p
       channels = channels.filter((c) => !c.is_private)
     } else if (options.type === 'private') {
       channels = channels.filter((c) => c.is_private)
-    } else if (options.type === 'dm') {
-      channels = []
     }
 
     const output = channels.map((ch) => ({
@@ -56,6 +68,7 @@ async function infoAction(channel: string, options: { pretty?: boolean }): Promi
     }
 
     const client = new SlackClient(workspace.token, workspace.cookie)
+    channel = await client.resolveChannel(channel)
     const ch = await client.getChannel(channel)
 
     const output = {
@@ -86,6 +99,7 @@ async function historyAction(channel: string, options: { limit?: number; pretty?
     }
 
     const client = new SlackClient(workspace.token, workspace.cookie)
+    channel = await client.resolveChannel(channel)
     const messages = await client.getMessages(channel, options.limit || 20)
 
     const output = messages.map((msg) => ({

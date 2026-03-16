@@ -1,4 +1,5 @@
 import { expect, test } from 'bun:test'
+
 import { snapshotCommand } from './snapshot'
 
 test('snapshot: command is defined', () => {

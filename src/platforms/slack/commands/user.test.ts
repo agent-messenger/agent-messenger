@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'bun:test'
+
 import { SlackClient } from '@/platforms/slack/client'
 import { userCommand } from '@/platforms/slack/commands/user'
 import type { SlackUser } from '@/platforms/slack/types'
