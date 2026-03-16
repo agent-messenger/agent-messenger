@@ -203,6 +203,10 @@ agent-slack channel info general
 
 # Get channel history (alias for message list)
 agent-slack channel history <channel> --limit 100
+
+# List users in a channel
+agent-slack channel users <channel>
+agent-slack channel users general --include-bots
 ```
 
 ### User Commands

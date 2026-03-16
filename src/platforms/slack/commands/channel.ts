@@ -1,5 +1,6 @@
 import { Command } from 'commander'
 
+import { parallelMap } from '@/shared/utils/concurrency'
 import { handleError } from '@/shared/utils/error-handler'
 import { formatOutput } from '@/shared/utils/output'
 
@@ -118,6 +119,41 @@ async function historyAction(channel: string, options: { limit?: number; pretty?
   }
 }
 
+async function usersAction(channel: string, options: { includeBots?: boolean; pretty?: boolean }): Promise<void> {
+  try {
+    const credManager = new CredentialManager()
+    const workspace = await credManager.getWorkspace()
+
+    if (!workspace) {
+      console.log(formatOutput({ error: 'No current workspace set. Run "auth extract" first.' }, options.pretty))
+      process.exit(1)
+    }
+
+    const client = new SlackClient(workspace.token, workspace.cookie)
+    channel = await client.resolveChannel(channel)
+    const memberIds = await client.listChannelMembers(channel)
+
+    const users = await parallelMap(memberIds, (id) => client.getUser(id), 5)
+
+    const filtered = options.includeBots ? users : users.filter((u) => !u.is_bot)
+
+    const output = filtered.map((user) => ({
+      id: user.id,
+      name: user.name,
+      real_name: user.real_name,
+      is_admin: user.is_admin,
+      is_owner: user.is_owner,
+      is_bot: user.is_bot,
+      is_app_user: user.is_app_user,
+      profile: user.profile,
+    }))
+
+    console.log(formatOutput(output, options.pretty))
+  } catch (error) {
+    handleError(error as Error)
+  }
+}
+
 export const channelCommand = new Command('channel')
   .description('Channel commands')
   .addCommand(
@@ -147,4 +183,12 @@ export const channelCommand = new Command('channel')
           pretty: options.pretty,
         })
       }),
+  )
+  .addCommand(
+    new Command('users')
+      .description('List users in a channel')
+      .argument('<channel>', 'Channel ID or name')
+      .option('--include-bots', 'Include bot users')
+      .option('--pretty', 'Pretty print JSON output')
+      .action(usersAction),
   )

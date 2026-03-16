@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, mock, test } from 'bun:test'
 
 import { SlackClient } from '@/platforms/slack/client'
-import type { SlackChannel } from '@/platforms/slack/types'
+import type { SlackChannel, SlackUser } from '@/platforms/slack/types'
 
 describe('Channel Commands', () => {
   let mockClient: SlackClient
@@ -78,6 +78,44 @@ describe('Channel Commands', () => {
           throw new Error(`Channel not found: ${id}`)
         }
         return channels[id]
+      }),
+      listChannelMembers: mock(async (_channel: string) => ['U001', 'U002', 'U003']),
+      getUser: mock(async (id: string) => {
+        const users: Record<string, SlackUser> = {
+          U001: {
+            id: 'U001',
+            name: 'alice',
+            real_name: 'Alice Smith',
+            is_admin: true,
+            is_owner: false,
+            is_bot: false,
+            is_app_user: false,
+            profile: { email: 'alice@example.com', title: 'Engineer' },
+          },
+          U002: {
+            id: 'U002',
+            name: 'bob',
+            real_name: 'Bob Jones',
+            is_admin: false,
+            is_owner: false,
+            is_bot: false,
+            is_app_user: false,
+            profile: { email: 'bob@example.com' },
+          },
+          U003: {
+            id: 'U003',
+            name: 'slackbot',
+            real_name: 'Slackbot',
+            is_admin: false,
+            is_owner: false,
+            is_bot: true,
+            is_app_user: false,
+          },
+        }
+        if (!users[id]) {
+          throw new Error(`User not found: ${id}`)
+        }
+        return users[id]
       }),
     } as any
   })
@@ -181,6 +219,72 @@ describe('Channel Commands', () => {
       // When: Checking command structure
       // Then: Should be alias for message list
       expect(true).toBe(true)
+    })
+  })
+
+  describe('channel users', () => {
+    test('lists members of a channel via listChannelMembers and getUser', async () => {
+      // Given: Channel C001 with 3 members
+      const memberIds = await mockClient.listChannelMembers('C001')
+
+      // When: Resolving each member ID to user info
+      const users = await Promise.all(memberIds.map((id) => mockClient.getUser(id)))
+
+      // Then: Should return all members with profile data
+      expect(users).toHaveLength(3)
+      expect(users[0].name).toBe('alice')
+      expect(users[1].name).toBe('bob')
+      expect(users[2].name).toBe('slackbot')
+      expect(mockClient.listChannelMembers).toHaveBeenCalledWith('C001')
+      expect(mockClient.getUser).toHaveBeenCalledTimes(3)
+    })
+
+    test('filters out bots by default', async () => {
+      // Given: Channel with human and bot members
+      const memberIds = await mockClient.listChannelMembers('C001')
+      const users = await Promise.all(memberIds.map((id) => mockClient.getUser(id)))
+
+      // When: Filtering without --include-bots
+      const filtered = users.filter((u) => !u.is_bot)
+
+      // Then: Should exclude bots
+      expect(filtered).toHaveLength(2)
+      expect(filtered.every((u) => !u.is_bot)).toBe(true)
+    })
+
+    test('includes bots with --include-bots flag', async () => {
+      // Given: Channel with human and bot members
+      const memberIds = await mockClient.listChannelMembers('C001')
+      const users = await Promise.all(memberIds.map((id) => mockClient.getUser(id)))
+
+      // When: Including bots (no filter)
+      // Then: Should return all users including bots
+      expect(users).toHaveLength(3)
+      expect(users.some((u) => u.is_bot)).toBe(true)
+    })
+
+    test('returns user profiles with expected output shape', async () => {
+      // Given: Channel member with profile
+      const user = await mockClient.getUser('U001')
+
+      // When: Formatting output
+      const output = {
+        id: user.id,
+        name: user.name,
+        real_name: user.real_name,
+        is_admin: user.is_admin,
+        is_owner: user.is_owner,
+        is_bot: user.is_bot,
+        is_app_user: user.is_app_user,
+        profile: user.profile,
+      }
+
+      // Then: Should have all expected fields
+      expect(output.id).toBe('U001')
+      expect(output.name).toBe('alice')
+      expect(output.real_name).toBe('Alice Smith')
+      expect(output.is_admin).toBe(true)
+      expect(output.profile?.email).toBe('alice@example.com')
     })
   })
 })

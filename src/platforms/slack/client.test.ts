@@ -10,6 +10,7 @@ const mockWebClient: any = {
     info: mock((): Promise<any> => Promise.resolve({ ok: true, channel: {} })),
     history: mock((): Promise<any> => Promise.resolve({ ok: true, messages: [] })),
     replies: mock((): Promise<any> => Promise.resolve({ ok: true, messages: [], has_more: false })),
+    members: mock((): Promise<any> => Promise.resolve({ ok: true, members: [] })),
   },
   chat: {
     postMessage: mock((): Promise<any> => Promise.resolve({ ok: true, ts: '123.456', message: {} })),
@@ -653,6 +654,61 @@ describe('SlackClient', () => {
       client.client = mockWebClient as unknown as WebClient
 
       await expect(client.listUsers()).rejects.toThrow(SlackError)
+    })
+  })
+
+  describe('listChannelMembers', () => {
+    beforeEach(() => resetMocks())
+
+    test('returns member IDs for a channel', async () => {
+      mockWebClient.conversations.members.mockResolvedValue({
+        ok: true,
+        members: ['U123', 'U456', 'U789'],
+      })
+
+      const client = new SlackClient('xoxc-token', 'xoxd-cookie')
+      // @ts-expect-error - accessing private property for testing
+      client.client = mockWebClient as unknown as WebClient
+
+      const members = await client.listChannelMembers('C123')
+      expect(members).toEqual(['U123', 'U456', 'U789'])
+      expect(mockWebClient.conversations.members).toHaveBeenCalledWith(
+        expect.objectContaining({ channel: 'C123', limit: 200 }),
+      )
+    })
+
+    test('handles pagination automatically', async () => {
+      mockWebClient.conversations.members
+        .mockResolvedValueOnce({
+          ok: true,
+          members: ['U123', 'U456'],
+          response_metadata: { next_cursor: 'cursor123' },
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          members: ['U789'],
+        })
+
+      const client = new SlackClient('xoxc-token', 'xoxd-cookie')
+      // @ts-expect-error - accessing private property for testing
+      client.client = mockWebClient as unknown as WebClient
+
+      const members = await client.listChannelMembers('C123')
+      expect(members).toEqual(['U123', 'U456', 'U789'])
+      expect(mockWebClient.conversations.members).toHaveBeenCalledTimes(2)
+    })
+
+    test('throws SlackError on API failure', async () => {
+      mockWebClient.conversations.members.mockResolvedValue({
+        ok: false,
+        error: 'channel_not_found',
+      })
+
+      const client = new SlackClient('xoxc-token', 'xoxd-cookie')
+      // @ts-expect-error - accessing private property for testing
+      client.client = mockWebClient as unknown as WebClient
+
+      await expect(client.listChannelMembers('C999')).rejects.toThrow(SlackError)
     })
   })
 

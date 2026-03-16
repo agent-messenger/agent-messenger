@@ -417,6 +417,30 @@ export class SlackClient {
     })
   }
 
+  async listChannelMembers(channel: string): Promise<string[]> {
+    return this.withRetry(async () => {
+      const members: string[] = []
+      let cursor: string | undefined
+
+      do {
+        const response = await this.client.conversations.members({
+          channel,
+          cursor,
+          limit: 200,
+        })
+        this.checkResponse(response)
+
+        if (response.members) {
+          members.push(...response.members)
+        }
+
+        cursor = response.response_metadata?.next_cursor
+      } while (cursor)
+
+      return members
+    })
+  }
+
   async getUser(id: string): Promise<SlackUser> {
     return this.withRetry(async () => {
       const response = await this.client.users.info({ user: id })

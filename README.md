@@ -1,6 +1,6 @@
 # Agent Messenger
 
-[![npm version](https://img.shields.io/npm/v/agent-messenger)](https://www.npmjs.com/package/agent-messenger) [![SkillPad - agent-slack](https://img.shields.io/badge/SkillPad-agent--slack-1a1a1a)](https://skillpad.dev/install/devxoul/agent-messenger/agent-slack) [![SkillPad - agent-slackbot](https://img.shields.io/badge/SkillPad-agent--slackbot-1a1a1a)](https://skillpad.dev/install/devxoul/agent-messenger/agent-slackbot) [![SkillPad - agent-discord](https://img.shields.io/badge/SkillPad-agent--discord-1a1a1a)](https://skillpad.dev/install/devxoul/agent-messenger/agent-discord) [![SkillPad - agent-discordbot](https://img.shields.io/badge/SkillPad-agent--discordbot-1a1a1a)](https://skillpad.dev/install/devxoul/agent-messenger/agent-discordbot) [![SkillPad - agent-teams](https://img.shields.io/badge/SkillPad-agent--teams-1a1a1a)](https://skillpad.dev/install/devxoul/agent-messenger/agent-teams)
+[![npm version](https://img.shields.io/npm/v/agent-messenger)](https://www.npmjs.com/package/agent-messenger) [![SkillPad - agent-slack](https://img.shields.io/badge/SkillPad-agent--slack-1a1a1a)](https://skillpad.dev/install/devxoul/agent-messenger/agent-slack) [![SkillPad - agent-slackbot](https://img.shields.io/badge/SkillPad-agent--slackbot-1a1a1a)](https://skillpad.dev/install/devxoul/agent-messenger/agent-slackbot) [![SkillPad - agent-discord](https://img.shields.io/badge/SkillPad-agent--discord-1a1a1a)](https://skillpad.dev/install/devxoul/agent-messenger/agent-discord) [![SkillPad - agent-discordbot](https://img.shields.io/badge/SkillPad-agent--discordbot-1a1a1a)](https://skillpad.dev/install/devxoul/agent-messenger/agent-discordbot) [![SkillPad - agent-teams](https://img.shields.io/badge/SkillPad-agent--teams-1a1a1a)](https://skillpad.dev/install/devxoul/agent-messenger/agent-teams) [![SkillPad - agent-channelbot](https://img.shields.io/badge/SkillPad-agent--channelbot-1a1a1a)](https://skillpad.dev/install/devxoul/agent-messenger/agent-channelbot)
 
 ![Agent Messenger](./docs/public/cover.png)
 
@@ -58,22 +58,24 @@ This installs:
 - `agent-discord` — Discord CLI
 - `agent-discordbot` — Discord Bot CLI (bot token, for server-side/CI/CD)
 - `agent-teams` — Microsoft Teams CLI
+- `agent-channelbot` — Channel Talk Bot CLI (API credentials, for server-side/CI/CD)
 
 ## Agent Skills
 
-Agent Messenger includes [Agent Skills](https://agentskills.io/) that teach your AI agent how to use these CLIs effectively. Five skills are available:
+Agent Messenger includes [Agent Skills](https://agentskills.io/) that teach your AI agent how to use these CLIs effectively. Six skills are available:
 
 - **`agent-slack`** — Slack (user token, zero-config)
 - **`agent-slackbot`** — Slack Bot (bot token, for server-side/CI/CD)
 - **`agent-discord`** — Discord
 - **`agent-discordbot`** — Discord Bot (bot token, for server-side/CI/CD)
 - **`agent-teams`** — Microsoft Teams
+- **`agent-channelbot`** — Channel Talk Bot (API credentials, for server-side/CI/CD)
 
 ### SkillPad
 
 SkillPad is a GUI app for Agent Skills. See [skillpad.dev](https://skillpad.dev/) for more details.
 
-[![Available on SkillPad](https://badge.skillpad.dev/agent-slack/dark.svg)](https://skillpad.dev/install/devxoul/agent-messenger/agent-slack) [![Available on SkillPad](https://badge.skillpad.dev/agent-slackbot/dark.svg)](https://skillpad.dev/install/devxoul/agent-messenger/agent-slackbot) [![Available on SkillPad](https://badge.skillpad.dev/agent-discord/dark.svg)](https://skillpad.dev/install/devxoul/agent-messenger/agent-discord) [![Available on SkillPad](https://badge.skillpad.dev/agent-discordbot/dark.svg)](https://skillpad.dev/install/devxoul/agent-messenger/agent-discordbot) [![Available on SkillPad](https://badge.skillpad.dev/agent-teams/dark.svg)](https://skillpad.dev/install/devxoul/agent-messenger/agent-teams)
+[![Available on SkillPad](https://badge.skillpad.dev/agent-slack/dark.svg)](https://skillpad.dev/install/devxoul/agent-messenger/agent-slack) [![Available on SkillPad](https://badge.skillpad.dev/agent-slackbot/dark.svg)](https://skillpad.dev/install/devxoul/agent-messenger/agent-slackbot) [![Available on SkillPad](https://badge.skillpad.dev/agent-discord/dark.svg)](https://skillpad.dev/install/devxoul/agent-messenger/agent-discord) [![Available on SkillPad](https://badge.skillpad.dev/agent-discordbot/dark.svg)](https://skillpad.dev/install/devxoul/agent-messenger/agent-discordbot) [![Available on SkillPad](https://badge.skillpad.dev/agent-teams/dark.svg)](https://skillpad.dev/install/devxoul/agent-messenger/agent-teams) [![Available on SkillPad](https://badge.skillpad.dev/agent-channelbot/dark.svg)](https://skillpad.dev/install/devxoul/agent-messenger/agent-channelbot)
 
 ### Skills CLI
 
@@ -123,24 +125,24 @@ That's it. Credentials are extracted automatically from your Slack desktop app o
 
 ## Supported Platforms
 
-| Feature                    | Slack | Discord | Teams |
-| -------------------------- | :---: | :-----: | :---: |
-| Auto credential extraction |  ✅   |   ✅    |  ✅   |
-| Send & list messages       |  ✅   |   ✅    |  ✅   |
-| Search messages            |  ✅   |   ✅    |   —   |
-| Threads                    |  ✅   |   ✅    |   —   |
-| Channels & Users           |  ✅   |   ✅    |  ✅   |
-| Reactions                  |  ✅   |   ✅    |  ✅   |
-| File uploads               |  ✅   |   ✅    |  ✅   |
-| File downloads             |  ✅   |    —    |   —   |
-| Workspace snapshots        |  ✅   |   ✅    |  ✅   |
-| Multi-workspace            |  ✅   |   ✅    |  ✅   |
-| Activity feed              |  ✅   |    —    |   —   |
-| Drafts                     |  ✅   |    —    |   —   |
-| Saved items                |  ✅   |    —    |   —   |
-| Unread messages            |  ✅   |    —    |   —   |
-| Sidebar sections           |  ✅   |    —    |   —   |
-| Bot support                |  ✅   |   ✅    |   —   |
+| Feature                    | Slack | Discord | Teams | Channel Talk |
+| -------------------------- | :---: | :-----: | :---: | :----------: |
+| Auto credential extraction |  ✅   |   ✅    |  ✅   |      —       |
+| Send & list messages       |  ✅   |   ✅    |  ✅   |      ✅      |
+| Search messages            |  ✅   |   ✅    |   —   |      —       |
+| Threads                    |  ✅   |   ✅    |   —   |      —       |
+| Channels & Users           |  ✅   |   ✅    |  ✅   |      ✅      |
+| Reactions                  |  ✅   |   ✅    |  ✅   |      —       |
+| File uploads               |  ✅   |   ✅    |  ✅   |      —       |
+| File downloads             |  ✅   |    —    |   —   |      —       |
+| Workspace snapshots        |  ✅   |   ✅    |  ✅   |      ✅      |
+| Multi-workspace            |  ✅   |   ✅    |  ✅   |      ✅      |
+| Activity feed              |  ✅   |    —    |   —   |      —       |
+| Drafts                     |  ✅   |    —    |   —   |      —       |
+| Saved items                |  ✅   |    —    |   —   |      —       |
+| Unread messages            |  ✅   |    —    |   —   |      —       |
+| Sidebar sections           |  ✅   |    —    |   —   |      —       |
+| Bot support                |  ✅   |   ✅    |   —   |      ✅      |
 
 > ⚠️ **Teams tokens expire in 60-90 minutes.** Re-run `agent-teams auth extract` to refresh. See [Teams Guide](skills/agent-teams/SKILL.md) for details.
 
@@ -151,6 +153,7 @@ That's it. Credentials are extracted automatically from your Slack desktop app o
 - **[Discord Guide](https://agent-messenger.dev/docs/integrations/discord)** — Full command reference for Discord
 - **[Discord Bot Guide](https://agent-messenger.dev/docs/integrations/discordbot)** — Bot token integration for server-side and CI/CD
 - **[Teams Guide](https://agent-messenger.dev/docs/integrations/teams)** — Full command reference for Microsoft Teams
+- **[Channel Talk Bot Guide](https://agent-messenger.dev/docs/integrations/channelbot)** — Bot API integration for Channel Talk customer support
 
 ## Use Cases
 
