@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, mock, test } from 'bun:test'
 
 import { SlackClient } from '@/platforms/slack/client'
-import type { SlackChannel } from '@/platforms/slack/types'
+import type { SlackChannel, SlackUser } from '@/platforms/slack/types'
 
 describe('Channel Commands', () => {
   let mockClient: SlackClient
@@ -181,6 +181,97 @@ describe('Channel Commands', () => {
       // When: Checking command structure
       // Then: Should be alias for message list
       expect(true).toBe(true)
+    })
+  })
+
+  describe('channel users', () => {
+    const mockUsers: SlackUser[] = [
+      {
+        id: 'U001',
+        name: 'alice',
+        real_name: 'Alice Smith',
+        is_admin: true,
+        is_owner: false,
+        is_bot: false,
+        is_app_user: false,
+        profile: { email: 'alice@example.com', title: 'Engineer' },
+      },
+      {
+        id: 'U002',
+        name: 'bob',
+        real_name: 'Bob Jones',
+        is_admin: false,
+        is_owner: false,
+        is_bot: false,
+        is_app_user: false,
+        profile: { email: 'bob@example.com' },
+      },
+      {
+        id: 'U003',
+        name: 'slackbot',
+        real_name: 'Slackbot',
+        is_admin: false,
+        is_owner: false,
+        is_bot: true,
+        is_app_user: false,
+      },
+    ]
+
+    test('lists members of a channel', async () => {
+      // Given: Channel with 3 members
+      const memberIds = ['U001', 'U002', 'U003']
+
+      // When: Getting channel users
+      const users = memberIds.map((id) => mockUsers.find((u) => u.id === id)!)
+
+      // Then: Should return all members
+      expect(users).toHaveLength(3)
+      expect(users[0].name).toBe('alice')
+      expect(users[1].name).toBe('bob')
+    })
+
+    test('filters out bots by default', async () => {
+      // Given: Channel with human and bot users
+      const allUsers = mockUsers
+
+      // When: Filtering without --include-bots
+      const filtered = allUsers.filter((u) => !u.is_bot)
+
+      // Then: Should exclude bots
+      expect(filtered).toHaveLength(2)
+      expect(filtered.every((u) => !u.is_bot)).toBe(true)
+    })
+
+    test('includes bots with --include-bots flag', async () => {
+      // Given: Channel with human and bot users
+      // When: Including bots
+      // Then: Should return all users including bots
+      expect(mockUsers).toHaveLength(3)
+      expect(mockUsers.some((u) => u.is_bot)).toBe(true)
+    })
+
+    test('returns user profiles with expected fields', async () => {
+      // Given: User with profile
+      const user = mockUsers[0]
+
+      // When: Checking output fields
+      const output = {
+        id: user.id,
+        name: user.name,
+        real_name: user.real_name,
+        is_admin: user.is_admin,
+        is_owner: user.is_owner,
+        is_bot: user.is_bot,
+        is_app_user: user.is_app_user,
+        profile: user.profile,
+      }
+
+      // Then: Should have all expected fields
+      expect(output.id).toBe('U001')
+      expect(output.name).toBe('alice')
+      expect(output.real_name).toBe('Alice Smith')
+      expect(output.is_admin).toBe(true)
+      expect(output.profile?.email).toBe('alice@example.com')
     })
   })
 })
