@@ -1,8 +1,8 @@
 ![Agent Messenger](https://github.com/user-attachments/assets/ab21caf0-441a-40f6-8cda-4e969ae2395a)
 
-**Give your AI agent the power to read and send messages across Slack, Discord, Teams and more**
+**Give your AI agent the power to read and send messages across Slack, Discord, Teams, Telegram and more**
 
-A unified, agent-friendly CLI for messaging platforms. Zero-config credential extraction from your desktop apps—no OAuth flows, no API keys, no admin approval needed. Works out of the box.
+A unified, agent-friendly CLI for messaging platforms. Zero-config credential extraction from your desktop apps where possible, plus TDLib-based Telegram support for account-level access.
 
 ## Why Agent Messenger?
 
@@ -28,6 +28,7 @@ This installs:
 - `agent-slackbot` — Slack Bot CLI (bot token, for server-side/CI/CD)
 - `agent-discord` — Discord CLI
 - `agent-teams` — Microsoft Teams CLI
+- `agent-telegram` — Telegram CLI via TDLib
 
 ## Agent Skills
 
@@ -82,21 +83,34 @@ agent-slack snapshot --pretty
 agent-slack message send general "Hello from the CLI!"
 ```
 
-That's it. No OAuth flows. No API tokens. No configuration files.
+That's it for Slack/Discord/Teams. Telegram additionally requires TDLib plus your own `api_id` and `api_hash`.
+
+## Telegram Quick Start
+
+```bash
+AGENT_TELEGRAM_API_ID=<api-id> \
+AGENT_TELEGRAM_API_HASH=<api-hash> \
+bunx --package agent-messenger agent-telegram auth login
+
+# Send a message
+bunx --package agent-messenger agent-telegram message send <chat-id-or-@username> "Hello from the CLI!"
+```
+
+If the env vars are missing, the CLI will prompt for them and store them locally for reuse. The official configuration path is still `AGENT_TELEGRAM_API_ID` and `AGENT_TELEGRAM_API_HASH`.
 
 ## Supported Platforms
 
-| Feature | Slack | Discord | Teams |
-|---------|:-----:|:-------:|:-----:|
-| Auto credential extraction | ✅ | ✅ | ✅ |
-| Send / List / Search messages | ✅ | ✅ | ✅ |
-| Threads | ✅ | ✅ | ✅ |
-| Channels & Users | ✅ | ✅ | ✅ |
-| Reactions | ✅ | ✅ | ✅ |
-| File uploads | ✅ | ✅ | ✅ |
-| Workspace snapshots | ✅ | ✅ | ✅ |
-| Multi-workspace | ✅ | ✅ | ✅ |
-| Bot support | ✅ | — | — |
+| Feature | Slack | Discord | Teams | Telegram |
+|---------|:-----:|:-------:|:-----:|:--------:|
+| Auto credential extraction | ✅ | ✅ | ✅ | — |
+| Send / List / Search messages | ✅ | ✅ | ✅ | ✅ |
+| Threads | ✅ | ✅ | ✅ | — |
+| Channels & Users | ✅ | ✅ | ✅ | partial |
+| Reactions | ✅ | ✅ | ✅ | — |
+| File uploads | ✅ | ✅ | ✅ | — |
+| Workspace snapshots | ✅ | ✅ | ✅ | — |
+| Multi-workspace / multi-account | ✅ | ✅ | ✅ | ✅ |
+| Bot support | ✅ | — | — | partial |
 
 > **Note**: Teams tokens expire in 60-90 minutes. See [Teams Guide](docs/teams.md) for token refresh patterns.
 
@@ -106,6 +120,16 @@ That's it. No OAuth flows. No API tokens. No configuration files.
 - **[Slack Bot Guide](docs/slackbot.md)** — Bot token integration for server-side and CI/CD
 - **[Discord Guide](docs/discord.md)** — Full command reference for Discord
 - **[Teams Guide](docs/teams.md)** — Full command reference for Microsoft Teams
+- **[Telegram Guide](docs/content/docs/integrations/telegram.mdx)** — TDLib setup and Telegram command reference
+
+## Telegram Packaging Note
+
+If you want `agent-telegram` to work via `bunx` with minimal setup, the package needs:
+
+- Keep `prebuilt-tdlib` in dependencies so `libtdjson` arrives with `bunx`
+- Document `AGENT_TELEGRAM_API_ID` and `AGENT_TELEGRAM_API_HASH` as the official configuration path
+
+If you installed `agent-messenger` globally, then `agent-telegram ...` works directly just like `agent-slack` and `agent-discord`.
 
 ## Use Cases
 

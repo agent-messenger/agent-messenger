@@ -1,5 +1,5 @@
 {
   "title": "Integrations",
   "icon": "Plug",
-  "pages": ["slack", "slackbot", "discord", "teams"]
+  "pages": ["slack", "slackbot", "discord", "teams", "telegram"]
 }

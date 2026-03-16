@@ -25,6 +25,10 @@ program.command('teams', 'Interact with Microsoft Teams', {
   executableFile: join(__dirname, 'platforms', 'teams', 'cli.ts'),
 })
 
+program.command('telegram', 'Interact with Telegram via TDLib', {
+  executableFile: join(__dirname, 'platforms', 'telegram', 'cli.ts'),
+})
+
 program.parse(process.argv)
 
 export default program

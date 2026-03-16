@@ -1,0 +1,34 @@
+import { TelegramTdlibClient } from '../client'
+import { TelegramCredentialManager } from '../credential-manager'
+import { type TelegramAccount, TelegramError } from '../types'
+
+export interface AccountOption {
+  account?: string
+  pretty?: boolean
+}
+
+export async function withTelegramClient<T>(
+  options: AccountOption,
+  action: (client: TelegramTdlibClient, account: TelegramAccount, manager: TelegramCredentialManager) => Promise<T>,
+): Promise<T> {
+  const manager = new TelegramCredentialManager()
+  const account = await manager.getAccount(options.account)
+
+  if (!account) {
+    throw new TelegramError(
+      options.account
+        ? `Telegram account "${options.account}" not found. Run "agent-telegram auth login" first.`
+        : 'No Telegram account configured. Run "agent-telegram auth login" first.',
+      'missing_account',
+    )
+  }
+
+  const paths = await manager.ensureAccountPaths(account.account_id)
+  const client = new TelegramTdlibClient(account, paths)
+
+  try {
+    return await action(client, account, manager)
+  } finally {
+    await client.close().catch(() => undefined)
+  }
+}
