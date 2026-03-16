@@ -1,6 +1,6 @@
 {
   "name": "agent-messenger",
-  "version": "1.12.0",
+  "version": "1.13.0",
   "description": "Messaging platform interaction skills for AI agents. Interact with Slack, Discord, and Microsoft Teams - send messages, read channels, manage reactions, upload files, and more through simple CLI interfaces.",
   "author": {
     "name": "devxoul",
