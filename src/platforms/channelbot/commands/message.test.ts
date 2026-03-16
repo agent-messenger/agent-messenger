@@ -65,6 +65,7 @@ const mockListUserChats = mock(() =>
 
 let capturedSendUserChatArgs: unknown[] = []
 let _capturedSendGroupArgs: unknown[] = []
+let capturedGetUserChatMsgArgs: unknown[] = []
 
 mock.module('../client', () => ({
   ChannelBotClient: class MockChannelBotClient {
@@ -87,7 +88,14 @@ mock.module('../client', () => ({
       _capturedSendGroupArgs = args
       return mockSendGroupMessage()
     }
-    getUserChatMessages = mockGetUserChatMessages
+    resolveGroup = (groupIdOrName: string) => {
+      const id = groupIdOrName.startsWith('@') ? 'grp1' : groupIdOrName
+      return Promise.resolve({ id, channelId: 'ch1', name: groupIdOrName.replace('@', '') })
+    }
+    getUserChatMessages = (...args: unknown[]) => {
+      capturedGetUserChatMsgArgs = args
+      return mockGetUserChatMessages()
+    }
     getGroupMessages = mockGetGroupMessages
     listUserChats = mockListUserChats
   },
@@ -110,6 +118,7 @@ describe('message commands', () => {
     await mkdir(tempDir, { recursive: true })
     capturedSendUserChatArgs = []
     _capturedSendGroupArgs = []
+    capturedGetUserChatMsgArgs = []
     mockSendUserChatMessage.mockClear()
     mockSendGroupMessage.mockClear()
     mockGetUserChatMessages.mockClear()
@@ -180,7 +189,8 @@ describe('message commands', () => {
       const manager = new ChannelBotCredentialManager(tempDir)
       await listAction('chat1', { type: 'userchat', limit: '10', sort: 'asc', since: 'cursor123', _credManager: manager })
 
-      expect(mockGetUserChatMessages).toHaveBeenCalledTimes(1)
+      expect(capturedGetUserChatMsgArgs[0]).toBe('chat1')
+      expect(capturedGetUserChatMsgArgs[1]).toMatchObject({ limit: 10, sortOrder: 'asc', since: 'cursor123' })
     })
   })
 

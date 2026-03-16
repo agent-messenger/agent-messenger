@@ -63,10 +63,13 @@ export async function sendAction(target: string, text: string, options: MessageO
 
     const targetType = options.type || detectTargetType(target)
 
-    const message =
-      targetType === 'group'
-        ? await client.sendGroupMessage(target, blocks, botName)
-        : await client.sendUserChatMessage(target, blocks, botName)
+    let message
+    if (targetType === 'group') {
+      const resolved = await client.resolveGroup(target)
+      message = await client.sendGroupMessage(resolved.id, blocks, botName)
+    } else {
+      message = await client.sendUserChatMessage(target, blocks, botName)
+    }
 
     return {
       id: message.id,
@@ -86,15 +89,21 @@ export async function listAction(target: string, options: MessageOptions): Promi
   try {
     const client = await getClient(options)
     const limit = options.limit ? parseInt(options.limit, 10) : 25
+    if (Number.isNaN(limit) || limit < 1) {
+      return { error: 'Invalid --limit value. Must be a positive integer.' }
+    }
     const sortOrder = options.sort || 'desc'
     const since = options.since
 
     const targetType = options.type || detectTargetType(target)
 
-    const messages =
-      targetType === 'group'
-        ? await client.getGroupMessages(target, { sortOrder, since, limit })
-        : await client.getUserChatMessages(target, { sortOrder, since, limit })
+    let messages
+    if (targetType === 'group') {
+      const resolved = await client.resolveGroup(target)
+      messages = await client.getGroupMessages(resolved.id, { sortOrder, since, limit })
+    } else {
+      messages = await client.getUserChatMessages(target, { sortOrder, since, limit })
+    }
 
     return {
       messages: messages.map((msg) => ({
@@ -118,14 +127,17 @@ export async function getAction(target: string, messageId: string, options: Mess
     const limit = 100
     const targetType = options.type || detectTargetType(target)
 
-    const messages =
-      targetType === 'group'
-        ? await client.getGroupMessages(target, { limit })
-        : await client.getUserChatMessages(target, { limit })
+    let messages
+    if (targetType === 'group') {
+      const resolved = await client.resolveGroup(target)
+      messages = await client.getGroupMessages(resolved.id, { limit })
+    } else {
+      messages = await client.getUserChatMessages(target, { limit })
+    }
 
     const message = messages.find((m) => m.id === messageId)
     if (!message) {
-      return { error: `Message "${messageId}" not found` }
+      return { error: `Message "${messageId}" not found in the latest ${limit} messages` }
     }
 
     return {
@@ -148,6 +160,12 @@ export async function searchAction(query: string, options: SearchOptions): Promi
     const client = await getClient(options)
     const chatLimit = options.chatLimit ? parseInt(options.chatLimit, 10) : 50
     const limit = options.limit ? parseInt(options.limit, 10) : 20
+    if (Number.isNaN(chatLimit) || chatLimit < 1) {
+      return { error: 'Invalid --chat-limit value. Must be a positive integer.' }
+    }
+    if (Number.isNaN(limit) || limit < 1) {
+      return { error: 'Invalid --limit value. Must be a positive integer.' }
+    }
     const stateOption = options.state || 'all'
 
     const states = stateOption === 'all' ? ['opened', 'closed', 'snoozed'] : [stateOption]
