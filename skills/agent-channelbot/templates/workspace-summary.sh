@@ -33,6 +33,12 @@ if ! command -v agent-channelbot &> /dev/null; then
   exit 1
 fi
 
+if ! command -v jq &> /dev/null; then
+  echo -e "${RED}Error: jq not found${NC}" >&2
+  echo "Install: https://jqlang.github.io/jq/download/" >&2
+  exit 1
+fi
+
 AUTH_STATUS=$(agent-channelbot auth status 2>&1) || true
 VALID=$(echo "$AUTH_STATUS" | jq -r '.valid // false')
 
@@ -47,6 +53,11 @@ WORKSPACE_ID=$(echo "$AUTH_STATUS" | jq -r '.workspace_id // "Unknown"')
 echo -e "${YELLOW}Fetching workspace data...${NC}" >&2
 
 SNAPSHOT=$(agent-channelbot snapshot 2>&1)
+SNAPSHOT_ERROR=$(echo "$SNAPSHOT" | jq -r '.error // ""' 2>/dev/null)
+if [ -n "$SNAPSHOT_ERROR" ]; then
+  echo -e "${RED}Snapshot failed: $SNAPSHOT_ERROR${NC}" >&2
+  exit 1
+fi
 
 if [ "$OUTPUT_JSON" = true ]; then
   echo "$SNAPSHOT"
@@ -54,9 +65,9 @@ if [ "$OUTPUT_JSON" = true ]; then
 fi
 
 GROUP_COUNT=$(echo "$SNAPSHOT" | jq '.groups | length // 0')
-OPEN_CHATS=$(echo "$SNAPSHOT" | jq '.user_chats.total_opened // 0')
-SNOOZED_CHATS=$(echo "$SNAPSHOT" | jq '.user_chats.total_snoozed // 0')
-CLOSED_CHATS=$(echo "$SNAPSHOT" | jq '.user_chats.total_closed // 0')
+OPEN_CHATS=$(echo "$SNAPSHOT" | jq '.user_chats.opened_count // 0')
+SNOOZED_CHATS=$(echo "$SNAPSHOT" | jq '.user_chats.snoozed_count // 0')
+CLOSED_CHATS=$(echo "$SNAPSHOT" | jq '.user_chats.closed_count // 0')
 MANAGER_COUNT=$(echo "$SNAPSHOT" | jq '.managers | length // 0')
 BOT_COUNT=$(echo "$SNAPSHOT" | jq '.bots | length // 0')
 

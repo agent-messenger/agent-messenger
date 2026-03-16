@@ -26,7 +26,7 @@ LAST_ID=""
 FIRST_RUN=true
 
 check_chats() {
-  CHATS=$(agent-channelbot chat list --state opened --limit 1 2>&1)
+  CHATS=$(agent-channelbot chat list --state opened --limit 10 2>&1)
   LATEST_ID=$(echo "$CHATS" | jq -r '.chats[0].id // ""')
 
   if [ -z "$LATEST_ID" ]; then

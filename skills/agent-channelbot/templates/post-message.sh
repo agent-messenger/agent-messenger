@@ -42,7 +42,7 @@ send_message() {
   while [ $attempt -le $max_attempts ]; do
     echo -e "${YELLOW}Attempt $attempt/$max_attempts...${NC}"
 
-    RESULT=$(agent-channelbot message send "$target" "$message" 2>&1)
+    RESULT=$(agent-channelbot message send "$target" "$message" 2>&1) || true
     MSG_ID=$(echo "$RESULT" | jq -r '.id // ""')
 
     if [ -n "$MSG_ID" ] && [ "$MSG_ID" != "null" ]; then
