@@ -79,6 +79,44 @@ describe('Channel Commands', () => {
         }
         return channels[id]
       }),
+      listChannelMembers: mock(async (_channel: string) => ['U001', 'U002', 'U003']),
+      getUser: mock(async (id: string) => {
+        const users: Record<string, SlackUser> = {
+          U001: {
+            id: 'U001',
+            name: 'alice',
+            real_name: 'Alice Smith',
+            is_admin: true,
+            is_owner: false,
+            is_bot: false,
+            is_app_user: false,
+            profile: { email: 'alice@example.com', title: 'Engineer' },
+          },
+          U002: {
+            id: 'U002',
+            name: 'bob',
+            real_name: 'Bob Jones',
+            is_admin: false,
+            is_owner: false,
+            is_bot: false,
+            is_app_user: false,
+            profile: { email: 'bob@example.com' },
+          },
+          U003: {
+            id: 'U003',
+            name: 'slackbot',
+            real_name: 'Slackbot',
+            is_admin: false,
+            is_owner: false,
+            is_bot: true,
+            is_app_user: false,
+          },
+        }
+        if (!users[id]) {
+          throw new Error(`User not found: ${id}`)
+        }
+        return users[id]
+      }),
     } as any
   })
 
@@ -185,57 +223,29 @@ describe('Channel Commands', () => {
   })
 
   describe('channel users', () => {
-    const mockUsers: SlackUser[] = [
-      {
-        id: 'U001',
-        name: 'alice',
-        real_name: 'Alice Smith',
-        is_admin: true,
-        is_owner: false,
-        is_bot: false,
-        is_app_user: false,
-        profile: { email: 'alice@example.com', title: 'Engineer' },
-      },
-      {
-        id: 'U002',
-        name: 'bob',
-        real_name: 'Bob Jones',
-        is_admin: false,
-        is_owner: false,
-        is_bot: false,
-        is_app_user: false,
-        profile: { email: 'bob@example.com' },
-      },
-      {
-        id: 'U003',
-        name: 'slackbot',
-        real_name: 'Slackbot',
-        is_admin: false,
-        is_owner: false,
-        is_bot: true,
-        is_app_user: false,
-      },
-    ]
+    test('lists members of a channel via listChannelMembers and getUser', async () => {
+      // Given: Channel C001 with 3 members
+      const memberIds = await mockClient.listChannelMembers('C001')
 
-    test('lists members of a channel', async () => {
-      // Given: Channel with 3 members
-      const memberIds = ['U001', 'U002', 'U003']
+      // When: Resolving each member ID to user info
+      const users = await Promise.all(memberIds.map((id) => mockClient.getUser(id)))
 
-      // When: Getting channel users
-      const users = memberIds.map((id) => mockUsers.find((u) => u.id === id)!)
-
-      // Then: Should return all members
+      // Then: Should return all members with profile data
       expect(users).toHaveLength(3)
       expect(users[0].name).toBe('alice')
       expect(users[1].name).toBe('bob')
+      expect(users[2].name).toBe('slackbot')
+      expect(mockClient.listChannelMembers).toHaveBeenCalledWith('C001')
+      expect(mockClient.getUser).toHaveBeenCalledTimes(3)
     })
 
     test('filters out bots by default', async () => {
-      // Given: Channel with human and bot users
-      const allUsers = mockUsers
+      // Given: Channel with human and bot members
+      const memberIds = await mockClient.listChannelMembers('C001')
+      const users = await Promise.all(memberIds.map((id) => mockClient.getUser(id)))
 
       // When: Filtering without --include-bots
-      const filtered = allUsers.filter((u) => !u.is_bot)
+      const filtered = users.filter((u) => !u.is_bot)
 
       // Then: Should exclude bots
       expect(filtered).toHaveLength(2)
@@ -243,18 +253,21 @@ describe('Channel Commands', () => {
     })
 
     test('includes bots with --include-bots flag', async () => {
-      // Given: Channel with human and bot users
-      // When: Including bots
+      // Given: Channel with human and bot members
+      const memberIds = await mockClient.listChannelMembers('C001')
+      const users = await Promise.all(memberIds.map((id) => mockClient.getUser(id)))
+
+      // When: Including bots (no filter)
       // Then: Should return all users including bots
-      expect(mockUsers).toHaveLength(3)
-      expect(mockUsers.some((u) => u.is_bot)).toBe(true)
+      expect(users).toHaveLength(3)
+      expect(users.some((u) => u.is_bot)).toBe(true)
     })
 
-    test('returns user profiles with expected fields', async () => {
-      // Given: User with profile
-      const user = mockUsers[0]
+    test('returns user profiles with expected output shape', async () => {
+      // Given: Channel member with profile
+      const user = await mockClient.getUser('U001')
 
-      // When: Checking output fields
+      // When: Formatting output
       const output = {
         id: user.id,
         name: user.name,
