@@ -80,7 +80,6 @@ describe('CLI Framework', () => {
       expect(output).toContain('reaction')
       expect(output).toContain('file')
       expect(output).toContain('snapshot')
-      expect(output).toContain('--pretty')
       expect(output).toContain('--workspace')
     })
 

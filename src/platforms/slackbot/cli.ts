@@ -11,7 +11,6 @@ program
   .name('agent-slackbot')
   .description('CLI tool for Slack bot integration using bot tokens (xoxb-)')
   .version(pkg.version)
-  .option('--pretty', 'Pretty-print JSON output')
   .option('--bot <id>', 'Use specific bot (default: current)')
 
 program.addCommand(authCommand)

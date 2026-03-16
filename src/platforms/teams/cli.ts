@@ -33,7 +33,6 @@ program
   .name('agent-teams')
   .description('CLI tool for Microsoft Teams communication')
   .version(pkg.version)
-  .option('--pretty', 'Pretty-print JSON output')
   .option('--team <id>', 'Use specific team')
   .option('--account <type>', 'Use specific account (work or personal)')
 
