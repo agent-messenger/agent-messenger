@@ -105,7 +105,7 @@ describe('snapshot command', () => {
       const manager = new ChannelBotCredentialManager(tempDir)
       const result = await snapshotAction({ chatsOnly: true, _credManager: manager })
 
-      expect(result.user_chats?.total_opened).toBe(1)
+      expect(result.user_chats?.opened_count).toBe(1)
       expect(result.user_chats?.recent_opened).toHaveLength(1)
       expect(result.user_chats?.recent_opened[0].id).toBe('chat1')
     })

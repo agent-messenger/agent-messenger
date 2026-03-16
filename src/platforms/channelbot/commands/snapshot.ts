@@ -30,9 +30,9 @@ interface SnapshotResult {
     }>
   }>
   user_chats?: {
-    total_opened: number
-    total_snoozed: number
-    total_closed: number
+    opened_count: number
+    snoozed_count: number
+    closed_count: number
     recent_opened: Array<{
       id: string
       name?: string
@@ -110,9 +110,9 @@ export async function snapshotAction(options: SnapshotOption): Promise<SnapshotR
       return {
         workspace,
         user_chats: {
-          total_opened: openedChats.length,
-          total_snoozed: snoozedChats.length,
-          total_closed: closedChats.length,
+          opened_count: openedChats.length,
+          snoozed_count: snoozedChats.length,
+          closed_count: closedChats.length,
           recent_opened: recentOpened,
         },
       }
@@ -165,9 +165,9 @@ export async function snapshotAction(options: SnapshotOption): Promise<SnapshotR
       workspace,
       groups: groupsWithMessages,
       user_chats: {
-        total_opened: openedChats.length,
-        total_snoozed: snoozedChats.length,
-        total_closed: closedChats.length,
+        opened_count: openedChats.length,
+        snoozed_count: snoozedChats.length,
+        closed_count: closedChats.length,
         recent_opened: recentOpened,
       },
       managers: managers.map((m) => ({ id: m.id, name: m.name, description: m.description })),
@@ -193,6 +193,7 @@ export const snapshotCommand = new Command('snapshot')
         limit: parseInt(options.limit, 10),
       })
       console.log(formatOutput(result, options.pretty))
+      if (result.error) process.exit(1)
     } catch (error) {
       handleError(error as Error)
     }
