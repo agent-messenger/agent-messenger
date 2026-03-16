@@ -46,8 +46,8 @@ describe('ChannelBotClient', () => {
     )
   }
 
-  test('successful GET request returns parsed JSON', async () => {
-    mockResponse({ id: 'ch-1', name: 'My Channel' })
+  test('successful GET request returns unwrapped JSON', async () => {
+    mockResponse({ channel: { id: 'ch-1', name: 'My Channel' } })
 
     const client = new ChannelBotClient('key-1', 'secret-1')
     const channel = await client.getChannel()
@@ -57,8 +57,8 @@ describe('ChannelBotClient', () => {
   })
 
   test('auth headers are set on every request', async () => {
-    mockResponse({ id: 'ch-1', name: 'My Channel' })
-    mockResponse({ id: 'u-1', channelId: 'ch-1' })
+    mockResponse({ channel: { id: 'ch-1', name: 'My Channel' } })
+    mockResponse({ user: { id: 'u-1', channelId: 'ch-1' } })
 
     const client = new ChannelBotClient('my-access-key', 'my-access-secret')
     await client.getChannel()
@@ -75,7 +75,7 @@ describe('ChannelBotClient', () => {
 
   test('429 response triggers retry with Retry-After wait', async () => {
     mockResponse({ message: 'Rate limited' }, 429, { 'Retry-After': '0.05' })
-    mockResponse({ id: 'ch-1', name: 'My Channel' })
+    mockResponse({ channel: { id: 'ch-1', name: 'My Channel' } })
 
     const client = new ChannelBotClient('key-1', 'secret-1')
     const start = Date.now()
@@ -90,7 +90,7 @@ describe('ChannelBotClient', () => {
   test('500 response triggers retry with exponential backoff', async () => {
     mockResponse({ message: 'Server error' }, 500)
     mockResponse({ message: 'Server error' }, 500)
-    mockResponse({ id: 'ch-1', name: 'My Channel' })
+    mockResponse({ channel: { id: 'ch-1', name: 'My Channel' } })
 
     const client = new ChannelBotClient('key-1', 'secret-1')
     const start = Date.now()
@@ -145,7 +145,7 @@ describe('ChannelBotClient', () => {
   })
 
   test('sendUserChatMessage includes botName in query string', async () => {
-    mockResponse({ id: 'm-1' })
+    mockResponse({ message: { id: 'm-1' } })
 
     const client = new ChannelBotClient('key-1', 'secret-1')
     await client.sendUserChatMessage('chat-1', [{ type: 'text', value: 'hello' }], 'SupportBot')
@@ -154,7 +154,7 @@ describe('ChannelBotClient', () => {
   })
 
   test('sendGroupMessage includes botName in query string', async () => {
-    mockResponse({ id: 'm-1' })
+    mockResponse({ message: { id: 'm-1' } })
 
     const client = new ChannelBotClient('key-1', 'secret-1')
     await client.sendGroupMessage('grp-1', [{ type: 'text', value: 'hello' }], 'OpsBot')
@@ -163,7 +163,7 @@ describe('ChannelBotClient', () => {
   })
 
   test('resolveGroup("@team-name") calls groups by name endpoint', async () => {
-    mockResponse({ id: 'grp-1', channelId: 'ch-1', name: 'team-name' })
+    mockResponse({ group: { id: 'grp-1', channelId: 'ch-1', name: 'team-name' } })
 
     const client = new ChannelBotClient('key-1', 'secret-1')
     await client.resolveGroup('@team-name')
@@ -172,7 +172,7 @@ describe('ChannelBotClient', () => {
   })
 
   test('resolveGroup("grp123") calls groups by id endpoint', async () => {
-    mockResponse({ id: 'grp123', channelId: 'ch-1', name: 'team-name' })
+    mockResponse({ group: { id: 'grp123', channelId: 'ch-1', name: 'team-name' } })
 
     const client = new ChannelBotClient('key-1', 'secret-1')
     await client.resolveGroup('grp123')
@@ -181,7 +181,7 @@ describe('ChannelBotClient', () => {
   })
 
   test('pagination params are included in query string', async () => {
-    mockResponse([])
+    mockResponse({ messages: [] })
 
     const client = new ChannelBotClient('key-1', 'secret-1')
     await client.getUserChatMessages('chat-1', { since: 'cursor-1', limit: 25, sortOrder: 'desc' })

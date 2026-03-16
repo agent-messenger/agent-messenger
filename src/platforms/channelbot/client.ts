@@ -53,7 +53,7 @@ export class ChannelBotClient {
   }
 
   async getChannel(): Promise<ChannelBotChannel> {
-    return this.request<ChannelBotChannel>('GET', '/channel')
+    return this.request<ChannelBotChannel>('GET', '/channel', undefined, 'channel')
   }
 
   async listUserChats(params?: {
@@ -62,11 +62,11 @@ export class ChannelBotClient {
     since?: string
     limit?: number
   }): Promise<ChannelBotUserChat[]> {
-    return this.request<ChannelBotUserChat[]>('GET', this.buildPath('/user-chats', params))
+    return this.request<ChannelBotUserChat[]>('GET', this.buildPath('/user-chats', params), undefined, 'userChats')
   }
 
   async getUserChat(id: string): Promise<ChannelBotUserChat> {
-    return this.request<ChannelBotUserChat>('GET', `/user-chats/${id}`)
+    return this.request<ChannelBotUserChat>('GET', `/user-chats/${id}`, undefined, 'userChat')
   }
 
   async getUserChatMessages(
@@ -77,7 +77,7 @@ export class ChannelBotClient {
       limit?: number
     },
   ): Promise<ChannelBotMessage[]> {
-    return this.request<ChannelBotMessage[]>('GET', this.buildPath(`/user-chats/${chatId}/messages`, params))
+    return this.request<ChannelBotMessage[]>('GET', this.buildPath(`/user-chats/${chatId}/messages`, params), undefined, 'messages')
   }
 
   async sendUserChatMessage(chatId: string, blocks: MessageBlock[], botName?: string): Promise<ChannelBotMessage> {
@@ -85,11 +85,12 @@ export class ChannelBotClient {
       'POST',
       this.buildPath(`/user-chats/${chatId}/messages`, botName ? { botName } : undefined),
       { blocks },
+      'message',
     )
   }
 
   async closeUserChat(chatId: string, botName: string): Promise<ChannelBotUserChat> {
-    return this.request<ChannelBotUserChat>('PATCH', this.buildPath(`/user-chats/${chatId}/close`, { botName }))
+    return this.request<ChannelBotUserChat>('PATCH', this.buildPath(`/user-chats/${chatId}/close`, { botName }), undefined, 'userChat')
   }
 
   async deleteUserChat(chatId: string): Promise<void> {
@@ -104,15 +105,15 @@ export class ChannelBotClient {
   }
 
   async listGroups(params?: { since?: string; limit?: number }): Promise<ChannelBotGroup[]> {
-    return this.request<ChannelBotGroup[]>('GET', this.buildPath('/groups', params))
+    return this.request<ChannelBotGroup[]>('GET', this.buildPath('/groups', params), undefined, 'groups')
   }
 
   async getGroup(groupId: string): Promise<ChannelBotGroup> {
-    return this.request<ChannelBotGroup>('GET', `/groups/${groupId}`)
+    return this.request<ChannelBotGroup>('GET', `/groups/${groupId}`, undefined, 'group')
   }
 
   async getGroupByName(name: string): Promise<ChannelBotGroup> {
-    return this.request<ChannelBotGroup>('GET', `/groups/@${encodeURIComponent(name)}`)
+    return this.request<ChannelBotGroup>('GET', `/groups/@${encodeURIComponent(name)}`, undefined, 'group')
   }
 
   async getGroupMessages(
@@ -123,7 +124,7 @@ export class ChannelBotClient {
       limit?: number
     },
   ): Promise<ChannelBotMessage[]> {
-    return this.request<ChannelBotMessage[]>('GET', this.buildPath(`/groups/${groupId}/messages`, params))
+    return this.request<ChannelBotMessage[]>('GET', this.buildPath(`/groups/${groupId}/messages`, params), undefined, 'messages')
   }
 
   async sendGroupMessage(groupId: string, blocks: MessageBlock[], botName?: string): Promise<ChannelBotMessage> {
@@ -131,6 +132,7 @@ export class ChannelBotClient {
       'POST',
       this.buildPath(`/groups/${groupId}/messages`, botName ? { botName } : undefined),
       { blocks },
+      'message',
     )
   }
 
@@ -146,22 +148,22 @@ export class ChannelBotClient {
   }
 
   async listManagers(params?: { since?: string; limit?: number }): Promise<ChannelBotManager[]> {
-    return this.request<ChannelBotManager[]>('GET', this.buildPath('/managers', params))
+    return this.request<ChannelBotManager[]>('GET', this.buildPath('/managers', params), undefined, 'managers')
   }
 
   async getManager(id: string): Promise<ChannelBotManager> {
-    return this.request<ChannelBotManager>('GET', `/managers/${id}`)
+    return this.request<ChannelBotManager>('GET', `/managers/${id}`, undefined, 'manager')
   }
 
   async listBots(params?: { since?: string; limit?: number }): Promise<ChannelBotBot[]> {
-    return this.request<ChannelBotBot[]>('GET', this.buildPath('/bots', params))
+    return this.request<ChannelBotBot[]>('GET', this.buildPath('/bots', params), undefined, 'bots')
   }
 
   async createBot(name: string, options?: { color?: string; avatarUrl?: string }): Promise<ChannelBotBot> {
     return this.request<ChannelBotBot>('POST', '/bots', {
       name,
       ...options,
-    })
+    }, 'bot')
   }
 
   async deleteBot(botId: string): Promise<void> {
@@ -169,11 +171,11 @@ export class ChannelBotClient {
   }
 
   async listUsers(params?: { since?: string; limit?: number }): Promise<ChannelBotUser[]> {
-    return this.request<ChannelBotUser[]>('GET', this.buildPath('/users', params))
+    return this.request<ChannelBotUser[]>('GET', this.buildPath('/users', params), undefined, 'users')
   }
 
   async getUser(id: string): Promise<ChannelBotUser> {
-    return this.request<ChannelBotUser>('GET', `/users/${id}`)
+    return this.request<ChannelBotUser>('GET', `/users/${id}`, undefined, 'user')
   }
 
   private getHeaders(): Record<string, string> {
@@ -210,7 +212,7 @@ export class ChannelBotClient {
     }
   }
 
-  private async request<T>(method: string, path: string, body?: unknown): Promise<T> {
+  private async request<T>(method: string, path: string, body?: unknown, unwrapKey?: string): Promise<T> {
     const url = `${BASE_URL}${path}`
     let lastError: Error | undefined
 
@@ -232,7 +234,7 @@ export class ChannelBotClient {
         response = await fetch(url, options)
       } catch (error) {
         lastError = error instanceof Error ? error : new Error(String(error))
-        if (attempt < MAX_RETRIES) {
+        if (attempt < MAX_RETRIES && method === 'GET') {
           await this.sleep(BASE_BACKOFF_MS * 2 ** attempt)
           continue
         }
@@ -252,7 +254,7 @@ export class ChannelBotClient {
       }
 
       if (response.status >= 500 && response.status <= 599) {
-        if (attempt < MAX_RETRIES) {
+        if (attempt < MAX_RETRIES && method === 'GET') {
           await this.sleep(BASE_BACKOFF_MS * 2 ** attempt)
           continue
         }
@@ -276,7 +278,11 @@ export class ChannelBotClient {
         return undefined as T
       }
 
-      return response.json() as Promise<T>
+      const data = await response.json()
+      if (unwrapKey && data != null && typeof data === 'object' && unwrapKey in data) {
+        return (data as Record<string, unknown>)[unwrapKey] as T
+      }
+      return data as T
     }
 
     throw lastError || new ChannelBotErrorClass('Request failed after retries', 'max_retries')
