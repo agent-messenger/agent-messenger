@@ -38,7 +38,6 @@ program
   .name('agent-discord')
   .description('CLI tool for Discord communication')
   .version(pkg.version)
-  .option('--pretty', 'Pretty-print JSON output')
   .option('--server <id>', 'Use specific server')
 
 program.hook('preAction', async (_thisCommand, actionCommand) => {

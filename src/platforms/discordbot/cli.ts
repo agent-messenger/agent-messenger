@@ -21,7 +21,6 @@ program
   .name('agent-discordbot')
   .description('CLI tool for Discord bot integration using bot tokens')
   .version(pkg.version)
-  .option('--pretty', 'Pretty-print JSON output')
   .option('--bot <id>', 'Bot ID to use')
   .option('--server <id>', 'Server ID to use')
 

@@ -36,7 +36,6 @@ program
   .name('agent-slack')
   .description('CLI tool for Slack communication with token extraction from Slack desktop app')
   .version(pkg.version)
-  .option('--pretty', 'Pretty-print JSON output')
   .option('--workspace <id>', 'Use specific workspace')
 
 program.hook('preAction', async (_thisCommand, actionCommand) => {
