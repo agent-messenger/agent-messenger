@@ -8,7 +8,13 @@ export interface AccountOption {
 }
 
 export function parseLimitOption(rawLimit: string | undefined, defaultValue: number, maxValue: number = 100): number {
-  const parsed = Number.parseInt(rawLimit ?? `${defaultValue}`, 10)
+  const trimmed = (rawLimit ?? `${defaultValue}`).trim()
+
+  if (!/^\d+$/.test(trimmed)) {
+    throw new TelegramError(`--limit must be an integer between 1 and ${maxValue}.`, 'invalid_limit')
+  }
+
+  const parsed = Number.parseInt(trimmed, 10)
 
   if (!Number.isInteger(parsed) || parsed <= 0 || parsed > maxValue) {
     throw new TelegramError(`--limit must be an integer between 1 and ${maxValue}.`, 'invalid_limit')

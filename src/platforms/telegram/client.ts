@@ -477,7 +477,7 @@ export class TelegramTdlibClient {
       this.handleEvent(event)
     }
 
-    return null
+    throw new TelegramError(`Timed out waiting for authorization state change from ${previousType ?? 'unknown state'}.`, 'timeout')
   }
 
   private async waitForAuthorizationState(targetType: string, timeoutMs: number = 15000): Promise<any> {
