@@ -10,6 +10,7 @@ export interface ChannelBotWorkspaceEntry {
   workspace_name: string
   access_key: string
   access_secret: string
+  default_bot?: string
 }
 
 export interface ChannelBotConfig {
@@ -104,6 +105,7 @@ export const ChannelBotWorkspaceEntrySchema = z.object({
   workspace_name: z.string(),
   access_key: z.string(),
   access_secret: z.string(),
+  default_bot: z.string().optional(),
 })
 
 export const ChannelBotConfigSchema = z.object({

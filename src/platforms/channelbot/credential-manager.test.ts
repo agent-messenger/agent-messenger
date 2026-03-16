@@ -276,6 +276,23 @@ describe('ChannelBotCredentialManager', () => {
 
       expect(bot).toBe('bot-2')
     })
+
+    test('scopes default bot to current workspace', async () => {
+      // given
+      await manager.setCredentials(WORKSPACE_A)
+      await manager.setDefaultBot('bot-a')
+      await manager.setCredentials(WORKSPACE_B)
+      await manager.setDefaultBot('bot-b')
+
+      // when/then — workspace B is current
+      expect(await manager.getDefaultBot()).toBe('bot-b')
+
+      // when — switch to workspace A
+      await manager.setCurrent(WORKSPACE_A.workspace_id)
+
+      // then
+      expect(await manager.getDefaultBot()).toBe('bot-a')
+    })
   })
 
   describe('file permissions', () => {

@@ -21,7 +21,13 @@ export class ChannelBotCredentialManager {
     }
 
     const content = await readFile(this.credentialsPath, 'utf-8')
-    const parsed = ChannelBotConfigSchema.safeParse(JSON.parse(content))
+    let json: unknown
+    try {
+      json = JSON.parse(content)
+    } catch {
+      return { current: null, workspaces: {}, default_bot: null }
+    }
+    const parsed = ChannelBotConfigSchema.safeParse(json)
     if (!parsed.success) {
       return { current: null, workspaces: {}, default_bot: null }
     }
@@ -145,14 +151,26 @@ export class ChannelBotCredentialManager {
     await this.save({ current: null, workspaces: {}, default_bot: null })
   }
 
-  async getDefaultBot(): Promise<string | null> {
+  async getDefaultBot(workspaceId?: string): Promise<string | null> {
     const config = await this.load()
+    const wsId = workspaceId ?? config.current?.workspace_id
+    if (wsId) {
+      const workspace = config.workspaces[wsId]
+      if (workspace?.default_bot) return workspace.default_bot
+    }
+    // Fall back to global default_bot for backward compatibility
     return config.default_bot
   }
 
-  async setDefaultBot(name: string): Promise<void> {
+  async setDefaultBot(name: string, workspaceId?: string): Promise<void> {
     const config = await this.load()
-    config.default_bot = name
+    const wsId = workspaceId ?? config.current?.workspace_id
+    if (wsId && config.workspaces[wsId]) {
+      config.workspaces[wsId].default_bot = name
+    } else {
+      // No workspace context — set global as fallback
+      config.default_bot = name
+    }
     await this.save(config)
   }
 }
