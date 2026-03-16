@@ -7,6 +7,16 @@ export interface AccountOption {
   pretty?: boolean
 }
 
+export function parseLimitOption(rawLimit: string | undefined, defaultValue: number, maxValue: number = 100): number {
+  const parsed = Number.parseInt(rawLimit ?? `${defaultValue}`, 10)
+
+  if (!Number.isInteger(parsed) || parsed <= 0 || parsed > maxValue) {
+    throw new TelegramError(`--limit must be an integer between 1 and ${maxValue}.`, 'invalid_limit')
+  }
+
+  return parsed
+}
+
 export async function withTelegramClient<T>(
   options: AccountOption,
   action: (client: TelegramTdlibClient, account: TelegramAccount, manager: TelegramCredentialManager) => Promise<T>,

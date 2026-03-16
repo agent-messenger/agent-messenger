@@ -1,5 +1,5 @@
 import { existsSync } from 'node:fs'
-import { mkdir, readFile, rm, writeFile } from 'node:fs/promises'
+import { mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
 import { createAccountId, type TelegramAccount, type TelegramAccountPaths, type TelegramConfig } from './types'
@@ -66,6 +66,23 @@ export class TelegramCredentialManager {
       config.current = account.account_id
     }
 
+    await this.saveConfig(config)
+  }
+
+  async migrateAccount(oldAccountId: string, account: TelegramAccount): Promise<void> {
+    const config = await this.loadConfig()
+    const normalizedOldAccountId = createAccountId(oldAccountId)
+    const oldPaths = this.getAccountPaths(normalizedOldAccountId)
+    const newPaths = this.getAccountPaths(account.account_id)
+
+    if (normalizedOldAccountId !== account.account_id && existsSync(oldPaths.account_dir) && !existsSync(newPaths.account_dir)) {
+      await mkdir(this.tdlibRootDir, { recursive: true })
+      await rename(oldPaths.account_dir, newPaths.account_dir)
+    }
+
+    delete config.accounts[normalizedOldAccountId]
+    config.accounts[account.account_id] = account
+    config.current = account.account_id
     await this.saveConfig(config)
   }
 

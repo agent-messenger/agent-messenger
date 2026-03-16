@@ -1,5 +1,5 @@
-import { dlopen, FFIType, suffix } from 'bun:ffi'
 import { createRequire } from 'node:module'
+import * as koffi from 'koffi'
 import { TelegramError } from './types'
 
 interface TdjsonSymbols {
@@ -9,26 +9,19 @@ interface TdjsonSymbols {
   td_execute: (request: string) => string | null
 }
 
-const TDJSON_SYMBOLS = {
-  td_create_client_id: {
-    args: [],
-    returns: FFIType.i32,
-  },
-  td_send: {
-    args: [FFIType.i32, FFIType.cstring],
-    returns: FFIType.void,
-  },
-  td_receive: {
-    args: [FFIType.f64],
-    returns: FFIType.cstring,
-  },
-  td_execute: {
-    args: [FFIType.cstring],
-    returns: FFIType.cstring,
-  },
-} as const
-
 const require = createRequire(import.meta.url)
+
+function getLibrarySuffix(): string {
+  if (process.platform === 'darwin') {
+    return 'dylib'
+  }
+
+  if (process.platform === 'win32') {
+    return 'dll'
+  }
+
+  return 'so'
+}
 
 function getPrebuiltTdjsonPath(): string | undefined {
   try {
@@ -41,6 +34,7 @@ function getPrebuiltTdjsonPath(): string | undefined {
 }
 
 function getTdjsonCandidates(tdlibPath?: string): string[] {
+  const suffix = getLibrarySuffix()
   const candidates = [tdlibPath, process.env.TDLIB_PATH, process.env.TDJSON_PATH, getPrebuiltTdjsonPath()].filter(
     (value): value is string => Boolean(value),
   )
@@ -88,11 +82,16 @@ function loadTdjson(tdlibPath?: string): { libraryPath: string; symbols: TdjsonS
 
   for (const candidate of getTdjsonCandidates(tdlibPath)) {
     try {
-      const library = dlopen(candidate, TDJSON_SYMBOLS)
+      const library = koffi.load(candidate)
 
       return {
         libraryPath: candidate,
-        symbols: library.symbols as unknown as TdjsonSymbols,
+        symbols: {
+          td_create_client_id: library.func('int td_create_client_id(void)') as TdjsonSymbols['td_create_client_id'],
+          td_send: library.func('void td_send(int client_id, const char* request)') as TdjsonSymbols['td_send'],
+          td_receive: library.func('const char* td_receive(double timeout)') as TdjsonSymbols['td_receive'],
+          td_execute: library.func('const char* td_execute(const char* request)') as TdjsonSymbols['td_execute'],
+        },
       }
     } catch (error) {
       errors.push(`${candidate}: ${(error as Error).message}`)
@@ -120,12 +119,8 @@ export class TdjsonBinding {
     return this.symbols.td_create_client_id()
   }
 
-  private toCStringBuffer(query: unknown): Uint8Array {
-    return Buffer.from(`${JSON.stringify(query)}\0`, 'utf8')
-  }
-
   send(clientId: number, query: unknown): void {
-    this.symbols.td_send(clientId, this.toCStringBuffer(query) as unknown as string)
+    this.symbols.td_send(clientId, JSON.stringify(query))
   }
 
   receive(timeoutSeconds: number): any | null {
@@ -138,7 +133,7 @@ export class TdjsonBinding {
   }
 
   execute(query: unknown): any | null {
-    const result = this.symbols.td_execute(this.toCStringBuffer(query) as unknown as string)
+    const result = this.symbols.td_execute(JSON.stringify(query))
     if (!result || !result.trim()) {
       return null
     }

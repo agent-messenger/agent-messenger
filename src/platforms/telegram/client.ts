@@ -1,5 +1,5 @@
 import { mkdir } from 'node:fs/promises'
-import pkg from '../../../package.json'
+import pkg from '../../../package.json' with { type: 'json' }
 import { TdjsonBinding } from './tdlib'
 import {
   parseChatReference,
@@ -477,7 +477,7 @@ export class TelegramTdlibClient {
       this.handleEvent(event)
     }
 
-    return this.currentAuthorizationState
+    return null
   }
 
   private async waitForAuthorizationState(targetType: string, timeoutMs: number = 15000): Promise<any> {

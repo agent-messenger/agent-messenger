@@ -97,11 +97,7 @@ async function promptHidden(message: string): Promise<string | undefined> {
 }
 
 function shouldUseInteractivePrompts(options: AuthOptions): boolean {
-  if (!isInteractiveSession()) {
-    return false
-  }
-
-  return !options.pretty
+  return isInteractiveSession()
 }
 
 async function fillMissingBootstrappingInputs(
@@ -129,6 +125,10 @@ async function fillMissingBootstrappingInputs(
 
   if (!resolved.apiHash && !existing?.api_hash) {
     resolved.apiHash = await promptHidden('Telegram API hash')
+  }
+
+  if (!existing && !resolved.phone && !resolved.botToken) {
+    resolved.phone = await promptText('Telegram phone number in international format', '+8210')
   }
 
   return resolved
@@ -175,7 +175,11 @@ async function buildAccount(manager: TelegramCredentialManager, options: AuthOpt
       ? await manager.getAccount()
       : null)
 
-  const accountId = existing?.account_id ?? createAccountId(options.account ?? options.phone ?? 'default')
+  const accountId = options.account
+    ? createAccountId(options.account)
+    : options.phone
+      ? createAccountId(options.phone)
+      : (existing?.account_id ?? 'default')
   const now = new Date().toISOString()
 
   const account: TelegramAccount = {
@@ -241,6 +245,7 @@ export async function loginAction(options: AuthOptions): Promise<void> {
   const unregisterSignalCleanup = registerSignalCleanup(client)
   let exitCode = 0
   let thrownError: Error | null = null
+  let migratedAccount: TelegramAccount | null = null
 
   try {
     let result = await client.login({
@@ -269,6 +274,14 @@ export async function loginAction(options: AuthOptions): Promise<void> {
     }
 
     console.log(formatOutput(result, options.pretty))
+    if (result.authenticated && !options.account && account.account_id === 'default' && result.user?.phone_number) {
+      migratedAccount = {
+        ...account,
+        account_id: createAccountId(`+${result.user.phone_number}`),
+        phone_number: `+${result.user.phone_number}`,
+        updated_at: new Date().toISOString(),
+      }
+    }
     if (!result.authenticated) {
       exitCode = 1
     }
@@ -281,6 +294,10 @@ export async function loginAction(options: AuthOptions): Promise<void> {
 
   if (thrownError) {
     handleError(thrownError)
+  }
+
+  if (migratedAccount) {
+    await manager.migrateAccount('default', migratedAccount)
   }
 
   if (exitCode !== 0) {

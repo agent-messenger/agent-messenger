@@ -1,7 +1,7 @@
 #!/usr/bin/env bun
 
 import { Command } from 'commander'
-import pkg from '../../../package.json'
+import pkg from '../../../package.json' with { type: 'json' }
 import { authCommand, chatCommand, messageCommand } from './commands'
 
 const program = new Command()
@@ -17,6 +17,6 @@ program.addCommand(authCommand)
 program.addCommand(chatCommand)
 program.addCommand(messageCommand)
 
-program.parse(process.argv)
+await program.parseAsync(process.argv)
 
 export default program

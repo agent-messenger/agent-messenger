@@ -1,14 +1,14 @@
 import { Command } from 'commander'
 import { handleError } from '../../../shared/utils/error-handler'
 import { formatOutput } from '../../../shared/utils/output'
-import { withTelegramClient } from './shared'
+import { parseLimitOption, withTelegramClient } from './shared'
 
 async function listAction(
   reference: string,
   options: { account?: string; pretty?: boolean; limit?: string },
 ): Promise<void> {
   try {
-    const limit = Number.parseInt(options.limit ?? '20', 10)
+    const limit = parseLimitOption(options.limit, 20)
     const messages = await withTelegramClient(options, async (client) => client.listMessages(reference, limit))
     console.log(formatOutput(messages, options.pretty))
   } catch (error) {

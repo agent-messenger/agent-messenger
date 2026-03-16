@@ -19,13 +19,24 @@ function parseApiHash(value: string | undefined): string | undefined {
 }
 
 export function getTelegramAppCredentials(): TelegramAppCredentials {
-  const envApiId = parseApiId(process.env.AGENT_TELEGRAM_API_ID ?? process.env.AGENT_MESSENGER_TELEGRAM_API_ID)
-  const envApiHash = parseApiHash(process.env.AGENT_TELEGRAM_API_HASH ?? process.env.AGENT_MESSENGER_TELEGRAM_API_HASH)
+  const envApiId = parseApiId(process.env.AGENT_TELEGRAM_API_ID)
+  const envApiHash = parseApiHash(process.env.AGENT_TELEGRAM_API_HASH)
 
   if (envApiId && envApiHash) {
     return {
       api_id: envApiId,
       api_hash: envApiHash,
+      source: 'env',
+    }
+  }
+
+  const legacyApiId = parseApiId(process.env.AGENT_MESSENGER_TELEGRAM_API_ID)
+  const legacyApiHash = parseApiHash(process.env.AGENT_MESSENGER_TELEGRAM_API_HASH)
+
+  if (legacyApiId && legacyApiHash) {
+    return {
+      api_id: legacyApiId,
+      api_hash: legacyApiHash,
       source: 'env',
     }
   }
