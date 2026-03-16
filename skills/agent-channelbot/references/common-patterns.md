@@ -62,15 +62,18 @@ while true; do
   CHATS=$(agent-channelbot chat list --state opened --limit 1)
   LATEST_ID=$(echo "$CHATS" | jq -r '.chats[0].id // ""')
 
-  if [ "$LATEST_ID" != "$LAST_CHAT_ID" ] && [ -n "$LAST_CHAT_ID" ]; then
+  if [ -z "$LAST_CHAT_ID" ]; then
+    # First run: initialize without processing
+    LAST_CHAT_ID="$LATEST_ID"
+  elif [ "$LATEST_ID" != "$LAST_CHAT_ID" ]; then
     CHAT_NAME=$(echo "$CHATS" | jq -r '.chats[0].name // "Unknown"')
     echo "New chat opened: $CHAT_NAME ($LATEST_ID)"
 
     # Auto-respond or notify
     agent-channelbot message send "$LATEST_ID" "Thanks for contacting us! A team member will be with you shortly."
+    LAST_CHAT_ID="$LATEST_ID"
   fi
 
-  LAST_CHAT_ID="$LATEST_ID"
   sleep 15
 done
 ```
@@ -87,7 +90,7 @@ done
 CHAT_ID="uc_abc123"
 
 # Send a closing message
-agent-channelbot message send "$CHAT_ID" "This issue has been resolved. Feel free to reach out if you need anything else!"
+agent-channelbot message send "$CHAT_ID" "This issue has been resolved. Feel free to reach out if you need anything else!" --bot "Support Bot"
 
 # Close the chat (requires bot name)
 RESULT=$(agent-channelbot chat close "$CHAT_ID" --bot "Support Bot")
@@ -115,7 +118,7 @@ SNAPSHOT=$(agent-channelbot snapshot)
 # Extract key info
 WORKSPACE=$(echo "$SNAPSHOT" | jq -r '.workspace.name')
 GROUP_COUNT=$(echo "$SNAPSHOT" | jq '.groups | length')
-OPEN_CHATS=$(echo "$SNAPSHOT" | jq '.user_chats.total_opened')
+OPEN_CHATS=$(echo "$SNAPSHOT" | jq '.user_chats.opened_count')
 MANAGER_COUNT=$(echo "$SNAPSHOT" | jq '.managers | length')
 BOT_COUNT=$(echo "$SNAPSHOT" | jq '.bots | length')
 
@@ -142,7 +145,10 @@ agent-channelbot snapshot --chats-only     # Just UserChat summary
 KEYWORD="리뷰"
 
 # Search across all chat states (opened, closed, snoozed)
-RESULTS=$(agent-channelbot message grep "$KEYWORD")
+RESULTS=$(agent-channelbot message grep "$KEYWORD") || {
+  echo "Search failed: $(echo "$RESULTS" | jq -r '.error // "unknown error"')"
+  exit 1
+}
 TOTAL=$(echo "$RESULTS" | jq -r '.total_results // 0')
 
 if [ "$TOTAL" -gt 0 ]; then

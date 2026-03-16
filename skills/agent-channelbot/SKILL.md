@@ -197,6 +197,7 @@ agent-channelbot message list <target>
 agent-channelbot message list abc123-chat-id --limit 50
 
 # Get a specific message by ID
+# Note: Searches the latest 100 messages. Older messages may not be found.
 agent-channelbot message get <target> <message-id>
 
 # Search messages across UserChats
@@ -399,15 +400,13 @@ If the package is installed globally, use `agent-channelbot` directly:
 agent-channelbot message send abc123-chat-id "Hello"
 ```
 
-If the package is NOT installed, run it directly using a package runner. Ask the user which one to use:
+If the package is NOT installed, run it directly with `npx -y`:
 
 ```bash
 npx -y agent-messenger channelbot message send abc123-chat-id "Hello"
-bunx agent-messenger channelbot message send abc123-chat-id "Hello"
-pnpm dlx agent-messenger channelbot message send abc123-chat-id "Hello"
 ```
 
-If you already know the user's preferred package runner, use it directly instead of asking.
+> **Note**: If the user prefers a different package runner (e.g., `bunx`, `pnpx`, `pnpm dlx`), use that instead.
 
 **NEVER run `npx agent-channelbot`, `bunx agent-channelbot`, or `pnpm dlx agent-channelbot`**. It will fail or install a wrong package since `agent-channelbot` is not the npm package name.
 
@@ -420,7 +419,7 @@ If you already know the user's preferred package runner, use it directly instead
 
 ### Rate limiting
 
-Channel Talk enforces rate limits on API calls. If you hit rate limits, add delays between requests. The CLI does not auto-retry on rate limit errors. See `references/common-patterns.md` for retry patterns.
+Channel Talk enforces rate limits on API calls. The CLI automatically retries on rate limit (429) responses using the `Retry-After` header. For bulk operations, add delays between requests to avoid hitting limits.
 
 ### Bot name errors
 
