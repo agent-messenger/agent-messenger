@@ -29,6 +29,6 @@ export async function withTelegramClient<T>(
   try {
     return await action(client, account, manager)
   } finally {
-    await client.close().catch(() => undefined)
+    await client.close({ waitForClosed: false, timeoutMs: 1500 }).catch(() => undefined)
   }
 }

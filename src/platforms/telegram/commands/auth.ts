@@ -276,7 +276,7 @@ export async function loginAction(options: AuthOptions): Promise<void> {
     thrownError = error as Error
   } finally {
     unregisterSignalCleanup()
-    await client.close().catch(() => undefined)
+    await client.close({ waitForClosed: true, timeoutMs: 5000 }).catch(() => undefined)
   }
 
   if (thrownError) {
@@ -321,7 +321,7 @@ export async function statusAction(options: { account?: string; pretty?: boolean
     thrownError = error as Error
   } finally {
     unregisterSignalCleanup()
-    await client.close().catch(() => undefined)
+    await client.close({ waitForClosed: false, timeoutMs: 1500 }).catch(() => undefined)
   }
 
   if (thrownError) {
@@ -401,7 +401,7 @@ export async function logoutAction(options: { account?: string; pretty?: boolean
     thrownError = error as Error
   } finally {
     unregisterSignalCleanup()
-    await client.close().catch(() => undefined)
+    await client.close({ waitForClosed: true, timeoutMs: 5000 }).catch(() => undefined)
   }
 
   if (thrownError) {

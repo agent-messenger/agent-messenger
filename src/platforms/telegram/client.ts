@@ -115,18 +115,26 @@ export class TelegramTdlibClient {
     await this.waitForAuthorizationState('authorizationStateClosed', 30000)
   }
 
-  async close(): Promise<void> {
+  async close(options: { waitForClosed?: boolean; timeoutMs?: number } = {}): Promise<void> {
     if (this.currentAuthorizationState?.['@type'] === 'authorizationStateClosed') {
       return
     }
 
+    const waitForClosed = options.waitForClosed ?? false
+    const timeoutMs = options.timeoutMs ?? (waitForClosed ? 30000 : 1500)
+
     try {
-      await this.call({ '@type': 'close' }, { timeoutMs: 30000 })
+      await this.call({ '@type': 'close' }, { timeoutMs })
     } catch {
       return
     }
 
-    await this.waitForAuthorizationState('authorizationStateClosed', 30000).catch(() => undefined)
+    if (waitForClosed) {
+      await this.waitForAuthorizationState('authorizationStateClosed', timeoutMs).catch(() => undefined)
+      return
+    }
+
+    await this.waitForAuthorizationState('authorizationStateClosed', timeoutMs).catch(() => undefined)
   }
 
   async listChats(limit: number = 20): Promise<TelegramChatSummary[]> {
@@ -157,6 +165,7 @@ export class TelegramTdlibClient {
 
   async searchChats(query: string, limit: number = 20): Promise<TelegramChatSummary[]> {
     await this.ensureReady()
+    const localCache = await this.listChats(Math.max(limit * 5, 100))
 
     const local = await this.call({
       '@type': 'searchChats',
@@ -164,8 +173,12 @@ export class TelegramTdlibClient {
       limit,
     })
 
-    if ((local.chat_ids ?? []).length > 0) {
-      return this.getChatsByIds(local.chat_ids)
+    const directMatches = (local.chat_ids ?? []).length > 0 ? await this.getChatsByIds(local.chat_ids) : []
+    const fuzzyMatches = this.findFuzzyChats(localCache, query, limit)
+    const mergedMatches = this.mergeChats(directMatches, fuzzyMatches)
+
+    if (mergedMatches.length > 0) {
+      return mergedMatches.slice(0, limit)
     }
 
     const remote = await this.call({
@@ -173,7 +186,8 @@ export class TelegramTdlibClient {
       query,
     })
 
-    return this.getChatsByIds(remote.chat_ids ?? [])
+    const remoteMatches = (remote.chat_ids ?? []).length > 0 ? await this.getChatsByIds(remote.chat_ids) : []
+    return this.mergeChats(remoteMatches, fuzzyMatches).slice(0, limit)
   }
 
   async getChat(reference: string): Promise<TelegramChatSummary> {
@@ -221,7 +235,12 @@ export class TelegramTdlibClient {
       },
     })
 
-    return simplifyMessage(message, chat.id)
+    if (message.sending_state?.['@type'] === 'messageSendingStatePending') {
+      await this.drainUpdates(2000)
+    }
+
+    const confirmedMessage = await this.findRecentlySentMessage(chat.id, text, message.id)
+    return simplifyMessage(confirmedMessage ?? message, chat.id)
   }
 
   private async ensureReady(): Promise<void> {
@@ -344,7 +363,7 @@ export class TelegramTdlibClient {
       })
     } catch {
       const chats = await this.searchChats(reference, 20)
-      const exactMatch = chats.find((chat) => chat.title.toLowerCase() === reference.toLowerCase())
+      const exactMatch = chats.find((chat) => this.normalizeChatSearchText(chat.title) === this.normalizeChatSearchText(reference))
 
       if (exactMatch) {
         return this.call({
@@ -365,6 +384,43 @@ export class TelegramTdlibClient {
         'chat_not_found',
       )
     }
+  }
+
+  private normalizeChatSearchText(value: string): string {
+    return value
+      .toLowerCase()
+      .replace(/\s+/g, '')
+      .replace(/[^\p{L}\p{N}]+/gu, '')
+  }
+
+  private findFuzzyChats(chats: TelegramChatSummary[], query: string, limit: number): TelegramChatSummary[] {
+    const normalizedQuery = this.normalizeChatSearchText(query)
+    if (!normalizedQuery) {
+      return []
+    }
+
+    return chats
+      .filter((chat) => {
+        const normalizedTitle = this.normalizeChatSearchText(chat.title)
+        return normalizedTitle.includes(normalizedQuery) || normalizedQuery.includes(normalizedTitle)
+      })
+      .slice(0, limit)
+  }
+
+  private mergeChats(primary: TelegramChatSummary[], secondary: TelegramChatSummary[]): TelegramChatSummary[] {
+    const seen = new Set<number>()
+    const merged: TelegramChatSummary[] = []
+
+    for (const chat of [...primary, ...secondary]) {
+      if (seen.has(chat.id)) {
+        continue
+      }
+
+      seen.add(chat.id)
+      merged.push(chat)
+    }
+
+    return merged
   }
 
   private async getChatsByIds(chatIds: number[]): Promise<TelegramChatSummary[]> {
@@ -481,5 +537,44 @@ export class TelegramTdlibClient {
     }
 
     throw new TelegramError(`Timed out waiting for TDLib response to ${query['@type']}`, 'timeout')
+  }
+
+  private async drainUpdates(durationMs: number): Promise<void> {
+    const deadline = Date.now() + durationMs
+
+    while (Date.now() < deadline) {
+      const event = this.tdjson.receive(Math.min(0.25, Math.max((deadline - Date.now()) / 1000, 0.01)))
+      if (!event) {
+        continue
+      }
+
+      this.handleEvent(event)
+    }
+  }
+
+  private async findRecentlySentMessage(chatId: number, text: string, fallbackMessageId: number): Promise<any | null> {
+    try {
+      const history = await this.call({
+        '@type': 'getChatHistory',
+        chat_id: chatId,
+        from_message_id: 0,
+        offset: 0,
+        limit: 10,
+        only_local: false,
+      })
+
+      const normalizedText = text.trim()
+      const candidate = (history.messages ?? []).find(
+        (item: any) =>
+          item.is_outgoing &&
+          item.id !== fallbackMessageId &&
+          item.content?.['@type'] === 'messageText' &&
+          item.content?.text?.text?.trim?.() === normalizedText,
+      )
+
+      return candidate ?? null
+    } catch {
+      return null
+    }
   }
 }
