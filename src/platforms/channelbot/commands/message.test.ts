@@ -70,12 +70,18 @@ let capturedGetUserChatMsgArgs: unknown[] = []
 mock.module('../client', () => ({
   ChannelBotClient: class MockChannelBotClient {
     static wrapTextInBlocks(text: string) {
-      return [{ type: 'text', value: text }]
+      return [{ type: 'text', content: [{ type: 'plain', attrs: { text } }] }]
     }
-    static extractText(msg: { blocks?: Array<{ type: string; value?: string }>; plainText?: string }) {
+    static extractText(msg: { blocks?: Array<{ type: string; content?: Array<{ type: string; attrs?: { text?: string } }>; value?: string }>; plainText?: string }) {
       const parts: string[] = []
       for (const block of msg.blocks ?? []) {
-        if (block.value) parts.push(block.value)
+        if (block.content) {
+          for (const inline of block.content) {
+            if (inline.attrs?.text) parts.push(inline.attrs.text)
+          }
+        } else if (block.value) {
+          parts.push(block.value)
+        }
       }
       if (msg.plainText) parts.push(msg.plainText)
       return parts.join('\n')
@@ -139,7 +145,7 @@ describe('message commands', () => {
 
       expect(result.error).toBeUndefined()
       expect(result.id).toBe('msg1')
-      expect(capturedSendUserChatArgs[1]).toEqual([{ type: 'text', value: 'Hello world' }])
+      expect(capturedSendUserChatArgs[1]).toEqual([{ type: 'text', content: [{ type: 'plain', attrs: { text: 'Hello world' } }] }])
     })
 
     test('sends to group when type=group', async () => {
@@ -329,7 +335,7 @@ describe('message commands', () => {
     test('matches text from blocks when plainText is empty', async () => {
       // given
       mockGetUserChatMessages.mockImplementation(() =>
-        Promise.resolve([searchMsg({ plainText: undefined, blocks: [{ type: 'text', value: '리뷰 요청합니다' }] })]),
+        Promise.resolve([searchMsg({ plainText: undefined, blocks: [{ type: 'text', content: [{ type: 'plain', attrs: { text: '리뷰 요청합니다' } }] }] })]),
       )
 
       // when

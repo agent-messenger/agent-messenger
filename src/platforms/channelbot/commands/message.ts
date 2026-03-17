@@ -14,7 +14,7 @@ interface MessageResult {
   person_id?: string
   created_at?: number
   plain_text?: string
-  blocks?: Array<{ type: string; value: string }>
+  blocks?: Array<{ type: string; content?: Array<{ type: string; attrs?: { text?: string } }>; value?: string }>
   messages?: Array<{
     id: string
     chat_id?: string
