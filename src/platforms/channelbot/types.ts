@@ -1,8 +1,18 @@
 import { z } from 'zod'
 
+export interface BlockInlineAttrs {
+  text?: string
+}
+
+export interface BlockInline {
+  type: string
+  attrs?: BlockInlineAttrs
+}
+
 export interface MessageBlock {
   type: string
-  value: string
+  content?: BlockInline[]
+  value?: string
 }
 
 export interface ChannelBotWorkspaceEntry {
@@ -95,9 +105,19 @@ export class ChannelBotError extends Error {
   }
 }
 
+export const BlockInlineAttrsSchema = z.object({
+  text: z.string().optional(),
+})
+
+export const BlockInlineSchema = z.object({
+  type: z.string(),
+  attrs: BlockInlineAttrsSchema.optional(),
+})
+
 export const MessageBlockSchema = z.object({
   type: z.string(),
-  value: z.string(),
+  content: z.array(BlockInlineSchema).optional(),
+  value: z.string().optional(),
 })
 
 export const ChannelBotWorkspaceEntrySchema = z.object({
