@@ -44,8 +44,8 @@ export async function listAction(options: BotOptions = {}): Promise<BotResult> {
 }
 
 function parseLimit(limit?: string): number {
-  const parsed = limit ? Number.parseInt(limit, 10) : 25
-  if (Number.isNaN(parsed) || parsed < 1) {
+  const parsed = limit ? Number(limit) : 25
+  if (!Number.isInteger(parsed) || parsed < 1) {
     throw new Error('Invalid --limit value. Must be a positive integer.')
   }
   return parsed

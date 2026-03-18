@@ -113,8 +113,8 @@ function parseLimit(limit?: number | string): number {
     return limit
   }
 
-  const parsed = limit ? Number.parseInt(limit, 10) : 5
-  if (Number.isNaN(parsed) || parsed < 1) {
+  const parsed = limit ? Number(limit) : 5
+  if (!Number.isInteger(parsed) || parsed < 1) {
     throw new Error('Invalid --limit value. Must be a positive integer.')
   }
   return parsed

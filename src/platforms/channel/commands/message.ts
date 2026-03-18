@@ -115,8 +115,8 @@ export async function getAction(
 }
 
 function parseLimit(limit?: string): number {
-  const parsed = limit ? Number.parseInt(limit, 10) : 25
-  if (Number.isNaN(parsed) || parsed < 1) {
+  const parsed = limit ? Number(limit) : 25
+  if (!Number.isInteger(parsed) || parsed < 1) {
     throw new Error('Invalid --limit value. Must be a positive integer.')
   }
   return parsed
@@ -136,6 +136,8 @@ async function sendMessageByChatType(
       return client.sendUserChatMessage(channelId, chatId, blocks)
     case 'direct-chat':
       return client.sendDirectChatMessage(channelId, chatId, blocks)
+    default:
+      throw new Error(`Invalid chat type: ${chatType as string}. Must be one of: group, user-chat, direct-chat`)
   }
 }
 
@@ -153,6 +155,8 @@ async function listMessagesByChatType(
       return client.getUserChatMessages(channelId, chatId, params)
     case 'direct-chat':
       return client.getDirectChatMessages(channelId, chatId, params)
+    default:
+      throw new Error(`Invalid chat type: ${chatType as string}. Must be one of: group, user-chat, direct-chat`)
   }
 }
 
