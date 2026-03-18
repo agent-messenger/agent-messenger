@@ -64,7 +64,11 @@ while true; do
   CHATS=$(agent-channel chat list --state opened --limit 1)
   LATEST_ID=$(echo "$CHATS" | jq -r '.chats[0].id // ""')
 
-  if [ -z "$LAST_CHAT_ID" ]; then
+  if [ -z "$LATEST_ID" ]; then
+    # No open chats; skip
+    sleep 15
+    continue
+  elif [ -z "$LAST_CHAT_ID" ]; then
     # First run: initialize without processing
     LAST_CHAT_ID="$LATEST_ID"
   elif [ "$LATEST_ID" != "$LAST_CHAT_ID" ]; then
