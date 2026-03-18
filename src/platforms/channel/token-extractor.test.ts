@@ -112,6 +112,7 @@ async function createCookieDatabase(
   if (typeof globalThis.Bun !== 'undefined') {
     const { Database } = await import('bun:sqlite')
     const db = new Database(dbPath)
+    db.run('PRAGMA journal_mode = DELETE')
     db.run('CREATE TABLE cookies (name TEXT, value TEXT, host_key TEXT)')
     for (const row of rows) {
       db.run('INSERT INTO cookies (name, value, host_key) VALUES (?, ?, ?)', [row.name, row.value, row.host_key])

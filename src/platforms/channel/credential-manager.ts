@@ -7,9 +7,11 @@ import type { ChannelConfig, ChannelCredentials, ChannelWorkspaceEntry } from '.
 import { ChannelConfigSchema } from './types'
 
 export class ChannelCredentialManager {
+  private configDir: string
   private credentialsPath: string
 
-  constructor(private configDir: string = join(homedir(), '.config', 'agent-messenger')) {
+  constructor(configDir?: string) {
+    this.configDir = configDir ?? join(homedir(), '.config', 'agent-messenger')
     this.credentialsPath = join(this.configDir, 'channel-credentials.json')
   }
 
