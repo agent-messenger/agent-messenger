@@ -1,12 +1,9 @@
 import { afterEach, describe, expect, test } from 'bun:test'
 import { existsSync, mkdtempSync, rmSync } from 'node:fs'
-import { createRequire } from 'node:module'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
 import { ChannelTokenExtractor } from './token-extractor'
-
-const require = createRequire(import.meta.url)
 
 describe('ChannelTokenExtractor', () => {
   const tempDirs: string[] = []
@@ -121,7 +118,9 @@ async function createCookieDatabase(
     return
   }
 
-  const Database = require('better-sqlite3')
+  const { createRequire } = await import('node:module')
+  const req = createRequire(import.meta.url)
+  const Database = req('better-sqlite3')
   const db = new Database(dbPath)
   db.exec('CREATE TABLE cookies (name TEXT, value TEXT, host_key TEXT)')
   const statement = db.prepare('INSERT INTO cookies (name, value, host_key) VALUES (?, ?, ?)')

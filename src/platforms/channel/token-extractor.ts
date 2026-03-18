@@ -1,11 +1,8 @@
 import { copyFileSync, existsSync, unlinkSync } from 'node:fs'
-import { createRequire } from 'node:module'
 import { homedir, tmpdir } from 'node:os'
 import { join } from 'node:path'
 
 import type { ExtractedChannelToken } from './types'
-
-const require = createRequire(import.meta.url)
 
 export class ChannelTokenExtractor {
   private platform: NodeJS.Platform
@@ -62,8 +59,10 @@ export class ChannelTokenExtractor {
             db.close()
             return result
           })()
-        : (() => {
-            const Database = require('better-sqlite3')
+        : await (async () => {
+            const { createRequire } = await import('node:module')
+            const req = createRequire(import.meta.url)
+            const Database = req('better-sqlite3')
             const db = new Database(tempPath, { readonly: true })
             const result = db.prepare(sql).all() as CookieRow[]
             db.close()
