@@ -49,6 +49,7 @@ setEnsureChannelAuthClientFactoryForTesting((accountCookie: string, sessionCooki
 describe('ensureChannelAuth', () => {
   afterAll(() => {
     resetEnsureChannelAuthClientFactoryForTesting()
+    mock.restore()
   })
 
   beforeEach(() => {
