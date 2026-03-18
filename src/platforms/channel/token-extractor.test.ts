@@ -35,7 +35,7 @@ describe('ChannelTokenExtractor', () => {
     const tempDir = mkdtempSync(join(tmpdir(), 'channel-cookie-db-'))
     tempDirs.push(tempDir)
     const dbPath = join(tempDir, 'Cookies')
-    createCookieDatabase(dbPath, [
+    await createCookieDatabase(dbPath, [
       { name: 'x-account', value: 'account-jwt', host_key: '.desk.channel.io' },
       { name: 'ch-session-1', value: 'session-jwt', host_key: '.desk.channel.io' },
       { name: 'other', value: 'ignore-me', host_key: '.channel.io' },
@@ -63,7 +63,7 @@ describe('ChannelTokenExtractor', () => {
     const tempDir = mkdtempSync(join(tmpdir(), 'channel-cookie-db-'))
     tempDirs.push(tempDir)
     const dbPath = join(tempDir, 'Cookies')
-    createCookieDatabase(dbPath, [{ name: 'x-account', value: 'account-jwt', host_key: '.channel.io' }])
+    await createCookieDatabase(dbPath, [{ name: 'x-account', value: 'account-jwt', host_key: '.channel.io' }])
 
     class TestExtractor extends ChannelTokenExtractor {
       constructor(private dbPath: string) {
@@ -87,7 +87,7 @@ describe('ChannelTokenExtractor', () => {
     const tempDir = mkdtempSync(join(tmpdir(), 'channel-cookie-db-'))
     tempDirs.push(tempDir)
     const dbPath = join(tempDir, 'Cookies')
-    createCookieDatabase(dbPath, [{ name: 'ch-session-1', value: 'session-jwt', host_key: '.channel.io' }])
+    await createCookieDatabase(dbPath, [{ name: 'ch-session-1', value: 'session-jwt', host_key: '.channel.io' }])
 
     class TestExtractor extends ChannelTokenExtractor {
       constructor(private dbPath: string) {
@@ -105,12 +105,12 @@ describe('ChannelTokenExtractor', () => {
   })
 })
 
-function createCookieDatabase(
+async function createCookieDatabase(
   dbPath: string,
   rows: Array<{ name: string; value: string; host_key: string }>,
-): void {
+): Promise<void> {
   if (typeof globalThis.Bun !== 'undefined') {
-    const { Database } = require('bun:sqlite')
+    const { Database } = await import('bun:sqlite')
     const db = new Database(dbPath)
     db.run('CREATE TABLE cookies (name TEXT, value TEXT, host_key TEXT)')
     for (const row of rows) {

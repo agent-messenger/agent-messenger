@@ -55,8 +55,8 @@ export class ChannelTokenExtractor {
       `
       type CookieRow = { name: string; value: string }
       const rows: CookieRow[] = typeof globalThis.Bun !== 'undefined'
-        ? (() => {
-            const { Database } = require('bun:sqlite')
+        ? await (async () => {
+            const { Database } = await import('bun:sqlite')
             const db = new Database(tempPath, { readonly: true })
             const result = db.query(sql).all() as CookieRow[]
             db.close()
