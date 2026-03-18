@@ -7,6 +7,7 @@
     "url": "https://github.com/devxoul/agent-messenger"
   },
   "bin": {
+    "agent-channel": "./src/platforms/channel/cli.ts",
     "agent-discord": "./src/platforms/discord/cli.ts",
     "agent-discordbot": "./src/platforms/discordbot/cli.ts",
     "agent-messenger": "./src/cli.ts",

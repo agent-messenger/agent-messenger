@@ -40,6 +40,10 @@ program.command('channelbot', 'Interact with Channel Talk using API credentials'
   executableFile: join(__dirname, 'platforms', 'channelbot', `cli${ext}`),
 })
 
+program.command('channel', 'Interact with Channel Talk', {
+  executableFile: join(__dirname, 'platforms', 'channel', `cli${ext}`),
+})
+
 program.parse(process.argv)
 
 export default program
