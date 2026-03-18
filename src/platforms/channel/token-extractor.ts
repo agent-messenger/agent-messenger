@@ -50,7 +50,7 @@ export class ChannelTokenExtractor {
       copyFileSync(cookiesPath, tempPath)
       const sql = `
         SELECT name, value FROM cookies
-        WHERE name IN ('x-account', 'ch-session-1')
+        WHERE name IN ('x-account', 'ch-session-1', 'ch-session')
         AND host_key LIKE '%.channel.io%'
       `
       type CookieRow = { name: string; value: string }
@@ -71,9 +71,11 @@ export class ChannelTokenExtractor {
           })()
 
       const accountCookie = rows.find((row) => row.name === 'x-account')?.value
-      const sessionCookie = rows.find((row) => row.name === 'ch-session-1')?.value
+      const sessionCookie =
+        rows.find((row) => row.name === 'ch-session-1')?.value ??
+        rows.find((row) => row.name === 'ch-session')?.value
 
-      return accountCookie && sessionCookie ? { accountCookie, sessionCookie } : null
+      return accountCookie ? { accountCookie, sessionCookie } : null
     } catch {
       /* extraction failed (e.g. SQLite error); return null */
       return null

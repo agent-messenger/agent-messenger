@@ -122,7 +122,7 @@ export interface ChannelWorkspaceEntry {
   account_id?: string
   account_name?: string
   account_cookie: string
-  session_cookie: string
+  session_cookie?: string
 }
 
 export interface ChannelConfig {
@@ -134,12 +134,12 @@ export interface ChannelCredentials {
   workspace_id: string
   workspace_name: string
   account_cookie: string
-  session_cookie: string
+  session_cookie?: string
 }
 
 export interface ExtractedChannelToken {
   accountCookie: string
-  sessionCookie: string
+  sessionCookie?: string
 }
 
 export class ChannelError extends Error {
@@ -173,7 +173,7 @@ export const ChannelWorkspaceEntrySchema = z.object({
   account_id: z.string().optional(),
   account_name: z.string().optional(),
   account_cookie: z.string(),
-  session_cookie: z.string(),
+  session_cookie: z.string().optional(),
 })
 
 export const ChannelConfigSchema = z.object({
@@ -189,7 +189,7 @@ export const ChannelCredentialsSchema = z.object({
   workspace_id: z.string(),
   workspace_name: z.string(),
   account_cookie: z.string(),
-  session_cookie: z.string(),
+  session_cookie: z.string().optional(),
 })
 
 export const ChannelAccountSchema = z.object({
@@ -295,5 +295,5 @@ export const ChannelSessionSchema = z.object({
 
 export const ExtractedChannelTokenSchema = z.object({
   accountCookie: z.string(),
-  sessionCookie: z.string(),
+  sessionCookie: z.string().optional(),
 })

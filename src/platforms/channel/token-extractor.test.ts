@@ -59,11 +59,35 @@ describe('ChannelTokenExtractor', () => {
     })
   })
 
-  test('returns null when one of the cookies is missing', async () => {
+  test('returns token with undefined sessionCookie when only x-account is present', async () => {
     const tempDir = mkdtempSync(join(tmpdir(), 'channel-cookie-db-'))
     tempDirs.push(tempDir)
     const dbPath = join(tempDir, 'Cookies')
-    createCookieDatabase(dbPath, [{ name: 'x-account', value: 'account-jwt', host_key: '.desk.channel.io' }])
+    createCookieDatabase(dbPath, [{ name: 'x-account', value: 'account-jwt', host_key: '.channel.io' }])
+
+    class TestExtractor extends ChannelTokenExtractor {
+      constructor(private dbPath: string) {
+        super('darwin')
+      }
+
+      override getCookiesPath(): string | null {
+        return this.dbPath
+      }
+    }
+
+    const extractor = new TestExtractor(dbPath)
+    const result = await extractor.extract()
+
+    expect(result).not.toBeNull()
+    expect(result?.accountCookie).toBe('account-jwt')
+    expect(result?.sessionCookie).toBeUndefined()
+  })
+
+  test('returns null when x-account is missing', async () => {
+    const tempDir = mkdtempSync(join(tmpdir(), 'channel-cookie-db-'))
+    tempDirs.push(tempDir)
+    const dbPath = join(tempDir, 'Cookies')
+    createCookieDatabase(dbPath, [{ name: 'ch-session-1', value: 'session-jwt', host_key: '.channel.io' }])
 
     class TestExtractor extends ChannelTokenExtractor {
       constructor(private dbPath: string) {

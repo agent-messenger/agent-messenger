@@ -23,11 +23,20 @@ describe('channel types', () => {
     expect(result.success).toBe(true)
   })
 
-  test('rejects an invalid workspace entry', () => {
+  test('accepts a workspace entry without session_cookie', () => {
     const result = ChannelWorkspaceEntrySchema.safeParse({
       workspace_id: '232986',
       workspace_name: 'Support',
       account_cookie: 'account-jwt',
+    })
+
+    expect(result.success).toBe(true)
+  })
+
+  test('rejects a workspace entry missing account_cookie', () => {
+    const result = ChannelWorkspaceEntrySchema.safeParse({
+      workspace_id: '232986',
+      workspace_name: 'Support',
     })
 
     expect(result.success).toBe(false)

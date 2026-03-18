@@ -4,17 +4,17 @@ import { ChannelTokenExtractor } from './token-extractor'
 
 type ChannelClientLike = Pick<ChannelClient, 'getAccount' | 'listChannels'>
 
-let createChannelClient = (accountCookie: string, sessionCookie: string): ChannelClientLike =>
+let createChannelClient = (accountCookie: string, sessionCookie?: string): ChannelClientLike =>
   new ChannelClient(accountCookie, sessionCookie)
 
 export function setEnsureChannelAuthClientFactoryForTesting(
-  factory: (accountCookie: string, sessionCookie: string) => ChannelClientLike,
+  factory: (accountCookie: string, sessionCookie?: string) => ChannelClientLike,
 ): void {
   createChannelClient = factory
 }
 
 export function resetEnsureChannelAuthClientFactoryForTesting(): void {
-  createChannelClient = (accountCookie: string, sessionCookie: string): ChannelClientLike =>
+  createChannelClient = (accountCookie: string, sessionCookie?: string): ChannelClientLike =>
     new ChannelClient(accountCookie, sessionCookie)
 }
 
@@ -25,7 +25,7 @@ export async function ensureChannelAuth(): Promise<void> {
 
     if (creds) {
       try {
-        const client = createChannelClient(creds.account_cookie, creds.session_cookie)
+        const client = createChannelClient(creds.account_cookie, creds.session_cookie ?? undefined)
         await client.getAccount()
         return
       } catch {

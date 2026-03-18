@@ -50,9 +50,11 @@ describe('ChannelClient', () => {
 
   const getJsonBody = (callIndex = 0) => JSON.parse(String(fetchCalls[callIndex]?.options?.body)) as Record<string, unknown>
 
-  test('constructor requires both cookies', () => {
+  test('constructor requires account cookie', () => {
     expect(() => new ChannelClient('', 'session-cookie')).toThrow(ChannelError)
-    expect(() => new ChannelClient('account-cookie', '')).toThrow(ChannelError)
+    expect(() => new ChannelClient('')).toThrow(ChannelError)
+    expect(() => new ChannelClient('account-cookie')).not.toThrow()
+    expect(() => new ChannelClient('account-cookie', '')).not.toThrow()
   })
 
   test('successful GET request returns unwrapped JSON', async () => {

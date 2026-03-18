@@ -49,13 +49,13 @@ type ChannelCredentialManagerLike = Pick<
   'getCredentials' | 'listAll' | 'clearCredentials' | 'setCurrent' | 'removeWorkspace'
 >
 
-let createChannelClient = (accountCookie: string, sessionCookie: string): ChannelClientLike =>
+let createChannelClient = (accountCookie: string, sessionCookie?: string): ChannelClientLike =>
   new ChannelClient(accountCookie, sessionCookie)
 
 let createCredentialManager = (): ChannelCredentialManagerLike => new ChannelCredentialManager()
 
 export function setChannelAuthCommandDependenciesForTesting(dependencies: {
-  createChannelClient?: (accountCookie: string, sessionCookie: string) => ChannelClientLike
+  createChannelClient?: (accountCookie: string, sessionCookie?: string) => ChannelClientLike
   createCredentialManager?: () => ChannelCredentialManagerLike
 }): void {
   if (dependencies.createChannelClient) {
@@ -67,7 +67,7 @@ export function setChannelAuthCommandDependenciesForTesting(dependencies: {
 }
 
 export function resetChannelAuthCommandDependenciesForTesting(): void {
-  createChannelClient = (accountCookie: string, sessionCookie: string): ChannelClientLike =>
+  createChannelClient = (accountCookie: string, sessionCookie?: string): ChannelClientLike =>
     new ChannelClient(accountCookie, sessionCookie)
   createCredentialManager = (): ChannelCredentialManagerLike => new ChannelCredentialManager()
 }
@@ -116,7 +116,7 @@ export async function statusAction(options: ActionOptions = {}): Promise<StatusR
     const storedWorkspace = (await credManager.listAll()).find((workspace) => workspace.workspace_id === creds.workspace_id)
 
     try {
-      const client = createChannelClient(creds.account_cookie, creds.session_cookie)
+      const client = createChannelClient(creds.account_cookie, creds.session_cookie ?? undefined)
       const account = await client.getAccount()
 
       return {

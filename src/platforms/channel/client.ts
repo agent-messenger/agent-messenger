@@ -23,16 +23,13 @@ interface ChannelApiErrorResponse {
 
 export class ChannelClient {
   private accountCookie: string
-  private sessionCookie: string
+  private sessionCookie: string | undefined
   private rateLimitRemaining: number | null = null
   private rateLimitResetAt = 0
 
-  constructor(accountCookie: string, sessionCookie: string) {
+  constructor(accountCookie: string, sessionCookie?: string) {
     if (!accountCookie) {
       throw new ChannelError('Account cookie is required', 'missing_account_cookie')
-    }
-    if (!sessionCookie) {
-      throw new ChannelError('Session cookie is required', 'missing_session_cookie')
     }
 
     this.accountCookie = accountCookie
@@ -201,7 +198,9 @@ export class ChannelClient {
 
   private getHeaders(): Record<string, string> {
     return {
-      Cookie: `x-account=${this.accountCookie}; ch-session-1=${this.sessionCookie}`,
+      Cookie: this.sessionCookie
+        ? `x-account=${this.accountCookie}; ch-session-1=${this.sessionCookie}`
+        : `x-account=${this.accountCookie}`,
       'Content-Type': 'application/json',
     }
   }

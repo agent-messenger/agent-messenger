@@ -73,9 +73,9 @@ describe('Channel E2E Tests', () => {
       const result = await runCLI('channel', ['auth', 'list'])
       expect(result.exitCode).toBe(0)
 
-      const data = parseJSON<{ workspaces: Array<{ workspace_id: string }> }>(result.stdout)
-      expect(Array.isArray(data?.workspaces)).toBe(true)
-      expect(data!.workspaces.length).toBeGreaterThan(0)
+      const data = parseJSON<Array<{ workspace_id: string }>>(result.stdout)
+      expect(Array.isArray(data)).toBe(true)
+      expect(data!.length).toBeGreaterThan(0)
     })
   })
 
