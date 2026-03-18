@@ -12,12 +12,16 @@ type WorkspaceEntry = {
 const workspaceStore = new Map<string, WorkspaceEntry>()
 let currentWorkspaceId: string | null = null
 
-const mockEnsureChannelAuth = mock(() => Promise.resolve())
 const mockGetAccount = mock(() => Promise.resolve({ id: 'acct-1', name: 'Alice' }))
-
-mock.module('../ensure-auth', () => ({
-  ensureChannelAuth: mockEnsureChannelAuth,
-}))
+const mockListChannels = mock(() =>
+  Promise.resolve([
+    { id: 'ws-1', name: 'Workspace 1' },
+    { id: 'ws-2', name: 'Workspace 2' },
+  ]),
+)
+const mockExtract = mock<() => Promise<{ accountCookie: string; sessionCookie: string } | null>>(() =>
+  Promise.resolve({ accountCookie: 'fresh-account', sessionCookie: 'fresh-session' }),
+)
 
 import {
   clearAction,
@@ -38,12 +42,18 @@ setChannelAuthCommandDependenciesForTesting({
 
     return {
       getAccount: mockGetAccount,
+      listChannels: mockListChannels,
     }
   },
   createCredentialManager: () => ({
     async getCredentials(workspaceId?: string): Promise<WorkspaceEntry | null> {
       const targetId = workspaceId ?? currentWorkspaceId
       return targetId ? workspaceStore.get(targetId) ?? null : null
+    },
+
+    async setCredentials(entry: WorkspaceEntry): Promise<void> {
+      workspaceStore.set(entry.workspace_id, entry)
+      currentWorkspaceId = entry.workspace_id
     },
 
     async clearCredentials(): Promise<void> {
@@ -79,6 +89,9 @@ setChannelAuthCommandDependenciesForTesting({
       return true
     },
   }),
+  createTokenExtractor: () => ({
+    extract: mockExtract,
+  }),
 })
 
 describe('channel auth commands', () => {
@@ -89,34 +102,67 @@ describe('channel auth commands', () => {
   beforeEach(() => {
     workspaceStore.clear()
     currentWorkspaceId = null
-    mockEnsureChannelAuth.mockReset()
     mockGetAccount.mockReset()
+    mockListChannels.mockReset()
+    mockExtract.mockReset()
 
-    mockEnsureChannelAuth.mockImplementation(() => Promise.resolve())
     mockGetAccount.mockImplementation(() => Promise.resolve({ id: 'acct-1', name: 'Alice' }))
+    mockListChannels.mockImplementation(() =>
+      Promise.resolve([
+        { id: 'ws-1', name: 'Workspace 1' },
+        { id: 'ws-2', name: 'Workspace 2' },
+      ]),
+    )
+    mockExtract.mockImplementation(() => Promise.resolve({ accountCookie: 'fresh-account', sessionCookie: 'fresh-session' }))
   })
 
   describe('extractAction', () => {
-    test('returns extracted workspaces and current workspace', async () => {
-      mockEnsureChannelAuth.mockImplementation(async () => {
-        workspaceStore.set('ws-1', {
-          workspace_id: 'ws-1',
-          workspace_name: 'Workspace 1',
-          account_id: 'acct-1',
-          account_name: 'Alice',
-          account_cookie: 'account-cookie',
-          session_cookie: 'session-cookie',
-        })
-        workspaceStore.set('ws-2', {
-          workspace_id: 'ws-2',
-          workspace_name: 'Workspace 2',
-          account_id: 'acct-1',
-          account_name: 'Alice',
-          account_cookie: 'account-cookie',
-          session_cookie: 'session-cookie',
-        })
-        currentWorkspaceId = 'ws-1'
+    test('extracts fresh cookies and saves all workspaces', async () => {
+      const result = await extractAction()
+
+      expect(mockExtract).toHaveBeenCalledTimes(1)
+      expect(result).toEqual({
+        success: true,
+        workspaces: [
+          { workspace_id: 'ws-1', workspace_name: 'Workspace 1' },
+          { workspace_id: 'ws-2', workspace_name: 'Workspace 2' },
+        ],
+        current_workspace_id: 'ws-1',
       })
+
+      expect(workspaceStore.get('ws-1')?.account_cookie).toBe('fresh-account')
+      expect(workspaceStore.get('ws-2')?.account_cookie).toBe('fresh-account')
+    })
+
+    test('preserves current workspace if it still exists after re-extraction', async () => {
+      workspaceStore.set('ws-2', {
+        workspace_id: 'ws-2',
+        workspace_name: 'Workspace 2',
+        account_cookie: 'old-account',
+        session_cookie: 'old-session',
+      })
+      currentWorkspaceId = 'ws-2'
+
+      const result = await extractAction()
+
+      expect(result).toEqual({
+        success: true,
+        workspaces: [
+          { workspace_id: 'ws-1', workspace_name: 'Workspace 1' },
+          { workspace_id: 'ws-2', workspace_name: 'Workspace 2' },
+        ],
+        current_workspace_id: 'ws-2',
+      })
+    })
+
+    test('switches to first workspace when previous current no longer exists', async () => {
+      workspaceStore.set('ws-old', {
+        workspace_id: 'ws-old',
+        workspace_name: 'Old Workspace',
+        account_cookie: 'old-account',
+        session_cookie: 'old-session',
+      })
+      currentWorkspaceId = 'ws-old'
 
       const result = await extractAction()
 
@@ -130,11 +176,23 @@ describe('channel auth commands', () => {
       })
     })
 
-    test('returns an error when no credentials were saved', async () => {
+    test('returns error when token extraction fails', async () => {
+      mockExtract.mockImplementation(() => Promise.resolve(null))
+
       const result = await extractAction()
 
       expect(result).toEqual({
         error: 'No credentials. Make sure Channel Talk desktop app is installed and logged in.',
+      })
+    })
+
+    test('returns error when no workspaces found', async () => {
+      mockListChannels.mockImplementation(() => Promise.resolve([]))
+
+      const result = await extractAction()
+
+      expect(result).toEqual({
+        error: 'No workspaces found for this account.',
       })
     })
   })

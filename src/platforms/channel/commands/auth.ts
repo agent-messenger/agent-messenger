@@ -4,7 +4,7 @@ import { formatOutput } from '@/shared/utils/output'
 
 import { ChannelClient } from '../client'
 import { ChannelCredentialManager } from '../credential-manager'
-import { ensureChannelAuth } from '../ensure-auth'
+import { ChannelTokenExtractor } from '../token-extractor'
 
 interface ActionOptions {
   workspace?: string
@@ -43,56 +43,81 @@ interface ErrorResult {
 
 type ActionResult = ExtractResult | StatusResult | SuccessResult | ErrorResult | WorkspaceSummary[]
 
-type ChannelClientLike = Pick<ChannelClient, 'getAccount'>
+type ChannelClientLike = Pick<ChannelClient, 'getAccount' | 'listChannels'>
 type ChannelCredentialManagerLike = Pick<
   ChannelCredentialManager,
-  'getCredentials' | 'listAll' | 'clearCredentials' | 'setCurrent' | 'removeWorkspace'
+  'getCredentials' | 'setCredentials' | 'listAll' | 'clearCredentials' | 'setCurrent' | 'removeWorkspace'
 >
+type ChannelTokenExtractorLike = Pick<ChannelTokenExtractor, 'extract'>
 
 let createChannelClient = (accountCookie: string, sessionCookie?: string): ChannelClientLike =>
   new ChannelClient(accountCookie, sessionCookie)
 
 let createCredentialManager = (): ChannelCredentialManagerLike => new ChannelCredentialManager()
 
+let createTokenExtractor = (): ChannelTokenExtractorLike => new ChannelTokenExtractor()
+
 export function setChannelAuthCommandDependenciesForTesting(dependencies: {
   createChannelClient?: (accountCookie: string, sessionCookie?: string) => ChannelClientLike
   createCredentialManager?: () => ChannelCredentialManagerLike
+  createTokenExtractor?: () => ChannelTokenExtractorLike
 }): void {
-  if (dependencies.createChannelClient) {
-    createChannelClient = dependencies.createChannelClient
-  }
-  if (dependencies.createCredentialManager) {
-    createCredentialManager = dependencies.createCredentialManager
-  }
+  if (dependencies.createChannelClient) createChannelClient = dependencies.createChannelClient
+  if (dependencies.createCredentialManager) createCredentialManager = dependencies.createCredentialManager
+  if (dependencies.createTokenExtractor) createTokenExtractor = dependencies.createTokenExtractor
 }
 
 export function resetChannelAuthCommandDependenciesForTesting(): void {
   createChannelClient = (accountCookie: string, sessionCookie?: string): ChannelClientLike =>
     new ChannelClient(accountCookie, sessionCookie)
   createCredentialManager = (): ChannelCredentialManagerLike => new ChannelCredentialManager()
+  createTokenExtractor = (): ChannelTokenExtractorLike => new ChannelTokenExtractor()
 }
 
 export async function extractAction(options: ActionOptions = {}): Promise<ExtractResult | ErrorResult> {
   try {
     const credManager = options._credManager ?? createCredentialManager()
-    await ensureChannelAuth()
+    const extractor = createTokenExtractor()
+    const extracted = await extractor.extract()
 
-    const workspaces = await credManager.listAll()
-    const current = await credManager.getCredentials()
-
-    if (workspaces.length === 0 || !current) {
+    if (!extracted) {
       return {
         error: 'No credentials. Make sure Channel Talk desktop app is installed and logged in.',
       }
     }
 
+    const client = createChannelClient(extracted.accountCookie, extracted.sessionCookie)
+    const account = await client.getAccount()
+    const channels = await client.listChannels()
+
+    if (channels.length === 0) {
+      return { error: 'No workspaces found for this account.' }
+    }
+
+    const previousCurrent = await credManager.getCredentials()
+
+    for (const channel of channels) {
+      await credManager.setCredentials({
+        workspace_id: channel.id,
+        workspace_name: channel.name,
+        account_id: account.id,
+        account_name: account.name,
+        account_cookie: extracted.accountCookie,
+        session_cookie: extracted.sessionCookie,
+      })
+    }
+
+    const previousStillExists = previousCurrent && channels.some((ch) => ch.id === previousCurrent.workspace_id)
+    const currentId = previousStillExists ? previousCurrent.workspace_id : channels[0].id
+    await credManager.setCurrent(currentId)
+
     return {
       success: true,
-      workspaces: workspaces.map((workspace) => ({
-        workspace_id: workspace.workspace_id,
-        workspace_name: workspace.workspace_name,
+      workspaces: channels.map((ch) => ({
+        workspace_id: ch.id,
+        workspace_name: ch.name,
       })),
-      current_workspace_id: current.workspace_id,
+      current_workspace_id: currentId,
     }
   } catch (error: unknown) {
     return { error: (error as Error).message }
