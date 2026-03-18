@@ -47,7 +47,7 @@ send_message() {
     echo -e "${YELLOW}Attempt $attempt/$max_attempts...${NC}"
 
     RESULT=$(agent-channel message send "$chat_type" "$chat_id" "$message" 2>&1) || true
-    MSG_ID=$(echo "$RESULT" | jq -r '.id // ""')
+    MSG_ID=$(echo "$RESULT" | jq -r '.id // ""' 2>/dev/null) || MSG_ID=""
 
     if [ -n "$MSG_ID" ] && [ "$MSG_ID" != "null" ]; then
       echo -e "${GREEN}Message sent!${NC}"
@@ -58,7 +58,7 @@ send_message() {
       return 0
     fi
 
-    ERROR=$(echo "$RESULT" | jq -r '.error // "Unknown error"')
+    ERROR=$(echo "$RESULT" | jq -r '.error // "Unknown error"' 2>/dev/null) || ERROR="Unknown error"
     echo -e "${RED}Failed: $ERROR${NC}"
 
     case "$ERROR" in
@@ -96,9 +96,15 @@ if ! command -v agent-channel &> /dev/null; then
   exit 1
 fi
 
+if ! command -v jq &> /dev/null; then
+  echo -e "${RED}Error: jq not found${NC}"
+  echo "Install: https://jqlang.github.io/jq/download/"
+  exit 1
+fi
+
 echo "Checking authentication..."
-AUTH_STATUS=$(agent-channel auth status 2>&1)
-VALID=$(echo "$AUTH_STATUS" | jq -r '.valid // false')
+AUTH_STATUS=$(agent-channel auth status 2>&1) || true
+VALID=$(echo "$AUTH_STATUS" | jq -r '.valid // false' 2>/dev/null) || VALID="false"
 
 if [ "$VALID" != "true" ]; then
   echo -e "${RED}Not authenticated!${NC}"

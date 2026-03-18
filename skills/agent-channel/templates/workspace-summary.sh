@@ -54,8 +54,8 @@ WORKSPACE_ID=$(echo "$AUTH_STATUS" | jq -r '.workspace_id // "Unknown"')
 
 echo -e "${YELLOW}Fetching workspace data...${NC}" >&2
 
-SNAPSHOT=$(agent-channel snapshot 2>&1)
-SNAPSHOT_ERROR=$(echo "$SNAPSHOT" | jq -r '.error // ""' 2>/dev/null)
+SNAPSHOT=$(agent-channel snapshot 2>&1) || true
+SNAPSHOT_ERROR=$(echo "$SNAPSHOT" | jq -r '.error // ""' 2>/dev/null) || SNAPSHOT_ERROR="Failed to fetch snapshot"
 if [ -n "$SNAPSHOT_ERROR" ]; then
   echo -e "${RED}Snapshot failed: $SNAPSHOT_ERROR${NC}" >&2
   exit 1
