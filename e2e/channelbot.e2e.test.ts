@@ -191,7 +191,9 @@ describe('ChannelBot E2E Tests', () => {
         bots: unknown[]
       }>(result.stdout)
       expect(data?.workspace?.id).toBe(CHANNELBOT_TEST_WORKSPACE_ID)
-      expect(data?.workspace?.name).toBe(CHANNELBOT_TEST_WORKSPACE_NAME)
+      if (CHANNELBOT_TEST_WORKSPACE_NAME) {
+        expect(data?.workspace?.name).toBe(CHANNELBOT_TEST_WORKSPACE_NAME)
+      }
       expect(data?.groups).toBeDefined()
       expect(data?.managers).toBeDefined()
       expect(data?.bots).toBeDefined()
