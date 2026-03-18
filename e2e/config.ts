@@ -145,3 +145,45 @@ export async function validateTeamsEnvironment() {
     }
   }
 }
+
+export const CHANNELBOT_TEST_WORKSPACE_ID = '55713'
+export const CHANNELBOT_TEST_WORKSPACE_NAME = 'VREVIEW'
+export const CHANNELBOT_TEST_GROUP_ID = '515907'
+export const CHANNELBOT_TEST_GROUP_NAME = '나홀로채팅방'
+
+export async function validateChannelBotEnvironment() {
+  const { runCLI, parseJSON } = await import('./helpers')
+
+  const result = await runCLI('channelbot', ['auth', 'status'])
+  if (result.exitCode !== 0) {
+    throw new Error('ChannelBot authentication failed. Run: agent-channelbot auth set <access-key> <access-secret>')
+  }
+
+  const data = parseJSON<{ valid: boolean; workspace_id: string }>(result.stdout)
+  if (!data?.valid) {
+    throw new Error('ChannelBot credentials invalid or expired.')
+  }
+  if (data?.workspace_id !== CHANNELBOT_TEST_WORKSPACE_ID) {
+    throw new Error(
+      `Wrong ChannelBot workspace. Expected: ${CHANNELBOT_TEST_WORKSPACE_NAME} (${CHANNELBOT_TEST_WORKSPACE_ID}), ` +
+        `Got: ${data?.workspace_id}`,
+    )
+  }
+}
+
+export const CHANNEL_TEST_WORKSPACE_ID = process.env.E2E_CHANNEL_WORKSPACE_ID || ''
+export const CHANNEL_TEST_WORKSPACE_NAME = process.env.E2E_CHANNEL_WORKSPACE_NAME || ''
+
+export async function validateChannelEnvironment() {
+  const { runCLI, parseJSON } = await import('./helpers')
+
+  const result = await runCLI('channel', ['auth', 'status'])
+  if (result.exitCode !== 0) {
+    throw new Error('Channel authentication failed. Run: agent-channel auth extract')
+  }
+
+  const data = parseJSON<{ valid: boolean }>(result.stdout)
+  if (!data?.valid) {
+    throw new Error('Channel credentials invalid. Run: agent-channel auth extract')
+  }
+}
