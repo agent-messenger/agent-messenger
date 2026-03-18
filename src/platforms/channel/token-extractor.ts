@@ -75,13 +75,16 @@ export class ChannelTokenExtractor {
 
       return accountCookie && sessionCookie ? { accountCookie, sessionCookie } : null
     } catch {
+      /* extraction failed (e.g. SQLite error); return null */
       return null
     } finally {
       try {
         if (existsSync(tempPath)) {
           unlinkSync(tempPath)
         }
-      } catch {}
+      } catch {
+        /* temp file cleanup failure is non-critical */
+      }
     }
   }
 }

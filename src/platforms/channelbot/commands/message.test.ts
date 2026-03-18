@@ -56,13 +56,6 @@ const mockGetGroupMessages = mock(() =>
   ]),
 )
 
-const mockListUserChats = mock(() =>
-  Promise.resolve([
-    { id: 'chat1', channelId: 'ch1', name: 'Customer A', state: 'opened' as const },
-    { id: 'chat2', channelId: 'ch1', name: 'Customer B', state: 'opened' as const },
-  ]),
-)
-
 let capturedSendUserChatArgs: unknown[] = []
 let _capturedSendGroupArgs: unknown[] = []
 let capturedGetUserChatMsgArgs: unknown[] = []
@@ -86,7 +79,6 @@ mock.module('../client', () => ({
       return mockGetUserChatMessages()
     }
     getGroupMessages = mockGetGroupMessages
-    listUserChats = mockListUserChats
   },
 }))
 
@@ -97,7 +89,7 @@ mock.module('./shared', () => ({
 }))
 
 import { ChannelBotCredentialManager } from '../credential-manager'
-import { getAction, listAction, searchAction, sendAction } from './message'
+import { getAction, listAction, sendAction } from './message'
 
 describe('message commands', () => {
   let tempDir: string
@@ -112,7 +104,6 @@ describe('message commands', () => {
     mockSendGroupMessage.mockClear()
     mockGetUserChatMessages.mockClear()
     mockGetGroupMessages.mockClear()
-    mockListUserChats.mockClear()
   })
 
   afterEach(() => {
@@ -124,12 +115,12 @@ describe('message commands', () => {
   describe('sendAction', () => {
     test('sends to userchat and wraps text in blocks', async () => {
       const manager = new ChannelBotCredentialManager(tempDir)
-      const result = await sendAction('chat1', 'Hello world', { type: 'userchat', _credManager: manager })
+        const result = await sendAction('chat1', 'Hello world', { type: 'userchat', _credManager: manager })
 
-      expect(result.error).toBeUndefined()
-      expect(result.id).toBe('msg1')
-      expect(capturedSendUserChatArgs[1]).toEqual([{ type: 'text', content: [{ type: 'plain', attrs: { text: 'Hello world' } }] }])
-    })
+        expect(result.error).toBeUndefined()
+        expect(result.id).toBe('msg1')
+        expect(capturedSendUserChatArgs[1]).toEqual([{ type: 'text', value: 'Hello world' }])
+      })
 
     test('sends to group when type=group', async () => {
       const manager = new ChannelBotCredentialManager(tempDir)
@@ -198,134 +189,6 @@ describe('message commands', () => {
 
       expect(result.error).toBeDefined()
       expect(result.error).toContain('not found')
-    })
-  })
-
-  describe('searchAction', () => {
-    const searchMsg = (overrides: Record<string, unknown> = {}) => ({
-      id: 'msg-a',
-      chatId: 'chat1',
-      chatType: 'userChat',
-      personType: 'manager' as const,
-      personId: 'mgr1',
-      createdAt: 1000,
-      plainText: '',
-      ...overrides,
-    })
-
-    test('finds messages matching query across chats', async () => {
-      // given
-      mockGetUserChatMessages.mockImplementation(() =>
-        Promise.resolve([
-          searchMsg({ id: 'msg-a', plainText: '리뷰 부탁드립니다' }),
-          searchMsg({ id: 'msg-b', personType: 'manager' as const, personId: 'mgr1', createdAt: 2000, plainText: '확인했습니다' }),
-        ]),
-      )
-
-      // when
-      const result = await searchAction('리뷰', { state: 'opened', _credManager: new ChannelBotCredentialManager(tempDir) })
-
-      // then
-      expect(result.error).toBeUndefined()
-      expect(result.total_results).toBe(2)
-      expect(result.results).toHaveLength(2)
-      expect(result.results?.[0].plain_text).toContain('리뷰')
-    })
-
-    test('returns empty results when no matches', async () => {
-      // given
-      mockGetUserChatMessages.mockImplementation(() =>
-        Promise.resolve([searchMsg({ plainText: 'No match here' })]),
-      )
-
-      // when
-      const result = await searchAction('리뷰', { state: 'opened', _credManager: new ChannelBotCredentialManager(tempDir) })
-
-      // then
-      expect(result.error).toBeUndefined()
-      expect(result.total_results).toBe(0)
-      expect(result.results).toHaveLength(0)
-    })
-
-    test('searches case-insensitively', async () => {
-      // given
-      mockGetUserChatMessages.mockImplementation(() =>
-        Promise.resolve([searchMsg({ plainText: 'Please REVIEW this' })]),
-      )
-
-      // when
-      const result = await searchAction('review', { state: 'opened', _credManager: new ChannelBotCredentialManager(tempDir) })
-
-      // then
-      expect(result.total_results).toBe(2)
-    })
-
-    test('respects limit option', async () => {
-      // given
-      mockGetUserChatMessages.mockImplementation(() =>
-        Promise.resolve([
-          searchMsg({ id: 'msg-1', plainText: 'review 1', createdAt: 1000 }),
-          searchMsg({ id: 'msg-2', plainText: 'review 2', createdAt: 2000 }),
-          searchMsg({ id: 'msg-3', plainText: 'review 3', createdAt: 3000 }),
-        ]),
-      )
-
-      // when
-      const result = await searchAction('review', { limit: '2', state: 'opened', _credManager: new ChannelBotCredentialManager(tempDir) })
-
-      // then
-      expect(result.results).toHaveLength(2)
-    })
-
-    test('includes chat_id and chat_name in results', async () => {
-      // given
-      mockGetUserChatMessages.mockImplementation(() =>
-        Promise.resolve([searchMsg({ plainText: 'review this' })]),
-      )
-
-      // when
-      const result = await searchAction('review', { state: 'opened', _credManager: new ChannelBotCredentialManager(tempDir) })
-
-      // then
-      expect(result.results?.[0].chat_id).toBe('chat1')
-      expect(result.results?.[0].chat_name).toBe('Customer A')
-    })
-
-    test('searches with specific state filter', async () => {
-      // given
-      mockGetUserChatMessages.mockImplementation(() =>
-        Promise.resolve([searchMsg({ plainText: 'review' })]),
-      )
-
-      // when
-      await searchAction('review', { state: 'opened', _credManager: new ChannelBotCredentialManager(tempDir) })
-
-      // then
-      expect(mockListUserChats).toHaveBeenCalledTimes(1)
-    })
-
-    test('searches all states by default', async () => {
-      // given
-      mockGetUserChatMessages.mockImplementation(() => Promise.resolve([]))
-
-      // when
-      await searchAction('review', { _credManager: new ChannelBotCredentialManager(tempDir) })
-
-      // then
-      expect(mockListUserChats).toHaveBeenCalledTimes(3)
-    })
-
-    test('matches text from blocks when plainText is empty', async () => {
-      // given
-      mockGetUserChatMessages.mockImplementation(() =>
-        Promise.resolve([searchMsg({ plainText: undefined, blocks: [{ type: 'text', content: [{ type: 'plain', attrs: { text: '리뷰 요청합니다' } }] }] })]),
-      )
-
-      // when
-      const result = await searchAction('리뷰', { state: 'opened', _credManager: new ChannelBotCredentialManager(tempDir) })
-
-      // then
-      expect(result.total_results).toBe(2)
     })
   })
 })

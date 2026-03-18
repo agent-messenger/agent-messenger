@@ -40,20 +40,14 @@ export class ChannelClient {
   }
 
   static wrapTextInBlocks(text: string): MessageBlock[] {
-    return [{ type: 'text', content: [{ type: 'plain', attrs: { text } }] }]
+    return [{ type: 'text', value: text }]
   }
 
   static extractText(message: ChannelMessage): string {
     const parts: string[] = []
 
     for (const block of message.blocks ?? []) {
-      if (block.content) {
-        for (const inline of block.content) {
-          if (inline.attrs?.text) {
-            parts.push(inline.attrs.text)
-          }
-        }
-      } else if (block.value) {
+      if (block.value) {
         parts.push(block.value)
       }
     }

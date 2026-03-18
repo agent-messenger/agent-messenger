@@ -91,6 +91,29 @@ export async function listAction(chatType: ChatType, chatId: string, options: Me
   }
 }
 
+export async function getAction(
+  chatType: ChatType,
+  chatId: string,
+  messageId: string,
+  options: ActionOptions = {},
+): Promise<MessageResult> {
+  try {
+    const client = await getClient(options)
+    const channelId = await getCurrentWorkspaceId(options)
+    const messages = await listMessagesByChatType(client, channelId, chatType, chatId, {
+      limit: 100,
+      sortOrder: 'desc',
+    })
+    const message = messages.find((m) => m.id === messageId)
+    if (!message) {
+      return { error: `Message "${messageId}" not found in the latest 100 messages` }
+    }
+    return toMessageResult(message)
+  } catch (error) {
+    return { error: (error as Error).message }
+  }
+}
+
 function parseLimit(limit?: string): number {
   const parsed = limit ? Number.parseInt(limit, 10) : 25
   if (Number.isNaN(parsed) || parsed < 1) {
@@ -190,6 +213,18 @@ export function createMessageCommand(): Command {
         .option('--pretty', 'Pretty print JSON output')
         .action(async (chatType: ChatType, chatId: string, opts: MessageOptions) => {
           cliOutput(await listAction(chatType, chatId, opts), opts.pretty)
+        }),
+    )
+    .addCommand(
+      new Command('get')
+        .description('Get a specific message by ID')
+        .argument('<chat-type>', 'Chat type: group, user-chat, or direct-chat')
+        .argument('<chat-id>', 'Chat ID')
+        .argument('<message-id>', 'Message ID')
+        .option('--workspace <id>', 'Workspace ID')
+        .option('--pretty', 'Pretty print JSON output')
+        .action(async (chatType: ChatType, chatId: string, messageId: string, opts: ActionOptions) => {
+          cliOutput(await getAction(chatType, chatId, messageId, opts), opts.pretty)
         }),
     )
 }

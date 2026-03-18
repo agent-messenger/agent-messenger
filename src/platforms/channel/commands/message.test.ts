@@ -99,7 +99,7 @@ mock.module('./shared', () => ({
   getCurrentWorkspaceId: async () => 'ws-1',
 }))
 
-import { listAction, sendAction } from './message'
+import { getAction, listAction, sendAction } from './message'
 
 describe('message commands', () => {
   beforeEach(() => {
@@ -196,7 +196,7 @@ describe('message commands', () => {
     const result = await sendAction('group', 'grp-1', 'Hello group')
 
     expect(mockSendGroupMessage).toHaveBeenCalledWith('ws-1', 'grp-1', [
-      { type: 'text', content: [{ type: 'plain', attrs: { text: 'Hello group' } }] },
+      { type: 'text', value: 'Hello group' },
     ])
     expect(result).toMatchObject({
       id: 'msg-group-1',
@@ -211,7 +211,7 @@ describe('message commands', () => {
     const result = await sendAction('user-chat', 'chat-1', 'Hello user chat')
 
     expect(mockSendUserChatMessage).toHaveBeenCalledWith('ws-1', 'chat-1', [
-      { type: 'text', content: [{ type: 'plain', attrs: { text: 'Hello user chat' } }] },
+      { type: 'text', value: 'Hello user chat' },
     ])
     expect(result).toMatchObject({
       id: 'msg-user-1',
@@ -226,7 +226,7 @@ describe('message commands', () => {
     const result = await sendAction('direct-chat', 'dm-1', 'Hello direct chat')
 
     expect(mockSendDirectChatMessage).toHaveBeenCalledWith('ws-1', 'dm-1', [
-      { type: 'text', content: [{ type: 'plain', attrs: { text: 'Hello direct chat' } }] },
+      { type: 'text', value: 'Hello direct chat' },
     ])
     expect(result).toMatchObject({
       id: 'msg-direct-1',
@@ -250,7 +250,7 @@ describe('message commands', () => {
         person_type: 'manager',
         person_id: 'mgr-1',
         created_at: 2000,
-        plain_text: 'Group message\nGroup message',
+        plain_text: 'Group message',
       },
     ])
   })
@@ -262,7 +262,7 @@ describe('message commands', () => {
     expect(result.messages?.[0]).toMatchObject({
       id: 'msg-user-list-1',
       chat_id: 'chat-1',
-      plain_text: 'User chat message\nUser chat message',
+      plain_text: 'User chat message',
     })
   })
 
@@ -273,7 +273,21 @@ describe('message commands', () => {
     expect(result.messages?.[0]).toMatchObject({
       id: 'msg-direct-list-1',
       chat_id: 'dm-1',
-      plain_text: 'Direct chat message\nDirect chat message',
+      plain_text: 'Direct chat message',
     })
+  })
+
+  test('getAction returns specific message by ID', async () => {
+    const result = await getAction('group', 'grp-1', 'msg-group-list-1')
+
+    expect(result.error).toBeUndefined()
+    expect(result.id).toBe('msg-group-list-1')
+  })
+
+  test('getAction returns error when message not found', async () => {
+    const result = await getAction('group', 'grp-1', 'nonexistent')
+
+    expect(result.error).toBeDefined()
+    expect(result.error).toContain('not found')
   })
 })

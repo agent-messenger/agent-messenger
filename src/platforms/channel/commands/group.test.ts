@@ -150,7 +150,7 @@ describe('group commands', () => {
         person_type: 'manager',
         person_id: 'mgr-1',
         created_at: 3000,
-        plain_text: 'Hello group\nHello group',
+        plain_text: 'Hello group',
       },
     ])
   })

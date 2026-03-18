@@ -96,7 +96,7 @@ describe('snapshot command', () => {
             {
               id: 'grp-1-msg-1',
               person_type: 'manager',
-              plain_text: 'Message for grp-1\nMessage for grp-1',
+              plain_text: 'Message for grp-1',
               created_at: 1000,
             },
           ],
@@ -108,7 +108,7 @@ describe('snapshot command', () => {
             {
               id: 'grp-2-msg-1',
               person_type: 'manager',
-              plain_text: 'Message for grp-2\nMessage for grp-2',
+              plain_text: 'Message for grp-2',
               created_at: 1000,
             },
           ],
@@ -186,7 +186,7 @@ describe('snapshot command', () => {
     expect(result.groups?.[0].recent_messages[0]).toEqual({
       id: 'grp-1-msg-1',
       person_type: 'manager',
-      plain_text: 'Message for grp-1\nMessage for grp-1',
+      plain_text: 'Message for grp-1',
       created_at: 1000,
     })
   })

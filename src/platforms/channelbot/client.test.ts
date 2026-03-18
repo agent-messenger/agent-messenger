@@ -140,9 +140,9 @@ describe('ChannelBotClient', () => {
     expect(result).toBeUndefined()
   })
 
-  test('wrapTextInBlocks returns a single text block with content array', () => {
+  test('wrapTextInBlocks returns a single text block with value', () => {
     expect(ChannelBotClient.wrapTextInBlocks('Hello world')).toEqual([
-      { type: 'text', content: [{ type: 'plain', attrs: { text: 'Hello world' } }] },
+      { type: 'text', value: 'Hello world' },
     ])
   })
 
@@ -150,7 +150,7 @@ describe('ChannelBotClient', () => {
     mockResponse({ message: { id: 'm-1' } })
 
     const client = new ChannelBotClient('key-1', 'secret-1')
-    await client.sendUserChatMessage('chat-1', [{ type: 'text', content: [{ type: 'plain', attrs: { text: 'hello' } }] }], 'SupportBot')
+    await client.sendUserChatMessage('chat-1', [{ type: 'text', value: 'hello' }], 'SupportBot')
 
     expect(fetchCalls[0].url).toBe('https://api.channel.io/open/v5/user-chats/chat-1/messages?botName=SupportBot')
   })
@@ -159,7 +159,7 @@ describe('ChannelBotClient', () => {
     mockResponse({ message: { id: 'm-1' } })
 
     const client = new ChannelBotClient('key-1', 'secret-1')
-    await client.sendGroupMessage('grp-1', [{ type: 'text', content: [{ type: 'plain', attrs: { text: 'hello' } }] }], 'OpsBot')
+    await client.sendGroupMessage('grp-1', [{ type: 'text', value: 'hello' }], 'OpsBot')
 
     expect(fetchCalls[0].url).toBe('https://api.channel.io/open/v5/groups/grp-1/messages?botName=OpsBot')
   })

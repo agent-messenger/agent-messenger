@@ -28,7 +28,9 @@ export async function ensureChannelAuth(): Promise<void> {
         const client = createChannelClient(creds.account_cookie, creds.session_cookie)
         await client.getAccount()
         return
-      } catch {}
+      } catch {
+        /* stored credentials invalid, fall through to re-extraction */
+      }
     }
 
     const extractor = new ChannelTokenExtractor()
@@ -67,5 +69,7 @@ export async function ensureChannelAuth(): Promise<void> {
     }
 
     await credManager.setCurrent(currentChannel.id)
-  } catch {}
+  } catch {
+    /* auth extraction failed silently; caller proceeds without credentials */
+  }
 }

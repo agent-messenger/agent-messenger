@@ -150,13 +150,13 @@ describe('ChannelClient', () => {
 
   test('wrapTextInBlocks returns a single text block and extractText joins block and plain text', () => {
     expect(ChannelClient.wrapTextInBlocks('Hello world')).toEqual([
-      { type: 'text', content: [{ type: 'plain', attrs: { text: 'Hello world' } }] },
+      { type: 'text', value: 'Hello world' },
     ])
 
     expect(ChannelClient.extractText({
       id: 'msg-1',
       blocks: [
-        { type: 'text', content: [{ type: 'plain', attrs: { text: 'hello' } }] },
+        { type: 'text', value: 'hello' },
         { type: 'text', value: 'world' },
       ],
       plainText: 'fallback',
