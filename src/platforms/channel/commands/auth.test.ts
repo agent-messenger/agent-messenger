@@ -31,8 +31,8 @@ import {
 } from './auth'
 
 setChannelAuthCommandDependenciesForTesting({
-  createChannelClient: (accountCookie: string, sessionCookie: string) => {
-    if (!accountCookie || !sessionCookie) {
+  createChannelClient: (accountCookie: string, _sessionCookie?: string) => {
+    if (!accountCookie) {
       throw new Error('Credentials required')
     }
 
