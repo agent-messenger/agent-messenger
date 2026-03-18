@@ -1,5 +1,11 @@
 import { afterAll, beforeEach, describe, expect, mock, test } from 'bun:test'
 
+import {
+  ensureChannelAuth,
+  resetEnsureChannelAuthDependenciesForTesting,
+  setEnsureChannelAuthDependenciesForTesting,
+} from './ensure-auth'
+
 const mockGetCredentials = mock<() => Promise<
   | {
       workspace_id: string
@@ -15,41 +21,29 @@ const mockExtract = mock(() => Promise.resolve(null))
 const mockGetAccount = mock(() => Promise.resolve({ id: 'acct-1', name: 'Alice' }))
 const mockListChannels = mock(() => Promise.resolve([{ id: 'ws-1', name: 'Workspace 1' }]))
 
-const constructedClients: Array<{ accountCookie: string; sessionCookie: string }> = []
+const constructedClients: Array<{ accountCookie: string; sessionCookie: string | undefined }> = []
 
-mock.module('./credential-manager', () => ({
-  ChannelCredentialManager: class MockChannelCredentialManager {
-    getCredentials = mockGetCredentials
-    setCredentials = mockSetCredentials
-    setCurrent = mockSetCurrent
+setEnsureChannelAuthDependenciesForTesting({
+  createClient: (accountCookie: string, sessionCookie?: string) => {
+    constructedClients.push({ accountCookie, sessionCookie })
+    return {
+      getAccount: mockGetAccount,
+      listChannels: mockListChannels,
+    }
   },
-}))
-
-mock.module('./token-extractor', () => ({
-  ChannelTokenExtractor: class MockChannelTokenExtractor {
-    extract = mockExtract
-  },
-}))
-
-import {
-  ensureChannelAuth,
-  resetEnsureChannelAuthClientFactoryForTesting,
-  setEnsureChannelAuthClientFactoryForTesting,
-} from './ensure-auth'
-
-setEnsureChannelAuthClientFactoryForTesting((accountCookie: string, sessionCookie: string) => {
-  constructedClients.push({ accountCookie, sessionCookie })
-
-  return {
-    getAccount: mockGetAccount,
-    listChannels: mockListChannels,
-  }
+  createCredentialManager: () => ({
+    getCredentials: mockGetCredentials,
+    setCredentials: mockSetCredentials,
+    setCurrent: mockSetCurrent,
+  }),
+  createTokenExtractor: () => ({
+    extract: mockExtract,
+  }),
 })
 
 describe('ensureChannelAuth', () => {
   afterAll(() => {
-    resetEnsureChannelAuthClientFactoryForTesting()
-    mock.restore()
+    resetEnsureChannelAuthDependenciesForTesting()
   })
 
   beforeEach(() => {

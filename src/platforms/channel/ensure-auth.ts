@@ -3,24 +3,45 @@ import { ChannelCredentialManager } from './credential-manager'
 import { ChannelTokenExtractor } from './token-extractor'
 
 type ChannelClientLike = Pick<ChannelClient, 'getAccount' | 'listChannels'>
+type ChannelCredentialManagerLike = Pick<
+  ChannelCredentialManager,
+  'getCredentials' | 'setCredentials' | 'setCurrent'
+>
+type ChannelTokenExtractorLike = Pick<ChannelTokenExtractor, 'extract'>
 
 let createChannelClient = (accountCookie: string, sessionCookie?: string): ChannelClientLike =>
   new ChannelClient(accountCookie, sessionCookie)
+let createCredentialManager = (): ChannelCredentialManagerLike => new ChannelCredentialManager()
+let createTokenExtractor = (): ChannelTokenExtractorLike => new ChannelTokenExtractor()
 
-export function setEnsureChannelAuthClientFactoryForTesting(
-  factory: (accountCookie: string, sessionCookie?: string) => ChannelClientLike,
-): void {
-  createChannelClient = factory
+export function setEnsureChannelAuthDependenciesForTesting(deps: {
+  createClient?: (accountCookie: string, sessionCookie?: string) => ChannelClientLike
+  createCredentialManager?: () => ChannelCredentialManagerLike
+  createTokenExtractor?: () => ChannelTokenExtractorLike
+}): void {
+  if (deps.createClient) createChannelClient = deps.createClient
+  if (deps.createCredentialManager) createCredentialManager = deps.createCredentialManager
+  if (deps.createTokenExtractor) createTokenExtractor = deps.createTokenExtractor
 }
 
-export function resetEnsureChannelAuthClientFactoryForTesting(): void {
+export function resetEnsureChannelAuthDependenciesForTesting(): void {
   createChannelClient = (accountCookie: string, sessionCookie?: string): ChannelClientLike =>
     new ChannelClient(accountCookie, sessionCookie)
+  createCredentialManager = () => new ChannelCredentialManager()
+  createTokenExtractor = () => new ChannelTokenExtractor()
 }
+
+// Keep old API for backward compatibility
+export const setEnsureChannelAuthClientFactoryForTesting = (
+  factory: (accountCookie: string, sessionCookie?: string) => ChannelClientLike,
+): void => setEnsureChannelAuthDependenciesForTesting({ createClient: factory })
+
+export const resetEnsureChannelAuthClientFactoryForTesting = (): void =>
+  resetEnsureChannelAuthDependenciesForTesting()
 
 export async function ensureChannelAuth(): Promise<void> {
   try {
-    const credManager = new ChannelCredentialManager()
+    const credManager = createCredentialManager()
     const creds = await credManager.getCredentials()
 
     if (creds) {
@@ -33,7 +54,7 @@ export async function ensureChannelAuth(): Promise<void> {
       }
     }
 
-    const extractor = new ChannelTokenExtractor()
+    const extractor = createTokenExtractor()
     const extracted = await extractor.extract()
     if (!extracted) {
       return
