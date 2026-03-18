@@ -1,8 +1,6 @@
 import { describe, expect, it } from 'bun:test'
 
 import {
-  BlockInlineAttrsSchema,
-  BlockInlineSchema,
   ChannelBotBotSchema,
   ChannelBotChannelSchema,
   ChannelBotConfigSchema,
@@ -27,46 +25,8 @@ describe('ChannelBotError', () => {
   })
 })
 
-describe('BlockInlineAttrsSchema', () => {
-  it('validates attrs with text', () => {
-    const result = BlockInlineAttrsSchema.safeParse({ text: 'Hello' })
-    expect(result.success).toBe(true)
-  })
-
-  it('validates empty attrs', () => {
-    const result = BlockInlineAttrsSchema.safeParse({})
-    expect(result.success).toBe(true)
-  })
-})
-
-describe('BlockInlineSchema', () => {
-  it('validates inline with type and attrs', () => {
-    const result = BlockInlineSchema.safeParse({ type: 'plain', attrs: { text: 'Hello' } })
-    expect(result.success).toBe(true)
-  })
-
-  it('validates inline with type only', () => {
-    const result = BlockInlineSchema.safeParse({ type: 'emoji' })
-    expect(result.success).toBe(true)
-  })
-
-  it('rejects missing type', () => {
-    const result = BlockInlineSchema.safeParse({ attrs: { text: 'Hello' } })
-    expect(result.success).toBe(false)
-  })
-})
-
 describe('MessageBlockSchema', () => {
-  it('validates block with content array', () => {
-    const data = {
-      type: 'text',
-      content: [{ type: 'plain', attrs: { text: 'Hello world' } }],
-    }
-    const result = MessageBlockSchema.safeParse(data)
-    expect(result.success).toBe(true)
-  })
-
-  it('validates block with legacy value field', () => {
+  it('validates block with value field', () => {
     const data = {
       type: 'text',
       value: 'Hello world',
@@ -83,7 +43,7 @@ describe('MessageBlockSchema', () => {
 
   it('rejects missing type', () => {
     const data = {
-      content: [{ type: 'plain', attrs: { text: 'Hello' } }],
+      value: 'Hello',
     }
     const result = MessageBlockSchema.safeParse(data)
     expect(result.success).toBe(false)
@@ -290,7 +250,7 @@ describe('ChannelBotMessageSchema', () => {
     expect(result.success).toBe(true)
   })
 
-  it('validates message with content blocks', () => {
+  it('validates message with value blocks', () => {
     const data = {
       id: 'msg123',
       chatId: 'chat123',
@@ -300,7 +260,7 @@ describe('ChannelBotMessageSchema', () => {
       blocks: [
         {
           type: 'text',
-          content: [{ type: 'plain', attrs: { text: 'Hello world' } }],
+          value: 'Hello world',
         },
       ],
     }
@@ -308,7 +268,7 @@ describe('ChannelBotMessageSchema', () => {
     expect(result.success).toBe(true)
   })
 
-  it('validates message with legacy value blocks', () => {
+  it('validates message with plain value blocks', () => {
     const data = {
       id: 'msg123',
       blocks: [

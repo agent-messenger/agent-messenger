@@ -2,7 +2,7 @@ import { Command } from 'commander'
 
 import { formatOutput } from '@/shared/utils/output'
 
-import { extractText, wrapTextInBlocks } from '../message-utils'
+import { wrapTextInBlocks } from '../message-utils'
 import type { WorkspaceOption } from './shared'
 import { getClient, getDefaultBotName } from './shared'
 
@@ -14,25 +14,11 @@ interface MessageResult {
   person_id?: string
   created_at?: number
   plain_text?: string
-  blocks?: Array<{ type: string; content?: Array<{ type: string; attrs?: { text?: string } }>; value?: string }>
+  blocks?: Array<{ type: string; value?: string }>
   messages?: Array<{
     id: string
     chat_id?: string
     chat_type?: string
-    person_type?: string
-    person_id?: string
-    created_at?: number
-    plain_text?: string
-  }>
-  error?: string
-}
-
-interface SearchResult {
-  total_results?: number
-  results?: Array<{
-    id: string
-    chat_id?: string
-    chat_name?: string
     person_type?: string
     person_id?: string
     created_at?: number
@@ -47,12 +33,6 @@ type MessageOptions = WorkspaceOption & {
   limit?: string
   sort?: string
   since?: string
-}
-
-type SearchOptions = WorkspaceOption & {
-  state?: string
-  chatLimit?: string
-  limit?: string
 }
 
 export async function sendAction(target: string, text: string, options: MessageOptions): Promise<MessageResult> {
@@ -155,61 +135,12 @@ export async function getAction(target: string, messageId: string, options: Mess
   }
 }
 
-export async function searchAction(query: string, options: SearchOptions): Promise<SearchResult> {
-  try {
-    const client = await getClient(options)
-    const chatLimit = options.chatLimit ? parseInt(options.chatLimit, 10) : 50
-    const limit = options.limit ? parseInt(options.limit, 10) : 20
-    if (Number.isNaN(chatLimit) || chatLimit < 1) {
-      return { error: 'Invalid --chat-limit value. Must be a positive integer.' }
-    }
-    if (Number.isNaN(limit) || limit < 1) {
-      return { error: 'Invalid --limit value. Must be a positive integer.' }
-    }
-    const stateOption = options.state || 'all'
-
-    const states = stateOption === 'all' ? ['opened', 'closed', 'snoozed'] : [stateOption]
-    const lowerQuery = query.toLowerCase()
-
-    const chatBatches = await Promise.all(
-      states.map((state) => client.listUserChats({ state, limit: chatLimit, sortOrder: 'desc' })),
-    )
-    const chats = chatBatches.flat()
-
-    const results: SearchResult['results'] = []
-
-    for (const chat of chats) {
-      if (results.length >= limit) break
-
-      const messages = await client.getUserChatMessages(chat.id, { limit: 500, sortOrder: 'desc' })
-      const hits = messages.filter((msg) => extractText(msg).toLowerCase().includes(lowerQuery))
-
-      for (const hit of hits) {
-        if (results.length >= limit) break
-        results.push({
-          id: hit.id,
-          chat_id: chat.id,
-          chat_name: chat.name,
-          person_type: hit.personType,
-          person_id: hit.personId,
-          created_at: hit.createdAt,
-          plain_text: hit.plainText,
-        })
-      }
-    }
-
-    return { total_results: results.length, results }
-  } catch (error) {
-    return { error: (error as Error).message }
-  }
-}
-
 function detectTargetType(target: string): 'userchat' | 'group' {
   if (target.startsWith('@')) return 'group'
   return 'userchat'
 }
 
-function cliOutput(result: MessageResult | SearchResult, pretty?: boolean): void {
+function cliOutput(result: MessageResult, pretty?: boolean): void {
   console.log(formatOutput(result, pretty))
   if (result.error) process.exit(1)
 }
@@ -254,19 +185,5 @@ export const messageCommand = new Command('message')
       .option('--pretty', 'Pretty print JSON output')
       .action(async (target: string, messageId: string, opts: MessageOptions) => {
         cliOutput(await getAction(target, messageId, opts), opts.pretty)
-      }),
-  )
-  .addCommand(
-    new Command('grep')
-      .description('Search messages across UserChats')
-      .argument('<query>', 'Search query')
-      .option('--state <state>', 'Filter chats by state: opened, closed, snoozed, all', 'all')
-      .option('--chat-limit <n>', 'Max number of chats to scan', '50')
-      .option('--limit <n>', 'Max number of results', '20')
-      .option('--workspace <id>', 'Workspace ID')
-      .option('--pretty', 'Pretty print JSON output')
-      .action(async (query: string, opts: SearchOptions & { chatLimit?: string }) => {
-        const options: SearchOptions = { ...opts, chatLimit: opts.chatLimit ?? (opts as any)['chat-limit'] }
-        cliOutput(await searchAction(query, options), options.pretty)
       }),
   )

@@ -1,7 +1,7 @@
 {
   "name": "agent-messenger",
   "version": "1.13.1",
-  "description": "Messaging platform interaction skills for AI agents. Interact with Slack, Discord, and Microsoft Teams - send messages, read channels, manage reactions, upload files, and more through simple CLI interfaces.",
+  "description": "Messaging platform interaction skills for AI agents. Interact with Slack, Discord, Microsoft Teams, and Channel Talk - send messages, read channels, manage reactions, upload files, and more through simple CLI interfaces.",
   "author": {
     "name": "devxoul",
     "url": "https://github.com/devxoul"
@@ -11,6 +11,7 @@
     "slack",
     "discord",
     "teams",
+    "channel-talk",
     "messaging",
     "workspace",
     "guild",
@@ -22,6 +23,7 @@
   "homepage": "https://github.com/devxoul/agent-messenger",
   "repository": "https://github.com/devxoul/agent-messenger",
   "skills": [
+    "./skills/agent-channel",
     "./skills/agent-slack",
     "./skills/agent-slackbot",
     "./skills/agent-discord",
