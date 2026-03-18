@@ -36,6 +36,10 @@ program.command('discordbot', 'Interact with Discord using bot tokens', {
   executableFile: join(__dirname, 'platforms', 'discordbot', `cli${ext}`),
 })
 
+program.command('channelbot', 'Interact with Channel Talk using API credentials', {
+  executableFile: join(__dirname, 'platforms', 'channelbot', `cli${ext}`),
+})
+
 program.parse(process.argv)
 
 export default program

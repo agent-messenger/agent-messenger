@@ -1,0 +1,7 @@
+export { authCommand } from './auth'
+export { botCommand } from './bot'
+export { chatCommand } from './chat'
+export { groupCommand } from './group'
+export { managerCommand } from './manager'
+export { messageCommand } from './message'
+export { snapshotCommand } from './snapshot'
