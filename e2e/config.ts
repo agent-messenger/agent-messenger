@@ -177,6 +177,9 @@ export async function validateChannelBotEnvironment(): Promise<{ groupId: string
   }
 
   const groupsResult = await runCLI('channelbot', ['group', 'list'])
+  if (groupsResult.exitCode !== 0) {
+    throw new Error(`Failed to list ChannelBot groups: ${groupsResult.stderr}`)
+  }
   const groupsData = parseJSON<{ groups: Array<{ id: string; name: string }> }>(groupsResult.stdout)
   const e2eGroup = groupsData?.groups?.find((g) => g.name === E2E_GROUP_NAME)
   if (!e2eGroup) {
@@ -215,6 +218,9 @@ export async function validateChannelEnvironment(): Promise<{ groupId: string; g
   }
 
   const groupsResult = await runCLI('channel', ['group', 'list'])
+  if (groupsResult.exitCode !== 0) {
+    throw new Error(`Failed to list Channel groups: ${groupsResult.stderr}`)
+  }
   const groupsData = parseJSON<{ groups: Array<{ id: string; name: string }> }>(groupsResult.stdout)
   const e2eGroup = groupsData?.groups?.find((g) => g.name === E2E_GROUP_NAME)
   if (!e2eGroup) {

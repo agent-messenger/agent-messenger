@@ -39,7 +39,9 @@ describe('ChannelBot E2E Tests', () => {
       const data = parseJSON<{ valid: boolean; workspace_id: string; workspace_name: string }>(result.stdout)
       expect(data?.valid).toBe(true)
       expect(data?.workspace_id).toBe(CHANNELBOT_TEST_WORKSPACE_ID)
-      expect(data?.workspace_name).toBe(CHANNELBOT_TEST_WORKSPACE_NAME)
+      if (CHANNELBOT_TEST_WORKSPACE_NAME) {
+        expect(data?.workspace_name).toBe(CHANNELBOT_TEST_WORKSPACE_NAME)
+      }
     })
   })
 

@@ -44,7 +44,9 @@ describe('Channel E2E Tests', () => {
       const data = parseJSON<{ valid: boolean; workspace_id: string; workspace_name: string }>(result.stdout)
       expect(data?.valid).toBe(true)
       expect(data?.workspace_id).toBe(CHANNEL_TEST_WORKSPACE_ID)
-      expect(data?.workspace_name).toBe(CHANNEL_TEST_WORKSPACE_NAME)
+      if (CHANNEL_TEST_WORKSPACE_NAME) {
+        expect(data?.workspace_name).toBe(CHANNEL_TEST_WORKSPACE_NAME)
+      }
     })
 
     test('auth list shows workspaces', async () => {
