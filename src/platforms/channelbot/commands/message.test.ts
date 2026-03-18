@@ -69,23 +69,6 @@ let capturedGetUserChatMsgArgs: unknown[] = []
 
 mock.module('../client', () => ({
   ChannelBotClient: class MockChannelBotClient {
-    static wrapTextInBlocks(text: string) {
-      return [{ type: 'text', content: [{ type: 'plain', attrs: { text } }] }]
-    }
-    static extractText(msg: { blocks?: Array<{ type: string; content?: Array<{ type: string; attrs?: { text?: string } }>; value?: string }>; plainText?: string }) {
-      const parts: string[] = []
-      for (const block of msg.blocks ?? []) {
-        if (block.content) {
-          for (const inline of block.content) {
-            if (inline.attrs?.text) parts.push(inline.attrs.text)
-          }
-        } else if (block.value) {
-          parts.push(block.value)
-        }
-      }
-      if (msg.plainText) parts.push(msg.plainText)
-      return parts.join('\n')
-    }
     sendUserChatMessage = (...args: unknown[]) => {
       capturedSendUserChatArgs = args
       return mockSendUserChatMessage()

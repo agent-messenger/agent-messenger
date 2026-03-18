@@ -2,7 +2,7 @@ import { Command } from 'commander'
 
 import { formatOutput } from '@/shared/utils/output'
 
-import { ChannelBotClient } from '../client'
+import { extractText, wrapTextInBlocks } from '../message-utils'
 import type { WorkspaceOption } from './shared'
 import { getClient, getDefaultBotName } from './shared'
 
@@ -59,7 +59,7 @@ export async function sendAction(target: string, text: string, options: MessageO
   try {
     const client = await getClient(options)
     const botName = await getDefaultBotName(options)
-    const blocks = ChannelBotClient.wrapTextInBlocks(text)
+    const blocks = wrapTextInBlocks(text)
 
     const targetType = options.type || detectTargetType(target)
 
@@ -182,7 +182,7 @@ export async function searchAction(query: string, options: SearchOptions): Promi
       if (results.length >= limit) break
 
       const messages = await client.getUserChatMessages(chat.id, { limit: 500, sortOrder: 'desc' })
-      const hits = messages.filter((msg) => ChannelBotClient.extractText(msg).toLowerCase().includes(lowerQuery))
+      const hits = messages.filter((msg) => extractText(msg).toLowerCase().includes(lowerQuery))
 
       for (const hit of hits) {
         if (results.length >= limit) break

@@ -9,6 +9,7 @@ import type {
   MessageBlock,
 } from './types'
 import { ChannelBotError as ChannelBotErrorClass } from './types'
+import { extractText, wrapTextInBlocks } from './message-utils'
 
 const BASE_URL = 'https://api.channel.io/open/v5'
 const MAX_RETRIES = 3
@@ -35,28 +36,9 @@ export class ChannelBotClient {
     this.accessSecret = accessSecret
   }
 
-  static wrapTextInBlocks(text: string): MessageBlock[] {
-    return [{ type: 'text', content: [{ type: 'plain', attrs: { text } }] }]
-  }
+  static wrapTextInBlocks = wrapTextInBlocks
 
-  static extractText(message: ChannelBotMessage): string {
-    const parts: string[] = []
-
-    for (const block of message.blocks ?? []) {
-      if (block.content) {
-        for (const inline of block.content) {
-          if (inline.attrs?.text) {
-            parts.push(inline.attrs.text)
-          }
-        }
-      } else if (block.value) {
-        parts.push(block.value)
-      }
-    }
-
-    if (message.plainText) parts.push(message.plainText)
-    return parts.join('\n')
-  }
+  static extractText = extractText
 
   async getChannel(): Promise<ChannelBotChannel> {
     return this.request<ChannelBotChannel>('GET', '/channel', undefined, 'channel')
