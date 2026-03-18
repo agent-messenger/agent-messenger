@@ -146,12 +146,21 @@ export async function validateTeamsEnvironment() {
   }
 }
 
-export const CHANNELBOT_TEST_WORKSPACE_ID = '55713'
-export const CHANNELBOT_TEST_WORKSPACE_NAME = 'VREVIEW'
-export const CHANNELBOT_TEST_GROUP_ID = '515907'
-export const CHANNELBOT_TEST_GROUP_NAME = '나홀로채팅방'
+// ChannelBot Test Environment — requires explicit opt-in via env vars.
+// Tests will be skipped unless E2E_CHANNELBOT_WORKSPACE_ID and E2E_CHANNELBOT_GROUP_ID are set.
+// Never run against a real business workspace automatically.
+export const CHANNELBOT_TEST_WORKSPACE_ID = process.env.E2E_CHANNELBOT_WORKSPACE_ID || ''
+export const CHANNELBOT_TEST_WORKSPACE_NAME = process.env.E2E_CHANNELBOT_WORKSPACE_NAME || ''
+export const CHANNELBOT_TEST_GROUP_ID = process.env.E2E_CHANNELBOT_GROUP_ID || ''
+export const CHANNELBOT_TEST_GROUP_NAME = process.env.E2E_CHANNELBOT_GROUP_NAME || ''
 
 export async function validateChannelBotEnvironment() {
+  if (!CHANNELBOT_TEST_WORKSPACE_ID || !CHANNELBOT_TEST_GROUP_ID) {
+    throw new Error(
+      'ChannelBot E2E environment not configured. Set E2E_CHANNELBOT_WORKSPACE_ID and E2E_CHANNELBOT_GROUP_ID.',
+    )
+  }
+
   const { runCLI, parseJSON } = await import('./helpers')
 
   const result = await runCLI('channelbot', ['auth', 'status'])
@@ -171,10 +180,16 @@ export async function validateChannelBotEnvironment() {
   }
 }
 
+// Channel (user-auth) Test Environment — requires explicit opt-in via env vars.
 export const CHANNEL_TEST_WORKSPACE_ID = process.env.E2E_CHANNEL_WORKSPACE_ID || ''
 export const CHANNEL_TEST_WORKSPACE_NAME = process.env.E2E_CHANNEL_WORKSPACE_NAME || ''
+export const CHANNEL_TEST_GROUP_ID = process.env.E2E_CHANNEL_GROUP_ID || ''
 
 export async function validateChannelEnvironment() {
+  if (!CHANNEL_TEST_WORKSPACE_ID) {
+    throw new Error('Channel E2E environment not configured. Set E2E_CHANNEL_WORKSPACE_ID.')
+  }
+
   const { runCLI, parseJSON } = await import('./helpers')
 
   const result = await runCLI('channel', ['auth', 'status'])

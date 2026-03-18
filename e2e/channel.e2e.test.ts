@@ -1,6 +1,6 @@
 import { afterEach, beforeAll, describe, expect, test } from 'bun:test'
 
-import { validateChannelEnvironment } from './config'
+import { CHANNEL_TEST_GROUP_ID, CHANNEL_TEST_WORKSPACE_ID, validateChannelEnvironment } from './config'
 import { generateTestId, parseJSON, runCLI, waitForRateLimit } from './helpers'
 
 let channelAvailable = false
@@ -8,9 +8,12 @@ let workspaceId = ''
 let workspaceName = ''
 let groupId = ''
 let groupName = ''
-let managerId = ''
 
 async function loadChannelContext() {
+  if (!CHANNEL_TEST_WORKSPACE_ID || !CHANNEL_TEST_GROUP_ID) {
+    return false
+  }
+
   const statusResult = await runCLI('channel', ['auth', 'status'])
   const status = parseJSON<{
     valid: boolean
@@ -26,15 +29,11 @@ async function loadChannelContext() {
 
   workspaceId = status.workspace_id || ''
   workspaceName = status.workspace_name || ''
+  groupId = CHANNEL_TEST_GROUP_ID
 
-  const groupsResult = await runCLI('channel', ['group', 'list', '--limit', '10'])
-  const groups = parseJSON<{ groups: Array<{ id: string; name: string }> }>(groupsResult.stdout)
-  groupId = groups?.groups?.[0]?.id || ''
-  groupName = groups?.groups?.[0]?.name || ''
-
-  const managersResult = await runCLI('channel', ['manager', 'list', '--limit', '1'])
-  const managers = parseJSON<{ managers: Array<{ id: string }> }>(managersResult.stdout)
-  managerId = managers?.managers?.[0]?.id || ''
+  const groupResult = await runCLI('channel', ['group', 'get', groupId])
+  const group = parseJSON<{ name: string }>(groupResult.stdout)
+  groupName = group?.name || ''
 
   return Boolean(workspaceId && groupId)
 }
@@ -45,7 +44,7 @@ describe('Channel E2E Tests', () => {
 
     if (!channelAvailable) {
       console.warn(
-        'Skipping Channel E2E assertions because no desktop credentials are available. Run: agent-channel auth extract',
+        'Skipping Channel E2E: set E2E_CHANNEL_WORKSPACE_ID and E2E_CHANNEL_GROUP_ID to run against a dedicated test workspace.',
       )
     }
   })
