@@ -39,7 +39,7 @@ describe('ChannelCredentialManager', () => {
     }
     delete process.env.E2E_CHANNEL_ACCOUNT_COOKIE
     delete process.env.E2E_CHANNEL_SESSION_COOKIE
-    delete process.env.E2E_CHANNEL_CHANNEL_ID
+    delete process.env.E2E_CHANNEL_WORKSPACE_ID
   })
 
   test('returns empty config when no file exists', async () => {
@@ -101,7 +101,7 @@ describe('ChannelCredentialManager', () => {
 
     process.env.E2E_CHANNEL_ACCOUNT_COOKIE = 'env-account-cookie'
     process.env.E2E_CHANNEL_SESSION_COOKIE = 'env-session-cookie'
-    process.env.E2E_CHANNEL_CHANNEL_ID = 'env-workspace'
+    process.env.E2E_CHANNEL_WORKSPACE_ID = 'env-workspace'
 
     expect(await manager.getCredentials()).toEqual({
       workspace_id: 'env-workspace',
@@ -116,7 +116,7 @@ describe('ChannelCredentialManager', () => {
 
     process.env.E2E_CHANNEL_ACCOUNT_COOKIE = 'env-account-cookie'
     process.env.E2E_CHANNEL_SESSION_COOKIE = 'env-session-cookie'
-    process.env.E2E_CHANNEL_CHANNEL_ID = 'env-workspace'
+    process.env.E2E_CHANNEL_WORKSPACE_ID = 'env-workspace'
 
     expect(await manager.getCredentials(WORKSPACE_A.workspace_id)).toEqual({
       workspace_id: WORKSPACE_A.workspace_id,

@@ -43,9 +43,9 @@ export class ChannelCredentialManager {
   async getCredentials(workspaceId?: string): Promise<ChannelCredentials | null> {
     const envAccountCookie = process.env.E2E_CHANNEL_ACCOUNT_COOKIE
     const envSessionCookie = process.env.E2E_CHANNEL_SESSION_COOKIE
-    const envWorkspaceId = process.env.E2E_CHANNEL_CHANNEL_ID
+    const envWorkspaceId = process.env.E2E_CHANNEL_WORKSPACE_ID
 
-    if (envAccountCookie && envSessionCookie && envWorkspaceId && !workspaceId) {
+    if (envAccountCookie && envWorkspaceId && !workspaceId) {
       return {
         workspace_id: envWorkspaceId,
         workspace_name: 'env',
