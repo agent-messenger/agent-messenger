@@ -146,19 +146,16 @@ export async function validateTeamsEnvironment() {
   }
 }
 
-// ChannelBot Test Environment — requires explicit opt-in via env vars.
-// Tests will be skipped unless E2E_CHANNELBOT_WORKSPACE_ID and E2E_CHANNELBOT_GROUP_ID are set.
+// ChannelBot Test Environment — requires E2E_CHANNELBOT_WORKSPACE_ID to opt-in.
+// The E2E group is auto-discovered by name from the workspace's group list.
 // Never run against a real business workspace automatically.
 export const CHANNELBOT_TEST_WORKSPACE_ID = process.env.E2E_CHANNELBOT_WORKSPACE_ID || ''
 export const CHANNELBOT_TEST_WORKSPACE_NAME = process.env.E2E_CHANNELBOT_WORKSPACE_NAME || ''
-export const CHANNELBOT_TEST_GROUP_ID = process.env.E2E_CHANNELBOT_GROUP_ID || ''
-export const CHANNELBOT_TEST_GROUP_NAME = process.env.E2E_CHANNELBOT_GROUP_NAME || ''
+export const E2E_GROUP_NAME = 'E2E'
 
-export async function validateChannelBotEnvironment() {
-  if (!CHANNELBOT_TEST_WORKSPACE_ID || !CHANNELBOT_TEST_GROUP_ID) {
-    throw new Error(
-      'ChannelBot E2E environment not configured. Set E2E_CHANNELBOT_WORKSPACE_ID and E2E_CHANNELBOT_GROUP_ID.',
-    )
+export async function validateChannelBotEnvironment(): Promise<{ groupId: string; groupName: string }> {
+  if (!CHANNELBOT_TEST_WORKSPACE_ID) {
+    throw new Error('ChannelBot E2E environment not configured. Set E2E_CHANNELBOT_WORKSPACE_ID.')
   }
 
   const { runCLI, parseJSON } = await import('./helpers')
@@ -178,14 +175,23 @@ export async function validateChannelBotEnvironment() {
         `Got: ${data?.workspace_id}`,
     )
   }
+
+  const groupsResult = await runCLI('channelbot', ['group', 'list'])
+  const groupsData = parseJSON<{ groups: Array<{ id: string; name: string }> }>(groupsResult.stdout)
+  const e2eGroup = groupsData?.groups?.find((g) => g.name === E2E_GROUP_NAME)
+  if (!e2eGroup) {
+    throw new Error(`No group named "${E2E_GROUP_NAME}" found. Create one in the test workspace.`)
+  }
+
+  return { groupId: e2eGroup.id, groupName: e2eGroup.name }
 }
 
-// Channel (user-auth) Test Environment — requires explicit opt-in via env vars.
+// Channel (user-auth) Test Environment — requires E2E_CHANNEL_WORKSPACE_ID to opt-in.
+// The E2E group is auto-discovered by name from the workspace's group list.
 export const CHANNEL_TEST_WORKSPACE_ID = process.env.E2E_CHANNEL_WORKSPACE_ID || ''
 export const CHANNEL_TEST_WORKSPACE_NAME = process.env.E2E_CHANNEL_WORKSPACE_NAME || ''
-export const CHANNEL_TEST_GROUP_ID = process.env.E2E_CHANNEL_GROUP_ID || ''
 
-export async function validateChannelEnvironment() {
+export async function validateChannelEnvironment(): Promise<{ groupId: string; groupName: string }> {
   if (!CHANNEL_TEST_WORKSPACE_ID) {
     throw new Error('Channel E2E environment not configured. Set E2E_CHANNEL_WORKSPACE_ID.')
   }
@@ -197,8 +203,23 @@ export async function validateChannelEnvironment() {
     throw new Error('Channel authentication failed. Run: agent-channel auth extract')
   }
 
-  const data = parseJSON<{ valid: boolean }>(result.stdout)
+  const data = parseJSON<{ valid: boolean; workspace_id: string }>(result.stdout)
   if (!data?.valid) {
     throw new Error('Channel credentials invalid. Run: agent-channel auth extract')
   }
+  if (data?.workspace_id !== CHANNEL_TEST_WORKSPACE_ID) {
+    throw new Error(
+      `Wrong Channel workspace. Expected: ${CHANNEL_TEST_WORKSPACE_NAME} (${CHANNEL_TEST_WORKSPACE_ID}), ` +
+        `Got: ${data?.workspace_id}`,
+    )
+  }
+
+  const groupsResult = await runCLI('channel', ['group', 'list'])
+  const groupsData = parseJSON<{ groups: Array<{ id: string; name: string }> }>(groupsResult.stdout)
+  const e2eGroup = groupsData?.groups?.find((g) => g.name === E2E_GROUP_NAME)
+  if (!e2eGroup) {
+    throw new Error(`No group named "${E2E_GROUP_NAME}" found. Create one in the test workspace.`)
+  }
+
+  return { groupId: e2eGroup.id, groupName: e2eGroup.name }
 }

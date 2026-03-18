@@ -1,52 +1,33 @@
 import { afterEach, beforeAll, describe, expect, test } from 'bun:test'
 
-import { CHANNEL_TEST_GROUP_ID, CHANNEL_TEST_WORKSPACE_ID, validateChannelEnvironment } from './config'
+import { CHANNEL_TEST_WORKSPACE_ID, CHANNEL_TEST_WORKSPACE_NAME, validateChannelEnvironment } from './config'
 import { generateTestId, parseJSON, runCLI, waitForRateLimit } from './helpers'
 
 let channelAvailable = false
 let workspaceId = ''
 let workspaceName = ''
-let groupId = ''
-let groupName = ''
-
-async function loadChannelContext() {
-  if (!CHANNEL_TEST_WORKSPACE_ID || !CHANNEL_TEST_GROUP_ID) {
-    return false
-  }
-
-  const statusResult = await runCLI('channel', ['auth', 'status'])
-  const status = parseJSON<{
-    valid: boolean
-    workspace_id?: string
-    workspace_name?: string
-  }>(statusResult.stdout)
-
-  if (statusResult.exitCode !== 0 || !status?.valid) {
-    return false
-  }
-
-  await validateChannelEnvironment()
-
-  workspaceId = status.workspace_id || ''
-  workspaceName = status.workspace_name || ''
-  groupId = CHANNEL_TEST_GROUP_ID
-
-  const groupResult = await runCLI('channel', ['group', 'get', groupId])
-  const group = parseJSON<{ name: string }>(groupResult.stdout)
-  groupName = group?.name || ''
-
-  return Boolean(workspaceId && groupId)
-}
+let testGroupId = ''
+let testGroupName = ''
 
 describe('Channel E2E Tests', () => {
   beforeAll(async () => {
-    channelAvailable = await loadChannelContext()
-
-    if (!channelAvailable) {
+    if (!CHANNEL_TEST_WORKSPACE_ID) {
       console.warn(
-        'Skipping Channel E2E: set E2E_CHANNEL_WORKSPACE_ID and E2E_CHANNEL_GROUP_ID to run against a dedicated test workspace.',
+        'Skipping Channel E2E: set E2E_CHANNEL_WORKSPACE_ID to run against a dedicated test workspace.',
       )
+      return
     }
+
+    const group = await validateChannelEnvironment()
+    testGroupId = group.groupId
+    testGroupName = group.groupName
+
+    const statusResult = await runCLI('channel', ['auth', 'status'])
+    const status = parseJSON<{ workspace_id: string; workspace_name: string }>(statusResult.stdout)
+    workspaceId = status?.workspace_id || ''
+    workspaceName = status?.workspace_name || ''
+
+    channelAvailable = true
   })
 
   afterEach(async () => {
@@ -62,8 +43,8 @@ describe('Channel E2E Tests', () => {
 
       const data = parseJSON<{ valid: boolean; workspace_id: string; workspace_name: string }>(result.stdout)
       expect(data?.valid).toBe(true)
-      expect(data?.workspace_id).toBe(workspaceId)
-      expect(data?.workspace_name).toBe(workspaceName)
+      expect(data?.workspace_id).toBe(CHANNEL_TEST_WORKSPACE_ID)
+      expect(data?.workspace_name).toBe(CHANNEL_TEST_WORKSPACE_NAME)
     })
 
     test('auth list shows workspaces', async () => {
@@ -93,18 +74,18 @@ describe('Channel E2E Tests', () => {
     test('group get returns group details', async () => {
       if (!channelAvailable) return
 
-      const result = await runCLI('channel', ['group', 'get', groupId])
+      const result = await runCLI('channel', ['group', 'get', testGroupId])
       expect(result.exitCode).toBe(0)
 
       const data = parseJSON<{ id: string; name: string }>(result.stdout)
-      expect(data?.id).toBe(groupId)
-      expect(data?.name).toBe(groupName)
+      expect(data?.id).toBe(testGroupId)
+      expect(data?.name).toBe(testGroupName)
     })
 
     test('group messages returns messages array', async () => {
       if (!channelAvailable) return
 
-      const result = await runCLI('channel', ['group', 'messages', groupId, '--limit', '5'])
+      const result = await runCLI('channel', ['group', 'messages', testGroupId, '--limit', '5'])
       expect(result.exitCode).toBe(0)
 
       const data = parseJSON<{ messages: Array<{ id: string }> }>(result.stdout)
@@ -117,19 +98,19 @@ describe('Channel E2E Tests', () => {
       if (!channelAvailable) return
 
       const testId = generateTestId()
-      const result = await runCLI('channel', ['message', 'send', 'group', groupId, `e2e ${testId}`])
+      const result = await runCLI('channel', ['message', 'send', 'group', testGroupId, `e2e ${testId}`])
       expect(result.exitCode).toBe(0)
 
       const data = parseJSON<{ id: string; chat_id: string; plain_text: string }>(result.stdout)
       expect(data?.id).toBeTruthy()
-      expect(data?.chat_id).toBe(groupId)
+      expect(data?.chat_id).toBe(testGroupId)
       expect(data?.plain_text).toContain(testId)
     })
 
     test('message list returns messages from group', async () => {
       if (!channelAvailable) return
 
-      const result = await runCLI('channel', ['message', 'list', 'group', groupId, '--limit', '5'])
+      const result = await runCLI('channel', ['message', 'list', 'group', testGroupId, '--limit', '5'])
       expect(result.exitCode).toBe(0)
 
       const data = parseJSON<{ messages: Array<{ id: string }> }>(result.stdout)
@@ -140,7 +121,7 @@ describe('Channel E2E Tests', () => {
       if (!channelAvailable) return
 
       const testId = generateTestId()
-      const sendResult = await runCLI('channel', ['message', 'send', 'group', groupId, `get-test ${testId}`])
+      const sendResult = await runCLI('channel', ['message', 'send', 'group', testGroupId, `get-test ${testId}`])
       expect(sendResult.exitCode).toBe(0)
 
       const sent = parseJSON<{ id: string }>(sendResult.stdout)
@@ -148,7 +129,7 @@ describe('Channel E2E Tests', () => {
 
       await waitForRateLimit()
 
-      const result = await runCLI('channel', ['message', 'get', 'group', groupId, sent!.id])
+      const result = await runCLI('channel', ['message', 'get', 'group', testGroupId, sent!.id])
       expect(result.exitCode).toBe(0)
 
       const data = parseJSON<{ id: string; plain_text: string }>(result.stdout)

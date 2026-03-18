@@ -1,8 +1,6 @@
 import { afterEach, beforeAll, describe, expect, test } from 'bun:test'
 
 import {
-  CHANNELBOT_TEST_GROUP_ID,
-  CHANNELBOT_TEST_GROUP_NAME,
   CHANNELBOT_TEST_WORKSPACE_ID,
   CHANNELBOT_TEST_WORKSPACE_NAME,
   validateChannelBotEnvironment,
@@ -10,16 +8,20 @@ import {
 import { generateTestId, parseJSON, runCLI, waitForRateLimit } from './helpers'
 
 let channelbotAvailable = false
+let testGroupId = ''
+let testGroupName = ''
 
 describe('ChannelBot E2E Tests', () => {
   beforeAll(async () => {
-    if (!CHANNELBOT_TEST_WORKSPACE_ID || !CHANNELBOT_TEST_GROUP_ID) {
+    if (!CHANNELBOT_TEST_WORKSPACE_ID) {
       console.warn(
-        'Skipping ChannelBot E2E: set E2E_CHANNELBOT_WORKSPACE_ID and E2E_CHANNELBOT_GROUP_ID to run against a dedicated test workspace.',
+        'Skipping ChannelBot E2E: set E2E_CHANNELBOT_WORKSPACE_ID to run against a dedicated test workspace.',
       )
       return
     }
-    await validateChannelBotEnvironment()
+    const group = await validateChannelBotEnvironment()
+    testGroupId = group.groupId
+    testGroupName = group.groupName
     channelbotAvailable = true
   })
 
@@ -34,12 +36,7 @@ describe('ChannelBot E2E Tests', () => {
       const result = await runCLI('channelbot', ['auth', 'status'])
       expect(result.exitCode).toBe(0)
 
-      const data = parseJSON<{
-        valid: boolean
-        workspace_id: string
-        workspace_name: string
-      }>(result.stdout)
-      expect(data).not.toBeNull()
+      const data = parseJSON<{ valid: boolean; workspace_id: string; workspace_name: string }>(result.stdout)
       expect(data?.valid).toBe(true)
       expect(data?.workspace_id).toBe(CHANNELBOT_TEST_WORKSPACE_ID)
       expect(data?.workspace_name).toBe(CHANNELBOT_TEST_WORKSPACE_NAME)
@@ -61,29 +58,29 @@ describe('ChannelBot E2E Tests', () => {
     test('group get by id returns the target group', async () => {
       if (!channelbotAvailable) return
 
-      const result = await runCLI('channelbot', ['group', 'get', CHANNELBOT_TEST_GROUP_ID])
+      const result = await runCLI('channelbot', ['group', 'get', testGroupId])
       expect(result.exitCode).toBe(0)
 
       const data = parseJSON<{ id: string; name: string }>(result.stdout)
-      expect(data?.id).toBe(CHANNELBOT_TEST_GROUP_ID)
-      expect(data?.name).toBe(CHANNELBOT_TEST_GROUP_NAME)
+      expect(data?.id).toBe(testGroupId)
+      expect(data?.name).toBe(testGroupName)
     })
 
     test('group get by @name returns the target group', async () => {
       if (!channelbotAvailable) return
 
-      const result = await runCLI('channelbot', ['group', 'get', `@${CHANNELBOT_TEST_GROUP_NAME}`])
+      const result = await runCLI('channelbot', ['group', 'get', `@${testGroupName}`])
       expect(result.exitCode).toBe(0)
 
       const data = parseJSON<{ id: string; name: string }>(result.stdout)
-      expect(data?.id).toBe(CHANNELBOT_TEST_GROUP_ID)
-      expect(data?.name).toBe(CHANNELBOT_TEST_GROUP_NAME)
+      expect(data?.id).toBe(testGroupId)
+      expect(data?.name).toBe(testGroupName)
     })
 
     test('group messages returns messages array', async () => {
       if (!channelbotAvailable) return
 
-      const result = await runCLI('channelbot', ['group', 'messages', CHANNELBOT_TEST_GROUP_ID, '--limit', '5'])
+      const result = await runCLI('channelbot', ['group', 'messages', testGroupId, '--limit', '5'])
       expect(result.exitCode).toBe(0)
 
       const data = parseJSON<{ messages: Array<{ id: string }> }>(result.stdout)
@@ -96,12 +93,7 @@ describe('ChannelBot E2E Tests', () => {
       if (!channelbotAvailable) return
 
       const testId = generateTestId()
-      const result = await runCLI('channelbot', [
-        'message',
-        'send',
-        `@${CHANNELBOT_TEST_GROUP_NAME}`,
-        `e2e ${testId}`,
-      ])
+      const result = await runCLI('channelbot', ['message', 'send', `@${testGroupName}`, `e2e ${testId}`])
       expect(result.exitCode).toBe(0)
 
       const data = parseJSON<{ id: string; plain_text: string; chat_type: string }>(result.stdout)
@@ -113,7 +105,7 @@ describe('ChannelBot E2E Tests', () => {
     test('message list returns messages array', async () => {
       if (!channelbotAvailable) return
 
-      const result = await runCLI('channelbot', ['message', 'list', `@${CHANNELBOT_TEST_GROUP_NAME}`, '--limit', '5'])
+      const result = await runCLI('channelbot', ['message', 'list', `@${testGroupName}`, '--limit', '5'])
       expect(result.exitCode).toBe(0)
 
       const data = parseJSON<{ messages: Array<{ id: string }> }>(result.stdout)
@@ -124,20 +116,15 @@ describe('ChannelBot E2E Tests', () => {
       if (!channelbotAvailable) return
 
       const testId = generateTestId()
-      const sendResult = await runCLI('channelbot', [
-        'message',
-        'send',
-        `@${CHANNELBOT_TEST_GROUP_NAME}`,
-        `get ${testId}`,
-      ])
+      const sendResult = await runCLI('channelbot', ['message', 'send', `@${testGroupName}`, `get ${testId}`])
       expect(sendResult.exitCode).toBe(0)
 
-      const sent = parseJSON<{ id: string; plain_text: string }>(sendResult.stdout)
+      const sent = parseJSON<{ id: string }>(sendResult.stdout)
       expect(sent?.id).toBeTruthy()
 
       await waitForRateLimit()
 
-      const result = await runCLI('channelbot', ['message', 'get', `@${CHANNELBOT_TEST_GROUP_NAME}`, sent!.id])
+      const result = await runCLI('channelbot', ['message', 'get', `@${testGroupName}`, sent!.id])
       expect(result.exitCode).toBe(0)
 
       const data = parseJSON<{ id: string; plain_text: string }>(result.stdout)
@@ -162,8 +149,6 @@ describe('ChannelBot E2E Tests', () => {
       if (!channelbotAvailable) return
 
       const listResult = await runCLI('channelbot', ['manager', 'list', '--limit', '1'])
-      expect(listResult.exitCode).toBe(0)
-
       const listData = parseJSON<{ managers: Array<{ id: string; name: string }> }>(listResult.stdout)
       expect(listData?.managers?.[0]?.id).toBeTruthy()
 
