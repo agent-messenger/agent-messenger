@@ -358,7 +358,6 @@ Config format:
 | Acts as                    | You (manager)        | Bot identity           |
 | Send messages              | ✅                   | ✅                     |
 | List messages              | ✅                   | ✅                     |
-| Search messages (grep)     | -                    | ✅                     |
 | Close/delete chats         | -                    | ✅                     |
 | Create/delete bots         | -                    | ✅                     |
 | Set default bot            | -                    | ✅                     |
@@ -367,7 +366,7 @@ Config format:
 | Multi-workspace            | ✅                   | ✅                     |
 | CI/CD friendly             | -                    | ✅                     |
 
-Use **agent-channel** when you want zero-config access acting as yourself. Use **agent-channelbot** for server-side automation, CI/CD pipelines, or when you need bot-specific features like closing chats and message search.
+Use **agent-channel** when you want zero-config access acting as yourself. Use **agent-channelbot** for server-side automation, CI/CD pipelines, or when you need bot-specific features like closing chats.
 
 ## Limitations
 
@@ -375,7 +374,7 @@ Use **agent-channel** when you want zero-config access acting as yourself. Use *
 - No real-time events / WebSocket connection
 - No file upload support
 - No message editing or deletion
-- No message search (use agent-channelbot for search)
+- No message search (Channel Talk desk API does not provide a search endpoint)
 - No chat close/delete (use agent-channelbot for chat management)
 - No bot creation/deletion (use agent-channelbot for bot management)
 - No @name group references (use group IDs from `group list`)

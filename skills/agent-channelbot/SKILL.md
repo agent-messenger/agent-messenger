@@ -200,19 +200,7 @@ agent-channelbot message list abc123-chat-id --limit 50
 # Note: Searches the latest 100 messages. Older messages may not be found.
 agent-channelbot message get <target> <message-id>
 
-# Search messages across UserChats
-agent-channelbot message grep <query>
-agent-channelbot message grep "리뷰" --state opened
-agent-channelbot message grep "refund" --chat-limit 100 --limit 50
 ```
-
-Search scans UserChats, fetches their messages, and filters by text match (case-insensitive). Options:
-
-| Option              | Description                                          | Default |
-| ------------------- | ---------------------------------------------------- | ------- |
-| `--state <state>`   | Filter chats: `opened`, `closed`, `snoozed`, `all`   | `all`   |
-| `--chat-limit <n>`  | Max number of chats to scan                          | `50`    |
-| `--limit <n>`       | Max number of results to return                      | `20`    |
 
 Target auto-detection: if the target starts with `@`, it's treated as a group. Otherwise, it's treated as a UserChat. You can override with `--type userchat` or `--type group`.
 
@@ -383,7 +371,7 @@ Config format:
 - No message editing or deletion (Channel Talk API limitation)
 - No user management (users are end-customers, managed by Channel Talk)
 - No webhook support
-- Message search is client-side (no server-side search API) — scans chats sequentially, may be slow with many chats
+- No message search (Channel Talk Open API does not provide a search endpoint)
 - Plain text messages only (no rich blocks in v1)
 - Bot name must exist in the workspace for sending messages
 - Channel Talk has rate limits on API calls
