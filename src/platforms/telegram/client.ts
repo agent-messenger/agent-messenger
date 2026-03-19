@@ -15,6 +15,7 @@ import {
   type TdMessage,
   type TdMessages,
   type TdUpdateAuthorizationState,
+  type TdUpdateMessageSendFailed,
   type TdUpdateMessageSendSucceeded,
   type TdUser,
   type TelegramAccount,
@@ -44,6 +45,13 @@ export class TelegramTdlibClient {
   private clientId: number
   private currentAuthorizationState: TdAuthorizationState | null = null
   private requestSeq = 0
+  private pendingMessages = new Map<
+    number,
+    {
+      resolve: (msg: TdMessage) => void
+      reject: (err: TelegramError) => void
+    }
+  >()
 
   private constructor(
     private account: TelegramAccount,
@@ -251,11 +259,11 @@ export class TelegramTdlibClient {
     })) as TdMessage
 
     if (message.sending_state?.['@type'] === 'messageSendingStatePending') {
-      await this.drainUpdates(2000)
+      const confirmedMessage = await this.waitForMessageConfirmation(message.id, 10000)
+      return simplifyMessage(confirmedMessage ?? message, chat.id)
     }
 
-    const confirmedMessage = await this.findRecentlySentMessage(chat.id, text, message.id)
-    return simplifyMessage(confirmedMessage ?? message, chat.id)
+    return simplifyMessage(message, chat.id)
   }
 
   private async ensureReady(): Promise<void> {
@@ -429,7 +437,23 @@ export class TelegramTdlibClient {
     }
 
     if (event?.['@type'] === 'updateMessageSendSucceeded') {
-      return (event as TdUpdateMessageSendSucceeded).message
+      const update = event as TdUpdateMessageSendSucceeded
+      const pending = this.pendingMessages.get(update.old_message_id)
+      if (pending) {
+        this.pendingMessages.delete(update.old_message_id)
+        pending.resolve(update.message)
+      }
+      return update.message
+    }
+
+    if (event?.['@type'] === 'updateMessageSendFailed') {
+      const update = event as TdUpdateMessageSendFailed
+      const pending = this.pendingMessages.get(update.old_message_id)
+      if (pending) {
+        this.pendingMessages.delete(update.old_message_id)
+        pending.reject(new TelegramError(update.error_message ?? 'Message send failed', update.error_code ?? 'send_failed'))
+      }
+      return event
     }
 
     return event
@@ -542,29 +566,36 @@ export class TelegramTdlibClient {
     }
   }
 
-  private async findRecentlySentMessage(chatId: number, text: string, fallbackMessageId: number): Promise<any | null> {
-    try {
-      const history = (await this.call({
-        '@type': 'getChatHistory',
-        chat_id: chatId,
-        from_message_id: 0,
-        offset: 0,
-        limit: 10,
-        only_local: false,
-      })) as TdMessages
+  private async waitForMessageConfirmation(tempMessageId: number, timeoutMs: number): Promise<TdMessage | null> {
+    return new Promise<TdMessage | null>((resolve) => {
+      const timer = setTimeout(() => {
+        this.pendingMessages.delete(tempMessageId)
+        resolve(null)
+      }, timeoutMs)
 
-      const normalizedText = text.trim()
-      const candidate = (history.messages ?? []).find(
-        (item: any) =>
-          item.is_outgoing &&
-          item.id !== fallbackMessageId &&
-          item.content?.['@type'] === 'messageText' &&
-          item.content?.text?.text?.trim?.() === normalizedText,
-      )
+      this.pendingMessages.set(tempMessageId, {
+        resolve: (message) => {
+          clearTimeout(timer)
+          resolve(message)
+        },
+        reject: () => {
+          clearTimeout(timer)
+          resolve(null)
+        },
+      })
 
-      return candidate ?? null
-    } catch {
-      return null
-    }
+      void (async () => {
+        const deadline = Date.now() + timeoutMs
+        while (Date.now() < deadline && this.pendingMessages.has(tempMessageId)) {
+          const event = this.tdjson.receive(0.1)
+          if (!event) {
+            await new Promise((loopResolve) => setTimeout(loopResolve, 0))
+            continue
+          }
+
+          this.handleEvent(event)
+        }
+      })()
+    })
   }
 }
