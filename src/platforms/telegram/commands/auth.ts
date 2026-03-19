@@ -240,7 +240,7 @@ export async function loginAction(options: AuthOptions): Promise<void> {
     : options
 
   const account = await buildAccount(manager, resolvedOptions)
-  const client = new TelegramTdlibClient(account, await manager.ensureAccountPaths(account.account_id))
+  const client = await TelegramTdlibClient.create(account, await manager.ensureAccountPaths(account.account_id))
   const unregisterSignalCleanup = registerSignalCleanup(client)
   let exitCode = 0
   let thrownError: Error | null = null
@@ -320,7 +320,7 @@ export async function statusAction(options: { account?: string; pretty?: boolean
     process.exit(1)
   }
 
-  const client = new TelegramTdlibClient(account, await manager.ensureAccountPaths(account.account_id))
+  const client = await TelegramTdlibClient.create(account, await manager.ensureAccountPaths(account.account_id))
   const unregisterSignalCleanup = registerSignalCleanup(client)
   let exitCode = 0
   let thrownError: Error | null = null
@@ -404,7 +404,7 @@ export async function logoutAction(options: { account?: string; pretty?: boolean
     process.exit(1)
   }
 
-  const client = new TelegramTdlibClient(account, await manager.ensureAccountPaths(account.account_id))
+  const client = await TelegramTdlibClient.create(account, await manager.ensureAccountPaths(account.account_id))
   const unregisterSignalCleanup = registerSignalCleanup(client)
   let thrownError: Error | null = null
 

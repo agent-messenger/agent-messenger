@@ -40,7 +40,7 @@ export async function withTelegramClient<T>(
   }
 
   const paths = await manager.ensureAccountPaths(account.account_id)
-  const client = new TelegramTdlibClient(account, paths)
+  const client = await TelegramTdlibClient.create(account, paths)
 
   try {
     return await action(client, account, manager)

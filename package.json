@@ -39,9 +39,11 @@
     "better-sqlite3": "^12.0.0",
     "classic-level": "^1.3.0",
     "commander": "^11.1.0",
-    "koffi": "^2.15.2",
-    "prebuilt-tdlib": "0.1008062.2",
     "zod": "^3.22.4"
+  },
+  "optionalDependencies": {
+    "koffi": "^2.15.2",
+    "prebuilt-tdlib": "0.1008062.2"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.8",

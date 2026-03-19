@@ -1,5 +1,3 @@
-import { createRequire } from 'node:module'
-import * as koffi from 'koffi'
 import { TelegramError } from './types'
 
 interface TdjsonSymbols {
@@ -9,7 +7,20 @@ interface TdjsonSymbols {
   td_execute: (request: string) => string | null
 }
 
-const require = createRequire(import.meta.url)
+let cachedKoffi: typeof import('koffi') | undefined
+
+async function getKoffi(): Promise<typeof import('koffi')> {
+  if (cachedKoffi) {
+    return cachedKoffi
+  }
+
+  try {
+    cachedKoffi = await import('koffi')
+    return cachedKoffi
+  } catch {
+    throw new Error('koffi is required for Telegram support. Install it with: bun add koffi prebuilt-tdlib')
+  }
+}
 
 function getLibrarySuffix(): string {
   if (process.platform === 'darwin') {
@@ -23,9 +34,9 @@ function getLibrarySuffix(): string {
   return 'so'
 }
 
-function getPrebuiltTdjsonPath(): string | undefined {
+async function getPrebuiltTdjsonPath(): Promise<string | undefined> {
   try {
-    const mod = require('prebuilt-tdlib') as { getTdjson?: () => string }
+    const mod = (await import('prebuilt-tdlib')) as { getTdjson?: () => string }
     const tdjson = mod.getTdjson?.()
     return typeof tdjson === 'string' && tdjson.length > 0 ? tdjson : undefined
   } catch {
@@ -33,9 +44,9 @@ function getPrebuiltTdjsonPath(): string | undefined {
   }
 }
 
-function getTdjsonCandidates(tdlibPath?: string): string[] {
+async function getTdjsonCandidates(tdlibPath?: string): Promise<string[]> {
   const suffix = getLibrarySuffix()
-  const candidates = [tdlibPath, process.env.TDLIB_PATH, process.env.TDJSON_PATH, getPrebuiltTdjsonPath()].filter(
+  const candidates = [tdlibPath, process.env.TDLIB_PATH, process.env.TDJSON_PATH, await getPrebuiltTdjsonPath()].filter(
     (value): value is string => Boolean(value),
   )
 
@@ -77,10 +88,11 @@ function getInstallHint(): string {
   return `${prebuiltHint} Otherwise, install TDLib and set TDLIB_PATH to the full path of your tdjson shared library.`
 }
 
-function loadTdjson(tdlibPath?: string): { libraryPath: string; symbols: TdjsonSymbols } {
+async function loadTdjson(tdlibPath?: string): Promise<{ libraryPath: string; symbols: TdjsonSymbols }> {
+  const koffi = await getKoffi()
   const errors: string[] = []
 
-  for (const candidate of getTdjsonCandidates(tdlibPath)) {
+  for (const candidate of await getTdjsonCandidates(tdlibPath)) {
     try {
       const library = koffi.load(candidate)
 
@@ -108,11 +120,15 @@ export class TdjsonBinding {
   readonly libraryPath: string
   private symbols: TdjsonSymbols
 
-  constructor(tdlibPath?: string) {
-    const loaded = loadTdjson(tdlibPath)
-    this.libraryPath = loaded.libraryPath
-    this.symbols = loaded.symbols
+  private constructor(libraryPath: string, symbols: TdjsonSymbols) {
+    this.libraryPath = libraryPath
+    this.symbols = symbols
     this.execute({ '@type': 'setLogVerbosityLevel', new_verbosity_level: 0 })
+  }
+
+  static async create(tdlibPath?: string): Promise<TdjsonBinding> {
+    const loaded = await loadTdjson(tdlibPath)
+    return new TdjsonBinding(loaded.libraryPath, loaded.symbols)
   }
 
   createClientId(): number {

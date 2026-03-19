@@ -44,12 +44,18 @@ export class TelegramTdlibClient {
   private currentAuthorizationState: TdAuthorizationState | null = null
   private requestSeq = 0
 
-  constructor(
+  private constructor(
     private account: TelegramAccount,
     private paths: TelegramAccountPaths,
+    tdjson: TdjsonBinding,
   ) {
-    this.tdjson = new TdjsonBinding(account.tdlib_path)
+    this.tdjson = tdjson
     this.clientId = this.tdjson.createClientId()
+  }
+
+  static async create(account: TelegramAccount, paths: TelegramAccountPaths): Promise<TelegramTdlibClient> {
+    const tdjson = await TdjsonBinding.create(account.tdlib_path)
+    return new TelegramTdlibClient(account, paths, tdjson)
   }
 
   async connect(): Promise<TdAuthorizationState> {
@@ -479,6 +485,7 @@ export class TelegramTdlibClient {
     while (Date.now() < deadline) {
       const event = this.tdjson.receive(Math.min(0.5, Math.max((deadline - Date.now()) / 1000, 0.05)))
       if (!event) {
+        await new Promise((resolve) => setTimeout(resolve, 0))
         continue
       }
 
@@ -506,6 +513,7 @@ export class TelegramTdlibClient {
     while (Date.now() < deadline) {
       const event = this.tdjson.receive(Math.min(0.5, Math.max((deadline - Date.now()) / 1000, 0.05)))
       if (!event) {
+        await new Promise((resolve) => setTimeout(resolve, 0))
         continue
       }
 
@@ -538,6 +546,7 @@ export class TelegramTdlibClient {
     while (Date.now() < deadline) {
       const event = this.tdjson.receive(Math.min(0.5, Math.max((deadline - Date.now()) / 1000, 0.05)))
       if (!event) {
+        await new Promise((resolve) => setTimeout(resolve, 0))
         continue
       }
 
@@ -561,6 +570,7 @@ export class TelegramTdlibClient {
     while (Date.now() < deadline) {
       const event = this.tdjson.receive(Math.min(0.25, Math.max((deadline - Date.now()) / 1000, 0.01)))
       if (!event) {
+        await new Promise((resolve) => setTimeout(resolve, 0))
         continue
       }
 
