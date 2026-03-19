@@ -334,4 +334,52 @@ describe('ChannelClient', () => {
 
     expect(getHeaders().Cookie).toBe('x-account=account-cookie; ch-session-1=session-cookie')
   })
+
+  test('searchTeamChatMessages builds correct URL with query and limit', async () => {
+    const searchResponse = {
+      hits: [{ index: 'messages-2026-03', score: 'NaN', source: { id: 'msg-1' }, highlight: {}, searchAfter: [1000, 'msg-1'] }],
+      bots: [],
+      sessions: [],
+      groups: [],
+    }
+    mockResponse(searchResponse)
+
+    const client = new ChannelClient('account-cookie', 'session-cookie')
+    const result = await client.searchTeamChatMessages('ch-1', 'hello world', { limit: 10 })
+
+    const url = new URL(fetchCalls[0].url)
+    expect(url.origin + url.pathname).toBe('https://desk-api.channel.io/desk/channels/ch-1/team-chat/message/search')
+    expect(url.searchParams.get('query')).toBe('hello world')
+    expect(url.searchParams.get('limit')).toBe('10')
+    expect(result.hits).toHaveLength(1)
+  })
+
+  test('searchUserChatMessages builds correct URL with query', async () => {
+    const searchResponse = {
+      hits: [],
+      bots: [],
+      sessions: [],
+      userChats: [],
+    }
+    mockResponse(searchResponse)
+
+    const client = new ChannelClient('account-cookie', 'session-cookie')
+    const result = await client.searchUserChatMessages('ch-1', 'test query')
+
+    const url = new URL(fetchCalls[0].url)
+    expect(url.origin + url.pathname).toBe('https://desk-api.channel.io/desk/channels/ch-1/user-chat/message/search')
+    expect(url.searchParams.get('query')).toBe('test query')
+    expect(result.hits).toHaveLength(0)
+  })
+
+  test('searchTeamChatMessages works without limit parameter', async () => {
+    mockResponse({ hits: [], bots: [], sessions: [] })
+
+    const client = new ChannelClient('account-cookie', 'session-cookie')
+    await client.searchTeamChatMessages('ch-1', 'test')
+
+    const url = new URL(fetchCalls[0].url)
+    expect(url.searchParams.get('query')).toBe('test')
+    expect(url.searchParams.has('limit')).toBe(false)
+  })
 })

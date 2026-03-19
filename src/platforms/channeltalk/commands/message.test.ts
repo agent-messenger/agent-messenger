@@ -87,6 +87,62 @@ const mockGetDirectChatMessages = mock(() =>
   ]),
 )
 
+const mockSearchTeamChatMessages = mock(() =>
+  Promise.resolve({
+    hits: [
+      {
+        index: 'messages-2026-03',
+        score: 'NaN',
+        source: {
+          id: 'msg-search-1',
+          channelId: 'ws-1',
+          chatType: 'group',
+          chatId: 'grp-1',
+          personType: 'manager',
+          personId: 'mgr-1',
+          createdAt: 3000,
+          plainText: 'search result message',
+        },
+        highlight: {
+          plainText: { name: 'plainText', fragments: ['<em>search</em> result message'] },
+        },
+        searchAfter: [3000, 'msg-search-1'],
+      },
+    ],
+    bots: [],
+    sessions: [],
+    groups: [],
+  }),
+)
+
+const mockSearchUserChatMessages = mock(() =>
+  Promise.resolve({
+    hits: [
+      {
+        index: 'messages-2026-03',
+        score: 'NaN',
+        source: {
+          id: 'msg-search-2',
+          channelId: 'ws-1',
+          chatType: 'userChat',
+          chatId: 'chat-1',
+          personType: 'manager',
+          personId: 'mgr-1',
+          createdAt: 3001,
+          plainText: 'user chat search result',
+        },
+        highlight: {
+          plainText: { name: 'plainText', fragments: ['user chat <em>search</em> result'] },
+        },
+        searchAfter: [3001, 'msg-search-2'],
+      },
+    ],
+    bots: [],
+    sessions: [],
+    userChats: [],
+  }),
+)
+
 mock.module('./shared', () => ({
   getClient: async () => ({
     sendGroupMessage: mockSendGroupMessage,
@@ -95,11 +151,13 @@ mock.module('./shared', () => ({
     getGroupMessages: mockGetGroupMessages,
     getUserChatMessages: mockGetUserChatMessages,
     getDirectChatMessages: mockGetDirectChatMessages,
+    searchTeamChatMessages: mockSearchTeamChatMessages,
+    searchUserChatMessages: mockSearchUserChatMessages,
   }),
   getCurrentWorkspaceId: async () => 'ws-1',
 }))
 
-import { getAction, listAction, sendAction } from './message'
+import { getAction, listAction, searchAction, sendAction } from './message'
 
 describe('message commands', () => {
   beforeEach(() => {
@@ -189,6 +247,62 @@ describe('message commands', () => {
           blocks: [{ type: 'text', content: [{ type: 'plain', attrs: { text: 'Direct chat message' } }] }],
         },
       ]),
+    )
+    mockSearchTeamChatMessages.mockReset()
+    mockSearchTeamChatMessages.mockImplementation(() =>
+      Promise.resolve({
+        hits: [
+          {
+            index: 'messages-2026-03',
+            score: 'NaN',
+            source: {
+              id: 'msg-search-1',
+              channelId: 'ws-1',
+              chatType: 'group',
+              chatId: 'grp-1',
+              personType: 'manager',
+              personId: 'mgr-1',
+              createdAt: 3000,
+              plainText: 'search result message',
+            },
+            highlight: {
+              plainText: { name: 'plainText', fragments: ['<em>search</em> result message'] },
+            },
+            searchAfter: [3000, 'msg-search-1'],
+          },
+        ],
+        bots: [],
+        sessions: [],
+        groups: [],
+      }),
+    )
+    mockSearchUserChatMessages.mockReset()
+    mockSearchUserChatMessages.mockImplementation(() =>
+      Promise.resolve({
+        hits: [
+          {
+            index: 'messages-2026-03',
+            score: 'NaN',
+            source: {
+              id: 'msg-search-2',
+              channelId: 'ws-1',
+              chatType: 'userChat',
+              chatId: 'chat-1',
+              personType: 'manager',
+              personId: 'mgr-1',
+              createdAt: 3001,
+              plainText: 'user chat search result',
+            },
+            highlight: {
+              plainText: { name: 'plainText', fragments: ['user chat <em>search</em> result'] },
+            },
+            searchAfter: [3001, 'msg-search-2'],
+          },
+        ],
+        bots: [],
+        sessions: [],
+        userChats: [],
+      }),
     )
   })
 
@@ -289,5 +403,144 @@ describe('message commands', () => {
 
     expect(result.error).toBeDefined()
     expect(result.error).toContain('not found')
+  })
+
+  test('searchAction searches team chat messages by default', async () => {
+    const result = await searchAction('search')
+
+    expect(mockSearchTeamChatMessages).toHaveBeenCalledWith('ws-1', 'search', { limit: undefined })
+    expect(result.results).toEqual([
+      {
+        id: 'msg-search-1',
+        channel_id: 'ws-1',
+        chat_type: 'group',
+        chat_id: 'grp-1',
+        person_type: 'manager',
+        person_id: 'mgr-1',
+        created_at: 3000,
+        plain_text: 'search result message',
+        highlight: ['<em>search</em> result message'],
+      },
+    ])
+  })
+
+  test('searchAction searches user chat messages with scope option', async () => {
+    const result = await searchAction('search', { scope: 'user-chat' })
+
+    expect(mockSearchUserChatMessages).toHaveBeenCalledWith('ws-1', 'search', { limit: undefined })
+    expect(result.results).toEqual([
+      {
+        id: 'msg-search-2',
+        channel_id: 'ws-1',
+        chat_type: 'userChat',
+        chat_id: 'chat-1',
+        person_type: 'manager',
+        person_id: 'mgr-1',
+        created_at: 3001,
+        plain_text: 'user chat search result',
+        highlight: ['user chat <em>search</em> result'],
+      },
+    ])
+  })
+
+  test('searchAction passes limit parameter', async () => {
+    await searchAction('test', { limit: '5' })
+
+    expect(mockSearchTeamChatMessages).toHaveBeenCalledWith('ws-1', 'test', { limit: 5 })
+  })
+
+  test('searchAction returns error on failure', async () => {
+    mockSearchTeamChatMessages.mockImplementation(() => Promise.reject(new Error('Network error')))
+
+    const result = await searchAction('test')
+
+    expect(result.error).toBe('Network error')
+    expect(result.results).toBeUndefined()
+  })
+
+  test('searchAction returns error for invalid scope', async () => {
+    const result = await searchAction('test', { scope: 'invalid' })
+
+    expect(result.error).toContain('Invalid --scope value')
+    expect(result.error).toContain('invalid')
+    expect(result.results).toBeUndefined()
+  })
+
+  test('searchAction handles zero hits', async () => {
+    mockSearchTeamChatMessages.mockImplementation(() =>
+      Promise.resolve({ hits: [], bots: [], sessions: [], groups: [] }),
+    )
+
+    const result = await searchAction('no-match')
+
+    expect(result.results).toEqual([])
+    expect(result.error).toBeUndefined()
+  })
+
+  test('searchAction handles missing highlight plainText key', async () => {
+    mockSearchTeamChatMessages.mockImplementation(() =>
+      Promise.resolve({
+        hits: [
+          {
+            index: 'messages-2026-03',
+            score: 'NaN',
+            source: {
+              id: 'msg-no-highlight',
+              channelId: 'ws-1',
+              chatType: 'group',
+              chatId: 'grp-1',
+              personType: 'manager',
+              personId: 'mgr-1',
+              createdAt: 4000,
+              plainText: 'some message',
+            },
+            highlight: {},
+            searchAfter: [4000, 'msg-no-highlight'],
+          },
+        ],
+        bots: [],
+        sessions: [],
+        groups: [],
+      }),
+    )
+
+    const result = await searchAction('test')
+
+    expect(result.results?.[0]?.highlight).toBeUndefined()
+    expect(result.results?.[0]?.plain_text).toBe('some message')
+  })
+
+  test('searchAction uses extractText for block-only messages', async () => {
+    mockSearchTeamChatMessages.mockImplementation(() =>
+      Promise.resolve({
+        hits: [
+          {
+            index: 'messages-2026-03',
+            score: 'NaN',
+            source: {
+              id: 'msg-blocks-only',
+              channelId: 'ws-1',
+              chatType: 'group',
+              chatId: 'grp-1',
+              personType: 'manager',
+              personId: 'mgr-1',
+              createdAt: 5000,
+              blocks: [{ type: 'text', value: 'block content' }],
+            },
+            highlight: {
+              plainText: { name: 'plainText', fragments: ['<em>block</em> content'] },
+            },
+            searchAfter: [5000, 'msg-blocks-only'],
+          },
+        ],
+        bots: [],
+        sessions: [],
+        groups: [],
+      }),
+    )
+
+    const result = await searchAction('block')
+
+    expect(result.results?.[0]?.plain_text).toBe('block content')
   })
 })
