@@ -18,7 +18,6 @@ interface AuthOptions {
   emailCode?: string
   firstName?: string
   lastName?: string
-  botToken?: string
   tdlibPath?: string
   pretty?: boolean
 }
@@ -96,7 +95,7 @@ async function promptHidden(message: string): Promise<string | undefined> {
   }
 }
 
-function shouldUseInteractivePrompts(options: AuthOptions): boolean {
+function shouldUseInteractivePrompts(): boolean {
   return isInteractiveSession()
 }
 
@@ -127,8 +126,8 @@ async function fillMissingBootstrappingInputs(
     resolved.apiHash = await promptHidden('Telegram API hash')
   }
 
-  if (!existing && !resolved.phone && !resolved.botToken) {
-    resolved.phone = await promptText('Telegram phone number in international format', '+8210')
+  if (!existing && !resolved.phone) {
+    resolved.phone = await promptText('Telegram phone number in international format (e.g. +14155551234)')
   }
 
   return resolved
@@ -139,7 +138,7 @@ async function promptNextLoginInput(result: { next_action?: string }, options: A
 
   switch (result.next_action) {
     case 'provide_phone_number':
-      resolved.phone = await promptText('Telegram phone number in international format', resolved.phone ?? '+8210')
+      resolved.phone = await promptText('Telegram phone number in international format', resolved.phone)
       break
     case 'provide_code':
       resolved.code = await promptText('Telegram login code')
@@ -171,7 +170,7 @@ async function buildAccount(manager: TelegramCredentialManager, options: AuthOpt
     !options.apiId &&
     !options.apiHash &&
     !options.phone &&
-    (options.code || options.password || options.email || options.emailCode || options.firstName || options.botToken)
+    (options.code || options.password || options.email || options.emailCode || options.firstName)
       ? await manager.getAccount()
       : null)
 
@@ -235,7 +234,7 @@ function registerSignalCleanup(client: TelegramTdlibClient): () => void {
 export async function loginAction(options: AuthOptions): Promise<void> {
   const manager = new TelegramCredentialManager()
   const existing = options.account ? await manager.getAccount(options.account) : await manager.getAccount()
-  const interactive = shouldUseInteractivePrompts(options)
+  const interactive = shouldUseInteractivePrompts()
   let resolvedOptions = interactive
     ? await fillMissingBootstrappingInputs(options, existing)
     : options
@@ -256,7 +255,6 @@ export async function loginAction(options: AuthOptions): Promise<void> {
       email_code: resolvedOptions.emailCode,
       first_name: resolvedOptions.firstName,
       last_name: resolvedOptions.lastName,
-      bot_token: resolvedOptions.botToken,
     })
 
     while (!result.authenticated && interactive && result.next_action) {
@@ -269,7 +267,6 @@ export async function loginAction(options: AuthOptions): Promise<void> {
         email_code: resolvedOptions.emailCode,
         first_name: resolvedOptions.firstName,
         last_name: resolvedOptions.lastName,
-        bot_token: resolvedOptions.botToken,
       })
     }
 
@@ -457,7 +454,6 @@ export const authCommand = new Command('auth')
       .option('--email-code <code>', 'Email authentication code')
       .option('--first-name <name>', 'First name for registration')
       .option('--last-name <name>', 'Last name for registration')
-      .option('--bot-token <token>', 'Bot token for bot logins')
       .option('--tdlib-path <path>', 'Full path to libtdjson shared library')
       .option('--pretty', 'Pretty print JSON output')
       .action(loginAction),

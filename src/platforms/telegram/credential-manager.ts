@@ -30,6 +30,7 @@ export class TelegramCredentialManager {
 
   async saveConfig(config: TelegramConfig): Promise<void> {
     await mkdir(this.configDir, { recursive: true })
+    // TODO: Windows does not honor mode 0o600 — consider platform-specific credential storage
     await writeFile(this.credentialsPath, JSON.stringify(config, null, 2), { mode: 0o600 })
   }
 

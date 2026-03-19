@@ -32,7 +32,6 @@ interface LoginInput {
   email_code?: string
   first_name?: string
   last_name?: string
-  bot_token?: string
 }
 
 interface RequestOptions {
@@ -274,14 +273,6 @@ export class TelegramTdlibClient {
   private async submitAuthenticationInput(state: any, input: LoginInput): Promise<boolean> {
     switch (state?.['@type']) {
       case 'authorizationStateWaitPhoneNumber': {
-        if (input.bot_token) {
-          await this.call({
-            '@type': 'checkAuthenticationBotToken',
-            token: input.bot_token,
-          })
-          return true
-        }
-
         const phoneNumber = input.phone_number ?? this.account.phone_number
         if (!phoneNumber) {
           return false
