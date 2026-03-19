@@ -1,10 +1,10 @@
 ---
 title: What is Agent Messenger?
-description: Give your AI agent the power to read and send messages across Slack, Discord, Teams and more
+description: Give your AI agent the power to read and send messages across Slack, Discord, Teams, Channel Talk and more
 icon: Info
 ---
 
-Agent Messenger is a unified, agent-friendly CLI for messaging platforms. Zero-config credential extraction from your desktop apps—no OAuth flows, no API keys, no admin approval needed. Works out of the box.
+Agent Messenger is a unified, agent-friendly CLI for messaging platforms. Zero-config credential extraction from your desktop apps—no OAuth flows, no API keys, no admin approval needed. Works out of the box. Supports Slack, Discord, Teams, and Channel Talk (beta).
 
 ## Why Agent Messenger?
 
@@ -12,14 +12,14 @@ Messaging platforms only offer Bot tokens for API access—your AI agent can nev
 
 - **Act as yourself, not a bot** — Extracted user tokens let your agent operate on your behalf
 - **No API keys needed** — Automatically extracts credentials from your installed desktop apps
-- **One interface, multiple platforms** — Learn once, use everywhere (Slack, Discord, Teams)
+- **One interface, multiple platforms** — Learn once, use everywhere (Slack, Discord, Teams, Channel Talk)
 - **AI-agent friendly** — JSON output by default, perfect for LLM tool use
 - **Human friendly too** — Add `--pretty` for readable output
 - **Token efficient** — CLI, not MCP. Load only what you need
 
 ## How It Works
 
-Agent Messenger reads authentication tokens directly from your installed desktop apps (Slack, Discord, Teams). These apps store session tokens locally, and Agent Messenger safely extracts them.
+Agent Messenger reads authentication tokens directly from your installed desktop apps (Slack, Discord, Teams, Channel Talk). These apps store session tokens locally, and Agent Messenger safely extracts them.
 
 ```bash
 # Extract credentials from Slack desktop app
@@ -36,11 +36,11 @@ No app creation. No admin approval. No waiting.
 | Feature             | Description                                                                                                                       |
 | ------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
 | **Auto-extraction** | Pulls tokens from desktop apps automatically                                                                                      |
-| **Multi-platform**  | Slack, Discord, and Microsoft Teams                                                                                               |
+| **Multi-platform**  | Slack, Discord, Microsoft Teams, and Channel Talk (beta)                                                                          |
 | **Multi-workspace** | Switch between workspaces/servers easily                                                                                          |
 | **JSON output**     | Machine-readable by default, `--pretty` for humans                                                                                |
 | **Comprehensive**   | Messages, channels, users, reactions, files                                                                                       |
-| **Bot support**     | [`agent-slackbot`](/docs/integrations/slackbot) and [`agent-discordbot`](/docs/integrations/discordbot) for server-side and CI/CD |
+| **Bot support**     | [`agent-slackbot`](/docs/integrations/slackbot), [`agent-discordbot`](/docs/integrations/discordbot), and [`agent-channeltalkbot`](/docs/integrations/channeltalkbot) for server-side and CI/CD |
 
 ## Why Not MCP?
 
@@ -81,7 +81,7 @@ OAuth is better when you need:
 - **Multi-user applications** - Many users authenticating separately
 - **Granular permissions** - Fine-tuned access control
 
-For these use cases, Agent Messenger also supports bot tokens via [`agent-slackbot`](/docs/integrations/slackbot) and [`agent-discordbot`](/docs/integrations/discordbot).
+For these use cases, Agent Messenger also supports bot tokens via [`agent-slackbot`](/docs/integrations/slackbot), [`agent-discordbot`](/docs/integrations/discordbot), and [`agent-channeltalkbot`](/docs/integrations/channeltalkbot).
 
 ## Design Principles
 
@@ -113,6 +113,8 @@ Tokens stay on your machine. Nothing is sent to external servers. Your credentia
 - [Discord](/docs/integrations/discord) - Full Discord command reference
 - [Discord Bot](/docs/integrations/discordbot) - Bot token integration for server-side and CI/CD
 - [Teams](/docs/integrations/teams) - Full Teams command reference
+- [Channel Talk](/docs/integrations/channeltalk) - Full Channel Talk command reference (beta)
+- [Channel Talk Bot](/docs/integrations/channeltalkbot) - Bot API integration for Channel Talk (beta)
 
 ## Inspiration
 

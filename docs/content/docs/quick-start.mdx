@@ -23,13 +23,15 @@ yarn global add agent-messenger
 bun add -g agent-messenger
 ```
 
-This installs five CLI tools:
+This installs seven CLI tools:
 
 - `agent-slack` — Slack CLI (user token, zero-config)
 - `agent-slackbot` — Slack Bot CLI (bot token, for server-side/CI/CD)
 - `agent-discord` — Discord CLI (user token, zero-config)
 - `agent-discordbot` — Discord Bot CLI (bot token, for server-side/CI/CD)
 - `agent-teams` — Microsoft Teams CLI
+- `agent-channeltalk` — Channel Talk CLI (beta, zero-config, extracted cookies)
+- `agent-channeltalkbot` — Channel Talk Bot CLI (beta, API credentials, for server-side/CI/CD)
 
 ## Extract Credentials
 
@@ -44,6 +46,9 @@ agent-discord auth extract
 
 # For Teams
 agent-teams auth extract
+
+# For Channel Talk (beta) — auto-extracted from desktop app
+agent-channeltalk auth extract
 ```
 
 That's it. No OAuth flows. No API tokens. No configuration files.
@@ -105,4 +110,6 @@ agent-slack workspace current
 - [Discord Reference](/docs/integrations/discord) - Full command reference
 - [Discord Bot Reference](/docs/integrations/discordbot) - Bot token for server-side/CI/CD
 - [Teams Reference](/docs/integrations/teams) - Full command reference
+- [Channel Talk Reference](/docs/integrations/channeltalk) - Full command reference (beta)
+- [Channel Talk Bot Reference](/docs/integrations/channeltalkbot) - Bot API for Channel Talk (beta)
 - [Agent Skills](/docs/agent-skills) - Integrate with AI coding agents
