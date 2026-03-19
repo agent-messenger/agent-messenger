@@ -11,8 +11,8 @@ export async function runCLI(platform: string, args: string[]): Promise<CLIResul
     slackbot: 'agent-slackbot',
     discordbot: 'agent-discordbot',
     teams: 'agent-teams',
-    channelbot: 'agent-channelbot',
-    channel: 'agent-channel',
+    channeltalkbot: 'agent-channeltalkbot',
+    channeltalk: 'agent-channeltalk',
   }
   const command = commandMap[platform] || platform
 

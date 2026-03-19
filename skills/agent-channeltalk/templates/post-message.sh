@@ -46,7 +46,7 @@ send_message() {
   while [ $attempt -le $max_attempts ]; do
     echo -e "${YELLOW}Attempt $attempt/$max_attempts...${NC}"
 
-    RESULT=$(agent-channel message send "$chat_type" "$chat_id" "$message" 2>&1) || true
+    RESULT=$(agent-channeltalk message send "$chat_type" "$chat_id" "$message" 2>&1) || true
     MSG_ID=$(echo "$RESULT" | jq -r '.id // ""' 2>/dev/null) || MSG_ID=""
 
     if [ -n "$MSG_ID" ] && [ "$MSG_ID" != "null" ]; then
@@ -65,7 +65,7 @@ send_message() {
       *"No credentials"*)
         echo ""
         echo "Make sure Channel Talk desktop app is installed and you're logged in."
-        echo "Then run: agent-channel auth extract"
+        echo "Then run: agent-channeltalk auth extract"
         return 1
         ;;
       *"not found"*)
@@ -88,8 +88,8 @@ send_message() {
   return 1
 }
 
-if ! command -v agent-channel &> /dev/null; then
-  echo -e "${RED}Error: agent-channel not found${NC}"
+if ! command -v agent-channeltalk &> /dev/null; then
+  echo -e "${RED}Error: agent-channeltalk not found${NC}"
   echo ""
   echo "Install it with:"
   echo "  npm install -g agent-messenger"
@@ -103,14 +103,14 @@ if ! command -v jq &> /dev/null; then
 fi
 
 echo "Checking authentication..."
-AUTH_STATUS=$(agent-channel auth status 2>&1) || true
+AUTH_STATUS=$(agent-channeltalk auth status 2>&1) || true
 VALID=$(echo "$AUTH_STATUS" | jq -r '.valid // false' 2>/dev/null) || VALID="false"
 
 if [ "$VALID" != "true" ]; then
   echo -e "${RED}Not authenticated!${NC}"
   echo ""
   echo "Make sure Channel Talk desktop app is installed and you're logged in."
-  echo "Then run: agent-channel auth extract"
+  echo "Then run: agent-channeltalk auth extract"
   exit 1
 fi
 

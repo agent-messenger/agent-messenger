@@ -22,7 +22,7 @@ describe('Channel E2E Tests', () => {
     testGroupId = group.groupId
     testGroupName = group.groupName
 
-    const statusResult = await runCLI('channel', ['auth', 'status'])
+    const statusResult = await runCLI('channeltalk', ['auth', 'status'])
     const status = parseJSON<{ workspace_id: string; workspace_name: string }>(statusResult.stdout)
     workspaceId = status?.workspace_id || ''
     workspaceName = status?.workspace_name || ''
@@ -38,7 +38,7 @@ describe('Channel E2E Tests', () => {
     test('auth status returns valid workspace info', async () => {
       if (!channelAvailable) return
 
-      const result = await runCLI('channel', ['auth', 'status'])
+      const result = await runCLI('channeltalk', ['auth', 'status'])
       expect(result.exitCode).toBe(0)
 
       const data = parseJSON<{ valid: boolean; workspace_id: string; workspace_name: string }>(result.stdout)
@@ -52,7 +52,7 @@ describe('Channel E2E Tests', () => {
     test('auth list shows workspaces', async () => {
       if (!channelAvailable) return
 
-      const result = await runCLI('channel', ['auth', 'list'])
+      const result = await runCLI('channeltalk', ['auth', 'list'])
       expect(result.exitCode).toBe(0)
 
       const data = parseJSON<Array<{ workspace_id: string }>>(result.stdout)
@@ -65,7 +65,7 @@ describe('Channel E2E Tests', () => {
     test('group list returns groups array', async () => {
       if (!channelAvailable) return
 
-      const result = await runCLI('channel', ['group', 'list', '--limit', '10'])
+      const result = await runCLI('channeltalk', ['group', 'list', '--limit', '10'])
       expect(result.exitCode).toBe(0)
 
       const data = parseJSON<{ groups: Array<{ id: string; name: string }> }>(result.stdout)
@@ -76,7 +76,7 @@ describe('Channel E2E Tests', () => {
     test('group get returns group details', async () => {
       if (!channelAvailable) return
 
-      const result = await runCLI('channel', ['group', 'get', testGroupId])
+      const result = await runCLI('channeltalk', ['group', 'get', testGroupId])
       expect(result.exitCode).toBe(0)
 
       const data = parseJSON<{ id: string; name: string }>(result.stdout)
@@ -87,7 +87,7 @@ describe('Channel E2E Tests', () => {
     test('group messages returns messages array', async () => {
       if (!channelAvailable) return
 
-      const result = await runCLI('channel', ['group', 'messages', testGroupId, '--limit', '5'])
+      const result = await runCLI('channeltalk', ['group', 'messages', testGroupId, '--limit', '5'])
       expect(result.exitCode).toBe(0)
 
       const data = parseJSON<{ messages: Array<{ id: string }> }>(result.stdout)
@@ -100,7 +100,7 @@ describe('Channel E2E Tests', () => {
       if (!channelAvailable) return
 
       const testId = generateTestId()
-      const result = await runCLI('channel', ['message', 'send', 'group', testGroupId, `e2e ${testId}`])
+      const result = await runCLI('channeltalk', ['message', 'send', 'group', testGroupId, `e2e ${testId}`])
       expect(result.exitCode).toBe(0)
 
       const data = parseJSON<{ id: string; chat_id: string; plain_text: string }>(result.stdout)
@@ -112,7 +112,7 @@ describe('Channel E2E Tests', () => {
     test('message list returns messages from group', async () => {
       if (!channelAvailable) return
 
-      const result = await runCLI('channel', ['message', 'list', 'group', testGroupId, '--limit', '5'])
+      const result = await runCLI('channeltalk', ['message', 'list', 'group', testGroupId, '--limit', '5'])
       expect(result.exitCode).toBe(0)
 
       const data = parseJSON<{ messages: Array<{ id: string }> }>(result.stdout)
@@ -123,7 +123,7 @@ describe('Channel E2E Tests', () => {
       if (!channelAvailable) return
 
       const testId = generateTestId()
-      const sendResult = await runCLI('channel', ['message', 'send', 'group', testGroupId, `get-test ${testId}`])
+      const sendResult = await runCLI('channeltalk', ['message', 'send', 'group', testGroupId, `get-test ${testId}`])
       expect(sendResult.exitCode).toBe(0)
 
       const sent = parseJSON<{ id: string }>(sendResult.stdout)
@@ -131,7 +131,7 @@ describe('Channel E2E Tests', () => {
 
       await waitForRateLimit()
 
-      const result = await runCLI('channel', ['message', 'get', 'group', testGroupId, sent!.id])
+      const result = await runCLI('channeltalk', ['message', 'get', 'group', testGroupId, sent!.id])
       expect(result.exitCode).toBe(0)
 
       const data = parseJSON<{ id: string; plain_text: string }>(result.stdout)
@@ -144,7 +144,7 @@ describe('Channel E2E Tests', () => {
     test('chat list returns user chats array', async () => {
       if (!channelAvailable) return
 
-      const result = await runCLI('channel', ['chat', 'list', '--limit', '5'])
+      const result = await runCLI('channeltalk', ['chat', 'list', '--limit', '5'])
       expect(result.exitCode).toBe(0)
 
       const data = parseJSON<{ chats: Array<{ id: string }> }>(result.stdout)
@@ -156,7 +156,7 @@ describe('Channel E2E Tests', () => {
     test('manager list returns managers array', async () => {
       if (!channelAvailable) return
 
-      const result = await runCLI('channel', ['manager', 'list', '--limit', '10'])
+      const result = await runCLI('channeltalk', ['manager', 'list', '--limit', '10'])
       expect(result.exitCode).toBe(0)
 
       const data = parseJSON<{ managers: Array<{ id: string; name: string }> }>(result.stdout)
@@ -169,7 +169,7 @@ describe('Channel E2E Tests', () => {
     test('bot list returns bots array', async () => {
       if (!channelAvailable) return
 
-      const result = await runCLI('channel', ['bot', 'list', '--limit', '10'])
+      const result = await runCLI('channeltalk', ['bot', 'list', '--limit', '10'])
       expect(result.exitCode).toBe(0)
 
       const data = parseJSON<{ bots: Array<{ id: string; name: string }> }>(result.stdout)
@@ -181,7 +181,7 @@ describe('Channel E2E Tests', () => {
     test('snapshot returns workspace overview', async () => {
       if (!channelAvailable) return
 
-      const result = await runCLI('channel', ['snapshot', '--limit', '2'])
+      const result = await runCLI('channeltalk', ['snapshot', '--limit', '2'])
       expect(result.exitCode).toBe(0)
 
       const data = parseJSON<{

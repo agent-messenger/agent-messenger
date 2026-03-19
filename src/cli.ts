@@ -36,12 +36,12 @@ program.command('discordbot', 'Interact with Discord using bot tokens', {
   executableFile: join(__dirname, 'platforms', 'discordbot', `cli${ext}`),
 })
 
-program.command('channelbot', 'Interact with Channel Talk using API credentials', {
-  executableFile: join(__dirname, 'platforms', 'channelbot', `cli${ext}`),
+program.command('channeltalkbot', 'Interact with Channel Talk using API credentials', {
+  executableFile: join(__dirname, 'platforms', 'channeltalkbot', `cli${ext}`),
 })
 
-program.command('channel', 'Interact with Channel Talk', {
-  executableFile: join(__dirname, 'platforms', 'channel', `cli${ext}`),
+program.command('channeltalk', 'Interact with Channel Talk', {
+  executableFile: join(__dirname, 'platforms', 'channeltalk', `cli${ext}`),
 })
 
 program.parse(process.argv)

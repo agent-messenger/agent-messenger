@@ -2,7 +2,7 @@
 
 ## Overview
 
-This guide covers typical workflows for AI agents interacting with Channel Talk using agent-channelbot.
+This guide covers typical workflows for AI agents interacting with Channel Talk using agent-channeltalkbot.
 
 ## Pattern 1: Send a Message to a UserChat
 
@@ -13,7 +13,7 @@ This guide covers typical workflows for AI agents interacting with Channel Talk 
 
 CHAT_ID="uc_abc123"
 
-RESULT=$(agent-channelbot message send "$CHAT_ID" "Thanks for reaching out! Let me look into this.")
+RESULT=$(agent-channeltalkbot message send "$CHAT_ID" "Thanks for reaching out! Let me look into this.")
 MSG_ID=$(echo "$RESULT" | jq -r '.id // ""')
 
 if [ -n "$MSG_ID" ] && [ "$MSG_ID" != "null" ]; then
@@ -36,7 +36,7 @@ fi
 # Groups can be referenced by @name
 GROUP="@support"
 
-RESULT=$(agent-channelbot message send "$GROUP" "New deployment completed: v2.1.0")
+RESULT=$(agent-channeltalkbot message send "$GROUP" "New deployment completed: v2.1.0")
 MSG_ID=$(echo "$RESULT" | jq -r '.id // ""')
 
 if [ -n "$MSG_ID" ] && [ "$MSG_ID" != "null" ]; then
@@ -59,7 +59,7 @@ fi
 LAST_CHAT_ID=""
 
 while true; do
-  CHATS=$(agent-channelbot chat list --state opened --limit 1)
+  CHATS=$(agent-channeltalkbot chat list --state opened --limit 1)
   LATEST_ID=$(echo "$CHATS" | jq -r '.chats[0].id // ""')
 
   if [ -z "$LAST_CHAT_ID" ]; then
@@ -70,7 +70,7 @@ while true; do
     echo "New chat opened: $CHAT_NAME ($LATEST_ID)"
 
     # Auto-respond or notify
-    agent-channelbot message send "$LATEST_ID" "Thanks for contacting us! A team member will be with you shortly."
+    agent-channeltalkbot message send "$LATEST_ID" "Thanks for contacting us! A team member will be with you shortly."
     LAST_CHAT_ID="$LATEST_ID"
   fi
 
@@ -90,10 +90,10 @@ done
 CHAT_ID="uc_abc123"
 
 # Send a closing message
-agent-channelbot message send "$CHAT_ID" "This issue has been resolved. Feel free to reach out if you need anything else!" --bot "Support Bot"
+agent-channeltalkbot message send "$CHAT_ID" "This issue has been resolved. Feel free to reach out if you need anything else!" --bot "Support Bot"
 
 # Close the chat (requires bot name)
-RESULT=$(agent-channelbot chat close "$CHAT_ID" --bot "Support Bot")
+RESULT=$(agent-channeltalkbot chat close "$CHAT_ID" --bot "Support Bot")
 SUCCESS=$(echo "$RESULT" | jq -r '.success // false')
 
 if [ "$SUCCESS" = "true" ]; then
@@ -113,7 +113,7 @@ fi
 #!/bin/bash
 
 # Full snapshot for comprehensive context
-SNAPSHOT=$(agent-channelbot snapshot)
+SNAPSHOT=$(agent-channeltalkbot snapshot)
 
 # Extract key info
 WORKSPACE=$(echo "$SNAPSHOT" | jq -r '.workspace.name')
@@ -129,8 +129,8 @@ echo "Managers: $MANAGER_COUNT"
 echo "Bots: $BOT_COUNT"
 
 # For focused views
-agent-channelbot snapshot --groups-only    # Just groups and messages
-agent-channelbot snapshot --chats-only     # Just UserChat summary
+agent-channeltalkbot snapshot --groups-only    # Just groups and messages
+agent-channeltalkbot snapshot --chats-only     # Just UserChat summary
 ```
 
 **When to use**: Start of every AI agent session, periodic context refresh, workspace audits.
@@ -145,7 +145,7 @@ agent-channelbot snapshot --chats-only     # Just UserChat summary
 KEYWORD="리뷰"
 
 # Search across all chat states (opened, closed, snoozed)
-RESULTS=$(agent-channelbot message grep "$KEYWORD") || {
+RESULTS=$(agent-channeltalkbot message grep "$KEYWORD") || {
   echo "Search failed: $(echo "$RESULTS" | jq -r '.error // "unknown error"')"
   exit 1
 }
@@ -159,10 +159,10 @@ else
 fi
 
 # Search only opened chats, limit to 10 results
-agent-channelbot message grep "$KEYWORD" --state opened --limit 10
+agent-channeltalkbot message grep "$KEYWORD" --state opened --limit 10
 
 # Scan more chats (default: 50)
-agent-channelbot message grep "$KEYWORD" --chat-limit 200
+agent-channeltalkbot message grep "$KEYWORD" --chat-limit 200
 ```
 
 **When to use**: Finding specific customer conversations, auditing responses, searching for topics across chats.
@@ -181,7 +181,7 @@ send_with_retry() {
   local attempt=1
 
   while [ $attempt -le $max_attempts ]; do
-    RESULT=$(agent-channelbot message send "$target" "$message" 2>&1)
+    RESULT=$(agent-channeltalkbot message send "$target" "$message" 2>&1)
     MSG_ID=$(echo "$RESULT" | jq -r '.id // ""')
 
     if [ -n "$MSG_ID" ] && [ "$MSG_ID" != "null" ]; then
@@ -217,7 +217,7 @@ send_with_retry "uc_abc123" "Important notification!"
 Many operations require a bot identity. Set it once to avoid repeating `--bot` on every command:
 
 ```bash
-agent-channelbot auth bot "Support Bot"
+agent-channeltalkbot auth bot "Support Bot"
 ```
 
 ### 2. Use @name for Groups
@@ -225,8 +225,8 @@ agent-channelbot auth bot "Support Bot"
 Groups can be referenced by `@name` instead of raw IDs. This is more readable and memorable:
 
 ```bash
-agent-channelbot message send @support "Hello team"
-agent-channelbot group messages @billing --limit 10
+agent-channeltalkbot message send @support "Hello team"
+agent-channeltalkbot group messages @billing --limit 10
 ```
 
 ### 3. Rate Limit Your Requests
@@ -235,7 +235,7 @@ Channel Talk enforces rate limits. Add delays between bulk operations:
 
 ```bash
 for chat_id in "${CHAT_IDS[@]}"; do
-  agent-channelbot message send "$chat_id" "$MESSAGE"
+  agent-channeltalkbot message send "$chat_id" "$MESSAGE"
   sleep 1
 done
 ```
@@ -245,7 +245,7 @@ done
 The `snapshot` command is the fastest way to understand workspace state. Use it at the start of every AI agent session:
 
 ```bash
-agent-channelbot snapshot --pretty
+agent-channeltalkbot snapshot --pretty
 ```
 
 ### 5. Handle Bot Name Requirements
@@ -254,8 +254,8 @@ Some commands fail without a bot name. Always check:
 
 ```bash
 # These require --bot or a default bot
-agent-channelbot chat close <chat-id>        # Needs bot
-agent-channelbot message send <target> <text> # Uses bot if set
+agent-channeltalkbot chat close <chat-id>        # Needs bot
+agent-channeltalkbot message send <target> <text> # Uses bot if set
 ```
 
 ## See Also

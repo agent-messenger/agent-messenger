@@ -27,7 +27,7 @@ function isAuthCommand(command: CommandType): boolean {
 const program = new Command()
 
 program
-  .name('agent-channel')
+  .name('agent-channeltalk')
   .description('CLI tool for Channel Talk using extracted desktop app credentials')
   .version(pkg.version)
   .option('--pretty', 'Pretty-print JSON output')

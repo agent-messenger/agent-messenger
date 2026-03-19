@@ -2,7 +2,7 @@
 
 ## Overview
 
-agent-channelbot uses Access Key + Access Secret pairs from Channel Talk's developer settings. These credentials are tied to a specific workspace (called "Channel" in Channel Talk's API).
+agent-channeltalkbot uses Access Key + Access Secret pairs from Channel Talk's developer settings. These credentials are tied to a specific workspace (called "Channel" in Channel Talk's API).
 
 ## Getting API Credentials
 
@@ -16,7 +16,7 @@ agent-channelbot uses Access Key + Access Secret pairs from Channel Talk's devel
 ### Setting Credentials
 
 ```bash
-agent-channelbot auth set your-access-key your-access-secret
+agent-channeltalkbot auth set your-access-key your-access-secret
 ```
 
 This command:
@@ -65,20 +65,20 @@ Store and switch between multiple workspace credentials:
 
 ```bash
 # Add workspaces
-agent-channelbot auth set acme-key acme-secret
-agent-channelbot auth set beta-key beta-secret
+agent-channeltalkbot auth set acme-key acme-secret
+agent-channeltalkbot auth set beta-key beta-secret
 
 # List all stored workspaces
-agent-channelbot auth list
+agent-channeltalkbot auth list
 
 # Switch active workspace
-agent-channelbot auth use abc123
+agent-channeltalkbot auth use abc123
 
 # Use a specific workspace for one command
-agent-channelbot snapshot --workspace def456
+agent-channeltalkbot snapshot --workspace def456
 
 # Remove a workspace
-agent-channelbot auth remove abc123
+agent-channeltalkbot auth remove abc123
 ```
 
 ## Default Bot Name
@@ -87,11 +87,11 @@ Some operations require a bot identity (sending messages, closing chats). Set a 
 
 ```bash
 # Set default bot name
-agent-channelbot auth bot "Support Bot"
+agent-channeltalkbot auth bot "Support Bot"
 
 # Now these work without --bot
-agent-channelbot message send abc123-chat-id "Hello!"
-agent-channelbot chat close abc123-chat-id
+agent-channeltalkbot message send abc123-chat-id "Hello!"
+agent-channeltalkbot chat close abc123-chat-id
 ```
 
 The bot must exist in your workspace. Use `bot list` to see available bots, or create one with `bot create`.
@@ -101,7 +101,7 @@ The bot must exist in your workspace. Use `bot list` to see available bots, or c
 Check current authentication state:
 
 ```bash
-agent-channelbot auth status
+agent-channeltalkbot auth status
 ```
 
 Output when authenticated:
@@ -128,7 +128,7 @@ Output when not authenticated:
 Remove all stored credentials:
 
 ```bash
-agent-channelbot auth clear
+agent-channeltalkbot auth clear
 ```
 
 ## Credential Lifecycle
@@ -145,10 +145,10 @@ Access credentials can be invalidated when:
 
 ```bash
 # Set new credentials
-agent-channelbot auth set new-access-key new-access-secret
+agent-channeltalkbot auth set new-access-key new-access-secret
 
 # Verify
-agent-channelbot auth status
+agent-channeltalkbot auth status
 ```
 
 ## Environment Variables
@@ -166,14 +166,14 @@ Environment variables take precedence over stored credentials when no specific w
 
 No credentials are configured:
 
-1. Run `agent-channelbot auth set <access-key> <access-secret>`
-2. Verify with `agent-channelbot auth status`
+1. Run `agent-channeltalkbot auth set <access-key> <access-secret>`
+2. Verify with `agent-channeltalkbot auth status`
 
 ### "Workspace not found" Error
 
 The specified workspace ID doesn't match any stored credentials:
 
-1. Run `agent-channelbot auth list` to see available workspaces
+1. Run `agent-channeltalkbot auth list` to see available workspaces
 2. Use the correct workspace ID with `auth use <workspace-id>`
 
 ### Invalid credentials after regeneration
@@ -182,4 +182,4 @@ If someone regenerated the credentials in Channel Talk settings:
 
 1. Go to Channel Talk > **Settings > Developers > Open API**
 2. Copy the new Access Key and Access Secret
-3. Run `agent-channelbot auth set <new-key> <new-secret>`
+3. Run `agent-channeltalkbot auth set <new-key> <new-secret>`

@@ -27,8 +27,8 @@ CYAN='\033[0;36m'
 BOLD='\033[1m'
 NC='\033[0m'
 
-if ! command -v agent-channel &> /dev/null; then
-  echo -e "${RED}Error: agent-channel not found${NC}" >&2
+if ! command -v agent-channeltalk &> /dev/null; then
+  echo -e "${RED}Error: agent-channeltalk not found${NC}" >&2
   echo "Install: npm install -g agent-messenger" >&2
   exit 1
 fi
@@ -39,13 +39,13 @@ if ! command -v jq &> /dev/null; then
   exit 1
 fi
 
-AUTH_STATUS=$(agent-channel auth status 2>&1) || true
+AUTH_STATUS=$(agent-channeltalk auth status 2>&1) || true
 VALID=$(echo "$AUTH_STATUS" | jq -r '.valid // false')
 
 if [ "$VALID" != "true" ]; then
   echo -e "${RED}Not authenticated!${NC}" >&2
   echo "Make sure Channel Talk desktop app is installed and you're logged in." >&2
-  echo "Then run: agent-channel auth extract" >&2
+  echo "Then run: agent-channeltalk auth extract" >&2
   exit 1
 fi
 
@@ -54,7 +54,7 @@ WORKSPACE_ID=$(echo "$AUTH_STATUS" | jq -r '.workspace_id // "Unknown"')
 
 echo -e "${YELLOW}Fetching workspace data...${NC}" >&2
 
-SNAPSHOT=$(agent-channel snapshot 2>&1) || true
+SNAPSHOT=$(agent-channeltalk snapshot 2>&1) || true
 SNAPSHOT_ERROR=$(echo "$SNAPSHOT" | jq -r '.error // ""' 2>/dev/null) || SNAPSHOT_ERROR="Failed to fetch snapshot"
 if [ -n "$SNAPSHOT_ERROR" ]; then
   echo -e "${RED}Snapshot failed: $SNAPSHOT_ERROR${NC}" >&2
@@ -112,11 +112,11 @@ FIRST_GROUP_ID=$(echo "$SNAPSHOT" | jq -r '.groups[0].id // ""' 2>/dev/null)
 FIRST_GROUP_NAME=$(echo "$SNAPSHOT" | jq -r '.groups[0].name // ""' 2>/dev/null)
 if [ -n "$FIRST_GROUP_ID" ]; then
   echo -e "  ${GREEN}# Send message to $FIRST_GROUP_NAME${NC}"
-  echo -e "  agent-channel message send group $FIRST_GROUP_ID \"Hello!\""
+  echo -e "  agent-channeltalk message send group $FIRST_GROUP_ID \"Hello!\""
   echo ""
 fi
 echo -e "  ${GREEN}# List open chats${NC}"
-echo -e "  agent-channel chat list --state opened --pretty"
+echo -e "  agent-channeltalk chat list --state opened --pretty"
 echo ""
 
 echo -e "${BLUE}================================================${NC}"

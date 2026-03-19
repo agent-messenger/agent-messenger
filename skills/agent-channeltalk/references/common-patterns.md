@@ -2,9 +2,9 @@
 
 ## Overview
 
-This guide covers typical workflows for AI agents interacting with Channel Talk using agent-channel.
+This guide covers typical workflows for AI agents interacting with Channel Talk using agent-channeltalk.
 
-**Important**: agent-channel requires a `<chat-type>` argument for message commands. Valid chat types are `group`, `user-chat`, and `direct-chat`. Use `group list` and `chat list` to find IDs.
+**Important**: agent-channeltalk requires a `<chat-type>` argument for message commands. Valid chat types are `group`, `user-chat`, and `direct-chat`. Use `group list` and `chat list` to find IDs.
 
 ## Pattern 1: Send a Message to a UserChat
 
@@ -15,7 +15,7 @@ This guide covers typical workflows for AI agents interacting with Channel Talk 
 
 CHAT_ID="uc_abc123"
 
-RESULT=$(agent-channel message send user-chat "$CHAT_ID" "Thanks for reaching out! Let me look into this.")
+RESULT=$(agent-channeltalk message send user-chat "$CHAT_ID" "Thanks for reaching out! Let me look into this.")
 MSG_ID=$(echo "$RESULT" | jq -r '.id // ""')
 
 if [ -n "$MSG_ID" ] && [ "$MSG_ID" != "null" ]; then
@@ -38,7 +38,7 @@ fi
 # Groups are referenced by ID (use 'group list' to find IDs)
 GROUP_ID="grp_abc123"
 
-RESULT=$(agent-channel message send group "$GROUP_ID" "New deployment completed: v2.1.0")
+RESULT=$(agent-channeltalk message send group "$GROUP_ID" "New deployment completed: v2.1.0")
 MSG_ID=$(echo "$RESULT" | jq -r '.id // ""')
 
 if [ -n "$MSG_ID" ] && [ "$MSG_ID" != "null" ]; then
@@ -61,7 +61,7 @@ fi
 LAST_CHAT_ID=""
 
 while true; do
-  CHATS=$(agent-channel chat list --state opened --limit 1)
+  CHATS=$(agent-channeltalk chat list --state opened --limit 1)
   LATEST_ID=$(echo "$CHATS" | jq -r '.chats[0].id // ""')
 
   if [ -z "$LATEST_ID" ]; then
@@ -75,7 +75,7 @@ while true; do
     echo "New chat opened: $LATEST_ID"
 
     # Auto-respond
-    agent-channel message send user-chat "$LATEST_ID" "Thanks for contacting us! A team member will be with you shortly."
+    agent-channeltalk message send user-chat "$LATEST_ID" "Thanks for contacting us! A team member will be with you shortly."
     LAST_CHAT_ID="$LATEST_ID"
   fi
 
@@ -93,7 +93,7 @@ done
 #!/bin/bash
 
 # Full snapshot for comprehensive context
-SNAPSHOT=$(agent-channel snapshot)
+SNAPSHOT=$(agent-channeltalk snapshot)
 
 # Extract key info
 WORKSPACE=$(echo "$SNAPSHOT" | jq -r '.workspace.name')
@@ -109,8 +109,8 @@ echo "Managers: $MANAGER_COUNT"
 echo "Bots: $BOT_COUNT"
 
 # For focused views
-agent-channel snapshot --groups-only    # Just groups and messages
-agent-channel snapshot --chats-only     # Just UserChat summary
+agent-channeltalk snapshot --groups-only    # Just groups and messages
+agent-channeltalk snapshot --chats-only     # Just UserChat summary
 ```
 
 **When to use**: Start of every AI agent session, periodic context refresh, workspace audits.
@@ -125,7 +125,7 @@ agent-channel snapshot --chats-only     # Just UserChat summary
 get_group_id() {
   local group_name=$1
 
-  GROUPS=$(agent-channel group list)
+  GROUPS=$(agent-channeltalk group list)
   GROUP_ID=$(echo "$GROUPS" | jq -r --arg name "$group_name" '.groups[] | select(.name==$name) | .id')
 
   if [ -z "$GROUP_ID" ]; then
@@ -139,7 +139,7 @@ get_group_id() {
 # Usage
 SUPPORT_ID=$(get_group_id "support")
 if [ $? -eq 0 ]; then
-  agent-channel message send group "$SUPPORT_ID" "Hello team!"
+  agent-channeltalk message send group "$SUPPORT_ID" "Hello team!"
 fi
 ```
 
@@ -155,7 +155,7 @@ fi
 MESSAGE="System maintenance in 30 minutes"
 
 # Get all groups once
-GROUPS=$(agent-channel group list)
+GROUPS=$(agent-channeltalk group list)
 
 # Extract group IDs
 GROUP_IDS=$(echo "$GROUPS" | jq -r '.groups[].id')
@@ -164,7 +164,7 @@ for group_id in $GROUP_IDS; do
   GROUP_NAME=$(echo "$GROUPS" | jq -r --arg id "$group_id" '.groups[] | select(.id==$id) | .name')
   echo "Posting to $GROUP_NAME..."
 
-  RESULT=$(agent-channel message send group "$group_id" "$MESSAGE")
+  RESULT=$(agent-channeltalk message send group "$group_id" "$MESSAGE")
   MSG_ID=$(echo "$RESULT" | jq -r '.id // ""')
 
   if [ -n "$MSG_ID" ] && [ "$MSG_ID" != "null" ]; then
@@ -195,7 +195,7 @@ send_with_retry() {
   local attempt=1
 
   while [ $attempt -le $max_attempts ]; do
-    RESULT=$(agent-channel message send "$chat_type" "$chat_id" "$message" 2>&1)
+    RESULT=$(agent-channeltalk message send "$chat_type" "$chat_id" "$message" 2>&1)
     MSG_ID=$(echo "$RESULT" | jq -r '.id // ""')
 
     if [ -n "$MSG_ID" ] && [ "$MSG_ID" != "null" ]; then
@@ -232,19 +232,19 @@ send_with_retry "user-chat" "uc_abc123" "Important notification!"
 #!/bin/bash
 
 # List all workspaces
-WORKSPACES=$(agent-channel auth list)
+WORKSPACES=$(agent-channeltalk auth list)
 echo "Available workspaces:"
 echo "$WORKSPACES" | jq -r '.[] | "  \(.workspace_name) (\(.workspace_id)) \(if .is_current then "[current]" else "" end)"'
 
 # Switch to a specific workspace
 TARGET=$(echo "$WORKSPACES" | jq -r '.[] | select(.workspace_name | contains("Production")) | .workspace_id')
 if [ -n "$TARGET" ]; then
-  agent-channel auth use "$TARGET"
+  agent-channeltalk auth use "$TARGET"
   echo "Switched to Production workspace"
 fi
 
 # Now operations use the new workspace
-agent-channel group list
+agent-channeltalk group list
 ```
 
 **When to use**: Managing multiple workspaces, cross-workspace operations.
@@ -256,23 +256,23 @@ agent-channel group list
 The `snapshot` command is the fastest way to understand workspace state. Use it at the start of every AI agent session:
 
 ```bash
-agent-channel snapshot --pretty
+agent-channeltalk snapshot --pretty
 ```
 
 ### 2. Cache Group Lists
 
 ```bash
 # Good - fetch once, reuse
-GROUPS=$(agent-channel group list)
+GROUPS=$(agent-channeltalk group list)
 for group_id in $(echo "$GROUPS" | jq -r '.groups[].id'); do
-  agent-channel message send group "$group_id" "$MESSAGE"
+  agent-channeltalk message send group "$group_id" "$MESSAGE"
   sleep 1
 done
 
 # Bad - fetch repeatedly
 for group_id in "${GROUP_IDS[@]}"; do
-  GROUPS=$(agent-channel group list)  # Wasteful!
-  agent-channel message send group "$group_id" "$MESSAGE"
+  GROUPS=$(agent-channeltalk group list)  # Wasteful!
+  agent-channeltalk message send group "$group_id" "$MESSAGE"
 done
 ```
 
@@ -282,7 +282,7 @@ Channel Talk enforces rate limits. Add delays between bulk operations:
 
 ```bash
 for chat_id in "${CHAT_IDS[@]}"; do
-  agent-channel message send user-chat "$chat_id" "$MESSAGE"
+  agent-channeltalk message send user-chat "$chat_id" "$MESSAGE"
   sleep 1
 done
 ```
@@ -291,7 +291,7 @@ done
 
 ```bash
 # Good
-RESULT=$(agent-channel message send group "$GROUP_ID" "Hello")
+RESULT=$(agent-channeltalk message send group "$GROUP_ID" "Hello")
 if echo "$RESULT" | jq -e '.id' > /dev/null 2>&1; then
   echo "Success!"
 else
@@ -299,7 +299,7 @@ else
 fi
 
 # Bad
-agent-channel message send group "$GROUP_ID" "Hello"  # No error checking
+agent-channeltalk message send group "$GROUP_ID" "Hello"  # No error checking
 ```
 
 ## Anti-Patterns
@@ -309,13 +309,13 @@ agent-channel message send group "$GROUP_ID" "Hello"  # No error checking
 ```bash
 # Bad - polls every second (may get rate limited)
 while true; do
-  agent-channel chat list --limit 1
+  agent-channeltalk chat list --limit 1
   sleep 1
 done
 
 # Good - reasonable interval
 while true; do
-  agent-channel chat list --limit 1
+  agent-channeltalk chat list --limit 1
   sleep 15
 done
 ```
@@ -324,11 +324,11 @@ done
 
 ```bash
 # Bad
-agent-channel message send group "$GROUP_ID" "Hello"
+agent-channeltalk message send group "$GROUP_ID" "Hello"
 # Continues even if it failed
 
 # Good
-RESULT=$(agent-channel message send group "$GROUP_ID" "Hello")
+RESULT=$(agent-channeltalk message send group "$GROUP_ID" "Hello")
 if ! echo "$RESULT" | jq -e '.id' > /dev/null 2>&1; then
   echo "Failed to send message"
   exit 1

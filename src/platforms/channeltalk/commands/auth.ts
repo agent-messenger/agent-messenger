@@ -134,7 +134,7 @@ export async function statusAction(options: ActionOptions = {}): Promise<StatusR
         valid: false,
         error: options.workspace
           ? `Workspace "${options.workspace}" not found. Run "auth list" to see available workspaces.`
-          : 'No credentials. Run "agent-channel auth extract" first.',
+          : 'No credentials. Run "agent-channeltalk auth extract" first.',
       }
     }
 

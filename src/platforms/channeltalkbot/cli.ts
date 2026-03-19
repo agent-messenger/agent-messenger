@@ -16,7 +16,7 @@ import {
 const program = new Command()
 
 program
-  .name('agent-channelbot')
+  .name('agent-channeltalkbot')
   .description('CLI tool for Channel Talk integration using API credentials')
   .version(pkg.version)
   .option('--pretty', 'Pretty-print JSON output')
