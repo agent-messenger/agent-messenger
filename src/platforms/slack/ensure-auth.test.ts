@@ -173,6 +173,15 @@ describe('ensureSlackAuth', () => {
       { workspace_id: 'T1', workspace_name: 'ws1', token: 'xoxc-1', cookie: 'xoxd-1' },
       { workspace_id: 'T2', workspace_name: 'ws2', token: 'xoxc-2', cookie: 'xoxd-2' },
     ])
+    let authCallCount = 0
+    testAuthSpy.mockImplementation(() => {
+      authCallCount++
+      return Promise.resolve(
+        authCallCount === 1
+          ? { user_id: 'U1', team_id: 'T1', user: 'user1', team: 'ws1' }
+          : { user_id: 'U2', team_id: 'T2', user: 'user2', team: 'ws2' },
+      )
+    })
 
     // when
     await ensureSlackAuth()
@@ -318,6 +327,27 @@ describe('ensureSlackAuth', () => {
 
     // then
     expect(setWorkspaceSpy).toHaveBeenCalledWith(expect.objectContaining({ workspace_name: 'New Team Name' }))
+  })
+
+  test('resolves unknown workspace_id from testAuth before saving', async () => {
+    // given — extractor returns unknown workspace_id
+    extractSpy.mockResolvedValue([
+      { workspace_id: 'unknown', workspace_name: 'unknown', token: 'xoxc-1', cookie: 'xoxd-1' },
+    ])
+    testAuthSpy.mockResolvedValue({
+      user_id: 'U1',
+      team_id: 'T-REAL',
+      user: 'user',
+      team: 'Real Team',
+    })
+
+    // when
+    await ensureSlackAuth()
+
+    // then — saved with resolved team_id, not "unknown"
+    expect(setWorkspaceSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ workspace_id: 'T-REAL', workspace_name: 'Real Team' }),
+    )
   })
 })
 

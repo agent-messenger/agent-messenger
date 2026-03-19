@@ -26,6 +26,7 @@ export async function ensureSlackAuth(): Promise<void> {
       try {
         const client = new SlackClient(ws.token, ws.cookie)
         const authInfo = await client.testAuth()
+        ws.workspace_id = authInfo.team_id
         ws.workspace_name = authInfo.team || ws.workspace_name
         await credManager.setWorkspace(ws)
         validWorkspaces.push(ws)
