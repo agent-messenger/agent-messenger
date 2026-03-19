@@ -7,6 +7,15 @@ import {
   simplifyMessage,
   simplifyUser,
   summarizeAuthorizationState,
+  type TdAuthorizationState,
+  type TdChat,
+  type TdChats,
+  type TdError,
+  type TdMessage,
+  type TdMessages,
+  type TdUpdateAuthorizationState,
+  type TdUpdateMessageSendSucceeded,
+  type TdUser,
   type TelegramAccount,
   type TelegramAccountPaths,
   type TelegramAuthStatus,
@@ -33,7 +42,7 @@ interface RequestOptions {
 export class TelegramTdlibClient {
   private tdjson: TdjsonBinding
   private clientId: number
-  private currentAuthorizationState: any | null = null
+  private currentAuthorizationState: TdAuthorizationState | null = null
   private requestSeq = 0
 
   constructor(
@@ -44,11 +53,11 @@ export class TelegramTdlibClient {
     this.clientId = this.tdjson.createClientId()
   }
 
-  async connect(): Promise<any> {
+  async connect(): Promise<TdAuthorizationState> {
     await mkdir(this.paths.database_dir, { recursive: true })
     await mkdir(this.paths.files_dir, { recursive: true })
 
-    let state = await this.getAuthorizationState()
+    let state = (await this.getAuthorizationState()) as TdAuthorizationState
 
     while (state?.['@type'] === 'authorizationStateWaitTdlibParameters') {
       await this.call({
@@ -68,7 +77,7 @@ export class TelegramTdlibClient {
         application_version: `agent-messenger/${pkg.version}`,
       })
 
-      state = await this.waitForAuthorizationStateChange('authorizationStateWaitTdlibParameters')
+      state = (await this.waitForAuthorizationStateChange('authorizationStateWaitTdlibParameters')) as TdAuthorizationState
     }
 
     return state
@@ -83,12 +92,12 @@ export class TelegramTdlibClient {
       account_id: this.account.account_id,
       phone_number: this.account.phone_number,
       tdlib_path: this.tdjson.libraryPath,
-      user: summary.authenticated ? simplifyUser(await this.call({ '@type': 'getMe' })) : undefined,
+      user: summary.authenticated ? simplifyUser((await this.call({ '@type': 'getMe' })) as TdUser) : undefined,
     }
   }
 
   async login(input: LoginInput): Promise<TelegramAuthStatus> {
-    let state = await this.connect()
+    let state: TdAuthorizationState = await this.connect()
 
     for (let step = 0; step < 8; step += 1) {
       const submitted = await this.submitAuthenticationInput(state, input)
@@ -152,13 +161,13 @@ export class TelegramTdlibClient {
       // Best-effort cache warmup only.
     }
 
-    const response = await this.call({
+    const response = (await this.call({
       '@type': 'getChats',
       chat_list: {
         '@type': 'chatListMain',
       },
       limit,
-    })
+    })) as TdChats
 
     return this.getChatsByIds(response.chat_ids ?? [])
   }
@@ -167,11 +176,11 @@ export class TelegramTdlibClient {
     await this.ensureReady()
     const localCache = await this.listChats(Math.max(limit * 5, 100))
 
-    const local = await this.call({
+    const local = (await this.call({
       '@type': 'searchChats',
       query,
       limit,
-    })
+    })) as TdChats
 
     const directMatches = (local.chat_ids ?? []).length > 0 ? await this.getChatsByIds(local.chat_ids) : []
     const fuzzyMatches = this.findFuzzyChats(localCache, query, limit)
@@ -181,10 +190,10 @@ export class TelegramTdlibClient {
       return mergedMatches.slice(0, limit)
     }
 
-    const remote = await this.call({
+    const remote = (await this.call({
       '@type': 'searchPublicChats',
       query,
-    })
+    })) as TdChats
 
     const remoteMatches = (remote.chat_ids ?? []).length > 0 ? await this.getChatsByIds(remote.chat_ids) : []
     return this.mergeChats(remoteMatches, fuzzyMatches).slice(0, limit)
@@ -200,23 +209,23 @@ export class TelegramTdlibClient {
     await this.ensureReady()
     const chat = await this.resolveChat(reference)
 
-    const response = await this.call({
+    const response = (await this.call({
       '@type': 'getChatHistory',
       chat_id: chat.id,
       from_message_id: 0,
       offset: 0,
       limit,
       only_local: false,
-    })
+    })) as TdMessages
 
-    return (response.messages ?? []).map((message: any) => simplifyMessage(message, chat.id))
+    return (response.messages ?? []).map((message: TdMessage) => simplifyMessage(message, chat.id))
   }
 
   async sendMessage(reference: string, text: string): Promise<TelegramMessageSummary> {
     await this.ensureReady()
     const chat = await this.resolveChat(reference)
 
-    const message = await this.call({
+    const message = (await this.call({
       '@type': 'sendMessage',
       chat_id: chat.id,
       topic_id: null,
@@ -233,7 +242,7 @@ export class TelegramTdlibClient {
         link_preview_options: null,
         clear_draft: true,
       },
-    })
+    })) as TdMessage
 
     if (message.sending_state?.['@type'] === 'messageSendingStatePending') {
       await this.drainUpdates(2000)
@@ -433,17 +442,23 @@ export class TelegramTdlibClient {
       ),
     )
 
-    return chats.map((chat) => simplifyChat(chat))
+    return chats.map((chat) => simplifyChat(chat as TdChat))
   }
 
   private handleEvent(event: any): any {
     if (event?.['@type'] === 'updateAuthorizationState') {
-      this.currentAuthorizationState = event.authorization_state
-      return event.authorization_state
+      const update = event as TdUpdateAuthorizationState
+      this.currentAuthorizationState = update.authorization_state
+      return update.authorization_state
     }
 
     if (event?.['@type'] === 'error') {
-      throw new TelegramError(event.message ?? 'TDLib error', event.code ?? 'tdlib_error')
+      const error = event as TdError
+      throw new TelegramError(error.message ?? 'TDLib error', error.code ?? 'tdlib_error')
+    }
+
+    if (event?.['@type'] === 'updateMessageSendSucceeded') {
+      return (event as TdUpdateMessageSendSucceeded).message
     }
 
     return event
@@ -554,14 +569,14 @@ export class TelegramTdlibClient {
 
   private async findRecentlySentMessage(chatId: number, text: string, fallbackMessageId: number): Promise<any | null> {
     try {
-      const history = await this.call({
+      const history = (await this.call({
         '@type': 'getChatHistory',
         chat_id: chatId,
         from_message_id: 0,
         offset: 0,
         limit: 10,
         only_local: false,
-      })
+      })) as TdMessages
 
       const normalizedText = text.trim()
       const candidate = (history.messages ?? []).find(

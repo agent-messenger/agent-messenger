@@ -268,3 +268,144 @@ export function simplifyChat(chat: any): TelegramChatSummary {
     last_message: chat.last_message ? simplifyMessage(chat.last_message, chat.id) : undefined,
   }
 }
+
+// ─── TDLib JSON API Types ──────────────────────────────────────────────────
+
+export interface TdError {
+  '@type': 'error'
+  code: number
+  message: string
+}
+
+export interface TdOk {
+  '@type': 'ok'
+}
+
+export interface TdAuthorizationStateWaitTdlibParameters {
+  '@type': 'authorizationStateWaitTdlibParameters'
+}
+
+export interface TdAuthorizationStateWaitPhoneNumber {
+  '@type': 'authorizationStateWaitPhoneNumber'
+}
+
+export interface TdAuthorizationStateWaitCode {
+  '@type': 'authorizationStateWaitCode'
+}
+
+export interface TdAuthorizationStateWaitPassword {
+  '@type': 'authorizationStateWaitPassword'
+  password_hint: string
+  has_recovery_email_address: boolean
+  has_passport_data: boolean
+}
+
+export interface TdAuthorizationStateWaitEmailAddress {
+  '@type': 'authorizationStateWaitEmailAddress'
+}
+
+export interface TdAuthorizationStateWaitEmailCode {
+  '@type': 'authorizationStateWaitEmailCode'
+}
+
+export interface TdAuthorizationStateWaitRegistration {
+  '@type': 'authorizationStateWaitRegistration'
+}
+
+export interface TdAuthorizationStateReady {
+  '@type': 'authorizationStateReady'
+}
+
+export interface TdAuthorizationStateClosed {
+  '@type': 'authorizationStateClosed'
+}
+
+export interface TdAuthorizationStateLoggingOut {
+  '@type': 'authorizationStateLoggingOut'
+}
+
+export type TdAuthorizationState =
+  | TdAuthorizationStateWaitTdlibParameters
+  | TdAuthorizationStateWaitPhoneNumber
+  | TdAuthorizationStateWaitCode
+  | TdAuthorizationStateWaitPassword
+  | TdAuthorizationStateWaitEmailAddress
+  | TdAuthorizationStateWaitEmailCode
+  | TdAuthorizationStateWaitRegistration
+  | TdAuthorizationStateReady
+  | TdAuthorizationStateClosed
+  | TdAuthorizationStateLoggingOut
+
+export interface TdUpdateAuthorizationState {
+  '@type': 'updateAuthorizationState'
+  authorization_state: TdAuthorizationState
+}
+
+export interface TdUpdateMessageSendSucceeded {
+  '@type': 'updateMessageSendSucceeded'
+  message: TdMessage
+  old_message_id: number
+}
+
+export interface TdUpdateMessageSendFailed {
+  '@type': 'updateMessageSendFailed'
+  message: TdMessage
+  old_message_id: number
+  error_code: number
+  error_message: string
+}
+
+export interface TdFormattedText {
+  '@type': 'formattedText'
+  text: string
+  entities: unknown[]
+}
+
+export interface TdMessageText {
+  '@type': 'messageText'
+  text: TdFormattedText
+}
+
+export type TdMessageContent = TdMessageText | { '@type': string; [key: string]: unknown }
+
+export interface TdMessage {
+  '@type': 'message'
+  id: number
+  chat_id: number
+  sender_id?: unknown
+  is_outgoing: boolean
+  date: number
+  content?: TdMessageContent
+  sending_state?: { '@type': string }
+  [key: string]: unknown
+}
+
+export interface TdMessages {
+  '@type': 'messages'
+  total_count: number
+  messages: TdMessage[]
+}
+
+export interface TdUser {
+  '@type': 'user'
+  id: number
+  first_name: string
+  last_name: string
+  username?: string
+  phone_number: string
+  [key: string]: unknown
+}
+
+export interface TdChat {
+  '@type': 'chat'
+  id: number
+  title: string
+  type?: unknown
+  [key: string]: unknown
+}
+
+export interface TdChats {
+  '@type': 'chats'
+  total_count: number
+  chat_ids: number[]
+}
