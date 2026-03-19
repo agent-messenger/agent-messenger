@@ -1,6 +1,6 @@
 # Agent Messenger - Claude Code Plugin
 
-Messaging platform interaction skills for AI agents and Claude Code. Supports Slack, Discord, and Microsoft Teams.
+Messaging platform interaction skills for AI agents and Claude Code. Supports Slack, Discord, Microsoft Teams, and Channel Talk (beta).
 
 ## Installation
 
@@ -61,6 +61,22 @@ Enables AI agents to interact with messaging platforms through CLI interfaces:
 - **Multi-bot management** with easy switching
 - Designed for **server-side and CI/CD** use cases
 
+### Channel Talk (`agent-channeltalk`) — Beta
+- **Send messages** to groups, user chats, and direct chats
+- **Read chats** and message history
+- **List groups**, managers, and bots
+- **Workspace snapshots** for quick overview
+- **Multi-workspace support** with easy switching
+- **Zero-config** — auto-extracts cookies from desktop app
+
+### Channel Talk Bot (`agent-channeltalkbot`) — Beta
+- **Send messages** using API credentials (Access Key + Secret)
+- **Read chats** and message history
+- **Close and delete** user chats
+- **Create and manage** bots
+- **Group @name references** for easy targeting
+- Designed for **server-side and CI/CD** use cases
+
 ## Key Features
 
 ### Zero-Config Authentication
@@ -76,6 +92,9 @@ agent-discord auth extract
 
 # Teams
 agent-teams auth extract
+
+# Channel Talk (auto-extracted from desktop app)
+agent-channeltalk auth extract
 ```
 
 ### AI-Friendly References (Slack)
@@ -92,7 +111,7 @@ All commands output JSON by default for easy AI consumption. Use `--pretty` for 
 
 ## Requirements
 
-- Desktop app installed and logged in for the platform(s) you want to use (Slack, Discord, and/or Teams)
+- Desktop app installed and logged in for the platform(s) you want to use (Slack, Discord, Teams, and/or Channel Talk)
 - Node.js 18+ or Bun runtime
 
 ## Quick Start
@@ -175,3 +194,5 @@ agent-discord file upload <channel-id> ./report.pdf
 - [Discord Skill Documentation](https://github.com/devxoul/agent-messenger/blob/main/skills/agent-discord/SKILL.md)
 - [Discord Bot Skill Documentation](https://github.com/devxoul/agent-messenger/blob/main/skills/agent-discordbot/SKILL.md)
 - [Teams Skill Documentation](https://github.com/devxoul/agent-messenger/blob/main/skills/agent-teams/SKILL.md)
+- [Channel Talk Skill Documentation](https://github.com/devxoul/agent-messenger/blob/main/skills/agent-channeltalk/SKILL.md)
+- [Channel Talk Bot Skill Documentation](https://github.com/devxoul/agent-messenger/blob/main/skills/agent-channeltalkbot/SKILL.md)

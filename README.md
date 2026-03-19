@@ -4,7 +4,7 @@
 
 ![Agent Messenger](./docs/public/cover.png)
 
-**Give your AI agent the power to read and send messages across Slack, Discord, Teams and more**
+**Give your AI agent the power to read and send messages across Slack, Discord, Teams, Channel Talk (beta) and more**
 
 A unified, agent-friendly CLI for messaging platforms. Zero-config credential extraction from your desktop apps—no OAuth flows, no API keys, no admin approval needed. Works out of the box.
 
@@ -37,7 +37,7 @@ Messaging platforms only offer Bot tokens for API access—your AI agent can nev
 - **Act as yourself, not a bot** — Extracted user tokens let your agent operate on your behalf
 - **No API keys needed** — Automatically extracts credentials from your installed desktop apps
 - **Zero setup** — Credentials are auto-extracted on first command. No manual auth step required
-- **One interface, multiple platforms** — Learn once, use everywhere (Slack, Discord, Teams)
+- **One interface, multiple platforms** — Learn once, use everywhere (Slack, Discord, Teams, Channel Talk)
 - **AI-agent friendly** — JSON output by default, perfect for LLM tool use
 - **Agent memory** — Remembers workspace IDs, channel names, and preferences across sessions
 - **Human friendly too** — Add `--pretty` for readable output
@@ -58,8 +58,8 @@ This installs:
 - `agent-discord` — Discord CLI
 - `agent-discordbot` — Discord Bot CLI (bot token, for server-side/CI/CD)
 - `agent-teams` — Microsoft Teams CLI
-- `agent-channeltalk` — Channel Talk CLI (zero-config, extracted cookies)
-- `agent-channeltalkbot` — Channel Talk Bot CLI (API credentials, for server-side/CI/CD)
+- `agent-channeltalk` — Channel Talk CLI (beta, zero-config, extracted cookies)
+- `agent-channeltalkbot` — Channel Talk Bot CLI (beta, API credentials, for server-side/CI/CD)
 
 ## Agent Skills
 
@@ -70,8 +70,8 @@ Agent Messenger includes [Agent Skills](https://agentskills.io/) that teach your
 - **`agent-discord`** — Discord
 - **`agent-discordbot`** — Discord Bot (bot token, for server-side/CI/CD)
 - **`agent-teams`** — Microsoft Teams
-- **`agent-channeltalk`** — Channel Talk (zero-config, extracted cookies)
-- **`agent-channeltalkbot`** — Channel Talk Bot (API credentials, for server-side/CI/CD)
+- **`agent-channeltalk`** — Channel Talk (beta, zero-config, extracted cookies)
+- **`agent-channeltalkbot`** — Channel Talk Bot (beta, API credentials, for server-side/CI/CD)
 
 ### SkillPad
 
@@ -127,7 +127,7 @@ That's it. Credentials are extracted automatically from your Slack desktop app o
 
 ## Supported Platforms
 
-| Feature                    | Slack | Discord | Teams | Channel Talk |
+| Feature                    | Slack | Discord | Teams | Channel Talk (beta) |
 | -------------------------- | :---: | :-----: | :---: | :----------: |
 | Auto credential extraction |  ✅   |   ✅    |  ✅   |      ✅      |
 | Send & list messages       |  ✅   |   ✅    |  ✅   |      ✅      |
@@ -155,8 +155,8 @@ That's it. Credentials are extracted automatically from your Slack desktop app o
 - **[Discord Guide](https://agent-messenger.dev/docs/integrations/discord)** — Full command reference for Discord
 - **[Discord Bot Guide](https://agent-messenger.dev/docs/integrations/discordbot)** — Bot token integration for server-side and CI/CD
 - **[Teams Guide](https://agent-messenger.dev/docs/integrations/teams)** — Full command reference for Microsoft Teams
-- **[Channel Talk Guide](https://agent-messenger.dev/docs/integrations/channeltalk)** — Full command reference for Channel Talk (zero-config)
-- **[Channel Talk Bot Guide](https://agent-messenger.dev/docs/integrations/channeltalkbot)** — Bot API integration for Channel Talk customer support
+- **[Channel Talk Guide](https://agent-messenger.dev/docs/integrations/channeltalk)** — Full command reference for Channel Talk (beta, zero-config)
+- **[Channel Talk Bot Guide](https://agent-messenger.dev/docs/integrations/channeltalkbot)** — Bot API integration for Channel Talk (beta)
 
 ## Use Cases
 
@@ -204,7 +204,7 @@ Wire messaging into your CI, scripts, or agent workflows.
 
 ### ...and More
 
-These are just starting points. Your agent has full read/write access to Slack, Discord, and Teams — anything you'd do manually in a chat app, it can handle for you. If you build something cool with Agent Messenger, [let me know](https://x.com/devxoul)!
+These are just starting points. Your agent has full read/write access to Slack, Discord, Teams, and Channel Talk — anything you'd do manually in a chat app, it can handle for you. If you build something cool with Agent Messenger, [let me know](https://x.com/devxoul)!
 
 ## Philosophy
 

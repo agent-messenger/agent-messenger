@@ -136,6 +136,31 @@ src/
         team.ts
         message.ts
         ...
+    channeltalk/            # Channel Talk platform (beta)
+      cli.ts                # Channel Talk CLI entry
+      client.ts             # Channel Talk API client
+      credential-manager.ts # Credential storage
+      cookie-extractor.ts   # Auto cookie extraction
+      ensure-auth.ts        # Auto-auth on first command
+      types.ts              # TypeScript types
+      commands/             # Command handlers
+        auth.ts
+        chat.ts
+        group.ts
+        message.ts
+        ...
+    channeltalkbot/         # Channel Talk Bot platform (beta)
+      cli.ts                # Channel Talk Bot CLI entry
+      client.ts             # Channel Talk Bot API client
+      credential-manager.ts # Credential storage
+      types.ts              # TypeScript types
+      commands/             # Command handlers
+        auth.ts
+        chat.ts
+        group.ts
+        message.ts
+        bot.ts
+        ...
   shared/
     utils/                  # Shared utilities
 ```
