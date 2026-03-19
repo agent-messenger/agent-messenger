@@ -275,8 +275,17 @@ export class TokenExtractor {
 
     // Phase 2: Deduplicate by teamId — different tokens for the same team
     // keep the one from the highest-priority source.
+    // Tokens with unknown teamId are kept as-is since they may represent
+    // different workspaces that couldn't be identified from LevelDB bytes.
+    // The real team ID is resolved later via testAuth().
     const seen = new Map<string, TokenInfo>()
+    const unknowns: TokenInfo[] = []
     for (const token of byTokenValue.values()) {
+      if (token.teamId === 'unknown') {
+        unknowns.push(token)
+        continue
+      }
+
       const existing = seen.get(token.teamId)
       if (!existing) {
         seen.set(token.teamId, token)
@@ -293,7 +302,7 @@ export class TokenExtractor {
         seen.set(token.teamId, { ...existing, teamName: token.teamName })
       }
     }
-    return Array.from(seen.values())
+    return [...Array.from(seen.values()), ...unknowns]
   }
 
   private findLevelDBDirs(baseDir: string): string[] {
