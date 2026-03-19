@@ -48,7 +48,7 @@ If `libtdjson` isn't bundled or isn't in a standard system location, pass the ex
 agent-telegram auth login \
   --api-id <api-id> \
   --api-hash <api-hash> \
-  --phone +821012345678 \
+  --phone +14155551234 \
   --tdlib-path /opt/homebrew/lib/libtdjson.dylib
 ```
 
@@ -70,6 +70,6 @@ agent-telegram auth logout
 
 ## Notes
 
-- Telegram phone numbers must be in international format, for example `+821012345678`.
+- Telegram phone numbers must be in international format, for example `+14155551234`.
 - TDLib persists local account state under `~/.config/agent-messenger/telegram/`.
 - `agent-telegram` returns JSON by default and `--pretty` for indented output.
