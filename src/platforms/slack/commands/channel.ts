@@ -119,6 +119,25 @@ async function historyAction(channel: string, options: { limit?: number; pretty?
   }
 }
 
+async function openAction(users: string, options: { pretty?: boolean }): Promise<void> {
+  try {
+    const credManager = new CredentialManager()
+    const workspace = await credManager.getWorkspace()
+
+    if (!workspace) {
+      console.log(formatOutput({ error: 'No current workspace set. Run "auth extract" first.' }, options.pretty))
+      process.exit(1)
+    }
+
+    const client = new SlackClient(workspace.token, workspace.cookie)
+    const result = await client.openConversation(users)
+
+    console.log(formatOutput(result, options.pretty))
+  } catch (error) {
+    handleError(error as Error)
+  }
+}
+
 async function usersAction(channel: string, options: { includeBots?: boolean; pretty?: boolean }): Promise<void> {
   try {
     const credManager = new CredentialManager()
@@ -183,6 +202,13 @@ export const channelCommand = new Command('channel')
           pretty: options.pretty,
         })
       }),
+  )
+  .addCommand(
+    new Command('open')
+      .description('Open a DM channel with a user (or multiple users for group DM)')
+      .argument('<users>', 'Comma-separated user IDs (e.g. U0ABC123 or U0ABC123,U0DEF456)')
+      .option('--pretty', 'Pretty print JSON output')
+      .action(openAction),
   )
   .addCommand(
     new Command('users')
