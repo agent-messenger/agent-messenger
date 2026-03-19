@@ -1,13 +1,14 @@
 {
   "name": "agent-messenger",
   "version": "1.15.0",
-  "description": "Multi-platform messaging CLI for AI agents (Slack, Discord, Teams)",
+  "description": "Multi-platform messaging CLI for AI agents (Slack, Discord, Teams, Telegram)",
   "repository": {
     "type": "git",
     "url": "https://github.com/devxoul/agent-messenger"
   },
   "bin": {
     "agent-channeltalk": "./src/platforms/channeltalk/cli.ts",
+    "agent-telegram": "./src/platforms/telegram/cli.ts",
     "agent-discord": "./src/platforms/discord/cli.ts",
     "agent-discordbot": "./src/platforms/discordbot/cli.ts",
     "agent-messenger": "./src/cli.ts",
@@ -38,6 +39,8 @@
     "better-sqlite3": "^12.0.0",
     "classic-level": "^1.3.0",
     "commander": "^11.1.0",
+    "koffi": "^2.15.2",
+    "prebuilt-tdlib": "0.1008062.2",
     "zod": "^3.22.4"
   },
   "devDependencies": {
