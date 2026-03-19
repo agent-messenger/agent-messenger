@@ -159,6 +159,31 @@ describe('TokenExtractor token deduplication', () => {
     expect(result.length).toBe(1)
     expect(result[0].token).toBe(freshToken)
   })
+
+  test('keeps all tokens with unknown teamId instead of merging them', async () => {
+    // given — two different tokens without team ID context (no T[A-Z0-9] nearby)
+    const slackDir = mkdtempSync(join(tmpdir(), 'slack-dedup-unknown-'))
+    tempDirs.push(slackDir)
+
+    const hex64a = 'a'.repeat(64)
+    const hex64b = 'b'.repeat(64)
+    const tokenA = `xoxc-1111111111-2222222222-3333333333-${hex64a}`
+    const tokenB = `xoxc-4444444444-5555555555-6666666666-${hex64b}`
+
+    const leveldbDir = join(slackDir, 'Local Storage', 'leveldb')
+    mkdirSync(leveldbDir, { recursive: true })
+    // No team ID pattern (T[A-Z0-9]{8,11}) near either token
+    writeFileSync(join(leveldbDir, '000001.log'), `"${tokenA}"some-data"${tokenB}"other-data`)
+
+    // when
+    const extractor = new TokenExtractor('darwin', slackDir)
+    const result = await extractor.extract()
+
+    // then — both tokens preserved (they may be different workspaces)
+    expect(result.length).toBe(2)
+    const tokens = result.map((r) => r.token).sort()
+    expect(tokens).toEqual([tokenA, tokenB].sort())
+  })
 })
 
 describe('TokenExtractor LevelDB fragmentation markers', () => {
