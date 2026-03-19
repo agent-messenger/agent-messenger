@@ -6,6 +6,7 @@ import type {
   ChannelGroup,
   ChannelManager,
   ChannelMessage,
+  ChannelSearchResponse,
   ChannelUserChat,
   MessageBlock,
 } from './types'
@@ -194,6 +195,28 @@ export class ChannelClient {
 
   async listBots(channelId: string, params?: { limit?: number }): Promise<ChannelBot[]> {
     return this.request<ChannelBot[]>('GET', this.buildPath(`/desk/channels/${channelId}/bots`, params), undefined, 'bots')
+  }
+
+  async searchTeamChatMessages(
+    channelId: string,
+    query: string,
+    params?: { limit?: number },
+  ): Promise<ChannelSearchResponse> {
+    return this.request<ChannelSearchResponse>(
+      'GET',
+      this.buildPath(`/desk/channels/${channelId}/team-chat/message/search`, { query, ...params }),
+    )
+  }
+
+  async searchUserChatMessages(
+    channelId: string,
+    query: string,
+    params?: { limit?: number },
+  ): Promise<ChannelSearchResponse> {
+    return this.request<ChannelSearchResponse>(
+      'GET',
+      this.buildPath(`/desk/channels/${channelId}/user-chat/message/search`, { query, ...params }),
+    )
   }
 
   private getHeaders(): Record<string, string> {

@@ -116,6 +116,29 @@ export interface ChannelSession {
   updatedAt?: number
 }
 
+export interface ChannelSearchHighlight {
+  name: string
+  fragments: string[]
+}
+
+export interface ChannelSearchHit {
+  index: string
+  score: string
+  source: ChannelMessage
+  highlight: Record<string, ChannelSearchHighlight>
+  searchAfter: [number, string]
+}
+
+export interface ChannelSearchResponse {
+  hits: ChannelSearchHit[]
+  bots: ChannelBot[]
+  sessions: ChannelSession[]
+  directChats?: ChannelDirectChat[]
+  groups?: ChannelGroup[]
+  userChats?: ChannelUserChat[]
+  users?: Array<{ id: string; [key: string]: unknown }>
+}
+
 export interface ChannelWorkspaceEntry {
   workspace_id: string
   workspace_name: string
@@ -291,6 +314,29 @@ export const ChannelSessionSchema = z.object({
   unread: z.number().optional(),
   readAt: z.number().optional(),
   updatedAt: z.number().optional(),
+})
+
+export const ChannelSearchHighlightSchema = z.object({
+  name: z.string(),
+  fragments: z.array(z.string()),
+})
+
+export const ChannelSearchHitSchema = z.object({
+  index: z.string(),
+  score: z.string(),
+  source: ChannelMessageSchema,
+  highlight: z.record(z.string(), ChannelSearchHighlightSchema),
+  searchAfter: z.tuple([z.number(), z.string()]),
+})
+
+export const ChannelSearchResponseSchema = z.object({
+  hits: z.array(ChannelSearchHitSchema),
+  bots: z.array(ChannelBotSchema),
+  sessions: z.array(ChannelSessionSchema),
+  directChats: z.array(ChannelDirectChatSchema).optional(),
+  groups: z.array(ChannelGroupSchema).optional(),
+  userChats: z.array(ChannelUserChatSchema).optional(),
+  users: z.array(z.object({ id: z.string() }).passthrough()).optional(),
 })
 
 export const ExtractedChannelTokenSchema = z.object({
