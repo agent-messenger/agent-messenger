@@ -204,6 +204,13 @@ agent-slack channel info general
 # Get channel history (alias for message list)
 agent-slack channel history <channel> --limit 100
 
+# Open a DM channel with a user (returns channel ID)
+agent-slack channel open <user_id>
+agent-slack channel open U0ABC123
+
+# Open a group DM with multiple users
+agent-slack channel open U0ABC123,U0DEF456
+
 # List users in a channel
 agent-slack channel users <channel>
 agent-slack channel users general --include-bots
