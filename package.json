@@ -7,13 +7,13 @@
     "url": "https://github.com/devxoul/agent-messenger"
   },
   "bin": {
-    "agent-channel": "./src/platforms/channel/cli.ts",
+    "agent-channeltalk": "./src/platforms/channeltalk/cli.ts",
     "agent-discord": "./src/platforms/discord/cli.ts",
     "agent-discordbot": "./src/platforms/discordbot/cli.ts",
     "agent-messenger": "./src/cli.ts",
     "agent-slack": "./src/platforms/slack/cli.ts",
     "agent-slackbot": "./src/platforms/slackbot/cli.ts",
-    "agent-channelbot": "./src/platforms/channelbot/cli.ts",
+    "agent-channeltalkbot": "./src/platforms/channeltalkbot/cli.ts",
     "agent-teams": "./src/platforms/teams/cli.ts",
     "amsg": "./src/cli.ts"
   },

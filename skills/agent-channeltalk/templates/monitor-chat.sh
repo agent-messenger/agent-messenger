@@ -26,7 +26,7 @@ LAST_ID=""
 FIRST_RUN=true
 
 check_chats() {
-  CHATS=$(agent-channel chat list --state opened --limit 10 2>&1)
+  CHATS=$(agent-channeltalk chat list --state opened --limit 10 2>&1)
   LATEST_ID=$(echo "$CHATS" | jq -r '.chats[0].id // ""')
 
   if [ -z "$LATEST_ID" ]; then
@@ -58,8 +58,8 @@ check_chats() {
   return 0
 }
 
-if ! command -v agent-channel &> /dev/null; then
-  echo -e "${RED}Error: agent-channel not found${NC}"
+if ! command -v agent-channeltalk &> /dev/null; then
+  echo -e "${RED}Error: agent-channeltalk not found${NC}"
   echo "Install: npm install -g agent-messenger"
   exit 1
 fi
@@ -71,13 +71,13 @@ if ! command -v jq &> /dev/null; then
 fi
 
 echo "Checking authentication..."
-AUTH_STATUS=$(agent-channel auth status 2>&1)
+AUTH_STATUS=$(agent-channeltalk auth status 2>&1)
 VALID=$(echo "$AUTH_STATUS" | jq -r '.valid // false')
 
 if [ "$VALID" != "true" ]; then
   echo -e "${RED}Not authenticated!${NC}"
   echo "Make sure Channel Talk desktop app is installed and you're logged in."
-  echo "Then run: agent-channel auth extract"
+  echo "Then run: agent-channeltalk auth extract"
   exit 1
 fi
 

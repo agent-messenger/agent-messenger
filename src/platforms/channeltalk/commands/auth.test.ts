@@ -202,7 +202,7 @@ describe('channel auth commands', () => {
       const result = await statusAction()
 
       expect(result.valid).toBe(false)
-      expect(result.error).toBe('No credentials. Run "agent-channel auth extract" first.')
+      expect(result.error).toBe('No credentials. Run "agent-channeltalk auth extract" first.')
     })
 
     test('returns valid status for current workspace', async () => {

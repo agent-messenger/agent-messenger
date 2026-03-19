@@ -1,17 +1,17 @@
 ---
-name: agent-channel
+name: agent-channeltalk
 description: Interact with Channel Talk using extracted desktop app credentials - read chats, send messages, manage groups
 version: 1.14.0
-allowed-tools: Bash(agent-channel:*)
+allowed-tools: Bash(agent-channeltalk:*)
 metadata:
   openclaw:
     requires:
       bins:
-        - agent-channel
+        - agent-channeltalk
     install:
       - kind: node
         package: agent-messenger
-        bins: [agent-channel]
+        bins: [agent-channeltalk]
 ---
 
 # Agent Channel
@@ -34,16 +34,16 @@ Before diving in, a few things about Channel Talk's terminology:
 
 ```bash
 # Get workspace snapshot (credentials are extracted automatically)
-agent-channel snapshot --pretty
+agent-channeltalk snapshot --pretty
 
 # Send a message to a group
-agent-channel message send group grp_abc123 "Hello from the CLI!"
+agent-channeltalk message send group grp_abc123 "Hello from the CLI!"
 
 # Send a message to a user chat
-agent-channel message send user-chat uc_abc123 "Thanks for reaching out!"
+agent-channeltalk message send user-chat uc_abc123 "Thanks for reaching out!"
 
 # List user chats
-agent-channel chat list
+agent-channeltalk chat list
 ```
 
 ## Authentication
@@ -57,7 +57,7 @@ The Channel Talk desktop app (Mac App Store or Electron) stores auth cookies in 
 
 These cookies expire after roughly 30 days. When they expire, the CLI automatically re-extracts fresh cookies from the desktop app on the next command.
 
-**IMPORTANT**: NEVER guide the user to open a web browser, use DevTools, or manually copy tokens. Always use `agent-channel auth extract` to obtain credentials from the desktop app.
+**IMPORTANT**: NEVER guide the user to open a web browser, use DevTools, or manually copy tokens. Always use `agent-channeltalk auth extract` to obtain credentials from the desktop app.
 
 ### Multi-Workspace Support
 
@@ -65,16 +65,16 @@ If you're logged into multiple Channel Talk workspaces, all are discovered autom
 
 ```bash
 # List all available workspaces
-agent-channel auth list
+agent-channeltalk auth list
 
 # Switch to a different workspace
-agent-channel auth use <workspace-id>
+agent-channeltalk auth use <workspace-id>
 
 # Check auth status
-agent-channel auth status
+agent-channeltalk auth status
 
 # Remove a stored workspace
-agent-channel auth remove <workspace-id>
+agent-channeltalk auth remove <workspace-id>
 ```
 
 ## Memory
@@ -167,83 +167,83 @@ If a memorized ID returns an error (chat not found, group not found), remove it 
 
 ```bash
 # Extract cookies from Channel Talk desktop app (usually automatic)
-agent-channel auth extract
+agent-channeltalk auth extract
 
 # Check auth status
-agent-channel auth status
-agent-channel auth status --workspace <id>
+agent-channeltalk auth status
+agent-channeltalk auth status --workspace <id>
 
 # Clear all stored credentials
-agent-channel auth clear
+agent-channeltalk auth clear
 
 # List all stored workspaces
-agent-channel auth list
+agent-channeltalk auth list
 
 # Switch active workspace
-agent-channel auth use <workspace-id>
+agent-channeltalk auth use <workspace-id>
 
 # Remove a stored workspace
-agent-channel auth remove <workspace-id>
+agent-channeltalk auth remove <workspace-id>
 ```
 
 ### Message Commands
 
 ```bash
 # Send a message (chat-type: group, user-chat, or direct-chat)
-agent-channel message send <chat-type> <chat-id> <text>
-agent-channel message send group grp_abc123 "Hello team!"
-agent-channel message send user-chat uc_abc123 "Thanks for reaching out!"
-agent-channel message send direct-chat dc_abc123 "Quick question..."
+agent-channeltalk message send <chat-type> <chat-id> <text>
+agent-channeltalk message send group grp_abc123 "Hello team!"
+agent-channeltalk message send user-chat uc_abc123 "Thanks for reaching out!"
+agent-channeltalk message send direct-chat dc_abc123 "Quick question..."
 
 # List messages from a group, user chat, or direct chat
-agent-channel message list <chat-type> <chat-id>
-agent-channel message list group grp_abc123 --limit 50
-agent-channel message list user-chat uc_abc123 --sort asc
+agent-channeltalk message list <chat-type> <chat-id>
+agent-channeltalk message list group grp_abc123 --limit 50
+agent-channeltalk message list user-chat uc_abc123 --sort asc
 ```
 
 ### Chat Commands (UserChats)
 
 ```bash
 # List user chats assigned to me (default: opened)
-agent-channel chat list
-agent-channel chat list --state opened
-agent-channel chat list --state snoozed
-agent-channel chat list --state closed
-agent-channel chat list --limit 50
+agent-channeltalk chat list
+agent-channeltalk chat list --state opened
+agent-channeltalk chat list --state snoozed
+agent-channeltalk chat list --state closed
+agent-channeltalk chat list --limit 50
 
 # Get a specific user chat
-agent-channel chat get <chat-id>
+agent-channeltalk chat get <chat-id>
 ```
 
 ### Group Commands
 
 ```bash
 # List groups
-agent-channel group list
-agent-channel group list --limit 50
+agent-channeltalk group list
+agent-channeltalk group list --limit 50
 
 # Get a group by ID
-agent-channel group get <group-id>
+agent-channeltalk group get <group-id>
 
 # Get messages from a group
-agent-channel group messages <group-id>
-agent-channel group messages grp_abc123 --limit 50 --sort asc
+agent-channeltalk group messages <group-id>
+agent-channeltalk group messages grp_abc123 --limit 50 --sort asc
 ```
 
 ### Manager Commands
 
 ```bash
 # List all managers
-agent-channel manager list
-agent-channel manager list --limit 50
+agent-channeltalk manager list
+agent-channeltalk manager list --limit 50
 ```
 
 ### Bot Commands
 
 ```bash
 # List all bots
-agent-channel bot list
-agent-channel bot list --limit 50
+agent-channeltalk bot list
+agent-channeltalk bot list --limit 50
 ```
 
 ### Snapshot Command
@@ -252,14 +252,14 @@ Get comprehensive workspace state for AI agents:
 
 ```bash
 # Full snapshot of current workspace
-agent-channel snapshot
+agent-channeltalk snapshot
 
 # Filtered snapshots
-agent-channel snapshot --groups-only
-agent-channel snapshot --chats-only
+agent-channeltalk snapshot --groups-only
+agent-channeltalk snapshot --chats-only
 
 # Limit messages per group/chat
-agent-channel snapshot --limit 10
+agent-channeltalk snapshot --limit 10
 ```
 
 Returns JSON with:
@@ -293,7 +293,7 @@ All commands output JSON by default for AI consumption:
 Use `--pretty` flag for formatted output:
 
 ```bash
-agent-channel group list --pretty
+agent-channeltalk group list --pretty
 ```
 
 ## Global Options
@@ -321,7 +321,7 @@ All commands return consistent error format:
 
 ```json
 {
-  "error": "No credentials. Run \"agent-channel auth extract\" first."
+  "error": "No credentials. Run \"agent-channeltalk auth extract\" first."
 }
 ```
 
@@ -349,9 +349,9 @@ Config format:
 }
 ```
 
-## Feature Comparison: agent-channel vs agent-channelbot
+## Feature Comparison: agent-channeltalk vs agent-channeltalkbot
 
-| Feature                    | agent-channel (user) | agent-channelbot (bot) |
+| Feature                    | agent-channeltalk (user) | agent-channeltalkbot (bot) |
 | -------------------------- | :------------------: | :--------------------: |
 | Auth method                | Auto-extract cookies | API key + secret       |
 | Setup required             | None (zero-config)   | Manual key setup       |
@@ -366,7 +366,7 @@ Config format:
 | Multi-workspace            | ✅                   | ✅                     |
 | CI/CD friendly             | -                    | ✅                     |
 
-Use **agent-channel** when you want zero-config access acting as yourself. Use **agent-channelbot** for server-side automation, CI/CD pipelines, or when you need bot-specific features like closing chats.
+Use **agent-channeltalk** when you want zero-config access acting as yourself. Use **agent-channeltalkbot** for server-side automation, CI/CD pipelines, or when you need bot-specific features like closing chats.
 
 ## Limitations
 
@@ -375,33 +375,33 @@ Use **agent-channel** when you want zero-config access acting as yourself. Use *
 - No file upload support
 - No message editing or deletion
 - No message search (Channel Talk desk API does not provide a search endpoint)
-- No chat close/delete (use agent-channelbot for chat management)
-- No bot creation/deletion (use agent-channelbot for bot management)
+- No chat close/delete (use agent-channeltalkbot for chat management)
+- No bot creation/deletion (use agent-channeltalkbot for bot management)
 - No @name group references (use group IDs from `group list`)
 - Plain text messages only (no rich blocks in v1)
 - Cookies expire after ~30 days (auto-re-extracted)
 
 ## Troubleshooting
 
-### `agent-channel: command not found`
+### `agent-channeltalk: command not found`
 
-**`agent-channel` is NOT the npm package name.** The npm package is `agent-messenger`.
+**`agent-channeltalk` is NOT the npm package name.** The npm package is `agent-messenger`.
 
-If the package is installed globally, use `agent-channel` directly:
+If the package is installed globally, use `agent-channeltalk` directly:
 
 ```bash
-agent-channel snapshot --pretty
+agent-channeltalk snapshot --pretty
 ```
 
 If the package is NOT installed, run it directly with `npx -y`:
 
 ```bash
-npx -y agent-messenger channel snapshot --pretty
+npx -y agent-messenger channeltalk snapshot --pretty
 ```
 
 > **Note**: If the user prefers a different package runner (e.g., `bunx`, `pnpx`, `pnpm dlx`), use that instead.
 
-**NEVER run `npx agent-channel`, `bunx agent-channel`, or `pnpm dlx agent-channel`**. It will fail or install a wrong package since `agent-channel` is not the npm package name.
+**NEVER run `npx agent-channeltalk`, `bunx agent-channeltalk`, or `pnpm dlx agent-channeltalk`**. It will fail or install a wrong package since `agent-channeltalk` is not the npm package name.
 
 ### Channel Talk desktop app not found
 
@@ -418,7 +418,7 @@ Cookies expire after roughly 30 days. The CLI automatically re-extracts on the n
 
 1. Open the Channel Talk desktop app
 2. Make sure you're logged in
-3. Run `agent-channel auth extract`
+3. Run `agent-channeltalk auth extract`
 
 For other troubleshooting, see [references/authentication.md](references/authentication.md).
 

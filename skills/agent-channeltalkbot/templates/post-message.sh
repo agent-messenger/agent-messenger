@@ -42,7 +42,7 @@ send_message() {
   while [ $attempt -le $max_attempts ]; do
     echo -e "${YELLOW}Attempt $attempt/$max_attempts...${NC}"
 
-    RESULT=$(agent-channelbot message send "$target" "$message" 2>&1) || true
+    RESULT=$(agent-channeltalkbot message send "$target" "$message" 2>&1) || true
     MSG_ID=$(echo "$RESULT" | jq -r '.id // ""')
 
     if [ -n "$MSG_ID" ] && [ "$MSG_ID" != "null" ]; then
@@ -59,7 +59,7 @@ send_message() {
     case "$ERROR" in
       *"No credentials"*)
         echo ""
-        echo "Run: agent-channelbot auth set your-access-key your-access-secret"
+        echo "Run: agent-channeltalkbot auth set your-access-key your-access-secret"
         return 1
         ;;
       *"not found"*)
@@ -82,8 +82,8 @@ send_message() {
   return 1
 }
 
-if ! command -v agent-channelbot &> /dev/null; then
-  echo -e "${RED}Error: agent-channelbot not found${NC}"
+if ! command -v agent-channeltalkbot &> /dev/null; then
+  echo -e "${RED}Error: agent-channeltalkbot not found${NC}"
   echo ""
   echo "Install it with:"
   echo "  npm install -g agent-messenger"
@@ -91,13 +91,13 @@ if ! command -v agent-channelbot &> /dev/null; then
 fi
 
 echo "Checking authentication..."
-AUTH_STATUS=$(agent-channelbot auth status 2>&1)
+AUTH_STATUS=$(agent-channeltalkbot auth status 2>&1)
 VALID=$(echo "$AUTH_STATUS" | jq -r '.valid // false')
 
 if [ "$VALID" != "true" ]; then
   echo -e "${RED}Not authenticated!${NC}"
   echo ""
-  echo "Run: agent-channelbot auth set your-access-key your-access-secret"
+  echo "Run: agent-channeltalkbot auth set your-access-key your-access-secret"
   exit 1
 fi
 

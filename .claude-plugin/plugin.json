@@ -23,12 +23,12 @@
   "homepage": "https://github.com/devxoul/agent-messenger",
   "repository": "https://github.com/devxoul/agent-messenger",
   "skills": [
-    "./skills/agent-channel",
+    "./skills/agent-channeltalk",
     "./skills/agent-slack",
     "./skills/agent-slackbot",
     "./skills/agent-discord",
     "./skills/agent-discordbot",
     "./skills/agent-teams",
-    "./skills/agent-channelbot"
+    "./skills/agent-channeltalkbot"
   ]
 }

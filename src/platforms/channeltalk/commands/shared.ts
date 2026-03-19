@@ -11,7 +11,7 @@ export async function getClient(options: SharedOptions = {}): Promise<ChannelCli
   const creds = await credManager.getCredentials(options.workspace)
 
   if (!creds) {
-    throw new Error('No credentials. Run "agent-channel auth extract" first.')
+    throw new Error('No credentials. Run "agent-channeltalk auth extract" first.')
   }
 
   return new ChannelClient(creds.account_cookie, creds.session_cookie)
@@ -22,7 +22,7 @@ export async function getCurrentWorkspaceId(options: SharedOptions = {}): Promis
   const creds = await credManager.getCredentials(options.workspace)
 
   if (!creds) {
-    throw new Error('No credentials. Run "agent-channel auth extract" first.')
+    throw new Error('No credentials. Run "agent-channeltalk auth extract" first.')
   }
 
   return creds.workspace_id

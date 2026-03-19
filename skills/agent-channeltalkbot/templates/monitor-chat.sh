@@ -26,7 +26,7 @@ LAST_ID=""
 FIRST_RUN=true
 
 check_chats() {
-  CHATS=$(agent-channelbot chat list --state opened --limit 10 2>&1)
+  CHATS=$(agent-channeltalkbot chat list --state opened --limit 10 2>&1)
   LATEST_ID=$(echo "$CHATS" | jq -r '.chats[0].id // ""')
 
   if [ -z "$LATEST_ID" ]; then
@@ -58,8 +58,8 @@ check_chats() {
   return 0
 }
 
-if ! command -v agent-channelbot &> /dev/null; then
-  echo -e "${RED}Error: agent-channelbot not found${NC}"
+if ! command -v agent-channeltalkbot &> /dev/null; then
+  echo -e "${RED}Error: agent-channeltalkbot not found${NC}"
   echo "Install: npm install -g agent-messenger"
   exit 1
 fi
@@ -71,11 +71,11 @@ if ! command -v jq &> /dev/null; then
 fi
 
 echo "Checking authentication..."
-AUTH_STATUS=$(agent-channelbot auth status 2>&1)
+AUTH_STATUS=$(agent-channeltalkbot auth status 2>&1)
 VALID=$(echo "$AUTH_STATUS" | jq -r '.valid // false')
 
 if [ "$VALID" != "true" ]; then
-  echo -e "${RED}Not authenticated! Run: agent-channelbot auth set your-access-key your-access-secret${NC}"
+  echo -e "${RED}Not authenticated! Run: agent-channeltalkbot auth set your-access-key your-access-secret${NC}"
   exit 1
 fi
 

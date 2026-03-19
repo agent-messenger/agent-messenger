@@ -2,7 +2,7 @@
 
 ## Overview
 
-agent-channel uses cookies extracted directly from the Channel Talk desktop application. This provides seamless, zero-config authentication without API keys or manual token management.
+agent-channeltalk uses cookies extracted directly from the Channel Talk desktop application. This provides seamless, zero-config authentication without API keys or manual token management.
 
 ## Cookie Extraction
 
@@ -11,13 +11,13 @@ agent-channel uses cookies extracted directly from the Channel Talk desktop appl
 Authentication happens automatically on first use. Just run any command:
 
 ```bash
-agent-channel snapshot
+agent-channeltalk snapshot
 ```
 
 This triggers the extraction flow behind the scenes. You can also extract manually:
 
 ```bash
-agent-channel auth extract
+agent-channeltalk auth extract
 ```
 
 ### How It Works
@@ -65,7 +65,7 @@ The tool checks the sandboxed path first, then falls back to the direct path.
 See all available workspaces:
 
 ```bash
-agent-channel auth list
+agent-channeltalk auth list
 ```
 
 Output:
@@ -90,7 +90,7 @@ Output:
 Change the active workspace:
 
 ```bash
-agent-channel auth use def456
+agent-channeltalk auth use def456
 ```
 
 All subsequent commands will use the selected workspace until you switch again.
@@ -100,7 +100,7 @@ All subsequent commands will use the selected workspace until you switch again.
 Use a specific workspace for a single command without switching:
 
 ```bash
-agent-channel snapshot --workspace def456
+agent-channeltalk snapshot --workspace def456
 ```
 
 ## Credential Storage
@@ -150,7 +150,7 @@ agent-channel snapshot --workspace def456
 Check if you're authenticated:
 
 ```bash
-agent-channel auth status
+agent-channeltalk auth status
 ```
 
 Output when authenticated:
@@ -169,7 +169,7 @@ Output when not authenticated:
 ```json
 {
   "valid": false,
-  "error": "No credentials. Run \"agent-channel auth extract\" first."
+  "error": "No credentials. Run \"agent-channeltalk auth extract\" first."
 }
 ```
 
@@ -194,10 +194,10 @@ If commands start failing with auth errors:
 
 ```bash
 # Re-extract credentials
-agent-channel auth extract
+agent-channeltalk auth extract
 
 # Verify it worked
-agent-channel auth status
+agent-channeltalk auth status
 ```
 
 ## Environment Variables for CI/CD
@@ -215,7 +215,7 @@ export E2E_CHANNEL_ACCOUNT_COOKIE="eyJ..."
 export E2E_CHANNEL_SESSION_COOKIE="eyJ..."
 export E2E_CHANNEL_CHANNEL_ID="abc123"
 
-agent-channel snapshot
+agent-channeltalk snapshot
 ```
 
 ## Clearing Credentials
@@ -223,13 +223,13 @@ agent-channel snapshot
 Remove all stored credentials:
 
 ```bash
-agent-channel auth clear
+agent-channeltalk auth clear
 ```
 
 Remove a specific workspace:
 
 ```bash
-agent-channel auth remove <workspace-id>
+agent-channeltalk auth remove <workspace-id>
 ```
 
 ## Troubleshooting
@@ -240,8 +240,8 @@ No credentials are configured and auto-extraction failed:
 
 1. Make sure the Channel Talk desktop app is installed
 2. Open the app and log in
-3. Run `agent-channel auth extract`
-4. Verify with `agent-channel auth status`
+3. Run `agent-channeltalk auth extract`
+4. Verify with `agent-channeltalk auth status`
 
 ### Channel Talk desktop app not found
 
@@ -254,40 +254,40 @@ If neither path exists:
 
 1. Install the Channel Talk desktop app from the Mac App Store or download it directly
 2. Log in to your account
-3. Run `agent-channel auth extract`
+3. Run `agent-channeltalk auth extract`
 
 ### Cookies expired or invalid
 
 If commands fail with authentication errors:
 
 1. Open the Channel Talk desktop app (make sure you're logged in)
-2. Run `agent-channel auth extract` to get fresh cookies
-3. Verify with `agent-channel auth status`
+2. Run `agent-channeltalk auth extract` to get fresh cookies
+3. Verify with `agent-channeltalk auth status`
 
 ### "Workspace not found" Error
 
 The specified workspace ID doesn't match any stored credentials:
 
-1. Run `agent-channel auth list` to see available workspaces
+1. Run `agent-channeltalk auth list` to see available workspaces
 2. Use the correct workspace ID with `auth use <workspace-id>`
 
 ## Security Considerations
 
-### What agent-channel Can Access
+### What agent-channeltalk Can Access
 
-With extracted credentials, agent-channel has the same permissions as you in Channel Talk:
+With extracted credentials, agent-channeltalk has the same permissions as you in Channel Talk:
 
 - Read all chats and groups you have access to
 - Send messages as yourself (as a manager)
 - View workspace members and bots
 - Access workspace metadata
 
-### What agent-channel Cannot Do
+### What agent-channeltalk Cannot Do
 
 - Access workspaces you don't belong to
 - Perform admin operations (unless you're an admin)
-- Close or delete chats (use agent-channelbot for that)
-- Create or delete bots (use agent-channelbot for that)
+- Close or delete chats (use agent-channeltalkbot for that)
+- Create or delete bots (use agent-channeltalkbot for that)
 
 ### Best Practices
 

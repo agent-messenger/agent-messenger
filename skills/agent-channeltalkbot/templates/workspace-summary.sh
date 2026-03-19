@@ -27,8 +27,8 @@ CYAN='\033[0;36m'
 BOLD='\033[1m'
 NC='\033[0m'
 
-if ! command -v agent-channelbot &> /dev/null; then
-  echo -e "${RED}Error: agent-channelbot not found${NC}" >&2
+if ! command -v agent-channeltalkbot &> /dev/null; then
+  echo -e "${RED}Error: agent-channeltalkbot not found${NC}" >&2
   echo "Install: npm install -g agent-messenger" >&2
   exit 1
 fi
@@ -39,11 +39,11 @@ if ! command -v jq &> /dev/null; then
   exit 1
 fi
 
-AUTH_STATUS=$(agent-channelbot auth status 2>&1) || true
+AUTH_STATUS=$(agent-channeltalkbot auth status 2>&1) || true
 VALID=$(echo "$AUTH_STATUS" | jq -r '.valid // false')
 
 if [ "$VALID" != "true" ]; then
-  echo -e "${RED}Not authenticated! Run: agent-channelbot auth set your-access-key your-access-secret${NC}" >&2
+  echo -e "${RED}Not authenticated! Run: agent-channeltalkbot auth set your-access-key your-access-secret${NC}" >&2
   exit 1
 fi
 
@@ -52,7 +52,7 @@ WORKSPACE_ID=$(echo "$AUTH_STATUS" | jq -r '.workspace_id // "Unknown"')
 
 echo -e "${YELLOW}Fetching workspace data...${NC}" >&2
 
-SNAPSHOT=$(agent-channelbot snapshot 2>&1)
+SNAPSHOT=$(agent-channeltalkbot snapshot 2>&1)
 SNAPSHOT_ERROR=$(echo "$SNAPSHOT" | jq -r '.error // ""' 2>/dev/null)
 if [ -n "$SNAPSHOT_ERROR" ]; then
   echo -e "${RED}Snapshot failed: $SNAPSHOT_ERROR${NC}" >&2
@@ -109,11 +109,11 @@ echo ""
 FIRST_GROUP=$(echo "$SNAPSHOT" | jq -r '.groups[0].name // ""' 2>/dev/null)
 if [ -n "$FIRST_GROUP" ]; then
   echo -e "  ${GREEN}# Send message to @$FIRST_GROUP${NC}"
-  echo -e "  agent-channelbot message send @$FIRST_GROUP \"Hello!\""
+  echo -e "  agent-channeltalkbot message send @$FIRST_GROUP \"Hello!\""
   echo ""
 fi
 echo -e "  ${GREEN}# List open chats${NC}"
-echo -e "  agent-channelbot chat list --state opened --pretty"
+echo -e "  agent-channeltalkbot chat list --state opened --pretty"
 echo ""
 
 echo -e "${BLUE}================================================${NC}"

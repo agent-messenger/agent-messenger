@@ -160,9 +160,9 @@ export async function validateChannelBotEnvironment(): Promise<{ groupId: string
 
   const { runCLI, parseJSON } = await import('./helpers')
 
-  const result = await runCLI('channelbot', ['auth', 'status'])
+  const result = await runCLI('channeltalkbot', ['auth', 'status'])
   if (result.exitCode !== 0) {
-    throw new Error('ChannelBot authentication failed. Run: agent-channelbot auth set <access-key> <access-secret>')
+    throw new Error('ChannelBot authentication failed. Run: agent-channeltalkbot auth set <access-key> <access-secret>')
   }
 
   const data = parseJSON<{ valid: boolean; workspace_id: string }>(result.stdout)
@@ -176,7 +176,7 @@ export async function validateChannelBotEnvironment(): Promise<{ groupId: string
     )
   }
 
-  const groupsResult = await runCLI('channelbot', ['group', 'list'])
+  const groupsResult = await runCLI('channeltalkbot', ['group', 'list'])
   if (groupsResult.exitCode !== 0) {
     throw new Error(`Failed to list ChannelBot groups: ${groupsResult.stderr}`)
   }
@@ -201,14 +201,14 @@ export async function validateChannelEnvironment(): Promise<{ groupId: string; g
 
   const { runCLI, parseJSON } = await import('./helpers')
 
-  const result = await runCLI('channel', ['auth', 'status'])
+  const result = await runCLI('channeltalk', ['auth', 'status'])
   if (result.exitCode !== 0) {
-    throw new Error('Channel authentication failed. Run: agent-channel auth extract')
+    throw new Error('Channel authentication failed. Run: agent-channeltalk auth extract')
   }
 
   const data = parseJSON<{ valid: boolean; workspace_id: string }>(result.stdout)
   if (!data?.valid) {
-    throw new Error('Channel credentials invalid. Run: agent-channel auth extract')
+    throw new Error('Channel credentials invalid. Run: agent-channeltalk auth extract')
   }
   if (data?.workspace_id !== CHANNEL_TEST_WORKSPACE_ID) {
     throw new Error(
@@ -217,7 +217,7 @@ export async function validateChannelEnvironment(): Promise<{ groupId: string; g
     )
   }
 
-  const groupsResult = await runCLI('channel', ['group', 'list'])
+  const groupsResult = await runCLI('channeltalk', ['group', 'list'])
   if (groupsResult.exitCode !== 0) {
     throw new Error(`Failed to list Channel groups: ${groupsResult.stderr}`)
   }
