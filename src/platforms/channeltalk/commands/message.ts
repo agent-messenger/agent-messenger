@@ -3,10 +3,13 @@ import { Command } from 'commander'
 import { formatOutput } from '@/shared/utils/output'
 
 import { ChannelClient } from '../client'
-import type { MessageBlock } from '../types'
+import type { ChannelSearchHit, ChannelMessage, MessageBlock } from '../types'
 import { getClient, getCurrentWorkspaceId } from './shared'
 
 type ChatType = 'group' | 'user-chat' | 'direct-chat'
+type SearchScope = 'team-chat' | 'user-chat'
+
+const VALID_SEARCH_SCOPES: readonly SearchScope[] = ['team-chat', 'user-chat'] as const
 
 interface ActionOptions {
   workspace?: string
@@ -16,6 +19,11 @@ interface ActionOptions {
 type MessageOptions = ActionOptions & {
   limit?: string
   sort?: string
+}
+
+type SearchOptions = ActionOptions & {
+  scope?: string
+  limit?: string
 }
 
 interface MessageSummary {
@@ -114,6 +122,59 @@ export async function getAction(
   }
 }
 
+interface SearchResultItem {
+  id: string
+  channel_id?: string
+  chat_type?: string
+  chat_id?: string
+  person_type?: string
+  person_id?: string
+  created_at?: number
+  plain_text?: string
+  highlight?: string[]
+}
+
+interface SearchResult {
+  results?: SearchResultItem[]
+  error?: string
+}
+
+export async function searchAction(query: string, options: SearchOptions = {}): Promise<SearchResult> {
+  try {
+    const client = await getClient(options)
+    const channelId = await getCurrentWorkspaceId(options)
+    const limit = options.limit ? parseLimit(options.limit) : undefined
+    const scope = parseScope(options.scope)
+
+    const response =
+      scope === 'user-chat'
+        ? await client.searchUserChatMessages(channelId, query, { limit })
+        : await client.searchTeamChatMessages(channelId, query, { limit })
+
+    return {
+      results: response.hits.map((hit: ChannelSearchHit) => ({
+        id: hit.source.id,
+        channel_id: hit.source.channelId,
+        chat_type: hit.source.chatType,
+        chat_id: hit.source.chatId,
+        person_type: hit.source.personType,
+        person_id: hit.source.personId,
+        created_at: hit.source.createdAt,
+        plain_text: ChannelClient.extractText(hit.source as ChannelMessage),
+        highlight: hit.highlight?.plainText?.fragments,
+      })),
+    }
+  } catch (error) {
+    return { error: (error as Error).message }
+  }
+}
+
+function parseScope(scope?: string): SearchScope {
+  if (!scope) return 'team-chat'
+  if (VALID_SEARCH_SCOPES.includes(scope as SearchScope)) return scope as SearchScope
+  throw new Error(`Invalid --scope value "${scope}". Must be one of: ${VALID_SEARCH_SCOPES.join(', ')}`)
+}
+
 function parseLimit(limit?: string): number {
   const parsed = limit ? Number(limit) : 25
   if (!Number.isInteger(parsed) || parsed < 1) {
@@ -184,7 +245,7 @@ function toMessageResult(message: {
   }
 }
 
-function cliOutput(result: MessageResult, pretty?: boolean): void {
+function cliOutput(result: { error?: string }, pretty?: boolean): void {
   console.log(formatOutput(result, pretty))
   if (result.error) {
     process.exit(1)
@@ -229,6 +290,18 @@ export function createMessageCommand(): Command {
         .option('--pretty', 'Pretty print JSON output')
         .action(async (chatType: ChatType, chatId: string, messageId: string, opts: ActionOptions) => {
           cliOutput(await getAction(chatType, chatId, messageId, opts), opts.pretty)
+        }),
+    )
+    .addCommand(
+      new Command('search')
+        .description('Search messages across team chats or user chats')
+        .argument('<query>', 'Search query')
+        .option('--scope <scope>', 'Search scope: team-chat or user-chat (default: team-chat)')
+        .option('--limit <n>', 'Number of results')
+        .option('--workspace <id>', 'Workspace ID')
+        .option('--pretty', 'Pretty print JSON output')
+        .action(async (query: string, opts: SearchOptions) => {
+          cliOutput(await searchAction(query, opts), opts.pretty)
         }),
     )
 }
