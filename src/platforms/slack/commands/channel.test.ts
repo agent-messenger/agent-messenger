@@ -7,8 +7,11 @@ describe('Channel Commands', () => {
   let mockClient: SlackClient
 
   beforeEach(() => {
-    // Mock SlackClient
     mockClient = {
+      openConversation: mock(async (users: string) => ({
+        channel_id: 'D0ABC123',
+        already_open: false,
+      })),
       listChannels: mock(async () => [
         {
           id: 'C001',
@@ -219,6 +222,49 @@ describe('Channel Commands', () => {
       // When: Checking command structure
       // Then: Should be alias for message list
       expect(true).toBe(true)
+    })
+  })
+
+  describe('channel open', () => {
+    test('opens a DM channel with a single user', async () => {
+      // Given: A user ID
+      // When: Opening a conversation
+      const result = await mockClient.openConversation('U001')
+
+      // Then: Should return channel ID and open status
+      expect(result.channel_id).toBe('D0ABC123')
+      expect(result.already_open).toBe(false)
+      expect(mockClient.openConversation).toHaveBeenCalledWith('U001')
+    })
+
+    test('returns already_open when DM exists', async () => {
+      // Given: An existing DM conversation
+      ;(mockClient.openConversation as any).mockImplementation(async () => ({
+        channel_id: 'D0ABC123',
+        already_open: true,
+      }))
+
+      // When: Opening the conversation
+      const result = await mockClient.openConversation('U001')
+
+      // Then: Should indicate already open
+      expect(result.channel_id).toBe('D0ABC123')
+      expect(result.already_open).toBe(true)
+    })
+
+    test('opens a group DM with multiple users', async () => {
+      // Given: Multiple user IDs
+      ;(mockClient.openConversation as any).mockImplementation(async () => ({
+        channel_id: 'G0ABC123',
+        already_open: false,
+      }))
+
+      // When: Opening a group conversation
+      const result = await mockClient.openConversation('U001,U002')
+
+      // Then: Should return group DM channel ID
+      expect(result.channel_id).toBe('G0ABC123')
+      expect(mockClient.openConversation).toHaveBeenCalledWith('U001,U002')
     })
   })
 

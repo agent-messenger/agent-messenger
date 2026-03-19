@@ -774,6 +774,18 @@ export class SlackClient {
     })
   }
 
+  async openConversation(users: string): Promise<{ channel_id: string; already_open: boolean }> {
+    return this.withRetry(async () => {
+      const response = await this.client.conversations.open({ users })
+      this.checkResponse(response)
+
+      return {
+        channel_id: response.channel!.id!,
+        already_open: response.already_open || false,
+      }
+    })
+  }
+
   async getDrafts(cursor?: string): Promise<{ drafts: SlackDraft[]; next_cursor?: string }> {
     return this.withRetry(async () => {
       const response = await this.client.apiCall('drafts.list', {
