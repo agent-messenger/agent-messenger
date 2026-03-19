@@ -361,7 +361,17 @@ export class TelegramTdlibClient {
         '@type': 'searchPublicChat',
         username,
       })
-    } catch {
+    } catch (error) {
+      const isNotFound =
+        error instanceof TelegramError &&
+        (error.code === 400 ||
+          String(error.message).toLowerCase().includes('not found') ||
+          String(error.message).toLowerCase().includes('username not occupied'))
+
+      if (!isNotFound) {
+        throw error
+      }
+
       const chats = await this.searchChats(reference, 20)
       const exactMatch = chats.find((chat) => this.normalizeChatSearchText(chat.title) === this.normalizeChatSearchText(reference))
 
