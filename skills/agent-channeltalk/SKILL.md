@@ -1,6 +1,6 @@
 ---
 name: agent-channeltalk
-description: Interact with Channel Talk using extracted desktop app credentials - read chats, send messages, manage groups
+description: Interact with Channel Talk using extracted desktop app credentials - read chats, send messages, search messages, manage groups
 version: 1.15.0
 allowed-tools: Bash(agent-channeltalk:*)
 metadata:
@@ -199,6 +199,14 @@ agent-channeltalk message send direct-chat dc_abc123 "Quick question..."
 agent-channeltalk message list <chat-type> <chat-id>
 agent-channeltalk message list group grp_abc123 --limit 50
 agent-channeltalk message list user-chat uc_abc123 --sort asc
+
+# Get a specific message by ID
+agent-channeltalk message get <chat-type> <chat-id> <message-id>
+
+# Search messages across team chats or user chats
+agent-channeltalk message search <query>
+agent-channeltalk message search "deployment" --scope team-chat
+agent-channeltalk message search "refund" --scope user-chat --limit 10
 ```
 
 ### Chat Commands (UserChats)
@@ -358,6 +366,7 @@ Config format:
 | Acts as                    | You (manager)        | Bot identity           |
 | Send messages              | ✅                   | ✅                     |
 | List messages              | ✅                   | ✅                     |
+| Search messages            | ✅                   | -                      |
 | Close/delete chats         | -                    | ✅                     |
 | Create/delete bots         | -                    | ✅                     |
 | Set default bot            | -                    | ✅                     |
@@ -374,7 +383,6 @@ Use **agent-channeltalk** when you want zero-config access acting as yourself. U
 - No real-time events / WebSocket connection
 - No file upload support
 - No message editing or deletion
-- No message search (Channel Talk desk API does not provide a search endpoint)
 - No chat close/delete (use agent-channeltalkbot for chat management)
 - No bot creation/deletion (use agent-channeltalkbot for bot management)
 - No @name group references (use group IDs from `group list`)
