@@ -1,5 +1,6 @@
 import { mkdir } from 'node:fs/promises'
 import pkg from '../../../package.json' with { type: 'json' }
+import { findFuzzyChats, mergeChats, normalizeChatSearchText } from './chat-utils'
 import { TdjsonBinding } from './tdlib'
 import {
   parseChatReference,
@@ -188,8 +189,8 @@ export class TelegramTdlibClient {
     })) as TdChats
 
     const directMatches = (local.chat_ids ?? []).length > 0 ? await this.getChatsByIds(local.chat_ids) : []
-    const fuzzyMatches = this.findFuzzyChats(localCache, query, limit)
-    const mergedMatches = this.mergeChats(directMatches, fuzzyMatches)
+    const fuzzyMatches = findFuzzyChats(localCache, query, limit)
+    const mergedMatches = mergeChats(directMatches, fuzzyMatches)
 
     if (mergedMatches.length > 0) {
       return mergedMatches.slice(0, limit)
@@ -201,7 +202,7 @@ export class TelegramTdlibClient {
     })) as TdChats
 
     const remoteMatches = (remote.chat_ids ?? []).length > 0 ? await this.getChatsByIds(remote.chat_ids) : []
-    return this.mergeChats(remoteMatches, fuzzyMatches).slice(0, limit)
+    return mergeChats(remoteMatches, fuzzyMatches).slice(0, limit)
   }
 
   async getChat(reference: string): Promise<TelegramChatSummary> {
@@ -379,7 +380,7 @@ export class TelegramTdlibClient {
       }
 
       const chats = await this.searchChats(reference, 20)
-      const exactMatch = chats.find((chat) => this.normalizeChatSearchText(chat.title) === this.normalizeChatSearchText(reference))
+      const exactMatch = chats.find((chat) => normalizeChatSearchText(chat.title) === normalizeChatSearchText(reference))
 
       if (exactMatch) {
         return this.call({
@@ -400,43 +401,6 @@ export class TelegramTdlibClient {
         'chat_not_found',
       )
     }
-  }
-
-  private normalizeChatSearchText(value: string): string {
-    return value
-      .toLowerCase()
-      .replace(/\s+/g, '')
-      .replace(/[^\p{L}\p{N}]+/gu, '')
-  }
-
-  private findFuzzyChats(chats: TelegramChatSummary[], query: string, limit: number): TelegramChatSummary[] {
-    const normalizedQuery = this.normalizeChatSearchText(query)
-    if (!normalizedQuery) {
-      return []
-    }
-
-    return chats
-      .filter((chat) => {
-        const normalizedTitle = this.normalizeChatSearchText(chat.title)
-        return normalizedTitle.includes(normalizedQuery) || normalizedQuery.includes(normalizedTitle)
-      })
-      .slice(0, limit)
-  }
-
-  private mergeChats(primary: TelegramChatSummary[], secondary: TelegramChatSummary[]): TelegramChatSummary[] {
-    const seen = new Set<number>()
-    const merged: TelegramChatSummary[] = []
-
-    for (const chat of [...primary, ...secondary]) {
-      if (seen.has(chat.id)) {
-        continue
-      }
-
-      seen.add(chat.id)
-      merged.push(chat)
-    }
-
-    return merged
   }
 
   private async getChatsByIds(chatIds: number[]): Promise<TelegramChatSummary[]> {

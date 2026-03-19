@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test'
+import { findFuzzyChats, normalizeChatSearchText } from './chat-utils'
 import { createAccountId, simplifyChat, simplifyMessage, summarizeAuthorizationState } from './types'
-import { TelegramTdlibClient } from './client'
 
 describe('telegram type helpers', () => {
   test('createAccountId normalizes phone numbers', () => {
@@ -66,18 +66,9 @@ describe('telegram type helpers', () => {
   })
 
   test('normalize and fuzzy search logic can match titles despite spacing differences', () => {
-    const client = Object.create(TelegramTdlibClient.prototype) as TelegramTdlibClient & {
-      normalizeChatSearchText(value: string): string
-      findFuzzyChats(
-        chats: Array<{ id: number; title: string; type: string; unread_count: number }>,
-        query: string,
-        limit: number,
-      ): Array<{ id: number; title: string; type: string; unread_count: number }>
-    }
-
-    expect(client.normalizeChatSearchText('Project Room')).toBe('projectroom')
+    expect(normalizeChatSearchText('Project Room')).toBe('projectroom')
     expect(
-      client.findFuzzyChats([{ id: 1, title: 'ProjectRoom', type: 'private', unread_count: 0 }], 'Project Room', 10),
+      findFuzzyChats([{ id: 1, title: 'ProjectRoom', type: 'private', unread_count: 0 }], 'Project Room', 10),
     ).toHaveLength(1)
   })
 })
