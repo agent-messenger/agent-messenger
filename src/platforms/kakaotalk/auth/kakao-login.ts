@@ -13,7 +13,7 @@ const ANDROID_LOGIN_URL = 'https://katalk.kakao.com/android/account/login.json'
 const ANDROID_PASSCODE_URL = 'https://katalk.kakao.com/android/account/passcodeLogin/generate'
 const ANDROID_REGISTER_URL = 'https://katalk.kakao.com/android/account/passcodeLogin/registerDevice'
 
-const DEVICE_NAME = 'agent-messenger'
+const DEVICE_NAME = 'SM-G998N'
 const DEVICE_UUID_LENGTH = 64
 
 function generateDeviceUuid(): string {
