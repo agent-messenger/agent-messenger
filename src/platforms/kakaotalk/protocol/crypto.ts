@@ -1,5 +1,4 @@
-import { createPublicKey, publicEncrypt, randomBytes } from 'node:crypto'
-import { constants } from 'node:crypto'
+import { constants, createCipheriv, createDecipheriv, createPublicKey, publicEncrypt, randomBytes } from 'node:crypto'
 
 import {
   GCM_NONCE_SIZE,
@@ -38,7 +37,6 @@ export class LocoCrypto {
 
   // Wire format: [size: 4 LE][nonce: 12][ciphertext + GCM tag]
   encrypt(plaintext: Buffer): Buffer {
-    const { createCipheriv } = require('node:crypto')
     const nonce = randomBytes(GCM_NONCE_SIZE)
 
     const cipher = createCipheriv('aes-128-gcm', this.aesKey, nonce)
@@ -56,8 +54,6 @@ export class LocoCrypto {
 
   // Input: body after 4-byte size prefix — [nonce: 12][ciphertext + tag]
   decrypt(data: Buffer): Buffer {
-    const { createDecipheriv } = require('node:crypto')
-
     if (data.length < GCM_NONCE_SIZE + GCM_TAG_SIZE) {
       throw new Error(`GCM data too short: ${data.length} bytes`)
     }

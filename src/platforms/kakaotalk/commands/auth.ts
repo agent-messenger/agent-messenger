@@ -119,16 +119,6 @@ async function loginAction(options: KakaoAuthOptions): Promise<void> {
       onPasscodeDisplay,
     })
 
-    if (result.next_action === 'confirm_on_phone') {
-      if (!interactive) {
-        console.log(formatOutput({
-          next_action: 'confirm_on_phone',
-          message: result.message,
-        }, options.pretty))
-        return
-      }
-    }
-
     if (result.next_action === 'choose_device') {
       if (!interactive) {
         console.log(formatOutput({
@@ -310,7 +300,6 @@ export const authCommand = new Command('auth')
       .description('Login as a sub-device; prompts interactively or accepts flags for AI agents')
       .option('--email <email>', 'KakaoTalk email address')
       .option('--password <password>', 'KakaoTalk password')
-      .option('--passcode <code>', 'SMS passcode for device registration')
       .option('--device-type <type>', 'Device slot: tablet (default, safe) or pc', 'tablet')
       .option('--force', 'Force login even if device slot is occupied (kicks existing session)')
       .option('--pretty', 'Pretty print JSON output')

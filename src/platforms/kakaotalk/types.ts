@@ -46,6 +46,8 @@ export interface KakaoLoginResult {
   device_type?: KakaoDeviceType
   user_id?: string
   error?: string
+  passcode?: string
+  remaining_seconds?: number
 }
 
 export const KAKAO_NEXT_ACTIONS: Record<string, { next_action: string; message: string }> = {

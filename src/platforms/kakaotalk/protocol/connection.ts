@@ -5,13 +5,15 @@ import { LocoCrypto } from './crypto'
 import { decodePacket, encodePacket } from './packet'
 import type { LocoPacket } from './types'
 
+const DEFAULT_SEND_TIMEOUT_MS = 15_000
+
 export class LocoConnection {
   private socket: Socket | null = null
   private crypto: LocoCrypto | null = null
   private buffer = Buffer.alloc(0)
   private decryptedBuffer = Buffer.alloc(0)
   private packetIdCounter = 0
-  private pendingResolvers = new Map<number, (packet: LocoPacket) => void>()
+  private pendingResolvers = new Map<number, { resolve: (packet: LocoPacket) => void; timer: ReturnType<typeof setTimeout> }>()
   private pushHandler: ((packet: LocoPacket) => void) | null = null
 
   async connectTls(host: string, port: number): Promise<void> {
@@ -55,8 +57,12 @@ export class LocoConnection {
     const data = this.crypto ? this.crypto.encrypt(raw) : raw
     await this.write(data)
 
-    return new Promise((resolve) => {
-      this.pendingResolvers.set(packetId, resolve)
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => {
+        this.pendingResolvers.delete(packetId)
+        reject(new Error(`LOCO packet timeout: ${method} (${DEFAULT_SEND_TIMEOUT_MS}ms)`))
+      }, DEFAULT_SEND_TIMEOUT_MS)
+      this.pendingResolvers.set(packetId, { resolve, timer })
     })
   }
 
@@ -99,8 +105,9 @@ export class LocoConnection {
         let decrypted: Buffer
         try {
           decrypted = this.crypto.decrypt(encryptedBody)
-        } catch {
-          return
+        } catch (err) {
+          console.error(`[loco] decrypt failed: ${(err as Error).message}`)
+          continue
         }
 
         this.decryptedBuffer = Buffer.concat([this.decryptedBuffer, decrypted])
@@ -120,18 +127,20 @@ export class LocoConnection {
   }
 
   private dispatchPacket(packet: LocoPacket): void {
-    const resolver = this.pendingResolvers.get(packet.packetId)
-    if (resolver) {
+    const entry = this.pendingResolvers.get(packet.packetId)
+    if (entry) {
+      clearTimeout(entry.timer)
       this.pendingResolvers.delete(packet.packetId)
-      resolver(packet)
+      entry.resolve(packet)
     } else {
       this.pushHandler?.(packet)
     }
   }
 
   private onClose(): void {
-    for (const resolver of this.pendingResolvers.values()) {
-      resolver({ packetId: 0, statusCode: -1, method: '', bodyType: 0, body: { error: 'connection closed' } })
+    for (const entry of this.pendingResolvers.values()) {
+      clearTimeout(entry.timer)
+      entry.resolve({ packetId: 0, statusCode: -1, method: '', bodyType: 0, body: { error: 'connection closed' } })
     }
     this.pendingResolvers.clear()
   }

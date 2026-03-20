@@ -53,7 +53,8 @@ async function listAction(
     const seenLogIds = new Set<string>()
     let cur = startCursor
 
-    for (;;) {
+    const MAX_PAGES = 50
+    for (let page = 0; page < MAX_PAGES; page++) {
       const response = await session.syncMessages(cid, 80, cur, maxLogId)
       const batch = (response.body.chatLogs ?? []) as Array<Record<string, unknown>>
       if (batch.length === 0) break
@@ -109,7 +110,7 @@ async function sendAction(
       account.device_uuid ?? `agent-messenger-${account.user_id}`,
     )
 
-    const response = await session.sendMessage(Number(chatId), text)
+    const response = await session.sendMessage(parseLong(chatId), text)
 
     console.log(
       formatOutput(

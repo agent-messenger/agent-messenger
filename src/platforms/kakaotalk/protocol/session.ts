@@ -63,7 +63,7 @@ export class LocoSession {
     bookingConn.close()
 
     const booking = bookingResponse.body as unknown as BookingResponse
-    const checkinHost = booking.ticket?.lsl?.[0] ?? CHECKIN_HOST
+    const checkinHost = CHECKIN_HOST
     const checkinPort = booking.wifi?.ports?.[0] ?? CHECKIN_PORT
 
     const checkinConn = new LocoConnection()
@@ -89,7 +89,7 @@ export class LocoSession {
     return { host: checkin.host, port: checkin.port }
   }
 
-  async sendMessage(chatId: number, text: string): Promise<LocoPacket> {
+  async sendMessage(chatId: Long, text: string): Promise<LocoPacket> {
     if (!this.connection) throw new Error('Not connected')
     return this.connection.sendPacket('WRITE', {
       chatId,

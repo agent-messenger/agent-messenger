@@ -1,6 +1,5 @@
 import { createHash, randomBytes } from 'node:crypto'
 
-import { APP_VERSION } from '../protocol/config'
 import type { KakaoDeviceType, KakaoLoginResult } from '../types'
 
 // Android sub-device agent identity. Using Android (tablet) avoids conflicting
@@ -15,7 +14,6 @@ const ANDROID_PASSCODE_URL = 'https://katalk.kakao.com/android/account/passcodeL
 const ANDROID_REGISTER_URL = 'https://katalk.kakao.com/android/account/passcodeLogin/registerDevice'
 
 const DEVICE_NAME = 'SM-T870'
-const DEVICE_UUID_LENGTH = 64
 
 function generateDeviceUuid(): string {
   return randomBytes(32).toString('hex')
@@ -143,7 +141,7 @@ export async function requestPasscode(email: string, password: string, deviceUui
       message: `Enter this code on your phone when prompted: ${data.passcode}`,
       passcode: data.passcode,
       remaining_seconds: data.remainingSeconds,
-    } as KakaoLoginResult & { passcode: string; remaining_seconds?: number }
+    }
   }
 
   return {
@@ -237,8 +235,8 @@ export async function loginFlow(options: {
     }
 
     // Show the code and notify the caller (interactive or non-interactive)
-    if (options.onPasscodeDisplay) {
-      options.onPasscodeDisplay((passcodeResult as unknown as { passcode: string }).passcode)
+    if (options.onPasscodeDisplay && passcodeResult.passcode) {
+      options.onPasscodeDisplay(passcodeResult.passcode)
     }
 
     // Step 3: Poll registerDevice — waits for user to confirm on their phone
