@@ -139,9 +139,11 @@ export async function requestPasscode(email: string, password: string, deviceUui
   if (data.passcode) {
     return {
       authenticated: false,
-      next_action: 'provide_passcode',
-      message: `Enter the 4-digit passcode shown on your phone (${data.remainingSeconds ?? 180}s).`,
-    }
+      next_action: 'confirm_on_phone',
+      message: `Enter this code on your phone when prompted: ${data.passcode}`,
+      passcode: data.passcode,
+      remaining_seconds: data.remainingSeconds,
+    } as KakaoLoginResult & { passcode: string; remaining_seconds?: number }
   }
 
   return {
@@ -207,10 +209,10 @@ export async function registerDevice(
 export async function loginFlow(options: {
   email: string
   password: string
-  passcode?: string
   deviceType?: KakaoDeviceType
   force?: boolean
   savedDeviceUuid?: string
+  onPasscodeDisplay?: (code: string) => void
 }): Promise<KakaoLoginResult & { credentials?: LoginCredentials }> {
   const deviceType = options.deviceType ?? 'tablet'
   const deviceUuid = options.savedDeviceUuid ?? generateDeviceUuid()
@@ -224,29 +226,28 @@ export async function loginFlow(options: {
   }
 
   if (loginResult.next_action === 'provide_passcode') {
-    if (!options.passcode) {
-      // Request passcode SMS
-      const passcodeResult = await requestPasscode(options.email, options.password, deviceUuid)
+    // Step 2: Request passcode — API returns a code to display on screen
+    const passcodeResult = await requestPasscode(options.email, options.password, deviceUuid)
+
+    if (passcodeResult.error) {
       return {
         ...passcodeResult,
-        // Pass back the device UUID so the next call can reuse it
-        credentials: {
-          access_token: '',
-          refresh_token: '',
-          user_id: '',
-          device_uuid: deviceUuid,
-          device_type: deviceType,
-        },
+        credentials: { access_token: '', refresh_token: '', user_id: '', device_uuid: deviceUuid, device_type: deviceType },
       }
     }
 
-    // Step 2: Register with passcode
-    const regResult = await registerDevice(options.email, options.password, options.passcode, deviceUuid)
+    // Show the code and notify the caller (interactive or non-interactive)
+    if (options.onPasscodeDisplay) {
+      options.onPasscodeDisplay((passcodeResult as unknown as { passcode: string }).passcode)
+    }
+
+    // Step 3: Poll registerDevice — waits for user to confirm on their phone
+    const regResult = await registerDevice(options.email, options.password, '', deviceUuid)
     if (regResult.error) {
       return regResult
     }
 
-    // Step 3: Login again after registration
+    // Step 4: Login again after registration
     return attemptLogin(options.email, options.password, deviceUuid, deviceType, forced)
   }
 

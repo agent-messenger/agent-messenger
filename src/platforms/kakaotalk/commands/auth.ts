@@ -61,7 +61,7 @@ async function loginAction(options: KakaoAuthOptions): Promise<void> {
     const credManager = new CredentialManager()
     const interactive = isInteractiveSession()
 
-    let { email, password, passcode, deviceType, force } = options
+    let { email, password, deviceType, force } = options
 
     // Try extracting email + password from the desktop app's Cache.db
     // so the user doesn't need to type credentials manually.
@@ -101,44 +101,32 @@ async function loginAction(options: KakaoAuthOptions): Promise<void> {
     const pendingState = await credManager.loadPendingLogin()
     const savedDeviceUuid = pendingState?.device_uuid ?? existing?.device_uuid
 
+    const onPasscodeDisplay = (code: string) => {
+      if (interactive) {
+        console.error('')
+        console.error(`  Enter this code on your phone: ${code}`)
+        console.error('  Waiting for confirmation...')
+        console.error('')
+      }
+    }
+
     const result = await loginFlow({
       email,
       password,
-      passcode,
       deviceType: deviceType ?? 'tablet',
       force: force ?? false,
       savedDeviceUuid,
+      onPasscodeDisplay,
     })
 
-    if (result.next_action === 'provide_passcode') {
-      // Save pending state so the next call can reuse the device UUID
-      if (result.credentials?.device_uuid) {
-        await credManager.savePendingLogin({
-          device_uuid: result.credentials.device_uuid,
-          device_type: result.credentials.device_type,
-          email,
-          created_at: new Date().toISOString(),
-        })
-      }
-
+    if (result.next_action === 'confirm_on_phone') {
       if (!interactive) {
-        console.log(formatOutput(KAKAO_NEXT_ACTIONS.provide_passcode, options.pretty))
+        console.log(formatOutput({
+          next_action: 'confirm_on_phone',
+          message: result.message,
+        }, options.pretty))
         return
       }
-
-      passcode = await promptText('SMS passcode')
-      if (!passcode) { console.error('Passcode is required.'); process.exit(1) }
-
-      const retryResult = await loginFlow({
-        email,
-        password,
-        passcode,
-        deviceType: deviceType ?? 'tablet',
-        force: force ?? false,
-        savedDeviceUuid: result.credentials?.device_uuid ?? savedDeviceUuid,
-      })
-
-      return handleLoginResult(retryResult, credManager, options)
     }
 
     if (result.next_action === 'choose_device') {
@@ -166,10 +154,10 @@ async function loginAction(options: KakaoAuthOptions): Promise<void> {
       const forceResult = await loginFlow({
         email,
         password,
-        passcode,
         deviceType: chosenType,
         force: true,
         savedDeviceUuid: chosenType === (deviceType ?? 'tablet') ? savedDeviceUuid : undefined,
+        onPasscodeDisplay,
       })
 
       return handleLoginResult(forceResult, credManager, options)
