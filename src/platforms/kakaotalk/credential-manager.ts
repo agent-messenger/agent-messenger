@@ -1,17 +1,26 @@
 import { existsSync } from 'node:fs'
-import { chmod, mkdir, readFile, writeFile } from 'node:fs/promises'
+import { chmod, mkdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
 
-import type { KakaoAccountCredentials, KakaoConfig } from './types'
+import type { KakaoAccountCredentials, KakaoConfig, KakaoDeviceType } from './types'
+
+export interface PendingLoginState {
+  device_uuid: string
+  device_type: KakaoDeviceType
+  email: string
+  created_at: string
+}
 
 export class CredentialManager {
   private configDir: string
   private credentialsPath: string
+  private pendingLoginPath: string
 
   constructor(configDir?: string) {
     this.configDir = configDir ?? join(homedir(), '.config', 'agent-messenger')
     this.credentialsPath = join(this.configDir, 'kakaotalk-credentials.json')
+    this.pendingLoginPath = join(this.configDir, 'kakaotalk-pending-login.json')
   }
 
   async load(): Promise<KakaoConfig> {
@@ -69,5 +78,23 @@ export class CredentialManager {
     const config = await this.load()
     config.current_account = id
     await this.save(config)
+  }
+
+  async savePendingLogin(state: PendingLoginState): Promise<void> {
+    await mkdir(this.configDir, { recursive: true })
+    await writeFile(this.pendingLoginPath, JSON.stringify(state, null, 2))
+    await chmod(this.pendingLoginPath, 0o600)
+  }
+
+  async loadPendingLogin(): Promise<PendingLoginState | null> {
+    if (!existsSync(this.pendingLoginPath)) return null
+    const content = await readFile(this.pendingLoginPath, 'utf-8')
+    return JSON.parse(content) as PendingLoginState
+  }
+
+  async clearPendingLogin(): Promise<void> {
+    if (existsSync(this.pendingLoginPath)) {
+      await rm(this.pendingLoginPath, { force: true })
+    }
   }
 }

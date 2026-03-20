@@ -40,7 +40,6 @@ async function listAction(
     const rawChats = (loginResult.chatDatas ?? []) as ChatData[]
     const chat = rawChats.find((c) => String(c.c) === chatId)
     const lastLogId = chat?.ll as { high: number; low: number } | undefined
-    const lastSeenLogId = chat?.s as { high: number; low: number } | undefined
     const maxLogId = lastLogId ? new Long(lastLogId.low, lastLogId.high) : undefined
 
     const count = options.count ? Number.parseInt(options.count, 10) : 20
