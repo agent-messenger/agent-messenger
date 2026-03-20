@@ -1,6 +1,6 @@
 # Agent Messenger - Claude Code Plugin
 
-Messaging platform interaction skills for AI agents and Claude Code. Supports Slack, Discord, Microsoft Teams, and Channel Talk (beta).
+Messaging platform interaction skills for AI agents and Claude Code. Supports Slack, Discord, Microsoft Teams, Telegram, and Channel Talk (beta).
 
 ## Installation
 
@@ -61,6 +61,13 @@ Enables AI agents to interact with messaging platforms through CLI interfaces:
 - **Multi-bot management** with easy switching
 - Designed for **server-side and CI/CD** use cases
 
+### Telegram (`agent-telegram`)
+- **Send messages** to chats and users
+- **Read chats** and message history
+- **Search chats** by name or username
+- **Multi-account support** with easy switching
+- **Auto-provisions** API credentials via my.telegram.org
+
 ### Channel Talk (`agent-channeltalk`) — Beta
 - **Send messages** to groups, user chats, and direct chats
 - **Read chats** and message history
@@ -112,6 +119,7 @@ All commands output JSON by default for easy AI consumption. Use `--pretty` for 
 ## Requirements
 
 - Desktop app installed and logged in for the platform(s) you want to use (Slack, Discord, Teams, and/or Channel Talk)
+- For Telegram: TDLib is bundled; API credentials are auto-provisioned on first login
 - Node.js 18+ or Bun runtime
 
 ## Quick Start
@@ -194,5 +202,6 @@ agent-discord file upload <channel-id> ./report.pdf
 - [Discord Skill Documentation](https://github.com/devxoul/agent-messenger/blob/main/skills/agent-discord/SKILL.md)
 - [Discord Bot Skill Documentation](https://github.com/devxoul/agent-messenger/blob/main/skills/agent-discordbot/SKILL.md)
 - [Teams Skill Documentation](https://github.com/devxoul/agent-messenger/blob/main/skills/agent-teams/SKILL.md)
+- [Telegram Skill Documentation](https://github.com/devxoul/agent-messenger/blob/main/skills/agent-telegram/SKILL.md)
 - [Channel Talk Skill Documentation](https://github.com/devxoul/agent-messenger/blob/main/skills/agent-channeltalk/SKILL.md)
 - [Channel Talk Bot Skill Documentation](https://github.com/devxoul/agent-messenger/blob/main/skills/agent-channeltalkbot/SKILL.md)
