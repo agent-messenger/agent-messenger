@@ -40,15 +40,44 @@ async function listAction(
     const rawChats = (loginResult.chatDatas ?? []) as ChatData[]
     const chat = rawChats.find((c) => String(c.c) === chatId)
     const lastLogId = chat?.ll as { high: number; low: number } | undefined
+    const maxLogId = lastLogId ? new Long(lastLogId.low, lastLogId.high) : undefined
 
     const count = options.count ? Number.parseInt(options.count, 10) : 20
     const cursor = options.from ? parseLong(options.from) : undefined
-    const maxLogId = lastLogId ? new Long(lastLogId.low, lastLogId.high) : undefined
 
-    const response = await session.syncMessages(parseLong(chatId), count, cursor, maxLogId)
-    const chatLogs = (response.body.chatLogs ?? []) as Array<Record<string, unknown>>
+    // Paginate backwards from max to collect `count` recent messages.
+    // SYNCMSG with cur=0 returns oldest first, so we iterate until we have enough.
+    const cid = parseLong(chatId)
+    const allMessages: Array<Record<string, unknown>> = []
+    const seenLogIds = new Set<string>()
+    let cur = cursor ?? Long.fromNumber(0)
 
-    const messages = chatLogs.map((log) => ({
+    while (allMessages.length < count) {
+      const response = await session.syncMessages(cid, count, cur, maxLogId)
+      const batch = (response.body.chatLogs ?? []) as Array<Record<string, unknown>>
+      if (batch.length === 0) break
+
+      for (const log of batch) {
+        const lid = toLong(log.logId)
+        if (!seenLogIds.has(lid)) {
+          seenLogIds.add(lid)
+          allMessages.push(log)
+        }
+      }
+
+      const minLog = batch.reduce<Long | null>((min, l) => {
+        const lid = l.logId as { high: number; low: number }
+        const long = new Long(lid.low, lid.high)
+        return !min || long.lessThan(min) ? long : min
+      }, null)
+
+      if (!minLog || minLog.equals(cur) || response.body.isOK) break
+      cur = minLog
+    }
+
+    const recent = allMessages.slice(-count)
+
+    const messages = recent.map((log) => ({
       log_id: toLong(log.logId),
       type: log.type,
       author_id: log.authorId,
