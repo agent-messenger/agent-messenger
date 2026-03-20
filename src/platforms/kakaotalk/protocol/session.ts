@@ -99,13 +99,13 @@ export class LocoSession {
     })
   }
 
-  async syncMessages(chatId: number, count = 20, fromLogId = 0): Promise<LocoPacket> {
+  async syncMessages(chatId: Long, count = 20, cursor?: Long, maxLogId?: Long): Promise<LocoPacket> {
     if (!this.connection) throw new Error('Not connected')
     return this.connection.sendPacket('SYNCMSG', {
       chatId,
-      cur: fromLogId,
+      cur: cursor ?? Long.fromNumber(0),
       cnt: count,
-      max: 0,
+      max: maxLogId ?? Long.fromNumber(0),
     })
   }
 
