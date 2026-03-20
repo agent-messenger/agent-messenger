@@ -2,16 +2,27 @@ import { existsSync } from 'node:fs'
 import { mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
-import { createAccountId, type TelegramAccount, type TelegramAccountPaths, type TelegramConfig, TelegramError } from './types'
+import {
+  createAccountId,
+  type TelegramAccount,
+  type TelegramAccountPaths,
+  type TelegramConfig,
+  TelegramError,
+  type TelegramProvisioningState,
+} from './types'
+
+const PROVISIONING_STATE_TTL_MS = 10 * 60 * 1000
 
 export class TelegramCredentialManager {
   private configDir: string
   private credentialsPath: string
+  private provisioningStatePath: string
   private tdlibRootDir: string
 
   constructor(configDir?: string) {
     this.configDir = configDir ?? join(homedir(), '.config', 'agent-messenger')
     this.credentialsPath = join(this.configDir, 'telegram-credentials.json')
+    this.provisioningStatePath = join(this.configDir, 'telegram-provisioning-state.json')
     this.tdlibRootDir = join(this.configDir, 'telegram')
   }
 
@@ -136,6 +147,39 @@ export class TelegramCredentialManager {
 
     if (existsSync(this.tdlibRootDir)) {
       await rm(this.tdlibRootDir, { recursive: true, force: true })
+    }
+
+    await this.clearProvisioningState()
+  }
+
+  async saveProvisioningState(state: TelegramProvisioningState): Promise<void> {
+    await mkdir(this.configDir, { recursive: true })
+    await writeFile(this.provisioningStatePath, JSON.stringify(state, null, 2), { mode: 0o600 })
+  }
+
+  async loadProvisioningState(): Promise<TelegramProvisioningState | null> {
+    if (!existsSync(this.provisioningStatePath)) {
+      return null
+    }
+
+    try {
+      const content = await readFile(this.provisioningStatePath, 'utf-8')
+      const state = JSON.parse(content) as TelegramProvisioningState
+      const createdAtMs = new Date(state.created_at).getTime()
+      const age = Date.now() - createdAtMs
+      if (!Number.isFinite(createdAtMs) || age > PROVISIONING_STATE_TTL_MS) {
+        await this.clearProvisioningState()
+        return null
+      }
+      return state
+    } catch {
+      return null
+    }
+  }
+
+  async clearProvisioningState(): Promise<void> {
+    if (existsSync(this.provisioningStatePath)) {
+      await rm(this.provisioningStatePath, { force: true })
     }
   }
 

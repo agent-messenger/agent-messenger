@@ -19,6 +19,12 @@ export interface TelegramAccountPaths {
   files_dir: string
 }
 
+export interface TelegramProvisioningState {
+  phone: string
+  random_hash: string
+  created_at: string
+}
+
 export interface TelegramUserSummary {
   id: number
   first_name?: string

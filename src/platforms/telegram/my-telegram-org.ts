@@ -8,9 +8,21 @@ export async function provisionTelegramApp(options: {
   phone: string
   promptForCode: () => Promise<string>
 }): Promise<{ api_id: number; api_hash: string }> {
-  const randomHash = await sendCode(options.phone)
+  const randomHash = await sendProvisioningCode(options.phone)
   const code = await options.promptForCode()
-  const stelToken = await login(options.phone, randomHash, code)
+  const stelToken = await completeProvisioningLogin(options.phone, randomHash, code)
+  return getOrCreateProvisionedApp(stelToken)
+}
+
+export async function sendProvisioningCode(phone: string): Promise<string> {
+  return sendCode(phone)
+}
+
+export async function completeProvisioningLogin(phone: string, randomHash: string, code: string): Promise<string> {
+  return login(phone, randomHash, code)
+}
+
+export async function getOrCreateProvisionedApp(stelToken: string): Promise<{ api_id: number; api_hash: string }> {
   return getOrCreateApp(stelToken)
 }
 
