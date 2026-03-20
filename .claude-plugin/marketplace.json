@@ -1,7 +1,7 @@
 {
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
   "name": "agent-messenger",
-  "description": "Messaging platform interaction skills for AI agents - Slack, Discord, and Microsoft Teams",
+  "description": "Messaging platform interaction skills for AI agents - Slack, Discord, Microsoft Teams, Telegram, and Channel Talk",
   "owner": {
     "name": "devxoul",
     "url": "https://github.com/devxoul"
@@ -10,7 +10,7 @@
     {
       "name": "agent-slack",
       "description": "Interact with Slack workspaces through a CLI interface. Features seamless token extraction from Slack desktop app, multi-workspace support, AI-friendly entity references (@c1, @m1, @u1), message operations, channel management, reactions, and file uploads.",
-      "version": "0.1.0",
+      "version": "1.15.0",
       "author": {
         "name": "devxoul",
         "url": "https://github.com/devxoul"
@@ -23,7 +23,7 @@
     {
       "name": "agent-discord",
       "description": "Interact with Discord servers through a CLI interface. Features seamless token extraction from Discord desktop app, multi-guild support, message operations, channel management, reactions, and file uploads.",
-      "version": "0.1.0",
+      "version": "1.15.0",
       "author": {
         "name": "devxoul",
         "url": "https://github.com/devxoul"
@@ -36,7 +36,7 @@
     {
       "name": "agent-slackbot",
       "description": "Interact with Slack workspaces using bot tokens (xoxb-). Designed for server-side and CI/CD integrations. Supports message operations, channel management, reactions, and multi-bot/multi-workspace credential management.",
-      "version": "0.1.0",
+      "version": "1.15.0",
       "author": {
         "name": "devxoul",
         "url": "https://github.com/devxoul"
@@ -49,7 +49,7 @@
     {
       "name": "agent-discordbot",
       "description": "Interact with Discord servers using bot tokens. Designed for server-side and CI/CD integrations. Supports message operations, channel management, reactions, and multi-bot/multi-guild credential management.",
-      "version": "0.1.0",
+      "version": "1.15.0",
       "author": {
         "name": "devxoul",
         "url": "https://github.com/devxoul"
@@ -62,7 +62,7 @@
     {
       "name": "agent-teams",
       "description": "Interact with Microsoft Teams through a CLI interface. Features credential extraction from Teams desktop app and browser, multi-team support, message operations, channel management, reactions, and file uploads.",
-      "version": "0.1.0",
+      "version": "1.15.0",
       "author": {
         "name": "devxoul",
         "url": "https://github.com/devxoul"
@@ -71,6 +71,45 @@
       "category": "productivity",
       "homepage": "https://github.com/devxoul/agent-messenger",
       "keywords": ["teams", "microsoft-teams", "messaging", "ai-agent", "cli", "communication"]
+    },
+    {
+      "name": "agent-telegram",
+      "description": "Interact with Telegram through TDLib. Features automatic API credential provisioning via my.telegram.org, multi-account support, chat management, and message operations.",
+      "version": "1.15.0",
+      "author": {
+        "name": "devxoul",
+        "url": "https://github.com/devxoul"
+      },
+      "source": "./",
+      "category": "productivity",
+      "homepage": "https://github.com/devxoul/agent-messenger",
+      "keywords": ["telegram", "tdlib", "messaging", "ai-agent", "cli", "communication"]
+    },
+    {
+      "name": "agent-channeltalk",
+      "description": "Interact with Channel Talk through a CLI interface. Features zero-config cookie extraction from desktop app, multi-workspace support, message operations, chat management, and workspace snapshots.",
+      "version": "1.15.0",
+      "author": {
+        "name": "devxoul",
+        "url": "https://github.com/devxoul"
+      },
+      "source": "./",
+      "category": "productivity",
+      "homepage": "https://github.com/devxoul/agent-messenger",
+      "keywords": ["channel-talk", "channeltalk", "messaging", "ai-agent", "cli", "communication"]
+    },
+    {
+      "name": "agent-channeltalkbot",
+      "description": "Interact with Channel Talk using API credentials (Access Key + Secret). Designed for server-side and CI/CD integrations. Supports message operations, chat management, bot management, and group references.",
+      "version": "1.15.0",
+      "author": {
+        "name": "devxoul",
+        "url": "https://github.com/devxoul"
+      },
+      "source": "./",
+      "category": "productivity",
+      "homepage": "https://github.com/devxoul/agent-messenger",
+      "keywords": ["channel-talk", "channeltalkbot", "bot", "messaging", "ai-agent", "cli", "ci-cd"]
     }
   ]
 }

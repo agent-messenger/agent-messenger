@@ -1,7 +1,7 @@
 {
   "name": "agent-messenger",
   "version": "1.15.0",
-  "description": "Multi-platform messaging CLI for AI agents (Slack, Discord, Teams, Telegram)",
+  "description": "Multi-platform messaging CLI for AI agents (Slack, Discord, Teams, Telegram, Channel Talk)",
   "repository": {
     "type": "git",
     "url": "https://github.com/devxoul/agent-messenger"
