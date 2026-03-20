@@ -5,6 +5,8 @@ export interface ExtractedKakaoToken {
   device_uuid?: string
   agent_header?: string
   user_agent?: string
+  xvc_header?: string
+  login_form_body?: string
 }
 
 export interface KakaoAccountCredentials {

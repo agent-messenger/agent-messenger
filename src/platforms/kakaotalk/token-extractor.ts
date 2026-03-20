@@ -91,16 +91,13 @@ export class KakaoTokenExtractor {
   }
 
   private readCacheDb(dbPath: string): ExtractedKakaoToken | null {
-    // request_object contains a binary plist with HTTP headers.
-    // Prioritize endpoints most likely to have fresh tokens:
-    //   more_settings.json > chats > profile3/me.json > others
     const sql = `
       SELECT b.request_object, r.request_key, r.time_stamp
       FROM cfurl_cache_blob_data b
       JOIN cfurl_cache_response r ON b.entry_ID = r.entry_ID
       WHERE r.request_key LIKE '%kakao.com%'
       ORDER BY r.time_stamp DESC
-      LIMIT 50
+      LIMIT 100
     `
 
     type CacheRow = {
@@ -124,35 +121,85 @@ export class KakaoTokenExtractor {
 
     this.debug(`Found ${rows.length} cached request(s) to kakao.com`)
 
+    // Extract oauth_token from talk-pilsner.kakao.com requests
     // talk-pilsner.kakao.com has the real messaging oauth tokens.
     // Other subdomains (bzm-capi, etc.) use different token types.
-    rows.sort((a, b) => {
-      const domainPriority = (url: string): number =>
-        url.includes('talk-pilsner.kakao.com') ? 10 : 0
-      const endpointPriority = (url: string): number => {
-        if (url.includes('more_settings.json')) return 4
-        if (url.includes('/chats')) return 3
-        if (url.includes('profile3/me.json')) return 2
-        return 1
-      }
-      const aScore = domainPriority(a.request_key) + endpointPriority(a.request_key)
-      const bScore = domainPriority(b.request_key) + endpointPriority(b.request_key)
-      return bScore !== aScore ? bScore - aScore : b.time_stamp - a.time_stamp
-    })
+    const talkRows = rows.filter(r => r.request_key.includes('talk-pilsner.kakao.com'))
+    let token: ExtractedKakaoToken | null = null
 
-    for (const row of rows) {
+    for (const row of talkRows) {
       if (!row.request_object) continue
-
       const blob = Buffer.from(row.request_object)
-      const token = this.parseAuthFromPlist(blob)
+      token = this.parseAuthFromPlist(blob)
       if (token) {
         this.debug(`Extracted token from: ${row.request_key}`)
-        return token
+        break
       }
     }
 
-    this.debug('No valid tokens found in Cache.db')
-    return null
+    if (!token) {
+      this.debug('No valid tokens found in Cache.db')
+      return null
+    }
+
+    this.extractAuthParams(dbPath, token)
+    return token
+  }
+
+  // Separate query for login.json + renew_token.json — these are older rows
+  // that fall outside the main query's LIMIT when many recent requests exist.
+  private extractAuthParams(dbPath: string, token: ExtractedKakaoToken): void {
+    const sql = `
+      SELECT b.request_object, r.request_key
+      FROM cfurl_cache_blob_data b
+      JOIN cfurl_cache_response r ON b.entry_ID = r.entry_ID
+      WHERE r.request_key LIKE '%katalk.kakao.com%renew_token%'
+         OR r.request_key LIKE '%katalk.kakao.com%login.json%'
+      ORDER BY r.time_stamp DESC
+      LIMIT 10
+    `
+
+    type CacheRow = { request_object: Uint8Array | Buffer | null; request_key: string }
+    let authRows: CacheRow[]
+
+    if (typeof globalThis.Bun !== 'undefined') {
+      const { Database } = require('bun:sqlite')
+      const db = new Database(dbPath, { readonly: true })
+      authRows = db.query(sql).all() as CacheRow[]
+      db.close()
+    } else {
+      const Database = require('better-sqlite3')
+      const db = new Database(dbPath, { readonly: true })
+      authRows = db.prepare(sql).all() as CacheRow[]
+      db.close()
+    }
+
+    for (const row of authRows) {
+      if (!row.request_object) continue
+      const data = Buffer.from(row.request_object).toString('latin1')
+
+      if (row.request_key.includes('renew_token')) {
+        const rtMatch = data.match(/refresh_token=([0-9a-f]{32,}[A-Za-z0-9_-]*)/)
+        if (rtMatch && !token.refresh_token) {
+          token.refresh_token = rtMatch[1]
+          this.debug('Extracted refresh_token from renew_token.json')
+        }
+      }
+
+      if (row.request_key.includes('login.json')) {
+        const duuidMatch = data.match(/device_uuid=([A-Za-z0-9_%+/=-]{20,})/)
+        if (duuidMatch && !token.device_uuid) {
+          token.device_uuid = decodeURIComponent(duuidMatch[1])
+          this.debug('Extracted device_uuid from login.json')
+        }
+        // Full POST body for relogin (contains email, password, device params)
+        const formMatch = data.match(/auto_login=[^&]*(?:&[a-z_]+=[^\x00-\x1f]{1,300})*/)
+        if (formMatch && !token.login_form_body) {
+          token.login_form_body = formMatch[0]
+          this.debug('Extracted login form body from login.json')
+        }
+      }
+    }
   }
 
   // Binary plist: keys and values are stored in separate regions, so we can't
