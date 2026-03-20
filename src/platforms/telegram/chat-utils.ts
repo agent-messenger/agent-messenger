@@ -16,6 +16,7 @@ export function findFuzzyChats(chats: TelegramChatSummary[], query: string, limi
   return chats
     .filter((chat) => {
       const normalizedTitle = normalizeChatSearchText(chat.title)
+      if (!normalizedTitle) return false
       return normalizedTitle.includes(normalizedQuery) || normalizedQuery.includes(normalizedTitle)
     })
     .slice(0, limit)

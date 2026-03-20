@@ -3,7 +3,7 @@ title: Telegram
 description: TDLib-based Telegram integration for agent-messenger.
 ---
 
-> **Tip**: After `npm install -g agent-messenger`, `agent-telegram` is available directly. For one-off execution without a global install you can use `npm exec --package agent-messenger agent-telegram ...`, `pnpm dlx agent-messenger agent-telegram ...`, `yarn dlx agent-messenger agent-telegram ...`, or `bunx --package agent-messenger agent-telegram ...`.
+> **Tip**: After `npm install -g agent-messenger`, `agent-telegram` is available directly. For one-off execution without a global install you can use `npm exec --package agent-messenger agent-telegram ...`, `pnpm dlx --package agent-messenger agent-telegram ...`, `yarn dlx agent-messenger agent-telegram ...`, or `bunx --package agent-messenger agent-telegram ...`.
 
 ## Requirements
 
@@ -104,6 +104,6 @@ agent-telegram message send @durov "Hello from agent-messenger"
 
 To make `bunx --package agent-messenger agent-telegram auth login` work smoothly, the published package should:
 
-1. Keep `prebuilt-tdlib` in dependencies
+1. Keep `prebuilt-tdlib` in optionalDependencies
 2. Document `AGENT_TELEGRAM_API_ID`
 3. Document `AGENT_TELEGRAM_API_HASH`

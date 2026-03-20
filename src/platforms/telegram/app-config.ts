@@ -9,8 +9,16 @@ function parseApiId(value: number | string | undefined): number | undefined {
     return undefined
   }
 
-  const parsed = typeof value === 'number' ? value : Number.parseInt(value, 10)
-  return Number.isInteger(parsed) && parsed > 0 ? parsed : undefined
+  if (typeof value === 'number') {
+    return Number.isInteger(value) && value > 0 ? value : undefined
+  }
+
+  if (!/^\d+$/.test(value)) {
+    return undefined
+  }
+
+  const parsed = Number.parseInt(value, 10)
+  return parsed > 0 ? parsed : undefined
 }
 
 function parseApiHash(value: string | undefined): string | undefined {

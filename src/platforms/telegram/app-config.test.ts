@@ -29,4 +29,16 @@ describe('telegram app config', () => {
   test('returns none when nothing is configured', () => {
     expect(getTelegramAppCredentials()).toEqual({ source: 'none' })
   })
+
+  test('rejects malformed api_id like "123abc"', () => {
+    const prev = process.env.AGENT_TELEGRAM_API_ID
+    process.env.AGENT_TELEGRAM_API_ID = '123abc'
+    process.env.AGENT_TELEGRAM_API_HASH = 'abc123'
+    const result = getTelegramAppCredentials()
+    expect(result.source).toBe('none')
+    if (prev === undefined) {
+      delete process.env.AGENT_TELEGRAM_API_ID
+      delete process.env.AGENT_TELEGRAM_API_HASH
+    }
+  })
 })

@@ -47,6 +47,11 @@ describe('findFuzzyChats', () => {
     const result = findFuzzyChats(chats, 'o', 1)
     expect(result).toHaveLength(1)
   })
+
+  test('does not match chats with empty normalized title', () => {
+    const chats = [{ id: 99, title: '---', type: 'group' }] as any[]
+    expect(findFuzzyChats(chats, 'ops', 10)).toHaveLength(0)
+  })
 })
 
 describe('mergeChats', () => {

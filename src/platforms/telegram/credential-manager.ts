@@ -89,6 +89,9 @@ export class TelegramCredentialManager {
     }
 
     delete config.accounts[normalizedOldAccountId]
+    if (oldAccountId !== normalizedOldAccountId) {
+      delete config.accounts[oldAccountId]
+    }
     config.accounts[account.account_id] = account
     config.current = account.account_id
     await this.saveConfig(config)

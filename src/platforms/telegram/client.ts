@@ -593,7 +593,11 @@ export class TelegramTdlibClient {
             continue
           }
 
-          this.handleEvent(event)
+          try {
+            this.handleEvent(event)
+          } catch {
+            // Swallow errors from unrelated events during message confirmation polling
+          }
         }
       })()
     })
