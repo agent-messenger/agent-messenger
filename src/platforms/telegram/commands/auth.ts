@@ -5,6 +5,7 @@ import { formatOutput } from '../../../shared/utils/output'
 import { getTelegramAppCredentials } from '../app-config'
 import { TelegramTdlibClient } from '../client'
 import { TelegramCredentialManager } from '../credential-manager'
+import { provisionTelegramApp } from '../my-telegram-org'
 import { createAccountId, type TelegramAccount, TelegramError } from '../types'
 
 interface AuthOptions {
@@ -115,11 +116,43 @@ async function fillMissingBootstrappingInputs(
   }
 
   if (!resolved.apiId && !existing?.api_id) {
-    console.error('Telegram API credentials are not set in the environment.')
-    console.error(
-      'Set AGENT_TELEGRAM_API_ID and AGENT_TELEGRAM_API_HASH, or enter them now from https://my.telegram.org/apps.',
-    )
-    resolved.apiId = await promptText('Telegram API ID')
+    if (shouldUseInteractivePrompts()) {
+      try {
+        console.error('No API credentials found. Provisioning via my.telegram.org...')
+        console.error('A verification code will be sent to your Telegram account.\n')
+
+        const phone = resolved.phone || await promptText('Phone number (e.g. +14155551234)')
+        if (!phone) {
+          throw new Error('Phone number is required to provision Telegram API credentials.')
+        }
+        if (!resolved.phone) resolved.phone = phone
+
+        const app = await provisionTelegramApp({
+          phone,
+          promptForCode: async () => {
+            const code = await promptText('Enter the code sent to your Telegram app')
+            if (!code) {
+              throw new Error('Verification code is required to provision Telegram API credentials.')
+            }
+            return code
+          },
+        })
+
+        resolved.apiId = String(app.api_id)
+        resolved.apiHash = app.api_hash
+        console.error(`\n✓ API credentials obtained (api_id: ${app.api_id})`)
+      } catch (error) {
+        console.error(`\nAuto-provisioning failed: ${error instanceof Error ? error.message : error}`)
+        console.error('Enter your API credentials manually (from https://my.telegram.org/apps):\n')
+        resolved.apiId = await promptText('Telegram API ID')
+        resolved.apiHash = await promptHidden('Telegram API hash')
+      }
+    } else {
+      console.error('Telegram API credentials are not set.')
+      console.error('Set AGENT_TELEGRAM_API_ID and AGENT_TELEGRAM_API_HASH environment variables.')
+      console.error('Get them from https://my.telegram.org/apps')
+      process.exit(1)
+    }
   }
 
   if (!resolved.apiHash && !existing?.api_hash) {
