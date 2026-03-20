@@ -7,6 +7,7 @@
     "url": "https://github.com/devxoul/agent-messenger"
   },
   "bin": {
+    "agent-kakaotalk": "./src/platforms/kakaotalk/cli.ts",
     "agent-channeltalk": "./src/platforms/channeltalk/cli.ts",
     "agent-telegram": "./src/platforms/telegram/cli.ts",
     "agent-discord": "./src/platforms/discord/cli.ts",

@@ -1,0 +1,1 @@
+export { authCommand } from './auth'
