@@ -17,14 +17,26 @@ async function listAction(options: { pretty?: boolean }): Promise<void> {
       account.device_uuid ?? `agent-messenger-${account.user_id}`,
     )
 
-    const chatList = loginResult.chatDatas?.map((chat) => ({
-      chat_id: chat.chatId,
-      type: chat.type,
-      members: chat.members?.length ?? 0,
-      last_log_id: chat.lastLogId,
-      last_message: chat.lastMessage,
-      last_update: chat.lastUpdate,
-    })) ?? []
+    type ChatData = Record<string, unknown>
+    const rawChats = (loginResult.chatDatas ?? []) as ChatData[]
+
+    const toLong = (v: unknown): string => {
+      if (v && typeof v === 'object' && 'high' in v && 'low' in v) {
+        const { high, low } = v as { high: number; low: number }
+        return ((BigInt(high >>> 0) << 32n) | BigInt(low >>> 0)).toString()
+      }
+      return String(v ?? 0)
+    }
+
+    const chatList = rawChats.map((chat) => ({
+      chat_id: String(chat.c),
+      type: chat.t,
+      active_members: chat.a,
+      last_seen_log_id: toLong(chat.s),
+      last_log_id: toLong(chat.ll),
+      joined_at: chat.o,
+      push_enabled: chat.p,
+    }))
 
     console.log(formatOutput(chatList, options.pretty))
   } catch (error) {
