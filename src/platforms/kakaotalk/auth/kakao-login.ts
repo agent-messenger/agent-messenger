@@ -7,11 +7,12 @@ import type { KakaoDeviceType, KakaoLoginResult } from '../types'
 // with the macOS desktop app's PC slot. See protocol/NOTICE.md for attribution.
 const ANDROID_APP_VERSION = '25.9.2'
 const ANDROID_OS_VERSION = '13'
+const ANDROID_API_LEVEL = '33'
 const ANDROID_AGENT = `android/${ANDROID_APP_VERSION}/ko`
 const ANDROID_USER_AGENT = `KT/${ANDROID_APP_VERSION} An/${ANDROID_OS_VERSION} ko`
 const ANDROID_LOGIN_URL = 'https://katalk.kakao.com/android/account/login.json'
-const ANDROID_PASSCODE_URL = 'https://katalk.kakao.com/android/account/passcodeLogin/generate'
-const ANDROID_REGISTER_URL = 'https://katalk.kakao.com/android/account/passcodeLogin/registerDevice'
+const ANDROID_PASSCODE_URL = 'https://katalk.kakao.com/android/account/request_passcode.json'
+const ANDROID_REGISTER_URL = 'https://katalk.kakao.com/android/account/register_device.json'
 
 const DEVICE_NAME = 'SM-G998N'
 const DEVICE_UUID_LENGTH = 64
@@ -66,6 +67,7 @@ export async function attemptLogin(
   const body = new URLSearchParams({
     password,
     device_name: DEVICE_NAME,
+    model_name: DEVICE_NAME,
     forced: forced ? 'true' : 'false',
     permanent: 'true',
     email,
@@ -112,66 +114,60 @@ export async function attemptLogin(
 }
 
 export async function requestPasscode(email: string, password: string, deviceUuid: string): Promise<KakaoLoginResult> {
-  const jsonBody = {
+  const body = new URLSearchParams({
     email,
     password,
-    permanent: true,
-    device: {
-      name: DEVICE_NAME,
-      uuid: deviceUuid,
-      model: DEVICE_NAME,
-      osVersion: ANDROID_OS_VERSION,
-    },
-  }
-
-  const headers = buildHeaders(email)
-  headers['Content-Type'] = 'application/json; charset=utf-8'
+    device_name: DEVICE_NAME,
+    model_name: DEVICE_NAME,
+    device_uuid: deviceUuid,
+  })
 
   const response = await fetch(ANDROID_PASSCODE_URL, {
     method: 'POST',
-    headers,
-    body: JSON.stringify(jsonBody),
+    headers: buildHeaders(email),
+    body: body.toString(),
   })
 
-  const data = (await response.json()) as { status?: number; passcode?: string; remainingSeconds?: number }
+  const data = (await response.json()) as { status: number }
 
-  if (data.passcode) {
+  if (data.status === STATUS_OK) {
     return {
       authenticated: false,
       next_action: 'provide_passcode',
-      message: `Passcode sent to your main device. Enter it within ${data.remainingSeconds ?? 180}s.`,
+      message: 'Passcode sent to your main device via push notification.',
     }
   }
 
   return {
     authenticated: false,
     error: 'passcode_request_failed',
-    message: `Passcode request failed: ${JSON.stringify(data)}`,
+    message: `Passcode request failed with status ${data.status}`,
   }
 }
 
 export async function registerDevice(
   email: string,
   password: string,
-  _passcode: string,
+  passcode: string,
   deviceUuid: string,
 ): Promise<KakaoLoginResult> {
-  const jsonBody = {
+  const body = new URLSearchParams({
     email,
     password,
-    device: { uuid: deviceUuid },
-  }
-
-  const headers = buildHeaders(email)
-  headers['Content-Type'] = 'application/json; charset=utf-8'
+    device_name: DEVICE_NAME,
+    model_name: DEVICE_NAME,
+    device_uuid: deviceUuid,
+    passcode,
+    permanent: 'true',
+  })
 
   const response = await fetch(ANDROID_REGISTER_URL, {
     method: 'POST',
-    headers,
-    body: JSON.stringify(jsonBody),
+    headers: buildHeaders(email),
+    body: body.toString(),
   })
 
-  const data = (await response.json()) as { status: number; remainingSeconds?: number }
+  const data = (await response.json()) as { status: number }
 
   if (data.status === STATUS_OK) {
     return { authenticated: false, message: 'Device registered. Proceeding to login...' }
