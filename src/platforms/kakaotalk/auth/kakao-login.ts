@@ -11,8 +11,8 @@ const ANDROID_API_LEVEL = '33'
 const ANDROID_AGENT = `android/${ANDROID_APP_VERSION}/ko`
 const ANDROID_USER_AGENT = `KT/${ANDROID_APP_VERSION} An/${ANDROID_OS_VERSION} ko`
 const ANDROID_LOGIN_URL = 'https://katalk.kakao.com/android/account/login.json'
-const ANDROID_PASSCODE_URL = 'https://katalk.kakao.com/android/account/request_passcode.json'
-const ANDROID_REGISTER_URL = 'https://katalk.kakao.com/android/account/register_device.json'
+const ANDROID_PASSCODE_URL = 'https://katalk.kakao.com/android/account/passcodeLogin/generate'
+const ANDROID_REGISTER_URL = 'https://katalk.kakao.com/android/account/passcodeLogin/registerDevice'
 
 const DEVICE_NAME = 'SM-G998N'
 const DEVICE_UUID_LENGTH = 64
@@ -113,70 +113,94 @@ export async function attemptLogin(
   }
 }
 
+// loco-wrapper passcodeLogin/generate: JSON body with nested device object
 export async function requestPasscode(email: string, password: string, deviceUuid: string): Promise<KakaoLoginResult> {
-  const body = new URLSearchParams({
-    email,
-    password,
-    device_name: DEVICE_NAME,
-    model_name: DEVICE_NAME,
-    device_uuid: deviceUuid,
-  })
+  const headers = buildHeaders(email)
+  headers['Content-Type'] = 'application/json; charset=utf-8'
 
   const response = await fetch(ANDROID_PASSCODE_URL, {
     method: 'POST',
-    headers: buildHeaders(email),
-    body: body.toString(),
+    headers,
+    body: JSON.stringify({
+      email,
+      password,
+      permanent: true,
+      device: {
+        name: DEVICE_NAME,
+        uuid: deviceUuid,
+        model: DEVICE_NAME,
+        osVersion: ANDROID_API_LEVEL,
+      },
+    }),
   })
 
-  const data = (await response.json()) as { status: number }
+  const data = (await response.json()) as { status?: number; passcode?: string; remainingSeconds?: number }
 
-  if (data.status === STATUS_OK) {
+  if (data.passcode) {
     return {
       authenticated: false,
       next_action: 'provide_passcode',
-      message: 'Passcode sent to your main device via push notification.',
+      message: `Enter the 4-digit passcode shown on your phone (${data.remainingSeconds ?? 180}s).`,
     }
   }
 
   return {
     authenticated: false,
     error: 'passcode_request_failed',
-    message: `Passcode request failed with status ${data.status}`,
+    message: `Passcode request failed with status ${data.status ?? 'unknown'}`,
   }
 }
 
+// loco-wrapper passcodeLogin/registerDevice: JSON body, polls until status=0
 export async function registerDevice(
   email: string,
   password: string,
-  passcode: string,
+  _passcode: string,
   deviceUuid: string,
 ): Promise<KakaoLoginResult> {
-  const body = new URLSearchParams({
+  const headers = buildHeaders(email)
+  headers['Content-Type'] = 'application/json; charset=utf-8'
+
+  const body = JSON.stringify({
     email,
     password,
-    device_name: DEVICE_NAME,
-    model_name: DEVICE_NAME,
-    device_uuid: deviceUuid,
-    passcode,
-    permanent: 'true',
+    device: { uuid: deviceUuid },
   })
 
-  const response = await fetch(ANDROID_REGISTER_URL, {
-    method: 'POST',
-    headers: buildHeaders(email),
-    body: body.toString(),
-  })
+  const maxAttempts = 10
+  for (let i = 0; i < maxAttempts; i++) {
+    const response = await fetch(ANDROID_REGISTER_URL, {
+      method: 'POST',
+      headers,
+      body,
+    })
 
-  const data = (await response.json()) as { status: number }
+    const data = (await response.json()) as {
+      status: number
+      remainingSeconds?: number
+      nextRequestIntervalInSeconds?: number
+    }
 
-  if (data.status === STATUS_OK) {
-    return { authenticated: false, message: 'Device registered. Proceeding to login...' }
+    if (data.status === STATUS_OK) {
+      return { authenticated: false, message: 'Device registered.' }
+    }
+
+    if (data.status !== STATUS_DEVICE_NOT_REGISTERED || !data.nextRequestIntervalInSeconds) {
+      return {
+        authenticated: false,
+        error: 'registration_failed',
+        message: `Device registration failed with status ${data.status}`,
+      }
+    }
+
+    const waitMs = data.nextRequestIntervalInSeconds * 1000
+    await new Promise((r) => setTimeout(r, waitMs))
   }
 
   return {
     authenticated: false,
-    error: 'registration_failed',
-    message: `Device registration failed with status ${data.status}`,
+    error: 'registration_timeout',
+    message: 'Device registration timed out. Passcode may have expired.',
   }
 }
 
