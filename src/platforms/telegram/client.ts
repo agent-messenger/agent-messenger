@@ -11,7 +11,6 @@ import {
   type TdAuthorizationState,
   type TdChat,
   type TdChats,
-  type TdError,
   type TdMessage,
   type TdMessages,
   type TdUpdateAuthorizationState,
@@ -226,27 +225,36 @@ export class TelegramTdlibClient {
     await this.call({ '@type': 'openChat', chat_id: chat.id })
 
     try {
-      await this.call({
-        '@type': 'loadChats',
-        chat_list: { '@type': 'chatListMain' },
-        limit: Math.max(limit, 20),
-      })
-    } catch {
-      // Best-effort — chat may already be loaded.
+      let messages: TdMessage[] = []
+
+      for (let attempt = 0; attempt < 3; attempt += 1) {
+        const response = (await this.call({
+          '@type': 'getChatHistory',
+          chat_id: chat.id,
+          from_message_id: 0,
+          offset: 0,
+          limit,
+          only_local: false,
+        })) as TdMessages
+
+        const fetched = response.messages ?? []
+        const previousCount = messages.length
+
+        if (fetched.length >= previousCount) {
+          messages = fetched
+        }
+
+        if (messages.length >= limit || messages.length === previousCount) {
+          break
+        }
+
+        await this.drainUpdates(1000)
+      }
+
+      return messages.slice(0, limit).map((message: TdMessage) => simplifyMessage(message, chat.id))
+    } finally {
+      await this.call({ '@type': 'closeChat', chat_id: chat.id }).catch(() => undefined)
     }
-
-    await this.drainUpdates(2000)
-
-    const response = (await this.call({
-      '@type': 'getChatHistory',
-      chat_id: chat.id,
-      from_message_id: 0,
-      offset: 0,
-      limit,
-      only_local: false,
-    })) as TdMessages
-
-    return (response.messages ?? []).map((message: TdMessage) => simplifyMessage(message, chat.id))
   }
 
   async sendMessage(reference: string, text: string): Promise<TelegramMessageSummary> {
@@ -426,16 +434,17 @@ export class TelegramTdlibClient {
   }
 
   private async getChatsByIds(chatIds: number[]): Promise<TelegramChatSummary[]> {
-    const chats = await Promise.all(
-      chatIds.map((chatId) =>
-        this.call({
-          '@type': 'getChat',
-          chat_id: chatId,
-        }),
-      ),
-    )
+    const chats: TdChat[] = []
 
-    return chats.map((chat) => simplifyChat(chat as TdChat))
+    for (const chatId of chatIds) {
+      const chat = (await this.call({
+        '@type': 'getChat',
+        chat_id: chatId,
+      })) as TdChat
+      chats.push(chat)
+    }
+
+    return chats.map((chat) => simplifyChat(chat))
   }
 
   private handleEvent(event: any): any {
@@ -443,11 +452,6 @@ export class TelegramTdlibClient {
       const update = event as TdUpdateAuthorizationState
       this.currentAuthorizationState = update.authorization_state
       return update.authorization_state
-    }
-
-    if (event?.['@type'] === 'error') {
-      const error = event as TdError
-      throw new TelegramError(error.message ?? 'TDLib error', error.code ?? 'tdlib_error')
     }
 
     if (event?.['@type'] === 'updateMessageSendSucceeded') {
