@@ -1,10 +1,10 @@
 # Agent Messenger
 
-[![npm version](https://img.shields.io/npm/v/agent-messenger)](https://www.npmjs.com/package/agent-messenger) [![SkillPad - agent-slack](https://img.shields.io/badge/SkillPad-agent--slack-1a1a1a)](https://skillpad.dev/install/devxoul/agent-messenger/agent-slack) [![SkillPad - agent-slackbot](https://img.shields.io/badge/SkillPad-agent--slackbot-1a1a1a)](https://skillpad.dev/install/devxoul/agent-messenger/agent-slackbot) [![SkillPad - agent-discord](https://img.shields.io/badge/SkillPad-agent--discord-1a1a1a)](https://skillpad.dev/install/devxoul/agent-messenger/agent-discord) [![SkillPad - agent-discordbot](https://img.shields.io/badge/SkillPad-agent--discordbot-1a1a1a)](https://skillpad.dev/install/devxoul/agent-messenger/agent-discordbot) [![SkillPad - agent-teams](https://img.shields.io/badge/SkillPad-agent--teams-1a1a1a)](https://skillpad.dev/install/devxoul/agent-messenger/agent-teams) [![SkillPad - agent-channeltalk](https://img.shields.io/badge/SkillPad-agent--channeltalk-1a1a1a)](https://skillpad.dev/install/devxoul/agent-messenger/agent-channeltalk) [![SkillPad - agent-channeltalkbot](https://img.shields.io/badge/SkillPad-agent--channeltalkbot-1a1a1a)](https://skillpad.dev/install/devxoul/agent-messenger/agent-channeltalkbot)
+[![npm version](https://img.shields.io/npm/v/agent-messenger)](https://www.npmjs.com/package/agent-messenger) [![SkillPad - agent-slack](https://img.shields.io/badge/SkillPad-agent--slack-1a1a1a)](https://skillpad.dev/install/devxoul/agent-messenger/agent-slack) [![SkillPad - agent-slackbot](https://img.shields.io/badge/SkillPad-agent--slackbot-1a1a1a)](https://skillpad.dev/install/devxoul/agent-messenger/agent-slackbot) [![SkillPad - agent-discord](https://img.shields.io/badge/SkillPad-agent--discord-1a1a1a)](https://skillpad.dev/install/devxoul/agent-messenger/agent-discord) [![SkillPad - agent-discordbot](https://img.shields.io/badge/SkillPad-agent--discordbot-1a1a1a)](https://skillpad.dev/install/devxoul/agent-messenger/agent-discordbot) [![SkillPad - agent-teams](https://img.shields.io/badge/SkillPad-agent--teams-1a1a1a)](https://skillpad.dev/install/devxoul/agent-messenger/agent-teams) [![SkillPad - agent-telegram](https://img.shields.io/badge/SkillPad-agent--telegram-1a1a1a)](https://skillpad.dev/install/devxoul/agent-messenger/agent-telegram) [![SkillPad - agent-channeltalk](https://img.shields.io/badge/SkillPad-agent--channeltalk-1a1a1a)](https://skillpad.dev/install/devxoul/agent-messenger/agent-channeltalk) [![SkillPad - agent-channeltalkbot](https://img.shields.io/badge/SkillPad-agent--channeltalkbot-1a1a1a)](https://skillpad.dev/install/devxoul/agent-messenger/agent-channeltalkbot)
 
 ![Agent Messenger](./docs/public/cover.png)
 
-**Give your AI agent the power to read and send messages across Slack, Discord, Teams, Channel Talk (beta) and more**
+**Give your AI agent the power to read and send messages across Slack, Discord, Teams, Telegram, Channel Talk (beta) and more**
 
 A unified, agent-friendly CLI for messaging platforms. Zero-config credential extraction from your desktop apps—no OAuth flows, no API keys, no admin approval needed. Works out of the box.
 
@@ -37,7 +37,7 @@ Messaging platforms only offer Bot tokens for API access—your AI agent can nev
 - **Act as yourself, not a bot** — Extracted user tokens let your agent operate on your behalf
 - **No API keys needed** — Automatically extracts credentials from your installed desktop apps
 - **Zero setup** — Credentials are auto-extracted on first command. No manual auth step required
-- **One interface, multiple platforms** — Learn once, use everywhere (Slack, Discord, Teams, Channel Talk)
+- **One interface, multiple platforms** — Learn once, use everywhere (Slack, Discord, Teams, Telegram, Channel Talk)
 - **AI-agent friendly** — JSON output by default, perfect for LLM tool use
 - **Agent memory** — Remembers workspace IDs, channel names, and preferences across sessions
 - **Human friendly too** — Add `--pretty` for readable output
@@ -58,18 +58,20 @@ This installs:
 - `agent-discord` — Discord CLI
 - `agent-discordbot` — Discord Bot CLI (bot token, for server-side/CI/CD)
 - `agent-teams` — Microsoft Teams CLI
+- `agent-telegram` — Telegram CLI (user account via TDLib)
 - `agent-channeltalk` — Channel Talk CLI (beta, zero-config, extracted cookies)
 - `agent-channeltalkbot` — Channel Talk Bot CLI (beta, API credentials, for server-side/CI/CD)
 
 ## Agent Skills
 
-Agent Messenger includes [Agent Skills](https://agentskills.io/) that teach your AI agent how to use these CLIs effectively. Seven skills are available:
+Agent Messenger includes [Agent Skills](https://agentskills.io/) that teach your AI agent how to use these CLIs effectively. Eight skills are available:
 
 - **`agent-slack`** — Slack (user token, zero-config)
 - **`agent-slackbot`** — Slack Bot (bot token, for server-side/CI/CD)
 - **`agent-discord`** — Discord
 - **`agent-discordbot`** — Discord Bot (bot token, for server-side/CI/CD)
 - **`agent-teams`** — Microsoft Teams
+- **`agent-telegram`** — Telegram (user account via TDLib)
 - **`agent-channeltalk`** — Channel Talk (beta, zero-config, extracted cookies)
 - **`agent-channeltalkbot`** — Channel Talk Bot (beta, API credentials, for server-side/CI/CD)
 
@@ -77,7 +79,7 @@ Agent Messenger includes [Agent Skills](https://agentskills.io/) that teach your
 
 SkillPad is a GUI app for Agent Skills. See [skillpad.dev](https://skillpad.dev/) for more details.
 
-[![Available on SkillPad](https://badge.skillpad.dev/agent-slack/dark.svg)](https://skillpad.dev/install/devxoul/agent-messenger/agent-slack) [![Available on SkillPad](https://badge.skillpad.dev/agent-slackbot/dark.svg)](https://skillpad.dev/install/devxoul/agent-messenger/agent-slackbot) [![Available on SkillPad](https://badge.skillpad.dev/agent-discord/dark.svg)](https://skillpad.dev/install/devxoul/agent-messenger/agent-discord) [![Available on SkillPad](https://badge.skillpad.dev/agent-discordbot/dark.svg)](https://skillpad.dev/install/devxoul/agent-messenger/agent-discordbot) [![Available on SkillPad](https://badge.skillpad.dev/agent-teams/dark.svg)](https://skillpad.dev/install/devxoul/agent-messenger/agent-teams) [![Available on SkillPad](https://badge.skillpad.dev/agent-channeltalk/dark.svg)](https://skillpad.dev/install/devxoul/agent-messenger/agent-channeltalk) [![Available on SkillPad](https://badge.skillpad.dev/agent-channeltalkbot/dark.svg)](https://skillpad.dev/install/devxoul/agent-messenger/agent-channeltalkbot)
+[![Available on SkillPad](https://badge.skillpad.dev/agent-slack/dark.svg)](https://skillpad.dev/install/devxoul/agent-messenger/agent-slack) [![Available on SkillPad](https://badge.skillpad.dev/agent-slackbot/dark.svg)](https://skillpad.dev/install/devxoul/agent-messenger/agent-slackbot) [![Available on SkillPad](https://badge.skillpad.dev/agent-discord/dark.svg)](https://skillpad.dev/install/devxoul/agent-messenger/agent-discord) [![Available on SkillPad](https://badge.skillpad.dev/agent-discordbot/dark.svg)](https://skillpad.dev/install/devxoul/agent-messenger/agent-discordbot) [![Available on SkillPad](https://badge.skillpad.dev/agent-teams/dark.svg)](https://skillpad.dev/install/devxoul/agent-messenger/agent-teams) [![Available on SkillPad](https://badge.skillpad.dev/agent-telegram/dark.svg)](https://skillpad.dev/install/devxoul/agent-messenger/agent-telegram) [![Available on SkillPad](https://badge.skillpad.dev/agent-channeltalk/dark.svg)](https://skillpad.dev/install/devxoul/agent-messenger/agent-channeltalk) [![Available on SkillPad](https://badge.skillpad.dev/agent-channeltalkbot/dark.svg)](https://skillpad.dev/install/devxoul/agent-messenger/agent-channeltalkbot)
 
 ### Skills CLI
 
@@ -125,26 +127,39 @@ agent-slack message send general "Hello from the CLI!"
 
 That's it. Credentials are extracted automatically from your Slack desktop app on first run. No OAuth flows. No API tokens. No configuration files.
 
+## Telegram Quick Start
+
+Get up and running with Telegram in a minute:
+
+```bash
+bunx --package agent-messenger agent-telegram auth login
+
+# Send a message
+bunx --package agent-messenger agent-telegram message send <chat-id-or-@username> "Hello from the CLI!"
+```
+
+The CLI automatically provisions API credentials via my.telegram.org if needed. For CI/CD, set `AGENT_TELEGRAM_API_ID` and `AGENT_TELEGRAM_API_HASH` environment variables.
+
 ## Supported Platforms
 
-| Feature                    | Slack | Discord | Teams | Channel Talk (beta) |
-| -------------------------- | :---: | :-----: | :---: | :----------: |
-| Auto credential extraction |  ✅   |   ✅    |  ✅   |      ✅      |
-| Send & list messages       |  ✅   |   ✅    |  ✅   |      ✅      |
-| Search messages            |  ✅   |   ✅    |   —   |      ✅      |
-| Threads                    |  ✅   |   ✅    |   —   |      —       |
-| Channels & Users           |  ✅   |   ✅    |  ✅   |      ✅      |
-| Reactions                  |  ✅   |   ✅    |  ✅   |      —       |
-| File uploads               |  ✅   |   ✅    |  ✅   |      —       |
-| File downloads             |  ✅   |    —    |   —   |      —       |
-| Workspace snapshots        |  ✅   |   ✅    |  ✅   |      ✅      |
-| Multi-workspace            |  ✅   |   ✅    |  ✅   |      ✅      |
-| Activity feed              |  ✅   |    —    |   —   |      —       |
-| Drafts                     |  ✅   |    —    |   —   |      —       |
-| Saved items                |  ✅   |    —    |   —   |      —       |
-| Unread messages            |  ✅   |    —    |   —   |      —       |
-| Sidebar sections           |  ✅   |    —    |   —   |      —       |
-| Bot support                |  ✅   |   ✅    |   —   |      ✅      |
+| Feature                    | Slack | Discord | Teams | Telegram | Channel Talk (beta) |
+| -------------------------- | :---: | :-----: | :---: | :------: | :-----------------: |
+| Auto credential extraction |  ✅   |   ✅    |  ✅   |    —     |         ✅          |
+| Send & list messages       |  ✅   |   ✅    |  ✅   |    ✅     |         ✅          |
+| Search messages            |  ✅   |   ✅    |   —   |    —     |         ✅          |
+| Threads                    |  ✅   |   ✅    |   —   |    —     |         —           |
+| Channels & Users           |  ✅   |   ✅    |  ✅   | partial  |         ✅          |
+| Reactions                  |  ✅   |   ✅    |  ✅   |    —     |         —           |
+| File uploads               |  ✅   |   ✅    |  ✅   |    —     |         —           |
+| File downloads             |  ✅   |    —    |   —   |    —     |         —           |
+| Workspace snapshots        |  ✅   |   ✅    |  ✅   |    —     |         ✅          |
+| Multi-workspace / account  |  ✅   |   ✅    |  ✅   |    ✅     |         ✅          |
+| Activity feed              |  ✅   |    —    |   —   |    —     |         —           |
+| Drafts                     |  ✅   |    —    |   —   |    —     |         —           |
+| Saved items                |  ✅   |    —    |   —   |    —     |         —           |
+| Unread messages            |  ✅   |    —    |   —   |    —     |         —           |
+| Sidebar sections           |  ✅   |    —    |   —   |    —     |         —           |
+| Bot support                |  ✅   |   ✅    |   —   |    —     |         ✅          |
 
 > ⚠️ **Teams tokens expire in 60-90 minutes.** Re-run `agent-teams auth extract` to refresh. See [Teams Guide](skills/agent-teams/SKILL.md) for details.
 
@@ -155,6 +170,7 @@ That's it. Credentials are extracted automatically from your Slack desktop app o
 - **[Discord Guide](https://agent-messenger.dev/docs/integrations/discord)** — Full command reference for Discord
 - **[Discord Bot Guide](https://agent-messenger.dev/docs/integrations/discordbot)** — Bot token integration for server-side and CI/CD
 - **[Teams Guide](https://agent-messenger.dev/docs/integrations/teams)** — Full command reference for Microsoft Teams
+- **[Telegram Guide](https://agent-messenger.dev/docs/integrations/telegram)** — TDLib setup and Telegram command reference
 - **[Channel Talk Guide](https://agent-messenger.dev/docs/integrations/channeltalk)** — Full command reference for Channel Talk (beta, zero-config)
 - **[Channel Talk Bot Guide](https://agent-messenger.dev/docs/integrations/channeltalkbot)** — Bot API integration for Channel Talk (beta)
 
@@ -204,7 +220,7 @@ Wire messaging into your CI, scripts, or agent workflows.
 
 ### ...and More
 
-These are just starting points. Your agent has full read/write access to Slack, Discord, Teams, and Channel Talk — anything you'd do manually in a chat app, it can handle for you. If you build something cool with Agent Messenger, [let me know](https://x.com/devxoul)!
+These are just starting points. Your agent has full read/write access to Slack, Discord, Teams, Telegram, and Channel Talk — anything you'd do manually in a chat app, it can handle for you. If you build something cool with Agent Messenger, [let me know](https://x.com/devxoul)!
 
 ## Philosophy
 

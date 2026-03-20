@@ -21,6 +21,10 @@
         "tsx": "^4.21.0",
         "typescript": "^5.9.3",
       },
+      "optionalDependencies": {
+        "koffi": "^2.15.2",
+        "prebuilt-tdlib": "0.1008062.2",
+      },
     },
   },
   "packages": {
@@ -157,6 +161,22 @@
     "@oxlint/binding-win32-ia32-msvc": ["@oxlint/binding-win32-ia32-msvc@1.51.0", "", { "os": "win32", "cpu": "ia32" }, "sha512-q3cEoKH6kwjz/WRyHwSf0nlD2F5Qw536kCXvmlSu+kaShzgrA0ojmh45CA81qL+7udfCaZL2SdKCZlLiGBVFlg=="],
 
     "@oxlint/binding-win32-x64-msvc": ["@oxlint/binding-win32-x64-msvc@1.51.0", "", { "os": "win32", "cpu": "x64" }, "sha512-Q14+fOGb9T28nWF/0EUsYqERiRA7cl1oy4TJrGmLaqhm+aO2cV+JttboHI3CbdeMCAyDI1+NoSlrM7Melhp/cw=="],
+
+    "@prebuilt-tdlib/darwin-arm64": ["@prebuilt-tdlib/darwin-arm64@0.1008062.2", "", { "os": "darwin", "cpu": "arm64" }, "sha512-+AHGA293vZyqBxZ9cYTBCAgRUiTSnommsj0LnoT9+b3Pa73LCW9EIy1NGd01/XQpX7TaaChji0BVK3kkS8iQxA=="],
+
+    "@prebuilt-tdlib/darwin-x64": ["@prebuilt-tdlib/darwin-x64@0.1008062.2", "", { "os": "darwin", "cpu": "x64" }, "sha512-v55HgpQ0E0nxIfyd76r6u8czZliD+iCeeBSbe3JvdjWRJXj1wz2Nv3gpqCLBEdHqnTK6GUPlk0MlQFmHyKJMnw=="],
+
+    "@prebuilt-tdlib/linux-arm64-glibc": ["@prebuilt-tdlib/linux-arm64-glibc@0.1008062.2", "", { "os": "linux", "cpu": "arm64" }, "sha512-WetFqYB658vos8KCKNIouo0CNta+Tmj6nUW24V1NJiCmq3OKHH+zvtwxC4AoBqt5miAqF7DBokMtxXyp8z9bVA=="],
+
+    "@prebuilt-tdlib/linux-arm64-musl": ["@prebuilt-tdlib/linux-arm64-musl@0.1008062.2", "", { "os": "linux", "cpu": "arm64" }, "sha512-uAFiBq/xEBr5bSPRtR6xrEzjWC+Y91zfeB6IJW2vT4q+k4AT/IMkKvHCdtAnwcOSiKVEu7lSiYB52xoktuHAew=="],
+
+    "@prebuilt-tdlib/linux-x64-glibc": ["@prebuilt-tdlib/linux-x64-glibc@0.1008062.2", "", { "os": "linux", "cpu": "x64" }, "sha512-NOUOubfeWcZSSm9nvIQJjSXqEOBmBT4kvsWPW5rMuUMaR44VOGas/kB7aGcElNtqX9Bw+IsRgSHU7r8LMQ2CVQ=="],
+
+    "@prebuilt-tdlib/linux-x64-musl": ["@prebuilt-tdlib/linux-x64-musl@0.1008062.2", "", { "os": "linux", "cpu": "x64" }, "sha512-kGpDjDfS169mb+ut9Z9Mi/TBExTBg6oidWEk723S0RU3hp9aSHC0n75NZcmNd3Gi2ncHJoC2m6h01Kug5veZ2Q=="],
+
+    "@prebuilt-tdlib/types": ["@prebuilt-tdlib/types@0.1008062.2", "", {}, "sha512-1T2vKv6RPdUBOYmoWifRCyD5hvxMiA5xFscoXjOhAWdmc8CFzOao5rvZiH8yqgb/IqiMK0/2qZxi5VdmxFRuyw=="],
+
+    "@prebuilt-tdlib/win32-x64": ["@prebuilt-tdlib/win32-x64@0.1008062.2", "", { "os": "win32", "cpu": "x64" }, "sha512-nCvwdCbFQQV/rxz7p782osjSOrHveCZXgoHRCtpYdzQh4ZYwaHBYnlmk5MPGpqY+faUtrD1XFiWgaq8dSjkgzw=="],
 
     "@slack/logger": ["@slack/logger@3.0.0", "", { "dependencies": { "@types/node": ">=12.0.0" } }, "sha512-DTuBFbqu4gGfajREEMrkq5jBhcnskinhr4+AnfJEk48zhVeEv3XnUKGIX98B74kxhYsIMfApGGySTn7V3b5yBA=="],
 
@@ -302,6 +322,8 @@
 
     "is-stream": ["is-stream@1.1.0", "", {}, "sha512-uQPm8kcs47jx38atAcWTVxyltQYoPT68y9aWYdV6yWXSyW8mzSat0TL6CiWdZeCdF3KrAvpVtnHbTv4RN+rqdQ=="],
 
+    "koffi": ["koffi@2.15.2", "", {}, "sha512-r9tjJLVRSOhCRWdVyQlF3/Ugzeg13jlzS4czS82MAgLff4W+BcYOW7g8Y62t9O5JYjYOLAjAovAZDNlDfZNu+g=="],
+
     "level-supports": ["level-supports@4.0.1", "", {}, "sha512-PbXpve8rKeNcZ9C1mUicC9auIYFyGpkV9/i6g76tLgANwWhtG2v7I4xNBUlkn3lE2/dZF3Pi0ygYGtLc4RXXdA=="],
 
     "level-transcoder": ["level-transcoder@1.0.1", "", { "dependencies": { "buffer": "^6.0.3", "module-error": "^1.0.1" } }, "sha512-t7bFwFtsQeD8cl8NIoQ2iwxA0CL/9IFw7/9gAjOonH0PWTTiRfY7Hq+Ejbsxh86tXobDQ6IOiddjNYIfOBs06w=="],
@@ -357,6 +379,8 @@
     "plimit-lit": ["plimit-lit@1.6.1", "", { "dependencies": { "queue-lit": "^1.5.1" } }, "sha512-B7+VDyb8Tl6oMJT9oSO2CW8XC/T4UcJGrwOVoNGwOQsQYhlpfajmrMj5xeejqaASq3V/EqThyOeATEOMuSEXiA=="],
 
     "prebuild-install": ["prebuild-install@7.1.3", "", { "dependencies": { "detect-libc": "^2.0.0", "expand-template": "^2.0.3", "github-from-package": "0.0.0", "minimist": "^1.2.3", "mkdirp-classic": "^0.5.3", "napi-build-utils": "^2.0.0", "node-abi": "^3.3.0", "pump": "^3.0.0", "rc": "^1.2.7", "simple-get": "^4.0.0", "tar-fs": "^2.0.0", "tunnel-agent": "^0.6.0" }, "bin": { "prebuild-install": "bin.js" } }, "sha512-8Mf2cbV7x1cXPUILADGI3wuhfqWvtiLA1iclTDbFRZkgRQS0NqsPZphna9V+HyTEadheuPmjaJMsbzKQFOzLug=="],
+
+    "prebuilt-tdlib": ["prebuilt-tdlib@0.1008062.2", "", { "optionalDependencies": { "@prebuilt-tdlib/darwin-arm64": "0.1008062.2", "@prebuilt-tdlib/darwin-x64": "0.1008062.2", "@prebuilt-tdlib/linux-arm64-glibc": "0.1008062.2", "@prebuilt-tdlib/linux-arm64-musl": "0.1008062.2", "@prebuilt-tdlib/linux-x64-glibc": "0.1008062.2", "@prebuilt-tdlib/linux-x64-musl": "0.1008062.2", "@prebuilt-tdlib/types": "0.1008062.2", "@prebuilt-tdlib/win32-x64": "0.1008062.2" } }, "sha512-JgTOtmDI3eDhxs5/0WOB7BG4q1WWlmrIWLtENA3gwkGHaD/1qjid4HuE5nL0ZbU5kZ5Z8MlYuiuuP6e6NIC1HA=="],
 
     "proxy-from-env": ["proxy-from-env@1.1.0", "", {}, "sha512-D+zkORCbA9f1tdWRK0RaCR3GPv50cMxcrz4X8k5LTSUD1Dkw47mKJEZQNunItRTkWwgtaUSo1RVFRIG9ZXiFYg=="],
 
