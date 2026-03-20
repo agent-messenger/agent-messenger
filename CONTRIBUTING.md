@@ -37,7 +37,7 @@ bun test --watch
 
 ## Code Quality
 
-We use Biome for linting and formatting, and TypeScript for type checking:
+We use oxlint for linting, oxfmt for formatting, and TypeScript for type checking:
 
 ```bash
 # Type check
@@ -47,7 +47,7 @@ bun run typecheck
 bun run lint
 
 # Auto-fix lint issues
-bun run lint --write
+bun lint:fix
 
 # Format code
 bun run format
@@ -81,7 +81,7 @@ test(channel): add channel list tests
 3. Implement the feature
 4. Ensure all tests pass: `bun test`
 5. Ensure types are correct: `bun run typecheck`
-6. Fix any lint issues: `bun run lint --write`
+6. Fix any lint issues: `bun lint:fix`
 7. Submit PR with clear description
 
 ## Project Structure
@@ -123,6 +123,16 @@ src/
         server.ts
         message.ts
         ...
+    discordbot/             # Discord Bot platform (bot token)
+      cli.ts                # Discord Bot CLI entry
+      client.ts             # Discord Bot API client
+      credential-manager.ts # Credential storage
+      types.ts              # TypeScript types
+      commands/             # Command handlers
+        auth.ts
+        channel.ts
+        message.ts
+        ...
     teams/                  # Microsoft Teams platform
       cli.ts                # Teams CLI entry
       client.ts             # Teams API client
@@ -134,6 +144,17 @@ src/
         auth.ts
         channel.ts
         team.ts
+        message.ts
+        ...
+    telegram/               # Telegram platform (TDLib)
+      cli.ts                # Telegram CLI entry
+      client.ts             # Telegram TDLib client
+      credential-manager.ts # Credential storage
+      app-config.ts         # API credential provisioning
+      types.ts              # TypeScript types
+      commands/             # Command handlers
+        auth.ts
+        chat.ts
         message.ts
         ...
     channeltalk/            # Channel Talk platform (beta)

@@ -236,8 +236,11 @@ Inspired by [agent-browser](https://github.com/vercel-labs/agent-browser) from V
 bun install    # Install dependencies
 bun link       # Link CLI globally for local testing
 bun test       # Run tests
+bun test:e2e   # Run e2e tests
 bun typecheck  # Type check
 bun lint       # Lint
+bun lint:fix   # Lint with autofix
+bun format     # Format
 bun run build  # Build
 ```
 
