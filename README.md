@@ -148,7 +148,7 @@ The CLI automatically provisions API credentials via my.telegram.org if needed. 
 | Send & list messages       |  ✅   |   ✅    |  ✅   |    ✅     |         ✅          |
 | Search messages            |  ✅   |   ✅    |   —   |    —     |         ✅          |
 | Threads                    |  ✅   |   ✅    |   —   |    —     |         —           |
-| Channels & Users           |  ✅   |   ✅    |  ✅   |    —     |         ✅          |
+| Channels & Users           |  ✅   |   ✅    |  ✅   | partial  |         ✅          |
 | Reactions                  |  ✅   |   ✅    |  ✅   |    —     |         —           |
 | File uploads               |  ✅   |   ✅    |  ✅   |    —     |         —           |
 | File downloads             |  ✅   |    —    |   —   |    —     |         —           |

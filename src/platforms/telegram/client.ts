@@ -244,7 +244,7 @@ export class TelegramTdlibClient {
           messages = fetched
         }
 
-        if (messages.length >= limit || messages.length === previousCount) {
+        if (messages.length >= limit || (attempt > 0 && messages.length === previousCount)) {
           break
         }
 

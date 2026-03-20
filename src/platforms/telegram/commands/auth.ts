@@ -199,7 +199,7 @@ async function promptNextLoginInput(result: { next_action?: string }, options: A
 async function buildAccount(manager: TelegramCredentialManager, options: AuthOptions): Promise<TelegramAccount> {
   const existing =
     (options.account ? await manager.getAccount(options.account) : null) ??
-    (await manager.getAccount())
+    (!options.account ? await manager.getAccount() : null)
 
   const accountId = options.account
     ? createAccountId(options.account)
