@@ -63,6 +63,21 @@ async function loginAction(options: KakaoAuthOptions): Promise<void> {
 
     let { email, password, passcode, deviceType, force } = options
 
+    // Try extracting email + password from the desktop app's Cache.db
+    // so the user doesn't need to type credentials manually.
+    if (!email || !password) {
+      const extractor = new KakaoTokenExtractor()
+      const cached = await extractor.extract()
+      if (cached?.login_form_body) {
+        const params = new URLSearchParams(cached.login_form_body)
+        if (!email) email = params.get('email') ?? undefined
+        if (!password) password = params.get('password') ?? undefined
+        if (email && interactive) {
+          console.error(`  Using cached credentials for ${email}`)
+        }
+      }
+    }
+
     if (!email) {
       if (!interactive) {
         console.log(formatOutput(KAKAO_NEXT_ACTIONS.provide_email, options.pretty))

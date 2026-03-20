@@ -20,14 +20,6 @@ async function listAction(options: { pretty?: boolean }): Promise<void> {
     type ChatData = Record<string, unknown>
     const rawChats = (loginResult.chatDatas ?? []) as ChatData[]
 
-    const toLong = (v: unknown): string => {
-      if (v && typeof v === 'object' && 'high' in v && 'low' in v) {
-        const { high, low } = v as { high: number; low: number }
-        return ((BigInt(high >>> 0) << 32n) | BigInt(low >>> 0)).toString()
-      }
-      return String(v ?? 0)
-    }
-
     rawChats.sort((a, b) => ((b.o as number) ?? 0) - ((a.o as number) ?? 0))
 
     const chatList = rawChats.map((chat) => {
