@@ -1,5 +1,7 @@
 import { Writable } from 'node:stream'
+
 import { Command } from 'commander'
+
 import { handleError } from '../../../shared/utils/error-handler'
 import { formatOutput } from '../../../shared/utils/output'
 import { getTelegramAppCredentials } from '../app-config'
@@ -121,7 +123,7 @@ async function fillMissingBootstrappingInputs(
         console.error('No API credentials found. Provisioning via my.telegram.org...')
         console.error('A verification code will be sent to your Telegram account.\n')
 
-        const phone = resolved.phone || await promptText('Phone number (e.g. +14155551234)')
+        const phone = resolved.phone || (await promptText('Phone number (e.g. +14155551234)'))
         if (!phone) {
           throw new Error('Phone number is required to provision Telegram API credentials.')
         }
@@ -148,25 +150,62 @@ async function fillMissingBootstrappingInputs(
         resolved.apiHash = await promptHidden('Telegram API hash')
       }
     } else {
-      console.error('Telegram API credentials are not set.')
-      console.error('Set AGENT_TELEGRAM_API_ID and AGENT_TELEGRAM_API_HASH environment variables.')
-      console.error('Get them from https://my.telegram.org/apps')
+      console.log(
+        formatOutput(
+          {
+            error: 'missing_credentials',
+            message: 'Provide --api-id and --api-hash, or run interactively to auto-provision.',
+          },
+          options.pretty,
+        ),
+      )
       process.exit(1)
     }
   }
 
   if (!resolved.apiHash && !existing?.api_hash) {
+    if (!isInteractiveSession()) {
+      console.log(formatOutput({ error: 'missing_credentials', message: 'Provide --api-hash flag.' }, options.pretty))
+      process.exit(1)
+    }
     resolved.apiHash = await promptHidden('Telegram API hash')
   }
 
   if (!existing && !resolved.phone) {
+    if (!isInteractiveSession()) {
+      console.log(formatOutput({ next_action: 'provide_phone', message: 'Provide --phone flag.' }, options.pretty))
+      process.exit(0)
+    }
     resolved.phone = await promptText('Telegram phone number in international format (e.g. +14155551234)')
   }
 
   return resolved
 }
 
-async function promptNextLoginInput(result: { next_action?: string }, options: AuthOptions): Promise<AuthOptions> {
+const NON_INTERACTIVE_MESSAGES: Record<string, { next_action: string; message: string }> = {
+  provide_phone_number: { next_action: 'provide_phone', message: 'Provide --phone flag.' },
+  provide_code: { next_action: 'provide_code', message: 'Enter the code sent to your Telegram app via --code.' },
+  provide_password: { next_action: 'provide_password', message: '2FA password required via --password.' },
+  provide_email: { next_action: 'provide_email', message: 'Provide --email flag.' },
+  provide_email_code: { next_action: 'provide_email_code', message: 'Provide --email-code flag.' },
+  provide_registration: {
+    next_action: 'provide_registration',
+    message: 'Provide --first-name and optionally --last-name.',
+  },
+}
+
+export function getNonInteractiveLoginMessage(nextAction: string): { next_action: string; message: string } | null {
+  return NON_INTERACTIVE_MESSAGES[nextAction] ?? null
+}
+
+export async function promptNextLoginInput(
+  result: { next_action?: string },
+  options: AuthOptions,
+): Promise<AuthOptions | null> {
+  if (!isInteractiveSession() && result.next_action) {
+    return null
+  }
+
   const resolved: AuthOptions = { ...options }
 
   switch (result.next_action) {
@@ -261,10 +300,7 @@ function registerSignalCleanup(client: TelegramTdlibClient): () => void {
 export async function loginAction(options: AuthOptions): Promise<void> {
   const manager = new TelegramCredentialManager()
   const existing = options.account ? await manager.getAccount(options.account) : await manager.getAccount()
-  const interactive = shouldUseInteractivePrompts()
-  let resolvedOptions = interactive
-    ? await fillMissingBootstrappingInputs(options, existing)
-    : options
+  let resolvedOptions = await fillMissingBootstrappingInputs(options, existing)
 
   const account = await buildAccount(manager, resolvedOptions)
   const client = await TelegramTdlibClient.create(account, await manager.ensureAccountPaths(account.account_id))
@@ -284,8 +320,18 @@ export async function loginAction(options: AuthOptions): Promise<void> {
       last_name: resolvedOptions.lastName,
     })
 
-    while (!result.authenticated && interactive && result.next_action) {
-      resolvedOptions = await promptNextLoginInput(result, resolvedOptions)
+    while (!result.authenticated && result.next_action) {
+      const nextOptions = await promptNextLoginInput(result, resolvedOptions)
+      if (!nextOptions) {
+        const msg = getNonInteractiveLoginMessage(result.next_action)
+        if (msg) {
+          console.log(formatOutput(msg, options.pretty))
+        } else {
+          console.log(formatOutput(result, options.pretty))
+        }
+        break
+      }
+      resolvedOptions = nextOptions
       result = await client.login({
         phone_number: resolvedOptions.phone,
         code: resolvedOptions.code,
@@ -297,16 +343,18 @@ export async function loginAction(options: AuthOptions): Promise<void> {
       })
     }
 
-    console.log(formatOutput(result, options.pretty))
-    if (result.authenticated && !options.account && account.account_id === 'default' && result.user?.phone_number) {
-      migratedAccount = {
-        ...account,
-        account_id: createAccountId(`+${result.user.phone_number}`),
-        phone_number: `+${result.user.phone_number}`,
-        updated_at: new Date().toISOString(),
+    if (result.authenticated) {
+      console.log(formatOutput(result, options.pretty))
+      if (!options.account && account.account_id === 'default' && result.user?.phone_number) {
+        migratedAccount = {
+          ...account,
+          account_id: createAccountId(`+${result.user.phone_number}`),
+          phone_number: `+${result.user.phone_number}`,
+          updated_at: new Date().toISOString(),
+        }
       }
-    }
-    if (!result.authenticated) {
+    } else if (!result.next_action) {
+      console.log(formatOutput(result, options.pretty))
       exitCode = 1
     }
   } catch (error) {
