@@ -1,5 +1,7 @@
 import { Writable } from 'node:stream'
+
 import { Command } from 'commander'
+
 import { handleError } from '../../../shared/utils/error-handler'
 import { formatOutput } from '../../../shared/utils/output'
 import { getTelegramAppCredentials } from '../app-config'
@@ -121,7 +123,7 @@ async function fillMissingBootstrappingInputs(
         console.error('No API credentials found. Provisioning via my.telegram.org...')
         console.error('A verification code will be sent to your Telegram account.\n')
 
-        const phone = resolved.phone || await promptText('Phone number (e.g. +14155551234)')
+        const phone = resolved.phone || (await promptText('Phone number (e.g. +14155551234)'))
         if (!phone) {
           throw new Error('Phone number is required to provision Telegram API credentials.')
         }
@@ -148,44 +150,102 @@ async function fillMissingBootstrappingInputs(
         resolved.apiHash = await promptHidden('Telegram API hash')
       }
     } else {
-      console.error('Telegram API credentials are not set.')
-      console.error('Set AGENT_TELEGRAM_API_ID and AGENT_TELEGRAM_API_HASH environment variables.')
-      console.error('Get them from https://my.telegram.org/apps')
+      console.log(
+        formatOutput(
+          {
+            error: 'missing_credentials',
+            message: 'Provide --api-id and --api-hash, or run interactively to auto-provision.',
+          },
+          options.pretty,
+        ),
+      )
       process.exit(1)
     }
   }
 
   if (!resolved.apiHash && !existing?.api_hash) {
+    if (!isInteractiveSession()) {
+      console.log(formatOutput({ error: 'missing_credentials', message: 'Provide --api-hash flag.' }, options.pretty))
+      process.exit(1)
+    }
     resolved.apiHash = await promptHidden('Telegram API hash')
   }
 
   if (!existing && !resolved.phone) {
+    if (!isInteractiveSession()) {
+      console.log(formatOutput({ next_action: 'provide_phone', message: 'Provide --phone flag.' }, options.pretty))
+      process.exit(0)
+    }
     resolved.phone = await promptText('Telegram phone number in international format (e.g. +14155551234)')
   }
 
   return resolved
 }
 
-async function promptNextLoginInput(result: { next_action?: string }, options: AuthOptions): Promise<AuthOptions> {
+export async function promptNextLoginInput(
+  result: { next_action?: string; code_info?: { type?: string; phone_number?: string; timeout?: number } },
+  options: AuthOptions,
+): Promise<AuthOptions> {
   const resolved: AuthOptions = { ...options }
 
   switch (result.next_action) {
     case 'provide_phone_number':
+      if (!isInteractiveSession()) {
+        console.log(formatOutput({ next_action: 'provide_phone', message: 'Provide --phone flag.' }, options.pretty))
+        process.exit(0)
+      }
       resolved.phone = await promptText('Telegram phone number in international format', resolved.phone)
       break
     case 'provide_code':
+      if (!isInteractiveSession()) {
+        console.log(
+          formatOutput(
+            { next_action: 'provide_code', message: 'Enter the code sent to your Telegram app via --code.' },
+            options.pretty,
+          ),
+        )
+        process.exit(0)
+      }
       resolved.code = await promptText('Telegram login code')
       break
     case 'provide_password':
+      if (!isInteractiveSession()) {
+        console.log(
+          formatOutput(
+            { next_action: 'provide_password', message: '2FA password required via --password.' },
+            options.pretty,
+          ),
+        )
+        process.exit(0)
+      }
       resolved.password = await promptHidden('Telegram 2FA password')
       break
     case 'provide_email':
+      if (!isInteractiveSession()) {
+        console.log(formatOutput({ next_action: 'provide_email', message: 'Provide --email flag.' }, options.pretty))
+        process.exit(0)
+      }
       resolved.email = await promptText('Telegram login email')
       break
     case 'provide_email_code':
+      if (!isInteractiveSession()) {
+        console.log(
+          formatOutput({ next_action: 'provide_email_code', message: 'Provide --email-code flag.' }, options.pretty),
+        )
+        process.exit(0)
+      }
       resolved.emailCode = await promptText('Telegram email code')
       break
     case 'provide_registration':
+      if (!isInteractiveSession()) {
+        console.log(
+          formatOutput(
+            { next_action: 'provide_registration', message: 'Provide --first-name and optionally --last-name.' },
+            options.pretty,
+          ),
+        )
+        process.exit(0)
+      }
       resolved.firstName = await promptText('Telegram first name')
       resolved.lastName = await promptText('Telegram last name', resolved.lastName ?? '')
       break
@@ -261,10 +321,7 @@ function registerSignalCleanup(client: TelegramTdlibClient): () => void {
 export async function loginAction(options: AuthOptions): Promise<void> {
   const manager = new TelegramCredentialManager()
   const existing = options.account ? await manager.getAccount(options.account) : await manager.getAccount()
-  const interactive = shouldUseInteractivePrompts()
-  let resolvedOptions = interactive
-    ? await fillMissingBootstrappingInputs(options, existing)
-    : options
+  let resolvedOptions = await fillMissingBootstrappingInputs(options, existing)
 
   const account = await buildAccount(manager, resolvedOptions)
   const client = await TelegramTdlibClient.create(account, await manager.ensureAccountPaths(account.account_id))
@@ -284,7 +341,7 @@ export async function loginAction(options: AuthOptions): Promise<void> {
       last_name: resolvedOptions.lastName,
     })
 
-    while (!result.authenticated && interactive && result.next_action) {
+    while (!result.authenticated && result.next_action) {
       resolvedOptions = await promptNextLoginInput(result, resolvedOptions)
       result = await client.login({
         phone_number: resolvedOptions.phone,

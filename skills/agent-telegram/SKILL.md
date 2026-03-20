@@ -29,7 +29,33 @@ bunx --package agent-messenger agent-telegram message send <chat-id-or-@username
 
 ## Authentication Flow
 
-Telegram auth is stateful. In an interactive terminal, `auth login` now prompts for the next required secret until it can continue.
+Telegram auth is stateful. In an interactive terminal, `auth login` prompts for the next required secret until it can continue. In non-interactive environments, each call returns JSON with `next_action` telling you what to provide next.
+
+### Non-interactive Authentication (for AI agents)
+
+Authentication requires multiple calls. Each call returns JSON with `next_action`:
+
+```bash
+# 1. Start login with phone number
+agent-telegram auth login --api-id <id> --api-hash <hash> --phone +14155551234
+# → {"next_action":"provide_code","message":"Enter the code sent to your Telegram app via --code."}
+
+# 2. Ask the user for the code sent to their Telegram app, then provide it
+agent-telegram auth login --code 12345
+# → {"authenticated":true,"account_id":"plus-14155551234",...}
+#   or if 2FA is enabled:
+# → {"next_action":"provide_password","message":"2FA password required via --password."}
+
+# 3. If 2FA was required, provide the password
+agent-telegram auth login --password mysecret
+# → {"authenticated":true,"account_id":"plus-14155551234",...}
+```
+
+Exit codes: `0` when `next_action` is returned (more input needed) or authentication succeeds. `1` when credentials are missing or authentication fails.
+
+TDLib persists authorization state locally, so each call picks up where the last one left off — no custom state management needed.
+
+### Common Auth Commands
 
 ```bash
 # Check current state
