@@ -9,6 +9,7 @@ export class LocoConnection {
   private socket: Socket | null = null
   private crypto: LocoCrypto | null = null
   private buffer = Buffer.alloc(0)
+  private decryptedBuffer = Buffer.alloc(0)
   private packetIdCounter = 0
   private pendingResolvers = new Map<number, (packet: LocoPacket) => void>()
   private pushHandler: ((packet: LocoPacket) => void) | null = null
@@ -86,6 +87,8 @@ export class LocoConnection {
   private processBuffer(): void {
     while (this.buffer.length > 0) {
       if (this.crypto) {
+        // Decrypt each frame and accumulate into decryptedBuffer.
+        // A single LOCO packet may span multiple encrypted frames.
         if (this.buffer.length < 4) return
         const frameSize = this.buffer.readUInt32LE(0)
         if (this.buffer.length < 4 + frameSize) return
@@ -100,8 +103,13 @@ export class LocoConnection {
           return
         }
 
-        const result = decodePacket(decrypted)
-        if (result) this.dispatchPacket(result.packet)
+        this.decryptedBuffer = Buffer.concat([this.decryptedBuffer, decrypted])
+
+        const result = decodePacket(this.decryptedBuffer)
+        if (result) {
+          this.decryptedBuffer = this.decryptedBuffer.subarray(result.bytesConsumed)
+          this.dispatchPacket(result.packet)
+        }
       } else {
         const result = decodePacket(this.buffer)
         if (!result) return

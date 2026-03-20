@@ -1,3 +1,5 @@
+import { Binary, Long } from 'bson'
+
 import {
   APP_VERSION,
   BOOKING_HOST,
@@ -5,7 +7,6 @@ import {
   CHECKIN_HOST,
   CHECKIN_PORT,
   COUNTRY_ISO,
-  DTYPE,
   LANG,
   MCCMNC,
   PING_INTERVAL_MS,
@@ -30,22 +31,21 @@ export class LocoSession {
     }
 
     const response = await this.connection.sendPacket('LOGINLIST', {
+      appVer: APP_VERSION,
+      prtVer: PROTOCOL_VERSION,
+      os: 'mac',
+      lang: LANG,
+      duuid: deviceUuid,
       oauthToken,
+      ntype: 0,
+      MCCMNC: MCCMNC,
+      revision: 0,
       chatIds: [],
       maxIds: [],
-      lastTokenId: 0,
-      lbk: 0,
+      lastTokenId: Long.fromNumber(0),
+      lbk: Long.fromNumber(0),
+      rp: new Binary(Buffer.from([0x00, 0x00, 0xff, 0xff, 0x00, 0x00])),
       bg: false,
-      os: 'mac',
-      ntype: 0,
-      appVer: APP_VERSION,
-      MCCMNC: MCCMNC,
-      lang: LANG,
-      dtype: DTYPE,
-      duuid: deviceUuid,
-      prtVer: PROTOCOL_VERSION,
-      revision: 0,
-      rp: Buffer.from([0x00, 0x00, 0xff, 0xff, 0x00, 0x00]),
     })
 
     this.startPing()
