@@ -437,7 +437,6 @@ export async function logoutAction(options: { account?: string; pretty?: boolean
 
   try {
     await client.logOut()
-    console.log(formatOutput({ success: true, account_id: account.account_id, logged_out: true }, options.pretty))
   } catch (error) {
     thrownError = error as Error
   } finally {
@@ -448,6 +447,9 @@ export async function logoutAction(options: { account?: string; pretty?: boolean
   if (thrownError) {
     handleError(thrownError)
   }
+
+  await manager.removeAccount(account.account_id)
+  console.log(formatOutput({ success: true, account_id: account.account_id, logged_out: true }, options.pretty))
 }
 
 export async function removeAction(accountId: string, options: { pretty?: boolean }): Promise<void> {
