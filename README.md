@@ -132,15 +132,13 @@ That's it. Credentials are extracted automatically from your Slack desktop app o
 Get up and running with Telegram in a minute:
 
 ```bash
-AGENT_TELEGRAM_API_ID=<api-id> \
-AGENT_TELEGRAM_API_HASH=<api-hash> \
 bunx --package agent-messenger agent-telegram auth login
 
 # Send a message
 bunx --package agent-messenger agent-telegram message send <chat-id-or-@username> "Hello from the CLI!"
 ```
 
-If the env vars are missing, the CLI will prompt for them and store them locally for reuse.
+The CLI automatically provisions API credentials via my.telegram.org if needed. For CI/CD, set `AGENT_TELEGRAM_API_ID` and `AGENT_TELEGRAM_API_HASH` environment variables.
 
 ## Supported Platforms
 

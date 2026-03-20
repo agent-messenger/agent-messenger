@@ -10,14 +10,13 @@ description: TDLib-based Telegram integration for agent-messenger.
 Telegram is different from the Slack/Discord/Teams integrations:
 
 - It uses [TDLib](https://core.telegram.org/tdlib), but this package can ship `libtdjson` through `prebuilt-tdlib`.
-- It needs a Telegram app credential (`api_id` and `api_hash`), and this project treats `AGENT_TELEGRAM_API_ID` / `AGENT_TELEGRAM_API_HASH` as the official configuration path.
+- It needs a Telegram app credential (`api_id` and `api_hash`). The CLI automatically provisions these via my.telegram.org on first login. For CI/CD, set `AGENT_TELEGRAM_API_ID` / `AGENT_TELEGRAM_API_HASH` environment variables.
 - Authentication is stateful and may require multiple `auth login` calls.
 
 ## Quick Start
 
 ```bash
-AGENT_TELEGRAM_API_ID=<api-id> \
-AGENT_TELEGRAM_API_HASH=<api-hash> \
+# The CLI will automatically provision API credentials via my.telegram.org
 agent-telegram auth login
 
 # The command will then interactively ask for phone, code, password, email, etc. as needed
@@ -34,12 +33,11 @@ agent-telegram message send <chat-id-or-@username> "Hello from Telegram"
 ### Login
 
 ```bash
-AGENT_TELEGRAM_API_ID=<api-id> \
-AGENT_TELEGRAM_API_HASH=<api-hash> \
+# Interactive - auto-provisions API credentials
 agent-telegram auth login
 ```
 
-If the env vars are missing, the command prompts for your own `api_id` and `api_hash` from `https://my.telegram.org/apps`.
+The CLI automatically provisions API credentials via my.telegram.org. For CI/CD or custom apps, set `AGENT_TELEGRAM_API_ID` and `AGENT_TELEGRAM_API_HASH` environment variables, or pass `--api-id` and `--api-hash` flags.
 
 ```bash
 agent-telegram auth login \
