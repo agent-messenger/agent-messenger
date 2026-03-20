@@ -192,9 +192,9 @@ export class KakaoTokenExtractor {
           token.device_uuid = decodeURIComponent(duuidMatch[1])
           this.debug('Extracted device_uuid from login.json')
         }
-        // Full POST body for relogin (contains email, password, device params)
-        const formMatch = data.match(/auto_login=[^&]*(?:&[a-z_]+=[^\x00-\x1f]{1,300})*/)
-        if (formMatch && !token.login_form_body) {
+        // URL-encoded POST body: device_name=...&email=...&password=...&device_uuid=...
+        const formMatch = data.match(/(?:device_name|email|auto_login)=[^\x00-\x1f]+(?:&[a-z_]+=[\x20-\x7e]+)*/)
+        if (formMatch && formMatch[0].includes('email=') && !token.login_form_body) {
           token.login_form_body = formMatch[0]
           this.debug('Extracted login form body from login.json')
         }
