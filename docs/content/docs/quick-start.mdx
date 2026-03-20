@@ -23,13 +23,14 @@ yarn global add agent-messenger
 bun add -g agent-messenger
 ```
 
-This installs seven CLI tools:
+This installs eight CLI tools:
 
 - `agent-slack` — Slack CLI (user token, zero-config)
 - `agent-slackbot` — Slack Bot CLI (bot token, for server-side/CI/CD)
 - `agent-discord` — Discord CLI (user token, zero-config)
 - `agent-discordbot` — Discord Bot CLI (bot token, for server-side/CI/CD)
 - `agent-teams` — Microsoft Teams CLI
+- `agent-telegram` — Telegram CLI (user account via TDLib)
 - `agent-channeltalk` — Channel Talk CLI (beta, zero-config, extracted cookies)
 - `agent-channeltalkbot` — Channel Talk Bot CLI (beta, API credentials, for server-side/CI/CD)
 
@@ -46,6 +47,9 @@ agent-discord auth extract
 
 # For Teams
 agent-teams auth extract
+
+# For Telegram — interactive login with auto API credential provisioning
+agent-telegram auth login
 
 # For Channel Talk (beta) — auto-extracted from desktop app
 agent-channeltalk auth extract
@@ -110,6 +114,7 @@ agent-slack workspace current
 - [Discord Reference](/docs/integrations/discord) - Full command reference
 - [Discord Bot Reference](/docs/integrations/discordbot) - Bot token for server-side/CI/CD
 - [Teams Reference](/docs/integrations/teams) - Full command reference
+- [Telegram Reference](/docs/integrations/telegram) - TDLib setup and command reference
 - [Channel Talk Reference](/docs/integrations/channeltalk) - Full command reference (beta)
 - [Channel Talk Bot Reference](/docs/integrations/channeltalkbot) - Bot API for Channel Talk (beta)
 - [Agent Skills](/docs/agent-skills) - Integrate with AI coding agents
