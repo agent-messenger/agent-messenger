@@ -28,6 +28,8 @@ async function listAction(options: { pretty?: boolean }): Promise<void> {
       return String(v ?? 0)
     }
 
+    rawChats.sort((a, b) => ((b.o as number) ?? 0) - ((a.o as number) ?? 0))
+
     const chatList = rawChats.map((chat) => {
       const memberNames = (chat.k ?? []) as string[]
       const lastLog = chat.l as Record<string, unknown> | null
