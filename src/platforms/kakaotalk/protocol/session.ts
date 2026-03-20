@@ -1,0 +1,143 @@
+import {
+  APP_VERSION,
+  BOOKING_HOST,
+  BOOKING_PORT,
+  CHECKIN_HOST,
+  CHECKIN_PORT,
+  COUNTRY_ISO,
+  DTYPE,
+  LANG,
+  MCCMNC,
+  PING_INTERVAL_MS,
+  PROTOCOL_VERSION,
+} from './config'
+import { LocoConnection } from './connection'
+import type { BookingResponse, CheckinResponse, LoginListResponse, LocoPacket } from './types'
+
+export class LocoSession {
+  private connection: LocoConnection | null = null
+  private pingTimer: ReturnType<typeof setInterval> | null = null
+  private pushHandler: ((packet: LocoPacket) => void) | null = null
+
+  async login(oauthToken: string, userId: string, deviceUuid: string): Promise<LoginListResponse> {
+    const { host, port } = await this.bookAndCheckin(userId)
+
+    this.connection = new LocoConnection()
+    await this.connection.connectSecure(host, port)
+
+    if (this.pushHandler) {
+      this.connection.onPush(this.pushHandler)
+    }
+
+    const response = await this.connection.sendPacket('LOGINLIST', {
+      oauthToken,
+      chatIds: [],
+      maxIds: [],
+      lastTokenId: 0,
+      lbk: 0,
+      bg: false,
+      os: 'mac',
+      ntype: 0,
+      appVer: APP_VERSION,
+      MCCMNC: MCCMNC,
+      lang: LANG,
+      dtype: DTYPE,
+      duuid: deviceUuid,
+      prtVer: PROTOCOL_VERSION,
+      revision: 0,
+      rp: Buffer.from([0x00, 0x00, 0xff, 0xff, 0x00, 0x00]),
+    })
+
+    this.startPing()
+    return response.body as unknown as LoginListResponse
+  }
+
+  private async bookAndCheckin(userId: string): Promise<{ host: string; port: number }> {
+    const bookingConn = new LocoConnection()
+    await bookingConn.connectTls(BOOKING_HOST, BOOKING_PORT)
+
+    const bookingResponse = await bookingConn.sendPacket('GETCONF', {
+      os: 'mac',
+      model: '',
+    })
+    bookingConn.close()
+
+    const booking = bookingResponse.body as unknown as BookingResponse
+    const checkinHost = booking.ticket?.lsl?.[0] ?? CHECKIN_HOST
+    const checkinPort = booking.wifi?.ports?.[0] ?? CHECKIN_PORT
+
+    const checkinConn = new LocoConnection()
+    await checkinConn.connectSecure(checkinHost, checkinPort)
+
+    const checkinResponse = await checkinConn.sendPacket('CHECKIN', {
+      userId: Number(userId),
+      os: 'mac',
+      ntype: 0,
+      appVer: APP_VERSION,
+      MCCMNC: MCCMNC,
+      lang: LANG,
+      countryISO: COUNTRY_ISO,
+      useSub: true,
+    })
+    checkinConn.close()
+
+    const checkin = checkinResponse.body as unknown as CheckinResponse
+    if (!checkin.host || !checkin.port) {
+      throw new Error(`Checkin failed: no host/port in response`)
+    }
+
+    return { host: checkin.host, port: checkin.port }
+  }
+
+  async sendMessage(chatId: number, text: string): Promise<LocoPacket> {
+    if (!this.connection) throw new Error('Not connected')
+    return this.connection.sendPacket('WRITE', {
+      chatId,
+      msg: text,
+      type: 1,
+      noSeen: false,
+    })
+  }
+
+  async syncMessages(chatId: number, count = 20, fromLogId = 0): Promise<LocoPacket> {
+    if (!this.connection) throw new Error('Not connected')
+    return this.connection.sendPacket('SYNCMSG', {
+      chatId,
+      cur: fromLogId,
+      cnt: count,
+      max: 0,
+    })
+  }
+
+  async getChatList(): Promise<LocoPacket> {
+    if (!this.connection) throw new Error('Not connected')
+    return this.connection.sendPacket('LCHATLIST', {
+      chatIds: [],
+      maxIds: [],
+      lastTokenId: 0,
+      lastChatId: 0,
+    })
+  }
+
+  onPush(handler: (packet: LocoPacket) => void): void {
+    this.pushHandler = handler
+    if (this.connection) {
+      this.connection.onPush(handler)
+    }
+  }
+
+  private startPing(): void {
+    this.pingTimer = setInterval(() => {
+      this.connection?.sendPacket('PING', {}).catch(() => {})
+    }, PING_INTERVAL_MS)
+  }
+
+  close(): void {
+    if (this.pingTimer) {
+      clearInterval(this.pingTimer)
+      this.pingTimer = null
+    }
+    this.connection?.close()
+    this.connection = null
+  }
+}
