@@ -28,15 +28,24 @@ async function listAction(options: { pretty?: boolean }): Promise<void> {
       return String(v ?? 0)
     }
 
-    const chatList = rawChats.map((chat) => ({
-      chat_id: String(chat.c),
-      type: chat.t,
-      active_members: chat.a,
-      last_seen_log_id: toLong(chat.s),
-      last_log_id: toLong(chat.ll),
-      joined_at: chat.o,
-      push_enabled: chat.p,
-    }))
+    const chatList = rawChats.map((chat) => {
+      const memberNames = (chat.k ?? []) as string[]
+      const lastLog = chat.l as Record<string, unknown> | null
+      const displayName = memberNames.join(', ') || null
+
+      return {
+        chat_id: String(chat.c),
+        type: chat.t,
+        display_name: displayName,
+        active_members: chat.a,
+        unread_count: chat.n,
+        last_message: lastLog ? {
+          author_id: lastLog.authorId,
+          message: lastLog.message,
+          sent_at: lastLog.sendAt,
+        } : null,
+      }
+    })
 
     console.log(formatOutput(chatList, options.pretty))
   } catch (error) {
