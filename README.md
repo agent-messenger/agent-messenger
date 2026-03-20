@@ -148,7 +148,7 @@ The CLI automatically provisions API credentials via my.telegram.org if needed. 
 | Send & list messages       |  ✅   |   ✅    |  ✅   |    ✅     |         ✅          |
 | Search messages            |  ✅   |   ✅    |   —   |    —     |         ✅          |
 | Threads                    |  ✅   |   ✅    |   —   |    —     |         —           |
-| Channels & Users           |  ✅   |   ✅    |  ✅   | partial  |         ✅          |
+| Channels & Users           |  ✅   |   ✅    |  ✅   |    —     |         ✅          |
 | Reactions                  |  ✅   |   ✅    |  ✅   |    —     |         —           |
 | File uploads               |  ✅   |   ✅    |  ✅   |    —     |         —           |
 | File downloads             |  ✅   |    —    |   —   |    —     |         —           |
@@ -159,7 +159,7 @@ The CLI automatically provisions API credentials via my.telegram.org if needed. 
 | Saved items                |  ✅   |    —    |   —   |    —     |         —           |
 | Unread messages            |  ✅   |    —    |   —   |    —     |         —           |
 | Sidebar sections           |  ✅   |    —    |   —   |    —     |         —           |
-| Bot support                |  ✅   |   ✅    |   —   | partial  |         ✅          |
+| Bot support                |  ✅   |   ✅    |   —   |    —     |         ✅          |
 
 > ⚠️ **Teams tokens expire in 60-90 minutes.** Re-run `agent-teams auth extract` to refresh. See [Teams Guide](skills/agent-teams/SKILL.md) for details.
 

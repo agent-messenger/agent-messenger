@@ -6,7 +6,7 @@ allowed-tools: Bash(agent-telegram:*)
 
 # Agent Telegram
 
-A TDLib-backed Telegram CLI for AI agents and humans. Run `auth login` to get started - the CLI automatically provisions API credentials via my.telegram.org if needed. For CI/CD, set `AGENT_TELEGRAM_API_ID` and `AGENT_TELEGRAM_API_HASH` environment variables.
+A TDLib-backed Telegram CLI for AI agents and humans. The official configuration path is `AGENT_TELEGRAM_API_ID` and `AGENT_TELEGRAM_API_HASH`. If they are missing and the terminal is interactive (TTY), `auth login` auto-provisions credentials via my.telegram.org. In non-interactive environments (CI/CD, agent tools), set the env vars before running.
 
 Use one of these entrypoints:
 - Global install: `agent-telegram ...`
@@ -15,7 +15,9 @@ Use one of these entrypoints:
 ## Quick Start
 
 ```bash
-# Start login - the CLI will provision API credentials automatically
+# Start login; auto-provisions API credentials in interactive terminals
+AGENT_TELEGRAM_API_ID=<api-id> \
+AGENT_TELEGRAM_API_HASH=<api-hash> \
 bunx --package agent-messenger agent-telegram auth login
 
 # List chats
