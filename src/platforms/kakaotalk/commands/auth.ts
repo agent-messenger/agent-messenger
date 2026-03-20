@@ -138,7 +138,7 @@ async function loginAction(options: KakaoAuthOptions): Promise<void> {
       console.log('')
 
       const choice = await promptText('Choice (1/2/3)')
-      if (choice === '3' || !choice) { console.log('Cancelled.'); return }
+      if (choice !== '1' && choice !== '2') { console.log('Cancelled.'); return }
 
       const chosenType: KakaoDeviceType = choice === '1' ? 'pc' : 'tablet'
       const forceResult = await loginFlow({

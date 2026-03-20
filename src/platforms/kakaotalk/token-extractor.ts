@@ -110,13 +110,19 @@ export class KakaoTokenExtractor {
     if (typeof globalThis.Bun !== 'undefined') {
       const { Database } = require('bun:sqlite')
       const db = new Database(dbPath, { readonly: true })
-      rows = db.query(sql).all() as CacheRow[]
-      db.close()
+      try {
+        rows = db.query(sql).all() as CacheRow[]
+      } finally {
+        db.close()
+      }
     } else {
       const Database = require('better-sqlite3')
       const db = new Database(dbPath, { readonly: true })
-      rows = db.prepare(sql).all() as CacheRow[]
-      db.close()
+      try {
+        rows = db.prepare(sql).all() as CacheRow[]
+      } finally {
+        db.close()
+      }
     }
 
     this.debug(`Found ${rows.length} cached request(s) to kakao.com`)
@@ -165,13 +171,19 @@ export class KakaoTokenExtractor {
     if (typeof globalThis.Bun !== 'undefined') {
       const { Database } = require('bun:sqlite')
       const db = new Database(dbPath, { readonly: true })
-      authRows = db.query(sql).all() as CacheRow[]
-      db.close()
+      try {
+        authRows = db.query(sql).all() as CacheRow[]
+      } finally {
+        db.close()
+      }
     } else {
       const Database = require('better-sqlite3')
       const db = new Database(dbPath, { readonly: true })
-      authRows = db.prepare(sql).all() as CacheRow[]
-      db.close()
+      try {
+        authRows = db.prepare(sql).all() as CacheRow[]
+      } finally {
+        db.close()
+      }
     }
 
     for (const row of authRows) {

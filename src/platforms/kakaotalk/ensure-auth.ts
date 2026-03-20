@@ -10,8 +10,7 @@ export async function ensureKakaoAuth(): Promise<KakaoAccountCredentials> {
   }
 
   throw new Error(
-    'No KakaoTalk credentials found. Run one of:\n' +
-      '  agent-kakaotalk auth login     (recommended — keeps desktop app running)\n' +
-      '  agent-kakaotalk auth extract   (reads desktop app token — must quit app first)',
+    'No KakaoTalk credentials found. Run:\n' +
+      '  agent-kakaotalk auth login     (recommended — registers as sub-device, desktop app stays running)',
   )
 }

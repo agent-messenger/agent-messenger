@@ -114,8 +114,8 @@ export class LocoSession {
     return this.connection.sendPacket('LCHATLIST', {
       chatIds: [],
       maxIds: [],
-      lastTokenId: 0,
-      lastChatId: 0,
+      lastTokenId: Long.fromNumber(0),
+      lastChatId: Long.fromNumber(0),
     })
   }
 

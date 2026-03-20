@@ -112,10 +112,11 @@ export class LocoConnection {
 
         this.decryptedBuffer = Buffer.concat([this.decryptedBuffer, decrypted])
 
-        const result = decodePacket(this.decryptedBuffer)
-        if (result) {
+        let result = decodePacket(this.decryptedBuffer)
+        while (result) {
           this.decryptedBuffer = this.decryptedBuffer.subarray(result.bytesConsumed)
           this.dispatchPacket(result.packet)
+          result = decodePacket(this.decryptedBuffer)
         }
       } else {
         const result = decodePacket(this.buffer)

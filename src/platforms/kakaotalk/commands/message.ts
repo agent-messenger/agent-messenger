@@ -67,14 +67,14 @@ async function listAction(
         }
       }
 
-      const minLog = batch.reduce<Long | null>((min, l) => {
+      const maxLog = batch.reduce<Long | null>((max, l) => {
         const lid = l.logId as { high: number; low: number }
         const long = new Long(lid.low, lid.high)
-        return !min || long.lessThan(min) ? long : min
+        return !max || long.greaterThan(max) ? long : max
       }, null)
 
-      if (!minLog || minLog.equals(cur) || response.body.isOK) break
-      cur = minLog
+      if (!maxLog || maxLog.equals(cur) || response.body.isOK) break
+      cur = maxLog
     }
 
     allMessages.sort((a, b) => (a.sendAt as number) - (b.sendAt as number))

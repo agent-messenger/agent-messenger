@@ -78,6 +78,10 @@ export async function attemptLogin(
     body: body.toString(),
   })
 
+  if (!response.ok) {
+    return { authenticated: false, error: 'login_failed', message: `HTTP ${response.status} from login endpoint` }
+  }
+
   const data = (await response.json()) as LoginResponse
 
   if (data.status === STATUS_OK && data.access_token) {
@@ -132,6 +136,10 @@ export async function requestPasscode(email: string, password: string, deviceUui
     }),
   })
 
+  if (!response.ok) {
+    return { authenticated: false, error: 'passcode_request_failed', message: `HTTP ${response.status} from passcode endpoint` }
+  }
+
   const data = (await response.json()) as { status?: number; passcode?: string; remainingSeconds?: number }
 
   if (data.passcode) {
@@ -174,6 +182,10 @@ export async function registerDevice(
       headers,
       body,
     })
+
+    if (!response.ok) {
+      return { authenticated: false, error: 'registration_failed', message: `HTTP ${response.status} from register endpoint` }
+    }
 
     const data = (await response.json()) as {
       status: number
