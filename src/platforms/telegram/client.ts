@@ -223,6 +223,20 @@ export class TelegramTdlibClient {
     await this.ensureReady()
     const chat = await this.resolveChat(reference)
 
+    await this.call({ '@type': 'openChat', chat_id: chat.id })
+
+    try {
+      await this.call({
+        '@type': 'loadChats',
+        chat_list: { '@type': 'chatListMain' },
+        limit: Math.max(limit, 20),
+      })
+    } catch {
+      // Best-effort — chat may already be loaded.
+    }
+
+    await this.drainUpdates(2000)
+
     const response = (await this.call({
       '@type': 'getChatHistory',
       chat_id: chat.id,
