@@ -122,4 +122,31 @@ describe('TelegramCredentialManager', () => {
     const loaded = await manager.loadProvisioningState()
     expect(loaded).toBeNull()
   })
+
+  test('returns null for corrupted created_at in provisioning state', async () => {
+    const manager = setup()
+
+    await manager.saveProvisioningState({
+      phone: '+14155551234',
+      random_hash: 'abc123',
+      created_at: 'not-a-date',
+    })
+
+    const loaded = await manager.loadProvisioningState()
+    expect(loaded).toBeNull()
+  })
+
+  test('clearCredentials also clears provisioning state', async () => {
+    const manager = setup()
+
+    await manager.saveProvisioningState({
+      phone: '+14155551234',
+      random_hash: 'abc123',
+      created_at: new Date().toISOString(),
+    })
+
+    await manager.clearCredentials()
+    const loaded = await manager.loadProvisioningState()
+    expect(loaded).toBeNull()
+  })
 })

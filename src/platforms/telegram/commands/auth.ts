@@ -211,7 +211,6 @@ async function handleNonInteractiveProvisioning(
       await manager.clearProvisioningState()
       return { apiId: String(app.api_id), apiHash: app.api_hash }
     } catch (error) {
-      await manager.clearProvisioningState()
       console.log(
         formatOutput(
           {

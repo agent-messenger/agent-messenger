@@ -148,6 +148,8 @@ export class TelegramCredentialManager {
     if (existsSync(this.tdlibRootDir)) {
       await rm(this.tdlibRootDir, { recursive: true, force: true })
     }
+
+    await this.clearProvisioningState()
   }
 
   async saveProvisioningState(state: TelegramProvisioningState): Promise<void> {
@@ -163,8 +165,9 @@ export class TelegramCredentialManager {
     try {
       const content = await readFile(this.provisioningStatePath, 'utf-8')
       const state = JSON.parse(content) as TelegramProvisioningState
-      const age = Date.now() - new Date(state.created_at).getTime()
-      if (age > PROVISIONING_STATE_TTL_MS) {
+      const createdAtMs = new Date(state.created_at).getTime()
+      const age = Date.now() - createdAtMs
+      if (!Number.isFinite(createdAtMs) || age > PROVISIONING_STATE_TTL_MS) {
         await this.clearProvisioningState()
         return null
       }
