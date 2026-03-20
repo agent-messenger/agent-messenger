@@ -40,20 +40,22 @@ async function listAction(
     const rawChats = (loginResult.chatDatas ?? []) as ChatData[]
     const chat = rawChats.find((c) => String(c.c) === chatId)
     const lastLogId = chat?.ll as { high: number; low: number } | undefined
+    const lastSeenLogId = chat?.s as { high: number; low: number } | undefined
     const maxLogId = lastLogId ? new Long(lastLogId.low, lastLogId.high) : undefined
 
     const count = options.count ? Number.parseInt(options.count, 10) : 20
     const cursor = options.from ? parseLong(options.from) : undefined
 
-    // Paginate backwards from max to collect `count` recent messages.
-    // SYNCMSG with cur=0 returns oldest first, so we iterate until we have enough.
+    // SYNCMSG returns messages with logId > cur, up to max.
+    // Paginate from cur=0 through batches, dedup, take last N.
     const cid = parseLong(chatId)
+    const startCursor = cursor ?? Long.fromNumber(0)
     const allMessages: Array<Record<string, unknown>> = []
     const seenLogIds = new Set<string>()
-    let cur = cursor ?? Long.fromNumber(0)
+    let cur = startCursor
 
-    while (allMessages.length < count) {
-      const response = await session.syncMessages(cid, count, cur, maxLogId)
+    for (;;) {
+      const response = await session.syncMessages(cid, 80, cur, maxLogId)
       const batch = (response.body.chatLogs ?? []) as Array<Record<string, unknown>>
       if (batch.length === 0) break
 
@@ -75,9 +77,9 @@ async function listAction(
       cur = minLog
     }
 
-    const recent = allMessages.slice(-count)
+    allMessages.sort((a, b) => (a.sendAt as number) - (b.sendAt as number))
 
-    const messages = recent.map((log) => ({
+    const messages = allMessages.slice(-count).map((log) => ({
       log_id: toLong(log.logId),
       type: log.type,
       author_id: log.authorId,
