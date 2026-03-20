@@ -182,70 +182,49 @@ async function fillMissingBootstrappingInputs(
   return resolved
 }
 
+const NON_INTERACTIVE_MESSAGES: Record<string, { next_action: string; message: string }> = {
+  provide_phone_number: { next_action: 'provide_phone', message: 'Provide --phone flag.' },
+  provide_code: { next_action: 'provide_code', message: 'Enter the code sent to your Telegram app via --code.' },
+  provide_password: { next_action: 'provide_password', message: '2FA password required via --password.' },
+  provide_email: { next_action: 'provide_email', message: 'Provide --email flag.' },
+  provide_email_code: { next_action: 'provide_email_code', message: 'Provide --email-code flag.' },
+  provide_registration: {
+    next_action: 'provide_registration',
+    message: 'Provide --first-name and optionally --last-name.',
+  },
+}
+
+export function getNonInteractiveLoginMessage(nextAction: string): { next_action: string; message: string } | null {
+  return NON_INTERACTIVE_MESSAGES[nextAction] ?? null
+}
+
 export async function promptNextLoginInput(
-  result: { next_action?: string; code_info?: { type?: string; phone_number?: string; timeout?: number } },
+  result: { next_action?: string },
   options: AuthOptions,
-): Promise<AuthOptions> {
+): Promise<AuthOptions | null> {
+  if (!isInteractiveSession() && result.next_action) {
+    return null
+  }
+
   const resolved: AuthOptions = { ...options }
 
   switch (result.next_action) {
     case 'provide_phone_number':
-      if (!isInteractiveSession()) {
-        console.log(formatOutput({ next_action: 'provide_phone', message: 'Provide --phone flag.' }, options.pretty))
-        process.exit(0)
-      }
       resolved.phone = await promptText('Telegram phone number in international format', resolved.phone)
       break
     case 'provide_code':
-      if (!isInteractiveSession()) {
-        console.log(
-          formatOutput(
-            { next_action: 'provide_code', message: 'Enter the code sent to your Telegram app via --code.' },
-            options.pretty,
-          ),
-        )
-        process.exit(0)
-      }
       resolved.code = await promptText('Telegram login code')
       break
     case 'provide_password':
-      if (!isInteractiveSession()) {
-        console.log(
-          formatOutput(
-            { next_action: 'provide_password', message: '2FA password required via --password.' },
-            options.pretty,
-          ),
-        )
-        process.exit(0)
-      }
       resolved.password = await promptHidden('Telegram 2FA password')
       break
     case 'provide_email':
-      if (!isInteractiveSession()) {
-        console.log(formatOutput({ next_action: 'provide_email', message: 'Provide --email flag.' }, options.pretty))
-        process.exit(0)
-      }
       resolved.email = await promptText('Telegram login email')
       break
     case 'provide_email_code':
-      if (!isInteractiveSession()) {
-        console.log(
-          formatOutput({ next_action: 'provide_email_code', message: 'Provide --email-code flag.' }, options.pretty),
-        )
-        process.exit(0)
-      }
       resolved.emailCode = await promptText('Telegram email code')
       break
     case 'provide_registration':
-      if (!isInteractiveSession()) {
-        console.log(
-          formatOutput(
-            { next_action: 'provide_registration', message: 'Provide --first-name and optionally --last-name.' },
-            options.pretty,
-          ),
-        )
-        process.exit(0)
-      }
       resolved.firstName = await promptText('Telegram first name')
       resolved.lastName = await promptText('Telegram last name', resolved.lastName ?? '')
       break
@@ -342,7 +321,17 @@ export async function loginAction(options: AuthOptions): Promise<void> {
     })
 
     while (!result.authenticated && result.next_action) {
-      resolvedOptions = await promptNextLoginInput(result, resolvedOptions)
+      const nextOptions = await promptNextLoginInput(result, resolvedOptions)
+      if (!nextOptions) {
+        const msg = getNonInteractiveLoginMessage(result.next_action)
+        if (msg) {
+          console.log(formatOutput(msg, options.pretty))
+        } else {
+          console.log(formatOutput(result, options.pretty))
+        }
+        break
+      }
+      resolvedOptions = nextOptions
       result = await client.login({
         phone_number: resolvedOptions.phone,
         code: resolvedOptions.code,
@@ -354,16 +343,18 @@ export async function loginAction(options: AuthOptions): Promise<void> {
       })
     }
 
-    console.log(formatOutput(result, options.pretty))
-    if (result.authenticated && !options.account && account.account_id === 'default' && result.user?.phone_number) {
-      migratedAccount = {
-        ...account,
-        account_id: createAccountId(`+${result.user.phone_number}`),
-        phone_number: `+${result.user.phone_number}`,
-        updated_at: new Date().toISOString(),
+    if (result.authenticated) {
+      console.log(formatOutput(result, options.pretty))
+      if (!options.account && account.account_id === 'default' && result.user?.phone_number) {
+        migratedAccount = {
+          ...account,
+          account_id: createAccountId(`+${result.user.phone_number}`),
+          phone_number: `+${result.user.phone_number}`,
+          updated_at: new Date().toISOString(),
+        }
       }
-    }
-    if (!result.authenticated) {
+    } else if (!result.next_action) {
+      console.log(formatOutput(result, options.pretty))
       exitCode = 1
     }
   } catch (error) {

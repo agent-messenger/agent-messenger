@@ -1,136 +1,106 @@
-import { afterEach, beforeEach, describe, expect, spyOn, test } from 'bun:test'
-
-import { promptNextLoginInput } from './auth'
-
-class ProcessExitCalled extends Error {
-  code: number
-  constructor(code: number) {
-    super(`process.exit(${code})`)
-    this.code = code
-  }
-}
+import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
+import { getNonInteractiveLoginMessage, promptNextLoginInput } from './auth'
 
 describe('promptNextLoginInput non-interactive', () => {
-  let logSpy: ReturnType<typeof spyOn>
-  let exitSpy: ReturnType<typeof spyOn>
-  let output: string[]
+  let originalStdinTTY: boolean | undefined
+  let originalStdoutTTY: boolean | undefined
 
   beforeEach(() => {
-    output = []
-    logSpy = spyOn(console, 'log').mockImplementation((...args: unknown[]) => {
-      output.push(args.map(String).join(' '))
-    })
-    exitSpy = spyOn(process, 'exit').mockImplementation((code?: number | string | null | undefined) => {
-      throw new ProcessExitCalled(typeof code === 'number' ? code : 0)
-    })
+    // Ensure non-interactive mode regardless of test runner environment
+    originalStdinTTY = process.stdin.isTTY
+    originalStdoutTTY = process.stdout.isTTY
+    Object.defineProperty(process.stdin, 'isTTY', { value: undefined, writable: true, configurable: true })
+    Object.defineProperty(process.stdout, 'isTTY', { value: undefined, writable: true, configurable: true })
   })
 
   afterEach(() => {
-    logSpy.mockRestore()
-    exitSpy.mockRestore()
+    Object.defineProperty(process.stdin, 'isTTY', { value: originalStdinTTY, writable: true, configurable: true })
+    Object.defineProperty(process.stdout, 'isTTY', { value: originalStdoutTTY, writable: true, configurable: true })
   })
 
-  test('provide_phone_number outputs JSON with next_action and exits 0', async () => {
-    // given
-    const result = { next_action: 'provide_phone_number' }
-    const options = {}
-
-    // when
-    const error = await promptNextLoginInput(result, options).catch((e: unknown) => e)
-
-    // then
-    expect(error).toBeInstanceOf(ProcessExitCalled)
-    expect((error as ProcessExitCalled).code).toBe(0)
-    expect(output).toHaveLength(1)
-    const parsed = JSON.parse(output[0])
-    expect(parsed.next_action).toBe('provide_phone')
-    expect(parsed.message).toBeString()
+  test('returns null for provide_phone_number', async () => {
+    const result = await promptNextLoginInput({ next_action: 'provide_phone_number' }, {})
+    expect(result).toBeNull()
   })
 
-  test('provide_code outputs JSON with next_action and exits 0', async () => {
-    const result = { next_action: 'provide_code' }
-    const options = {}
-
-    const error = await promptNextLoginInput(result, options).catch((e: unknown) => e)
-
-    expect(error).toBeInstanceOf(ProcessExitCalled)
-    expect((error as ProcessExitCalled).code).toBe(0)
-    const parsed = JSON.parse(output[0])
-    expect(parsed.next_action).toBe('provide_code')
-    expect(parsed.message).toContain('--code')
+  test('returns null for provide_code', async () => {
+    const result = await promptNextLoginInput({ next_action: 'provide_code' }, {})
+    expect(result).toBeNull()
   })
 
-  test('provide_password outputs JSON with next_action and exits 0', async () => {
-    const result = { next_action: 'provide_password' }
-    const options = {}
-
-    const error = await promptNextLoginInput(result, options).catch((e: unknown) => e)
-
-    expect(error).toBeInstanceOf(ProcessExitCalled)
-    expect((error as ProcessExitCalled).code).toBe(0)
-    const parsed = JSON.parse(output[0])
-    expect(parsed.next_action).toBe('provide_password')
-    expect(parsed.message).toContain('--password')
+  test('returns null for provide_password', async () => {
+    const result = await promptNextLoginInput({ next_action: 'provide_password' }, {})
+    expect(result).toBeNull()
   })
 
-  test('provide_email outputs JSON with next_action and exits 0', async () => {
-    const result = { next_action: 'provide_email' }
-    const options = {}
-
-    const error = await promptNextLoginInput(result, options).catch((e: unknown) => e)
-
-    expect(error).toBeInstanceOf(ProcessExitCalled)
-    expect((error as ProcessExitCalled).code).toBe(0)
-    const parsed = JSON.parse(output[0])
-    expect(parsed.next_action).toBe('provide_email')
-    expect(parsed.message).toContain('--email')
+  test('returns null for provide_email', async () => {
+    const result = await promptNextLoginInput({ next_action: 'provide_email' }, {})
+    expect(result).toBeNull()
   })
 
-  test('provide_email_code outputs JSON with next_action and exits 0', async () => {
-    const result = { next_action: 'provide_email_code' }
-    const options = {}
-
-    const error = await promptNextLoginInput(result, options).catch((e: unknown) => e)
-
-    expect(error).toBeInstanceOf(ProcessExitCalled)
-    expect((error as ProcessExitCalled).code).toBe(0)
-    const parsed = JSON.parse(output[0])
-    expect(parsed.next_action).toBe('provide_email_code')
-    expect(parsed.message).toContain('--email-code')
+  test('returns null for provide_email_code', async () => {
+    const result = await promptNextLoginInput({ next_action: 'provide_email_code' }, {})
+    expect(result).toBeNull()
   })
 
-  test('provide_registration outputs JSON with next_action and exits 0', async () => {
-    const result = { next_action: 'provide_registration' }
-    const options = {}
-
-    const error = await promptNextLoginInput(result, options).catch((e: unknown) => e)
-
-    expect(error).toBeInstanceOf(ProcessExitCalled)
-    expect((error as ProcessExitCalled).code).toBe(0)
-    const parsed = JSON.parse(output[0])
-    expect(parsed.next_action).toBe('provide_registration')
-    expect(parsed.message).toContain('--first-name')
+  test('returns null for provide_registration', async () => {
+    const result = await promptNextLoginInput({ next_action: 'provide_registration' }, {})
+    expect(result).toBeNull()
   })
 
-  test('unknown next_action returns options unchanged without exiting', async () => {
-    const result = { next_action: 'unknown_action' }
+  test('returns options unchanged for unknown next_action', async () => {
     const options = { phone: '+14155551234' }
+    const result = await promptNextLoginInput({ next_action: undefined }, options)
 
-    const resolved = await promptNextLoginInput(result, options)
+    expect(result).not.toBeNull()
+    expect(result!.phone).toBe('+14155551234')
+  })
+})
 
-    expect(exitSpy).not.toHaveBeenCalled()
-    expect(resolved.phone).toBe('+14155551234')
+describe('getNonInteractiveLoginMessage', () => {
+  test('maps provide_phone_number to provide_phone with --phone hint', () => {
+    const msg = getNonInteractiveLoginMessage('provide_phone_number')
+    expect(msg).not.toBeNull()
+    expect(msg!.next_action).toBe('provide_phone')
+    expect(msg!.message).toContain('--phone')
   })
 
-  test('pretty option produces formatted JSON output', async () => {
-    const result = { next_action: 'provide_code' }
-    const options = { pretty: true }
+  test('maps provide_code with --code hint', () => {
+    const msg = getNonInteractiveLoginMessage('provide_code')
+    expect(msg).not.toBeNull()
+    expect(msg!.next_action).toBe('provide_code')
+    expect(msg!.message).toContain('--code')
+  })
 
-    const error = await promptNextLoginInput(result, options).catch((e: unknown) => e)
+  test('maps provide_password with --password hint', () => {
+    const msg = getNonInteractiveLoginMessage('provide_password')
+    expect(msg).not.toBeNull()
+    expect(msg!.next_action).toBe('provide_password')
+    expect(msg!.message).toContain('--password')
+  })
 
-    expect(error).toBeInstanceOf(ProcessExitCalled)
-    expect(output[0]).toContain('\n')
-    const parsed = JSON.parse(output[0])
-    expect(parsed.next_action).toBe('provide_code')
+  test('maps provide_email with --email hint', () => {
+    const msg = getNonInteractiveLoginMessage('provide_email')
+    expect(msg).not.toBeNull()
+    expect(msg!.next_action).toBe('provide_email')
+    expect(msg!.message).toContain('--email')
+  })
+
+  test('maps provide_email_code with --email-code hint', () => {
+    const msg = getNonInteractiveLoginMessage('provide_email_code')
+    expect(msg).not.toBeNull()
+    expect(msg!.next_action).toBe('provide_email_code')
+    expect(msg!.message).toContain('--email-code')
+  })
+
+  test('maps provide_registration with --first-name hint', () => {
+    const msg = getNonInteractiveLoginMessage('provide_registration')
+    expect(msg).not.toBeNull()
+    expect(msg!.next_action).toBe('provide_registration')
+    expect(msg!.message).toContain('--first-name')
+  })
+
+  test('returns null for unknown action', () => {
+    expect(getNonInteractiveLoginMessage('unknown_action')).toBeNull()
   })
 })
