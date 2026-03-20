@@ -7,7 +7,12 @@ import { formatOutput } from '../../../shared/utils/output'
 import { getTelegramAppCredentials } from '../app-config'
 import { TelegramTdlibClient } from '../client'
 import { TelegramCredentialManager } from '../credential-manager'
-import { provisionTelegramApp } from '../my-telegram-org'
+import {
+  completeProvisioningLogin,
+  getOrCreateProvisionedApp,
+  provisionTelegramApp,
+  sendProvisioningCode,
+} from '../my-telegram-org'
 import { createAccountId, type TelegramAccount, TelegramError } from '../types'
 
 interface AuthOptions {
@@ -19,6 +24,7 @@ interface AuthOptions {
   password?: string
   email?: string
   emailCode?: string
+  provisioningCode?: string
   firstName?: string
   lastName?: string
   tdlibPath?: string
@@ -105,7 +111,7 @@ function shouldUseInteractivePrompts(): boolean {
 async function fillMissingBootstrappingInputs(
   options: AuthOptions,
   existing?: TelegramAccount | null,
-): Promise<AuthOptions> {
+): Promise<AuthOptions | null> {
   const resolved: AuthOptions = { ...options }
   const defaults = getTelegramAppCredentials()
 
@@ -150,16 +156,12 @@ async function fillMissingBootstrappingInputs(
         resolved.apiHash = await promptHidden('Telegram API hash')
       }
     } else {
-      console.log(
-        formatOutput(
-          {
-            error: 'missing_credentials',
-            message: 'Provide --api-id and --api-hash, or run interactively to auto-provision.',
-          },
-          options.pretty,
-        ),
-      )
-      process.exit(1)
+      const result = await handleNonInteractiveProvisioning(resolved, options.pretty)
+      if (!result) {
+        return null
+      }
+      resolved.apiId = result.apiId
+      resolved.apiHash = result.apiHash
     }
   }
 
@@ -182,6 +184,87 @@ async function fillMissingBootstrappingInputs(
   return resolved
 }
 
+async function handleNonInteractiveProvisioning(
+  options: AuthOptions,
+  pretty?: boolean,
+): Promise<{ apiId: string; apiHash: string } | null> {
+  const manager = new TelegramCredentialManager()
+
+  if (options.provisioningCode) {
+    const state = await manager.loadProvisioningState()
+    if (!state) {
+      console.log(
+        formatOutput(
+          {
+            error: 'provisioning_state_expired',
+            message: 'Provisioning state expired or not found. Restart login with --phone.',
+          },
+          pretty,
+        ),
+      )
+      process.exit(1)
+    }
+
+    try {
+      const stelToken = await completeProvisioningLogin(state.phone, state.random_hash, options.provisioningCode)
+      const app = await getOrCreateProvisionedApp(stelToken)
+      await manager.clearProvisioningState()
+      return { apiId: String(app.api_id), apiHash: app.api_hash }
+    } catch (error) {
+      await manager.clearProvisioningState()
+      console.log(
+        formatOutput(
+          {
+            error: 'provisioning_failed',
+            message: `Auto-provisioning failed: ${error instanceof Error ? error.message : error}`,
+          },
+          pretty,
+        ),
+      )
+      process.exit(1)
+    }
+  }
+
+  if (!options.phone) {
+    console.log(
+      formatOutput({ next_action: 'provide_phone', message: 'Provide --phone flag to start login.' }, pretty),
+    )
+    process.exit(0)
+  }
+
+  try {
+    const randomHash = await sendProvisioningCode(options.phone)
+    await manager.saveProvisioningState({
+      phone: options.phone,
+      random_hash: randomHash,
+      created_at: new Date().toISOString(),
+    })
+    console.log(
+      formatOutput(
+        {
+          next_action: 'provide_provisioning_code',
+          message: 'A code was sent to your Telegram app. Provide it via --provisioning-code.',
+        },
+        pretty,
+      ),
+    )
+    process.exit(0)
+  } catch (error) {
+    console.log(
+      formatOutput(
+        {
+          error: 'provisioning_send_code_failed',
+          message: `Failed to send provisioning code: ${error instanceof Error ? error.message : error}`,
+        },
+        pretty,
+      ),
+    )
+    process.exit(1)
+  }
+
+  return null
+}
+
 const NON_INTERACTIVE_MESSAGES: Record<string, { next_action: string; message: string }> = {
   provide_phone_number: { next_action: 'provide_phone', message: 'Provide --phone flag.' },
   provide_code: { next_action: 'provide_code', message: 'Enter the code sent to your Telegram app via --code.' },
@@ -191,6 +274,10 @@ const NON_INTERACTIVE_MESSAGES: Record<string, { next_action: string; message: s
   provide_registration: {
     next_action: 'provide_registration',
     message: 'Provide --first-name and optionally --last-name.',
+  },
+  provide_provisioning_code: {
+    next_action: 'provide_provisioning_code',
+    message: 'A code was sent to your Telegram app. Provide it via --provisioning-code.',
   },
 }
 
@@ -300,7 +387,11 @@ function registerSignalCleanup(client: TelegramTdlibClient): () => void {
 export async function loginAction(options: AuthOptions): Promise<void> {
   const manager = new TelegramCredentialManager()
   const existing = options.account ? await manager.getAccount(options.account) : await manager.getAccount()
-  let resolvedOptions = await fillMissingBootstrappingInputs(options, existing)
+  const bootstrapped = await fillMissingBootstrappingInputs(options, existing)
+  if (!bootstrapped) {
+    return
+  }
+  let resolvedOptions = bootstrapped
 
   const account = await buildAccount(manager, resolvedOptions)
   const client = await TelegramTdlibClient.create(account, await manager.ensureAccountPaths(account.account_id))
@@ -529,6 +620,7 @@ export const authCommand = new Command('auth')
       .option('--password <password>', 'Two-step verification password')
       .option('--email <address>', 'Login email address if requested by Telegram')
       .option('--email-code <code>', 'Email authentication code')
+      .option('--provisioning-code <code>', 'Verification code from my.telegram.org auto-provisioning')
       .option('--first-name <name>', 'First name for registration')
       .option('--last-name <name>', 'Last name for registration')
       .option('--tdlib-path <path>', 'Full path to libtdjson shared library')

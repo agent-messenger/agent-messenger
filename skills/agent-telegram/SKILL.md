@@ -45,16 +45,25 @@ If accounts exist → `agent-telegram auth use <account-id>` and retry the origi
 
 Ask the user for their Telegram phone number (international format, e.g. `+821012345678`). This is the ONLY thing the user needs to provide to start login.
 
-**Step 3: Run the login**
+**Step 3: Start login — CLI auto-provisions API credentials**
 
 ```bash
 agent-telegram auth login --phone <phone>
+# → {"next_action":"provide_provisioning_code","message":"A code was sent to your Telegram app. Provide it via --provisioning-code."}
+```
+
+The CLI sends a verification code to the user's Telegram app for credential provisioning. This is NOT the TDLib login code — it's for obtaining API credentials automatically.
+
+**Step 4: Ask user for the provisioning code, then provide it**
+
+```bash
+agent-telegram auth login --phone <phone> --provisioning-code <code>
 # → {"next_action":"provide_code","message":"Enter the code sent to your Telegram app via --code."}
 ```
 
-The CLI handles API credential provisioning automatically. If it returns `next_action`, follow it.
+After provisioning succeeds, the CLI continues to TDLib login and sends ANOTHER code to the user's Telegram app for actual authentication.
 
-**Step 4: Ask user for verification code, then provide it**
+**Step 5: Ask user for the TDLib login code, then provide it**
 
 ```bash
 agent-telegram auth login --code <code>
@@ -63,15 +72,23 @@ agent-telegram auth login --code <code>
 # → {"next_action":"provide_password","message":"2FA password required via --password."}
 ```
 
-**Step 5: If 2FA required, ask user for password, then provide it**
+**Step 6: If 2FA required, ask user for password, then provide it**
 
 ```bash
 agent-telegram auth login --password <password>
 ```
 
-**Step 6: Retry the original command**
+**Step 7: Retry the original command**
 
 After successful auth, immediately execute whatever the user originally asked for.
+
+**IMPORTANT: Two separate codes**
+
+The login flow may require TWO codes from the user:
+1. **Provisioning code** (via `--provisioning-code`) — for auto-obtaining API credentials from my.telegram.org
+2. **TDLib login code** (via `--code`) — for Telegram account authentication
+
+When asking the user for codes, be clear about which one you need. Say "I need the code sent to your Telegram app" for both — the user sees them as Telegram verification codes.
 
 ### Common Auth Commands
 

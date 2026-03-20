@@ -100,6 +100,13 @@ describe('getNonInteractiveLoginMessage', () => {
     expect(msg!.message).toContain('--first-name')
   })
 
+  test('maps provide_provisioning_code with --provisioning-code hint', () => {
+    const msg = getNonInteractiveLoginMessage('provide_provisioning_code')
+    expect(msg).not.toBeNull()
+    expect(msg!.next_action).toBe('provide_provisioning_code')
+    expect(msg!.message).toContain('--provisioning-code')
+  })
+
   test('returns null for unknown action', () => {
     expect(getNonInteractiveLoginMessage('unknown_action')).toBeNull()
   })

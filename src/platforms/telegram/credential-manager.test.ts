@@ -72,4 +72,54 @@ describe('TelegramCredentialManager', () => {
     expect(existsSync(paths.files_dir)).toBe(true)
     expect(paths.account_dir.endsWith('plus-82-10-1234-5678')).toBe(true)
   })
+
+  test('saves and loads provisioning state', async () => {
+    const manager = setup()
+    const state = {
+      phone: '+14155551234',
+      random_hash: 'abc123',
+      created_at: new Date().toISOString(),
+    }
+
+    await manager.saveProvisioningState(state)
+    const loaded = await manager.loadProvisioningState()
+
+    expect(loaded).not.toBeNull()
+    expect(loaded!.phone).toBe('+14155551234')
+    expect(loaded!.random_hash).toBe('abc123')
+  })
+
+  test('returns null for expired provisioning state', async () => {
+    const manager = setup()
+    const expiredDate = new Date(Date.now() - 11 * 60 * 1000).toISOString()
+
+    await manager.saveProvisioningState({
+      phone: '+14155551234',
+      random_hash: 'abc123',
+      created_at: expiredDate,
+    })
+
+    const loaded = await manager.loadProvisioningState()
+    expect(loaded).toBeNull()
+  })
+
+  test('clears provisioning state', async () => {
+    const manager = setup()
+
+    await manager.saveProvisioningState({
+      phone: '+14155551234',
+      random_hash: 'abc123',
+      created_at: new Date().toISOString(),
+    })
+
+    await manager.clearProvisioningState()
+    const loaded = await manager.loadProvisioningState()
+    expect(loaded).toBeNull()
+  })
+
+  test('returns null when no provisioning state exists', async () => {
+    const manager = setup()
+    const loaded = await manager.loadProvisioningState()
+    expect(loaded).toBeNull()
+  })
 })
