@@ -320,7 +320,7 @@ export default function Home() {
               </div>
               <h3 className="mb-2 text-lg font-semibold text-zinc-900 dark:text-white">One interface</h3>
               <p className="text-zinc-600 dark:text-zinc-400">
-                Learn once, use everywhere. Unified commands for Slack, Discord, and Teams.
+                Learn once, use everywhere. Unified commands for Slack, Discord, Teams, Telegram, and Channel Talk.
               </p>
             </div>
             <div className="group rounded-2xl border border-zinc-200 bg-white p-8 shadow-sm transition-all hover:border-zinc-300 hover:shadow-md dark:border-zinc-800 dark:bg-zinc-900/50 dark:hover:border-zinc-700">
@@ -386,7 +386,7 @@ export default function Home() {
       <section className="px-6 py-20">
         <div className="mx-auto max-w-4xl text-center">
           <h2 className="mb-12 text-3xl font-bold text-zinc-900 dark:text-white">Supported Platforms</h2>
-          <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-5">
             <Link
               href="/docs/integrations/slack"
               className="flex flex-col items-center rounded-2xl bg-white p-8 shadow-sm ring-1 ring-zinc-200 transition-all hover:shadow-md hover:ring-zinc-300 dark:bg-zinc-900 dark:ring-zinc-800 dark:hover:ring-zinc-700"
@@ -417,27 +417,32 @@ export default function Home() {
               <h3 className="text-xl font-bold text-zinc-900 dark:text-white">Teams</h3>
               <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">Microsoft Teams support</p>
             </Link>
-            <div className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-zinc-300 p-8 dark:border-zinc-700">
-              <div className="mb-4 text-zinc-400 dark:text-zinc-500">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="h-12 w-12"
-                >
-                  <title>More platforms coming soon</title>
-                  <circle cx="12" cy="12" r="10" />
-                  <path d="M8 12h8" />
-                  <path d="M12 8v8" />
+            <Link
+              href="/docs/integrations/telegram"
+              className="flex flex-col items-center rounded-2xl bg-white p-8 shadow-sm ring-1 ring-zinc-200 transition-all hover:shadow-md hover:ring-zinc-300 dark:bg-zinc-900 dark:ring-zinc-800 dark:hover:ring-zinc-700"
+            >
+              <div className="mb-4">
+                <svg viewBox="0 0 128 128" fill="currentColor" className="h-12 w-12">
+                  <title>Telegram icon</title>
+                  <path
+                    d="M64 0C28.7 0 0 28.7 0 64s28.7 64 64 64 64-28.7 64-64S99.3 0 64 0zm29.3 43.6L82 93.2c-.7 3.1-2.5 3.8-5.1 2.4l-14.1-10.4-6.8 6.6c-.8.8-1.4 1.4-2.8 1.4l1-14.3 25.8-23.3c1.1-1 -.2-1.6-1.8-.6L44.5 73.1l-13.8-4.3c-3-.9-3-3 .6-4.4l54-20.8c2.5-.9 4.7.6 3.9 4.4z"
+                    fill="#2AABEE"
+                  />
                 </svg>
               </div>
-              <h3 className="text-xl font-bold text-zinc-500 dark:text-zinc-400">More</h3>
-              <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-500">Coming soon</p>
-            </div>
+              <h3 className="text-xl font-bold text-zinc-900 dark:text-white">Telegram</h3>
+              <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">TDLib-powered messaging</p>
+            </Link>
+            <Link
+              href="/docs/integrations/channeltalk"
+              className="flex flex-col items-center rounded-2xl bg-white p-8 shadow-sm ring-1 ring-zinc-200 transition-all hover:shadow-md hover:ring-zinc-300 dark:bg-zinc-900 dark:ring-zinc-800 dark:hover:ring-zinc-700"
+            >
+              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-indigo-500 text-xl font-bold text-white">
+                CT
+              </div>
+              <h3 className="text-xl font-bold text-zinc-900 dark:text-white">Channel Talk</h3>
+              <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">Beta — zero-config support</p>
+            </Link>
           </div>
         </div>
       </section>
