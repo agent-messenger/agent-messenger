@@ -19,9 +19,25 @@
     "agent-teams": "./src/platforms/teams/cli.ts",
     "amsg": "./src/cli.ts"
   },
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "types": "./src/cli.ts",
+      "default": "./src/cli.ts"
+    },
+    "./slack": {
+      "types": "./src/platforms/slack/index.ts",
+      "default": "./src/platforms/slack/index.ts"
+    }
+  },
   "type": "module",
   "main": "dist/cli.js",
   "module": "dist/cli.js",
+  "typesVersions": {
+    "*": {
+      "slack": ["./src/platforms/slack/index.ts"]
+    }
+  },
   "scripts": {
     "build": "tsc && tsc-alias --resolve-full-paths",
     "postbuild": "bun scripts/postbuild.ts",
