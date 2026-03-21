@@ -268,9 +268,15 @@ async function scheduleAction(
       process.exit(1)
     }
 
+    const postAtTimestamp = Number(postAt)
+    if (!Number.isFinite(postAtTimestamp) || postAtTimestamp <= 0) {
+      console.log(formatOutput({ error: 'Invalid post-at value. Use a Unix timestamp in seconds (e.g. 1700000000).' }, options.pretty))
+      process.exit(1)
+    }
+
     const client = new SlackClient(workspace.token, workspace.cookie)
     const channel = await client.resolveChannel(channelInput)
-    const scheduled = await client.scheduleMessage(channel, text, parseInt(postAt, 10), options.thread)
+    const scheduled = await client.scheduleMessage(channel, text, postAtTimestamp, options.thread)
 
     console.log(formatOutput(scheduled, options.pretty))
   } catch (error) {

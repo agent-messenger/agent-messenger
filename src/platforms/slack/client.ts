@@ -853,18 +853,20 @@ export class SlackClient {
       const response = await this.client.pins.list({ channel })
       this.checkResponse(response)
 
-      return ((response as any).items || []).map((item: any) => ({
-        channel,
-        message: {
-          ts: item.message?.ts || '',
-          text: item.message?.text || '',
-          user: item.message?.user,
-          username: item.message?.username,
-          type: item.message?.type || 'message',
-          thread_ts: item.message?.thread_ts,
-          reply_count: item.message?.reply_count,
-        },
-        date_created: item.created || 0,
+      return ((response as any).items || [])
+        .filter((item: any) => item.message)
+        .map((item: any) => ({
+          channel,
+          message: {
+            ts: item.message.ts || '',
+            text: item.message.text || '',
+            user: item.message.user,
+            username: item.message.username,
+            type: item.message.type || 'message',
+            thread_ts: item.message.thread_ts,
+            reply_count: item.message.reply_count,
+          },
+          date_created: item.created || 0,
         created_by: item.created_by || '',
       }))
     })
@@ -987,7 +989,7 @@ export class SlackClient {
       this.checkResponse(response)
 
       return ((response as any).scheduled_messages || []).map((msg: any) => ({
-        id: msg.id || '',
+        id: msg.id || msg.scheduled_message_id || '',
         channel_id: msg.channel_id || '',
         post_at: msg.post_at || 0,
         date_created: msg.date_created || 0,
