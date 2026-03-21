@@ -64,7 +64,7 @@ truncate_text() {
 # Function to check for new messages
 check_messages() {
   # Get latest message
-  MESSAGES=$(agent-kakaotalk message list "$CHAT_ID" -n 1 2>&1)
+  MESSAGES=$(agent-kakaotalk message list "$CHAT_ID" -n 1 2>&1) || true
 
   # Check if response is valid JSON array
   if ! echo "$MESSAGES" | jq -e '.[0]' > /dev/null 2>&1; then
@@ -131,7 +131,7 @@ fi
 
 # Check authentication
 echo "Checking authentication..."
-AUTH_STATUS=$(agent-kakaotalk auth status 2>&1)
+AUTH_STATUS=$(agent-kakaotalk auth status 2>&1) || true
 
 if echo "$AUTH_STATUS" | jq -e '.error' > /dev/null 2>&1; then
   echo -e "${RED}Not authenticated!${NC}"

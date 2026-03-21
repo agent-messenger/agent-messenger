@@ -406,15 +406,17 @@ If the package is installed globally, use `agent-kakaotalk` directly:
 agent-kakaotalk chat list --pretty
 ```
 
-If the package is NOT installed, run it directly with `npx -y`:
+If the package is NOT installed, use `--package` to install and run:
 
 ```bash
-npx -y agent-messenger kakaotalk chat list --pretty
+npx -y --package agent-messenger agent-kakaotalk chat list --pretty
+bunx --package agent-messenger agent-kakaotalk chat list --pretty
+pnpm dlx --package agent-messenger agent-kakaotalk chat list --pretty
 ```
 
-> **Note**: If the user prefers a different package runner (e.g., `bunx`, `pnpx`, `pnpm dlx`), use that instead.
+> **Note**: If the user prefers a different package runner, use the matching command above.
 
-**NEVER run `npx agent-kakaotalk`, `bunx agent-kakaotalk`, or `pnpm dlx agent-kakaotalk`**. It will fail or install a wrong package since `agent-kakaotalk` is not the npm package name.
+**NEVER run `npx agent-kakaotalk`, `bunx agent-kakaotalk`, or `pnpm dlx agent-kakaotalk`** without `--package agent-messenger`. It will fail or install a wrong package since `agent-kakaotalk` is not the npm package name.
 
 ### No credentials found
 

@@ -44,7 +44,7 @@ send_message() {
     echo -e "${YELLOW}Attempt $attempt/$max_attempts...${NC}"
 
     # Send message and capture result
-    RESULT=$(agent-kakaotalk message send "$chat_id" "$message" 2>&1)
+    RESULT=$(agent-kakaotalk message send "$chat_id" "$message" 2>&1) || true
 
     # Check if successful
     SUCCESS=$(echo "$RESULT" | jq -r '.success // false')
@@ -101,7 +101,7 @@ fi
 
 # Check authentication
 echo "Checking authentication..."
-AUTH_STATUS=$(agent-kakaotalk auth status 2>&1)
+AUTH_STATUS=$(agent-kakaotalk auth status 2>&1) || true
 
 if echo "$AUTH_STATUS" | jq -e '.error' > /dev/null 2>&1; then
   echo -e "${RED}Not authenticated!${NC}"

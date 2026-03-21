@@ -36,7 +36,7 @@ if ! command -v agent-kakaotalk &> /dev/null; then
 fi
 
 # Check authentication
-AUTH_STATUS=$(agent-kakaotalk auth status 2>&1)
+AUTH_STATUS=$(agent-kakaotalk auth status 2>&1) || true
 
 if echo "$AUTH_STATUS" | jq -e '.error' > /dev/null 2>&1; then
   echo -e "${RED}Not authenticated!${NC}" >&2
@@ -50,7 +50,7 @@ ACCOUNT_ID=$(echo "$AUTH_STATUS" | jq -r '.account_id // "Unknown"')
 DEVICE_TYPE=$(echo "$AUTH_STATUS" | jq -r '.device_type // "Unknown"')
 
 echo -e "${YELLOW}Fetching chat list...${NC}" >&2
-CHATS=$(agent-kakaotalk chat list 2>&1)
+CHATS=$(agent-kakaotalk chat list 2>&1) || true
 
 if echo "$CHATS" | jq -e '.error' > /dev/null 2>&1; then
   echo -e "${RED}Failed to get chat list${NC}" >&2

@@ -137,8 +137,8 @@ for i in {1..5}; do
   # Merge into all messages
   ALL_MESSAGES=$(echo "$ALL_MESSAGES $BATCH" | jq -s 'add')
 
-  # Get the oldest log ID for next page
-  FROM_ID=$(echo "$BATCH" | jq -r '.[0].log_id')
+  # Get the newest log ID for next page (SYNCMSG returns logId > cursor)
+  FROM_ID=$(echo "$BATCH" | jq -r '.[-1].log_id')
 
   echo "Fetched batch $i ($BATCH_SIZE messages)"
 done
@@ -346,7 +346,7 @@ done
 # Good — batch into single message
 MESSAGE="Updates:"
 for i in {1..100}; do
-  MESSAGE="$MESSAGE\n$i. Item $i"
+  MESSAGE="${MESSAGE}"$'\n'"$i. Item $i"
 done
 agent-kakaotalk message send "$CHAT_ID" "$MESSAGE"
 ```
