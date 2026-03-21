@@ -111,13 +111,13 @@ export class LocoSession {
     })
   }
 
-  async getChatList(): Promise<LocoPacket> {
+  async getChatList(lastTokenId?: Long, lastChatId?: Long): Promise<LocoPacket> {
     if (!this.connection) throw new Error('Not connected')
     return this.connection.sendPacket('LCHATLIST', {
       chatIds: [],
       maxIds: [],
-      lastTokenId: Long.fromNumber(0),
-      lastChatId: Long.fromNumber(0),
+      lastTokenId: lastTokenId ?? Long.fromNumber(0),
+      lastChatId: lastChatId ?? Long.fromNumber(0),
     })
   }
 

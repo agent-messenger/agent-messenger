@@ -17,13 +17,18 @@ export interface CheckinResponse {
   port: number
 }
 
-// LOGINLIST uses short BSON field names: c=chatId, t=type, a=activeMembers, etc.
-export interface LoginListResponse {
+export interface ChatListResponse {
   chatDatas: Array<Record<string, unknown>>
-  userId: number
-  revision: number
+  lastTokenId: { low: number; high: number }
+  lastChatId: { low: number; high: number }
   eof: boolean
   [key: string]: unknown
+}
+
+// LOGINLIST uses short BSON field names: c=chatId, t=type, a=activeMembers, etc.
+export interface LoginListResponse extends ChatListResponse {
+  userId: number
+  revision: number
 }
 
 export const LOCO_HEADER_SIZE = 22
