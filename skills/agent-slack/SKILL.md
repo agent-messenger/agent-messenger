@@ -271,14 +271,7 @@ agent-slack user me
 
 # Look up user by email
 agent-slack user lookup <email>
-
-# Get detailed user profile (includes images, display name, etc.)
-agent-slack user profile <user-id>
-
-# Set your status
-agent-slack user set-status "In a meeting" --emoji calendar
-agent-slack user set-status "" --emoji ""
-agent-slack user set-status "Working" --emoji computer --expiration 1700000000
+agent-slack user lookup alice@example.com --pretty
 ```
 
 ### Reaction Commands
@@ -316,6 +309,7 @@ agent-slack file download F0ABC123 ./downloads/
 
 # Delete a file
 agent-slack file delete <file-id>
+agent-slack file delete <file-id> --force
 ```
 
 ### Unread Commands
@@ -376,6 +370,7 @@ agent-slack pin remove <channel> <ts>
 
 # List pinned messages in a channel
 agent-slack pin list <channel>
+agent-slack pin list general --pretty
 ```
 
 ### Bookmark Commands
@@ -394,6 +389,7 @@ agent-slack bookmark remove <channel> <bookmark-id>
 
 # List bookmarks in a channel
 agent-slack bookmark list <channel>
+agent-slack bookmark list general --pretty
 ```
 
 ### Reminder Commands
@@ -405,12 +401,7 @@ agent-slack reminder add "Team standup" 1700000000 --user U0ABC123
 
 # List all reminders
 agent-slack reminder list
-
-# Mark a reminder as complete
-agent-slack reminder complete <reminder-id>
-
-# Delete a reminder
-agent-slack reminder delete <reminder-id>
+agent-slack reminder list --pretty
 ```
 
 ### Emoji Commands

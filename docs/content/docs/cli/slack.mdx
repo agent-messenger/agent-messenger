@@ -81,6 +81,23 @@ agent-slack message update <channel> <ts> <new-text>
 
 # Delete a message
 agent-slack message delete <channel> <ts> --force
+
+# Schedule a message (post-at is Unix timestamp)
+agent-slack message schedule <channel> <text> --post-at <timestamp>
+agent-slack message schedule general "Friday update" --post-at 1700000000 --thread <ts>
+
+# List scheduled messages
+agent-slack message scheduled-list
+agent-slack message scheduled-list --channel general
+
+# Delete a scheduled message
+agent-slack message scheduled-delete <channel> <id>
+
+# Send an ephemeral message (visible to one user only)
+agent-slack message ephemeral <channel> <user> <text>
+
+# Get permalink for a message
+agent-slack message permalink <channel> <ts>
 ```
 
 ### Channel Commands
@@ -94,6 +111,29 @@ agent-slack channel list --include-archived
 # Get channel info
 agent-slack channel info <channel>
 agent-slack channel info general
+
+# Create a channel
+agent-slack channel create <name>
+agent-slack channel create my-project --private
+
+# Archive a channel
+agent-slack channel archive <channel>
+
+# Set channel topic
+agent-slack channel set-topic <channel> <topic>
+
+# Set channel purpose
+agent-slack channel set-purpose <channel> <purpose>
+
+# Invite users to channel
+agent-slack channel invite <channel> <users>
+agent-slack channel invite general U0ABC123,U0DEF456
+
+# Join a channel
+agent-slack channel join <channel>
+
+# Leave a channel
+agent-slack channel leave <channel>
 ```
 
 ### User Commands
@@ -108,6 +148,16 @@ agent-slack user info <user>
 
 # Get current user
 agent-slack user me
+
+# Look up user by email
+agent-slack user lookup <email>
+agent-slack user lookup alice@example.com
+
+# Get user profile
+agent-slack user profile <user-id>
+
+# Set your status
+agent-slack user set-status --text "In a meeting" --emoji :calendar:
 ```
 
 ### Reaction Commands
@@ -142,6 +192,9 @@ agent-slack file info <file-id>
 agent-slack file download <file-id>
 agent-slack file download <file-id> [output-path]
 agent-slack file download F0ABC123 ./downloads/
+
+# Delete a file
+agent-slack file delete <file-id> --force
 ```
 
 ### Snapshot Command
@@ -208,6 +261,63 @@ agent-slack saved list --limit 10
 ```bash
 # List channel sections (sidebar folders)
 agent-slack sections list
+```
+
+### Pin Commands
+
+```bash
+# Pin a message
+agent-slack pin add <channel> <ts>
+agent-slack pin add general 1234567890.123456
+
+# Unpin a message
+agent-slack pin remove <channel> <ts>
+
+# List pinned messages
+agent-slack pin list <channel>
+agent-slack pin list general
+```
+
+### Bookmark Commands
+
+```bash
+# Add a bookmark to a channel
+agent-slack bookmark add <channel> <title> <link>
+agent-slack bookmark add general "Design Docs" "https://example.com/docs" --emoji :bookmark:
+
+# Edit a bookmark
+agent-slack bookmark edit <channel> <bookmark-id> --title "New Title" --link "https://new.url"
+
+# Remove a bookmark
+agent-slack bookmark remove <channel> <bookmark-id>
+
+# List bookmarks
+agent-slack bookmark list <channel>
+```
+
+### Reminder Commands
+
+```bash
+# Add a reminder (time is Unix timestamp or Slack time string)
+agent-slack reminder add <text> <time>
+agent-slack reminder add "Review PR" 1700000000
+agent-slack reminder add "Team standup" "in 2 hours" --user U0ABC123
+
+# List reminders
+agent-slack reminder list
+
+# Complete a reminder
+agent-slack reminder complete <reminder-id>
+
+# Delete a reminder
+agent-slack reminder delete <reminder-id>
+```
+
+### Emoji Commands
+
+```bash
+# List custom workspace emoji
+agent-slack emoji list
 ```
 
 ## AI Agent Integration
