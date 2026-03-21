@@ -267,15 +267,15 @@ agent-kakaotalk message send <chat-id> "Hello world" --pretty
 #### Message List Output
 
 Each message includes:
-- `log_id` — unique message identifier (use for pagination with `--from`)
+- `log_id` — unique message identifier
 - `type` — message type (1 = text, 2 = photo, etc.)
 - `author_id` — sender's user ID
 - `message` — message text content
 - `sent_at` — Unix timestamp (milliseconds)
 
-#### Pagination
+#### Fetching More Messages
 
-Messages are fetched in reverse chronological order. To paginate:
+The CLI handles internal pagination automatically. Just increase `-n` to get more messages:
 
 ```bash
 # Get latest 20 messages (default)
@@ -284,7 +284,10 @@ agent-kakaotalk message list 9876543210
 # Get 50 messages
 agent-kakaotalk message list 9876543210 -n 50
 
-# Get messages starting from a specific log ID
+# Get 200 messages
+agent-kakaotalk message list 9876543210 -n 200
+
+# Get messages newer than a known log ID (forward only)
 agent-kakaotalk message list 9876543210 --from 123456789
 ```
 

@@ -111,43 +111,38 @@ echo "$MESSAGES" | jq -r '.[] | "\(.author_id): \(.message // "[non-text]")"'
 
 **When to use**: Context gathering, summarizing conversations, catching up on missed messages.
 
-## Pattern 5: Paginate Through Messages
+## Pattern 5: Fetch More Messages
 
-**Use case**: Read more messages than a single fetch returns
+**Use case**: Read more messages than the default 20
+
+The CLI handles internal pagination automatically — it fetches in batches of 80 from the LOCO protocol, deduplicates, and returns the last N messages. Just increase `-n`:
 
 ```bash
 #!/bin/bash
 
 CHAT_ID="9876543210"
-ALL_MESSAGES="[]"
-FROM_ID=""
 
-for i in {1..5}; do
-  if [ -z "$FROM_ID" ]; then
-    BATCH=$(agent-kakaotalk message list "$CHAT_ID" -n 50)
-  else
-    BATCH=$(agent-kakaotalk message list "$CHAT_ID" -n 50 --from "$FROM_ID")
-  fi
+# Get last 100 messages (CLI handles internal batching)
+MESSAGES=$(agent-kakaotalk message list "$CHAT_ID" -n 100)
 
-  BATCH_SIZE=$(echo "$BATCH" | jq 'length')
-  if [ "$BATCH_SIZE" -eq 0 ]; then
-    break
-  fi
+MSG_COUNT=$(echo "$MESSAGES" | jq 'length')
+echo "Fetched $MSG_COUNT messages"
 
-  # Merge into all messages
-  ALL_MESSAGES=$(echo "$ALL_MESSAGES $BATCH" | jq -s 'add')
-
-  # Get the newest log ID for next page (SYNCMSG returns logId > cursor)
-  FROM_ID=$(echo "$BATCH" | jq -r '.[-1].log_id')
-
-  echo "Fetched batch $i ($BATCH_SIZE messages)"
-done
-
-TOTAL=$(echo "$ALL_MESSAGES" | jq 'length')
-echo "Total messages fetched: $TOTAL"
+# Get last 500 messages
+MESSAGES=$(agent-kakaotalk message list "$CHAT_ID" -n 500)
 ```
 
-**When to use**: Reading long chat histories, searching for specific messages, data export.
+Use `--from` to fetch messages **newer** than a known point (forward only):
+
+```bash
+# Save the newest log_id from a previous fetch
+LAST_SEEN="123456789"
+
+# Later: get only messages that arrived after that point
+NEW_MESSAGES=$(agent-kakaotalk message list "$CHAT_ID" --from "$LAST_SEEN")
+```
+
+**When to use**: Reading long chat histories, catching up on new messages since last check.
 
 ## Pattern 6: Multi-Chat Broadcast
 
