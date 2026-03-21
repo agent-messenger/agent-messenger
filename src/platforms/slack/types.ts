@@ -150,6 +150,66 @@ export interface SlackChannelSection {
   date_updated: number
 }
 
+export interface SlackPin {
+  channel: string
+  message: SlackMessage
+  date_created: number
+  created_by: string
+}
+
+export interface SlackBookmark {
+  id: string
+  channel_id: string
+  title: string
+  link: string
+  emoji?: string
+  icon_url?: string
+  type: string
+  date_created: number
+  date_updated: number
+  created_by: string
+}
+
+export interface SlackScheduledMessage {
+  id: string
+  channel_id: string
+  post_at: number
+  date_created: number
+  text: string
+}
+
+export interface SlackReminder {
+  id: string
+  creator: string
+  text: string
+  user: string
+  recurring: boolean
+  time: number
+  complete_ts: number
+}
+
+export interface SlackUserProfile {
+  title?: string
+  phone?: string
+  skype?: string
+  real_name?: string
+  real_name_normalized?: string
+  display_name?: string
+  display_name_normalized?: string
+  status_text?: string
+  status_emoji?: string
+  status_expiration?: number
+  email?: string
+  first_name?: string
+  last_name?: string
+  image_24?: string
+  image_32?: string
+  image_48?: string
+  image_72?: string
+  image_192?: string
+  image_512?: string
+}
+
 // RTM event types
 
 export interface SlackRTMMessageEvent {
