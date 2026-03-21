@@ -1,4 +1,4 @@
 {
   "title": "Slack Bot",
-  "pages": ["cli", "sdk"]
+  "pages": ["cli"]
 }
