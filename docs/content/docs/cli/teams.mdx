@@ -39,7 +39,7 @@ This command:
 - Discovers ALL joined teams
 - Stores credentials securely in `~/.config/agent-messenger/`
 
-### ⚠️ TOKEN EXPIRY WARNING
+### TOKEN EXPIRY WARNING
 
 **Teams tokens expire in 60-90 minutes!** Unlike Slack and Discord tokens which last much longer, Microsoft Teams uses short-lived OAuth tokens.
 
@@ -312,7 +312,7 @@ fi
 agent-teams snapshot --limit 5 > /tmp/teams-context.json
 
 # 3. Send standup reminder
-agent-teams message send $STANDUP_CHANNEL "🌅 Good morning! Time for standup."
+agent-teams message send $STANDUP_CHANNEL "Good morning! Time for standup."
 ```
 
 ### Token Refresh Pattern for Long-Running Agents

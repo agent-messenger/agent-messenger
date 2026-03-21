@@ -12,7 +12,7 @@ reviews:
     This is a multi-platform messaging CLI (agent-messenger) with Agent Skills.
     Each platform has source code in src/platforms/<platform>/ and corresponding
     documentation in skills/agent-<platform>/SKILL.md, references/, and
-    docs/content/docs/integrations/<platform>.mdx.
+    docs/content/docs/cli/<platform>.mdx.
 
     When reviewing, always check that documentation stays in sync with code changes.
 
@@ -38,7 +38,7 @@ reviews:
         - Behavioral or workflow changes must be reflected in
           skills/agent-<platform>/references/common-patterns.md.
         - New platforms or major features must update
-          docs/content/docs/integrations/<platform>.mdx and README.md.
+          docs/content/docs/cli/<platform>.mdx and README.md.
 
         Flag PRs that modify platform source code without corresponding
         documentation updates. Mention specifically which doc files are missing
@@ -46,7 +46,7 @@ reviews:
       include:
         - src/platforms/**
         - skills/**
-        - docs/content/docs/integrations/**
+        - docs/content/docs/cli/**
 
     - name: SKILL.md completeness
       description: |

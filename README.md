@@ -1,6 +1,6 @@
 # Agent Messenger
 
-[![npm](https://img.shields.io/npm/v/agent-messenger?color=E67E22)](https://www.npmjs.com/package/agent-messenger) [![platform](https://img.shields.io/badge/platform-slack-4A154B)](https://agent-messenger.dev/docs/integrations/slack) [![platform](https://img.shields.io/badge/platform-discord-5865F2)](https://agent-messenger.dev/docs/integrations/discord) [![platform](https://img.shields.io/badge/platform-teams-6264A7)](https://agent-messenger.dev/docs/integrations/teams) [![platform](https://img.shields.io/badge/platform-telegram-2AABEE)](https://agent-messenger.dev/docs/integrations/telegram) [![platform](https://img.shields.io/badge/platform-whatsapp-25D366)](https://agent-messenger.dev/docs/integrations/whatsapp) [![platform](https://img.shields.io/badge/platform-channel_talk-3B3FE4)](https://agent-messenger.dev/docs/integrations/channeltalk)
+[![npm](https://img.shields.io/npm/v/agent-messenger?color=E67E22)](https://www.npmjs.com/package/agent-messenger) [![platform](https://img.shields.io/badge/platform-slack-4A154B)](https://agent-messenger.dev/docs/cli/slack) [![platform](https://img.shields.io/badge/platform-discord-5865F2)](https://agent-messenger.dev/docs/cli/discord) [![platform](https://img.shields.io/badge/platform-teams-6264A7)](https://agent-messenger.dev/docs/cli/teams) [![platform](https://img.shields.io/badge/platform-telegram-2AABEE)](https://agent-messenger.dev/docs/cli/telegram) [![platform](https://img.shields.io/badge/platform-whatsapp-25D366)](https://agent-messenger.dev/docs/cli/whatsapp) [![platform](https://img.shields.io/badge/platform-channel_talk-3B3FE4)](https://agent-messenger.dev/docs/cli/channeltalk)
 
 ![Agent Messenger](./docs/public/cover.png)
 
@@ -170,16 +170,16 @@ The CLI automatically provisions API credentials via my.telegram.org if needed. 
 
 ## Platform Guides
 
-- **[Slack Guide](https://agent-messenger.dev/docs/integrations/slack)** — Full command reference for Slack
-- **[Slack Bot Guide](https://agent-messenger.dev/docs/integrations/slackbot)** — Bot token integration for server-side and CI/CD
-- **[Discord Guide](https://agent-messenger.dev/docs/integrations/discord)** — Full command reference for Discord
-- **[Discord Bot Guide](https://agent-messenger.dev/docs/integrations/discordbot)** — Bot token integration for server-side and CI/CD
-- **[Teams Guide](https://agent-messenger.dev/docs/integrations/teams)** — Full command reference for Microsoft Teams
-- **[Telegram Guide](https://agent-messenger.dev/docs/integrations/telegram)** — TDLib setup and Telegram command reference
-- **[WhatsApp Guide](https://agent-messenger.dev/docs/integrations/whatsapp)** — Baileys-based WhatsApp integration via pairing code
-- **[WhatsApp Bot Guide](https://agent-messenger.dev/docs/integrations/whatsappbot)** — Cloud API integration for WhatsApp Business
-- **[Channel Talk Guide](https://agent-messenger.dev/docs/integrations/channeltalk)** — Full command reference for Channel Talk (beta, zero-config)
-- **[Channel Talk Bot Guide](https://agent-messenger.dev/docs/integrations/channeltalkbot)** — Bot API integration for Channel Talk (beta)
+- **[Slack Guide](https://agent-messenger.dev/docs/cli/slack)** — Full command reference for Slack
+- **[Slack Bot Guide](https://agent-messenger.dev/docs/cli/slackbot)** — Bot token integration for server-side and CI/CD
+- **[Discord Guide](https://agent-messenger.dev/docs/cli/discord)** — Full command reference for Discord
+- **[Discord Bot Guide](https://agent-messenger.dev/docs/cli/discordbot)** — Bot token integration for server-side and CI/CD
+- **[Teams Guide](https://agent-messenger.dev/docs/cli/teams)** — Full command reference for Microsoft Teams
+- **[Telegram Guide](https://agent-messenger.dev/docs/cli/telegram)** — TDLib setup and Telegram command reference
+- **[WhatsApp Guide](https://agent-messenger.dev/docs/cli/whatsapp)** — Baileys-based WhatsApp integration via pairing code
+- **[WhatsApp Bot Guide](https://agent-messenger.dev/docs/cli/whatsappbot)** — Cloud API integration for WhatsApp Business
+- **[Channel Talk Guide](https://agent-messenger.dev/docs/cli/channeltalk)** — Full command reference for Channel Talk (beta, zero-config)
+- **[Channel Talk Bot Guide](https://agent-messenger.dev/docs/cli/channeltalkbot)** — Bot API integration for Channel Talk (beta)
 
 ## Use Cases
 

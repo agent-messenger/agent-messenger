@@ -1,3 +1,10 @@
 {
-  "pages": ["index", "quick-start", "integrations", "agent-skills"]
+  "pages": [
+    "index",
+    "quick-start",
+    "agent-skills",
+    "---",
+    "cli",
+    "sdk"
+  ]
 }

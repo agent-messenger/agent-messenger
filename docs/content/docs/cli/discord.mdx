@@ -183,25 +183,6 @@ agent-discord snapshot --users-only
 agent-discord snapshot --limit 10
 ```
 
-## Global Options
-
-All commands support these options:
-
-```bash
---pretty    # Pretty-print JSON output (default is compact JSON)
---server <id>  # Use specific server (overrides current server)
-```
-
-## Key Differences from Slack
-
-| Concept    | Slack                         | Discord                                |
-| ---------- | ----------------------------- | -------------------------------------- |
-| Server     | Workspace                     | Server                                 |
-| Channel ID | Alphanumeric (C01234567)      | Numeric snowflake (123456789012345678) |
-| Message ID | Timestamp (1234567890.123456) | Numeric snowflake (123456789012345678) |
-| User ID    | Alphanumeric (U01234567)      | Numeric snowflake (123456789012345678) |
-| Threads    | Thread timestamps             | Thread channels                        |
-
 ### DM Commands
 
 ```bash
@@ -265,6 +246,25 @@ agent-discord note get <user-id>
 # Set a note on a user
 agent-discord note set <user-id> "Met at conference"
 ```
+
+## Global Options
+
+All commands support these options:
+
+```bash
+--pretty    # Pretty-print JSON output (default is compact JSON)
+--server <id>  # Use specific server (overrides current server)
+```
+
+## Key Differences from Slack
+
+| Concept    | Slack                         | Discord                                |
+| ---------- | ----------------------------- | -------------------------------------- |
+| Server     | Workspace                     | Server                                 |
+| Channel ID | Alphanumeric (C01234567)      | Numeric snowflake (123456789012345678) |
+| Message ID | Timestamp (1234567890.123456) | Numeric snowflake (123456789012345678) |
+| User ID    | Alphanumeric (U01234567)      | Numeric snowflake (123456789012345678) |
+| Threads    | Thread timestamps             | Thread channels                        |
 
 ## AI Agent Integration
 
