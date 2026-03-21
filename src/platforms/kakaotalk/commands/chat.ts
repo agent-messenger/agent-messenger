@@ -100,11 +100,6 @@ async function listAction(options: {
         collectChats(chatDatas, allChats, seenChatIds)
         cursor = body
         pages++
-
-        if (options.search) {
-          const found = allChats.some((c) => matchesSearch(c, options.search!))
-          if (found) break
-        }
       }
     }
 
