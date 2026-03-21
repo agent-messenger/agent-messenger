@@ -57,7 +57,5 @@ export async function withWhatsAppClient<T>(
     return await fn(client)
   } finally {
     await client.close()
-    // Baileys internal timers (keepAlive, QR) prevent clean Node.js exit
-    process.exit(0)
   }
 }

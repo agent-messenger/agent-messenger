@@ -8,6 +8,7 @@ async function listAction(options: { account?: string; pretty?: boolean; limit?:
     const limit = parseLimitOption(options.limit, 20)
     const chats = await withWhatsAppClient(options, (client) => client.listChats(limit))
     console.log(formatOutput(chats, options.pretty))
+    process.exit(0)
   } catch (error) {
     handleError(error as Error)
   }
@@ -21,6 +22,7 @@ async function searchAction(
     const limit = parseLimitOption(options.limit, 20)
     const chats = await withWhatsAppClient(options, (client) => client.searchChats(query, limit))
     console.log(formatOutput(chats, options.pretty))
+    process.exit(0)
   } catch (error) {
     handleError(error as Error)
   }

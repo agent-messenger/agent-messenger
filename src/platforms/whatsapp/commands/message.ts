@@ -11,6 +11,7 @@ async function listAction(
     const limit = parseLimitOption(options.limit, 25)
     const messages = await withWhatsAppClient(options, (client) => client.getMessages(chat, limit))
     console.log(formatOutput(messages, options.pretty))
+    process.exit(0)
   } catch (error) {
     handleError(error as Error)
   }
@@ -24,6 +25,7 @@ async function sendAction(
   try {
     const message = await withWhatsAppClient(options, (client) => client.sendMessage(chat, text))
     console.log(formatOutput(message, options.pretty))
+    process.exit(0)
   } catch (error) {
     handleError(error as Error)
   }
@@ -33,11 +35,12 @@ async function reactAction(
   chat: string,
   messageId: string,
   emoji: string,
-  options: { account?: string; pretty?: boolean },
+  options: { account?: string; pretty?: boolean; fromMe?: boolean },
 ): Promise<void> {
   try {
-    await withWhatsAppClient(options, (client) => client.sendReaction(chat, messageId, emoji))
+    await withWhatsAppClient(options, (client) => client.sendReaction(chat, messageId, emoji, options.fromMe))
     console.log(formatOutput({ success: true, chat, message_id: messageId, emoji }, options.pretty))
+    process.exit(0)
   } catch (error) {
     handleError(error as Error)
   }
@@ -69,6 +72,7 @@ export const messageCommand = new Command('message')
       .argument('<chat>', 'Chat JID or phone number')
       .argument('<message-id>', 'Message ID to react to')
       .argument('<emoji>', 'Emoji reaction')
+      .option('--from-me', 'React to your own outgoing message')
       .option('--account <id>', 'Use a specific WhatsApp account')
       .option('--pretty', 'Pretty print JSON output')
       .action(reactAction),

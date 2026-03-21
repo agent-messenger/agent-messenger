@@ -122,7 +122,7 @@ export class WhatsAppBotClient {
           for (const entry of entries) {
             if (entry.call_count >= 100) {
               this.rateLimitRemaining = 0
-              this.rateLimitResetAt = Date.now() + (entry.estimated_time_to_regain_access || 60) * 1000
+              this.rateLimitResetAt = Date.now() + (entry.estimated_time_to_regain_access ?? 60) * 1000
             }
           }
         }

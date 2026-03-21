@@ -471,20 +471,27 @@ export class WhatsAppClient {
     return summarizeMessage(result)
   }
 
-  async sendReaction(jid: string, messageId: string, emoji: string): Promise<void> {
+  getSocket(): WASocket | null {
+    return this.sock
+  }
+
+  async sendReaction(jid: string, messageId: string, emoji: string, fromMe = false): Promise<void> {
     if (!this.sock) throw new WhatsAppError('Not connected', 'not_connected')
 
     const resolvedJid = resolveJid(jid)
     await this.sock.sendMessage(resolvedJid, {
-      react: { text: emoji, key: { remoteJid: resolvedJid, id: messageId } },
+      react: { text: emoji, key: { remoteJid: resolvedJid, fromMe, id: messageId } },
     })
   }
 
   async close(): Promise<void> {
-    await this.saveStore()
-    if (this.sock) {
-      this.sock.end(undefined)
-      this.sock = null
+    try {
+      await this.saveStore()
+    } finally {
+      if (this.sock) {
+        this.sock.end(undefined)
+        this.sock = null
+      }
     }
   }
 }

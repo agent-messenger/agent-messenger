@@ -147,8 +147,21 @@ async function logoutAction(options: { account?: string; pretty?: boolean }): Pr
       process.exit(1)
     }
 
+    const paths = manager.getAccountPaths(account.account_id)
+    try {
+      const client = new WhatsAppClient(paths.auth_dir)
+      await client.connect()
+      if (client.getSocket()) {
+        await client.getSocket()!.logout('Logged out via agent-whatsapp CLI')
+      }
+      await client.close()
+    } catch {
+      // Server-side deregister failed — proceed with local cleanup
+    }
+
     await manager.removeAccount(account.account_id)
     console.log(formatOutput({ success: true, account_id: account.account_id, logged_out: true }, options.pretty))
+    process.exit(0)
   } catch (error) {
     handleError(error as Error)
   }
