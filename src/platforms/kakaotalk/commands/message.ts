@@ -53,8 +53,7 @@ async function listAction(
     const seenLogIds = new Set<string>()
     let cur = startCursor
 
-    const MAX_PAGES = 50
-    for (let page = 0; page < MAX_PAGES; page++) {
+    for (;;) {
       const response = await session.syncMessages(cid, 80, cur, maxLogId)
       const batch = (response.body.chatLogs ?? []) as Array<Record<string, unknown>>
       if (batch.length === 0) break

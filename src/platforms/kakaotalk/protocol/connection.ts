@@ -14,6 +14,7 @@ export class LocoConnection {
   private decryptedBuffer = Buffer.alloc(0)
   private packetIdCounter = 0
   private pendingResolvers = new Map<number, { resolve: (packet: LocoPacket) => void; timer: ReturnType<typeof setTimeout> }>()
+  private timedOutIds = new Set<number>()
   private pushHandler: ((packet: LocoPacket) => void) | null = null
 
   async connectTls(host: string, port: number): Promise<void> {
@@ -60,6 +61,7 @@ export class LocoConnection {
     return new Promise((resolve, reject) => {
       const timer = setTimeout(() => {
         this.pendingResolvers.delete(packetId)
+        this.timedOutIds.add(packetId)
         reject(new Error(`LOCO packet timeout: ${method} (${DEFAULT_SEND_TIMEOUT_MS}ms)`))
       }, DEFAULT_SEND_TIMEOUT_MS)
       this.pendingResolvers.set(packetId, { resolve, timer })
@@ -128,6 +130,8 @@ export class LocoConnection {
   }
 
   private dispatchPacket(packet: LocoPacket): void {
+    if (this.timedOutIds.delete(packet.packetId)) return
+
     const entry = this.pendingResolvers.get(packet.packetId)
     if (entry) {
       clearTimeout(entry.timer)

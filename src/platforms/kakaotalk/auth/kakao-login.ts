@@ -79,7 +79,7 @@ export async function attemptLogin(
   })
 
   if (!response.ok) {
-    return { authenticated: false, error: 'login_failed', message: `HTTP ${response.status} from login endpoint` }
+    return { authenticated: false, error: 'login_http_error', message: `HTTP ${response.status} from login endpoint` }
   }
 
   const data = (await response.json()) as LoginResponse

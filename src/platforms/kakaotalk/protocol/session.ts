@@ -63,7 +63,9 @@ export class LocoSession {
     bookingConn.close()
 
     const booking = bookingResponse.body as unknown as BookingResponse
-    const checkinHost = CHECKIN_HOST
+    const bookingBody = bookingResponse.body as Record<string, unknown>
+    const hosts = bookingBody.hosts as string[] | undefined
+    const checkinHost = hosts?.[0] ?? CHECKIN_HOST
     const checkinPort = booking.wifi?.ports?.[0] ?? CHECKIN_PORT
 
     const checkinConn = new LocoConnection()
