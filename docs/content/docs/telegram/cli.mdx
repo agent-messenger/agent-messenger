@@ -1,0 +1,107 @@
+---
+title: CLI
+description: Complete reference for the agent-telegram CLI.
+---
+
+> **Tip**: After `npm install -g agent-messenger`, `agent-telegram` is available directly. For one-off execution without a global install you can use `npm exec --package agent-messenger agent-telegram ...`, `pnpm dlx --package agent-messenger agent-telegram ...`, `yarn dlx agent-messenger agent-telegram ...`, or `bunx --package agent-messenger agent-telegram ...`.
+
+## Requirements
+
+Telegram is different from the Slack/Discord/Teams integrations:
+
+- It uses [TDLib](https://core.telegram.org/tdlib), but this package can ship `libtdjson` through `prebuilt-tdlib`.
+- It needs a Telegram app credential (`api_id` and `api_hash`). The CLI automatically provisions these via my.telegram.org on first login. For CI/CD, set `AGENT_TELEGRAM_API_ID` / `AGENT_TELEGRAM_API_HASH` environment variables.
+- Authentication is stateful and may require multiple `auth login` calls.
+
+## Quick Start
+
+```bash
+# The CLI will automatically provision API credentials via my.telegram.org
+agent-telegram auth login
+
+# The command will then interactively ask for phone, code, password, email, etc. as needed
+
+# Inspect chats
+agent-telegram chat list
+
+# Send a message
+agent-telegram message send <chat-id-or-@username> "Hello from Telegram"
+```
+
+## Authentication
+
+### Login
+
+```bash
+# Interactive - auto-provisions API credentials
+agent-telegram auth login
+```
+
+The CLI automatically provisions API credentials via my.telegram.org. For CI/CD or custom apps, set `AGENT_TELEGRAM_API_ID` and `AGENT_TELEGRAM_API_HASH` environment variables, or pass `--api-id` and `--api-hash` flags.
+
+```bash
+agent-telegram auth login \
+  --api-id <api-id> \
+  --api-hash <api-hash> \
+  --phone +14155551234 \
+  --tdlib-path /opt/homebrew/lib/libtdjson.dylib
+```
+
+If TDLib isn't bundled and automatic lookup fails, pass `--tdlib-path` explicitly or install TDLib yourself.
+
+### Status and Account Management
+
+```bash
+# Check current auth state
+agent-telegram auth status
+
+# List stored accounts
+agent-telegram auth list
+
+# Switch current account
+agent-telegram auth use <account-id>
+
+# Log out
+agent-telegram auth logout
+
+# Remove local TDLib state for an account
+agent-telegram auth remove <account-id>
+```
+
+## Commands
+
+### Chat Commands
+
+```bash
+# List chats
+agent-telegram chat list --limit 50
+
+# Search chats
+agent-telegram chat search "ops"
+
+# Get a chat by ID, username, or exact title
+agent-telegram chat get @durov
+```
+
+### Message Commands
+
+```bash
+# List recent messages
+agent-telegram message list @durov --limit 20
+
+# Send a text message
+agent-telegram message send @durov "Hello from agent-messenger"
+```
+
+## Storage
+
+- Account metadata lives in `~/.config/agent-messenger/telegram-credentials.json`
+- TDLib databases live in `~/.config/agent-messenger/telegram/<account-id>/`
+
+## Publishing For Zero-Friction `bunx`
+
+To make `bunx --package agent-messenger agent-telegram auth login` work smoothly, the published package should:
+
+1. Keep `prebuilt-tdlib` in optionalDependencies
+2. Document `AGENT_TELEGRAM_API_ID`
+3. Document `AGENT_TELEGRAM_API_HASH`

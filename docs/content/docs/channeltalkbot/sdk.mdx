@@ -1,0 +1,63 @@
+---
+title: SDK
+description: TypeScript SDK reference for Channel Talk Bot.
+---
+
+## Installation
+
+```bash
+npm install agent-messenger
+```
+
+> **Note**: The Channel Talk Bot SDK is available for internal use but not yet formally exported as a public entry point in `package.json`. The API may change.
+
+## Available Exports
+
+```typescript
+// Internal import path
+import {
+  ChannelBotClient,
+  ChannelBotCredentialManager,
+  ChannelBotError,
+} from 'agent-messenger/src/platforms/channeltalkbot'
+```
+
+### ChannelBotClient
+
+The main client for interacting with Channel Talk's API using Access Key + Access Secret authentication.
+
+### Types
+
+```typescript
+import type {
+  ChannelBotBot,
+  ChannelBotChannel,
+  ChannelBotConfig,
+  ChannelBotCredentials,
+  ChannelBotGroup,
+  ChannelBotManager,
+  ChannelBotMessage,
+  ChannelBotUser,
+  ChannelBotUserChat,
+  ChannelBotWorkspaceEntry,
+  MessageBlock,
+} from 'agent-messenger/src/platforms/channeltalkbot'
+```
+
+### Zod Schemas
+
+```typescript
+import {
+  ChannelBotBotSchema,
+  ChannelBotChannelSchema,
+  ChannelBotConfigSchema,
+  ChannelBotCredentialsSchema,
+  ChannelBotGroupSchema,
+  ChannelBotManagerSchema,
+  ChannelBotMessageSchema,
+  ChannelBotUserChatSchema,
+  ChannelBotUserSchema,
+  ChannelBotWorkspaceEntrySchema,
+  MessageBlockSchema,
+} from 'agent-messenger/src/platforms/channeltalkbot'
+```

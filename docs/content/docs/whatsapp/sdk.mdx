@@ -1,0 +1,50 @@
+---
+title: SDK
+description: TypeScript SDK reference for WhatsApp.
+---
+
+## Installation
+
+```bash
+npm install agent-messenger
+```
+
+> **Note**: The WhatsApp SDK is available for internal use but not yet formally exported as a public entry point in `package.json`. The API may change.
+
+## Available Exports
+
+```typescript
+// Internal import path
+import {
+  WhatsAppClient,
+  WhatsAppCredentialManager,
+  WhatsAppError,
+} from 'agent-messenger/src/platforms/whatsapp'
+```
+
+### WhatsAppClient
+
+The main client for interacting with WhatsApp via [Baileys](https://github.com/WhiskeySockets/Baileys). Each operation opens a WebSocket connection on demand and disconnects when done.
+
+### Types
+
+```typescript
+import type {
+  WhatsAppAccount,
+  WhatsAppAccountPaths,
+  WhatsAppChatSummary,
+  WhatsAppConfig,
+  WhatsAppMessageSummary,
+} from 'agent-messenger/src/platforms/whatsapp'
+```
+
+### Utilities
+
+```typescript
+import {
+  createAccountId,
+  extractMessageText,
+  getMessageType,
+  jidToType,
+} from 'agent-messenger/src/platforms/whatsapp'
+```

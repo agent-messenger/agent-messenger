@@ -1,0 +1,264 @@
+---
+title: CLI
+description: Complete reference for the agent-channeltalk CLI.
+---
+
+> **Beta**: Channel Talk support is in beta. Some features may change. macOS and Windows only.
+
+> **Tip**: `agent-channeltalk` is a shortcut for `agent-messenger channeltalk`.
+
+## Quick Start
+
+```bash
+# 1. Credentials are extracted automatically from Channel Talk desktop app
+agent-channeltalk snapshot --pretty
+
+# 2. Send a message to a group
+agent-channeltalk message send group grp_abc123 "Hello from the CLI!"
+
+# 3. List user chats
+agent-channeltalk chat list
+```
+
+## Key Concepts
+
+Channel Talk has different terminology from Slack or Discord:
+
+| Channel Talk Term | Equivalent In          | Description                          |
+| ----------------- | ---------------------- | ------------------------------------ |
+| **Channel**       | Workspace (Slack)      | Your entire workspace                |
+| **UserChat**      | DM with a customer     | 1:1 conversations with end users     |
+| **Group**         | Channel (Slack)        | Team inbox channels                  |
+| **DirectChat**    | DM (Slack)             | Direct messages between managers     |
+| **Manager**       | Member/Agent           | Human agents on your team            |
+| **Bot**           | Bot                    | Automated agents in the workspace    |
+
+## Authentication
+
+### Zero-Config Credential Extraction
+
+agent-channeltalk automatically extracts cookies from the Channel Talk desktop app. No manual setup required, no API keys needed.
+
+```bash
+# Usually automatic — just run any command
+agent-channeltalk snapshot
+
+# Or extract manually
+agent-channeltalk auth extract
+```
+
+The CLI reads two cookies from the desktop app's SQLite database:
+
+- `x-account` (JWT) — your account identity
+- `ch-session-1` (JWT) — your session token
+
+These cookies expire after roughly 30 days. When they expire, the CLI automatically re-extracts fresh cookies on the next command.
+
+### Multi-Workspace Support
+
+If you're logged into multiple Channel Talk workspaces, all are discovered automatically:
+
+```bash
+# List all available workspaces
+agent-channeltalk auth list
+
+# Switch to a different workspace
+agent-channeltalk auth use <workspace-id>
+
+# Check auth status
+agent-channeltalk auth status
+
+# Remove a stored workspace
+agent-channeltalk auth remove <workspace-id>
+```
+
+### Authentication Commands
+
+```bash
+# Extract cookies from desktop app (usually automatic)
+agent-channeltalk auth extract
+
+# Check auth status
+agent-channeltalk auth status
+agent-channeltalk auth status --workspace <id>
+
+# Clear all stored credentials
+agent-channeltalk auth clear
+
+# List all stored workspaces
+agent-channeltalk auth list
+
+# Switch active workspace
+agent-channeltalk auth use <workspace-id>
+
+# Remove a stored workspace
+agent-channeltalk auth remove <workspace-id>
+```
+
+## Commands
+
+### Message Commands
+
+```bash
+# Send a message (chat-type: group, user-chat, or direct-chat)
+agent-channeltalk message send <chat-type> <chat-id> <text>
+agent-channeltalk message send group grp_abc123 "Hello team!"
+agent-channeltalk message send user-chat uc_abc123 "Thanks for reaching out!"
+agent-channeltalk message send direct-chat dc_abc123 "Quick question..."
+
+# List messages from a group, user chat, or direct chat
+agent-channeltalk message list <chat-type> <chat-id>
+agent-channeltalk message list group grp_abc123 --limit 50
+agent-channeltalk message list user-chat uc_abc123 --sort asc
+```
+
+### Chat Commands (UserChats)
+
+```bash
+# List user chats assigned to me (default: opened)
+agent-channeltalk chat list
+agent-channeltalk chat list --state opened
+agent-channeltalk chat list --state snoozed
+agent-channeltalk chat list --state closed
+agent-channeltalk chat list --limit 50
+
+# Get a specific user chat
+agent-channeltalk chat get <chat-id>
+```
+
+### Group Commands
+
+```bash
+# List groups
+agent-channeltalk group list
+agent-channeltalk group list --limit 50
+
+# Get a group by ID
+agent-channeltalk group get <group-id>
+
+# Get messages from a group
+agent-channeltalk group messages <group-id>
+agent-channeltalk group messages grp_abc123 --limit 50 --sort asc
+```
+
+### Manager Commands
+
+```bash
+# List all managers
+agent-channeltalk manager list
+agent-channeltalk manager list --limit 50
+```
+
+### Bot Commands
+
+```bash
+# List all bots
+agent-channeltalk bot list
+agent-channeltalk bot list --limit 50
+```
+
+### Snapshot Command
+
+Get comprehensive workspace state for AI agents:
+
+```bash
+# Full snapshot of current workspace
+agent-channeltalk snapshot
+
+# Filtered snapshots
+agent-channeltalk snapshot --groups-only
+agent-channeltalk snapshot --chats-only
+
+# Limit messages per group/chat
+agent-channeltalk snapshot --limit 10
+```
+
+Returns JSON with:
+
+- Workspace metadata (id, name)
+- Groups with recent messages (id, name, messages)
+- UserChat summary (total count, by state, recent opened)
+- Managers (id, name, email)
+- Bots (id, name)
+
+## Global Options
+
+All commands support these options:
+
+```bash
+--pretty              # Pretty-print JSON output (default is compact JSON)
+--workspace <id>      # Use a specific workspace for this command
+```
+
+## Feature Comparison: agent-channeltalk vs agent-channeltalkbot
+
+| Feature                    | agent-channeltalk (user) | agent-channeltalkbot (bot) |
+| -------------------------- | :----------------------: | :------------------------: |
+| Auth method                |   Auto-extract cookies   |      API key + secret      |
+| Setup required             |    None (zero-config)    |      Manual key setup      |
+| Acts as                    |      You (manager)       |        Bot identity        |
+| Send messages              |            ✅            |             ✅             |
+| List messages              |            ✅            |             ✅             |
+| Close/delete chats         |            —             |             ✅             |
+| Create/delete bots         |            —             |             ✅             |
+| Set default bot            |            —             |             ✅             |
+| Group @name references     |            —             |             ✅             |
+| Direct chat support        |            ✅            |             —              |
+| Multi-workspace            |            ✅            |             ✅             |
+| CI/CD friendly             |            —             |             ✅             |
+
+Use **agent-channeltalk** when you want zero-config access acting as yourself. Use **[agent-channeltalkbot](/docs/channeltalkbot)** for server-side automation, CI/CD pipelines, or when you need bot-specific features like closing chats.
+
+## Troubleshooting
+
+### Channel Talk desktop app not found
+
+The CLI looks for the Channel Talk desktop app's cookie database in:
+
+**macOS:**
+1. `~/Library/Containers/com.zoyi.channel.desk.osx/Data/Library/Application Support/Channel Talk/Cookies` (Mac App Store)
+2. `~/Library/Application Support/Channel Talk/Cookies` (Electron version)
+
+**Windows:**
+1. `%APPDATA%\Channel Talk\Network\Cookies`
+
+If none exist, install the Channel Talk desktop app and log in.
+
+### Cookies expired
+
+Cookies expire after roughly 30 days. The CLI automatically re-extracts on the next command. If auto-extraction fails:
+
+1. Open the Channel Talk desktop app
+2. Make sure you're logged in
+3. Run `agent-channeltalk auth extract`
+
+### `agent-channeltalk: command not found`
+
+**`agent-channeltalk` is NOT the npm package name.** The npm package is `agent-messenger`.
+
+```bash
+# If installed globally
+agent-channeltalk snapshot --pretty
+
+# If not installed, use npx
+npx -y agent-messenger channeltalk snapshot --pretty
+```
+
+## Limitations
+
+- macOS and Windows only (Channel Talk desktop app required)
+- No real-time events / WebSocket connection
+- No file upload support
+- No message editing or deletion
+- No message search
+- No reactions support
+- No thread support
+- Plain text messages only (no rich blocks)
+- Cookies expire after ~30 days (auto-re-extracted)
+
+## AI Agent Integration
+
+See [`skills/agent-channeltalk/`](https://github.com/devxoul/agent-messenger/tree/main/skills/agent-channeltalk) for:
+
+- Complete skill documentation
+- Common patterns for AI agent workflows
