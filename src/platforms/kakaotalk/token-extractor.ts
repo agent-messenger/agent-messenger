@@ -205,6 +205,7 @@ export class KakaoTokenExtractor {
           this.debug('Extracted device_uuid from login.json')
         }
         // URL-encoded POST body: device_name=...&email=...&password=...&device_uuid=...
+        // oxlint-disable-next-line no-control-regex -- intentional: matching binary protocol boundaries
         const formMatch = data.match(/(?:device_name|email|auto_login)=[^\x00-\x1f]+(?:&[a-z_]+=[\x20-\x7e]+)*/)
         if (formMatch && formMatch[0].includes('email=') && !token.login_form_body) {
           token.login_form_body = formMatch[0]
@@ -229,6 +230,7 @@ export class KakaoTokenExtractor {
 
     // User ID is a digit string preceded by a plist length-prefix byte (e.g. X = 0x58)
     // and followed by a null byte or other non-digit byte
+    // oxlint-disable-next-line no-control-regex -- intentional: matching null byte delimiter in binary data
     const userId = data.match(/[^0-9](\d{6,12})\x00/)
     const agentMatch = data.match(/mac\/\d+\.\d+\.\d+\/\w+/)
     const uaMatch = data.match(/KakaoTalk\/[^)]+\)/)

@@ -8,7 +8,7 @@ describe('Channel Commands', () => {
 
   beforeEach(() => {
     mockClient = {
-      openConversation: mock(async (users: string) => ({
+      openConversation: mock(async (_users: string) => ({
         channel_id: 'D0ABC123',
         already_open: false,
       })),
