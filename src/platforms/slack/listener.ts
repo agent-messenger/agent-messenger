@@ -32,6 +32,7 @@ export class SlackListener {
   async start(): Promise<void> {
     if (this.running) return
     this.running = true
+    this.reconnectAttempts = 0
     await this.connect()
   }
 
@@ -72,8 +73,13 @@ export class SlackListener {
       const ws = new WebSocket(rtm.url, {
         headers: { Cookie: `d=${rtm.cookie}` },
       })
+      this.ws = ws
 
       ws.on('open', () => {
+        if (!this.running) {
+          ws.close()
+          return
+        }
         this.reconnectAttempts = 0
         this.startPing()
       })
@@ -89,7 +95,7 @@ export class SlackListener {
 
       ws.on('close', () => {
         this.clearTimers()
-        this.ws = null
+        if (this.ws === ws) this.ws = null
         if (this.running) {
           this.emitter.emit('disconnected')
           this.scheduleReconnect()
@@ -99,8 +105,6 @@ export class SlackListener {
       ws.on('error', () => {
         // onclose will fire after onerror, reconnect handled there
       })
-
-      this.ws = ws
     } catch (error) {
       this.emitter.emit('error', error instanceof Error ? error : new Error(String(error)))
       if (this.running) {
@@ -114,6 +118,13 @@ export class SlackListener {
 
     if (event.type === 'hello') {
       this.emitter.emit('connected', { self: { id: this.selfId! }, team: { id: this.teamId! } })
+      return
+    }
+
+    // server graceful shutdown or team migration — reconnect immediately
+    if (event.type === 'goodbye' || event.type === 'team_migration_started') {
+      this.reconnectAttempts = 0
+      this.ws?.close()
       return
     }
 
@@ -140,6 +151,7 @@ export class SlackListener {
       this.messageId++
       this.ws.send(JSON.stringify({ type: 'ping', id: this.messageId }))
 
+      this.clearPongTimer()
       this.pongTimer = setTimeout(() => {
         // no pong received, force reconnect
         this.ws?.close()

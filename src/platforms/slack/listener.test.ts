@@ -302,4 +302,69 @@ describe('SlackListener', () => {
       expect(messages[0].text).toBe('first')
     })
   })
+
+  describe('goodbye / team_migration_started', () => {
+    test('goodbye triggers immediate reconnect without backoff', async () => {
+      const client = createMockClient()
+      listener = new SlackListener(client)
+
+      await listener.start()
+      mockWsInstance.simulateOpen()
+      mockWsInstance.simulateMessage({ type: 'hello' })
+
+      // simulate several failed reconnects to build up backoff
+      ;(listener as any).reconnectAttempts = 5
+
+      mockWsInstance.simulateMessage({ type: 'goodbye' })
+
+      // goodbye should reset reconnectAttempts to 0
+      expect((listener as any).reconnectAttempts).toBe(0)
+    })
+
+    test('team_migration_started triggers immediate reconnect', async () => {
+      const client = createMockClient()
+      listener = new SlackListener(client)
+
+      await listener.start()
+      mockWsInstance.simulateOpen()
+      mockWsInstance.simulateMessage({ type: 'hello' })
+
+      ;(listener as any).reconnectAttempts = 5
+      mockWsInstance.simulateMessage({ type: 'team_migration_started' })
+
+      expect((listener as any).reconnectAttempts).toBe(0)
+    })
+
+    test('goodbye and team_migration_started are not emitted as events', async () => {
+      const client = createMockClient()
+      listener = new SlackListener(client)
+
+      const events: any[] = []
+      listener.on('slack_event', (event) => events.push(event))
+
+      await listener.start()
+      mockWsInstance.simulateOpen()
+      mockWsInstance.simulateMessage({ type: 'hello' })
+      mockWsInstance.simulateMessage({ type: 'goodbye' })
+      mockWsInstance.simulateMessage({ type: 'team_migration_started' })
+      mockWsInstance.simulateMessage({ type: 'message', text: 'hi', channel: 'C1', ts: '1' })
+
+      expect(events.length).toBe(1)
+      expect(events[0].type).toBe('message')
+    })
+  })
+
+  describe('start after stop', () => {
+    test('resets reconnect attempts on fresh start', async () => {
+      const client = createMockClient()
+      listener = new SlackListener(client)
+
+      await listener.start()
+      ;(listener as any).reconnectAttempts = 5
+      listener.stop()
+
+      await listener.start()
+      expect((listener as any).reconnectAttempts).toBe(0)
+    })
+  })
 })
