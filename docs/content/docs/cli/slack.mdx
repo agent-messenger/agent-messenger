@@ -82,9 +82,9 @@ agent-slack message update <channel> <ts> <new-text>
 # Delete a message
 agent-slack message delete <channel> <ts> --force
 
-# Schedule a message (post-at is Unix timestamp)
-agent-slack message schedule <channel> <text> --post-at <timestamp>
-agent-slack message schedule general "Friday update" --post-at 1700000000 --thread <ts>
+# Schedule a message (post-at is a Unix timestamp)
+agent-slack message schedule <channel> <text> <post-at>
+agent-slack message schedule general "Friday update" 1700000000
 
 # List scheduled messages
 agent-slack message scheduled-list
@@ -156,8 +156,9 @@ agent-slack user lookup alice@example.com
 # Get user profile
 agent-slack user profile <user-id>
 
-# Set your status
-agent-slack user set-status --text "In a meeting" --emoji :calendar:
+# Set your status (emoji name without colons)
+agent-slack user set-status "In a meeting"
+agent-slack user set-status "In a meeting" --emoji calendar
 ```
 
 ### Reaction Commands
@@ -194,7 +195,7 @@ agent-slack file download <file-id> [output-path]
 agent-slack file download F0ABC123 ./downloads/
 
 # Delete a file
-agent-slack file delete <file-id> --force
+agent-slack file delete <file-id>
 ```
 
 ### Snapshot Command
@@ -298,10 +299,10 @@ agent-slack bookmark list <channel>
 ### Reminder Commands
 
 ```bash
-# Add a reminder (time is Unix timestamp or Slack time string)
+# Add a reminder (time is a Unix timestamp)
 agent-slack reminder add <text> <time>
 agent-slack reminder add "Review PR" 1700000000
-agent-slack reminder add "Team standup" "in 2 hours" --user U0ABC123
+agent-slack reminder add "Team standup" 1700003600 --user U0ABC123
 
 # List reminders
 agent-slack reminder list

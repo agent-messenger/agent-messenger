@@ -269,7 +269,7 @@ async function scheduleAction(
     }
 
     const postAtTimestamp = Number(postAt)
-    if (!Number.isFinite(postAtTimestamp) || postAtTimestamp <= 0) {
+    if (!Number.isInteger(postAtTimestamp) || postAtTimestamp <= 0) {
       console.log(formatOutput({ error: 'Invalid post-at value. Use a Unix timestamp in seconds (e.g. 1700000000).' }, options.pretty))
       process.exit(1)
     }
