@@ -62,7 +62,7 @@ done
 
 **When to use**: Building a simple bot that reacts to messages.
 
-**Limitations**: Polling-based, not real-time. For production bots, use Slack's Events API.
+**Limitations**: Polling-based, not real-time. For real-time events, use the `SlackListener` SDK (see SKILL.md → SDK: Real-Time Events).
 
 ## Pattern 3: Get Workspace Overview
 

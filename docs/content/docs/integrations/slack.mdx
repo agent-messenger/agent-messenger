@@ -210,6 +210,54 @@ agent-slack saved list --limit 10
 agent-slack sections list
 ```
 
+## SDK: Real-Time Events
+
+`SlackListener` connects to Slack's RTM WebSocket for instant event streaming.
+
+```typescript
+import { SlackClient, SlackListener } from 'agent-messenger/slack'
+
+const client = new SlackClient(token, cookie)
+const listener = new SlackListener(client)
+
+listener.on('message', (event) => {
+  console.log(`#${event.channel} <${event.user}>: ${event.text}`)
+})
+
+listener.on('reaction_added', (event) => {
+  console.log(`:${event.reaction}: by ${event.user}`)
+})
+
+// Catch-all for any RTM event
+listener.on('slack_event', (event) => {
+  console.log(event.type, event)
+})
+
+listener.on('error', (err) => console.error(err))
+
+await listener.start()  // connects via RTM WebSocket
+// listener.stop()      // clean shutdown
+```
+
+### Available Events
+
+| Event | Description |
+|-------|-------------|
+| `message` | New message, edit, delete, thread reply |
+| `reaction_added` / `reaction_removed` | Reaction changes |
+| `member_joined_channel` / `member_left_channel` | Member changes |
+| `user_typing` | Typing indicator |
+| `presence_change` | User active/away status |
+| `channel_created` / `channel_rename` / `channel_archive` | Channel lifecycle |
+| `slack_event` | Catch-all for every RTM event |
+| `connected` / `disconnected` | Connection lifecycle |
+| `error` | Connection or API error |
+
+Features:
+- No channel subscription needed — receives all workspace events
+- Auto-reconnect with exponential backoff
+- Ping/pong keepalive
+
 ## AI Agent Integration
 
 See [`skills/agent-slack/`](https://github.com/devxoul/agent-messenger/tree/main/skills/agent-slack) for:
