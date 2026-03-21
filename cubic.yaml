@@ -1,0 +1,69 @@
+# yaml-language-server: $schema=https://cubic.dev/schema/cubic-repository-config.schema.json
+
+version: 1
+
+reviews:
+  enabled: true
+  sensitivity: medium
+  incremental_commits: true
+  check_drafts: false
+  resolve_threads_when_addressed: true
+  custom_instructions: |
+    This is a multi-platform messaging CLI (agent-messenger) with Agent Skills.
+    Each platform has source code in src/platforms/<platform>/ and corresponding
+    documentation in skills/agent-<platform>/SKILL.md, references/, and
+    docs/content/docs/integrations/<platform>.mdx.
+
+    When reviewing, always check that documentation stays in sync with code changes.
+
+  ignore:
+    files:
+      - docs/node_modules/**
+      - dist/**
+      - "*.lock"
+    head_branches:
+      - wip/*
+
+  custom_rules:
+    - name: Documentation sync
+      description: |
+        When code under src/platforms/<platform>/ changes, verify that the
+        corresponding documentation is updated:
+
+        - New or modified commands in src/platforms/<platform>/commands/ must be
+          reflected in skills/agent-<platform>/SKILL.md (Commands section, flags,
+          output format examples).
+        - Auth flow changes (token-extractor.ts, credential-manager.ts) must be
+          reflected in skills/agent-<platform>/references/authentication.md.
+        - Behavioral or workflow changes must be reflected in
+          skills/agent-<platform>/references/common-patterns.md.
+        - New platforms or major features must update
+          docs/content/docs/integrations/<platform>.mdx and README.md.
+
+        Flag PRs that modify platform source code without corresponding
+        documentation updates. Mention specifically which doc files are missing
+        updates.
+      include:
+        - src/platforms/**
+        - skills/**
+        - docs/content/docs/integrations/**
+
+    - name: SKILL.md completeness
+      description: |
+        Each skills/agent-<platform>/SKILL.md must:
+        - Document every subcommand available in the CLI.
+        - Include accurate output format examples matching actual CLI output.
+        - List all supported flags and options for each command.
+        - Have error handling and troubleshooting sections that cover common
+          failure modes.
+
+        When a SKILL.md is modified, check that it remains complete and accurate
+        relative to the corresponding source code.
+      include:
+        - skills/**/SKILL.md
+
+pr_descriptions:
+  generate: true
+  instructions: |
+    Include a note about whether SKILL.md or docs were updated if any platform
+    source code changed.
