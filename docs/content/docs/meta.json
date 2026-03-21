@@ -4,15 +4,7 @@
     "quick-start",
     "agent-skills",
     "---",
-    "slack",
-    "slackbot",
-    "discord",
-    "discordbot",
-    "teams",
-    "telegram",
-    "whatsapp",
-    "whatsappbot",
-    "channeltalk",
-    "channeltalkbot"
+    "cli",
+    "sdk"
   ]
 }
