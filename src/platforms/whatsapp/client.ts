@@ -1,0 +1,497 @@
+import { existsSync } from 'node:fs'
+import { readFile, writeFile } from 'node:fs/promises'
+import { join } from 'node:path'
+import makeWASocket, {
+  DisconnectReason,
+  fetchLatestBaileysVersion,
+  makeCacheableSignalKeyStore,
+  useMultiFileAuthState,
+  type Chat,
+  type ConnectionState,
+  type Contact,
+  type WAMessage,
+  type WASocket,
+} from '@whiskeysockets/baileys'
+import { Boom } from '@hapi/boom'
+import pino from 'pino'
+import {
+  extractMessageText,
+  getMessageType,
+  jidToType,
+  type WhatsAppChatSummary,
+  type WhatsAppMessageSummary,
+  WhatsAppError,
+} from './types'
+
+const MAX_MESSAGES_PER_CHAT = 500
+
+function toTimestampMs(ts: number | { toNumber(): number } | null | undefined): number {
+  if (ts == null) return 0
+  if (typeof ts === 'object') return ts.toNumber() * 1000
+  return ts * 1000
+}
+
+function resolveJid(input: string): string {
+  if (input.includes('@')) return input
+  const digits = input.replace(/[^0-9]/g, '')
+  return `${digits}@s.whatsapp.net`
+}
+
+function summarizeMessage(msg: WAMessage): WhatsAppMessageSummary {
+  const jid = msg.key.remoteJid ?? ''
+  const isGroup = jid.endsWith('@g.us')
+  const from = msg.key.fromMe
+    ? ''
+    : isGroup
+      ? (msg.key.participant ?? msg.participant ?? jid)
+      : jid
+
+  return {
+    id: msg.key.id ?? '',
+    chat_id: jid,
+    from,
+    from_name: msg.pushName ?? undefined,
+    timestamp: new Date(toTimestampMs(msg.messageTimestamp)).toISOString(),
+    is_outgoing: Boolean(msg.key.fromMe),
+    type: getMessageType(msg.message),
+    text: extractMessageText(msg.message),
+  }
+}
+
+function summarizeChat(
+  chat: Chat,
+  lastMessage?: WhatsAppMessageSummary,
+): WhatsAppChatSummary {
+  const id = chat.id ?? ''
+  return {
+    id,
+    name: chat.name ?? chat.displayName ?? id,
+    type: jidToType(id),
+    unread_count: chat.unreadCount ?? 0,
+    last_message: lastMessage,
+  }
+}
+
+export class WhatsAppClient {
+  private sock: WASocket | null = null
+  private authDir: string
+  private logger: ReturnType<typeof pino>
+  private chats: Map<string, Chat> = new Map()
+  private messages: Map<string, WAMessage[]> = new Map()
+  private contacts: Map<string, Contact> = new Map()
+  private pendingResolve: (() => void) | null = null
+  private pendingPromise: Promise<void> | null = null
+  private authCompleteResolve: (() => void) | null = null
+
+  private storePath: string
+
+  constructor(authDir: string) {
+    this.authDir = authDir
+    this.storePath = join(authDir, '..', 'store.json')
+    this.logger = pino({ level: 'fatal' })
+  }
+
+  private async loadStore(): Promise<void> {
+    if (!existsSync(this.storePath)) return
+    try {
+      const raw = await readFile(this.storePath, 'utf-8')
+      const data = JSON.parse(raw) as { chats?: Record<string, Chat>; contacts?: Record<string, Contact> }
+      if (data.chats) {
+        for (const [id, chat] of Object.entries(data.chats)) {
+          this.chats.set(id, chat)
+        }
+      }
+      if (data.contacts) {
+        for (const [id, contact] of Object.entries(data.contacts)) {
+          this.contacts.set(id, contact)
+        }
+      }
+    } catch {
+      // Corrupted store — start fresh
+    }
+  }
+
+  private async saveStore(): Promise<void> {
+    const data = {
+      chats: Object.fromEntries(this.chats),
+      contacts: Object.fromEntries(this.contacts),
+    }
+    await writeFile(this.storePath, JSON.stringify(data), { mode: 0o600 })
+  }
+
+  private async createSocket(): Promise<{ sock: WASocket; saveCreds: () => Promise<void> }> {
+    const { state, saveCreds } = await useMultiFileAuthState(this.authDir)
+    const { version } = await fetchLatestBaileysVersion()
+
+    const sock = makeWASocket({
+      auth: {
+        creds: state.creds,
+        keys: makeCacheableSignalKeyStore(state.keys, this.logger),
+      },
+      version,
+      logger: this.logger,
+      syncFullHistory: true,
+      markOnlineOnConnect: false,
+      generateHighQualityLinkPreview: false,
+      qrTimeout: 120_000,
+      getMessage: async () => undefined,
+    })
+
+    this.sock = sock
+    return { sock, saveCreds }
+  }
+
+  async connect(): Promise<void> {
+    await this.loadStore()
+
+    this.pendingPromise = new Promise<void>((resolve) => {
+      this.pendingResolve = resolve
+    })
+
+    const MAX_RETRIES = 10
+    let retries = 0
+
+    return new Promise<void>((outerResolve, outerReject) => {
+      const timeout = setTimeout(() => {
+        outerReject(new WhatsAppError('Connection timed out', 'connection_timeout'))
+      }, 60_000)
+
+      const onError = (err: unknown): void => {
+        clearTimeout(timeout)
+        outerReject(err instanceof Error ? err : new WhatsAppError(String(err), 'connect_error'))
+      }
+
+      const attempt = async (): Promise<void> => {
+        const { sock, saveCreds } = await this.createSocket()
+        this.setupBufferListeners(sock, saveCreds)
+
+        sock.ev.on('connection.update', (update: Partial<ConnectionState>) => {
+          const { connection, lastDisconnect } = update
+
+          if (connection === 'open') {
+            clearTimeout(timeout)
+            outerResolve()
+            return
+          }
+
+          if (connection === 'close') {
+            this.cleanupSocket(sock)
+
+            const statusCode = (lastDisconnect?.error as Boom)?.output?.statusCode
+
+            if (statusCode === DisconnectReason.loggedOut) {
+              clearTimeout(timeout)
+              outerReject(new WhatsAppError('Logged out. Run "auth login" to re-authenticate.', 'logged_out'))
+              return
+            }
+            if (statusCode === DisconnectReason.forbidden) {
+              clearTimeout(timeout)
+              outerReject(new WhatsAppError('Account banned or restricted by WhatsApp.', 'forbidden'))
+              return
+            }
+
+            retries++
+            if (retries > MAX_RETRIES) {
+              clearTimeout(timeout)
+              outerReject(new WhatsAppError(
+                `Connection failed after ${MAX_RETRIES} retries: ${lastDisconnect?.error?.message ?? 'unknown'}`,
+                'max_retries',
+              ))
+              return
+            }
+
+            // Baileys expects reconnection — connection cycles during initialization
+            setTimeout(() => attempt().catch(onError), 1000)
+          }
+        })
+      }
+
+      attempt().catch(onError)
+    })
+  }
+
+  async connectForPairing(phoneNumber: string): Promise<{ code: string; waitForAuth: () => Promise<void> }> {
+    this.pendingPromise = new Promise<void>((resolve) => {
+      this.pendingResolve = resolve
+    })
+
+    const authCompletePromise = new Promise<void>((resolve) => {
+      this.authCompleteResolve = resolve
+    })
+
+    const cleaned = phoneNumber.replace(/[^0-9]/g, '')
+    const MAX_RETRIES = 5
+    let retries = 0
+
+    return new Promise((outerResolve, outerReject) => {
+      let codeReturned = false
+      let postPairingRetries = 0
+      const MAX_POST_PAIRING_RETRIES = 5
+
+      const overallTimeout = setTimeout(() => {
+        outerReject(new WhatsAppError('Pairing timed out', 'pairing_timeout'))
+      }, 120_000)
+
+      const onError = (err: unknown): void => {
+        clearTimeout(overallTimeout)
+        outerReject(err instanceof Error ? err : new WhatsAppError(String(err), 'pairing_error'))
+      }
+
+      const attempt = async (): Promise<void> => {
+        const { sock, saveCreds } = await this.createSocket()
+        this.setupBufferListeners(sock, saveCreds)
+
+        let pairingRequested = false
+
+        sock.ev.on('connection.update', async (update: Partial<ConnectionState>) => {
+          const { connection, lastDisconnect } = update
+
+          if (connection === 'open') {
+            clearTimeout(overallTimeout)
+            // Fully connected after pairing — Signal keys are now uploaded
+            this.authCompleteResolve?.()
+            if (!codeReturned) {
+              codeReturned = true
+              outerResolve({ code: '', waitForAuth: async () => {} })
+            }
+          }
+
+          if (connection === 'close') {
+            this.cleanupSocket(sock)
+
+            const statusCode = (lastDisconnect?.error as Boom)?.output?.statusCode
+
+            // 401 is normal for fresh credentials — always reconnect during pairing
+            if (statusCode === DisconnectReason.forbidden) {
+              clearTimeout(overallTimeout)
+              outerReject(new WhatsAppError('Account banned or restricted.', 'forbidden'))
+              return
+            }
+
+            if (codeReturned) {
+              postPairingRetries++
+              if (postPairingRetries > MAX_POST_PAIRING_RETRIES) {
+                clearTimeout(overallTimeout)
+                outerReject(new WhatsAppError('Post-pairing reconnection failed.', 'post_pairing_failed'))
+                return
+              }
+              setTimeout(() => attempt().catch(onError), 2000)
+              return
+            }
+
+            retries++
+            if (retries > MAX_RETRIES) {
+              clearTimeout(overallTimeout)
+              outerReject(new WhatsAppError(
+                `Connection failed after ${MAX_RETRIES} retries: ${lastDisconnect?.error?.message ?? 'unknown'}`,
+                'max_retries',
+              ))
+              return
+            }
+
+            setTimeout(() => attempt().catch(onError), 1000)
+          }
+
+          // Request pairing code when WebSocket is connected but not yet authenticated
+          if (connection === 'connecting' && !sock.authState.creds.registered && !codeReturned && !pairingRequested) {
+            pairingRequested = true
+            // Wait for the Noise handshake to complete before requesting
+            setTimeout(async () => {
+              try {
+                const code = await sock.requestPairingCode(cleaned)
+                if (!codeReturned) {
+                  codeReturned = true
+                  outerResolve({
+                    code,
+                    waitForAuth: () => authCompletePromise,
+                  })
+                }
+              } catch {
+                // requestPairingCode failed — socket will close and reconnect
+              }
+            }, 3000)
+          }
+        })
+      }
+
+      attempt().catch(onError)
+    })
+  }
+
+  private cleanupSocket(sock: WASocket): void {
+    try { sock.end(undefined) } catch { /* already closed */ }
+  }
+
+  private setupBufferListeners(sock: WASocket, saveCreds: () => Promise<void>): void {
+    sock.ev.on('creds.update', saveCreds)
+
+    sock.ev.on('connection.update', (update: Partial<ConnectionState>) => {
+      if (update.receivedPendingNotifications) {
+        this.pendingResolve?.()
+      }
+    })
+
+    sock.ev.on('chats.upsert', (chatList: Chat[]) => {
+      for (const chat of chatList) {
+        if (chat.id) {
+          this.chats.set(chat.id, chat)
+        }
+      }
+    })
+
+    sock.ev.on('chats.update', (updates: Partial<Chat>[]) => {
+      for (const update of updates) {
+        if (!update.id) continue
+        const existing = this.chats.get(update.id)
+        if (existing) {
+          this.chats.set(update.id, { ...existing, ...update })
+        } else {
+          this.chats.set(update.id, update as Chat)
+        }
+      }
+    })
+
+    sock.ev.on('messaging-history.set', ({ chats: histChats, messages: histMessages }) => {
+      for (const chat of histChats) {
+        if (chat.id) {
+          this.chats.set(chat.id, chat)
+        }
+      }
+      for (const msg of histMessages) {
+        this.bufferMessage(msg)
+      }
+    })
+
+    sock.ev.on('messages.upsert', ({ messages: newMessages }) => {
+      for (const msg of newMessages) {
+        this.bufferMessage(msg)
+      }
+    })
+
+    sock.ev.on('contacts.upsert', (contactList: Contact[]) => {
+      for (const contact of contactList) {
+        this.contacts.set(contact.id, contact)
+      }
+    })
+  }
+
+  private bufferMessage(msg: WAMessage): void {
+    const jid = msg.key.remoteJid
+    if (!jid) return
+    const existing = this.messages.get(jid) ?? []
+    if (existing.some((m) => m.key.id === msg.key.id)) return
+    existing.push(msg)
+    if (existing.length > MAX_MESSAGES_PER_CHAT) {
+      existing.splice(0, existing.length - MAX_MESSAGES_PER_CHAT)
+    }
+    this.messages.set(jid, existing)
+  }
+
+  private async waitForPendingNotifications(): Promise<void> {
+    const timeout = new Promise<void>((resolve) => setTimeout(resolve, 30_000))
+    await Promise.race([this.pendingPromise ?? Promise.resolve(), timeout])
+  }
+
+  async listChats(limit?: number): Promise<WhatsAppChatSummary[]> {
+    if (!this.sock) throw new WhatsAppError('Not connected', 'not_connected')
+
+    // Actively fetch group chats (instant API call, doesn't depend on history sync)
+    try {
+      const groups = await this.sock.groupFetchAllParticipating()
+      for (const [jid, meta] of Object.entries(groups)) {
+        if (!this.chats.has(jid)) {
+          this.chats.set(jid, { id: jid, name: meta.subject } as Chat)
+        }
+      }
+    } catch {
+      // groupFetchAllParticipating may fail — continue with buffered chats
+    }
+
+    // Also collect from passive history sync (may have arrived during connection)
+    await this.waitForPendingNotifications()
+
+    const chats = Array.from(this.chats.values())
+    const sorted = chats.sort((a, b) => {
+      const aTime = a.conversationTimestamp
+      const bTime = b.conversationTimestamp
+      const aMs = toTimestampMs(aTime as number | { toNumber(): number } | null | undefined)
+      const bMs = toTimestampMs(bTime as number | { toNumber(): number } | null | undefined)
+      return bMs - aMs
+    })
+
+    const result = limit ? sorted.slice(0, limit) : sorted
+
+    return result.map((chat) => {
+      const msgs = this.messages.get(chat.id ?? '')
+      const lastMsg = msgs && msgs.length > 0 ? summarizeMessage(msgs[msgs.length - 1]) : undefined
+      return summarizeChat(chat, lastMsg)
+    })
+  }
+
+  async searchChats(query: string, limit?: number): Promise<WhatsAppChatSummary[]> {
+    const allChats = await this.listChats()
+    const lower = query.toLowerCase()
+    const filtered = allChats.filter((c) =>
+      c.name.toLowerCase().includes(lower) || c.id.toLowerCase().includes(lower),
+    )
+    return limit ? filtered.slice(0, limit) : filtered
+  }
+
+  async getMessages(jid: string, limit = 25): Promise<WhatsAppMessageSummary[]> {
+    if (!this.sock) throw new WhatsAppError('Not connected', 'not_connected')
+
+    const resolvedJid = resolveJid(jid)
+    await this.waitForPendingNotifications()
+
+    const msgs = this.messages.get(resolvedJid) ?? []
+    const sorted = [...msgs].sort((a, b) => {
+      const aMs = toTimestampMs(a.messageTimestamp as number | { toNumber(): number } | null | undefined)
+      const bMs = toTimestampMs(b.messageTimestamp as number | { toNumber(): number } | null | undefined)
+      return aMs - bMs
+    })
+
+    return sorted.slice(-limit).map(summarizeMessage)
+  }
+
+  async sendMessage(jid: string, text: string): Promise<WhatsAppMessageSummary> {
+    if (!this.sock) throw new WhatsAppError('Not connected', 'not_connected')
+
+    const resolvedJid = resolveJid(jid)
+    const result = await this.sock.sendMessage(resolvedJid, { text })
+
+    if (!result) {
+      throw new WhatsAppError('Failed to send message', 'send_failed')
+    }
+
+    if (!this.chats.has(resolvedJid)) {
+      const contact = this.contacts.get(resolvedJid)
+      this.chats.set(resolvedJid, { id: resolvedJid, name: contact?.name ?? resolvedJid } as Chat)
+    }
+
+    return summarizeMessage(result)
+  }
+
+  getSocket(): WASocket | null {
+    return this.sock
+  }
+
+  async sendReaction(jid: string, messageId: string, emoji: string, fromMe = false): Promise<void> {
+    if (!this.sock) throw new WhatsAppError('Not connected', 'not_connected')
+
+    const resolvedJid = resolveJid(jid)
+    await this.sock.sendMessage(resolvedJid, {
+      react: { text: emoji, key: { remoteJid: resolvedJid, fromMe, id: messageId } },
+    })
+  }
+
+  async close(): Promise<void> {
+    try {
+      await this.saveStore()
+    } finally {
+      if (this.sock) {
+        this.sock.end(undefined)
+        this.sock = null
+      }
+    }
+  }
+}

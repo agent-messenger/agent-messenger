@@ -48,6 +48,14 @@ program.command('telegram', 'Interact with Telegram via TDLib', {
   executableFile: join(__dirname, 'platforms', 'telegram', `cli${ext}`),
 })
 
+program.command('whatsappbot', 'Interact with WhatsApp using Cloud API credentials', {
+  executableFile: join(__dirname, 'platforms', 'whatsappbot', `cli${ext}`),
+})
+
+program.command('whatsapp', 'Interact with WhatsApp via linked device', {
+  executableFile: join(__dirname, 'platforms', 'whatsapp', `cli${ext}`),
+})
+
 program.parse(process.argv)
 
 export default program
