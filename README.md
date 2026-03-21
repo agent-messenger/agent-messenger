@@ -159,6 +159,7 @@ The CLI automatically provisions API credentials via my.telegram.org if needed. 
 | Saved items                |  ✅   |    —    |   —   |    —     |         —           |
 | Unread messages            |  ✅   |    —    |   —   |    —     |         —           |
 | Sidebar sections           |  ✅   |    —    |   —   |    —     |         —           |
+| Real-time events (SDK)     |  ✅   |    —    |   —   |    —     |         —           |
 | Bot support                |  ✅   |   ✅    |   —   |    —     |         ✅          |
 
 > ⚠️ **Teams tokens expire in 60-90 minutes.** Re-run `agent-teams auth extract` to refresh. See [Teams Guide](skills/agent-teams/SKILL.md) for details.
