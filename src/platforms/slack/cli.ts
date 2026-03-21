@@ -7,11 +7,15 @@ import pkg from '../../../package.json' with { type: 'json' }
 import {
   activityCommand,
   authCommand,
+  bookmarkCommand,
   channelCommand,
   draftsCommand,
+  emojiCommand,
   fileCommand,
   messageCommand,
+  pinCommand,
   reactionCommand,
+  reminderCommand,
   savedCommand,
   sectionsCommand,
   snapshotCommand,
@@ -56,6 +60,10 @@ program.addCommand(draftsCommand)
 program.addCommand(savedCommand)
 program.addCommand(sectionsCommand)
 program.addCommand(unreadCommand)
+program.addCommand(pinCommand)
+program.addCommand(bookmarkCommand)
+program.addCommand(reminderCommand)
+program.addCommand(emojiCommand)
 
 program.parse(process.argv)
 
