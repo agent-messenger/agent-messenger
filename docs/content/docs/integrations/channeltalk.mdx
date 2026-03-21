@@ -3,7 +3,7 @@ title: Channel Talk (Beta)
 description: Complete reference for the agent-channeltalk CLI.
 ---
 
-> **Beta**: Channel Talk support is in beta. Some features may change. macOS only.
+> **Beta**: Channel Talk support is in beta. Some features may change. macOS and Windows only.
 
 > **Tip**: `agent-channeltalk` is a shortcut for `agent-messenger channeltalk`.
 
@@ -215,10 +215,14 @@ Use **agent-channeltalk** when you want zero-config access acting as yourself. U
 
 The CLI looks for the Channel Talk desktop app's cookie database in:
 
+**macOS:**
 1. `~/Library/Containers/com.zoyi.channel.desk.osx/Data/Library/Application Support/Channel Talk/Cookies` (Mac App Store)
 2. `~/Library/Application Support/Channel Talk/Cookies` (Electron version)
 
-If neither exists, install the Channel Talk desktop app and log in.
+**Windows:**
+1. `%APPDATA%\Channel Talk\Network\Cookies`
+
+If none exist, install the Channel Talk desktop app and log in.
 
 ### Cookies expired
 
@@ -242,7 +246,7 @@ npx -y agent-messenger channeltalk snapshot --pretty
 
 ## Limitations
 
-- macOS only (Channel Talk desktop app required)
+- macOS and Windows only (Channel Talk desktop app required)
 - No real-time events / WebSocket connection
 - No file upload support
 - No message editing or deletion
