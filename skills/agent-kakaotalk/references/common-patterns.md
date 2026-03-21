@@ -135,10 +135,10 @@ MESSAGES=$(agent-kakaotalk message list "$CHAT_ID" -n 500)
 Use `--from` to fetch messages **newer** than a known point (forward only):
 
 ```bash
-# Save the newest log_id from a previous fetch
+CHAT_ID="9876543210"
 LAST_SEEN="123456789"
 
-# Later: get only messages that arrived after that point
+# Get only messages that arrived after that point
 NEW_MESSAGES=$(agent-kakaotalk message list "$CHAT_ID" --from "$LAST_SEEN")
 ```
 
