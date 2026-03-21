@@ -62,6 +62,7 @@ export class LocoConnection {
       const timer = setTimeout(() => {
         this.pendingResolvers.delete(packetId)
         this.timedOutIds.add(packetId)
+        setTimeout(() => this.timedOutIds.delete(packetId), DEFAULT_SEND_TIMEOUT_MS)
         reject(new Error(`LOCO packet timeout: ${method} (${DEFAULT_SEND_TIMEOUT_MS}ms)`))
       }, DEFAULT_SEND_TIMEOUT_MS)
       this.pendingResolvers.set(packetId, { resolve, timer })
