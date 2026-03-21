@@ -1,5 +1,6 @@
 export { SlackClient, SlackError } from './client'
 export { CredentialManager } from './credential-manager'
+export { SlackListener } from './listener'
 export type {
   SlackChannel,
   SlackMessage,
@@ -14,6 +15,15 @@ export type {
   SlackDM,
   SlackDraft,
   SlackChannelSection,
+  SlackRTMEvent,
+  SlackRTMMessageEvent,
+  SlackRTMReactionEvent,
+  SlackRTMMemberEvent,
+  SlackRTMChannelEvent,
+  SlackRTMPresenceEvent,
+  SlackRTMUserTypingEvent,
+  SlackRTMGenericEvent,
+  SlackListenerEventMap,
   WorkspaceCredentials,
   Config,
 } from './types'

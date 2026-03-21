@@ -150,6 +150,87 @@ export interface SlackChannelSection {
   date_updated: number
 }
 
+// RTM event types
+
+export interface SlackRTMMessageEvent {
+  type: 'message'
+  subtype?: string
+  channel: string
+  user?: string
+  text?: string
+  ts: string
+  thread_ts?: string
+  edited?: { user: string; ts: string }
+  hidden?: boolean
+}
+
+export interface SlackRTMReactionEvent {
+  type: 'reaction_added' | 'reaction_removed'
+  user: string
+  reaction: string
+  item: { type: string; channel: string; ts: string }
+  item_user?: string
+  event_ts: string
+}
+
+export interface SlackRTMMemberEvent {
+  type: 'member_joined_channel' | 'member_left_channel'
+  user: string
+  channel: string
+  channel_type?: string
+  event_ts?: string
+}
+
+export interface SlackRTMChannelEvent {
+  type: 'channel_created' | 'channel_deleted' | 'channel_rename' | 'channel_archive' | 'channel_unarchive'
+  channel: { id: string; name?: string } | string
+}
+
+export interface SlackRTMPresenceEvent {
+  type: 'presence_change'
+  user: string
+  presence: 'active' | 'away'
+}
+
+export interface SlackRTMUserTypingEvent {
+  type: 'user_typing'
+  channel: string
+  user: string
+}
+
+export interface SlackRTMGenericEvent {
+  type: string
+  [key: string]: unknown
+}
+
+export type SlackRTMEvent =
+  | SlackRTMMessageEvent
+  | SlackRTMReactionEvent
+  | SlackRTMMemberEvent
+  | SlackRTMChannelEvent
+  | SlackRTMPresenceEvent
+  | SlackRTMUserTypingEvent
+  | SlackRTMGenericEvent
+
+export interface SlackListenerEventMap {
+  message: [event: SlackRTMMessageEvent]
+  reaction_added: [event: SlackRTMReactionEvent]
+  reaction_removed: [event: SlackRTMReactionEvent]
+  member_joined_channel: [event: SlackRTMMemberEvent]
+  member_left_channel: [event: SlackRTMMemberEvent]
+  presence_change: [event: SlackRTMPresenceEvent]
+  user_typing: [event: SlackRTMUserTypingEvent]
+  channel_created: [event: SlackRTMChannelEvent]
+  channel_deleted: [event: SlackRTMChannelEvent]
+  channel_rename: [event: SlackRTMChannelEvent]
+  channel_archive: [event: SlackRTMChannelEvent]
+  channel_unarchive: [event: SlackRTMChannelEvent]
+  slack_event: [event: SlackRTMGenericEvent]
+  connected: [info: { self: { id: string }; team: { id: string } }]
+  disconnected: []
+  error: [error: Error]
+}
+
 export interface WorkspaceCredentials {
   workspace_id: string
   workspace_name: string

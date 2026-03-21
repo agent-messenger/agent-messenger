@@ -240,11 +240,19 @@ export class SlackClient {
     })
   }
 
-  async getMessages(channel: string, limit = 20): Promise<SlackMessage[]> {
+  async getMessages(
+    channel: string,
+    limitOrOptions?: number | { limit?: number; oldest?: string; latest?: string },
+  ): Promise<SlackMessage[]> {
+    const options = typeof limitOrOptions === 'number' ? { limit: limitOrOptions } : (limitOrOptions ?? {})
+    const { limit = 20, oldest, latest } = options
+
     return this.withRetry(async () => {
       const response = await this.client.conversations.history({
         channel,
         limit,
+        oldest,
+        latest,
       })
       this.checkResponse(response)
 
@@ -804,6 +812,19 @@ export class SlackClient {
       return {
         drafts,
         next_cursor: (response as any).response_metadata?.next_cursor,
+      }
+    })
+  }
+
+  async rtmConnect(): Promise<{ url: string; cookie: string; self: { id: string }; team: { id: string } }> {
+    return this.withRetry(async () => {
+      const response = await this.client.apiCall('rtm.connect')
+      this.checkResponse(response)
+      return {
+        url: (response as any).url,
+        cookie: this.cookie,
+        self: { id: (response as any).self.id },
+        team: { id: (response as any).team.id },
       }
     })
   }

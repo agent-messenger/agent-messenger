@@ -388,13 +388,108 @@ Common errors:
 
 Credentials stored in `~/.config/agent-messenger/slack-credentials.json` (0600 permissions). See [references/authentication.md](references/authentication.md) for format and security details.
 
+## SDK: Real-Time Events
+
+`SlackListener` connects to Slack's RTM WebSocket for instant event streaming. No polling — events arrive in real time.
+
+### Setup
+
+```typescript
+import { SlackClient, SlackListener } from 'agent-messenger/slack'
+
+const client = new SlackClient(token, cookie)
+const listener = new SlackListener(client)
+```
+
+### Listening for Events
+
+```typescript
+listener.on('connected', (info) => {
+  console.log(`Connected as ${info.self.id} on ${info.team.id}`)
+})
+
+listener.on('message', (event) => {
+  // event.type, event.channel, event.user, event.text, event.ts
+})
+
+listener.on('reaction_added', (event) => {
+  // event.user, event.reaction, event.item.channel, event.item.ts
+})
+
+listener.on('reaction_removed', (event) => {
+  // same shape as reaction_added
+})
+
+listener.on('member_joined_channel', (event) => {
+  // event.user, event.channel
+})
+
+listener.on('member_left_channel', (event) => {
+  // event.user, event.channel
+})
+
+listener.on('user_typing', (event) => {
+  // event.user, event.channel
+})
+
+listener.on('presence_change', (event) => {
+  // event.user, event.presence ('active' | 'away')
+})
+
+// Catch-all for any RTM event type
+listener.on('slack_event', (event) => {
+  // event.type + all fields
+})
+
+listener.on('error', (err) => {
+  console.error(err.message)
+})
+
+listener.on('disconnected', () => {
+  // auto-reconnects with exponential backoff
+})
+```
+
+### Lifecycle
+
+```typescript
+await listener.start()  // connects via RTM WebSocket
+listener.stop()         // clean shutdown
+```
+
+### Event Types
+
+| Event | Description |
+|-------|-------------|
+| `message` | New message, edit, delete, thread reply, join/leave subtypes |
+| `reaction_added` | Reaction added to a message |
+| `reaction_removed` | Reaction removed from a message |
+| `member_joined_channel` | User joined a channel |
+| `member_left_channel` | User left a channel |
+| `user_typing` | User is typing |
+| `presence_change` | User went active/away |
+| `channel_created` | New channel created |
+| `channel_deleted` | Channel deleted |
+| `channel_rename` | Channel renamed |
+| `channel_archive` | Channel archived |
+| `channel_unarchive` | Channel unarchived |
+| `slack_event` | Catch-all for every RTM event |
+| `connected` | WebSocket connected |
+| `disconnected` | WebSocket disconnected (auto-reconnects) |
+| `error` | Connection or API error |
+
+### Notes
+
+- Receives all workspace events for the authenticated user — no channel subscription needed
+- Auto-reconnects with exponential backoff (1s → 30s max)
+- Ping/pong keepalive every 30s
+- Uses Slack's RTM API with xoxc user tokens
+
 ## Limitations
 
-- No real-time events / Socket Mode
 - No channel management (create/archive)
 - No workspace admin operations
 - No scheduled messages
-- No user presence features
 - Plain text messages only (no blocks/formatting in v1)
 
 ## Troubleshooting
