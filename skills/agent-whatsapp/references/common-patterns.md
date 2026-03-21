@@ -42,7 +42,7 @@ echo "Message sent!"
 CHATS=$(agent-whatsapp chat list)
 
 # Find a specific chat by name
-TARGET=$(echo "$CHATS" | jq -r '.[] | select(.name | contains("Alice")) | .jid')
+TARGET=$(echo "$CHATS" | jq -r '.[] | select(.name | contains("Alice")) | .id')
 
 if [ -z "$TARGET" ]; then
   echo "Chat not found"
@@ -66,7 +66,7 @@ agent-whatsapp message send "$TARGET" "Hey Alice!"
 RESULTS=$(agent-whatsapp chat search "Project Team")
 
 # Pick the first match
-TARGET=$(echo "$RESULTS" | jq -r '.[0].jid // empty')
+TARGET=$(echo "$RESULTS" | jq -r '.[0].id // empty')
 
 if [ -z "$TARGET" ]; then
   echo "No matching chats found"

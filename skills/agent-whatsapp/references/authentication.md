@@ -23,21 +23,13 @@ agent-whatsapp auth login --phone +1234567890
 Response:
 
 ```json
-{
-  "next_action": "enter_pairing_code",
-  "pairing_code": "A1B2-C3D4",
-  "message": "Enter this code in WhatsApp on your phone: Linked Devices > Link a Device."
-}
+{"pairing_code":"A1B2-C3D4","message":"Enter this code in WhatsApp > Linked Devices > Link with phone number"}
 ```
 
 After confirmation on your phone:
 
 ```json
-{
-  "authenticated": true,
-  "account_id": "1234567890",
-  "jid": "1234567890@s.whatsapp.net"
-}
+{"authenticated":true,"account_id":"plus-1234567890","phone_number":"+1234567890"}
 ```
 
 ### Login Failures
@@ -57,14 +49,20 @@ agent-whatsapp auth list
 ```json
 [
   {
-    "account_id": "1234567890",
-    "jid": "1234567890@s.whatsapp.net",
-    "current": true
+    "account_id": "plus-1234567890",
+    "phone_number": "+1234567890",
+    "name": "...",
+    "created_at": "...",
+    "updated_at": "...",
+    "is_current": true
   },
   {
-    "account_id": "9876543210",
-    "jid": "9876543210@s.whatsapp.net",
-    "current": false
+    "account_id": "plus-9876543210",
+    "phone_number": "+9876543210",
+    "name": "...",
+    "created_at": "...",
+    "updated_at": "...",
+    "is_current": false
   }
 ]
 ```
@@ -116,11 +114,7 @@ agent-whatsapp auth status
 Output when authenticated:
 
 ```json
-{
-  "authenticated": true,
-  "account_id": "1234567890",
-  "jid": "1234567890@s.whatsapp.net"
-}
+{"account_id":"plus-1234567890","phone_number":"+1234567890","name":"...","created_at":"...","updated_at":"..."}
 ```
 
 Output when not authenticated:

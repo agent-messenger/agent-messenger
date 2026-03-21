@@ -24,12 +24,7 @@ agent-whatsappbot auth set <phone-number-id> <access-token>
 Response on success:
 
 ```json
-{
-  "authenticated": true,
-  "account_id": "112233445566",
-  "phone_number_id": "112233445566",
-  "phone_number": "+1 555 012 3456"
-}
+{"success":true,"phone_number_id":"112233445566","account_name":"..."}
 ```
 
 Response on failure:
@@ -92,7 +87,7 @@ agent-whatsappbot auth use 998877665544
 
 ### Per-Command Account
 
-Any command accepts `--account <id>` to use a specific account without switching:
+Commands that operate on account-scoped data accept `--account <id>` to use a specific account without switching:
 
 ```bash
 agent-whatsappbot message send 15551234567 "Hello" --account 998877665544
@@ -120,9 +115,8 @@ agent-whatsappbot auth remove <account-id>
   "current": { "account_id": "112233445566" },
   "accounts": {
     "112233445566": {
-      "account_id": "112233445566",
       "phone_number_id": "112233445566",
-      "phone_number": "+1 555 012 3456",
+      "account_name": "...",
       "access_token": "..."
     }
   }
