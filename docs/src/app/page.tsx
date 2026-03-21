@@ -388,7 +388,7 @@ export default function Home() {
           <h2 className="mb-12 text-3xl font-bold text-zinc-900 dark:text-white">Supported Platforms</h2>
           <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-5">
             <Link
-              href="/docs/integrations/slack"
+              href="/docs/cli/slack"
               className="flex flex-col items-center rounded-2xl bg-white p-8 shadow-sm ring-1 ring-zinc-200 transition-all hover:shadow-md hover:ring-zinc-300 dark:bg-zinc-900 dark:ring-zinc-800 dark:hover:ring-zinc-700"
             >
               <div className="mb-4">
@@ -398,7 +398,7 @@ export default function Home() {
               <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">Full messaging and thread support</p>
             </Link>
             <Link
-              href="/docs/integrations/discord"
+              href="/docs/cli/discord"
               className="flex flex-col items-center rounded-2xl bg-white p-8 shadow-sm ring-1 ring-zinc-200 transition-all hover:shadow-md hover:ring-zinc-300 dark:bg-zinc-900 dark:ring-zinc-800 dark:hover:ring-zinc-700"
             >
               <div className="mb-4">
@@ -408,7 +408,7 @@ export default function Home() {
               <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">Guilds, channels, and DMs</p>
             </Link>
             <Link
-              href="/docs/integrations/teams"
+              href="/docs/cli/teams"
               className="flex flex-col items-center rounded-2xl bg-white p-8 shadow-sm ring-1 ring-zinc-200 transition-all hover:shadow-md hover:ring-zinc-300 dark:bg-zinc-900 dark:ring-zinc-800 dark:hover:ring-zinc-700"
             >
               <div className="mb-4">
@@ -418,7 +418,7 @@ export default function Home() {
               <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">Microsoft Teams support</p>
             </Link>
             <Link
-              href="/docs/integrations/telegram"
+              href="/docs/cli/telegram"
               className="flex flex-col items-center rounded-2xl bg-white p-8 shadow-sm ring-1 ring-zinc-200 transition-all hover:shadow-md hover:ring-zinc-300 dark:bg-zinc-900 dark:ring-zinc-800 dark:hover:ring-zinc-700"
             >
               <div className="mb-4">
@@ -434,7 +434,7 @@ export default function Home() {
               <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">TDLib-powered messaging</p>
             </Link>
             <Link
-              href="/docs/integrations/channeltalk"
+              href="/docs/cli/channeltalk"
               className="flex flex-col items-center rounded-2xl bg-white p-8 shadow-sm ring-1 ring-zinc-200 transition-all hover:shadow-md hover:ring-zinc-300 dark:bg-zinc-900 dark:ring-zinc-800 dark:hover:ring-zinc-700"
             >
               <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-indigo-500 text-xl font-bold text-white">
