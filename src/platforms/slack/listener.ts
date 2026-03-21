@@ -102,7 +102,8 @@ export class SlackListener {
         }
       })
 
-      ws.on('error', () => {
+      ws.on('error', (err) => {
+        this.emitter.emit('error', err instanceof Error ? err : new Error(String(err)))
         // onclose will fire after onerror, reconnect handled there
       })
     } catch (error) {

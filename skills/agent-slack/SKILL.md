@@ -469,6 +469,7 @@ listener.stop()         // clean shutdown
 | `user_typing` | User is typing |
 | `presence_change` | User went active/away |
 | `channel_created` | New channel created |
+| `channel_deleted` | Channel deleted |
 | `channel_rename` | Channel renamed |
 | `channel_archive` | Channel archived |
 | `channel_unarchive` | Channel unarchived |

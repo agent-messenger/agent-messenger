@@ -248,7 +248,7 @@ await listener.start()  // connects via RTM WebSocket
 | `member_joined_channel` / `member_left_channel` | Member changes |
 | `user_typing` | Typing indicator |
 | `presence_change` | User active/away status |
-| `channel_created` / `channel_rename` / `channel_archive` | Channel lifecycle |
+| `channel_created` / `channel_deleted` / `channel_rename` / `channel_archive` / `channel_unarchive` | Channel lifecycle |
 | `slack_event` | Catch-all for every RTM event |
 | `connected` / `disconnected` | Connection lifecycle |
 | `error` | Connection or API error |
