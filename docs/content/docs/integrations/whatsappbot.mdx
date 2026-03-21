@@ -1,0 +1,169 @@
+---
+title: WhatsApp Bot
+description: WhatsApp Business Cloud API integration for agent-messenger.
+---
+
+> **Tip**: `agent-whatsappbot` is a shortcut for `agent-messenger whatsappbot`.
+
+## Quick Start
+
+```bash
+# 1. Set your API credentials
+agent-whatsappbot auth set your-phone-number-id your-access-token
+
+# 2. Verify authentication
+agent-whatsappbot auth status
+
+# 3. List available message templates
+agent-whatsappbot template list --pretty
+
+# 4. Send a text message (recipient must have messaged you within 24h)
+agent-whatsappbot message send 15551234567 "Hello from the CLI!"
+```
+
+## Key Concepts
+
+WhatsApp Business Cloud API works differently from the user-mode WhatsApp integration:
+
+| Concept              | Description                                                                 |
+| -------------------- | --------------------------------------------------------------------------- |
+| **Send-only**        | Cannot list or read received messages. Inbound messages require webhooks.    |
+| **Template messages** | Required outside the 24-hour customer service window. Must be pre-approved. |
+| **Phone Number ID**  | Your WhatsApp Business phone number's unique identifier (not the number).   |
+| **Access Token**     | Token from Meta Business Manager with `whatsapp_business_messaging` permission. |
+| **Rate limits**      | Tier 0-3: 80 msg/s. Tier 4: 1,000 msg/s. Based on business verification.   |
+
+## Authentication
+
+### API Credential Setup
+
+agent-whatsappbot uses Phone Number ID + Access Token pairs from Meta Business Manager:
+
+```bash
+# Set credentials (validates against WhatsApp Cloud API before saving)
+agent-whatsappbot auth set <phone-number-id> <access-token>
+
+# Check auth status
+agent-whatsappbot auth status
+agent-whatsappbot auth status --account <account-id>
+
+# Clear stored credentials
+agent-whatsappbot auth clear
+```
+
+### How to Get API Credentials
+
+1. Go to [Meta Business Manager](https://business.facebook.com/)
+2. Navigate to your WhatsApp Business Account
+3. Open **WhatsApp Manager > Phone Numbers** to find your **Phone Number ID**
+4. Go to **Business Settings > System Users** to create a system user and generate an **Access Token** with `whatsapp_business_messaging` permission
+5. Run `agent-whatsappbot auth set <phone-number-id> <access-token>`
+
+### Multi-Account Management
+
+```bash
+# List stored accounts
+agent-whatsappbot auth list
+
+# Switch active account
+agent-whatsappbot auth use <account-id>
+
+# Remove a stored account
+agent-whatsappbot auth remove <account-id>
+```
+
+## Commands
+
+### Message Commands
+
+```bash
+# Send a text message
+agent-whatsappbot message send <to> <text>
+agent-whatsappbot message send 15551234567 "Your order has shipped!"
+
+# Send a template message
+agent-whatsappbot message send-template <to> <template-name>
+agent-whatsappbot message send-template 15551234567 order_confirmation \
+  --language en_US \
+  --components '[{"type":"body","parameters":[{"type":"text","text":"Alice"},{"type":"text","text":"ORD-9876"}]}]'
+
+# Send a reaction to a message
+agent-whatsappbot message send-reaction <to> <message-id> <emoji>
+agent-whatsappbot message send-reaction 15551234567 wamid.abc123 "👍"
+
+# Send an image
+agent-whatsappbot message send-image <to> <url>
+agent-whatsappbot message send-image 15551234567 "https://example.com/photo.jpg" --caption "Product photo"
+
+# Send a document
+agent-whatsappbot message send-document <to> <url>
+agent-whatsappbot message send-document 15551234567 "https://example.com/invoice.pdf" \
+  --filename "invoice.pdf" --caption "Your invoice"
+```
+
+### Template Commands
+
+```bash
+# List message templates
+agent-whatsappbot template list
+agent-whatsappbot template list --limit 20
+
+# Get template details
+agent-whatsappbot template get <template-name>
+agent-whatsappbot template get order_confirmation
+```
+
+## Global Options
+
+| Option           | Description                                |
+| ---------------- | ------------------------------------------ |
+| `--pretty`       | Human-readable output instead of JSON      |
+| `--account <id>` | Use a specific account for this command     |
+
+## Storage
+
+Credentials stored in `~/.config/agent-messenger/whatsappbot-credentials.json` (0600 permissions).
+
+## Limitations
+
+- **Cannot list or read received messages** -- WhatsApp Cloud API delivers inbound messages via webhooks only. This CLI is send-only.
+- **Template messages required outside 24h window** -- Free-form text only works within 24 hours of the customer's last message.
+- **Business verification required for higher tiers** -- Unverified businesses are limited in daily messaging volume.
+- **No group chat support** -- WhatsApp Cloud API does not support group messaging.
+- **No real-time events / WebSocket connection** -- Inbound messages require a separate webhook server.
+- **No message editing or deletion**
+- **No file upload from local disk** -- Images and documents must be provided as URLs.
+- **No voice or video calls**
+- **Phone number must be registered with WhatsApp Business** -- Personal WhatsApp numbers won't work.
+
+## Troubleshooting
+
+### `agent-whatsappbot: command not found`
+
+**`agent-whatsappbot` is NOT the npm package name.** The npm package is `agent-messenger`.
+
+```bash
+# If installed globally
+agent-whatsappbot message send 15551234567 "Hello"
+
+# If not installed, use npx
+npx -y agent-messenger whatsappbot message send 15551234567 "Hello"
+```
+
+### Template messages not sending
+
+- Verify the template exists: `agent-whatsappbot template get <name>`
+- Check the template status is `APPROVED` (not `PENDING` or `REJECTED`)
+- Ensure the `--language` matches the template's language code exactly
+- Verify `--components` JSON matches the template's parameter structure
+
+### Rate limiting
+
+WhatsApp enforces rate limits based on your business tier. The CLI automatically retries on rate limit (429) responses. For bulk operations, add delays between requests.
+
+## AI Agent Integration
+
+See [`skills/agent-whatsappbot/`](https://github.com/devxoul/agent-messenger/tree/main/skills/agent-whatsappbot) for:
+
+- Complete skill documentation
+- Common patterns for AI agent workflows

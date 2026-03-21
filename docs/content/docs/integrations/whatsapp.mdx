@@ -1,0 +1,163 @@
+---
+title: WhatsApp
+description: Baileys-based WhatsApp integration for agent-messenger.
+---
+
+> **Tip**: After `npm install -g agent-messenger`, `agent-whatsapp` is available directly. For one-off execution without a global install you can use `npm exec --package agent-messenger agent-whatsapp ...`, `pnpm dlx --package agent-messenger agent-whatsapp ...`, `yarn dlx agent-messenger agent-whatsapp ...`, or `bunx --package agent-messenger agent-whatsapp ...`.
+
+## Requirements
+
+WhatsApp integration uses [Baileys](https://github.com/WhiskeySockets/Baileys), a reverse-engineered WhatsApp Web API:
+
+- Links as a **companion device** via pairing code, so your phone stays connected.
+- Each command opens a WebSocket connection on demand and disconnects when done. No persistent background process.
+- Multiple WhatsApp accounts can be linked simultaneously.
+
+## Quick Start
+
+```bash
+# Link as companion device (enter the pairing code on your phone)
+agent-whatsapp auth login --phone +1234567890
+
+# List chats
+agent-whatsapp chat list
+
+# Send a message
+agent-whatsapp message send +1234567890 "Hello from agent-whatsapp"
+```
+
+## Authentication
+
+### Pairing Code Login
+
+The CLI registers as a companion (linked) device using a numeric pairing code. Your phone session is never affected.
+
+```bash
+# Start login (displays a pairing code)
+agent-whatsapp auth login --phone +1234567890
+```
+
+The CLI outputs a pairing code. Enter it on your phone: WhatsApp > Settings > Linked Devices > Link a Device.
+
+### Account Management
+
+```bash
+# Check current auth state
+agent-whatsapp auth status
+agent-whatsapp auth status --account <id>
+
+# List linked accounts
+agent-whatsapp auth list
+
+# Switch active account
+agent-whatsapp auth use <id>
+
+# Unlink account
+agent-whatsapp auth logout
+agent-whatsapp auth logout --account <id>
+```
+
+## Commands
+
+### Chat Commands
+
+```bash
+# List chats (sorted by most recent activity)
+agent-whatsapp chat list
+agent-whatsapp chat list --limit 50
+agent-whatsapp chat list --account <id>
+
+# Search chats by name or content
+agent-whatsapp chat search "project"
+agent-whatsapp chat search "project" --limit 10
+agent-whatsapp chat search "project" --account <id>
+```
+
+### Message Commands
+
+```bash
+# List messages in a chat
+agent-whatsapp message list <chat> --limit 20
+agent-whatsapp message list +1234567890 --limit 50
+agent-whatsapp message list 123456789-123345@g.us --limit 10
+
+# Send a text message
+agent-whatsapp message send <chat> <text>
+agent-whatsapp message send +1234567890 "Hello!"
+agent-whatsapp message send 123456789-123345@g.us "Hello team!"
+
+# React to a message
+agent-whatsapp message react <chat> <message-id> <emoji>
+agent-whatsapp message react +1234567890 ABC123DEF456 "👍"
+agent-whatsapp message react +1234567890 ABC123DEF456 "👍" --from-me
+```
+
+The `<chat>` argument accepts:
+- Phone number: `+1234567890` (auto-resolved to JID)
+- Individual JID: `1234567890@s.whatsapp.net`
+- Group JID: `123456789-123345@g.us`
+
+The `--from-me` flag on `message react` indicates the target message was sent by you (outgoing). Without it, the reaction targets an incoming message.
+
+## Global Options
+
+| Option           | Description                                |
+| ---------------- | ------------------------------------------ |
+| `--pretty`       | Human-readable output instead of JSON      |
+| `--account <id>` | Use a specific account for this command     |
+
+## Storage
+
+- Credentials stored in `~/.config/agent-messenger/whatsapp-credentials.json`
+- Session data stored in `~/.config/agent-messenger/whatsapp/<account-id>/`
+
+## Limitations
+
+- **Connect-on-demand**: Each command opens a WebSocket connection and closes it when done. No persistent daemon.
+- **Ban risk**: WhatsApp monitors for automated behavior. Avoid high-volume messaging, rapid-fire sends, or bulk operations. Space out commands when sending multiple messages.
+- **No file uploads or downloads**
+- **No voice or video calls**
+- **No status/story support**
+
+## Troubleshooting
+
+### `agent-whatsapp: command not found`
+
+**`agent-whatsapp` is NOT the npm package name.** The npm package is `agent-messenger`.
+
+```bash
+# If installed globally
+agent-whatsapp chat list --pretty
+
+# If not installed, use --package
+npx -y --package agent-messenger agent-whatsapp chat list --pretty
+```
+
+**NEVER run `npx agent-whatsapp`** without `--package agent-messenger`. It will fail or install a wrong package.
+
+### Pairing code not working
+
+1. Make sure WhatsApp is open on your phone
+2. Go to Settings > Linked Devices > Link a Device
+3. Choose "Link with phone number instead" if you see a QR code
+4. Enter the pairing code shown in the terminal
+5. If the code expires, run `auth login --phone <number>` again for a fresh code
+
+### Connection drops
+
+WhatsApp may disconnect linked devices that are inactive for extended periods. If commands start failing:
+
+```bash
+# Check if still linked
+agent-whatsapp auth status
+
+# Re-link if needed
+agent-whatsapp auth login --phone +1234567890
+```
+
+## AI Agent Integration
+
+See [`skills/agent-whatsapp/`](https://github.com/devxoul/agent-messenger/tree/main/skills/agent-whatsapp) for:
+
+- Complete skill documentation
+- Common patterns for AI agent workflows
