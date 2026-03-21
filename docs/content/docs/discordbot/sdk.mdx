@@ -1,0 +1,59 @@
+---
+title: SDK
+description: TypeScript SDK reference for Discord Bot.
+---
+
+## Installation
+
+```bash
+npm install agent-messenger
+```
+
+> **Note**: The Discord Bot SDK is available for internal use but not yet formally exported as a public entry point in `package.json`. The API may change.
+
+## Available Exports
+
+```typescript
+// Internal import path
+import {
+  DiscordBotClient,
+  DiscordBotCredentialManager,
+  DiscordBotError,
+} from 'agent-messenger/src/platforms/discordbot'
+```
+
+### DiscordBotClient
+
+The main client for interacting with Discord's API using bot tokens.
+
+### Types
+
+```typescript
+import type {
+  DiscordBotConfig,
+  DiscordBotCredentials,
+  DiscordBotEntry,
+  DiscordChannel,
+  DiscordFile,
+  DiscordGuild,
+  DiscordMessage,
+  DiscordReaction,
+  DiscordUser,
+} from 'agent-messenger/src/platforms/discordbot'
+```
+
+### Zod Schemas
+
+```typescript
+import {
+  DiscordBotConfigSchema,
+  DiscordBotCredentialsSchema,
+  DiscordBotEntrySchema,
+  DiscordChannelSchema,
+  DiscordFileSchema,
+  DiscordGuildSchema,
+  DiscordMessageSchema,
+  DiscordReactionSchema,
+  DiscordUserSchema,
+} from 'agent-messenger/src/platforms/discordbot'
+```

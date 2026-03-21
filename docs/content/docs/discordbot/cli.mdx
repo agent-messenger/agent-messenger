@@ -1,0 +1,268 @@
+---
+title: CLI
+description: Complete reference for the agent-discordbot CLI.
+---
+
+> **Tip**: `agent-discordbot` uses bot tokens instead of user tokens. Ideal for server-side and CI/CD integrations.
+
+## Quick Start
+
+```bash
+# 1. Set your bot token (from Discord Developer Portal)
+agent-discordbot auth set your-bot-token
+
+# 2. Verify authentication
+agent-discordbot auth status
+
+# 3. Send a message
+agent-discordbot message send general "Hello from bot!"
+```
+
+## Authentication
+
+### Create a Discord Bot
+
+1. Go to [discord.com/developers/applications](https://discord.com/developers/applications) and click **New Application**
+2. Give it a name and click **Create**
+3. Go to **Bot** in the left sidebar
+4. Click **Reset Token** (or **Copy** if the token is still visible)
+5. Copy the token and store it securely
+
+### Invite the Bot to a Server
+
+Use this URL format, replacing `YOUR_CLIENT_ID` with your application's client ID (found on the General Information page):
+
+```
+https://discord.com/api/oauth2/authorize?client_id=YOUR_CLIENT_ID&permissions=274877975552&scope=bot
+```
+
+Or generate a URL manually:
+
+1. Go to **OAuth2** > **URL Generator** in the left sidebar
+2. Under **Scopes**, select `bot`
+3. Under **Bot Permissions**, select the permissions your bot needs
+4. Copy the generated URL and open it in your browser
+5. Select the server and authorize
+
+### Message Content Privileged Intent
+
+For servers (guilds) with 100 or more members, the Message Content intent must be enabled:
+
+1. Go to [discord.com/developers/applications](https://discord.com/developers/applications)
+2. Select your application
+3. Go to **Bot** in the left sidebar
+4. Under **Privileged Gateway Intents**, enable **Message Content Intent**
+5. Save changes
+
+Without this, the bot won't receive message content in large servers.
+
+### Authentication Commands
+
+```bash
+# Set bot token (validates against Discord API before saving)
+agent-discordbot auth set <token>
+
+# Set with a custom bot identifier for multi-bot setups
+agent-discordbot auth set <token> --bot deploy --name "Deploy Bot"
+
+# Check bot auth status
+agent-discordbot auth status
+
+# Clear all stored credentials
+agent-discordbot auth clear
+
+# List stored bots
+agent-discordbot auth list
+
+# Switch active bot
+agent-discordbot auth use <bot-id>
+
+# Remove a stored bot
+agent-discordbot auth remove <bot-id>
+```
+
+### Multi-Bot Support
+
+Store multiple bot tokens and switch between them:
+
+```bash
+# Add multiple bots
+agent-discordbot auth set deploy-bot-token --bot deploy --name "Deploy Bot"
+agent-discordbot auth set alert-bot-token --bot alert --name "Alert Bot"
+
+# List all stored bots
+agent-discordbot auth list
+
+# Switch active bot
+agent-discordbot auth use deploy
+
+# Use a specific bot for one command (without switching)
+agent-discordbot message send general "Alert!" --bot alert
+
+# Remove a stored bot
+agent-discordbot auth remove deploy
+```
+
+### Permissions Reference
+
+| Permission           | Used For                            |
+| -------------------- | ----------------------------------- |
+| Send Messages        | Sending messages to channels        |
+| Read Message History | Reading past messages in channels   |
+| View Channels        | Listing and accessing channels      |
+| Add Reactions        | Adding and removing emoji reactions |
+| Attach Files         | Uploading files to channels         |
+| Manage Threads       | Creating and archiving threads      |
+
+### Environment Variables (CI/CD)
+
+```bash
+export E2E_DISCORDBOT_TOKEN=your-bot-token
+export E2E_DISCORDBOT_SERVER_ID=1234567890123456789
+export E2E_DISCORDBOT_SERVER_NAME="My Server"
+```
+
+## Commands
+
+### Server Commands
+
+```bash
+# List servers the bot is in
+agent-discordbot server list
+
+# Show current server
+agent-discordbot server current
+
+# Switch active server
+agent-discordbot server switch <server-id>
+
+# Get server info
+agent-discordbot server info <server-id>
+```
+
+### Message Commands
+
+```bash
+# Send a message
+agent-discordbot message send <channel> <text>
+agent-discordbot message send general "Hello world"
+
+# List messages
+agent-discordbot message list <channel>
+agent-discordbot message list general --limit 50
+
+# Get a single message by ID
+agent-discordbot message get <channel> <message-id>
+
+# Get thread replies
+agent-discordbot message replies <channel> <thread-id>
+agent-discordbot message replies general 9876543210987654321 --limit 50
+
+# Update a message (bot's own messages only)
+agent-discordbot message update <channel> <message-id> <text>
+
+# Delete a message (bot's own messages only)
+agent-discordbot message delete <channel> <message-id> --force
+```
+
+### Channel Commands
+
+```bash
+# List channels in current server
+agent-discordbot channel list
+
+# Get channel info
+agent-discordbot channel info <channel>
+agent-discordbot channel info general
+```
+
+### User Commands
+
+```bash
+# List server members
+agent-discordbot user list
+agent-discordbot user list --limit 50
+
+# Get user info
+agent-discordbot user info <user-id>
+```
+
+### Reaction Commands
+
+```bash
+# Add reaction (use emoji name without colons)
+agent-discordbot reaction add <channel> <message-id> <emoji>
+agent-discordbot reaction add general 9876543210987654321 thumbsup
+
+# Remove reaction
+agent-discordbot reaction remove <channel> <message-id> <emoji>
+```
+
+### File Commands
+
+```bash
+# Upload file to a channel
+agent-discordbot file upload <channel> <file-path>
+agent-discordbot file upload general ./report.pdf
+
+# List files in channel
+agent-discordbot file list <channel>
+```
+
+### Thread Commands
+
+```bash
+# Create a thread from a message
+agent-discordbot thread create <channel> <name>
+agent-discordbot thread create general "Discussion" --auto-archive-duration 1440
+
+# Archive a thread
+agent-discordbot thread archive <thread-id>
+```
+
+### Snapshot Command
+
+Get comprehensive server state for AI agents:
+
+```bash
+# Full snapshot of current server
+agent-discordbot snapshot
+
+# Filtered snapshots
+agent-discordbot snapshot --channels-only
+agent-discordbot snapshot --users-only
+
+# Limit messages per channel
+agent-discordbot snapshot --limit 10
+```
+
+## Key Differences from agent-discord
+
+| Feature                     | agent-discord                   | agent-discordbot             |
+| --------------------------- | ------------------------------- | ---------------------------- |
+| Token type                  | User token                      | Bot token                    |
+| Token source                | Auto-extracted from desktop app | Manual from Developer Portal |
+| Message search              | Yes                             | No                           |
+| DM commands                 | Yes                             | No                           |
+| Mention/Friend/Note/Profile | Yes                             | No                           |
+| Thread management           | Yes                             | Yes                          |
+| Multi-bot support           | N/A                             | Yes (`--bot` flag)           |
+| CI/CD friendly              | Requires desktop app            | Yes                          |
+
+## Global Options
+
+All commands support these options:
+
+| Option          | Description                            |
+| --------------- | -------------------------------------- |
+| `--pretty`      | Human-readable output instead of JSON  |
+| `--bot <id>`    | Use a specific bot for this command    |
+| `--server <id>` | Use a specific server for this command |
+
+## AI Agent Integration
+
+See [`skills/agent-discordbot/`](https://github.com/devxoul/agent-messenger/tree/main/skills/agent-discordbot) for:
+
+- Complete skill documentation
+- Runnable templates
+- Common patterns for AI agents
