@@ -62,7 +62,7 @@ agent-whatsapp message send "$TARGET" "Hey Alice!"
 ```bash
 #!/bin/bash
 
-# Search by name or content
+# Search by name
 RESULTS=$(agent-whatsapp chat search "Project Team")
 
 # Pick the first match
@@ -252,7 +252,7 @@ send_with_retry "+1234567890" "Important message!"
 ```bash
 # Good: discover once, reuse
 CHATS=$(agent-whatsapp chat list)
-WORK_CHAT=$(echo "$CHATS" | jq -r '.[] | select(.name | contains("Work")) | .jid')
+WORK_CHAT=$(echo "$CHATS" | jq -r '.[] | select(.name | contains("Work")) | .id')
 agent-whatsapp message send "$WORK_CHAT" "Hello"
 agent-whatsapp message send "$WORK_CHAT" "Another message"
 
