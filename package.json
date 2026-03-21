@@ -16,6 +16,8 @@
     "agent-slack": "./src/platforms/slack/cli.ts",
     "agent-slackbot": "./src/platforms/slackbot/cli.ts",
     "agent-channeltalkbot": "./src/platforms/channeltalkbot/cli.ts",
+    "agent-whatsappbot": "./src/platforms/whatsappbot/cli.ts",
+    "agent-whatsapp": "./src/platforms/whatsapp/cli.ts",
     "agent-teams": "./src/platforms/teams/cli.ts",
     "amsg": "./src/cli.ts"
   },
@@ -52,11 +54,14 @@
     "postpublish": "git checkout package.json"
   },
   "dependencies": {
+    "@hapi/boom": "^10.0.1",
     "@slack/web-api": "^6.9.0",
+    "@whiskeysockets/baileys": "^7.0.0-rc.9",
     "better-sqlite3": "^12.0.0",
     "bson": "^7.2.0",
     "classic-level": "^1.3.0",
     "commander": "^11.1.0",
+    "pino": "^10.3.1",
     "ws": "^8.19.0",
     "zod": "^3.22.4"
   },
@@ -67,6 +72,7 @@
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.8",
     "@types/bun": "latest",
+    "@types/hapi__boom": "^9.0.1",
     "@types/node": "^20.10.6",
     "@types/ws": "^8.18.1",
     "oxfmt": "^0.36.0",
@@ -74,5 +80,9 @@
     "tsc-alias": "^1.8.16",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3"
-  }
+  },
+  "trustedDependencies": [
+    "@whiskeysockets/baileys",
+    "protobufjs"
+  ]
 }
