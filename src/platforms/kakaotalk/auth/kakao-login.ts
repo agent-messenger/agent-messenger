@@ -1,0 +1,277 @@
+import { createHash, randomBytes } from 'node:crypto'
+
+import type { KakaoDeviceType, KakaoLoginResult } from '../types'
+
+// Android sub-device agent identity. Using Android (tablet) avoids conflicting
+// with the macOS desktop app's PC slot. See protocol/NOTICE.md for attribution.
+const ANDROID_APP_VERSION = '25.9.2'
+const ANDROID_OS_VERSION = '13'
+const ANDROID_API_LEVEL = '33'
+const ANDROID_AGENT = `android/${ANDROID_APP_VERSION}/ko`
+const ANDROID_USER_AGENT = `KT/${ANDROID_APP_VERSION} An/${ANDROID_OS_VERSION} ko`
+const ANDROID_LOGIN_URL = 'https://katalk.kakao.com/android/account/login.json'
+const ANDROID_PASSCODE_URL = 'https://katalk.kakao.com/android/account/passcodeLogin/generate'
+const ANDROID_REGISTER_URL = 'https://katalk.kakao.com/android/account/passcodeLogin/registerDevice'
+
+const DEVICE_NAME = 'SM-T870'
+
+function generateDeviceUuid(): string {
+  return randomBytes(32).toString('hex')
+}
+
+// X-VC for Android: SHA512("BARD|{userAgent}|DANTE|{email}|SIAN")[:16]
+function computeXVC(email: string): string {
+  const input = `BARD|${ANDROID_USER_AGENT}|DANTE|${email}|SIAN`
+  return createHash('sha512').update(input).digest('hex').substring(0, 16)
+}
+
+function buildHeaders(email: string): Record<string, string> {
+  return {
+    'Content-Type': 'application/x-www-form-urlencoded',
+    'A': ANDROID_AGENT,
+    'User-Agent': ANDROID_USER_AGENT,
+    'Accept-Language': 'ko',
+    'X-VC': computeXVC(email),
+  }
+}
+
+interface LoginResponse {
+  status: number
+  access_token?: string
+  refresh_token?: string
+  userId?: number
+  mainDeviceAgentName?: string
+  [key: string]: unknown
+}
+
+export interface LoginCredentials {
+  access_token: string
+  refresh_token: string
+  user_id: string
+  device_uuid: string
+  device_type: KakaoDeviceType
+}
+
+const STATUS_OK = 0
+const STATUS_DEVICE_NOT_REGISTERED = -100
+
+export async function attemptLogin(
+  email: string,
+  password: string,
+  deviceUuid: string,
+  deviceType: KakaoDeviceType,
+  forced: boolean,
+): Promise<KakaoLoginResult & { credentials?: LoginCredentials }> {
+  const body = new URLSearchParams({
+    password,
+    device_name: DEVICE_NAME,
+    model_name: DEVICE_NAME,
+    forced: forced ? 'true' : 'false',
+    permanent: 'true',
+    email,
+    device_uuid: deviceUuid,
+  })
+
+  const response = await fetch(ANDROID_LOGIN_URL, {
+    method: 'POST',
+    headers: buildHeaders(email),
+    body: body.toString(),
+  })
+
+  if (!response.ok) {
+    return { authenticated: false, error: 'login_http_error', message: `HTTP ${response.status} from login endpoint` }
+  }
+
+  const data = (await response.json()) as LoginResponse
+
+  if (data.status === STATUS_OK && data.access_token) {
+    return {
+      authenticated: true,
+      account_id: String(data.userId ?? ''),
+      user_id: String(data.userId ?? ''),
+      device_type: deviceType,
+      credentials: {
+        access_token: data.access_token,
+        refresh_token: data.refresh_token ?? '',
+        user_id: String(data.userId ?? ''),
+        device_uuid: deviceUuid,
+        device_type: deviceType,
+      },
+    }
+  }
+
+  if (data.status === STATUS_DEVICE_NOT_REGISTERED) {
+    return {
+      authenticated: false,
+      next_action: 'provide_passcode',
+      message: 'Device not registered. SMS passcode sent to your phone.',
+    }
+  }
+
+  return {
+    authenticated: false,
+    error: `login_failed`,
+    message: `Login failed with status ${data.status}`,
+  }
+}
+
+// loco-wrapper passcodeLogin/generate: JSON body with nested device object
+export async function requestPasscode(email: string, password: string, deviceUuid: string): Promise<KakaoLoginResult> {
+  const headers = buildHeaders(email)
+  headers['Content-Type'] = 'application/json; charset=utf-8'
+
+  const response = await fetch(ANDROID_PASSCODE_URL, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({
+      email,
+      password,
+      permanent: true,
+      device: {
+        name: DEVICE_NAME,
+        uuid: deviceUuid,
+        model: DEVICE_NAME,
+        osVersion: ANDROID_API_LEVEL,
+      },
+    }),
+  })
+
+  if (!response.ok) {
+    return { authenticated: false, error: 'passcode_request_failed', message: `HTTP ${response.status} from passcode endpoint` }
+  }
+
+  const data = (await response.json()) as { status?: number; passcode?: string; remainingSeconds?: number }
+
+  if (data.passcode) {
+    return {
+      authenticated: false,
+      next_action: 'confirm_on_phone',
+      message: `Enter this code on your phone when prompted: ${data.passcode}`,
+      passcode: data.passcode,
+      remaining_seconds: data.remainingSeconds,
+    }
+  }
+
+  return {
+    authenticated: false,
+    error: 'passcode_request_failed',
+    message: `Passcode request failed with status ${data.status ?? 'unknown'}`,
+  }
+}
+
+// loco-wrapper passcodeLogin/registerDevice: JSON body, polls until status=0
+export async function registerDevice(
+  email: string,
+  password: string,
+  _passcode: string,
+  deviceUuid: string,
+): Promise<KakaoLoginResult> {
+  const headers = buildHeaders(email)
+  headers['Content-Type'] = 'application/json; charset=utf-8'
+
+  const body = JSON.stringify({
+    email,
+    password,
+    device: { uuid: deviceUuid },
+  })
+
+  const maxAttempts = 10
+  for (let i = 0; i < maxAttempts; i++) {
+    const response = await fetch(ANDROID_REGISTER_URL, {
+      method: 'POST',
+      headers,
+      body,
+    })
+
+    if (!response.ok) {
+      return { authenticated: false, error: 'registration_failed', message: `HTTP ${response.status} from register endpoint` }
+    }
+
+    const data = (await response.json()) as {
+      status: number
+      remainingSeconds?: number
+      nextRequestIntervalInSeconds?: number
+    }
+
+    if (data.status === STATUS_OK) {
+      return { authenticated: false, message: 'Device registered.' }
+    }
+
+    if (data.status !== STATUS_DEVICE_NOT_REGISTERED || !data.nextRequestIntervalInSeconds) {
+      return {
+        authenticated: false,
+        error: 'registration_failed',
+        message: `Device registration failed with status ${data.status}`,
+      }
+    }
+
+    const waitMs = data.nextRequestIntervalInSeconds * 1000
+    await new Promise((r) => setTimeout(r, waitMs))
+  }
+
+  return {
+    authenticated: false,
+    error: 'registration_timeout',
+    message: 'Device registration timed out. Passcode may have expired.',
+  }
+}
+
+export async function loginFlow(options: {
+  email: string
+  password: string
+  deviceType?: KakaoDeviceType
+  force?: boolean
+  savedDeviceUuid?: string
+  onPasscodeDisplay?: (code: string) => void
+}): Promise<KakaoLoginResult & { credentials?: LoginCredentials }> {
+  const deviceType = options.deviceType ?? 'tablet'
+  const deviceUuid = options.savedDeviceUuid ?? generateDeviceUuid()
+  const forced = options.force ?? false
+
+  // Step 1: Try login (forced:false for tablet-first safe attempt)
+  const loginResult = await attemptLogin(options.email, options.password, deviceUuid, deviceType, forced)
+
+  if (loginResult.authenticated) {
+    return loginResult
+  }
+
+  if (loginResult.next_action === 'provide_passcode') {
+    // Step 2: Request passcode — API returns a code to display on screen
+    const passcodeResult = await requestPasscode(options.email, options.password, deviceUuid)
+
+    if (passcodeResult.error) {
+      return {
+        ...passcodeResult,
+        credentials: { access_token: '', refresh_token: '', user_id: '', device_uuid: deviceUuid, device_type: deviceType },
+      }
+    }
+
+    // Show the code and notify the caller (interactive or non-interactive)
+    if (options.onPasscodeDisplay && passcodeResult.passcode) {
+      options.onPasscodeDisplay(passcodeResult.passcode)
+    }
+
+    // Step 3: Poll registerDevice — waits for user to confirm on their phone
+    const regResult = await registerDevice(options.email, options.password, '', deviceUuid)
+    if (regResult.error) {
+      return regResult
+    }
+
+    // Step 4: Login again after registration
+    return attemptLogin(options.email, options.password, deviceUuid, deviceType, forced)
+  }
+
+  // Slot occupied — need user to choose device type or force
+  if (!forced && loginResult.error === 'login_failed') {
+    return {
+      authenticated: false,
+      next_action: 'choose_device',
+      message: `${deviceType} slot may be occupied. Use --device-type with --force to replace, or try a different slot.`,
+      warning: `Using --force will kick the existing ${deviceType} session.`,
+    }
+  }
+
+  return loginResult
+}
+
+export { generateDeviceUuid }

@@ -7,6 +7,7 @@
     "url": "https://github.com/devxoul/agent-messenger"
   },
   "bin": {
+    "agent-kakaotalk": "./src/platforms/kakaotalk/cli.ts",
     "agent-channeltalk": "./src/platforms/channeltalk/cli.ts",
     "agent-telegram": "./src/platforms/telegram/cli.ts",
     "agent-discord": "./src/platforms/discord/cli.ts",
@@ -37,6 +38,7 @@
   "dependencies": {
     "@slack/web-api": "^6.9.0",
     "better-sqlite3": "^12.0.0",
+    "bson": "^7.2.0",
     "classic-level": "^1.3.0",
     "commander": "^11.1.0",
     "zod": "^3.22.4"
