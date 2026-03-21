@@ -50,7 +50,7 @@ agent-channeltalk chat list
 
 Credentials are extracted automatically from the Channel Talk desktop app on first use. No manual setup required, no API keys needed. Just run any command and authentication happens silently in the background.
 
-The Channel Talk desktop app (Mac App Store or Electron) stores auth cookies in a plaintext SQLite database. Unlike Slack or Discord, no Keychain prompt is needed. The CLI reads two cookies:
+The Channel Talk desktop app stores auth cookies in a SQLite database. On macOS, cookies are plaintext and no Keychain prompt is needed. On Windows, cookies are DPAPI-encrypted and decrypted automatically. The CLI reads two cookies:
 
 - `x-account` (JWT) - your account identity
 - `ch-session-1` (JWT) - your session token
@@ -379,7 +379,7 @@ Use **agent-channeltalk** when you want zero-config access acting as yourself. U
 
 ## Limitations
 
-- macOS only (Channel Talk desktop app required)
+- macOS and Windows only (Channel Talk desktop app required)
 - No real-time events / WebSocket connection
 - No file upload support
 - No message editing or deletion
@@ -415,10 +415,14 @@ npx -y agent-messenger channeltalk snapshot --pretty
 
 The CLI looks for the Channel Talk desktop app's cookie database in these locations:
 
+**macOS:**
 1. `~/Library/Containers/com.zoyi.channel.desk.osx/Data/Library/Application Support/Channel Talk/Cookies` (Mac App Store version)
 2. `~/Library/Application Support/Channel Talk/Cookies` (direct download / Electron version)
 
-If neither exists, install the Channel Talk desktop app and log in.
+**Windows:**
+1. `%APPDATA%\Channel Talk\Network\Cookies`
+
+If none exist, install the Channel Talk desktop app and log in.
 
 ### Cookies expired
 

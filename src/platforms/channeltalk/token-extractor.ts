@@ -1,8 +1,12 @@
-import { copyFileSync, existsSync, unlinkSync } from 'node:fs'
+import { createDecipheriv } from 'node:crypto'
+import { copyFileSync, existsSync, readFileSync, unlinkSync } from 'node:fs'
+import { execSync } from 'node:child_process'
 import { homedir, tmpdir } from 'node:os'
 import { join } from 'node:path'
 
 import type { ExtractedChannelToken } from './types'
+
+type CookieRow = { name: string; value: string; encrypted_value: Uint8Array | Buffer }
 
 export class ChannelTokenExtractor {
   private platform: NodeJS.Platform
@@ -11,28 +15,56 @@ export class ChannelTokenExtractor {
     this.platform = platform ?? process.platform
   }
 
+  getAppDataDir(): string | null {
+    switch (this.platform) {
+      case 'darwin': {
+        const sandboxedPath = join(
+          homedir(),
+          'Library',
+          'Containers',
+          'com.zoyi.channel.desk.osx',
+          'Data',
+          'Library',
+          'Application Support',
+          'Channel Talk',
+        )
+        if (existsSync(sandboxedPath)) {
+          return sandboxedPath
+        }
+        const directPath = join(homedir(), 'Library', 'Application Support', 'Channel Talk')
+        return existsSync(directPath) ? directPath : null
+      }
+      case 'win32': {
+        const appdata = process.env.APPDATA || join(homedir(), 'AppData', 'Roaming')
+        const appDir = join(appdata, 'Channel Talk')
+        return existsSync(appDir) ? appDir : null
+      }
+      default:
+        return null
+    }
+  }
+
   getCookiesPath(): string | null {
-    if (this.platform !== 'darwin') {
-      return null
-    }
+    const appDir = this.getAppDataDir()
+    if (!appDir) return null
 
-    const sandboxedPath = join(
-      homedir(),
-      'Library',
-      'Containers',
-      'com.zoyi.channel.desk.osx',
-      'Data',
-      'Library',
-      'Application Support',
-      'Channel Talk',
-      'Cookies',
-    )
-    if (existsSync(sandboxedPath)) {
-      return sandboxedPath
+    switch (this.platform) {
+      case 'darwin':
+        return existsSync(join(appDir, 'Cookies')) ? join(appDir, 'Cookies') : null
+      case 'win32': {
+        const networkPath = join(appDir, 'Network', 'Cookies')
+        return existsSync(networkPath) ? networkPath : null
+      }
+      default:
+        return null
     }
+  }
 
-    const directPath = join(homedir(), 'Library', 'Application Support', 'Channel Talk', 'Cookies')
-    return existsSync(directPath) ? directPath : null
+  private getLocalStatePath(): string | null {
+    const appDir = this.getAppDataDir()
+    if (!appDir) return null
+    const localStatePath = join(appDir, 'Local State')
+    return existsSync(localStatePath) ? localStatePath : null
   }
 
   async extract(): Promise<ExtractedChannelToken | null> {
@@ -46,11 +78,10 @@ export class ChannelTokenExtractor {
     try {
       copyFileSync(cookiesPath, tempPath)
       const sql = `
-        SELECT name, value FROM cookies
+        SELECT name, value, encrypted_value FROM cookies
         WHERE name IN ('x-account', 'ch-session-1', 'ch-session')
         AND host_key LIKE '%.channel.io%'
       `
-      type CookieRow = { name: string; value: string }
       const rows: CookieRow[] = typeof globalThis.Bun !== 'undefined'
         ? await (async () => {
             const { Database } = await import('bun:sqlite')
@@ -69,14 +100,13 @@ export class ChannelTokenExtractor {
             return result
           })()
 
-      const accountCookie = rows.find((row) => row.name === 'x-account')?.value
+      const accountCookie = this.getCookieValue(rows, 'x-account')
       const sessionCookie =
-        rows.find((row) => row.name === 'ch-session-1')?.value ??
-        rows.find((row) => row.name === 'ch-session')?.value
+        this.getCookieValue(rows, 'ch-session-1') ??
+        this.getCookieValue(rows, 'ch-session')
 
       return accountCookie ? { accountCookie, sessionCookie } : null
     } catch {
-      /* extraction failed (e.g. SQLite error); return null */
       return null
     } finally {
       try {
@@ -86,6 +116,97 @@ export class ChannelTokenExtractor {
       } catch {
         /* temp file cleanup failure is non-critical */
       }
+    }
+  }
+
+  private getCookieValue(rows: CookieRow[], name: string): string | undefined {
+    const row = rows.find((r) => r.name === name)
+    if (!row) return undefined
+
+    if (row.value && row.value.length > 0) {
+      return row.value
+    }
+
+    const encrypted = Buffer.from(row.encrypted_value)
+    if (encrypted.length === 0) return undefined
+
+    return this.decryptCookie(encrypted) ?? undefined
+  }
+
+  private decryptCookie(encryptedValue: Buffer): string | null {
+    if (!this.isEncryptedValue(encryptedValue)) {
+      return encryptedValue.toString('utf8')
+    }
+
+    if (this.platform === 'win32') {
+      return this.decryptWindowsCookie(encryptedValue)
+    }
+
+    return null
+  }
+
+  private isEncryptedValue(value: Buffer): boolean {
+    if (!value || value.length < 4) return false
+    const prefix = value.subarray(0, 3).toString('utf8')
+    return prefix === 'v10' || prefix === 'v11'
+  }
+
+  private decryptWindowsCookie(encryptedData: Buffer): string | null {
+    try {
+      const localStatePath = this.getLocalStatePath()
+      if (!localStatePath) return null
+
+      const localState = JSON.parse(readFileSync(localStatePath, 'utf8'))
+      const encryptedKey = Buffer.from(localState.os_crypt.encrypted_key, 'base64')
+
+      // Remove "DPAPI" prefix (5 bytes)
+      const dpapiBlobKey = encryptedKey.subarray(5)
+      const masterKey = this.decryptDPAPI(dpapiBlobKey)
+      if (!masterKey) return null
+
+      return this.decryptAESGCM(encryptedData, masterKey)
+    } catch {
+      return null
+    }
+  }
+
+  decryptDPAPI(encryptedBlob: Buffer): Buffer | null {
+    if (this.platform !== 'win32') return null
+    try {
+      const b64 = encryptedBlob.toString('base64')
+      const psScript = [
+        'Add-Type -AssemblyName System.Security',
+        `$bytes = [Convert]::FromBase64String('${b64}')`,
+        '$decrypted = [Security.Cryptography.ProtectedData]::Unprotect($bytes, $null, [Security.Cryptography.DataProtectionScope]::CurrentUser)',
+        '[Convert]::ToBase64String($decrypted)',
+      ].join('; ')
+
+      const result = execSync(`powershell -NoProfile -NonInteractive -Command "${psScript}"`, {
+        encoding: 'utf8',
+        timeout: 10000,
+      })
+      return Buffer.from(result.trim(), 'base64')
+    } catch {
+      return null
+    }
+  }
+
+  private decryptAESGCM(encryptedData: Buffer, key: Buffer): string | null {
+    try {
+      // Format: v10 (3 bytes) + IV (12 bytes) + ciphertext + auth tag (16 bytes)
+      if (encryptedData.length < 3 + 12 + 16) return null
+
+      const iv = encryptedData.subarray(3, 15)
+      const authTag = encryptedData.subarray(-16)
+      const ciphertext = encryptedData.subarray(15, -16)
+
+      const decipher = createDecipheriv('aes-256-gcm', key, iv)
+      decipher.setAuthTag(authTag)
+
+      const decrypted = Buffer.concat([decipher.update(ciphertext), decipher.final()])
+      return decrypted.toString('utf8')
+    } catch {
+      return null
     }
   }
 }
