@@ -176,10 +176,6 @@ agent-whatsappbot auth clear
 agent-whatsappbot message send <to> <text>
 agent-whatsappbot message send 15551234567 "Your order has shipped!"
 
-# Send a text message with URL preview
-agent-whatsappbot message send <to> <text> --preview-url
-agent-whatsappbot message send 15551234567 "Check out https://example.com" --preview-url
-
 # Send a template message
 agent-whatsappbot message send-template <to> <template-name>
 agent-whatsappbot message send-template 15551234567 order_confirmation --language en_US --components '[{"type":"body","parameters":[{"type":"text","text":"Alice"},{"type":"text","text":"ORD-9876"}]}]'

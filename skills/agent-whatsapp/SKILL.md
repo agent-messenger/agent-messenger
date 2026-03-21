@@ -26,7 +26,7 @@ Use one of these entrypoints:
 
 Before diving in, a few things about WhatsApp's architecture:
 
-- **JID** (Jabber ID) = WhatsApp's address format. Individual: `+1234567890@s.whatsapp.net`. Group: `123456789-123345@g.us`. You can pass plain phone numbers and the CLI resolves them to JIDs automatically.
+- **JID** (Jabber ID) = WhatsApp's address format. Individual: `1234567890@s.whatsapp.net`. Group: `123456789-123345@g.us`. You can pass plain phone numbers and the CLI resolves them to JIDs automatically.
 - **Pairing code auth** = links the CLI as a companion device using a numeric code displayed in your terminal. Enter it in WhatsApp on your phone under Linked Devices.
 - **Connect-on-demand** = the CLI opens a WebSocket connection for each command and disconnects afterward. There's no persistent background process.
 - **Multi-account** = multiple WhatsApp accounts can be linked. Use `auth list` and `auth use` to switch between them.
@@ -193,10 +193,12 @@ agent-whatsapp auth logout --account <id>
 # List chats (sorted by most recent activity)
 agent-whatsapp chat list
 agent-whatsapp chat list --limit 50
+agent-whatsapp chat list --account <id>
 
 # Search chats by name or content
 agent-whatsapp chat search "project"
 agent-whatsapp chat search "project" --limit 10
+agent-whatsapp chat search "project" --account <id>
 ```
 
 Output includes:
@@ -212,21 +214,27 @@ Output includes:
 agent-whatsapp message list <chat> --limit 20
 agent-whatsapp message list +1234567890 --limit 50
 agent-whatsapp message list 123456789-123345@g.us --limit 10
+agent-whatsapp message list +1234567890 --limit 20 --account <id>
 
 # Send a text message
 agent-whatsapp message send <chat> <text>
 agent-whatsapp message send +1234567890 "Hello!"
 agent-whatsapp message send 123456789-123345@g.us "Hello team!"
+agent-whatsapp message send +1234567890 "Hello!" --account <id>
 
 # React to a message
 agent-whatsapp message react <chat> <message-id> <emoji>
 agent-whatsapp message react +1234567890 ABC123DEF456 "👍"
+agent-whatsapp message react +1234567890 ABC123DEF456 "👍" --from-me
+agent-whatsapp message react +1234567890 ABC123DEF456 "👍" --account <id>
 ```
 
 The `<chat>` argument accepts:
 - Phone number: `+1234567890` (auto-resolved to JID)
 - Individual JID: `1234567890@s.whatsapp.net`
 - Group JID: `123456789-123345@g.us`
+
+The `--from-me` flag on `message react` indicates the target message was sent by you (outgoing). Without it, the reaction targets an incoming message.
 
 ## Output Format
 
@@ -255,6 +263,13 @@ Use `--pretty` flag for formatted output:
 ```bash
 agent-whatsapp chat list --pretty
 ```
+
+## Global Options
+
+| Option          | Description                                |
+| --------------- | ------------------------------------------ |
+| `--pretty`      | Human-readable output instead of JSON      |
+| `--account <id>`| Use a specific account for this command     |
 
 ## Common Patterns
 
@@ -317,7 +332,7 @@ Common errors:
 
 ## Notes
 
-- **JID format**: Individual chats use `+1234567890@s.whatsapp.net`, groups use `123456789-123345@g.us`. Phone numbers can be passed directly and are auto-resolved.
+- **JID format**: Individual chats use `1234567890@s.whatsapp.net`, groups use `123456789-123345@g.us`. Phone numbers can be passed directly and are auto-resolved.
 - **Connect-on-demand**: Each command opens a WebSocket connection and closes it when done. There's no persistent daemon or background process.
 - **Ban risk**: WhatsApp monitors for automated behavior. Avoid high-volume messaging, rapid-fire sends, or bulk operations. Space out commands when sending multiple messages.
 - **Multi-account**: Multiple WhatsApp numbers can be linked simultaneously. Use `auth list` to see all accounts and `auth use <id>` to switch.
