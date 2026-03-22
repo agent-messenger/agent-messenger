@@ -20,12 +20,291 @@ import {
 
 ## SlackClient
 
-The main client for interacting with Slack's API programmatically.
+The main client for interacting with Slack's API programmatically. All methods include automatic rate-limit retry with exponential backoff.
 
 ```typescript
 import { SlackClient } from 'agent-messenger/slack'
 
 const client = new SlackClient(token, cookie)
+```
+
+### Authentication
+
+```typescript
+// Verify credentials and get identity
+const auth = await client.testAuth()
+// → { user_id: string, team_id: string, user?: string, team?: string }
+```
+
+### Messages
+
+```typescript
+// Send a message
+const msg = await client.sendMessage(channel, 'Hello world')
+// → SlackMessage { ts, text, type, user, thread_ts }
+
+// Send a threaded reply
+const reply = await client.sendMessage(channel, 'Reply', threadTs)
+
+// Get messages from a channel
+const messages = await client.getMessages(channel, 20)
+const messages = await client.getMessages(channel, { limit: 50, oldest: '1700000000.000000' })
+// → SlackMessage[]
+
+// Get a single message by timestamp
+const message = await client.getMessage(channel, ts)
+// → SlackMessage | null
+
+// Get thread replies with pagination
+const thread = await client.getThreadReplies(channel, threadTs, { limit: 50 })
+// → { messages: SlackMessage[], has_more: boolean, next_cursor?: string }
+
+// Update a message
+const updated = await client.updateMessage(channel, ts, 'New text')
+
+// Delete a message
+await client.deleteMessage(channel, ts)
+
+// Post an ephemeral message (visible to one user only)
+const ephemeralTs = await client.postEphemeral(channel, userId, 'Only you see this')
+
+// Get a permalink to a message
+const url = await client.getPermalink(channel, ts)
+
+// Search messages across workspace
+const results = await client.searchMessages('keyword', {
+  sort: 'timestamp',   // 'score' | 'timestamp'
+  sortDir: 'desc',     // 'asc' | 'desc'
+  count: 20,
+})
+// → SlackSearchResult[]
+```
+
+### Scheduled Messages
+
+```typescript
+// Schedule a message (postAt is a Unix timestamp)
+const scheduled = await client.scheduleMessage(channel, 'Future message', 1700000000)
+const scheduled = await client.scheduleMessage(channel, 'Thread reply', 1700000000, threadTs)
+// → SlackScheduledMessage { id, channel_id, post_at, date_created, text }
+
+// List scheduled messages
+const list = await client.listScheduledMessages()
+const list = await client.listScheduledMessages(channel) // filter by channel
+// → SlackScheduledMessage[]
+
+// Cancel a scheduled message
+await client.deleteScheduledMessage(channel, scheduledMessageId)
+```
+
+### Channels
+
+```typescript
+// List all channels (auto-paginates)
+const channels = await client.listChannels()
+// → SlackChannel[]
+
+// List DM conversations
+const dms = await client.listDMs({ includeArchived: false })
+// → SlackDM[]
+
+// Get channel info
+const channel = await client.getChannel(channelId)
+// → SlackChannel { id, name, is_private, is_archived, topic, purpose, ... }
+
+// Resolve channel name to ID (passes IDs through unchanged)
+const id = await client.resolveChannel('general')
+const id = await client.resolveChannel('C0ABC123')  // returned as-is
+
+// Open a DM (or group DM) — returns existing channel if already open
+const dm = await client.openConversation('U0ABC123')
+const groupDm = await client.openConversation('U0ABC123,U0DEF456')
+// → { channel_id: string, already_open: boolean }
+
+// List members of a channel (auto-paginates)
+const memberIds = await client.listChannelMembers(channelId)
+// → string[]
+
+// Create a channel
+const newChannel = await client.createChannel('project-alpha')
+const privateChannel = await client.createChannel('secret', true)
+// → SlackChannel
+
+// Archive a channel
+await client.archiveChannel(channelId)
+
+// Set topic / purpose
+await client.setChannelTopic(channelId, 'New topic')
+await client.setChannelPurpose(channelId, 'New purpose')
+
+// Invite users (comma-separated IDs)
+await client.inviteToChannel(channelId, 'U0ABC123,U0DEF456')
+
+// Join / leave
+await client.joinChannel(channelId)
+await client.leaveChannel(channelId)
+```
+
+### Users
+
+```typescript
+// List all users (auto-paginates)
+const users = await client.listUsers()
+// → SlackUser[]
+
+// Get user info
+const user = await client.getUser(userId)
+// → SlackUser { id, name, real_name, is_admin, is_bot, profile, ... }
+
+// Look up user by email
+const user = await client.lookupUserByEmail('alice@example.com')
+
+// Get detailed user profile
+const profile = await client.getUserProfile(userId)
+// → SlackUserProfile { display_name, status_text, status_emoji, email, ... }
+
+// Set user profile (status, etc.)
+// Note: SDK requires colon-wrapped emoji (e.g., ':calendar:').
+// The CLI `set-status` command auto-wraps, so you pass just the name.
+await client.setUserProfile({
+  status_text: 'In a meeting',
+  status_emoji: ':calendar:',
+  status_expiration: 1700100000,
+})
+```
+
+### Reactions
+
+```typescript
+await client.addReaction(channel, ts, 'thumbsup')
+await client.removeReaction(channel, ts, 'thumbsup')
+```
+
+### Files
+
+```typescript
+// Upload a file
+const file = await client.uploadFile([channelId], buffer, 'report.pdf')
+// → SlackFile { id, name, title, mimetype, size, url_private, ... }
+
+// List files
+const files = await client.listFiles()
+const files = await client.listFiles(channelId)
+// → SlackFile[]
+
+// Get file metadata
+const info = await client.getFileInfo(fileId)
+
+// Download a file
+const { buffer, file } = await client.downloadFile(fileId)
+
+// Delete a file
+await client.deleteFile(fileId)
+```
+
+### Pins
+
+```typescript
+await client.pinMessage(channel, ts)
+await client.unpinMessage(channel, ts)
+
+const pins = await client.listPins(channel)
+// → SlackPin[] { channel, message, date_created, created_by }
+```
+
+### Bookmarks
+
+```typescript
+// Add a bookmark
+const bookmark = await client.addBookmark(channel, 'Docs', 'https://docs.example.com', {
+  type: 'link',
+  emoji: ':books:',
+})
+// → SlackBookmark { id, channel_id, title, link, emoji, type, ... }
+
+// Edit a bookmark
+const updated = await client.editBookmark(channel, bookmarkId, {
+  title: 'New Title',
+  link: 'https://new.url',
+})
+
+// Remove a bookmark
+await client.removeBookmark(channel, bookmarkId)
+
+// List bookmarks
+const bookmarks = await client.listBookmarks(channel)
+// → SlackBookmark[]
+```
+
+### Reminders
+
+```typescript
+// Add a reminder (time is a Unix timestamp)
+const reminder = await client.addReminder('Review PR', 1700000000)
+const reminder = await client.addReminder('Submit report', 1700000000, { user: 'U0ABC123' })
+// → SlackReminder { id, creator, text, user, recurring, time, complete_ts }
+
+// List all reminders
+const reminders = await client.listReminders()
+// → SlackReminder[]
+
+// Complete / delete
+await client.completeReminder(reminderId)
+await client.deleteReminder(reminderId)
+```
+
+### Emoji
+
+```typescript
+// List all custom emoji in workspace
+const emoji = await client.listEmoji()
+// → Record<string, string>  (name → URL or alias)
+```
+
+### Unread & Activity
+
+```typescript
+// Get unread counts for all channels
+const counts = await client.getUnreadCounts()
+// → SlackUnreadCounts { channels, total_unread, total_mentions }
+
+// Get thread subscription details
+const view = await client.getThreadView(channelId, threadTs)
+// → SlackThreadView { unread_count, last_read, subscribed }
+
+// Mark channel as read
+await client.markRead(channelId, ts)
+
+// Get activity feed (mentions, reactions, replies)
+const activity = await client.getActivityFeed({
+  types: 'thread_reply,message_reaction',
+  limit: 50,
+})
+// → SlackActivityItem[]
+```
+
+### Saved Items, Drafts & Sections
+
+```typescript
+// Get saved items (paginated)
+const saved = await client.getSavedItems(cursor)
+// → { items: SlackSavedItem[], has_more: boolean, next_cursor?: string }
+
+// Get drafts (paginated)
+const drafts = await client.getDrafts(cursor)
+// → { drafts: SlackDraft[], next_cursor?: string }
+
+// Get sidebar channel sections
+const sections = await client.getChannelSections()
+// → SlackChannelSection[] { id, name, channel_ids }
+```
+
+### RTM Connection
+
+```typescript
+// Low-level RTM connect (used internally by SlackListener)
+const rtm = await client.rtmConnect()
+// → { url: string, cookie: string, self: { id }, team: { id } }
 ```
 
 ## Real-Time Events
@@ -93,6 +372,11 @@ import type {
   SlackDM,
   SlackDraft,
   SlackChannelSection,
+  SlackPin,
+  SlackBookmark,
+  SlackScheduledMessage,
+  SlackReminder,
+  SlackUserProfile,
   SlackRTMEvent,
   SlackRTMMessageEvent,
   SlackRTMReactionEvent,
@@ -121,4 +405,213 @@ import {
   WorkspaceCredentialsSchema,
   ConfigSchema,
 } from 'agent-messenger/slack'
+```
+
+## Examples
+
+### Deploy Notifier
+
+Post a deployment message, update it with progress in a thread, and mark it complete with a reaction.
+
+```typescript
+import { SlackClient } from 'agent-messenger/slack'
+
+const client = new SlackClient(token, cookie)
+const channel = await client.resolveChannel('deploys')
+
+// Post parent message
+const msg = await client.sendMessage(channel, '🚀 Deploying v2.1.0 to production...')
+await client.addReaction(channel, msg.ts, 'hourglass_flowing_sand')
+
+// Stream progress in thread
+await client.sendMessage(channel, '• Building application...', msg.ts)
+await client.sendMessage(channel, '• Running tests (142 passed)...', msg.ts)
+await client.sendMessage(channel, '• Rolling out to 3 regions...', msg.ts)
+
+// Finalize
+await client.removeReaction(channel, msg.ts, 'hourglass_flowing_sand')
+await client.addReaction(channel, msg.ts, 'white_check_mark')
+await client.updateMessage(channel, msg.ts, '✅ v2.1.0 deployed to production')
+```
+
+### Project Channel Setup
+
+Create a channel, configure it, invite the team, and pin a welcome message — all in one script.
+
+```typescript
+import { SlackClient } from 'agent-messenger/slack'
+
+const client = new SlackClient(token, cookie)
+
+// Create and configure
+const channel = await client.createChannel('project-alpha')
+await client.setChannelTopic(channel.id, 'Project Alpha — launch Q1 2026')
+await client.setChannelPurpose(channel.id, 'Coordinate development for Alpha release')
+
+// Invite team
+await client.inviteToChannel(channel.id, 'U001,U002,U003')
+
+// Add resources
+await client.addBookmark(channel.id, 'Project Wiki', 'https://wiki.example.com/alpha', {
+  emoji: ':books:',
+})
+await client.addBookmark(channel.id, 'Figma Designs', 'https://figma.com/file/abc', {
+  emoji: ':art:',
+})
+
+// Pin welcome message
+const welcome = await client.sendMessage(channel.id, [
+  'Welcome to *Project Alpha*! 🎉',
+  '',
+  '📋 *Resources* — check the bookmarks above',
+  '🧵 *Discussions* — use threads to keep things organized',
+  '📌 *Decisions* — pin important messages',
+].join('\n'))
+await client.pinMessage(channel.id, welcome.ts)
+```
+
+### Real-Time Bot
+
+Listen for messages mentioning `@bot` and reply in thread. Uses `SlackListener` for instant event streaming — no polling.
+
+```typescript
+import { SlackClient, SlackListener } from 'agent-messenger/slack'
+
+const client = new SlackClient(token, cookie)
+const listener = new SlackListener(client)
+
+const auth = await client.testAuth()
+
+listener.on('message', async (event) => {
+  // Ignore own messages, edits, and non-text
+  if (event.user === auth.user_id || event.subtype || !event.text) return
+
+  if (event.text.includes(`<@${auth.user_id}>`)) {
+    const threadTs = event.thread_ts || event.ts
+    await client.sendMessage(event.channel, 'On it! 👀', threadTs)
+    await client.addReaction(event.channel, event.ts, 'eyes')
+  }
+})
+
+listener.on('reaction_added', async (event) => {
+  if (event.reaction === 'ticket' && event.user !== auth.user_id) {
+    await client.sendMessage(
+      event.item.channel,
+      `Ticket created for <@${event.user}>'s message.`,
+      event.item.ts,
+    )
+  }
+})
+
+listener.on('connected', (info) => {
+  console.log(`Bot online as ${info.self.id}`)
+})
+
+await listener.start()
+```
+
+### Morning Digest
+
+Summarize unread activity and post a digest to a channel.
+
+```typescript
+import { SlackClient } from 'agent-messenger/slack'
+
+const client = new SlackClient(token, cookie)
+const channel = await client.resolveChannel('team-pulse')
+
+// Gather data
+const counts = await client.getUnreadCounts()
+const activity = await client.getActivityFeed({ types: 'at_user,at_channel', limit: 10 })
+const reminders = await client.listReminders()
+const pending = reminders.filter((r) => r.complete_ts === 0)
+
+// Build digest
+const lines = [
+  `📊 *Morning Digest* — ${new Date().toLocaleDateString()}`,
+  '',
+  `📬 *${counts.total_unread}* unread across *${counts.channels.filter((c) => c.unread_count > 0).length}* channels`,
+  `🔔 *${counts.total_mentions}* mentions`,
+]
+
+if (activity.length > 0) {
+  lines.push('', '*Recent mentions:*')
+  for (const item of activity.slice(0, 5)) {
+    lines.push(`• <#${item.channel}> — ${item.text.slice(0, 80)}`)
+  }
+}
+
+if (pending.length > 0) {
+  lines.push('', `⏰ *${pending.length}* pending reminders`)
+  for (const r of pending.slice(0, 3)) {
+    lines.push(`• ${r.text}`)
+  }
+}
+
+await client.sendMessage(channel, lines.join('\n'))
+```
+
+### Triage with Search
+
+Search for urgent messages, acknowledge with a reaction, and schedule a follow-up.
+
+```typescript
+import { SlackClient } from 'agent-messenger/slack'
+
+const client = new SlackClient(token, cookie)
+
+// Find urgent messages from the last day
+const results = await client.searchMessages('urgent OR blocker', {
+  sort: 'timestamp',
+  sortDir: 'desc',
+  count: 10,
+})
+
+for (const result of results) {
+  // Acknowledge
+  await client.addReaction(result.channel.id, result.ts, 'eyes')
+
+  // Reply in thread
+  await client.sendMessage(
+    result.channel.id,
+    'Flagged for review — will follow up shortly.',
+    result.ts,
+  )
+
+  // Schedule a follow-up reminder
+  const inOneHour = Math.floor(Date.now() / 1000) + 3600
+  await client.addReminder(
+    `Follow up on urgent message in #${result.channel.name}: "${result.text.slice(0, 50)}"`,
+    inOneHour,
+  )
+}
+```
+
+### File Pipeline
+
+Download files from one channel and re-upload to another with a summary.
+
+```typescript
+import { SlackClient } from 'agent-messenger/slack'
+
+const client = new SlackClient(token, cookie)
+
+const source = await client.resolveChannel('design-uploads')
+const target = await client.resolveChannel('design-archive')
+
+// Get recent files
+const files = await client.listFiles(source)
+
+for (const file of files.slice(0, 5)) {
+  // Download
+  const { buffer } = await client.downloadFile(file.id)
+
+  // Re-upload to archive
+  const uploaded = await client.uploadFile([target], buffer, file.name)
+
+  await client.sendMessage(target, [
+    `📎 Archived *${file.name}* from <#${source}>`,
+    `Original uploader: <@${file.user}> · ${(file.size / 1024).toFixed(0)} KB`,
+  ].join('\n'))
+}
 ```
