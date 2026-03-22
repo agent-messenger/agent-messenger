@@ -20,8 +20,14 @@ async function addAction(
       process.exit(1)
     }
 
+    const timeValue = Number(time)
+    if (!Number.isInteger(timeValue) || timeValue <= 0) {
+      console.log(formatOutput({ error: 'Invalid time value. Use a Unix timestamp in seconds (e.g. 1700000000).' }, options.pretty))
+      process.exit(1)
+    }
+
     const client = new SlackClient(ws.token, ws.cookie)
-    const reminder = await client.addReminder(text, parseInt(time, 10), { user: options.user })
+    const reminder = await client.addReminder(text, timeValue, { user: options.user })
 
     console.log(formatOutput(reminder, options.pretty))
   } catch (error) {

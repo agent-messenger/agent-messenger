@@ -549,6 +549,72 @@ done
 agent-slack message send general "$MESSAGE"
 ```
 
+## Pattern: Schedule and Manage Messages
+
+**Use case**: Schedule a message for later delivery and manage the queue.
+
+```bash
+#!/bin/bash
+
+# Schedule a message for a specific time (Unix timestamp)
+SCHEDULED=$(agent-slack message schedule general "Weekly report" 1700000000)
+SCHED_ID=$(echo "$SCHEDULED" | jq -r '.id')
+
+# List all scheduled messages
+agent-slack message scheduled-list
+
+# Cancel a scheduled message
+agent-slack message scheduled-delete general "$SCHED_ID"
+```
+
+## Pattern: Channel Setup Automation
+
+**Use case**: Create a project channel and configure it.
+
+```bash
+#!/bin/bash
+
+PROJECT="project-alpha"
+
+# Create the channel
+CHANNEL=$(agent-slack channel create "$PROJECT")
+CHANNEL_ID=$(echo "$CHANNEL" | jq -r '.id')
+
+# Set topic and purpose
+agent-slack channel set-topic "$CHANNEL_ID" "Discussion for Project Alpha"
+agent-slack channel set-purpose "$CHANNEL_ID" "Coordinate development tasks for Alpha release"
+
+# Invite team members
+agent-slack channel invite "$CHANNEL_ID" "U001,U002,U003"
+
+# Add a useful bookmark
+agent-slack bookmark add "$CHANNEL_ID" "Project Wiki" "https://wiki.example.com/alpha"
+
+# Pin the welcome message
+WELCOME=$(agent-slack message send "$CHANNEL_ID" "Welcome to Project Alpha!")
+WELCOME_TS=$(echo "$WELCOME" | jq -r '.ts')
+agent-slack pin add "$CHANNEL_ID" "$WELCOME_TS"
+```
+
+## Pattern: Reminder Workflows
+
+**Use case**: Set reminders for follow-ups.
+
+```bash
+#!/bin/bash
+
+# Set a reminder for yourself
+agent-slack reminder add "Review the PR" 1700000000
+
+# Set a reminder for someone else
+agent-slack reminder add "Submit timesheet" 1700000000 --user U0ABC123
+
+# List and manage reminders
+agent-slack reminder list
+agent-slack reminder complete Rm001
+agent-slack reminder delete Rm002
+```
+
 ## See Also
 
 - [Authentication Guide](authentication.md) - Setting up credentials

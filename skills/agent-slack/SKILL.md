@@ -189,6 +189,7 @@ agent-slack message delete <channel> <ts> --force
 # Schedule a message (post_at is a Unix timestamp)
 agent-slack message schedule <channel> <text> <post-at>
 agent-slack message schedule general "Friday update" 1700000000
+agent-slack message schedule general "Thread reply" 1700000000 --thread 1234567890.123456
 
 # List scheduled messages
 agent-slack message scheduled-list
@@ -279,6 +280,7 @@ agent-slack user profile <user-id>
 # Set your status (emoji name without colons)
 agent-slack user set-status <status-text>
 agent-slack user set-status "In a meeting" --emoji calendar
+agent-slack user set-status "On vacation" --emoji palm_tree --expiration 1700100000
 ```
 
 ### Reaction Commands
@@ -384,7 +386,7 @@ agent-slack pin list general --pretty
 ```bash
 # Add a bookmark to a channel
 agent-slack bookmark add <channel> <title> <link>
-agent-slack bookmark add general "Our Docs" https://docs.example.com --emoji books
+agent-slack bookmark add general "Our Docs" https://docs.example.com --emoji books --type link
 
 # Edit a bookmark
 agent-slack bookmark edit <channel> <bookmark-id> --title "New Title"

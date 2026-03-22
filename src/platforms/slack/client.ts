@@ -985,16 +985,28 @@ export class SlackClient {
 
   async listScheduledMessages(channel?: string): Promise<SlackScheduledMessage[]> {
     return this.withRetry(async () => {
-      const response = await (this.client.chat.scheduledMessages.list as any)(channel ? { channel } : {})
-      this.checkResponse(response)
+      const allMessages: SlackScheduledMessage[] = []
+      let cursor: string | undefined
 
-      return ((response as any).scheduled_messages || []).map((msg: any) => ({
-        id: msg.id || msg.scheduled_message_id || '',
-        channel_id: msg.channel_id || '',
-        post_at: msg.post_at || 0,
-        date_created: msg.date_created || 0,
-        text: msg.text || '',
-      }))
+      do {
+        const response = await (this.client.chat.scheduledMessages.list as any)({
+          ...(channel ? { channel } : {}),
+          ...(cursor ? { cursor } : {}),
+        })
+        this.checkResponse(response)
+
+        const messages = ((response as any).scheduled_messages || []).map((msg: any) => ({
+          id: msg.id || msg.scheduled_message_id || '',
+          channel_id: msg.channel_id || '',
+          post_at: msg.post_at || 0,
+          date_created: msg.date_created || 0,
+          text: msg.text || '',
+        }))
+        allMessages.push(...messages)
+        cursor = (response as any).response_metadata?.next_cursor
+      } while (cursor)
+
+      return allMessages
     })
   }
 

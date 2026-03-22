@@ -48,6 +48,11 @@ async function editAction(
       process.exit(1)
     }
 
+    if (!options.title && !options.link && !options.emoji) {
+      console.log(formatOutput({ error: 'At least one of --title, --link, or --emoji is required.' }, options.pretty))
+      process.exit(1)
+    }
+
     const client = new SlackClient(ws.token, ws.cookie)
     channel = await client.resolveChannel(channel)
     const bookmark = await client.editBookmark(channel, bookmarkId, {

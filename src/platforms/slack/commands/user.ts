@@ -170,7 +170,16 @@ export const userCommand = new Command('user')
           const profile = await client.setUserProfile({
             status_text: statusText,
             status_emoji: options.emoji ? `:${options.emoji}:` : undefined,
-            status_expiration: options.expiration ? parseInt(options.expiration, 10) : undefined,
+            status_expiration: options.expiration
+              ? (() => {
+                  const ts = Number(options.expiration)
+                  if (!Number.isInteger(ts) || ts <= 0) {
+                    console.log(formatOutput({ error: 'Invalid --expiration value. Use a Unix timestamp in seconds.' }, options.pretty))
+                    process.exit(1)
+                  }
+                  return ts
+                })()
+              : undefined,
           })
 
           console.log(

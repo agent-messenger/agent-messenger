@@ -163,6 +163,10 @@ The CLI automatically provisions API credentials via my.telegram.org if needed. 
 | Saved items                |  ✅   |    —    |   —   |    —     |    —     |         —           |
 | Unread messages            |  ✅   |    —    |   —   |    —     |    —     |         —           |
 | Sidebar sections           |  ✅   |    —    |   —   |    —     |    —     |         —           |
+| Pins & bookmarks           |  ✅   |    —    |   —   |    —     |    —     |         —           |
+| Scheduled messages         |  ✅   |    —    |   —   |    —     |    —     |         —           |
+| Channel management         |  ✅   |    —    |   —   |    —     |    —     |         —           |
+| Reminders                  |  ✅   |    —    |   —   |    —     |    —     |         —           |
 | Real-time events (SDK)     |  ✅   |    —    |   —   |    —     |    —     |         —           |
 | Bot support                |  ✅   |   ✅    |   —   |    —     |    ✅     |         ✅          |
 
