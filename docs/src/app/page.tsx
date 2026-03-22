@@ -430,7 +430,7 @@ const TERMINAL_DEMOS = [
   {
     platform: 'Teams',
     commands: [
-      { prompt: '$ ', cmd: 'agent-teams channel list' },
+      { prompt: '$ ', cmd: 'agent-teams channel list 19:abc' },
       { output: '✓ 8 channels in Engineering team' },
       { prompt: '$ ', cmd: 'agent-teams message list 19:abc 19:general --limit 5' },
       { output: '✓ 5 messages loaded' },
