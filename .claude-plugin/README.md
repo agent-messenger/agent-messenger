@@ -79,14 +79,14 @@ Enables AI agents to interact with messaging platforms through CLI interfaces:
 ### WhatsApp (`agent-whatsapp`)
 - **Send messages** to chats and groups
 - **Read chats** and message history
-- **Search messages** across conversations
+- **Search chats** by name across conversations
 - **Manage reactions** (add/remove)
 - **Pairing code auth** — scan-free authentication
 - **Multi-account support** with easy switching
 
 ### WhatsApp Bot (`agent-whatsappbot`)
 - **Send messages** using Cloud API credentials
-- **Read chats** and message history
+- **Template messaging** for outbound notifications
 - Designed for **server-side and CI/CD** use cases
 
 ### Channel Talk (`agent-channeltalk`) — Beta

@@ -20,7 +20,7 @@ import {
 
 ## SlackClient
 
-The main client for interacting with Slack's API programmatically. All methods include automatic rate-limit retry with exponential backoff.
+The main client for interacting with Slack's API programmatically. Most API methods include automatic rate-limit retry with exponential backoff.
 
 ```typescript
 import { SlackClient } from 'agent-messenger/slack'
@@ -48,7 +48,7 @@ const reply = await client.sendMessage(channel, 'Reply', threadTs)
 
 // Get messages from a channel
 const messages = await client.getMessages(channel, 20)
-const messages = await client.getMessages(channel, { limit: 50, oldest: '1700000000.000000' })
+const filtered = await client.getMessages(channel, { limit: 50, oldest: '1700000000.000000' })
 // → SlackMessage[]
 
 // Get a single message by timestamp

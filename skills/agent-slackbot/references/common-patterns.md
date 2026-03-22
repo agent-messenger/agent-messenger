@@ -224,7 +224,7 @@ echo "Message from $USER: $TEXT"
 
 # Get thread replies for that message
 REPLIES=$(agent-slackbot message replies "$CHANNEL" "$MESSAGE_TS" --limit 50)
-REPLY_COUNT=$(echo "$REPLIES" | jq -s 'length')
+REPLY_COUNT=$(echo "$REPLIES" | jq 'length')
 echo "Thread has $REPLY_COUNT replies"
 ```
 

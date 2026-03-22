@@ -16,8 +16,8 @@ agent-slack message send general "Deployment completed successfully!"
 
 # With error handling
 RESULT=$(agent-slack message send general "Hello world")
-if echo "$RESULT" | jq -e '.error' > /dev/null 2>&1; then
-  echo "Failed: $(echo "$RESULT" | jq -r '.error')"
+if [ -z "$RESULT" ] || ! echo "$RESULT" | jq -e '.ts' > /dev/null 2>&1; then
+  echo "Failed: $(echo "$RESULT" | jq -r '.error // "unknown_error"')"
   exit 1
 else
   echo "Message sent: $(echo "$RESULT" | jq -r '.ts')"
