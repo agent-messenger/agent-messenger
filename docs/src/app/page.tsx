@@ -1,89 +1,16 @@
 'use client'
 
-import { useTheme } from 'next-themes'
 import Link from 'next/link'
+import { useTheme } from 'next-themes'
 import { useEffect, useState } from 'react'
 
-function KeyIcon({ className }: { className?: string }) {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={className}
-    >
-      <title>Key icon</title>
-      <path d="m21 2-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0 3 3L22 7l-3-3m-3.5 3.5L19 4" />
-    </svg>
-  )
-}
+// ============================================================
+// Platform Icon Components (128x128 viewBox with brand colors)
+// ============================================================
 
-function GlobeIcon({ className }: { className?: string }) {
+function SlackIcon({ className, style }: { className?: string; style?: React.CSSProperties }) {
   return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={className}
-    >
-      <title>Globe icon</title>
-      <circle cx="12" cy="12" r="10" />
-      <path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20" />
-      <line x1="2" y1="12" x2="22" y2="12" />
-    </svg>
-  )
-}
-
-function BotIcon({ className }: { className?: string }) {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={className}
-    >
-      <title>Bot icon</title>
-      <path d="M12 8V4H8" />
-      <rect width="16" height="12" x="4" y="8" rx="2" />
-      <path d="M8 16h.01M16 16h.01" />
-      <path d="M9 12h6" />
-    </svg>
-  )
-}
-
-function ZapIcon({ className }: { className?: string }) {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={className}
-    >
-      <title>Zap icon</title>
-      <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
-    </svg>
-  )
-}
-
-function SlackIcon({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 128 128" fill="currentColor" className={className}>
+    <svg viewBox="0 0 128 128" fill="currentColor" className={className} style={style}>
       <title>Slack icon</title>
       <path
         d="M27.255 80.719c0 7.33-5.978 13.317-13.309 13.317C6.616 94.036.63 88.049.63 80.719s5.987-13.317 13.317-13.317h13.309zm6.709 0c0-7.33 5.987-13.317 13.317-13.317s13.317 5.986 13.317 13.317v33.335c0 7.33-5.986 13.317-13.317 13.317-7.33 0-13.317-5.987-13.317-13.317zm0 0"
@@ -105,9 +32,9 @@ function SlackIcon({ className }: { className?: string }) {
   )
 }
 
-function DiscordIcon({ className }: { className?: string }) {
+function DiscordIcon({ className, style }: { className?: string; style?: React.CSSProperties }) {
   return (
-    <svg viewBox="0 0 128 128" fill="currentColor" className={className}>
+    <svg viewBox="0 0 128 128" fill="currentColor" className={className} style={style}>
       <title>Discord icon</title>
       <path
         d="M107.7,30.8c-8-3.7-16.5-6.4-25.5-7.9c-0.1,0-0.2,0-0.3,0.1c-1.1,2-2.3,4.5-3.2,6.6c-9.6-1.4-19.2-1.4-28.6,0c-0.9-2.1-2.1-4.6-3.2-6.6c-0.1-0.1-0.2-0.1-0.3-0.1c-8.9,1.5-17.5,4.2-25.5,7.9c0,0-0.1,0.1-0.1,0.1C7.1,51.5,3,71.7,5.1,91.6c0,0.1,0.1,0.2,0.1,0.2c10.7,7.9,21.1,12.7,31.3,15.8c0.1,0,0.2,0,0.3-0.1c2.4-3.3,4.6-6.8,6.4-10.4c0.1-0.2,0-0.4-0.2-0.5c-3.4-1.3-6.7-2.9-9.8-4.7c-0.2-0.1-0.2-0.4,0-0.6c0.7-0.5,1.3-1,1.9-1.5c0.1-0.1,0.2-0.1,0.3,0c20.6,9.4,42.9,9.4,63.3,0c0.1-0.1,0.2,0,0.3,0c0.6,0.5,1.3,1,1.9,1.5c0.2,0.2,0.2,0.4,0,0.6c-3.1,1.9-6.4,3.5-9.8,4.7c-0.2,0.1-0.3,0.3-0.2,0.5c1.9,3.6,4,7.1,6.4,10.4c0.1,0.1,0.2,0.1,0.3,0.1c10.2-3.1,20.6-7.9,31.3-15.8c0.1-0.1,0.1-0.1,0.1-0.2C125.6,68.8,119.2,49.2,107.7,30.8C107.7,30.9,107.7,30.8,107.7,30.8z M45.3,79.9c-5.3,0-9.6-4.8-9.6-10.8s4.2-10.8,9.6-10.8c5.4,0,9.7,4.9,9.6,10.8C54.9,75.1,50.6,79.9,45.3,79.9z M82.8,79.9c-5.3,0-9.6-4.8-9.6-10.8s4.2-10.8,9.6-10.8c5.4,0,9.7,4.9,9.6,10.8C92.4,75.1,88.2,79.9,82.8,79.9z"
@@ -117,9 +44,9 @@ function DiscordIcon({ className }: { className?: string }) {
   )
 }
 
-function TeamsIcon({ className }: { className?: string }) {
+function TeamsIcon({ className, style }: { className?: string; style?: React.CSSProperties }) {
   return (
-    <svg viewBox="0 0 128 128" fill="currentColor" className={className}>
+    <svg viewBox="0 0 128 128" fill="currentColor" className={className} style={style}>
       <title>Teams icon</title>
       <path
         d="M86.3,44.5h32.5c2.6,0,4.7,2.1,4.7,4.7v29.4c0,12.9-10.5,23.4-23.4,23.4h-0.3c-12.9,0-23.4-10.5-23.4-23.4V54.4C76.4,48.9,80.8,44.5,86.3,44.5z"
@@ -160,318 +87,915 @@ function TeamsIcon({ className }: { className?: string }) {
   )
 }
 
-function SunIcon({ className }: { className?: string }) {
+function TelegramIcon({ className, style }: { className?: string; style?: React.CSSProperties }) {
   return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={className}
-    >
-      <title>Light mode</title>
-      <circle cx="12" cy="12" r="4" />
-      <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" />
+    <svg viewBox="0 0 128 128" fill="currentColor" className={className} style={style}>
+      <title>Telegram icon</title>
+      <path
+        d="M64 0C28.7 0 0 28.7 0 64s28.7 64 64 64 64-28.7 64-64S99.3 0 64 0zm29.3 43.6L82 93.2c-.7 3.1-2.5 3.8-5.1 2.4l-14.1-10.4-6.8 6.6c-.8.8-1.4 1.4-2.8 1.4l1-14.3 25.8-23.3c1.1-1 -.2-1.6-1.8-.6L44.5 73.1l-13.8-4.3c-3-.9-3-3 .6-4.4l54-20.8c2.5-.9 4.7.6 3.9 4.4z"
+        fill="#2AABEE"
+      />
     </svg>
   )
 }
 
-function MoonIcon({ className }: { className?: string }) {
+function WhatsAppIcon({ className, style }: { className?: string; style?: React.CSSProperties }) {
   return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={className}
-    >
-      <title>Dark mode</title>
-      <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" />
+    <svg viewBox="0 0 128 128" fill="currentColor" className={className} style={style}>
+      <title>WhatsApp icon</title>
+      <path
+        d="M64 0C28.7 0 0 28.7 0 64c0 11.3 2.9 21.9 8.1 31.1L0 128l33.6-8.8C42.5 124.7 53 128 64 128c35.3 0 64-28.7 64-64S99.3 0 64 0zm0 117.1c-10.1 0-19.6-2.8-27.7-7.6l-2-1.2-20.5 5.4 5.5-20.1-1.3-2.1C12.7 83.3 9.6 73.9 9.6 64c0-30 24.4-54.4 54.4-54.4S118.4 34 118.4 64s-24.4 53.1-54.4 53.1zm29.8-40.7c-1.6-.8-9.6-4.7-11.1-5.3-1.5-.5-2.6-.8-3.7.8s-4.2 5.3-5.2 6.4c-1 1.1-1.9 1.2-3.5.4-1.6-.8-6.8-2.5-13-8-4.8-4.3-8-9.5-9-11.1-.9-1.6-.1-2.5.7-3.3.8-.7 1.6-1.9 2.4-2.8.8-1 1.1-1.6 1.6-2.7.5-1.1.3-2-.1-2.8-.5-.8-3.7-8.9-5.1-12.2-1.3-3.2-2.7-2.8-3.7-2.8-1 0-2.1-.1-3.2-.1s-2.9.4-4.4 2c-1.5 1.6-5.8 5.7-5.8 13.8s5.9 16 6.7 17.1c.8 1.1 11.6 17.7 28.1 24.8 3.9 1.7 7 2.7 9.4 3.5 3.9 1.2 7.5 1.1 10.3.6 3.2-.5 9.6-3.9 10.9-7.7 1.4-3.8 1.4-7 1-7.7-.5-.7-1.6-1.1-3.2-1.9z"
+        fill="#25D366"
+      />
     </svg>
+  )
+}
+
+function ChannelTalkIcon({ className, style }: { className?: string; style?: React.CSSProperties }) {
+  return (
+    <svg viewBox="0 0 128 128" fill="currentColor" className={className} style={style}>
+      <title>Channel Talk icon</title>
+      <rect width="128" height="128" rx="28" fill="#3B3FE4" />
+      <text x="64" y="82" textAnchor="middle" fill="white" fontSize="48" fontWeight="bold" fontFamily="monospace">CT</text>
+    </svg>
+  )
+}
+
+// ============================================================
+// Feature Icons (Lucide-style, stroke-based)
+// ============================================================
+
+function ShieldIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+      <path d="M9.5 12.5L11 14l3.5-3.5" />
+    </svg>
+  )
+}
+
+function UserIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" />
+      <circle cx="12" cy="7" r="4" />
+    </svg>
+  )
+}
+
+function TerminalIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="4 17 10 11 4 5" />
+      <line x1="12" y1="19" x2="20" y2="19" />
+    </svg>
+  )
+}
+
+function CpuIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="4" y="4" width="16" height="16" rx="2" />
+      <rect x="9" y="9" width="6" height="6" />
+      <line x1="9" y1="1" x2="9" y2="4" />
+      <line x1="15" y1="1" x2="15" y2="4" />
+      <line x1="9" y1="20" x2="9" y2="23" />
+      <line x1="15" y1="20" x2="15" y2="23" />
+      <line x1="20" y1="9" x2="23" y2="9" />
+      <line x1="20" y1="14" x2="23" y2="14" />
+      <line x1="1" y1="9" x2="4" y2="9" />
+      <line x1="1" y1="14" x2="4" y2="14" />
+    </svg>
+  )
+}
+
+function ZapIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+    </svg>
+  )
+}
+
+function DatabaseIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <ellipse cx="12" cy="5" rx="9" ry="3" />
+      <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3" />
+      <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5" />
+    </svg>
+  )
+}
+
+// ============================================================
+// Utility Components
+// ============================================================
+
+function CopyButton({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false)
+
+  return (
+    <button
+      type="button"
+      onClick={() => {
+        navigator.clipboard.writeText(text).then(() => {
+          setCopied(true)
+          setTimeout(() => setCopied(false), 2000)
+        })
+      }}
+      className="flex items-center justify-center rounded-md p-1.5 text-zinc-400 transition-colors hover:text-zinc-600 dark:text-zinc-500 dark:hover:text-zinc-300"
+      aria-label={copied ? 'Copied' : 'Copy to clipboard'}
+    >
+      {copied ? (
+        <svg className="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <polyline points="20 6 9 17 4 12" />
+        </svg>
+      ) : (
+        <svg className="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+          <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
+        </svg>
+      )}
+    </button>
   )
 }
 
 function ThemeToggle() {
-  const { setTheme, resolvedTheme } = useTheme()
   const [mounted, setMounted] = useState(false)
+  const { setTheme, resolvedTheme } = useTheme()
 
   useEffect(() => {
     setMounted(true)
   }, [])
 
   if (!mounted) {
-    return <div className="h-9 w-9" />
+    return <div className="size-9" />
   }
 
   return (
     <button
       type="button"
       onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}
-      className="rounded-lg p-2 text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800"
+      className="flex size-9 items-center justify-center rounded-lg text-zinc-600 transition-colors hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
       aria-label="Toggle theme"
     >
-      {resolvedTheme === 'dark' ? <SunIcon className="h-5 w-5" /> : <MoonIcon className="h-5 w-5" />}
+      {resolvedTheme === 'dark' ? (
+        <svg className="size-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="12" cy="12" r="5" />
+          <line x1="12" y1="1" x2="12" y2="3" />
+          <line x1="12" y1="21" x2="12" y2="23" />
+          <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
+          <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+          <line x1="1" y1="12" x2="3" y2="12" />
+          <line x1="21" y1="12" x2="23" y2="12" />
+          <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
+          <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+        </svg>
+      ) : (
+        <svg className="size-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" />
+        </svg>
+      )}
     </button>
   )
 }
 
-async function fetchNpmVersion(): Promise<string | null> {
-  try {
-    const res = await fetch('https://registry.npmjs.org/agent-messenger/latest')
-    if (!res.ok) return null
-    const data = await res.json()
-    return data.version ?? null
-  } catch {
-    return null
-  }
+// ============================================================
+// Terminal Block Component
+// ============================================================
+
+function TerminalBlock({
+  title,
+  copyText,
+  children,
+}: {
+  title?: string
+  copyText: string
+  children: React.ReactNode
+}) {
+  return (
+    <div className="overflow-hidden rounded-xl border border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-950">
+      <div className="flex items-center justify-between border-b border-zinc-200 bg-zinc-100 px-4 py-3 dark:border-zinc-800 dark:bg-zinc-900">
+        <div className="flex gap-2">
+          <span className="size-3 rounded-full bg-zinc-300 dark:bg-zinc-700" />
+          <span className="size-3 rounded-full bg-zinc-300 dark:bg-zinc-700" />
+          <span className="size-3 rounded-full bg-zinc-300 dark:bg-zinc-700" />
+        </div>
+        <span className="font-mono text-xs text-zinc-400 dark:text-zinc-500">{title ?? 'terminal'}</span>
+        <CopyButton text={copyText} />
+      </div>
+      <pre className="overflow-x-auto p-5 font-mono text-sm leading-relaxed">
+        <code>{children}</code>
+      </pre>
+    </div>
+  )
 }
 
-export default function Home() {
-  const [npmVersion, setNpmVersion] = useState<string | null>(null)
+// ============================================================
+// Platform Terminal (cycling demo)
+// ============================================================
+
+function PlatformTerminal() {
+  const [active, setActive] = useState(0)
+  const [paused, setPaused] = useState(false)
 
   useEffect(() => {
-    fetchNpmVersion().then(setNpmVersion)
-  }, [])
+    if (paused) return
+    const timer = setInterval(() => {
+      setActive((prev) => (prev + 1) % TERMINAL_DEMOS.length)
+    }, 3500)
+    return () => clearInterval(timer)
+  }, [paused])
+
+  const demo = TERMINAL_DEMOS[active]
 
   return (
-    <div className="flex min-h-screen flex-col bg-zinc-50 dark:bg-black">
-      <header className="sticky top-0 z-50 border-b border-zinc-200 bg-zinc-50/80 backdrop-blur-sm dark:border-zinc-800 dark:bg-black/80">
-        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6">
-          <Link href="/" className="text-xl font-bold text-zinc-900 dark:text-white">
-            Agent Messenger
-          </Link>
-          <nav className="flex items-center gap-6">
-            <Link
-              href="/docs"
-              className="text-sm font-medium text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white"
-            >
-              Docs
-            </Link>
-            <a
-              href="https://github.com/devxoul/agent-messenger"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-sm font-medium text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white"
-            >
-              GitHub
-            </a>
-            <ThemeToggle />
-          </nav>
+    <div
+      className="overflow-hidden rounded-xl border border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-950"
+      onMouseEnter={() => setPaused(true)}
+      onMouseLeave={() => setPaused(false)}
+    >
+      <div className="border-b border-zinc-200 bg-zinc-100 dark:border-zinc-800 dark:bg-zinc-900">
+        <div className="flex items-center justify-between px-4 py-3">
+          <div className="flex gap-2">
+            <span className="size-3 rounded-full bg-zinc-300 dark:bg-zinc-700" />
+            <span className="size-3 rounded-full bg-zinc-300 dark:bg-zinc-700" />
+            <span className="size-3 rounded-full bg-zinc-300 dark:bg-zinc-700" />
+          </div>
+          <span className="font-mono text-xs text-zinc-400 dark:text-zinc-500">agent-messenger</span>
+          <CopyButton text={demo.commands.filter((c) => 'cmd' in c).map((c) => c.cmd).join('\n')} />
         </div>
-      </header>
+        <div className="flex gap-0 overflow-x-auto px-2">
+          {TERMINAL_DEMOS.map((d, i) => (
+            <button
+              key={d.platform}
+              type="button"
+              onClick={() => { setActive(i); setPaused(true) }}
+              className={`whitespace-nowrap px-3 py-2 font-mono text-xs transition-colors duration-200 ${
+                i === active
+                  ? 'border-b-2 border-blue-500 text-zinc-800 dark:text-zinc-200'
+                  : 'border-b-2 border-transparent text-zinc-400 hover:text-zinc-600 dark:text-zinc-600 dark:hover:text-zinc-400'
+              }`}
+            >
+              {d.platform}
+            </button>
+          ))}
+        </div>
+      </div>
 
-      <section className="flex flex-col items-center justify-center px-6 pt-24 pb-20 text-center">
-        <div className="mb-8 inline-flex items-center gap-2 rounded-full bg-zinc-100 px-3 py-1 text-sm font-medium text-zinc-800 dark:bg-zinc-800 dark:text-zinc-200">
-          <span className="relative flex h-2 w-2">
-            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-75"></span>
-            <span className="relative inline-flex h-2 w-2 rounded-full bg-green-500"></span>
-          </span>
-          {npmVersion ? `v${npmVersion} Available Now` : 'Available Now'}
-        </div>
-        <h1 className="max-w-4xl text-5xl font-extrabold tracking-tight text-zinc-900 sm:text-6xl md:text-7xl dark:text-white">
-          Give your AI agent the power to <br className="hidden sm:block" />
-          <span className="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent dark:from-blue-400 dark:to-indigo-400">
-            read and send messages
-          </span>
-        </h1>
-        <p className="mt-6 max-w-2xl text-lg text-zinc-600 sm:text-xl dark:text-zinc-400">
-          A unified, agent-friendly CLI for messaging platforms. Zero-config credential extraction. No OAuth flows. No
-          API keys. Works out of the box.
-        </p>
-        <div className="mt-10 flex flex-col gap-4 sm:flex-row">
+      <pre className="overflow-x-auto p-5 font-mono text-sm leading-relaxed">
+        <code>
+          {demo.commands.map((line, i) => (
+            <span key={`${demo.platform}-${i}`}>
+              {'cmd' in line ? (
+                <>
+                  <span className="text-zinc-400 dark:text-zinc-500">{line.prompt}</span>
+                  <span className="text-zinc-800 dark:text-zinc-100">{line.cmd}</span>
+                </>
+              ) : (
+                <>
+                  <span className="text-zinc-400 dark:text-zinc-500">{'  '}</span>
+                  <span className="text-emerald-600 dark:text-emerald-400">{line.output}</span>
+                </>
+              )}
+              {i < demo.commands.length - 1 ? '\n' : ''}
+            </span>
+          ))}
+        </code>
+      </pre>
+    </div>
+  )
+}
+
+// ============================================================
+// Data
+// ============================================================
+
+const FEATURES = [
+  {
+    icon: <ShieldIcon className="size-5" />,
+    title: 'Auto-Extract Auth',
+    description: 'Reads tokens from Slack, Discord, Teams, and Channel Talk desktop apps. Telegram and WhatsApp authenticate with a one-time code — still under a minute.',
+  },
+  {
+    icon: <UserIcon className="size-5" />,
+    title: 'Act As Yourself',
+    description: 'Extracts your user session — not a bot token. Your agent sends messages, reacts, and searches as you. Need bot mode? Bot CLIs are included too.',
+  },
+  {
+    icon: <TerminalIcon className="size-5" />,
+    title: 'One Interface',
+    description: 'Same command patterns across 6 platforms: message send, message search, channel list, snapshot. Learn once.',
+  },
+  {
+    icon: <CpuIcon className="size-5" />,
+    title: 'Agent-Native Output',
+    description: 'JSON by default for LLM tool use. --pretty for human-readable. Structured output your agent can parse and act on.',
+  },
+  {
+    icon: <ZapIcon className="size-5" />,
+    title: 'Token Efficient',
+    description: 'CLI, not MCP. One skill file, one shell command per action. No server to run, no tool registration.',
+  },
+  {
+    icon: <DatabaseIcon className="size-5" />,
+    title: 'Persistent Memory',
+    description: 'Stores workspace IDs, channel mappings, and preferences in ~/.config so your agent never asks twice.',
+  },
+]
+
+const TERMINAL_DEMOS = [
+  {
+    platform: 'Slack',
+    commands: [
+      { prompt: '$ ', cmd: 'agent-slack message search "deployment rollback"' },
+      { output: '✓ 7 messages found in #incidents' },
+      { prompt: '$ ', cmd: 'agent-slack message replies incidents 1711234567.123456' },
+      { output: '✓ 14 replies loaded' },
+      { prompt: '$ ', cmd: 'agent-slack message send incidents "Postmortem draft ready"' },
+      { output: '✓ Message sent to #incidents' },
+    ],
+  },
+  {
+    platform: 'Discord',
+    commands: [
+      { prompt: '$ ', cmd: 'agent-discord snapshot' },
+      { output: '✓ 12 channels, 48 members, recent activity captured' },
+      { prompt: '$ ', cmd: 'agent-discord message search "API redesign"' },
+      { output: '✓ Found 8 messages' },
+      { prompt: '$ ', cmd: 'agent-discord message send 1098765432 "Summary posted"' },
+      { output: '✓ Message sent' },
+    ],
+  },
+  {
+    platform: 'Teams',
+    commands: [
+      { prompt: '$ ', cmd: 'agent-teams channel list' },
+      { output: '✓ 8 channels in Engineering team' },
+      { prompt: '$ ', cmd: 'agent-teams message list 19:abc 19:general --limit 5' },
+      { output: '✓ 5 messages loaded' },
+      { prompt: '$ ', cmd: 'agent-teams message send 19:abc 19:general "Standup notes"' },
+      { output: '✓ Message sent' },
+    ],
+  },
+  {
+    platform: 'Telegram',
+    commands: [
+      { prompt: '$ ', cmd: 'agent-telegram chat search "engineering"' },
+      { output: '✓ 3 matching chats found' },
+      { prompt: '$ ', cmd: 'agent-telegram message list 12345 --limit 10' },
+      { output: '✓ 10 messages loaded' },
+      { prompt: '$ ', cmd: 'agent-telegram message send 12345 "CI green, merging now"' },
+      { output: '✓ Message sent' },
+    ],
+  },
+  {
+    platform: 'WhatsApp',
+    commands: [
+      { prompt: '$ ', cmd: 'agent-whatsapp chat list --limit 5' },
+      { output: '✓ 5 recent chats loaded' },
+      { prompt: '$ ', cmd: 'agent-whatsapp message list 1234@s.whatsapp.net' },
+      { output: '✓ 10 messages loaded' },
+      { prompt: '$ ', cmd: 'agent-whatsapp message react 1234@s.whatsapp.net msg123 👍' },
+      { output: '✓ Reaction added' },
+    ],
+  },
+  {
+    platform: 'Channel Talk',
+    commands: [
+      { prompt: '$ ', cmd: 'agent-channeltalk message search "billing issue"' },
+      { output: '✓ 4 messages found across 2 chats' },
+      { prompt: '$ ', cmd: 'agent-channeltalk message list user-chat 6812abc' },
+      { output: '✓ 15 messages loaded' },
+      { prompt: '$ ', cmd: 'agent-channeltalk message send user-chat 6812abc "Refund processed"' },
+      { output: '✓ Message sent' },
+    ],
+  },
+]
+
+const PLATFORMS = [
+  { name: 'Slack', href: '/docs/cli/slack', Icon: SlackIcon, color: '#4A154B', glowColor: 'rgba(74,21,75,0.4)' },
+  { name: 'Discord', href: '/docs/cli/discord', Icon: DiscordIcon, color: '#5865F2', glowColor: 'rgba(88,101,242,0.4)' },
+  { name: 'Teams', href: '/docs/cli/teams', Icon: TeamsIcon, color: '#6264A7', glowColor: 'rgba(98,100,167,0.4)' },
+  { name: 'Telegram', href: '/docs/cli/telegram', Icon: TelegramIcon, color: '#2AABEE', glowColor: 'rgba(42,171,238,0.4)' },
+  { name: 'WhatsApp', href: '/docs/cli/whatsapp', Icon: WhatsAppIcon, color: '#25D366', glowColor: 'rgba(37,211,102,0.4)' },
+  { name: 'Channel Talk', href: '/docs/cli/channeltalk', Icon: ChannelTalkIcon, color: '#3B3FE4', glowColor: 'rgba(59,63,228,0.4)' },
+]
+
+const HOW_IT_WORKS = [
+  {
+    step: 1,
+    title: 'Install',
+    code: 'npm install -g agent-messenger',
+    description: 'Installs 12 CLIs — agent-slack, agent-discord, agent-teams, agent-telegram, agent-whatsapp, agent-channeltalk, plus 4 bot variants and agent-kakaotalk.',
+  },
+  {
+    step: 2,
+    title: 'Run',
+    code: 'agent-slack snapshot --pretty',
+    description: 'Slack, Discord, Teams, and Channel Talk tokens are read from your desktop app automatically. Telegram and WhatsApp authenticate with a one-time code.',
+  },
+  {
+    step: 3,
+    title: 'Teach Your Agent',
+    code: 'npx skills add devxoul/agent-messenger',
+    description: 'Install Agent Skills via Skills CLI, Claude Code, OpenCode, or SkillPad — your agent learns every command and starts messaging on its own.',
+  },
+]
+
+const USE_CASES = [
+  'Read the #incident-api-outage thread in Slack and write a postmortem draft',
+  'Post the deployment changelog to #releases in Slack and #announcements in Discord',
+  'Search the Teams #design channel for the latest discussion about the new onboarding flow',
+  'Check my unread Slack messages right now and draft replies for anything urgent',
+  'Look up who reacted to my last message in #general on Discord and what they said after',
+  'Summarize today\'s WhatsApp group chat and send the summary to #standup in Slack',
+]
+
+const CAPABILITIES: {
+  feature: string
+  slack: boolean
+  discord: boolean
+  teams: boolean
+  telegram: boolean
+  whatsapp: boolean
+  channeltalk: boolean
+}[] = [
+  { feature: 'Zero-config credentials', slack: true, discord: true, teams: true, telegram: false, whatsapp: false, channeltalk: true },
+  { feature: 'Send & list messages', slack: true, discord: true, teams: true, telegram: true, whatsapp: true, channeltalk: true },
+  { feature: 'Search messages', slack: true, discord: true, teams: false, telegram: false, whatsapp: true, channeltalk: true },
+  { feature: 'Threads', slack: true, discord: true, teams: false, telegram: false, whatsapp: false, channeltalk: false },
+  { feature: 'Reactions', slack: true, discord: true, teams: true, telegram: false, whatsapp: true, channeltalk: false },
+  { feature: 'File upload & download', slack: true, discord: true, teams: true, telegram: false, whatsapp: false, channeltalk: false },
+  { feature: 'Workspace snapshot', slack: true, discord: true, teams: true, telegram: false, whatsapp: false, channeltalk: true },
+  { feature: 'Multi-account', slack: true, discord: true, teams: true, telegram: true, whatsapp: true, channeltalk: true },
+  { feature: 'Bot CLI available', slack: true, discord: true, teams: false, telegram: false, whatsapp: true, channeltalk: true },
+  { feature: 'Real-time events (SDK)', slack: true, discord: false, teams: false, telegram: false, whatsapp: false, channeltalk: false },
+]
+
+const PLATFORM_COLUMNS = ['Slack', 'Discord', 'Teams', 'Telegram', 'WhatsApp', 'Ch. Talk'] as const
+const PLATFORM_KEYS = ['slack', 'discord', 'teams', 'telegram', 'whatsapp', 'channeltalk'] as const
+
+
+
+// ============================================================
+// Page Component
+// ============================================================
+
+export default function Home() {
+  return (
+    <div className="min-h-screen bg-white text-zinc-900 dark:bg-zinc-950 dark:text-zinc-100">
+
+      {/* ================================================================
+          AMBIENT GLOW BACKGROUND
+          ================================================================ */}
+      <div className="pointer-events-none fixed inset-0 overflow-hidden">
+        <div className="absolute -top-[20%] left-1/2 h-[900px] w-[900px] -translate-x-1/2 rounded-full bg-[radial-gradient(circle,rgba(139,92,246,0.15)_0%,rgba(59,130,246,0.08)_40%,transparent_70%)] opacity-[0.03] dark:opacity-[0.08]" />
+        <div className="absolute -bottom-[10%] -right-[5%] h-[600px] w-[600px] rounded-full bg-[radial-gradient(circle,rgba(59,130,246,0.5)_0%,transparent_60%)] opacity-[0.02] dark:opacity-[0.05]" />
+      </div>
+
+      {/* ================================================================
+          1. HEADER / NAV (Glass)
+          ================================================================ */}
+      <nav className="fixed inset-x-0 top-0 z-50 flex h-16 items-center justify-between border-b border-zinc-200/40 bg-white/80 px-4 backdrop-blur-xl sm:px-6 dark:border-white/[0.06] dark:bg-zinc-950/80">
+        <Link href="/" className="font-mono text-sm font-semibold tracking-wide text-zinc-900 dark:text-zinc-100">
+          agent-messenger
+        </Link>
+        <div className="flex items-center gap-1 sm:gap-2">
           <Link
             href="/docs"
-            className="inline-flex items-center justify-center rounded-lg bg-black px-8 py-3 text-base font-semibold text-white transition-all hover:scale-105 hover:bg-zinc-800 active:scale-95 dark:bg-white dark:text-black dark:hover:bg-zinc-200"
+            className="rounded-lg px-3 py-2 font-mono text-xs text-zinc-500 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
           >
-            Get Started
+            docs
           </Link>
           <a
             href="https://github.com/devxoul/agent-messenger"
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center justify-center rounded-lg border border-zinc-200 bg-white px-8 py-3 text-base font-medium text-zinc-900 transition-all hover:border-zinc-300 hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900 dark:text-white dark:hover:bg-zinc-800"
+            className="rounded-lg px-3 py-2 font-mono text-xs text-zinc-500 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
           >
-            View on GitHub
+            github
           </a>
+          <ThemeToggle />
         </div>
-      </section>
+      </nav>
 
-      <section className="px-6 py-12 sm:py-20">
-        <div className="mx-auto max-w-7xl">
-          <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
-            <div className="group rounded-2xl border border-zinc-200 bg-white p-8 shadow-sm transition-all hover:border-zinc-300 hover:shadow-md dark:border-zinc-800 dark:bg-zinc-900/50 dark:hover:border-zinc-700">
-              <div className="mb-4 inline-flex rounded-xl bg-blue-100 p-3 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400">
-                <KeyIcon className="h-6 w-6" />
-              </div>
-              <h3 className="mb-2 text-lg font-semibold text-zinc-900 dark:text-white">No API keys needed</h3>
-              <p className="text-zinc-600 dark:text-zinc-400">
-                Automatically extracts credentials from your installed desktop apps.
-              </p>
-            </div>
-            <div className="group rounded-2xl border border-zinc-200 bg-white p-8 shadow-sm transition-all hover:border-zinc-300 hover:shadow-md dark:border-zinc-800 dark:bg-zinc-900/50 dark:hover:border-zinc-700">
-              <div className="mb-4 inline-flex rounded-xl bg-purple-100 p-3 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400">
-                <GlobeIcon className="h-6 w-6" />
-              </div>
-              <h3 className="mb-2 text-lg font-semibold text-zinc-900 dark:text-white">One interface</h3>
-              <p className="text-zinc-600 dark:text-zinc-400">
-                Learn once, use everywhere. Unified commands for Slack, Discord, Teams, Telegram, and Channel Talk.
-              </p>
-            </div>
-            <div className="group rounded-2xl border border-zinc-200 bg-white p-8 shadow-sm transition-all hover:border-zinc-300 hover:shadow-md dark:border-zinc-800 dark:bg-zinc-900/50 dark:hover:border-zinc-700">
-              <div className="mb-4 inline-flex rounded-xl bg-green-100 p-3 text-green-600 dark:bg-green-900/30 dark:text-green-400">
-                <BotIcon className="h-6 w-6" />
-              </div>
-              <h3 className="mb-2 text-lg font-semibold text-zinc-900 dark:text-white">AI-agent friendly</h3>
-              <p className="text-zinc-600 dark:text-zinc-400">
-                JSON output by default. Perfect for LLM tool use and automation.
-              </p>
-            </div>
-            <div className="group rounded-2xl border border-zinc-200 bg-white p-8 shadow-sm transition-all hover:border-zinc-300 hover:shadow-md dark:border-zinc-800 dark:bg-zinc-900/50 dark:hover:border-zinc-700">
-              <div className="mb-4 inline-flex rounded-xl bg-amber-100 p-3 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400">
-                <ZapIcon className="h-6 w-6" />
-              </div>
-              <h3 className="mb-2 text-lg font-semibold text-zinc-900 dark:text-white">Token efficient</h3>
-              <p className="text-zinc-600 dark:text-zinc-400">
-                CLI approach, not MCP. Load only what you need to keep context small.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="bg-zinc-100 px-6 py-20 dark:bg-zinc-900">
-        <div className="mx-auto max-w-5xl">
-          <div className="mb-12 text-center">
-            <h2 className="text-3xl font-bold text-zinc-900 sm:text-4xl dark:text-white">
-              Get up and running in 30 seconds
-            </h2>
-            <p className="mt-4 text-lg text-zinc-600 dark:text-zinc-400">No configuration files. No lengthy setups.</p>
-          </div>
-
-          <div className="overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-950 shadow-2xl">
-            <div className="flex items-center gap-2 border-b border-zinc-800 bg-zinc-900/50 px-4 py-3">
-              <div className="h-3 w-3 rounded-full bg-red-500" />
-              <div className="h-3 w-3 rounded-full bg-yellow-500" />
-              <div className="h-3 w-3 rounded-full bg-green-500" />
-              <span className="ml-2 text-xs font-medium text-zinc-500">bash</span>
-            </div>
-            <div className="overflow-x-auto p-6 font-mono text-sm sm:p-8 sm:text-base">
-              <pre className="text-zinc-300">
-                <code>
-                  <span className="text-zinc-500"># 1. Extract credentials from your Slack desktop app</span>
-                  {'\n'}
-                  <span className="text-purple-400">agent-slack</span> auth extract
-                  {'\n\n'}
-                  <span className="text-zinc-500"># 2. See your workspace at a glance</span>
-                  {'\n'}
-                  <span className="text-purple-400">agent-slack</span> snapshot --pretty
-                  {'\n\n'}
-                  <span className="text-zinc-500"># 3. Send a message</span>
-                  {'\n'}
-                  <span className="text-purple-400">agent-slack</span> message send general{' '}
-                  <span className="text-green-400">&quot;Hello from the CLI!&quot;</span>
-                </code>
-              </pre>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="px-6 py-20">
+      {/* ================================================================
+          2. HERO (Gradient text + glass CTAs)
+          ================================================================ */}
+      <section className="relative z-10 px-4 pt-36 pb-20 sm:px-6 sm:pt-44 sm:pb-24">
         <div className="mx-auto max-w-4xl text-center">
-          <h2 className="mb-12 text-3xl font-bold text-zinc-900 dark:text-white">Supported Platforms</h2>
-          <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-5">
-            <Link
-              href="/docs/cli/slack"
-              className="flex flex-col items-center rounded-2xl bg-white p-8 shadow-sm ring-1 ring-zinc-200 transition-all hover:shadow-md hover:ring-zinc-300 dark:bg-zinc-900 dark:ring-zinc-800 dark:hover:ring-zinc-700"
-            >
-              <div className="mb-4">
-                <SlackIcon className="h-12 w-12" />
-              </div>
-              <h3 className="text-xl font-bold text-zinc-900 dark:text-white">Slack</h3>
-              <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">Full messaging and thread support</p>
-            </Link>
-            <Link
-              href="/docs/cli/discord"
-              className="flex flex-col items-center rounded-2xl bg-white p-8 shadow-sm ring-1 ring-zinc-200 transition-all hover:shadow-md hover:ring-zinc-300 dark:bg-zinc-900 dark:ring-zinc-800 dark:hover:ring-zinc-700"
-            >
-              <div className="mb-4">
-                <DiscordIcon className="h-12 w-12" />
-              </div>
-              <h3 className="text-xl font-bold text-zinc-900 dark:text-white">Discord</h3>
-              <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">Guilds, channels, and DMs</p>
-            </Link>
-            <Link
-              href="/docs/cli/teams"
-              className="flex flex-col items-center rounded-2xl bg-white p-8 shadow-sm ring-1 ring-zinc-200 transition-all hover:shadow-md hover:ring-zinc-300 dark:bg-zinc-900 dark:ring-zinc-800 dark:hover:ring-zinc-700"
-            >
-              <div className="mb-4">
-                <TeamsIcon className="h-12 w-12" />
-              </div>
-              <h3 className="text-xl font-bold text-zinc-900 dark:text-white">Teams</h3>
-              <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">Microsoft Teams support</p>
-            </Link>
-            <Link
-              href="/docs/cli/telegram"
-              className="flex flex-col items-center rounded-2xl bg-white p-8 shadow-sm ring-1 ring-zinc-200 transition-all hover:shadow-md hover:ring-zinc-300 dark:bg-zinc-900 dark:ring-zinc-800 dark:hover:ring-zinc-700"
-            >
-              <div className="mb-4">
-                <svg viewBox="0 0 128 128" fill="currentColor" className="h-12 w-12">
-                  <title>Telegram icon</title>
-                  <path
-                    d="M64 0C28.7 0 0 28.7 0 64s28.7 64 64 64 64-28.7 64-64S99.3 0 64 0zm29.3 43.6L82 93.2c-.7 3.1-2.5 3.8-5.1 2.4l-14.1-10.4-6.8 6.6c-.8.8-1.4 1.4-2.8 1.4l1-14.3 25.8-23.3c1.1-1 -.2-1.6-1.8-.6L44.5 73.1l-13.8-4.3c-3-.9-3-3 .6-4.4l54-20.8c2.5-.9 4.7.6 3.9 4.4z"
-                    fill="#2AABEE"
-                  />
-                </svg>
-              </div>
-              <h3 className="text-xl font-bold text-zinc-900 dark:text-white">Telegram</h3>
-              <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">TDLib-powered messaging</p>
-            </Link>
-            <Link
-              href="/docs/cli/channeltalk"
-              className="flex flex-col items-center rounded-2xl bg-white p-8 shadow-sm ring-1 ring-zinc-200 transition-all hover:shadow-md hover:ring-zinc-300 dark:bg-zinc-900 dark:ring-zinc-800 dark:hover:ring-zinc-700"
-            >
-              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-indigo-500 text-xl font-bold text-white">
-                CT
-              </div>
-              <h3 className="text-xl font-bold text-zinc-900 dark:text-white">Channel Talk</h3>
-              <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">Beta — zero-config support</p>
-            </Link>
+          {/* Badge */}
+          <div className="inline-flex items-center gap-2 rounded-full border border-zinc-200/40 bg-zinc-50/80 px-4 py-1.5 font-mono text-xs tracking-wide text-zinc-600 backdrop-blur-sm dark:border-white/[0.06] dark:bg-white/[0.03] dark:text-zinc-400">
+            <span className="size-2 animate-pulse rounded-full bg-emerald-500" />
+            open source
           </div>
-        </div>
-      </section>
 
-      <section className="px-6 pt-10 pb-32 text-center">
-        <div className="mx-auto max-w-3xl rounded-3xl bg-zinc-900 px-6 py-16 text-center shadow-2xl dark:bg-zinc-100">
-          <h2 className="text-3xl font-bold text-white sm:text-4xl dark:text-black">Ready to empower your agent?</h2>
-          <p className="mx-auto mt-4 max-w-xl text-zinc-300 dark:text-zinc-600">
-            Start using Agent Messenger today. It&apos;s free and open source.
+          {/* Headline with gradient text */}
+          <h1 className="mt-8 text-4xl font-bold tracking-tight sm:text-5xl lg:text-6xl">
+            <span className="bg-gradient-to-br from-zinc-900 to-zinc-500 bg-clip-text text-transparent dark:from-white dark:to-zinc-400">
+              Your agent messages as you — not as a bot
+            </span>
+          </h1>
+
+          {/* Subtitle */}
+          <p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-zinc-600 dark:text-zinc-400">
+            One CLI for Slack, Discord, Teams, Telegram, WhatsApp, and Channel Talk.
+            Credentials extracted from desktop apps or authenticated in seconds — no API keys, no OAuth, no admin approval.
           </p>
-          <div className="mt-8 flex justify-center gap-4">
+
+          {/* CTAs with glass treatment in dark mode */}
+          <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
             <Link
               href="/docs"
-              className="rounded-lg bg-white px-8 py-3 font-semibold text-black transition-colors hover:bg-zinc-200 dark:bg-black dark:text-white dark:hover:bg-zinc-800"
+              className="inline-flex items-center justify-center rounded-xl bg-zinc-900 px-6 py-3 text-sm font-medium text-white transition-all duration-300 hover:bg-zinc-800 dark:border dark:border-white/15 dark:bg-white/10 dark:backdrop-blur-xl dark:hover:bg-white/15 dark:hover:shadow-[0_0_30px_-5px_rgba(139,92,246,0.2)]"
             >
-              Read the Docs
+              Get Started
             </Link>
-            <Link
-              href="/docs/quick-start"
-              className="rounded-lg border border-zinc-700 bg-transparent px-8 py-3 font-medium text-white transition-colors hover:bg-zinc-800 dark:border-zinc-300 dark:text-black dark:hover:bg-zinc-200"
+            <a
+              href="https://github.com/devxoul/agent-messenger"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center justify-center rounded-xl border border-zinc-300 px-6 py-3 text-sm font-medium text-zinc-700 transition-all duration-300 hover:bg-zinc-50 dark:border-white/[0.06] dark:text-zinc-300 dark:hover:border-white/15 dark:hover:bg-white/[0.05]"
             >
-              Quick Start
-            </Link>
+              View on GitHub
+            </a>
+          </div>
+
+          <div className="mx-auto mt-14 max-w-2xl text-left">
+            <PlatformTerminal />
           </div>
         </div>
       </section>
 
-      <footer className="border-t border-zinc-200 bg-white py-12 text-center text-sm text-zinc-500 dark:border-zinc-800 dark:bg-black dark:text-zinc-400">
-        <p>© {new Date().getFullYear()} Agent Messenger. Released under the MIT License.</p>
+      {/* ================================================================
+          3. TRUST / PLATFORM BAR (Platform pills with brand glow)
+          ================================================================ */}
+      <section className="relative z-10 border-y border-zinc-100/50 px-4 py-16 sm:px-6 dark:border-white/[0.04]">
+        <div className="mx-auto max-w-5xl text-center">
+          <p className="font-mono text-xs uppercase tracking-widest text-zinc-400 dark:text-zinc-600">
+            Works with the platforms your team already uses
+          </p>
+          <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+            {PLATFORMS.map((p) => (
+              <Link
+                key={p.name}
+                href={p.href}
+                className="group relative flex items-center gap-3 rounded-full border border-zinc-200/40 bg-white/70 px-5 py-3 backdrop-blur-xl transition-all duration-300 hover:border-zinc-300/60 dark:border-white/[0.06] dark:bg-white/[0.04] dark:hover:border-white/15"
+              >
+                {/* Brand glow on hover */}
+                <div
+                  className="absolute inset-0 -z-10 rounded-full opacity-0 transition-opacity duration-300 group-hover:opacity-100"
+                  style={{ boxShadow: `0 0 40px -10px ${p.glowColor}` }}
+                />
+                <div className="size-6">
+                  <p.Icon />
+                </div>
+                <span className="font-mono text-xs font-medium text-zinc-600 transition-colors duration-300 group-hover:text-zinc-900 dark:text-zinc-400 dark:group-hover:text-zinc-200">
+                  {p.name}
+                </span>
+              </Link>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ================================================================
+          4. WHY AGENT MESSENGER? (Glass cards)
+          ================================================================ */}
+      <section className="relative z-10 px-4 py-20 sm:px-6 sm:py-24">
+        <div className="mx-auto max-w-5xl">
+          <div className="text-center">
+            <p className="font-mono text-xs font-medium uppercase tracking-widest text-blue-600 dark:text-blue-400">Why Agent Messenger?</p>
+            <h2 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">
+              You shouldn&apos;t need a bot token to send a message
+            </h2>
+          </div>
+
+          <div className="mt-14 grid grid-cols-1 gap-6 md:grid-cols-2">
+            {/* The Problem */}
+            <div className="rounded-2xl border border-zinc-200/40 bg-white/60 p-8 backdrop-blur-xl transition-all duration-300 hover:border-zinc-300/60 hover:shadow-lg dark:border-white/[0.06] dark:bg-white/[0.03] dark:hover:border-white/15 dark:hover:shadow-[0_0_40px_-15px_rgba(139,92,246,0.15)]">
+              <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-red-50 px-3 py-1 font-mono text-xs font-medium uppercase tracking-wider text-red-600 dark:bg-red-950/50 dark:text-red-400">
+                <span className="size-1.5 rounded-full bg-red-500" />
+                Problem
+              </div>
+              <p className="leading-relaxed text-zinc-600 dark:text-zinc-400">
+                Every platform gates API access behind OAuth apps that need admin approval — days of waiting just to send a message.
+                And even then, your agent is a <strong className="text-zinc-900 dark:text-zinc-100">bot</strong>, not you. Different name, different permissions, different context.
+              </p>
+            </div>
+
+            {/* The Solution */}
+            <div className="rounded-2xl border border-zinc-200/40 bg-white/60 p-8 backdrop-blur-xl transition-all duration-300 hover:border-zinc-300/60 hover:shadow-lg dark:border-white/[0.06] dark:bg-white/[0.03] dark:hover:border-white/15 dark:hover:shadow-[0_0_40px_-15px_rgba(139,92,246,0.15)]">
+              <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1 font-mono text-xs font-medium uppercase tracking-wider text-emerald-600 dark:bg-emerald-950/50 dark:text-emerald-400">
+                <span className="size-1.5 rounded-full bg-emerald-500" />
+                Solution
+              </div>
+              <p className="leading-relaxed text-zinc-600 dark:text-zinc-400">
+                Agent Messenger reads session tokens from your Slack, Discord, or Teams desktop app — zero config.
+                Telegram and WhatsApp authenticate with a one-time phone or pairing code.
+                Either way, your agent operates <strong className="text-zinc-900 dark:text-zinc-100">as you</strong> — same name, same permissions, same context.
+              </p>
+            </div>
+          </div>
+
+          <p className="mt-6 text-center text-sm text-zinc-400 dark:text-zinc-600">
+            Credentials are stored locally in ~/.config/agent-messenger/ with restricted permissions. Nothing is sent to third-party servers.
+          </p>
+        </div>
+      </section>
+
+      {/* ================================================================
+          5. FEATURES GRID (Glass cards with hover glow)
+          ================================================================ */}
+      <section className="relative z-10 border-t border-zinc-100/50 px-4 py-20 sm:px-6 sm:py-24 dark:border-white/[0.04]">
+        <div className="mx-auto max-w-5xl">
+          <div className="text-center">
+            <p className="font-mono text-xs font-medium uppercase tracking-widest text-blue-600 dark:text-blue-400">Features</p>
+            <h2 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">
+              Built for agents, not humans
+            </h2>
+          </div>
+
+          <div className="mt-14 grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3">
+            {FEATURES.map((f) => (
+              <div
+                key={f.title}
+                className="group rounded-2xl border border-zinc-200/40 bg-white/60 p-6 backdrop-blur-xl transition-all duration-300 hover:border-zinc-300/60 hover:shadow-lg dark:border-white/[0.06] dark:bg-white/[0.03] dark:hover:border-white/15 dark:hover:shadow-[0_0_40px_-15px_rgba(139,92,246,0.15)]"
+              >
+                <div className="flex size-10 items-center justify-center rounded-xl bg-blue-50 text-blue-600 transition-colors duration-300 dark:bg-blue-950/50 dark:text-blue-400">
+                  {f.icon}
+                </div>
+                <h3 className="mt-4 font-mono text-sm font-semibold text-zinc-900 dark:text-zinc-100">{f.title}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-zinc-600 dark:text-zinc-400">{f.description}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ================================================================
+          6. HOW IT WORKS (Vertical timeline with glass nodes + cards)
+          ================================================================ */}
+      <section className="relative z-10 border-t border-zinc-100/50 px-4 py-20 sm:px-6 sm:py-24 dark:border-white/[0.04]">
+        <div className="mx-auto max-w-3xl">
+          <div className="text-center">
+            <p className="font-mono text-xs font-medium uppercase tracking-widest text-blue-600 dark:text-blue-400">How It Works</p>
+            <h2 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">
+              Running in under a minute
+            </h2>
+          </div>
+
+          {/* Vertical Timeline */}
+          <div className="relative mt-14">
+            {/* Gradient Timeline Line */}
+            <div className="absolute left-[27px] top-8 bottom-8 w-px bg-gradient-to-b from-violet-300/50 via-blue-300/30 to-transparent dark:from-violet-500/30 dark:via-blue-500/20 dark:to-transparent" />
+
+            <div className="space-y-8">
+              {HOW_IT_WORKS.map((step) => (
+                <div key={step.step} className="relative flex gap-6">
+                  {/* Numbered Node */}
+                  <div className="relative z-10 flex-shrink-0">
+                    <div className="flex size-[54px] items-center justify-center rounded-2xl border border-zinc-200/60 bg-white font-mono text-xs font-bold text-zinc-400 shadow-sm backdrop-blur-xl transition-all duration-300 dark:border-white/10 dark:bg-white/[0.05] dark:text-white/50 dark:shadow-none">
+                      {String(step.step).padStart(2, '0')}
+                    </div>
+                  </div>
+
+                  {/* Content Card */}
+                  <div className="flex-1 rounded-2xl border border-zinc-200/40 bg-white/60 p-5 backdrop-blur-xl transition-all duration-300 hover:border-zinc-300/60 dark:border-white/[0.06] dark:bg-white/[0.03] dark:hover:border-white/15">
+                    <h3 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">
+                      {step.title}
+                    </h3>
+                    <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+                      {step.description}
+                    </p>
+                    <code className="mt-3 inline-block rounded-lg border border-zinc-100 bg-zinc-50 px-3 py-1.5 font-mono text-xs text-blue-600 dark:border-white/[0.04] dark:bg-white/[0.04] dark:text-blue-400">
+                      {step.code}
+                    </code>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ================================================================
+          7. USE CASES (Quote blocks with glass background)
+          ================================================================ */}
+      <section className="relative z-10 border-t border-zinc-100/50 px-4 py-20 sm:px-6 sm:py-24 dark:border-white/[0.04]">
+        <div className="mx-auto max-w-5xl">
+          <div className="text-center">
+            <p className="font-mono text-xs font-medium uppercase tracking-widest text-blue-600 dark:text-blue-400">Use Cases</p>
+            <h2 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">
+              What agents build with this
+            </h2>
+          </div>
+
+          <div className="mt-14 grid grid-cols-1 gap-4 md:grid-cols-2">
+            {USE_CASES.map((uc) => (
+              <div
+                key={uc}
+                className="rounded-r-xl border-l-4 border-blue-500 bg-white/60 px-5 py-4 backdrop-blur-xl transition-all duration-300 dark:bg-white/[0.02]"
+              >
+                <p className="text-sm leading-relaxed text-zinc-600 italic dark:text-zinc-400">
+                  &ldquo;{uc}&rdquo;
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ================================================================
+          8. WHY CLI, NOT MCP? (Glass comparison cards)
+          ================================================================ */}
+      <section className="relative z-10 border-t border-zinc-100/50 px-4 py-20 sm:px-6 sm:py-24 dark:border-white/[0.04]">
+        <div className="mx-auto max-w-4xl">
+          <div className="text-center">
+            <p className="font-mono text-xs font-medium uppercase tracking-widest text-blue-600 dark:text-blue-400">Philosophy</p>
+            <h2 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">
+              Why CLI, not MCP?
+            </h2>
+          </div>
+
+          <div className="mt-14 grid grid-cols-1 gap-6 md:grid-cols-2">
+            {/* MCP */}
+            <div className="rounded-2xl border border-zinc-200/40 bg-white/60 p-8 backdrop-blur-xl transition-all duration-300 dark:border-white/[0.06] dark:bg-white/[0.03]">
+              <span className="inline-block rounded-md bg-zinc-100 px-3 py-1 font-mono text-sm font-semibold text-zinc-500 dark:bg-white/[0.06] dark:text-zinc-400">
+                MCP
+              </span>
+              <ul className="mt-6 space-y-4">
+                {[
+                  'Requires a running server process per integration',
+                  'Registers all tools upfront — larger context window footprint',
+                  'Additional protocol layer between agent and action',
+                ].map((point) => (
+                  <li key={point} className="flex items-start gap-3 text-sm text-zinc-500 dark:text-zinc-500">
+                    <span className="mt-0.5 text-red-400 dark:text-red-500">✕</span>
+                    {point}
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* CLI */}
+            <div className="rounded-2xl border border-zinc-200/40 bg-white/60 p-8 backdrop-blur-xl transition-all duration-300 hover:border-zinc-300/60 hover:shadow-lg dark:border-white/[0.06] dark:bg-white/[0.03] dark:hover:border-white/15 dark:hover:shadow-[0_0_40px_-15px_rgba(139,92,246,0.15)]">
+              <span className="inline-block rounded-md bg-blue-50 px-3 py-1 font-mono text-sm font-semibold text-blue-600 dark:bg-blue-950/50 dark:text-blue-400">
+                Agent Skills + CLI
+              </span>
+              <ul className="mt-6 space-y-4">
+                {[
+                  'Agent learns one skill, calls one CLI command',
+                  'Minimal token footprint — only the tool it needs',
+                  'Structured JSON output, compact session references',
+                ].map((point) => (
+                  <li key={point} className="flex items-start gap-3 text-sm text-zinc-700 dark:text-zinc-300">
+                    <span className="mt-0.5 text-emerald-500">✓</span>
+                    {point}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ================================================================
+          9. PLATFORM FEATURE MATRIX (Glass table)
+          ================================================================ */}
+      <section className="relative z-10 border-t border-zinc-100/50 px-4 py-20 sm:px-6 sm:py-24 dark:border-white/[0.04]">
+        <div className="mx-auto max-w-5xl">
+          <div className="text-center">
+            <p className="font-mono text-xs font-medium uppercase tracking-widest text-blue-600 dark:text-blue-400">Compatibility</p>
+            <h2 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">
+              Platform capabilities
+            </h2>
+          </div>
+
+          <div className="mt-14 overflow-x-auto rounded-2xl border border-zinc-200/40 bg-white/50 backdrop-blur-xl dark:border-white/[0.06] dark:bg-white/[0.02]">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-zinc-200/40 dark:border-white/[0.06]">
+                  <th className="px-4 py-3 text-left font-mono text-xs font-semibold tracking-wide text-zinc-500 uppercase dark:text-zinc-500">
+                    Feature
+                  </th>
+                  {PLATFORM_COLUMNS.map((col) => (
+                    <th
+                      key={col}
+                      className="px-4 py-3 text-center font-mono text-xs font-semibold tracking-wide text-zinc-500 uppercase whitespace-nowrap dark:text-zinc-500"
+                    >
+                      {col}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {CAPABILITIES.map((row, i) => (
+                  <tr
+                    key={row.feature}
+                    className={
+                      i % 2 === 0
+                        ? 'bg-white/30 dark:bg-white/[0.01]'
+                        : 'bg-zinc-50/30 dark:bg-transparent'
+                    }
+                  >
+                    <td className="px-4 py-3 font-medium text-zinc-700 whitespace-nowrap dark:text-zinc-300">
+                      {row.feature}
+                    </td>
+                    {PLATFORM_KEYS.map((key) => (
+                      <td key={key} className="px-4 py-3 text-center">
+                        {row[key] ? (
+                          <span className="font-mono text-emerald-500">✓</span>
+                        ) : (
+                          <span className="text-zinc-300 dark:text-zinc-700">—</span>
+                        )}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p className="mt-6 text-center text-sm text-zinc-500 dark:text-zinc-400">
+            Slack goes deepest — scheduled messages, ephemeral sends, file downloads, real-time events SDK, activity feed, drafts, saved items, reminders, pins, and bookmarks.
+          </p>
+        </div>
+      </section>
+
+      {/* ================================================================
+          10. INSTALL CTA (Glass card with glow)
+          ================================================================ */}
+
+      <section className="relative z-10 border-t border-zinc-100/50 px-4 py-20 sm:px-6 sm:py-24 dark:border-white/[0.04]">
+        <div className="mx-auto max-w-2xl">
+          <div className="relative overflow-hidden rounded-3xl border border-zinc-200/40 bg-white/60 p-10 text-center backdrop-blur-xl dark:border-white/[0.08] dark:bg-white/[0.03]">
+            {/* Subtle CTA glow behind */}
+            <div className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_center,rgba(139,92,246,0.08)_0%,transparent_60%)] opacity-0 dark:opacity-100" />
+
+          <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
+            Install once. Message everywhere.
+          </h2>
+
+            <div className="mx-auto mt-10 max-w-lg text-left">
+              <TerminalBlock
+                copyText="npm install -g agent-messenger"
+              >
+                <span className="text-zinc-400 dark:text-zinc-500">$ </span>
+                <span className="text-zinc-800 dark:text-zinc-100">npm install -g agent-messenger</span>
+              </TerminalBlock>
+            </div>
+
+            <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
+              <Link
+                href="/docs"
+                className="inline-flex items-center justify-center rounded-xl bg-zinc-900 px-6 py-3 text-sm font-medium text-white transition-all duration-300 hover:bg-zinc-800 dark:border dark:border-white/15 dark:bg-white/10 dark:backdrop-blur-xl dark:hover:bg-white/15"
+              >
+                Read the Docs
+              </Link>
+              <a
+                href="https://github.com/devxoul/agent-messenger"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center justify-center rounded-xl border border-zinc-300 px-6 py-3 text-sm font-medium text-zinc-700 transition-all duration-300 hover:bg-white dark:border-white/[0.06] dark:text-zinc-300 dark:hover:border-white/15 dark:hover:bg-white/[0.05]"
+              >
+                View on GitHub
+              </a>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ================================================================
+          11. FOOTER (Glass top border)
+          ================================================================ */}
+      <footer className="relative z-10 border-t border-zinc-200/40 px-4 py-12 dark:border-white/[0.06]">
+        <div className="mx-auto max-w-5xl text-center">
+          <div className="flex items-center justify-center gap-6 font-mono text-xs text-zinc-400 dark:text-zinc-600">
+            <Link href="/docs" className="transition-colors duration-300 hover:text-zinc-700 dark:hover:text-zinc-300">
+              docs
+            </Link>
+            <a
+              href="https://github.com/devxoul/agent-messenger"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="transition-colors duration-300 hover:text-zinc-700 dark:hover:text-zinc-300"
+            >
+              github
+            </a>
+            <a
+              href="https://www.npmjs.com/package/agent-messenger"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="transition-colors duration-300 hover:text-zinc-700 dark:hover:text-zinc-300"
+            >
+              npm
+            </a>
+          </div>
+          <p className="mt-6 font-mono text-xs text-zinc-400 dark:text-zinc-600">
+            &copy; {new Date().getFullYear()} agent-messenger · MIT
+          </p>
+        </div>
       </footer>
     </div>
   )
