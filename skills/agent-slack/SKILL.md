@@ -349,6 +349,7 @@ agent-slack activity list --types thread_reply,message_reaction
 # List saved items
 agent-slack saved list
 agent-slack saved list --limit 10
+agent-slack saved list --cursor <next_cursor>
 ```
 
 ### Drafts Commands
@@ -356,7 +357,8 @@ agent-slack saved list --limit 10
 ```bash
 # List all drafts
 agent-slack drafts list
-agent-slack drafts list --pretty
+agent-slack drafts list --limit 10
+agent-slack drafts list --cursor <next_cursor>
 ```
 
 ### Channel Sections Commands

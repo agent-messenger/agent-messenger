@@ -52,8 +52,15 @@ agent-slack workspace switch <workspace-id>
 # Show current workspace
 agent-slack workspace current
 
+# Remove a workspace
+agent-slack workspace remove <workspace-id>
+
 # Check auth status
 agent-slack auth status
+
+# Logout from a workspace (defaults to current)
+agent-slack auth logout
+agent-slack auth logout <workspace-id>
 ```
 
 ## Commands
@@ -71,6 +78,14 @@ agent-slack message send general "Reply" --thread <ts>
 # List messages
 agent-slack message list <channel>
 agent-slack message list general --limit 50
+
+# Get a single message by timestamp
+agent-slack message get <channel> <ts>
+agent-slack message get general 1234567890.123456
+
+# Get thread replies
+agent-slack message replies <channel> <thread_ts>
+agent-slack message replies general 1234567890.123456 --limit 50
 
 # Search messages across workspace
 agent-slack message search <query>
@@ -92,7 +107,7 @@ agent-slack message scheduled-list
 agent-slack message scheduled-list --channel general
 
 # Delete a scheduled message
-agent-slack message scheduled-delete <channel> <id>
+agent-slack message scheduled-delete <channel> <scheduled-message-id>
 
 # Send an ephemeral message (visible to one user only)
 agent-slack message ephemeral <channel> <user-id> <text>
@@ -107,11 +122,25 @@ agent-slack message permalink <channel> <ts>
 # List channels (excludes archived by default)
 agent-slack channel list
 agent-slack channel list --type public
+agent-slack channel list --type private
+agent-slack channel list --type dm
 agent-slack channel list --include-archived
 
 # Get channel info
 agent-slack channel info <channel>
 agent-slack channel info general
+
+# Get channel message history (alias for message list)
+agent-slack channel history <channel>
+agent-slack channel history general --limit 100
+
+# Open a DM channel with a user (returns channel ID)
+agent-slack channel open <user_id>
+agent-slack channel open U0ABC123,U0DEF456
+
+# List users in a channel
+agent-slack channel users <channel>
+agent-slack channel users general --include-bots
 
 # Create a channel
 agent-slack channel create <name>
@@ -249,6 +278,7 @@ agent-slack unread mark <channel> <ts>
 # List message drafts
 agent-slack drafts list
 agent-slack drafts list --limit 10
+agent-slack drafts list --cursor <next_cursor>
 ```
 
 ### Saved Items Commands
@@ -257,6 +287,7 @@ agent-slack drafts list --limit 10
 # List saved items
 agent-slack saved list
 agent-slack saved list --limit 10
+agent-slack saved list --cursor <next_cursor>
 ```
 
 ### Sections Commands

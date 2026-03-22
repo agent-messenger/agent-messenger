@@ -1,6 +1,6 @@
 # Agent Messenger - Claude Code Plugin
 
-Messaging platform interaction skills for AI agents and Claude Code. Supports Slack, Discord, Microsoft Teams, Telegram, and Channel Talk (beta).
+Messaging platform interaction skills for AI agents and Claude Code. Supports Slack, Discord, Microsoft Teams, Telegram, WhatsApp, and Channel Talk (beta).
 
 ## Installation
 
@@ -27,8 +27,15 @@ Enables AI agents to interact with messaging platforms through CLI interfaces:
 - **Send messages** to channels and threads
 - **Read channels** and message history
 - **Manage reactions** (add/remove/list)
-- **Upload files** to channels
+- **Upload & download files**
 - **Search messages** across workspace
+- **Channel management** (create, archive, set topic/purpose, invite, join/leave)
+- **Pins & bookmarks** — pin messages and manage channel bookmarks
+- **Scheduled messages** — schedule, list, and cancel
+- **Reminders** — create, list, complete, and delete
+- **User profiles** — lookup, set status, view profiles
+- **Custom emoji** — list workspace emoji
+- **Activity feed, drafts, saved items, unread tracking**
 - **Multi-workspace support** with easy switching
 
 ### Discord (`agent-discord`)
@@ -50,7 +57,8 @@ Enables AI agents to interact with messaging platforms through CLI interfaces:
 ### Slack Bot (`agent-slackbot`)
 - **Send messages** using bot tokens (xoxb-)
 - **Read channels** and message history
-- **Manage reactions** (add/remove/list)
+- **Manage reactions** (add/remove)
+- **Multi-bot management** with easy switching
 - Designed for **server-side and CI/CD** use cases
 
 ### Discord Bot (`agent-discordbot`)
@@ -67,6 +75,19 @@ Enables AI agents to interact with messaging platforms through CLI interfaces:
 - **Search chats** by name or username
 - **Multi-account support** with easy switching
 - **Auto-provisions** API credentials via my.telegram.org
+
+### WhatsApp (`agent-whatsapp`)
+- **Send messages** to chats and groups
+- **Read chats** and message history
+- **Search chats** by name across conversations
+- **Manage reactions** (add/remove)
+- **Pairing code auth** — scan-free authentication
+- **Multi-account support** with easy switching
+
+### WhatsApp Bot (`agent-whatsappbot`)
+- **Send messages** using Cloud API credentials
+- **Template messaging** for outbound notifications
+- Designed for **server-side and CI/CD** use cases
 
 ### Channel Talk (`agent-channeltalk`) — Beta
 - **Send messages** to groups, user chats, and direct chats
@@ -203,5 +224,7 @@ agent-discord file upload <channel-id> ./report.pdf
 - [Discord Bot Skill Documentation](https://github.com/devxoul/agent-messenger/blob/main/skills/agent-discordbot/SKILL.md)
 - [Teams Skill Documentation](https://github.com/devxoul/agent-messenger/blob/main/skills/agent-teams/SKILL.md)
 - [Telegram Skill Documentation](https://github.com/devxoul/agent-messenger/blob/main/skills/agent-telegram/SKILL.md)
+- [WhatsApp Skill Documentation](https://github.com/devxoul/agent-messenger/blob/main/skills/agent-whatsapp/SKILL.md)
+- [WhatsApp Bot Skill Documentation](https://github.com/devxoul/agent-messenger/blob/main/skills/agent-whatsappbot/SKILL.md)
 - [Channel Talk Skill Documentation](https://github.com/devxoul/agent-messenger/blob/main/skills/agent-channeltalk/SKILL.md)
 - [Channel Talk Bot Skill Documentation](https://github.com/devxoul/agent-messenger/blob/main/skills/agent-channeltalkbot/SKILL.md)

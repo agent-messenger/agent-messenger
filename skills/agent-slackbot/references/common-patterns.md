@@ -178,6 +178,58 @@ send_with_retry() {
 send_with_retry "C0ACZKTDDC0" "Important notification!"
 ```
 
+## Pattern 7: Multi-Bot Switching
+
+**Use case**: Use different bots for different tasks
+
+```bash
+#!/bin/bash
+
+# Set up multiple bots
+agent-slackbot auth set xoxb-deploy-token --bot deploy --name "Deploy Bot"
+agent-slackbot auth set xoxb-alert-token --bot alert --name "Alert Bot"
+
+# List all configured bots
+agent-slackbot auth list
+
+# Switch active bot
+agent-slackbot auth use deploy
+
+# Or use --bot flag for a single command without switching
+agent-slackbot message send C0ACZKTDDC0 "Deploy starting..." --bot deploy
+agent-slackbot message send C0ACZKTDDC0 "Error rate spike!" --bot alert
+
+# Remove a bot you no longer need
+agent-slackbot auth remove alert
+```
+
+**When to use**: Separate bots for deployment, alerting, support, etc.
+
+## Pattern 8: Get a Single Message
+
+**Use case**: Retrieve a specific message by timestamp for processing
+
+```bash
+#!/bin/bash
+
+CHANNEL="C0ACZKTDDC0"
+MESSAGE_TS="1234567890.123456"
+
+# Get the exact message
+MSG=$(agent-slackbot message get "$CHANNEL" "$MESSAGE_TS")
+TEXT=$(echo "$MSG" | jq -r '.text // ""')
+USER=$(echo "$MSG" | jq -r '.user // ""')
+
+echo "Message from $USER: $TEXT"
+
+# Get thread replies for that message
+REPLIES=$(agent-slackbot message replies "$CHANNEL" "$MESSAGE_TS" --limit 50)
+REPLY_COUNT=$(echo "$REPLIES" | jq 'length')
+echo "Thread has $REPLY_COUNT replies"
+```
+
+**When to use**: Fetching specific messages for processing, reading full threads.
+
 ## Best Practices
 
 ### 1. Use Channel IDs, Not Names
