@@ -165,6 +165,25 @@ async function downloadAction(
   }
 }
 
+async function deleteFileAction(fileId: string, options: { pretty?: boolean }): Promise<void> {
+  try {
+    const credManager = new CredentialManager()
+    const workspace = await credManager.getWorkspace()
+
+    if (!workspace) {
+      console.log(formatOutput({ error: 'No current workspace set. Run "auth extract" first.' }, options.pretty))
+      process.exit(1)
+    }
+
+    const client = new SlackClient(workspace.token, workspace.cookie)
+    await client.deleteFile(fileId)
+
+    console.log(formatOutput({ success: true, file_id: fileId }, options.pretty))
+  } catch (error) {
+    handleError(error as Error)
+  }
+}
+
 export const fileCommand = new Command('file')
   .description('File commands')
   .addCommand(
@@ -197,4 +216,11 @@ export const fileCommand = new Command('file')
       .argument('[output-path]', 'output file path')
       .option('--pretty', 'Pretty print JSON output')
       .action(downloadAction),
+  )
+  .addCommand(
+    new Command('delete')
+      .description('Delete a file')
+      .argument('<file>', 'file ID')
+      .option('--pretty', 'Pretty print JSON output')
+      .action(deleteFileAction),
   )

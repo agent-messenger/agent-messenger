@@ -253,6 +253,126 @@ async function repliesAction(
   }
 }
 
+async function scheduleAction(
+  channelInput: string,
+  text: string,
+  postAt: string,
+  options: { thread?: string; pretty?: boolean },
+): Promise<void> {
+  try {
+    const credManager = new CredentialManager()
+    const workspace = await credManager.getWorkspace()
+
+    if (!workspace) {
+      console.log(formatOutput({ error: 'No current workspace set. Run "auth extract" first.' }, options.pretty))
+      process.exit(1)
+    }
+
+    const postAtTimestamp = Number(postAt)
+    if (!Number.isInteger(postAtTimestamp) || postAtTimestamp <= 0) {
+      console.log(formatOutput({ error: 'Invalid post-at value. Use a Unix timestamp in seconds (e.g. 1700000000).' }, options.pretty))
+      process.exit(1)
+    }
+
+    const client = new SlackClient(workspace.token, workspace.cookie)
+    const channel = await client.resolveChannel(channelInput)
+    const scheduled = await client.scheduleMessage(channel, text, postAtTimestamp, options.thread)
+
+    console.log(formatOutput(scheduled, options.pretty))
+  } catch (error) {
+    handleError(error as Error)
+  }
+}
+
+async function scheduledListAction(options: { channel?: string; pretty?: boolean }): Promise<void> {
+  try {
+    const credManager = new CredentialManager()
+    const workspace = await credManager.getWorkspace()
+
+    if (!workspace) {
+      console.log(formatOutput({ error: 'No current workspace set. Run "auth extract" first.' }, options.pretty))
+      process.exit(1)
+    }
+
+    const client = new SlackClient(workspace.token, workspace.cookie)
+    const channel = options.channel ? await client.resolveChannel(options.channel) : undefined
+    const messages = await client.listScheduledMessages(channel)
+
+    console.log(formatOutput(messages, options.pretty))
+  } catch (error) {
+    handleError(error as Error)
+  }
+}
+
+async function scheduledDeleteAction(
+  channelInput: string,
+  scheduledMessageId: string,
+  options: { pretty?: boolean },
+): Promise<void> {
+  try {
+    const credManager = new CredentialManager()
+    const workspace = await credManager.getWorkspace()
+
+    if (!workspace) {
+      console.log(formatOutput({ error: 'No current workspace set. Run "auth extract" first.' }, options.pretty))
+      process.exit(1)
+    }
+
+    const client = new SlackClient(workspace.token, workspace.cookie)
+    const channel = await client.resolveChannel(channelInput)
+    await client.deleteScheduledMessage(channel, scheduledMessageId)
+
+    console.log(formatOutput({ success: true, channel, scheduled_message_id: scheduledMessageId }, options.pretty))
+  } catch (error) {
+    handleError(error as Error)
+  }
+}
+
+async function ephemeralAction(
+  channelInput: string,
+  user: string,
+  text: string,
+  options: { pretty?: boolean },
+): Promise<void> {
+  try {
+    const credManager = new CredentialManager()
+    const workspace = await credManager.getWorkspace()
+
+    if (!workspace) {
+      console.log(formatOutput({ error: 'No current workspace set. Run "auth extract" first.' }, options.pretty))
+      process.exit(1)
+    }
+
+    const client = new SlackClient(workspace.token, workspace.cookie)
+    const channel = await client.resolveChannel(channelInput)
+    const messageTs = await client.postEphemeral(channel, user, text)
+
+    console.log(formatOutput({ message_ts: messageTs, channel, user }, options.pretty))
+  } catch (error) {
+    handleError(error as Error)
+  }
+}
+
+async function permalinkAction(channelInput: string, ts: string, options: { pretty?: boolean }): Promise<void> {
+  try {
+    const credManager = new CredentialManager()
+    const workspace = await credManager.getWorkspace()
+
+    if (!workspace) {
+      console.log(formatOutput({ error: 'No current workspace set. Run "auth extract" first.' }, options.pretty))
+      process.exit(1)
+    }
+
+    const client = new SlackClient(workspace.token, workspace.cookie)
+    const channel = await client.resolveChannel(channelInput)
+    const permalink = await client.getPermalink(channel, ts)
+
+    console.log(formatOutput({ channel, ts, permalink }, options.pretty))
+  } catch (error) {
+    handleError(error as Error)
+  }
+}
+
 export const messageCommand = new Command('message')
   .description('Message commands')
   .addCommand(
@@ -341,4 +461,50 @@ export const messageCommand = new Command('message')
           pretty: options.pretty,
         })
       }),
+  )
+  .addCommand(
+    new Command('schedule')
+      .description('Schedule a message to be sent later')
+      .argument('<channel>', 'Channel ID or name')
+      .argument('<text>', 'Message text')
+      .argument('<post-at>', 'Unix timestamp for when to send')
+      .option('--thread <ts>', 'Thread timestamp for replies')
+      .option('--pretty', 'Pretty print JSON output')
+      .action((channel: string, text: string, postAt: string, options: any) => {
+        scheduleAction(channel, text, postAt, { thread: options.thread, pretty: options.pretty })
+      }),
+  )
+  .addCommand(
+    new Command('scheduled-list')
+      .description('List scheduled messages')
+      .option('--channel <channel>', 'Filter by channel')
+      .option('--pretty', 'Pretty print JSON output')
+      .action((options: any) => {
+        scheduledListAction({ channel: options.channel, pretty: options.pretty })
+      }),
+  )
+  .addCommand(
+    new Command('scheduled-delete')
+      .description('Delete a scheduled message')
+      .argument('<channel>', 'Channel ID or name')
+      .argument('<scheduled-message-id>', 'Scheduled message ID')
+      .option('--pretty', 'Pretty print JSON output')
+      .action(scheduledDeleteAction),
+  )
+  .addCommand(
+    new Command('ephemeral')
+      .description('Post an ephemeral message visible only to a specific user')
+      .argument('<channel>', 'Channel ID or name')
+      .argument('<user>', 'User ID to show message to')
+      .argument('<text>', 'Message text')
+      .option('--pretty', 'Pretty print JSON output')
+      .action(ephemeralAction),
+  )
+  .addCommand(
+    new Command('permalink')
+      .description('Get a permanent link to a message')
+      .argument('<channel>', 'Channel ID or name')
+      .argument('<ts>', 'Message timestamp')
+      .option('--pretty', 'Pretty print JSON output')
+      .action(permalinkAction),
   )

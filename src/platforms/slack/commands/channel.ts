@@ -173,6 +173,178 @@ async function usersAction(channel: string, options: { includeBots?: boolean; pr
   }
 }
 
+async function createAction(
+  name: string,
+  options: { private?: boolean; pretty?: boolean },
+): Promise<void> {
+  try {
+    const credManager = new CredentialManager()
+    const workspace = await credManager.getWorkspace()
+
+    if (!workspace) {
+      console.log(formatOutput({ error: 'No current workspace set. Run "auth extract" first.' }, options.pretty))
+      process.exit(1)
+    }
+
+    const client = new SlackClient(workspace.token, workspace.cookie)
+    const ch = await client.createChannel(name, options.private)
+
+    console.log(
+      formatOutput(
+        {
+          id: ch.id,
+          name: ch.name,
+          is_private: ch.is_private,
+          is_archived: ch.is_archived,
+          created: ch.created,
+          creator: ch.creator,
+        },
+        options.pretty,
+      ),
+    )
+  } catch (error) {
+    handleError(error as Error)
+  }
+}
+
+async function archiveAction(channel: string, options: { pretty?: boolean }): Promise<void> {
+  try {
+    const credManager = new CredentialManager()
+    const workspace = await credManager.getWorkspace()
+
+    if (!workspace) {
+      console.log(formatOutput({ error: 'No current workspace set. Run "auth extract" first.' }, options.pretty))
+      process.exit(1)
+    }
+
+    const client = new SlackClient(workspace.token, workspace.cookie)
+    channel = await client.resolveChannel(channel)
+    await client.archiveChannel(channel)
+
+    console.log(formatOutput({ success: true, channel }, options.pretty))
+  } catch (error) {
+    handleError(error as Error)
+  }
+}
+
+async function setTopicAction(channel: string, topic: string, options: { pretty?: boolean }): Promise<void> {
+  try {
+    const credManager = new CredentialManager()
+    const workspace = await credManager.getWorkspace()
+
+    if (!workspace) {
+      console.log(formatOutput({ error: 'No current workspace set. Run "auth extract" first.' }, options.pretty))
+      process.exit(1)
+    }
+
+    const client = new SlackClient(workspace.token, workspace.cookie)
+    channel = await client.resolveChannel(channel)
+    const result = await client.setChannelTopic(channel, topic)
+
+    console.log(formatOutput({ channel, topic: result.topic }, options.pretty))
+  } catch (error) {
+    handleError(error as Error)
+  }
+}
+
+async function setPurposeAction(channel: string, purpose: string, options: { pretty?: boolean }): Promise<void> {
+  try {
+    const credManager = new CredentialManager()
+    const workspace = await credManager.getWorkspace()
+
+    if (!workspace) {
+      console.log(formatOutput({ error: 'No current workspace set. Run "auth extract" first.' }, options.pretty))
+      process.exit(1)
+    }
+
+    const client = new SlackClient(workspace.token, workspace.cookie)
+    channel = await client.resolveChannel(channel)
+    const result = await client.setChannelPurpose(channel, purpose)
+
+    console.log(formatOutput({ channel, purpose: result.purpose }, options.pretty))
+  } catch (error) {
+    handleError(error as Error)
+  }
+}
+
+async function inviteAction(channel: string, users: string, options: { pretty?: boolean }): Promise<void> {
+  try {
+    const credManager = new CredentialManager()
+    const workspace = await credManager.getWorkspace()
+
+    if (!workspace) {
+      console.log(formatOutput({ error: 'No current workspace set. Run "auth extract" first.' }, options.pretty))
+      process.exit(1)
+    }
+
+    const client = new SlackClient(workspace.token, workspace.cookie)
+    channel = await client.resolveChannel(channel)
+    const ch = await client.inviteToChannel(channel, users)
+
+    console.log(
+      formatOutput(
+        {
+          id: ch.id,
+          name: ch.name,
+          is_private: ch.is_private,
+        },
+        options.pretty,
+      ),
+    )
+  } catch (error) {
+    handleError(error as Error)
+  }
+}
+
+async function joinAction(channel: string, options: { pretty?: boolean }): Promise<void> {
+  try {
+    const credManager = new CredentialManager()
+    const workspace = await credManager.getWorkspace()
+
+    if (!workspace) {
+      console.log(formatOutput({ error: 'No current workspace set. Run "auth extract" first.' }, options.pretty))
+      process.exit(1)
+    }
+
+    const client = new SlackClient(workspace.token, workspace.cookie)
+    channel = await client.resolveChannel(channel)
+    const ch = await client.joinChannel(channel)
+
+    console.log(
+      formatOutput(
+        {
+          id: ch.id,
+          name: ch.name,
+          is_private: ch.is_private,
+        },
+        options.pretty,
+      ),
+    )
+  } catch (error) {
+    handleError(error as Error)
+  }
+}
+
+async function leaveAction(channel: string, options: { pretty?: boolean }): Promise<void> {
+  try {
+    const credManager = new CredentialManager()
+    const workspace = await credManager.getWorkspace()
+
+    if (!workspace) {
+      console.log(formatOutput({ error: 'No current workspace set. Run "auth extract" first.' }, options.pretty))
+      process.exit(1)
+    }
+
+    const client = new SlackClient(workspace.token, workspace.cookie)
+    channel = await client.resolveChannel(channel)
+    await client.leaveChannel(channel)
+
+    console.log(formatOutput({ success: true, channel }, options.pretty))
+  } catch (error) {
+    handleError(error as Error)
+  }
+}
+
 export const channelCommand = new Command('channel')
   .description('Channel commands')
   .addCommand(
@@ -217,4 +389,57 @@ export const channelCommand = new Command('channel')
       .option('--include-bots', 'Include bot users')
       .option('--pretty', 'Pretty print JSON output')
       .action(usersAction),
+  )
+  .addCommand(
+    new Command('create')
+      .description('Create a new channel')
+      .argument('<name>', 'Channel name')
+      .option('--private', 'Create as private channel')
+      .option('--pretty', 'Pretty print JSON output')
+      .action(createAction),
+  )
+  .addCommand(
+    new Command('archive')
+      .description('Archive a channel')
+      .argument('<channel>', 'Channel ID or name')
+      .option('--pretty', 'Pretty print JSON output')
+      .action(archiveAction),
+  )
+  .addCommand(
+    new Command('set-topic')
+      .description('Set the topic of a channel')
+      .argument('<channel>', 'Channel ID or name')
+      .argument('<topic>', 'New topic text')
+      .option('--pretty', 'Pretty print JSON output')
+      .action(setTopicAction),
+  )
+  .addCommand(
+    new Command('set-purpose')
+      .description('Set the purpose of a channel')
+      .argument('<channel>', 'Channel ID or name')
+      .argument('<purpose>', 'New purpose text')
+      .option('--pretty', 'Pretty print JSON output')
+      .action(setPurposeAction),
+  )
+  .addCommand(
+    new Command('invite')
+      .description('Invite users to a channel')
+      .argument('<channel>', 'Channel ID or name')
+      .argument('<users>', 'Comma-separated user IDs')
+      .option('--pretty', 'Pretty print JSON output')
+      .action(inviteAction),
+  )
+  .addCommand(
+    new Command('join')
+      .description('Join a channel')
+      .argument('<channel>', 'Channel ID or name')
+      .option('--pretty', 'Pretty print JSON output')
+      .action(joinAction),
+  )
+  .addCommand(
+    new Command('leave')
+      .description('Leave a channel')
+      .argument('<channel>', 'Channel ID or name')
+      .option('--pretty', 'Pretty print JSON output')
+      .action(leaveAction),
   )

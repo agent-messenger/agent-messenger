@@ -185,6 +185,24 @@ agent-slack message update <channel> <ts> <new-text>
 
 # Delete a message
 agent-slack message delete <channel> <ts> --force
+
+# Schedule a message (post_at is a Unix timestamp)
+agent-slack message schedule <channel> <text> <post-at>
+agent-slack message schedule general "Friday update" 1700000000
+agent-slack message schedule general "Thread reply" 1700000000 --thread 1234567890.123456
+
+# List scheduled messages
+agent-slack message scheduled-list
+agent-slack message scheduled-list --channel general
+
+# Delete a scheduled message
+agent-slack message scheduled-delete <channel> <scheduled-message-id>
+
+# Post ephemeral message (visible only to a specific user)
+agent-slack message ephemeral <channel> <user-id> <text>
+
+# Get a permanent link to a message
+agent-slack message permalink <channel> <ts>
 ```
 
 ### Channel Commands
@@ -214,6 +232,29 @@ agent-slack channel open U0ABC123,U0DEF456
 # List users in a channel
 agent-slack channel users <channel>
 agent-slack channel users general --include-bots
+
+# Create a new channel
+agent-slack channel create <name>
+agent-slack channel create my-new-channel --private
+
+# Archive a channel
+agent-slack channel archive <channel>
+
+# Set channel topic
+agent-slack channel set-topic <channel> <topic>
+
+# Set channel purpose
+agent-slack channel set-purpose <channel> <purpose>
+
+# Invite users to a channel (comma-separated user IDs)
+agent-slack channel invite <channel> <users>
+agent-slack channel invite general U0ABC123,U0DEF456
+
+# Join a channel
+agent-slack channel join <channel>
+
+# Leave a channel
+agent-slack channel leave <channel>
 ```
 
 ### User Commands
@@ -228,6 +269,18 @@ agent-slack user info <user>
 
 # Get current user
 agent-slack user me
+
+# Look up user by email
+agent-slack user lookup <email>
+agent-slack user lookup alice@example.com --pretty
+
+# Get detailed user profile
+agent-slack user profile <user-id>
+
+# Set your status (emoji name without colons)
+agent-slack user set-status <status-text>
+agent-slack user set-status "In a meeting" --emoji calendar
+agent-slack user set-status "On vacation" --emoji palm_tree --expiration 1700100000
 ```
 
 ### Reaction Commands
@@ -262,6 +315,9 @@ agent-slack file info <file-id>
 agent-slack file download <file-id>
 agent-slack file download <file-id> [output-path]
 agent-slack file download F0ABC123 ./downloads/
+
+# Delete a file
+agent-slack file delete <file-id>
 ```
 
 ### Unread Commands
@@ -309,6 +365,65 @@ agent-slack drafts list --pretty
 # List channel sections (sidebar organization)
 agent-slack sections list
 agent-slack sections list --pretty
+```
+
+### Pin Commands
+
+```bash
+# Pin a message
+agent-slack pin add <channel> <ts>
+
+# Unpin a message
+agent-slack pin remove <channel> <ts>
+
+# List pinned messages in a channel
+agent-slack pin list <channel>
+agent-slack pin list general --pretty
+```
+
+### Bookmark Commands
+
+```bash
+# Add a bookmark to a channel
+agent-slack bookmark add <channel> <title> <link>
+agent-slack bookmark add general "Our Docs" https://docs.example.com --emoji books --type link
+
+# Edit a bookmark
+agent-slack bookmark edit <channel> <bookmark-id> --title "New Title"
+agent-slack bookmark edit <channel> <bookmark-id> --link https://new.example.com
+
+# Remove a bookmark
+agent-slack bookmark remove <channel> <bookmark-id>
+
+# List bookmarks in a channel
+agent-slack bookmark list <channel>
+agent-slack bookmark list general --pretty
+```
+
+### Reminder Commands
+
+```bash
+# Add a reminder (time is a Unix timestamp)
+agent-slack reminder add "Review PR" 1700000000
+agent-slack reminder add "Team standup" 1700000000 --user U0ABC123
+
+# List all reminders
+agent-slack reminder list
+agent-slack reminder list --pretty
+
+# Complete a reminder
+agent-slack reminder complete <reminder-id>
+
+# Delete a reminder
+agent-slack reminder delete <reminder-id>
+```
+
+### Emoji Commands
+
+```bash
+# List all custom emoji in the workspace
+agent-slack emoji list
+agent-slack emoji list --pretty
 ```
 
 ### Snapshot Command
@@ -487,9 +602,7 @@ listener.stop()         // clean shutdown
 
 ## Limitations
 
-- No channel management (create/archive)
 - No workspace admin operations
-- No scheduled messages
 - Plain text messages only (no blocks/formatting in v1)
 
 ## Troubleshooting

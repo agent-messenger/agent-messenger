@@ -2,17 +2,22 @@ import { WebClient } from '@slack/web-api'
 
 import type {
   SlackActivityItem,
+  SlackBookmark,
   SlackChannel,
   SlackChannelSection,
   SlackDM,
   SlackDraft,
   SlackFile,
   SlackMessage,
+  SlackPin,
+  SlackReminder,
   SlackSavedItem,
+  SlackScheduledMessage,
   SlackSearchResult,
   SlackThreadView,
   SlackUnreadCounts,
   SlackUser,
+  SlackUserProfile,
 } from './types'
 
 export class SlackError extends Error {
@@ -826,6 +831,453 @@ export class SlackClient {
         self: { id: (response as any).self.id },
         team: { id: (response as any).team.id },
       }
+    })
+  }
+
+  async pinMessage(channel: string, ts: string): Promise<void> {
+    return this.withRetry(async () => {
+      const response = await this.client.pins.add({ channel, timestamp: ts })
+      this.checkResponse(response)
+    })
+  }
+
+  async unpinMessage(channel: string, ts: string): Promise<void> {
+    return this.withRetry(async () => {
+      const response = await this.client.pins.remove({ channel, timestamp: ts })
+      this.checkResponse(response)
+    })
+  }
+
+  async listPins(channel: string): Promise<SlackPin[]> {
+    return this.withRetry(async () => {
+      const response = await this.client.pins.list({ channel })
+      this.checkResponse(response)
+
+      return ((response as any).items || [])
+        .filter((item: any) => item.message)
+        .map((item: any) => ({
+          channel,
+          message: {
+            ts: item.message.ts || '',
+            text: item.message.text || '',
+            user: item.message.user,
+            username: item.message.username,
+            type: item.message.type || 'message',
+            thread_ts: item.message.thread_ts,
+            reply_count: item.message.reply_count,
+          },
+          date_created: item.created || 0,
+        created_by: item.created_by || '',
+      }))
+    })
+  }
+
+  async addBookmark(
+    channel: string,
+    title: string,
+    link: string,
+    options?: { type?: string; emoji?: string },
+  ): Promise<SlackBookmark> {
+    return this.withRetry(async () => {
+      const response = await this.client.apiCall('bookmarks.add', {
+        channel_id: channel,
+        title,
+        link,
+        type: options?.type || 'link',
+        emoji: options?.emoji,
+      })
+      this.checkResponse(response)
+
+      const b = (response as any).bookmark
+      return {
+        id: b.id || '',
+        channel_id: b.channel_id || channel,
+        title: b.title || title,
+        link: b.link || link,
+        emoji: b.emoji,
+        icon_url: b.icon_url,
+        type: b.type || 'link',
+        date_created: b.date_created || 0,
+        date_updated: b.date_updated || 0,
+        created_by: b.created_by || '',
+      }
+    })
+  }
+
+  async editBookmark(
+    channel: string,
+    bookmarkId: string,
+    options: Partial<Pick<SlackBookmark, 'title' | 'link' | 'emoji'>>,
+  ): Promise<SlackBookmark> {
+    return this.withRetry(async () => {
+      const response = await this.client.apiCall('bookmarks.edit', {
+        channel_id: channel,
+        bookmark_id: bookmarkId,
+        ...options,
+      })
+      this.checkResponse(response)
+
+      const b = (response as any).bookmark
+      return {
+        id: b.id || bookmarkId,
+        channel_id: b.channel_id || channel,
+        title: b.title || '',
+        link: b.link || '',
+        emoji: b.emoji,
+        icon_url: b.icon_url,
+        type: b.type || 'link',
+        date_created: b.date_created || 0,
+        date_updated: b.date_updated || 0,
+        created_by: b.created_by || '',
+      }
+    })
+  }
+
+  async removeBookmark(channel: string, bookmarkId: string): Promise<void> {
+    return this.withRetry(async () => {
+      const response = await this.client.apiCall('bookmarks.remove', {
+        channel_id: channel,
+        bookmark_id: bookmarkId,
+      })
+      this.checkResponse(response)
+    })
+  }
+
+  async listBookmarks(channel: string): Promise<SlackBookmark[]> {
+    return this.withRetry(async () => {
+      const response = await this.client.apiCall('bookmarks.list', { channel_id: channel })
+      this.checkResponse(response)
+
+      return ((response as any).bookmarks || []).map((b: any) => ({
+        id: b.id || '',
+        channel_id: b.channel_id || channel,
+        title: b.title || '',
+        link: b.link || '',
+        emoji: b.emoji,
+        icon_url: b.icon_url,
+        type: b.type || 'link',
+        date_created: b.date_created || 0,
+        date_updated: b.date_updated || 0,
+        created_by: b.created_by || '',
+      }))
+    })
+  }
+
+  async scheduleMessage(channel: string, text: string, postAt: number, threadTs?: string): Promise<SlackScheduledMessage> {
+    return this.withRetry(async () => {
+      const response = await this.client.chat.scheduleMessage({
+        channel,
+        text,
+        post_at: postAt,
+        thread_ts: threadTs,
+      })
+      this.checkResponse(response)
+
+      return {
+        id: (response as any).scheduled_message_id || '',
+        channel_id: channel,
+        post_at: postAt,
+        date_created: Math.floor(Date.now() / 1000),
+        text,
+      }
+    })
+  }
+
+  async listScheduledMessages(channel?: string): Promise<SlackScheduledMessage[]> {
+    return this.withRetry(async () => {
+      const allMessages: SlackScheduledMessage[] = []
+      let cursor: string | undefined
+
+      do {
+        const response = await (this.client.chat.scheduledMessages.list as any)({
+          ...(channel ? { channel } : {}),
+          ...(cursor ? { cursor } : {}),
+        })
+        this.checkResponse(response)
+
+        const messages = ((response as any).scheduled_messages || []).map((msg: any) => ({
+          id: msg.id || msg.scheduled_message_id || '',
+          channel_id: msg.channel_id || '',
+          post_at: msg.post_at || 0,
+          date_created: msg.date_created || 0,
+          text: msg.text || '',
+        }))
+        allMessages.push(...messages)
+        cursor = (response as any).response_metadata?.next_cursor
+      } while (cursor)
+
+      return allMessages
+    })
+  }
+
+  async deleteScheduledMessage(channel: string, scheduledMessageId: string): Promise<void> {
+    return this.withRetry(async () => {
+      const response = await this.client.chat.deleteScheduledMessage({
+        channel,
+        scheduled_message_id: scheduledMessageId,
+      })
+      this.checkResponse(response)
+    })
+  }
+
+  async createChannel(name: string, isPrivate?: boolean): Promise<SlackChannel> {
+    return this.withRetry(async () => {
+      const response = await this.client.conversations.create({ name, is_private: isPrivate })
+      this.checkResponse(response)
+
+      const ch = response.channel!
+      return {
+        id: ch.id!,
+        name: ch.name!,
+        is_private: ch.is_private || false,
+        is_archived: ch.is_archived || false,
+        created: ch.created || 0,
+        creator: ch.creator || '',
+        topic: ch.topic
+          ? {
+              value: ch.topic.value || '',
+              creator: ch.topic.creator || '',
+              last_set: ch.topic.last_set || 0,
+            }
+          : undefined,
+        purpose: ch.purpose
+          ? {
+              value: ch.purpose.value || '',
+              creator: ch.purpose.creator || '',
+              last_set: ch.purpose.last_set || 0,
+            }
+          : undefined,
+      }
+    })
+  }
+
+  async archiveChannel(channel: string): Promise<void> {
+    return this.withRetry(async () => {
+      const response = await this.client.conversations.archive({ channel })
+      this.checkResponse(response)
+    })
+  }
+
+  async setChannelTopic(channel: string, topic: string): Promise<{ topic: string }> {
+    return this.withRetry(async () => {
+      const response = await this.client.conversations.setTopic({ channel, topic })
+      this.checkResponse(response)
+      return { topic: (response as any).topic || topic }
+    })
+  }
+
+  async setChannelPurpose(channel: string, purpose: string): Promise<{ purpose: string }> {
+    return this.withRetry(async () => {
+      const response = await this.client.conversations.setPurpose({ channel, purpose })
+      this.checkResponse(response)
+      return { purpose: (response as any).purpose || purpose }
+    })
+  }
+
+  async inviteToChannel(channel: string, users: string): Promise<SlackChannel> {
+    return this.withRetry(async () => {
+      const response = await this.client.conversations.invite({ channel, users })
+      this.checkResponse(response)
+
+      const ch = response.channel!
+      return {
+        id: ch.id!,
+        name: ch.name!,
+        is_private: ch.is_private || false,
+        is_archived: ch.is_archived || false,
+        created: ch.created || 0,
+        creator: ch.creator || '',
+      }
+    })
+  }
+
+  async joinChannel(channel: string): Promise<SlackChannel> {
+    return this.withRetry(async () => {
+      const response = await this.client.conversations.join({ channel })
+      this.checkResponse(response)
+
+      const ch = response.channel!
+      return {
+        id: ch.id!,
+        name: ch.name!,
+        is_private: ch.is_private || false,
+        is_archived: ch.is_archived || false,
+        created: ch.created || 0,
+        creator: ch.creator || '',
+      }
+    })
+  }
+
+  async leaveChannel(channel: string): Promise<void> {
+    return this.withRetry(async () => {
+      const response = await this.client.conversations.leave({ channel })
+      this.checkResponse(response)
+    })
+  }
+
+  async lookupUserByEmail(email: string): Promise<SlackUser> {
+    return this.withRetry(async () => {
+      const response = await this.client.users.lookupByEmail({ email })
+      this.checkResponse(response)
+
+      const member = response.user!
+      return {
+        id: member.id!,
+        name: member.name!,
+        real_name: member.real_name || member.name || '',
+        is_admin: member.is_admin || false,
+        is_owner: member.is_owner || false,
+        is_bot: member.is_bot || false,
+        is_app_user: member.is_app_user || false,
+        profile: member.profile
+          ? {
+              email: member.profile.email,
+              phone: member.profile.phone,
+              title: member.profile.title,
+              status_text: member.profile.status_text,
+            }
+          : undefined,
+      }
+    })
+  }
+
+  async getUserProfile(userId: string): Promise<SlackUserProfile> {
+    return this.withRetry(async () => {
+      const response = await this.client.users.profile.get({ user: userId })
+      this.checkResponse(response)
+
+      const p = (response as any).profile || {}
+      return {
+        title: p.title,
+        phone: p.phone,
+        skype: p.skype,
+        real_name: p.real_name,
+        real_name_normalized: p.real_name_normalized,
+        display_name: p.display_name,
+        display_name_normalized: p.display_name_normalized,
+        status_text: p.status_text,
+        status_emoji: p.status_emoji,
+        status_expiration: p.status_expiration,
+        email: p.email,
+        first_name: p.first_name,
+        last_name: p.last_name,
+        image_24: p.image_24,
+        image_32: p.image_32,
+        image_48: p.image_48,
+        image_72: p.image_72,
+        image_192: p.image_192,
+        image_512: p.image_512,
+      }
+    })
+  }
+
+  async setUserProfile(profile: SlackUserProfile): Promise<SlackUserProfile> {
+    return this.withRetry(async () => {
+      const response = await this.client.users.profile.set({ profile: profile as any })
+      this.checkResponse(response)
+
+      const p = (response as any).profile || {}
+      return {
+        title: p.title,
+        phone: p.phone,
+        skype: p.skype,
+        real_name: p.real_name,
+        real_name_normalized: p.real_name_normalized,
+        display_name: p.display_name,
+        display_name_normalized: p.display_name_normalized,
+        status_text: p.status_text,
+        status_emoji: p.status_emoji,
+        status_expiration: p.status_expiration,
+        email: p.email,
+        first_name: p.first_name,
+        last_name: p.last_name,
+        image_24: p.image_24,
+        image_32: p.image_32,
+        image_48: p.image_48,
+        image_72: p.image_72,
+        image_192: p.image_192,
+        image_512: p.image_512,
+      }
+    })
+  }
+
+  async postEphemeral(channel: string, user: string, text: string): Promise<string> {
+    return this.withRetry(async () => {
+      const response = await this.client.chat.postEphemeral({ channel, user, text })
+      this.checkResponse(response)
+      return (response as any).message_ts || ''
+    })
+  }
+
+  async getPermalink(channel: string, ts: string): Promise<string> {
+    return this.withRetry(async () => {
+      const response = await this.client.chat.getPermalink({ channel, message_ts: ts })
+      this.checkResponse(response)
+      return (response as any).permalink || ''
+    })
+  }
+
+  async addReminder(text: string, time: number, options?: { user?: string }): Promise<SlackReminder> {
+    return this.withRetry(async () => {
+      const response = await this.client.reminders.add({ text, time: time as any, user: options?.user })
+      this.checkResponse(response)
+
+      const r = (response as any).reminder || {}
+      return {
+        id: r.id || '',
+        creator: r.creator || '',
+        text: r.text || text,
+        user: r.user || '',
+        recurring: r.recurring || false,
+        time: r.time || time,
+        complete_ts: r.complete_ts || 0,
+      }
+    })
+  }
+
+  async listReminders(): Promise<SlackReminder[]> {
+    return this.withRetry(async () => {
+      const response = await this.client.reminders.list({})
+      this.checkResponse(response)
+
+      return ((response as any).reminders || []).map((r: any) => ({
+        id: r.id || '',
+        creator: r.creator || '',
+        text: r.text || '',
+        user: r.user || '',
+        recurring: r.recurring || false,
+        time: r.time || 0,
+        complete_ts: r.complete_ts || 0,
+      }))
+    })
+  }
+
+  async completeReminder(reminderId: string): Promise<void> {
+    return this.withRetry(async () => {
+      const response = await this.client.reminders.complete({ reminder: reminderId })
+      this.checkResponse(response)
+    })
+  }
+
+  async deleteReminder(reminderId: string): Promise<void> {
+    return this.withRetry(async () => {
+      const response = await this.client.reminders.delete({ reminder: reminderId })
+      this.checkResponse(response)
+    })
+  }
+
+  async deleteFile(fileId: string): Promise<void> {
+    return this.withRetry(async () => {
+      const response = await this.client.files.delete({ file: fileId })
+      this.checkResponse(response)
+    })
+  }
+
+  async listEmoji(): Promise<Record<string, string>> {
+    return this.withRetry(async () => {
+      const response = await this.client.emoji.list({})
+      this.checkResponse(response)
+      return ((response as any).emoji || {}) as Record<string, string>
     })
   }
 }

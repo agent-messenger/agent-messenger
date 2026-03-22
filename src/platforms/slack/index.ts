@@ -2,9 +2,14 @@ export { SlackClient, SlackError } from './client'
 export { CredentialManager } from './credential-manager'
 export { SlackListener } from './listener'
 export type {
+  SlackBookmark,
   SlackChannel,
   SlackMessage,
+  SlackPin,
+  SlackReminder,
+  SlackScheduledMessage,
   SlackUser,
+  SlackUserProfile,
   SlackReaction,
   SlackFile,
   SlackSearchResult,
