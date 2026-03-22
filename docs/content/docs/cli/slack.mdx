@@ -85,6 +85,7 @@ agent-slack message delete <channel> <ts> --force
 # Schedule a message (post-at is a Unix timestamp)
 agent-slack message schedule <channel> <text> <post-at>
 agent-slack message schedule general "Friday update" 1700000000
+agent-slack message schedule general "Thread reply" 1700000000 --thread 1234567890.123456
 
 # List scheduled messages
 agent-slack message scheduled-list
@@ -159,6 +160,7 @@ agent-slack user profile <user-id>
 # Set your status (emoji name without colons)
 agent-slack user set-status "In a meeting"
 agent-slack user set-status "In a meeting" --emoji calendar
+agent-slack user set-status "On vacation" --emoji palm_tree --expiration 1700100000
 ```
 
 ### Reaction Commands
