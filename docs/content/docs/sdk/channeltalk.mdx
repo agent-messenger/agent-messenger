@@ -13,6 +13,7 @@ npm install agent-messenger
 import {
   ChannelClient,
   ChannelCredentialManager,
+  ChannelError,
 } from 'agent-messenger/channeltalk'
 ```
 
@@ -181,7 +182,7 @@ const text = ChannelClient.extractText(message)
 
 ## ChannelCredentialManager
 
-Manages Channel Talk credentials stored at `~/.config/agent-messenger/channeltalk-credentials.json`. Files are written with `0o600` permissions. The environment variables `E2E_CHANNEL_ACCOUNT_COOKIE` (for account cookie), `E2E_CHANNEL_SESSION_COOKIE` (for session cookie), and `E2E_CHANNEL_WORKSPACE_ID` (for current workspace) take precedence over file-based credentials.
+Manages Channel Talk credentials stored at `~/.config/agent-messenger/channel-credentials.json`. Files are written with `0o600` permissions. The environment variables `E2E_CHANNEL_ACCOUNT_COOKIE` (for account cookie), `E2E_CHANNEL_SESSION_COOKIE` (for session cookie), and `E2E_CHANNEL_WORKSPACE_ID` (for current workspace) take precedence over file-based credentials.
 
 ```typescript
 import { ChannelCredentialManager } from 'agent-messenger/channeltalk'
@@ -226,6 +227,8 @@ await manager.clearCredentials()
 
 ```typescript
 import type {
+  BlockInline,
+  BlockInlineAttrs,
   Channel,
   ChannelAccount,
   ChannelBot,
@@ -235,16 +238,14 @@ import type {
   ChannelGroup,
   ChannelManager,
   ChannelMessage,
+  ChannelSearchHighlight,
   ChannelSearchHit,
   ChannelSearchResponse,
+  ChannelSession,
   ChannelUserChat,
   ChannelWorkspaceEntry,
+  ExtractedChannelToken,
   MessageBlock,
-  MessageBlockType,
-  MessagePersonType,
-  PersonEntity,
-  SortOrder,
-  UserChatState,
 } from 'agent-messenger/channeltalk'
 ```
 
@@ -254,7 +255,8 @@ Runtime-validated schemas are also exported for parsing API responses:
 
 ```typescript
 import {
-  ChannelSchema,
+  BlockInlineAttrsSchema,
+  BlockInlineSchema,
   ChannelAccountSchema,
   ChannelBotSchema,
   ChannelConfigSchema,
@@ -263,17 +265,15 @@ import {
   ChannelGroupSchema,
   ChannelManagerSchema,
   ChannelMessageSchema,
+  ChannelSchema,
+  ChannelSearchHighlightSchema,
   ChannelSearchHitSchema,
   ChannelSearchResponseSchema,
+  ChannelSessionSchema,
   ChannelUserChatSchema,
   ChannelWorkspaceEntrySchema,
+  ExtractedChannelTokenSchema,
   MessageBlockSchema,
-  MessageBlockTypeSchema,
-  MessagePersonTypeSchema,
-  PersonEntitySchema,
-  SortOrderSchema,
-  UserChatStateSchema,
-  MessageBlockArraySchema,
 } from 'agent-messenger/channeltalk'
 ```
 

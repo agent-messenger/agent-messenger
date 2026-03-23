@@ -13,6 +13,7 @@ npm install agent-messenger
 import {
   ChannelBotClient,
   ChannelBotCredentialManager,
+  ChannelBotError,
 } from 'agent-messenger/channeltalkbot'
 ```
 
@@ -175,7 +176,7 @@ const blocks = ChannelBotClient.wrapTextInBlocks('Hello, world!')
 
 ## ChannelBotCredentialManager
 
-Manages Channel Talk Bot credentials stored at `~/.config/agent-messenger/channelbot-credentials.json`. Files are written with `0o600` permissions. The environment variables `E2E_CHANNELBOT_ACCESS_KEY`, `E2E_CHANNELBOT_ACCESS_SECRET`, and `E2E_CHANNELBOT_WORKSPACE_ID` take precedence over file-based credentials.
+Manages Channel Talk Bot credentials stored at `~/.config/agent-messenger/channelbot-credentials.json`. Files are written with `0o600` permissions. The environment variables `E2E_CHANNELBOT_ACCESS_KEY` and `E2E_CHANNELBOT_ACCESS_SECRET` take precedence over file-based credentials.
 
 ```typescript
 import { ChannelBotCredentialManager } from 'agent-messenger/channeltalkbot'
@@ -220,12 +221,14 @@ const all = await manager.listAll()
 // Clear all stored credentials
 await manager.clearCredentials()
 
-// Get the default bot name
+// Get the default bot name (optional workspaceId for multi-workspace)
 const botName = await manager.getDefaultBot()
+const wsBot = await manager.getDefaultBot(workspaceId)
 // → string | null
 
-// Set the default bot name
+// Set the default bot name (optional workspaceId for multi-workspace)
 await manager.setDefaultBot('Support Bot')
+await manager.setDefaultBot('Support Bot', workspaceId)
 ```
 
 ## Types
@@ -252,18 +255,17 @@ Runtime-validated schemas are also exported for parsing API responses:
 
 ```typescript
 import {
+  ChannelBotBotSchema,
   ChannelBotChannelSchema,
-  ChannelBotUserChatSchema,
-  ChannelBotMessageSchema,
+  ChannelBotConfigSchema,
+  ChannelBotCredentialsSchema,
   ChannelBotGroupSchema,
   ChannelBotManagerSchema,
-  ChannelBotBotSchema,
+  ChannelBotMessageSchema,
+  ChannelBotUserChatSchema,
   ChannelBotUserSchema,
-  ChannelBotCredentialsSchema,
-  ChannelBotConfigSchema,
   ChannelBotWorkspaceEntrySchema,
   MessageBlockSchema,
-  MessageBlocksSchema,
 } from 'agent-messenger/channeltalkbot'
 ```
 
