@@ -381,6 +381,44 @@ Config format:
 }
 ```
 
+## SDK: Programmatic Usage
+
+`KakaoTalkClient` is available as a TypeScript SDK for building scripts and automations.
+
+### Setup
+
+```typescript
+import { KakaoTalkClient, CredentialManager } from 'agent-messenger/kakaotalk'
+
+const manager = new CredentialManager()
+const account = await manager.getAccount()
+if (!account) throw new Error('Not authenticated')
+
+const client = new KakaoTalkClient(account.oauth_token, account.user_id, account.device_uuid)
+```
+
+### Example
+
+```typescript
+try {
+  // List chats
+  const chats = await client.getChats()
+
+  // Send a message
+  const result = await client.sendMessage(chats[0].chat_id, 'Hello from SDK!')
+
+  // Read messages
+  const messages = await client.getMessages(chats[0].chat_id, { count: 50 })
+} finally {
+  // Always close when done (LOCO TCP connection)
+  client.close()
+}
+```
+
+### Full API Reference
+
+See the [KakaoTalk SDK documentation](https://agent-messenger.dev/docs/sdk/kakaotalk) for complete method signatures, types, schemas, and examples.
+
 ## Limitations
 
 - macOS and Windows only (desktop app required for credential extraction)

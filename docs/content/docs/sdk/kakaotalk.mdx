@@ -1,0 +1,226 @@
+---
+title: KakaoTalk
+description: TypeScript SDK reference for KakaoTalk — client, credential management, and types.
+---
+
+## Installation
+
+```bash
+npm install agent-messenger
+```
+
+```typescript
+import {
+  KakaoTalkClient,
+  CredentialManager,
+} from 'agent-messenger/kakaotalk'
+```
+
+## KakaoTalkClient
+
+The main client for interacting with KakaoTalk via the LOCO protocol. Unlike Discord/Slack which use stateless HTTP, KakaoTalk maintains a persistent TCP connection. Call `close()` when done.
+
+```typescript
+import { KakaoTalkClient } from 'agent-messenger/kakaotalk'
+
+const client = new KakaoTalkClient(oauthToken, userId, deviceUuid)
+// deviceUuid is optional — defaults to `agent-messenger-${userId}`
+```
+
+### Chat Rooms
+
+```typescript
+// List recent chat rooms (from login snapshot)
+const chats = await client.getChats()
+// → KakaoChat[]
+
+// List ALL chats (paginate beyond login snapshot)
+const allChats = await client.getChats({ all: true })
+
+// Search chats by display name
+const results = await client.getChats({ search: 'Alice' })
+```
+
+### Messages
+
+```typescript
+// Get recent messages from a chat (default: 20)
+const messages = await client.getMessages('9876543210')
+// → KakaoMessage[]
+
+// Get more messages
+const more = await client.getMessages('9876543210', { count: 100 })
+
+// Get messages after a known log ID
+const newer = await client.getMessages('9876543210', { from: '123456789' })
+```
+
+### Sending
+
+```typescript
+// Send a text message
+const result = await client.sendMessage('9876543210', 'Hello from SDK!')
+// → KakaoSendResult { success, status_code, chat_id, log_id, sent_at }
+```
+
+### Cleanup
+
+```typescript
+// Close the LOCO connection (MUST call when done)
+client.close()
+```
+
+## CredentialManager
+
+Manages KakaoTalk credentials stored at `~/.config/agent-messenger/kakaotalk-credentials.json`. Files are written with `0o600` permissions.
+
+```typescript
+import { CredentialManager } from 'agent-messenger/kakaotalk'
+
+const manager = new CredentialManager()
+```
+
+```typescript
+// Load full config from disk (returns defaults if file doesn't exist)
+const config = await manager.load()
+// → KakaoConfig { current_account, accounts }
+
+// Save full config to disk
+await manager.save(config)
+
+// Get the current account's credentials
+const account = await manager.getAccount()
+// → KakaoAccountCredentials | null
+
+// Get a specific account by ID
+const specific = await manager.getAccount('1234567890')
+// → KakaoAccountCredentials | null
+
+// Store account credentials
+await manager.setAccount(credentials)
+
+// Remove an account
+await manager.removeAccount('1234567890')
+
+// Switch the current account
+await manager.setCurrentAccount('1234567890')
+```
+
+## Types
+
+```typescript
+import type {
+  KakaoChat,
+  KakaoMessage,
+  KakaoSendResult,
+  KakaoAccountCredentials,
+  KakaoConfig,
+  KakaoDeviceType,
+  PendingLoginState,
+} from 'agent-messenger/kakaotalk'
+```
+
+### Zod Schemas
+
+Runtime-validated schemas are also exported for parsing API responses:
+
+```typescript
+import {
+  KakaoChatSchema,
+  KakaoMessageSchema,
+  KakaoSendResultSchema,
+  KakaoAccountCredentialsSchema,
+  KakaoConfigSchema,
+} from 'agent-messenger/kakaotalk'
+```
+
+## Examples
+
+### Chat Summary
+
+List all chats, count unread, and print a summary.
+
+```typescript
+import { KakaoTalkClient, CredentialManager } from 'agent-messenger/kakaotalk'
+
+const manager = new CredentialManager()
+const account = await manager.getAccount()
+if (!account) throw new Error('Not authenticated')
+
+const client = new KakaoTalkClient(account.oauth_token, account.user_id, account.device_uuid)
+
+try {
+  const chats = await client.getChats({ all: true })
+  const unread = chats.filter(c => c.unread_count > 0)
+  console.log(`${unread.length} chats with unread messages:`)
+  for (const chat of unread) {
+    console.log(`  ${chat.display_name} — ${chat.unread_count} unread`)
+  }
+} finally {
+  client.close()
+}
+```
+
+### Send Notification
+
+Send a message to a specific chat.
+
+```typescript
+import { KakaoTalkClient, CredentialManager } from 'agent-messenger/kakaotalk'
+
+const manager = new CredentialManager()
+const account = await manager.getAccount()
+if (!account) throw new Error('Not authenticated')
+
+const client = new KakaoTalkClient(account.oauth_token, account.user_id, account.device_uuid)
+
+try {
+  const chats = await client.getChats({ search: 'Team' })
+  const teamChat = chats[0]
+
+  if (teamChat) {
+    const result = await client.sendMessage(teamChat.chat_id, '🚀 Deployment complete!')
+    console.log(`Sent (log_id: ${result.log_id})`)
+  }
+} finally {
+  client.close()
+}
+```
+
+### Message Monitor
+
+Poll for new messages in a chat room.
+
+```typescript
+import { KakaoTalkClient, CredentialManager } from 'agent-messenger/kakaotalk'
+
+const manager = new CredentialManager()
+const account = await manager.getAccount()
+if (!account) throw new Error('Not authenticated')
+
+const client = new KakaoTalkClient(account.oauth_token, account.user_id, account.device_uuid)
+const chatId = '9876543210'
+
+let lastLogId: string | undefined
+
+const poll = async () => {
+  try {
+    const messages = lastLogId
+      ? await client.getMessages(chatId, { from: lastLogId })
+      : await client.getMessages(chatId, { count: 1 })
+
+    for (const msg of messages) {
+      if (msg.log_id !== lastLogId) {
+        console.log(`[${msg.author_id}] ${msg.message}`)
+        lastLogId = msg.log_id
+      }
+    }
+  } catch (error) {
+    console.error('Poll failed:', error)
+  }
+}
+
+const timer = setInterval(poll, 10_000)
+
+// To stop: clearInterval(timer); client.close()
+```
