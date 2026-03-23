@@ -45,14 +45,14 @@ send_message() {
     echo -e "${YELLOW}Attempt $attempt/$max_attempts...${NC}"
 
     # Send message and capture result
-    RESULT=$(agent-whatsapp message send "$chat" "$message" 2>&1)
+    RESULT=$(agent-whatsapp message send "$chat" "$message" 2>&1) || true
 
     # Check if successful
-    if echo "$RESULT" | jq -e '.success' > /dev/null 2>&1; then
+    if echo "$RESULT" | jq -e '.id' > /dev/null 2>&1; then
       echo -e "${GREEN}✓ Message sent successfully!${NC}"
 
       # Extract message details
-      MSG_ID=$(echo "$RESULT" | jq -r '.data.id // ""')
+      MSG_ID=$(echo "$RESULT" | jq -r '.id // ""')
 
       echo ""
       echo "Message details:"
@@ -66,25 +66,9 @@ send_message() {
 
     # Extract error information
     if echo "$RESULT" | jq -e '.error' > /dev/null 2>&1; then
-      ERROR_CODE=$(echo "$RESULT" | jq -r '.error.code // "UNKNOWN"')
-      ERROR_MSG=$(echo "$RESULT" | jq -r '.error.message // "Unknown error"')
+      ERROR_MSG=$(echo "$RESULT" | jq -r '.error // "Unknown error"')
 
       echo -e "${RED}✗ Failed: $ERROR_MSG${NC}"
-
-      # Don't retry on certain errors
-      case "$ERROR_CODE" in
-        "NOT_AUTHENTICATED")
-          echo ""
-          echo "Not authenticated. Run:"
-          echo "  agent-whatsapp auth login"
-          return 1
-          ;;
-        "INVALID_CHAT")
-          echo ""
-          echo "Chat '$chat' not found. Check phone number or JID."
-          return 1
-          ;;
-      esac
     else
       echo -e "${RED}✗ Unexpected error: $RESULT${NC}"
     fi
@@ -114,9 +98,9 @@ fi
 
 # Check authentication
 echo "Checking authentication..."
-AUTH_STATUS=$(agent-whatsapp auth status 2>&1)
+AUTH_STATUS=$(agent-whatsapp auth status 2>&1) || true
 
-if ! echo "$AUTH_STATUS" | jq -e '.success' > /dev/null 2>&1; then
+if ! echo "$AUTH_STATUS" | jq -e '.account_id' > /dev/null 2>&1; then
   echo -e "${RED}Not authenticated!${NC}"
   echo ""
   echo "Run this to authenticate:"
@@ -124,7 +108,7 @@ if ! echo "$AUTH_STATUS" | jq -e '.success' > /dev/null 2>&1; then
   exit 1
 fi
 
-PHONE=$(echo "$AUTH_STATUS" | jq -r '.data.phone // "Unknown"')
+PHONE=$(echo "$AUTH_STATUS" | jq -r '.phone_number // "Unknown"')
 echo -e "${GREEN}✓ Authenticated as: $PHONE${NC}"
 echo ""
 

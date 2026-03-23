@@ -54,17 +54,21 @@ truncate_text() {
 # Function to check for new messages
 check_messages() {
   # Get latest message
-  MESSAGES=$(agent-whatsapp message list "$CHAT" --limit 1 2>&1)
+  MESSAGES=$(agent-whatsapp message list "$CHAT" --limit 1 2>&1) || true
 
   # Check if successful
-  if ! echo "$MESSAGES" | jq -e '.success' > /dev/null 2>&1; then
-    ERROR_MSG=$(echo "$MESSAGES" | jq -r '.error.message // "Unknown error"')
-    echo -e "${RED}Error: $ERROR_MSG${NC}"
+  if ! echo "$MESSAGES" | jq -e '.[0]' > /dev/null 2>&1; then
+    if echo "$MESSAGES" | jq -e '.error' > /dev/null 2>&1; then
+      ERROR_MSG=$(echo "$MESSAGES" | jq -r '.error // "Unknown error"')
+      echo -e "${RED}Error: $ERROR_MSG${NC}"
+    else
+      echo -e "${RED}Error: $MESSAGES${NC}"
+    fi
     return 1
   fi
 
   # Extract latest message
-  LATEST_ID=$(echo "$MESSAGES" | jq -r '.data.messages[0].id // ""')
+  LATEST_ID=$(echo "$MESSAGES" | jq -r '.[0].id // ""')
 
   # No messages in chat
   if [ -z "$LATEST_ID" ]; then
@@ -79,9 +83,9 @@ check_messages() {
     # Skip notification on first run (just initialize)
     if [ "$FIRST_RUN" = false ] && [ -n "$LAST_ID" ]; then
       # Extract message details
-      TEXT=$(echo "$MESSAGES" | jq -r '.data.messages[0].text // ""')
-      SENDER=$(echo "$MESSAGES" | jq -r '.data.messages[0].sender // ""')
-      TIMESTAMP=$(echo "$MESSAGES" | jq -r '.data.messages[0].timestamp // ""')
+      TEXT=$(echo "$MESSAGES" | jq -r '.[0].text // ""')
+      SENDER=$(echo "$MESSAGES" | jq -r '.[0].from_name // .[0].from // ""')
+      TIMESTAMP=$(echo "$MESSAGES" | jq -r '.[0].timestamp // ""')
 
       # Format time
       TIME=""
@@ -122,9 +126,9 @@ fi
 
 # Check authentication
 echo "Checking authentication..."
-AUTH_STATUS=$(agent-whatsapp auth status 2>&1)
+AUTH_STATUS=$(agent-whatsapp auth status 2>&1) || true
 
-if ! echo "$AUTH_STATUS" | jq -e '.success' > /dev/null 2>&1; then
+if ! echo "$AUTH_STATUS" | jq -e '.account_id' > /dev/null 2>&1; then
   echo -e "${RED}Not authenticated!${NC}"
   echo ""
   echo "Run this to authenticate:"
@@ -132,7 +136,7 @@ if ! echo "$AUTH_STATUS" | jq -e '.success' > /dev/null 2>&1; then
   exit 1
 fi
 
-PHONE=$(echo "$AUTH_STATUS" | jq -r '.data.phone // "Unknown"')
+PHONE=$(echo "$AUTH_STATUS" | jq -r '.phone_number // "Unknown"')
 echo -e "${GREEN}✓ Authenticated as: $PHONE${NC}"
 echo ""
 

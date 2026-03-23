@@ -35,9 +35,9 @@ if ! command -v agent-whatsappbot &> /dev/null; then
   exit 1
 fi
 
-AUTH_STATUS=$(agent-whatsappbot auth status 2>&1)
+AUTH_STATUS=$(agent-whatsappbot auth status 2>&1) || true
 
-if ! echo "$AUTH_STATUS" | jq -e '.success' > /dev/null 2>&1; then
+if ! echo "$AUTH_STATUS" | jq -e '.valid' > /dev/null 2>&1; then
   echo -e "${RED}Not authenticated!${NC}" >&2
   echo "" >&2
   echo "Run this to authenticate:" >&2
@@ -46,11 +46,15 @@ if ! echo "$AUTH_STATUS" | jq -e '.success' > /dev/null 2>&1; then
 fi
 
 echo -e "${YELLOW}Fetching account info and templates...${NC}" >&2
-TEMPLATES_RESULT=$(agent-whatsappbot template list 2>&1)
+TEMPLATES_RESULT=$(agent-whatsappbot template list 2>&1) || true
 
-if ! echo "$TEMPLATES_RESULT" | jq -e '.success' > /dev/null 2>&1; then
+if ! echo "$TEMPLATES_RESULT" | jq -e '.templates' > /dev/null 2>&1; then
   echo -e "${RED}Failed to get template list${NC}" >&2
-  ERROR_MSG=$(echo "$TEMPLATES_RESULT" | jq -r '.error.message // "Unknown error"')
+  if echo "$TEMPLATES_RESULT" | jq -e '.error' > /dev/null 2>&1; then
+    ERROR_MSG=$(echo "$TEMPLATES_RESULT" | jq -r '.error // "Unknown error"')
+  else
+    ERROR_MSG="$TEMPLATES_RESULT"
+  fi
   echo -e "${RED}Error: $ERROR_MSG${NC}" >&2
   exit 1
 fi
@@ -63,11 +67,11 @@ if [ "$OUTPUT_JSON" = true ]; then
   exit 0
 fi
 
-PHONE_ID=$(echo "$AUTH_STATUS" | jq -r '.data.phone_number_id // "Unknown"')
-DISPLAY_PHONE=$(echo "$AUTH_STATUS" | jq -r '.data.display_phone_number // "Unknown"')
-ACCOUNT_NAME=$(echo "$AUTH_STATUS" | jq -r '.data.verified_name // "Unknown"')
+PHONE_ID=$(echo "$AUTH_STATUS" | jq -r '.phone_number_id // "Unknown"')
+DISPLAY_PHONE=$(echo "$AUTH_STATUS" | jq -r '.phone_number_id // "Unknown"')
+ACCOUNT_NAME=$(echo "$AUTH_STATUS" | jq -r '.account_name // "Unknown"')
 
-TEMPLATES=$(echo "$TEMPLATES_RESULT" | jq '.data.templates // []')
+TEMPLATES=$(echo "$TEMPLATES_RESULT" | jq '.templates // []')
 TEMPLATE_COUNT=$(echo "$TEMPLATES" | jq 'length')
 APPROVED_COUNT=$(echo "$TEMPLATES" | jq '[.[] | select(.status == "APPROVED")] | length')
 PENDING_COUNT=$(echo "$TEMPLATES" | jq '[.[] | select(.status == "PENDING")] | length')

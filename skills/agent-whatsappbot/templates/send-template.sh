@@ -73,9 +73,9 @@ fi
 
 # Check authentication
 echo "Checking authentication..."
-AUTH_STATUS=$(agent-whatsappbot auth status 2>&1)
+AUTH_STATUS=$(agent-whatsappbot auth status 2>&1) || true
 
-if ! echo "$AUTH_STATUS" | jq -e '.success' > /dev/null 2>&1; then
+if ! echo "$AUTH_STATUS" | jq -e '.valid' > /dev/null 2>&1; then
   echo -e "${RED}Not authenticated!${NC}"
   echo ""
   echo "Run this to authenticate:"
@@ -83,15 +83,9 @@ if ! echo "$AUTH_STATUS" | jq -e '.success' > /dev/null 2>&1; then
   exit 1
 fi
 
-PHONE_ID=$(echo "$AUTH_STATUS" | jq -r '.data.phone_number_id // "Unknown"')
+PHONE_ID=$(echo "$AUTH_STATUS" | jq -r '.phone_number_id // "Unknown"')
 echo -e "${GREEN}✓ Authenticated (Phone ID: $PHONE_ID)${NC}"
 echo ""
-
-# Build command
-CMD="agent-whatsappbot message send-template \"$TO\" \"$TEMPLATE_NAME\" --language \"$LANGUAGE\""
-if [ -n "$COMPONENTS" ]; then
-  CMD="$CMD --components '$COMPONENTS'"
-fi
 
 # Send template message with retry logic
 max_attempts=3
@@ -108,15 +102,15 @@ while [ $attempt -le $max_attempts ]; do
   echo -e "${YELLOW}Attempt $attempt/$max_attempts...${NC}"
 
   if [ -n "$COMPONENTS" ]; then
-    RESULT=$(agent-whatsappbot message send-template "$TO" "$TEMPLATE_NAME" --language "$LANGUAGE" --components "$COMPONENTS" 2>&1)
+    RESULT=$(agent-whatsappbot message send-template "$TO" "$TEMPLATE_NAME" --language "$LANGUAGE" --components "$COMPONENTS" 2>&1) || true
   else
-    RESULT=$(agent-whatsappbot message send-template "$TO" "$TEMPLATE_NAME" --language "$LANGUAGE" 2>&1)
+    RESULT=$(agent-whatsappbot message send-template "$TO" "$TEMPLATE_NAME" --language "$LANGUAGE" 2>&1) || true
   fi
 
-  if echo "$RESULT" | jq -e '.success' > /dev/null 2>&1; then
+  if echo "$RESULT" | jq -e '.messages' > /dev/null 2>&1; then
     echo -e "${GREEN}✓ Template message sent successfully!${NC}"
 
-    MSG_ID=$(echo "$RESULT" | jq -r '.data.id // ""')
+    MSG_ID=$(echo "$RESULT" | jq -r '.messages[0].id // ""')
 
     echo ""
     echo "Message details:"
@@ -131,30 +125,9 @@ while [ $attempt -le $max_attempts ]; do
   fi
 
   if echo "$RESULT" | jq -e '.error' > /dev/null 2>&1; then
-    ERROR_CODE=$(echo "$RESULT" | jq -r '.error.code // "UNKNOWN"')
-    ERROR_MSG=$(echo "$RESULT" | jq -r '.error.message // "Unknown error"')
+    ERROR_MSG=$(echo "$RESULT" | jq -r '.error // "Unknown error"')
 
     echo -e "${RED}✗ Failed: $ERROR_MSG${NC}"
-
-    case "$ERROR_CODE" in
-      "NOT_AUTHENTICATED")
-        echo ""
-        echo "Not authenticated. Set credentials:"
-        echo "  agent-whatsappbot auth set --token <token> --phone-id <phone-id>"
-        exit 1
-        ;;
-      "TEMPLATE_NOT_FOUND")
-        echo ""
-        echo "Template '$TEMPLATE_NAME' not found. List available templates:"
-        echo "  agent-whatsappbot template list"
-        exit 1
-        ;;
-      "INVALID_RECIPIENT")
-        echo ""
-        echo "Recipient '$TO' is invalid. Check phone number format."
-        exit 1
-        ;;
-    esac
   else
     echo -e "${RED}✗ Unexpected error: $RESULT${NC}"
   fi

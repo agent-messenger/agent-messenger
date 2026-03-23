@@ -35,9 +35,9 @@ if ! command -v agent-whatsapp &> /dev/null; then
   exit 1
 fi
 
-AUTH_STATUS=$(agent-whatsapp auth status 2>&1)
+AUTH_STATUS=$(agent-whatsapp auth status 2>&1) || true
 
-if ! echo "$AUTH_STATUS" | jq -e '.success' > /dev/null 2>&1; then
+if ! echo "$AUTH_STATUS" | jq -e '.account_id' > /dev/null 2>&1; then
   echo -e "${RED}Not authenticated!${NC}" >&2
   echo "" >&2
   echo "Run this to authenticate:" >&2
@@ -46,11 +46,15 @@ if ! echo "$AUTH_STATUS" | jq -e '.success' > /dev/null 2>&1; then
 fi
 
 echo -e "${YELLOW}Fetching chat list...${NC}" >&2
-CHATS_RESULT=$(agent-whatsapp chat list 2>&1)
+CHATS_RESULT=$(agent-whatsapp chat list 2>&1) || true
 
-if ! echo "$CHATS_RESULT" | jq -e '.success' > /dev/null 2>&1; then
+if ! echo "$CHATS_RESULT" | jq -e '.[0]' > /dev/null 2>&1; then
   echo -e "${RED}Failed to get chat list${NC}" >&2
-  ERROR_MSG=$(echo "$CHATS_RESULT" | jq -r '.error.message // "Unknown error"')
+  if echo "$CHATS_RESULT" | jq -e '.error' > /dev/null 2>&1; then
+    ERROR_MSG=$(echo "$CHATS_RESULT" | jq -r '.error // "Unknown error"')
+  else
+    ERROR_MSG="$CHATS_RESULT"
+  fi
   echo -e "${RED}Error: $ERROR_MSG${NC}" >&2
   exit 1
 fi
@@ -60,10 +64,10 @@ if [ "$OUTPUT_JSON" = true ]; then
   exit 0
 fi
 
-PHONE=$(echo "$AUTH_STATUS" | jq -r '.data.phone // "Unknown"')
-NAME=$(echo "$AUTH_STATUS" | jq -r '.data.name // "Unknown"')
+PHONE=$(echo "$AUTH_STATUS" | jq -r '.phone_number // "Unknown"')
+NAME=$(echo "$AUTH_STATUS" | jq -r '.name // "Unknown"')
 
-CHATS=$(echo "$CHATS_RESULT" | jq '.data.chats // []')
+CHATS="$CHATS_RESULT"
 CHAT_COUNT=$(echo "$CHATS" | jq 'length')
 UNREAD_COUNT=$(echo "$CHATS" | jq '[.[] | select(.unread_count > 0)] | length')
 
