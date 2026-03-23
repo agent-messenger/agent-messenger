@@ -17,6 +17,7 @@ import {
   DiscordSearchResponseSchema,
   DiscordSearchResultSchema,
   DiscordUserSchema,
+  createDiscordClient,
 } from '@/platforms/discord/index'
 
 test('DiscordClient is exported from barrel', () => {
@@ -29,6 +30,10 @@ test('DiscordError is exported from barrel', () => {
 
 test('DiscordCredentialManager is exported from barrel', () => {
   expect(typeof DiscordCredentialManager).toBe('function')
+})
+
+test('createDiscordClient is exported from barrel', () => {
+  expect(typeof createDiscordClient).toBe('function')
 })
 
 test('DiscordGuildSchema is exported from barrel', () => {
