@@ -4,9 +4,9 @@
 
 ![Agent Messenger](./docs/public/cover.png)
 
-**Give your AI agent the power to read and send messages across Slack, Discord, Teams, Telegram, WhatsApp, KakaoTalk, Channel Talk (beta) and more**
+**Give your AI agent the power to read and send messages across Slack, Discord, Teams, Telegram, WhatsApp, KakaoTalk, Channel Talk (beta) and more — via CLI or TypeScript SDK**
 
-A unified, agent-friendly CLI for messaging platforms. Zero-config credential extraction from your desktop apps—no OAuth flows, no API keys, no admin approval needed. Works out of the box.
+A unified, agent-friendly CLI and TypeScript SDK for messaging platforms. Zero-config credential extraction from your desktop apps—no OAuth flows, no API keys, no admin approval needed. Works out of the box.
 
 ## Table of Contents
 
@@ -18,6 +18,7 @@ A unified, agent-friendly CLI for messaging platforms. Zero-config credential ex
   - [Claude Code Plugin](#claude-code-plugin)
   - [OpenCode Plugin](#opencode-plugin)
 - [Quick Start](#quick-start)
+- [SDK](#sdk)
 - [Supported Platforms](#supported-platforms)
 - [Platform Guides](#platform-guides)
 - [Use Cases](#use-cases)
@@ -39,17 +40,26 @@ Messaging platforms only offer Bot tokens for API access—your AI agent can nev
 - **Zero setup** — Credentials are auto-extracted on first command. No manual auth step required
 - **One interface, multiple platforms** — Learn once, use everywhere (Slack, Discord, Teams, Telegram, WhatsApp, KakaoTalk, Channel Talk)
 - **AI-agent friendly** — JSON output by default, perfect for LLM tool use
+- **TypeScript SDK** — Import clients directly into your app. Full type safety with Zod schemas
 - **Agent memory** — Remembers workspace IDs, channel names, and preferences across sessions
 - **Human friendly too** — Add `--pretty` for readable output
 - **Token efficient** — CLI, not MCP. Load only what you need. ([Why not MCP?](#philosophy))
 
 ## Installation
 
+**CLI** (global install for terminal / AI agent use):
+
 ```bash
 npm install -g agent-messenger
 ```
 
-Or use your favorite package manager.
+**SDK** (project dependency for programmatic use):
+
+```bash
+npm install agent-messenger
+```
+
+The global install gives you all platform CLIs. The project install gives you both CLIs and the TypeScript SDK.
 
 This installs:
 
@@ -146,6 +156,66 @@ bunx --package agent-messenger agent-telegram message send <chat-id-or-@username
 
 The CLI automatically provisions API credentials via my.telegram.org if needed. For CI/CD, set `AGENT_TELEGRAM_API_ID` and `AGENT_TELEGRAM_API_HASH` environment variables.
 
+## SDK
+
+Use Agent Messenger as a TypeScript library. Each platform exports a typed client, credential manager, types, and Zod schemas.
+
+### Quick Example
+
+```typescript
+import { createSlackClient } from 'agent-messenger/slack'
+
+const slack = await createSlackClient()
+const channels = await slack.listChannels()
+await slack.sendMessage(channels[0].id, 'Hello from the SDK!')
+```
+
+Credentials are resolved the same way as the CLI — auto-extracted from your desktop apps.
+
+### Available Imports
+
+| Import Path | Factory | Client |
+| --- | --- | --- |
+| `agent-messenger/slack` | `createSlackClient()` | `SlackClient` |
+| `agent-messenger/discord` | `createDiscordClient()` | `DiscordClient` |
+| `agent-messenger/teams` | `createTeamsClient()` | `TeamsClient` |
+| `agent-messenger/whatsapp` | `createWhatsAppClient()` | `WhatsAppClient` |
+| `agent-messenger/whatsappbot` | `createWhatsAppBotClient()` | `WhatsAppBotClient` |
+| `agent-messenger/kakaotalk` | `createKakaoTalkClient()` | `KakaoTalkClient` |
+| `agent-messenger/channeltalk` | `createChannelClient()` | `ChannelClient` |
+| `agent-messenger/channeltalkbot` | — | `ChannelBotClient` |
+
+Each module also exports its credential manager, Zod schemas, and TypeScript types:
+
+```typescript
+import { SlackClient, CredentialManager, SlackMessageSchema } from 'agent-messenger/slack'
+import type { SlackMessage, SlackChannel } from 'agent-messenger/slack'
+```
+
+### Manual Credential Setup
+
+Factory functions handle credentials automatically. For more control, instantiate clients directly:
+
+```typescript
+import { SlackClient } from 'agent-messenger/slack'
+
+const client = new SlackClient(token, cookie)
+const messages = await client.getMessages('C01234567')
+```
+
+### Real-time Events (Slack)
+
+```typescript
+import { createSlackClient, SlackListener } from 'agent-messenger/slack'
+
+const client = await createSlackClient()
+const listener = new SlackListener(client)
+listener.on('message', (event) => {
+  console.log(`New message in ${event.channel}: ${event.text}`)
+})
+await listener.start()
+```
+
 ## Supported Platforms
 
 | Feature                    | Slack | Discord | Teams | Telegram | WhatsApp | KakaoTalk | Channel Talk (beta) |
@@ -238,7 +308,7 @@ These are just starting points. Your agent has full read/write access to Slack, 
 
 ## Philosophy
 
-**Why not MCP?** MCP servers expose all tools at once, bloating context and confusing agents. **[Agent Skills](https://agentskills.io/) + agent-friendly CLI** offer a better approach—load what you need, when you need it. Fewer tokens, cleaner context, better output.
+**Why not MCP?** MCP servers expose all tools at once, bloating context and confusing agents. **[Agent Skills](https://agentskills.io/) + agent-friendly CLI** offer a better approach—load what you need, when you need it. Fewer tokens, cleaner context, better output. The SDK complements the CLI for when you need programmatic access—same credentials, same platform coverage, full type safety.
 
 **Why not OAuth?** OAuth requires an app and it requires workspace admin approval to install, which can take days. This tool just works—zero setup required. For those who prefer bot tokens (e.g., server-side or CI/CD), see [`agent-slackbot`](skills/agent-slackbot/SKILL.md).
 
