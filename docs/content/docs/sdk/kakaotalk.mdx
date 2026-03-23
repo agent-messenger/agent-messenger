@@ -70,6 +70,8 @@ const result = await client.sendMessage('9876543210', 'Hello from SDK!')
 client.close()
 ```
 
+Once closed, any subsequent method call throws a `KakaoTalkError` with code `client_closed`. Create a new client if you need to reconnect.
+
 ## CredentialManager
 
 Manages KakaoTalk credentials stored at `~/.config/agent-messenger/kakaotalk-credentials.json`. Files are written with `0o600` permissions.
