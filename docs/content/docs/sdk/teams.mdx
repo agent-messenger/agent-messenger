@@ -1,0 +1,342 @@
+---
+title: Teams
+description: TypeScript SDK reference for Microsoft Teams — client, credential management, and types.
+---
+
+## Installation
+
+```bash
+npm install agent-messenger
+```
+
+```typescript
+import {
+  TeamsClient,
+  TeamsCredentialManager,
+  TeamsError,
+} from 'agent-messenger/teams'
+```
+
+## TeamsClient
+
+The main client for interacting with Microsoft Teams' API programmatically. All API methods include automatic rate-limit handling with per-bucket tracking and exponential backoff on server errors.
+
+Teams tokens expire in 60-90 minutes. The client checks expiry before each request and throws a `TeamsError` with code `token_expired` when the token is stale. Re-run `agent-teams auth extract` to refresh.
+
+```typescript
+import { TeamsClient } from 'agent-messenger/teams'
+
+const client = new TeamsClient(token)
+// With expiry tracking: new TeamsClient(token, '2025-03-23T12:00:00Z')
+```
+
+### Authentication
+
+```typescript
+// Verify credentials and get identity
+const user = await client.testAuth()
+// → TeamsUser { id, displayName }
+```
+
+### Teams
+
+```typescript
+// List all teams the authenticated user belongs to
+const teams = await client.listTeams()
+// → TeamsTeam[]
+
+// Get a specific team by ID
+const team = await client.getTeam(teamId)
+// → TeamsTeam { id, name, description? }
+```
+
+### Channels
+
+```typescript
+// List all channels in a team
+const channels = await client.listChannels(teamId)
+// → TeamsChannel[]
+
+// Get a specific channel by ID
+const channel = await client.getChannel(teamId, channelId)
+// → TeamsChannel { id, team_id, name, type }
+```
+
+Channel IDs use a Teams thread ID format (`19:xxx@thread.tacv2`), not numeric snowflakes. Always pass the parent `teamId` alongside the `channelId`.
+
+### Messages
+
+```typescript
+// Send a message to a channel
+const msg = await client.sendMessage(teamId, channelId, 'Hello world')
+// → TeamsMessage { id, channel_id, author, content, timestamp }
+
+// Get recent messages from a channel (default limit: 50)
+const messages = await client.getMessages(teamId, channelId)
+const limited = await client.getMessages(teamId, channelId, 25)
+// → TeamsMessage[]
+
+// Get a single message by ID
+const message = await client.getMessage(teamId, channelId, messageId)
+// → TeamsMessage
+
+// Delete a message
+await client.deleteMessage(teamId, channelId, messageId)
+```
+
+### Reactions
+
+```typescript
+// Add a reaction to a message
+await client.addReaction(teamId, channelId, messageId, 'like')
+
+// Remove your reaction
+await client.removeReaction(teamId, channelId, messageId, 'like')
+```
+
+### Users
+
+```typescript
+// List all members in a team
+const users = await client.listUsers(teamId)
+// → TeamsUser[]
+
+// Get a specific user by ID
+const user = await client.getUser(userId)
+// → TeamsUser { id, displayName, email?, userPrincipalName? }
+```
+
+### Files
+
+```typescript
+// Upload a file to a channel (by file path)
+const file = await client.uploadFile(teamId, channelId, '/path/to/report.pdf')
+// → TeamsFile { id, name, size, url, contentType? }
+
+// List files in a channel
+const files = await client.listFiles(teamId, channelId)
+// → TeamsFile[]
+```
+
+## TeamsCredentialManager
+
+Manages Teams credentials stored at `~/.config/agent-messenger/teams-credentials.json`. Files are written with `0o600` permissions. Supports multiple accounts (work and personal) with automatic migration from the legacy single-account format.
+
+The static property `TeamsCredentialManager.accountOverride` lets you force a specific account type (`'work'` or `'personal'`) for all operations, overriding the stored `current_account` setting.
+
+```typescript
+import { TeamsCredentialManager } from 'agent-messenger/teams'
+
+const manager = new TeamsCredentialManager()
+// Custom path: new TeamsCredentialManager('/custom/config/dir')
+```
+
+```typescript
+// Load full config from disk (returns null if file doesn't exist)
+const config = await manager.loadConfig()
+// → TeamsConfig | null
+
+// Save full config to disk
+await manager.saveConfig(config)
+
+// Get stored token for the current account
+const token = await manager.getToken()
+// → string | null
+
+// Get token with expiry info
+const tokenInfo = await manager.getTokenWithExpiry()
+// → { token: string; tokenExpiresAt?: string } | null
+
+// Store a token for a specific account type
+await manager.setToken('my-teams-token', 'work', '2025-03-23T12:00:00Z')
+
+// Check if the current account's token has expired
+const expired = await manager.isTokenExpired()
+// → boolean
+
+// Check if a specific account's token has expired
+const workExpired = await manager.isAccountTokenExpired('work')
+// → boolean
+
+// Clear all stored credentials (deletes the file)
+await manager.clearCredentials()
+
+// Get current default team
+const team = await manager.getCurrentTeam()
+// → { team_id: string; team_name: string } | null
+
+// Set the current default team
+await manager.setCurrentTeam('team-uuid', 'Engineering')
+
+// Get the active account type
+const accountType = await manager.getCurrentAccountType()
+// → 'work' | 'personal' | null
+
+// Switch the active account
+await manager.setCurrentAccount('personal')
+
+// Get the full account object for the current account
+const account = await manager.getCurrentAccount()
+// → TeamsAccount | null
+
+// Get all saved accounts
+const accounts = await manager.getAccounts()
+// → Record<string, TeamsAccount>
+
+// Override account selection globally (static property)
+TeamsCredentialManager.accountOverride = 'personal'
+```
+
+## Types
+
+```typescript
+import type {
+  TeamsTeam,
+  TeamsChannel,
+  TeamsMessage,
+  TeamsUser,
+  TeamsReaction,
+  TeamsFile,
+  TeamsCredentials,
+  TeamsAccountType,
+  TeamsAccount,
+  TeamsConfig,
+  TeamsConfigLegacy,
+} from 'agent-messenger/teams'
+```
+
+### Zod Schemas
+
+Runtime-validated schemas are also exported for parsing API responses:
+
+```typescript
+import {
+  TeamsTeamSchema,
+  TeamsChannelSchema,
+  TeamsMessageSchema,
+  TeamsUserSchema,
+  TeamsReactionSchema,
+  TeamsFileSchema,
+  TeamsCredentialsSchema,
+  TeamsAccountTypeSchema,
+  TeamsAccountSchema,
+  TeamsConfigSchema,
+  TeamsConfigLegacySchema,
+} from 'agent-messenger/teams'
+```
+
+## Examples
+
+### Deploy Notifier
+
+Post a deployment message, stream progress, and mark it complete with a reaction.
+
+```typescript
+import { TeamsClient } from 'agent-messenger/teams'
+
+const client = new TeamsClient(token, tokenExpiresAt)
+
+// Post parent message to deploys channel
+const msg = await client.sendMessage(teamId, channelId, '🚀 Deploying v2.1.0 to production...')
+await client.addReaction(teamId, channelId, msg.id, 'like')
+
+// Stream progress with follow-up messages
+await client.sendMessage(teamId, channelId, '• Building application...')
+await client.sendMessage(teamId, channelId, '• Running tests (142 passed)...')
+await client.sendMessage(teamId, channelId, '• Rolling out to 3 regions...')
+
+// Finalize
+await client.removeReaction(teamId, channelId, msg.id, 'like')
+await client.addReaction(teamId, channelId, msg.id, 'heart')
+await client.deleteMessage(teamId, channelId, msg.id)
+await client.sendMessage(teamId, channelId, '✅ v2.1.0 deployed to production')
+```
+
+### Channel Monitor
+
+List channels in a team and pull recent messages from each one.
+
+```typescript
+import { TeamsClient } from 'agent-messenger/teams'
+
+const client = new TeamsClient(token, tokenExpiresAt)
+
+// List all channels in the team
+const channels = await client.listChannels(teamId)
+
+for (const channel of channels) {
+  const messages = await client.getMessages(teamId, channel.id, 5)
+  console.log(`#${channel.name} (${messages.length} recent messages)`)
+
+  for (const msg of messages) {
+    console.log(`  [${msg.author.displayName}] ${msg.content.slice(0, 80)}`)
+  }
+}
+```
+
+### Team Summary
+
+Build a snapshot-style overview of a team: members, channels, and latest activity.
+
+```typescript
+import { TeamsClient } from 'agent-messenger/teams'
+
+const client = new TeamsClient(token, tokenExpiresAt)
+
+// Gather team info
+const team = await client.getTeam(teamId)
+const channels = await client.listChannels(teamId)
+const members = await client.listUsers(teamId)
+
+console.log(`Team: ${team.name}`)
+console.log(`Members: ${members.length}`)
+console.log(`Channels: ${channels.length}`)
+console.log()
+
+// Show latest message per channel
+for (const channel of channels.slice(0, 5)) {
+  const messages = await client.getMessages(teamId, channel.id, 1)
+  const latest = messages[0]
+  if (latest) {
+    console.log(
+      `#${channel.name}: "${latest.content.slice(0, 60)}" — ${latest.author.displayName}`,
+    )
+  } else {
+    console.log(`#${channel.name}: (no messages)`)
+  }
+}
+```
+
+### File Pipeline
+
+Collect files from one channel and re-upload them to an archive channel with a summary.
+
+```typescript
+import { TeamsClient } from 'agent-messenger/teams'
+
+const client = new TeamsClient(token, tokenExpiresAt)
+
+// Get files from the source channel
+const files = await client.listFiles(teamId, sourceChannelId)
+
+for (const file of files.slice(0, 5)) {
+  // Fetch the file content
+  const response = await fetch(file.url)
+  const buffer = Buffer.from(await response.arrayBuffer())
+
+  // Write to a temp file and re-upload to archive channel
+  const tmpPath = `/tmp/${file.name}`
+  const fs = await import('node:fs/promises')
+  await fs.writeFile(tmpPath, buffer)
+  const uploaded = await client.uploadFile(teamId, archiveChannelId, tmpPath)
+
+  await client.sendMessage(
+    teamId,
+    archiveChannelId,
+    [
+      `📎 Archived **${file.name}**`,
+      `Size: ${(file.size / 1024).toFixed(0)} KB · Type: ${file.contentType ?? 'unknown'}`,
+    ].join('\n'),
+  )
+}
+```
