@@ -1,0 +1,453 @@
+---
+title: Discord
+description: TypeScript SDK reference for Discord — client, credential management, and types.
+---
+
+## Installation
+
+```bash
+npm install agent-messenger
+```
+
+```typescript
+import {
+  DiscordClient,
+  DiscordCredentialManager,
+  DiscordError,
+} from 'agent-messenger/discord'
+```
+
+## DiscordClient
+
+The main client for interacting with Discord's API programmatically. All API methods include automatic rate-limit handling with per-bucket and global rate-limit tracking.
+
+```typescript
+import { DiscordClient } from 'agent-messenger/discord'
+
+const client = new DiscordClient(token)
+```
+
+### Authentication
+
+```typescript
+// Verify credentials and get identity
+const user = await client.testAuth()
+// → DiscordUser { id, username, global_name?, avatar?, bot? }
+```
+
+### Servers (Guilds)
+
+```typescript
+// List all servers the authenticated user belongs to
+const servers = await client.listServers()
+// → DiscordGuild[]
+
+// Get a specific server by ID
+const server = await client.getServer(serverId)
+// → DiscordGuild { id, name, icon?, owner? }
+```
+
+### Channels
+
+```typescript
+// List all channels in a server
+const channels = await client.listChannels(serverId)
+// → DiscordChannel[]
+
+// Get a specific channel by ID
+const channel = await client.getChannel(channelId)
+// → DiscordChannel { id, guild_id, name, type, topic?, position?, parent_id? }
+```
+
+### Messages
+
+```typescript
+// Send a message to a channel
+const msg = await client.sendMessage(channelId, 'Hello world')
+// → DiscordMessage { id, channel_id, author, content, timestamp }
+
+// Get recent messages from a channel (default limit: 50)
+const messages = await client.getMessages(channelId)
+const limited = await client.getMessages(channelId, 25)
+// → DiscordMessage[]
+
+// Get a single message by ID
+const message = await client.getMessage(channelId, messageId)
+// → DiscordMessage
+
+// Delete a message
+await client.deleteMessage(channelId, messageId)
+
+// Mark a message as read
+await client.ackMessage(channelId, messageId)
+```
+
+### Reactions
+
+```typescript
+// Add a reaction (use standard emoji or custom emoji name)
+await client.addReaction(channelId, messageId, '👍')
+await client.addReaction(channelId, messageId, 'custom_emoji_name:123456789')
+
+// Remove your reaction
+await client.removeReaction(channelId, messageId, '👍')
+```
+
+### Users
+
+```typescript
+// List all members in a server (up to 1000)
+const users = await client.listUsers(serverId)
+// → DiscordUser[]
+
+// Get a specific user by ID
+const user = await client.getUser(userId)
+// → DiscordUser { id, username, global_name?, avatar?, bot? }
+
+// Get a user's detailed profile (mutual servers, connected accounts, etc.)
+const profile = await client.getUserProfile(userId)
+// → DiscordUserProfile { user, connected_accounts, premium_since?, mutual_guilds? }
+```
+
+### Files
+
+```typescript
+// Upload a file to a channel (by file path)
+const file = await client.uploadFile(channelId, '/path/to/report.pdf')
+// → DiscordFile { id, filename, size, url, content_type?, height?, width? }
+
+// List files (attachments) from recent messages in a channel
+const files = await client.listFiles(channelId)
+// → DiscordFile[]
+```
+
+### Direct Messages
+
+```typescript
+// List all open DM channels
+const dms = await client.listDMChannels()
+// → DiscordDMChannel[]
+
+// Open a DM with a user (returns existing DM channel if already open)
+const dm = await client.createDM(userId)
+// → DiscordDMChannel { id, type, recipients, last_message_id? }
+```
+
+### Mentions
+
+```typescript
+// Get recent mentions (@ mentions, role mentions, @everyone)
+const mentions = await client.getMentions()
+const filtered = await client.getMentions({ limit: 10, guildId: serverId })
+// → DiscordMention[]
+```
+
+### User Notes
+
+```typescript
+// Get the note you've written for a user (returns null if none)
+const note = await client.getUserNote(userId)
+// → DiscordUserNote | null
+
+// Set or update a note for a user
+const updated = await client.setUserNote(userId, 'Met at conference 2024')
+// → DiscordUserNote { user_id, note_user_id, note }
+```
+
+### Relationships
+
+```typescript
+// Get all friends and blocked users
+const relationships = await client.getRelationships()
+// → DiscordRelationship[] { id, type, user, nickname? }
+// type: 1 = friend, 2 = blocked, 3 = incoming request, 4 = outgoing request
+```
+
+### Search
+
+```typescript
+// Search members in a server by username or nickname
+const members = await client.searchMembers(serverId, 'alice')
+const limited = await client.searchMembers(serverId, 'alice', 5)
+// → DiscordGuildMember[]
+
+// Search messages in a server
+const results = await client.searchMessages(serverId, 'deployment failed')
+const filtered = await client.searchMessages(serverId, 'API design', {
+  channelId: '123456789',   // limit to a specific channel
+  authorId: '987654321',    // limit to a specific author
+  has: 'file',              // 'file' | 'image' | 'video' | 'embed' | 'link' | 'sticker'
+  sortBy: 'timestamp',      // 'timestamp' | 'relevance'
+  sortOrder: 'desc',        // 'asc' | 'desc'
+  limit: 10,                // max 25
+  offset: 0,
+})
+// → { results: DiscordSearchResult[], total: number }
+```
+
+### Threads
+
+```typescript
+// Create a thread in a channel
+const thread = await client.createThread(channelId, 'Bug Report: Login Issue')
+const configured = await client.createThread(channelId, 'Design Review', {
+  auto_archive_duration: 1440,  // minutes: 60, 1440, 4320, or 10080
+  rate_limit_per_user: 5,       // seconds between messages (slow mode)
+})
+// → DiscordChannel (with thread_metadata)
+
+// Archive (or unarchive) a thread
+await client.archiveThread(threadId)
+await client.archiveThread(threadId, false) // unarchive
+// → DiscordChannel
+```
+
+## DiscordCredentialManager
+
+Manages Discord credentials stored at `~/.config/agent-messenger/discord-credentials.json`. Files are written with `0o600` permissions. The environment variable `E2E_DISCORD_TOKEN` (for token) and `E2E_DISCORD_SERVER_ID` (for current server) take precedence over file-based credentials.
+
+```typescript
+import { DiscordCredentialManager } from 'agent-messenger/discord'
+
+const manager = new DiscordCredentialManager()
+// Custom path: new DiscordCredentialManager('/custom/config/dir')
+```
+
+```typescript
+// Load full config from disk (returns defaults if file doesn't exist)
+const config = await manager.load()
+// → DiscordConfig { token, current_server, servers }
+
+// Save full config to disk
+await manager.save(config)
+
+// Get stored token (env var E2E_DISCORD_TOKEN takes precedence)
+const token = await manager.getToken()
+// → string | null
+
+// Store a token
+await manager.setToken('my-discord-token')
+
+// Clear the stored token
+await manager.clearToken()
+
+// Get current default server ID (env var E2E_DISCORD_SERVER_ID takes precedence)
+const serverId = await manager.getCurrentServer()
+// → string | null
+
+// Set the current default server
+await manager.setCurrentServer('123456789012345678')
+
+// Get all saved servers
+const servers = await manager.getServers()
+// → Record<string, { server_id: string; server_name: string }>
+
+// Save a set of servers
+await manager.setServers({
+  'My Server': { server_id: '123456789012345678', server_name: 'My Server' },
+})
+
+// Get both token and serverId in one call (returns null if either is missing)
+const credentials = await manager.getCredentials()
+// → { token: string; serverId: string } | null
+```
+
+## Types
+
+```typescript
+import type {
+  DiscordGuild,
+  DiscordChannel,
+  DiscordMessage,
+  DiscordUser,
+  DiscordDMChannel,
+  DiscordReaction,
+  DiscordFile,
+  DiscordMention,
+  DiscordUserNote,
+  DiscordSearchResult,
+  DiscordSearchResponse,
+  DiscordSearchOptions,
+  DiscordRelationship,
+  DiscordGuildMember,
+  DiscordUserProfile,
+  DiscordCredentials,
+  DiscordConfig,
+} from 'agent-messenger/discord'
+```
+
+### Zod Schemas
+
+Runtime-validated schemas are also exported for parsing API responses:
+
+```typescript
+import {
+  DiscordGuildSchema,
+  DiscordChannelSchema,
+  DiscordMessageSchema,
+  DiscordUserSchema,
+  DiscordDMChannelSchema,
+  DiscordReactionSchema,
+  DiscordFileSchema,
+  DiscordMentionSchema,
+  DiscordRelationshipSchema,
+  DiscordSearchResultSchema,
+  DiscordSearchResponseSchema,
+  DiscordCredentialsSchema,
+  DiscordConfigSchema,
+} from 'agent-messenger/discord'
+```
+
+## Examples
+
+### Deploy Notifier
+
+Post a deployment message, stream progress with replies, and mark it complete with a reaction.
+
+```typescript
+import { DiscordClient } from 'agent-messenger/discord'
+
+const client = new DiscordClient(token)
+
+// Post parent message to deploys channel
+const msg = await client.sendMessage(channelId, '🚀 Deploying v2.1.0 to production...')
+await client.addReaction(channelId, msg.id, '⏳')
+
+// Stream progress with follow-up messages
+await client.sendMessage(channelId, '• Building application...')
+await client.sendMessage(channelId, '• Running tests (142 passed)...')
+await client.sendMessage(channelId, '• Rolling out to 3 regions...')
+
+// Finalize
+await client.removeReaction(channelId, msg.id, '⏳')
+await client.addReaction(channelId, msg.id, '✅')
+await client.deleteMessage(channelId, msg.id)
+await client.sendMessage(channelId, '✅ v2.1.0 deployed to production')
+```
+
+### Server Setup
+
+Create a thread for a project kickoff, invite members, and post an announcement.
+
+```typescript
+import { DiscordClient } from 'agent-messenger/discord'
+
+const client = new DiscordClient(token)
+
+// Create a thread for project coordination
+const thread = await client.createThread(channelId, 'Project Alpha — Kickoff', {
+  auto_archive_duration: 10080, // 1 week
+})
+
+// Post welcome message in the thread
+await client.sendMessage(thread.id, [
+  '👋 Welcome to **Project Alpha**!',
+  '',
+  '📋 **Resources** — links and docs will be pinned here',
+  '🧵 **Discussions** — use threads to keep things organized',
+  '🚀 **Goal** — ship the MVP by end of Q1',
+].join('\n'))
+
+// Look up team members and notify them
+const members = await client.searchMembers(serverId, 'alice')
+for (const member of members.slice(0, 3)) {
+  await client.sendMessage(
+    thread.id,
+    `Hey <@${member.user.id}>, you're on the Alpha team — see you here!`,
+  )
+}
+```
+
+### Monitoring Alert
+
+Watch for mentions, acknowledge them, and set a follow-up note.
+
+```typescript
+import { DiscordClient } from 'agent-messenger/discord'
+
+const client = new DiscordClient(token)
+
+// Get recent mentions across all servers
+const mentions = await client.getMentions({ limit: 25 })
+
+for (const mention of mentions) {
+  // Acknowledge the mention with a reaction
+  await client.addReaction(mention.channel_id, mention.id, '👀')
+
+  // Reply with acknowledgment
+  await client.sendMessage(
+    mention.channel_id,
+    `Thanks for the ping <@${mention.author.id}> — on it!`,
+  )
+
+  // Set a note on the user for context
+  const existing = await client.getUserNote(mention.author.id)
+  const noteText = existing?.note
+    ? `${existing.note}\n[${new Date().toISOString()}] Mentioned me: "${mention.content.slice(0, 80)}"`
+    : `[${new Date().toISOString()}] Mentioned me: "${mention.content.slice(0, 80)}"`
+  await client.setUserNote(mention.author.id, noteText)
+}
+```
+
+### Search Triage
+
+Search for urgent messages, acknowledge with a reaction, and reply with a follow-up.
+
+```typescript
+import { DiscordClient } from 'agent-messenger/discord'
+
+const client = new DiscordClient(token)
+
+// Search for urgent messages in the server
+const { results, total } = await client.searchMessages(serverId, 'urgent OR blocker', {
+  sortBy: 'timestamp',
+  sortOrder: 'desc',
+  limit: 10,
+})
+
+console.log(`Found ${total} matching messages, reviewing top ${results.length}`)
+
+for (const result of results) {
+  // Acknowledge
+  await client.addReaction(result.channel_id, result.id, '👀')
+
+  // Reply with triage confirmation
+  await client.sendMessage(
+    result.channel_id,
+    `Flagged for review — will follow up shortly. (searching by <@${result.author.id}>'s message)`,
+  )
+}
+```
+
+### File Pipeline
+
+Collect files from one channel and re-upload them to an archive channel with a summary.
+
+```typescript
+import { DiscordClient } from 'agent-messenger/discord'
+
+const client = new DiscordClient(token)
+
+// Get files from the source channel
+const files = await client.listFiles(sourceChannelId)
+
+for (const file of files.slice(0, 5)) {
+  // Fetch the file content
+  const response = await fetch(file.url)
+  const buffer = Buffer.from(await response.arrayBuffer())
+
+  // Write to a temp file and re-upload to archive channel
+  const tmpPath = `/tmp/${file.filename}`
+  const fs = await import('node:fs/promises')
+  await fs.writeFile(tmpPath, buffer)
+  const uploaded = await client.uploadFile(archiveChannelId, tmpPath)
+
+  await client.sendMessage(
+    archiveChannelId,
+    [
+      `📎 Archived **${file.filename}**`,
+      `Size: ${(file.size / 1024).toFixed(0)} KB · Type: ${file.content_type ?? 'unknown'}`,
+    ].join('\n'),
+  )
+}
+```

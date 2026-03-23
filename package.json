@@ -30,6 +30,10 @@
     "./slack": {
       "types": "./src/platforms/slack/index.ts",
       "default": "./src/platforms/slack/index.ts"
+    },
+    "./discord": {
+      "types": "./src/platforms/discord/index.ts",
+      "default": "./src/platforms/discord/index.ts"
     }
   },
   "type": "module",
@@ -37,7 +41,8 @@
   "module": "dist/cli.js",
   "typesVersions": {
     "*": {
-      "slack": ["./src/platforms/slack/index.ts"]
+      "slack": ["./src/platforms/slack/index.ts"],
+      "discord": ["./src/platforms/discord/index.ts"]
     }
   },
   "scripts": {

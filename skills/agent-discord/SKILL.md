@@ -397,6 +397,48 @@ Common errors:
 
 Credentials stored in `~/.config/agent-messenger/discord-credentials.json` (0600 permissions). See [references/authentication.md](references/authentication.md) for format and security details.
 
+## SDK: Programmatic Usage
+
+`DiscordClient` is available as a TypeScript SDK for building scripts and automations.
+
+### Setup
+
+```typescript
+import { DiscordClient, DiscordCredentialManager } from 'agent-messenger/discord'
+
+const manager = new DiscordCredentialManager()
+const token = await manager.getToken()
+if (!token) {
+  throw new Error('Discord token not found. Run auth extract first.')
+}
+const client = new DiscordClient(token)
+```
+
+### Example
+
+```typescript
+// Send a message
+const msg = await client.sendMessage(channelId, 'Hello from SDK!')
+
+// React to it
+await client.addReaction(channelId, msg.id, '👋')
+
+// Search messages
+const { results } = await client.searchMessages(serverId, 'deployment', {
+  sortBy: 'timestamp',
+  sortOrder: 'desc',
+  limit: 5,
+})
+
+// Create a thread
+const thread = await client.createThread(channelId, 'Discussion Topic')
+await client.sendMessage(thread.id, 'First message in thread')
+```
+
+### Full API Reference
+
+See the [Discord SDK documentation](https://agent-messenger.dev/docs/sdk/discord) for complete method signatures, types, schemas, and examples.
+
 ## Limitations
 
 - No real-time events / Gateway connection
