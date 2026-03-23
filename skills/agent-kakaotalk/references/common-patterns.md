@@ -346,6 +346,22 @@ done
 agent-kakaotalk message send "$CHAT_ID" "$MESSAGE"
 ```
 
+## SDK Client Lifecycle
+
+When using `KakaoTalkClient` programmatically, note that calling `close()` is permanent — any subsequent method call throws a `KakaoTalkError` with code `client_closed`. Create a new `KakaoTalkClient` instance if you need to reconnect. Always use `try/finally` to ensure `close()` runs:
+
+```typescript
+const client = new KakaoTalkClient(oauthToken, userId, deviceUuid)
+try {
+  const chats = await client.getChats()
+  const firstChat = chats[0]
+  if (!firstChat) throw new Error('No chats available')
+  await client.sendMessage(firstChat.chat_id, 'Hello!')
+} finally {
+  client.close()
+}
+```
+
 ## See Also
 
 - [Authentication Guide](authentication.md) - Setting up credentials

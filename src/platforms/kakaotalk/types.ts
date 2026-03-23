@@ -1,3 +1,5 @@
+import { z } from 'zod'
+
 export interface ExtractedKakaoToken {
   oauth_token: string
   user_id: string
@@ -63,3 +65,77 @@ export const KAKAO_NEXT_ACTIONS: Record<string, { next_action: string; message: 
       'Tablet slot occupied. Provide --device-type pc or --device-type tablet with --force to replace.',
   },
 }
+
+export interface KakaoChat {
+  chat_id: string
+  type: number
+  display_name: string | null
+  active_members: number
+  unread_count: number
+  last_message: {
+    author_id: number
+    message: string
+    sent_at: number
+  } | null
+}
+
+export interface KakaoMessage {
+  log_id: string
+  type: number
+  author_id: number
+  message: string
+  sent_at: number
+}
+
+export interface KakaoSendResult {
+  success: boolean
+  status_code: number
+  chat_id: string
+  log_id: string
+  sent_at: number
+}
+
+export const KakaoChatSchema = z.object({
+  chat_id: z.string(),
+  type: z.number(),
+  display_name: z.string().nullable(),
+  active_members: z.number(),
+  unread_count: z.number(),
+  last_message: z.object({
+    author_id: z.number(),
+    message: z.string(),
+    sent_at: z.number(),
+  }).nullable(),
+})
+
+export const KakaoMessageSchema = z.object({
+  log_id: z.string(),
+  type: z.number(),
+  author_id: z.number(),
+  message: z.string(),
+  sent_at: z.number(),
+})
+
+export const KakaoSendResultSchema = z.object({
+  success: z.boolean(),
+  status_code: z.number(),
+  chat_id: z.string(),
+  log_id: z.string(),
+  sent_at: z.number(),
+})
+
+export const KakaoAccountCredentialsSchema = z.object({
+  account_id: z.string(),
+  oauth_token: z.string(),
+  user_id: z.string(),
+  refresh_token: z.string().optional(),
+  device_uuid: z.string(),
+  device_type: z.enum(['pc', 'tablet']),
+  created_at: z.string(),
+  updated_at: z.string(),
+})
+
+export const KakaoConfigSchema = z.object({
+  current_account: z.string().nullable(),
+  accounts: z.record(z.string(), KakaoAccountCredentialsSchema),
+})

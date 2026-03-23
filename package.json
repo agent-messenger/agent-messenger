@@ -46,6 +46,10 @@
     "./channeltalkbot": {
       "types": "./src/platforms/channeltalkbot/index.ts",
       "default": "./src/platforms/channeltalkbot/index.ts"
+    },
+    "./kakaotalk": {
+      "types": "./src/platforms/kakaotalk/index.ts",
+      "default": "./src/platforms/kakaotalk/index.ts"
     }
   },
   "type": "module",
@@ -57,7 +61,8 @@
       "discord": ["./src/platforms/discord/index.ts"],
       "teams": ["./src/platforms/teams/index.ts"],
       "channeltalk": ["./src/platforms/channeltalk/index.ts"],
-      "channeltalkbot": ["./src/platforms/channeltalkbot/index.ts"]
+      "channeltalkbot": ["./src/platforms/channeltalkbot/index.ts"],
+      "kakaotalk": ["./src/platforms/kakaotalk/index.ts"]
     }
   },
   "scripts": {

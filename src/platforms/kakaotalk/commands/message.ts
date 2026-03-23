@@ -1,96 +1,33 @@
-import { Long } from 'bson'
 import { Command } from 'commander'
 
 import { handleError } from '@/shared/utils/error-handler'
 import { formatOutput } from '@/shared/utils/output'
 
+import { KakaoTalkClient } from '../client'
 import { ensureKakaoAuth } from '../ensure-auth'
-import { LocoSession } from '../protocol/session'
-
-function toLong(v: unknown): string {
-  if (v && typeof v === 'object' && 'high' in v && 'low' in v) {
-    const { high, low } = v as { high: number; low: number }
-    return ((BigInt(high >>> 0) << 32n) | BigInt(low >>> 0)).toString()
-  }
-  return String(v ?? 0)
-}
-
-function parseLong(s: string): Long {
-  const big = BigInt(s)
-  const low = Number(big & 0xffffffffn)
-  const high = Number((big >> 32n) & 0xffffffffn)
-  return new Long(low, high)
-}
 
 async function listAction(
   chatId: string,
   options: { count?: string; from?: string; pretty?: boolean },
 ): Promise<void> {
   const account = await ensureKakaoAuth()
-  const session = new LocoSession()
-
+  let client: KakaoTalkClient | undefined
   try {
-    const loginResult = await session.login(
+    client = new KakaoTalkClient(
       account.oauth_token,
       account.user_id,
-      account.device_uuid ?? `agent-messenger-${account.user_id}`,
+      account.device_uuid,
     )
-
-    type ChatData = Record<string, unknown>
-    const rawChats = (loginResult.chatDatas ?? []) as ChatData[]
-    const chat = rawChats.find((c) => String(c.c) === chatId)
-    const lastLogId = chat?.ll as { high: number; low: number } | undefined
-    const maxLogId = lastLogId ? new Long(lastLogId.low, lastLogId.high) : undefined
-
     const count = options.count ? Number.parseInt(options.count, 10) : 20
-    const cursor = options.from ? parseLong(options.from) : undefined
-
-    // SYNCMSG returns messages with logId > cur, up to max.
-    // Paginate from cur=0 through batches, dedup, take last N.
-    const cid = parseLong(chatId)
-    const startCursor = cursor ?? Long.fromNumber(0)
-    const allMessages: Array<Record<string, unknown>> = []
-    const seenLogIds = new Set<string>()
-    let cur = startCursor
-
-    for (;;) {
-      const response = await session.syncMessages(cid, 80, cur, maxLogId)
-      const batch = (response.body.chatLogs ?? []) as Array<Record<string, unknown>>
-      if (batch.length === 0) break
-
-      for (const log of batch) {
-        const lid = toLong(log.logId)
-        if (!seenLogIds.has(lid)) {
-          seenLogIds.add(lid)
-          allMessages.push(log)
-        }
-      }
-
-      const maxLog = batch.reduce<Long | null>((max, l) => {
-        const lid = l.logId as { high: number; low: number }
-        const long = new Long(lid.low, lid.high)
-        return !max || long.greaterThan(max) ? long : max
-      }, null)
-
-      if (!maxLog || maxLog.equals(cur) || response.body.isOK) break
-      cur = maxLog
-    }
-
-    allMessages.sort((a, b) => (a.sendAt as number) - (b.sendAt as number))
-
-    const messages = allMessages.slice(-count).map((log) => ({
-      log_id: toLong(log.logId),
-      type: log.type,
-      author_id: log.authorId,
-      message: log.message,
-      sent_at: log.sendAt,
-    }))
-
+    const messages = await client.getMessages(chatId, {
+      count,
+      from: options.from,
+    })
     console.log(formatOutput(messages, options.pretty))
   } catch (error) {
     handleError(error as Error)
   } finally {
-    session.close()
+    client?.close()
   }
 }
 
@@ -100,33 +37,19 @@ async function sendAction(
   options: { pretty?: boolean },
 ): Promise<void> {
   const account = await ensureKakaoAuth()
-  const session = new LocoSession()
-
+  let client: KakaoTalkClient | undefined
   try {
-    await session.login(
+    client = new KakaoTalkClient(
       account.oauth_token,
       account.user_id,
-      account.device_uuid ?? `agent-messenger-${account.user_id}`,
+      account.device_uuid,
     )
-
-    const response = await session.sendMessage(parseLong(chatId), text)
-
-    console.log(
-      formatOutput(
-        {
-          success: response.statusCode === 0,
-          status_code: response.statusCode,
-          chat_id: chatId,
-          log_id: response.body.logId,
-          sent_at: response.body.sendAt,
-        },
-        options.pretty,
-      ),
-    )
+    const result = await client.sendMessage(chatId, text)
+    console.log(formatOutput(result, options.pretty))
   } catch (error) {
     handleError(error as Error)
   } finally {
-    session.close()
+    client?.close()
   }
 }
 
