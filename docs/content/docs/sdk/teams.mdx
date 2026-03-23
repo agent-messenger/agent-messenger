@@ -62,7 +62,7 @@ const channel = await client.getChannel(teamId, channelId)
 // → TeamsChannel { id, team_id, name, type }
 ```
 
-Channel IDs use UUID format (`19:xxx@thread.tacv2`), not numeric snowflakes. Always pass the parent `teamId` alongside the `channelId`.
+Channel IDs use a Teams thread ID format (`19:xxx@thread.tacv2`), not numeric snowflakes. Always pass the parent `teamId` alongside the `channelId`.
 
 ### Messages
 
