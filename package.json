@@ -39,6 +39,14 @@
       "types": "./src/platforms/teams/index.ts",
       "default": "./src/platforms/teams/index.ts"
     },
+    "./whatsapp": {
+      "types": "./src/platforms/whatsapp/index.ts",
+      "default": "./src/platforms/whatsapp/index.ts"
+    },
+    "./whatsappbot": {
+      "types": "./src/platforms/whatsappbot/index.ts",
+      "default": "./src/platforms/whatsappbot/index.ts"
+    },
     "./channeltalk": {
       "types": "./src/platforms/channeltalk/index.ts",
       "default": "./src/platforms/channeltalk/index.ts"
@@ -60,6 +68,8 @@
       "slack": ["./src/platforms/slack/index.ts"],
       "discord": ["./src/platforms/discord/index.ts"],
       "teams": ["./src/platforms/teams/index.ts"],
+      "whatsapp": ["./src/platforms/whatsapp/index.ts"],
+      "whatsappbot": ["./src/platforms/whatsappbot/index.ts"],
       "channeltalk": ["./src/platforms/channeltalk/index.ts"],
       "channeltalkbot": ["./src/platforms/channeltalkbot/index.ts"],
       "kakaotalk": ["./src/platforms/kakaotalk/index.ts"]
