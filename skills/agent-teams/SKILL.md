@@ -343,6 +343,46 @@ Common errors:
 
 Credentials stored in `~/.config/agent-messenger/teams-credentials.json` (0600 permissions). See [references/authentication.md](references/authentication.md) for format and security details.
 
+## SDK: Programmatic Usage
+
+`TeamsClient` is available as a TypeScript SDK for building scripts and automations.
+
+### Setup
+
+```typescript
+import { TeamsClient, TeamsCredentialManager } from 'agent-messenger/teams'
+
+const manager = new TeamsCredentialManager()
+const creds = await manager.getTokenWithExpiry()
+if (!creds) {
+  throw new Error('Teams token not found. Run auth extract first.')
+}
+const client = new TeamsClient(creds.token, creds.tokenExpiresAt)
+```
+
+### Example
+
+```typescript
+// List teams
+const teams = await client.listTeams()
+
+// List channels in a team
+const channels = await client.listChannels(teams[0].id)
+
+// Send a message
+const msg = await client.sendMessage(teams[0].id, channels[0].id, 'Hello from SDK!')
+
+// React to it
+await client.addReaction(teams[0].id, channels[0].id, msg.id, 'like')
+
+// Upload a file
+await client.uploadFile(teams[0].id, channels[0].id, './report.pdf')
+```
+
+### Full API Reference
+
+See the [Teams SDK documentation](https://agent-messenger.dev/docs/sdk/teams) for complete method signatures, types, schemas, and examples.
+
 ## Limitations
 
 - No real-time events / WebSocket connection
