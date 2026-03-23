@@ -38,6 +38,14 @@
     "./teams": {
       "types": "./src/platforms/teams/index.ts",
       "default": "./src/platforms/teams/index.ts"
+    },
+    "./channeltalk": {
+      "types": "./src/platforms/channeltalk/index.ts",
+      "default": "./src/platforms/channeltalk/index.ts"
+    },
+    "./channeltalkbot": {
+      "types": "./src/platforms/channeltalkbot/index.ts",
+      "default": "./src/platforms/channeltalkbot/index.ts"
     }
   },
   "type": "module",
@@ -47,7 +55,9 @@
     "*": {
       "slack": ["./src/platforms/slack/index.ts"],
       "discord": ["./src/platforms/discord/index.ts"],
-      "teams": ["./src/platforms/teams/index.ts"]
+      "teams": ["./src/platforms/teams/index.ts"],
+      "channeltalk": ["./src/platforms/channeltalk/index.ts"],
+      "channeltalkbot": ["./src/platforms/channeltalkbot/index.ts"]
     }
   },
   "scripts": {

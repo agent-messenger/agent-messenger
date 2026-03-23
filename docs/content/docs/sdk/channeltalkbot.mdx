@@ -1,0 +1,387 @@
+---
+title: Channel Talk Bot
+description: TypeScript SDK reference for Channel Talk Bot — client, credential management, and types.
+---
+
+## Installation
+
+```bash
+npm install agent-messenger
+```
+
+```typescript
+import {
+  ChannelBotClient,
+  ChannelBotCredentialManager,
+  ChannelBotError,
+} from 'agent-messenger/channeltalkbot'
+```
+
+## ChannelBotClient
+
+The main client for interacting with Channel Talk's Bot API programmatically. Authenticates with an access key and access secret issued from the Channel Talk developer console.
+
+```typescript
+import { ChannelBotClient } from 'agent-messenger/channeltalkbot'
+
+const client = new ChannelBotClient(accessKey, accessSecret)
+```
+
+### Channel (Workspace)
+
+```typescript
+// Get the current workspace info
+const channel = await client.getChannel()
+// → ChannelBotChannel { id, name, homepageUrl?, description? }
+```
+
+### User Chats
+
+```typescript
+// List user chats with optional filters
+const chats = await client.listUserChats()
+const filtered = await client.listUserChats({
+  state: 'opened',
+  sortOrder: 'desc',
+  since: '1700000000000',
+  limit: 20,
+})
+// → ChannelBotUserChat[]
+
+// Get a specific user chat by ID
+const chat = await client.getUserChat(chatId)
+// → ChannelBotUserChat { id, channelId, name?, state, managerId?, userId?, createdAt?, updatedAt? }
+
+// Get messages in a user chat
+const messages = await client.getUserChatMessages(chatId)
+const recent = await client.getUserChatMessages(chatId, {
+  sortOrder: 'desc',
+  since: '1700000000000',
+  limit: 10,
+})
+// → ChannelBotMessage[]
+
+// Send a message to a user chat (optional bot name)
+const blocks = ChannelBotClient.wrapTextInBlocks('Hello!')
+const msg = await client.sendUserChatMessage(chatId, blocks)
+const named = await client.sendUserChatMessage(chatId, blocks, 'Support Bot')
+// → ChannelBotMessage
+
+// Close a user chat
+const closed = await client.closeUserChat(chatId, 'Support Bot')
+// → ChannelBotUserChat
+
+// Delete a user chat
+await client.deleteUserChat(chatId)
+
+// Get a signed file URL from a user chat
+const file = await client.getUserChatFileUrl(chatId, fileKey)
+// → { url: string }
+```
+
+### Groups
+
+```typescript
+// List groups with optional pagination
+const groups = await client.listGroups()
+const paginated = await client.listGroups({ since: '1700000000000', limit: 50 })
+// → ChannelBotGroup[]
+
+// Get a specific group by ID
+const group = await client.getGroup(groupId)
+// → ChannelBotGroup { id, channelId, name }
+
+// Get a group by its exact name
+const groupByName = await client.getGroupByName('engineering')
+// → ChannelBotGroup
+
+// Get messages in a group
+const messages = await client.getGroupMessages(groupId)
+const recent = await client.getGroupMessages(groupId, {
+  sortOrder: 'desc',
+  since: '1700000000000',
+  limit: 10,
+})
+// → ChannelBotMessage[]
+
+// Send a message to a group (optional bot name)
+const blocks = ChannelBotClient.wrapTextInBlocks('Announcement!')
+const msg = await client.sendGroupMessage(groupId, blocks)
+const named = await client.sendGroupMessage(groupId, blocks, 'Deploy Bot')
+// → ChannelBotMessage
+
+// Get a signed file URL from a group
+const file = await client.getGroupFileUrl(groupId, fileKey)
+// → { url: string }
+
+// Resolve a group by ID or @name (auto-detects format)
+const resolved = await client.resolveGroup('@engineering')  // by name
+const byId = await client.resolveGroup('abc123')            // by ID
+// → ChannelBotGroup
+```
+
+### Managers
+
+```typescript
+// List managers with optional pagination
+const managers = await client.listManagers()
+const paginated = await client.listManagers({ since: '1700000000000', limit: 50 })
+// → ChannelBotManager[]
+
+// Get a specific manager by ID
+const manager = await client.getManager(managerId)
+// → ChannelBotManager { id, channelId, accountId?, name, description? }
+```
+
+### Bots
+
+```typescript
+// List bots with optional pagination
+const bots = await client.listBots()
+const paginated = await client.listBots({ since: '1700000000000', limit: 50 })
+// → ChannelBotBot[]
+
+// Create a new bot (optional color and avatar)
+const bot = await client.createBot('Alert Bot')
+const styled = await client.createBot('Alert Bot', {
+  color: '#FF5733',
+  avatarUrl: 'https://example.com/icon.png',
+})
+// → ChannelBotBot
+
+// Delete a bot
+await client.deleteBot(botId)
+```
+
+### Users
+
+```typescript
+// List users with optional pagination
+const users = await client.listUsers()
+const paginated = await client.listUsers({ since: '1700000000000', limit: 50 })
+// → ChannelBotUser[]
+
+// Get a specific user by ID
+const user = await client.getUser(userId)
+// → ChannelBotUser { id, channelId, memberId?, name? }
+```
+
+### Utilities
+
+```typescript
+// Wrap plain text into Channel Talk message blocks (static method)
+const blocks = ChannelBotClient.wrapTextInBlocks('Hello, world!')
+// → MessageBlock[]
+```
+
+## ChannelBotCredentialManager
+
+Manages Channel Talk Bot credentials stored at `~/.config/agent-messenger/channelbot-credentials.json`. Files are written with `0o600` permissions. The environment variables `E2E_CHANNELBOT_ACCESS_KEY` and `E2E_CHANNELBOT_ACCESS_SECRET` take precedence when calling `getCredentials()` without a `workspaceId`.
+
+```typescript
+import { ChannelBotCredentialManager } from 'agent-messenger/channeltalkbot'
+
+const manager = new ChannelBotCredentialManager()
+// Custom path: new ChannelBotCredentialManager('/custom/config/dir')
+```
+
+```typescript
+// Load full config from disk (returns defaults if file doesn't exist)
+const config = await manager.load()
+// → ChannelBotConfig
+
+// Save full config to disk
+await manager.save(config)
+
+// Get credentials for a workspace (env vars take precedence)
+const creds = await manager.getCredentials()
+const specific = await manager.getCredentials(workspaceId)
+// → ChannelBotCredentials | null
+
+// Store credentials for a workspace
+await manager.setCredentials({
+  workspace_id: 'ws-123',
+  workspace_name: 'My Workspace',
+  access_key: 'key-xxx',
+  access_secret: 'secret-xxx',
+})
+
+// Remove a workspace's credentials
+const removed = await manager.removeWorkspace('ws-123')
+// → boolean
+
+// Set the current default workspace
+const ok = await manager.setCurrent('ws-123')
+// → boolean
+
+// List all saved workspaces with current marker
+const all = await manager.listAll()
+// → Array<ChannelBotWorkspaceEntry & { is_current: boolean }>
+
+// Clear all stored credentials
+await manager.clearCredentials()
+
+// Get the default bot name (optional workspaceId for multi-workspace)
+const botName = await manager.getDefaultBot()
+const wsBot = await manager.getDefaultBot(workspaceId)
+// → string | null
+
+// Set the default bot name (optional workspaceId for multi-workspace)
+await manager.setDefaultBot('Support Bot')
+await manager.setDefaultBot('Support Bot', workspaceId)
+```
+
+## Types
+
+```typescript
+import type {
+  ChannelBotChannel,
+  ChannelBotUserChat,
+  ChannelBotMessage,
+  ChannelBotGroup,
+  ChannelBotManager,
+  ChannelBotBot,
+  ChannelBotUser,
+  ChannelBotCredentials,
+  ChannelBotConfig,
+  ChannelBotWorkspaceEntry,
+  MessageBlock,
+} from 'agent-messenger/channeltalkbot'
+```
+
+### Zod Schemas
+
+Runtime-validated schemas are also exported for parsing API responses:
+
+```typescript
+import {
+  ChannelBotBotSchema,
+  ChannelBotChannelSchema,
+  ChannelBotConfigSchema,
+  ChannelBotCredentialsSchema,
+  ChannelBotGroupSchema,
+  ChannelBotManagerSchema,
+  ChannelBotMessageSchema,
+  ChannelBotUserChatSchema,
+  ChannelBotUserSchema,
+  ChannelBotWorkspaceEntrySchema,
+  MessageBlockSchema,
+} from 'agent-messenger/channeltalkbot'
+```
+
+## Examples
+
+### Auto-Reply Bot
+
+List open user chats, send a reply, and close the chat.
+
+```typescript
+import { ChannelBotClient } from 'agent-messenger/channeltalkbot'
+
+const client = new ChannelBotClient(accessKey, accessSecret)
+
+const chats = await client.listUserChats({ state: 'opened', limit: 10 })
+
+for (const chat of chats) {
+  const messages = await client.getUserChatMessages(chat.id, { limit: 1 })
+  const lastMsg = messages[0]
+
+  if (lastMsg?.plainText?.includes('hours')) {
+    const reply = ChannelBotClient.wrapTextInBlocks(
+      'Our support hours are Mon–Fri 9am–6pm KST. We\'ll get back to you shortly!'
+    )
+    await client.sendUserChatMessage(chat.id, reply, 'Support Bot')
+    await client.closeUserChat(chat.id, 'Support Bot')
+  }
+}
+```
+
+### Group Broadcast
+
+Resolve a group by name and send an announcement.
+
+```typescript
+import { ChannelBotClient } from 'agent-messenger/channeltalkbot'
+
+const client = new ChannelBotClient(accessKey, accessSecret)
+
+// Resolve group by @name
+const group = await client.resolveGroup('@engineering')
+
+// Send deployment notification
+const blocks = ChannelBotClient.wrapTextInBlocks(
+  'Deployment v2.1.0 complete — all services healthy'
+)
+await client.sendGroupMessage(group.id, blocks, 'Deploy Bot')
+
+// Verify delivery
+const messages = await client.getGroupMessages(group.id, { limit: 1 })
+console.log(`Latest message: ${messages[0]?.plainText}`)
+```
+
+### Bot Management
+
+Create a bot, list bots, and send a message as the new bot.
+
+```typescript
+import { ChannelBotClient } from 'agent-messenger/channeltalkbot'
+
+const client = new ChannelBotClient(accessKey, accessSecret)
+
+// Create a dedicated alert bot
+const bot = await client.createBot('Alert Bot', {
+  color: '#FF5733',
+  avatarUrl: 'https://example.com/alert-icon.png',
+})
+console.log(`Created bot: ${bot.name} (${bot.id})`)
+
+// List all bots in workspace
+const bots = await client.listBots()
+for (const b of bots) {
+  console.log(`- ${b.name} (${b.id})`)
+}
+
+// Send alert using the new bot
+const group = await client.resolveGroup('@oncall')
+const blocks = ChannelBotClient.wrapTextInBlocks('Error rate exceeded 1% — check dashboard')
+await client.sendGroupMessage(group.id, blocks, bot.name)
+```
+
+### Customer Support Triage
+
+List chats by state, read messages, and send acknowledgments.
+
+```typescript
+import { ChannelBotClient } from 'agent-messenger/channeltalkbot'
+
+const client = new ChannelBotClient(accessKey, accessSecret)
+
+// Get workspace info
+const channel = await client.getChannel()
+console.log(`Workspace: ${channel.name}`)
+
+// List open chats, ordered by newest
+const openChats = await client.listUserChats({
+  state: 'opened',
+  sortOrder: 'desc',
+  limit: 20,
+})
+console.log(`${openChats.length} open conversations`)
+
+// Triage: acknowledge each chat
+for (const chat of openChats.slice(0, 5)) {
+  const messages = await client.getUserChatMessages(chat.id, { limit: 3 })
+  const summary = messages
+    .map((m) => m.plainText?.slice(0, 60))
+    .filter(Boolean)
+    .join(' | ')
+
+  console.log(`Chat ${chat.id}: ${summary}`)
+
+  // Send acknowledgment
+  const reply = ChannelBotClient.wrapTextInBlocks(
+    'Your request has been received. A team member will follow up shortly.'
+  )
+  await client.sendUserChatMessage(chat.id, reply, 'Support Bot')
+}
+```
