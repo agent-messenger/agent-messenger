@@ -354,7 +354,9 @@ When using `KakaoTalkClient` programmatically, note that calling `close()` is pe
 const client = new KakaoTalkClient(oauthToken, userId, deviceUuid)
 try {
   const chats = await client.getChats()
-  await client.sendMessage(chats[0].chat_id, 'Hello!')
+  const firstChat = chats[0]
+  if (!firstChat) throw new Error('No chats available')
+  await client.sendMessage(firstChat.chat_id, 'Hello!')
 } finally {
   client.close()
 }
