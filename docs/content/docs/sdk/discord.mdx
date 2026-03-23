@@ -438,7 +438,8 @@ for (const file of files.slice(0, 5)) {
 
   // Write to a temp file and re-upload to archive channel
   const tmpPath = `/tmp/${file.filename}`
-  await Bun.write(tmpPath, buffer)
+  const fs = await import('node:fs/promises')
+  await fs.writeFile(tmpPath, buffer)
   const uploaded = await client.uploadFile(archiveChannelId, tmpPath)
 
   await client.sendMessage(

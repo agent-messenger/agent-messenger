@@ -408,7 +408,10 @@ import { DiscordClient, DiscordCredentialManager } from 'agent-messenger/discord
 
 const manager = new DiscordCredentialManager()
 const token = await manager.getToken()
-const client = new DiscordClient(token!)
+if (!token) {
+  throw new Error('Discord token not found. Run auth extract first.')
+}
+const client = new DiscordClient(token)
 ```
 
 ### Example
