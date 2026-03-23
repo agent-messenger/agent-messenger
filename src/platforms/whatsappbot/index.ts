@@ -1,14 +1,16 @@
 export { WhatsAppBotClient } from './client'
 export { WhatsAppBotCredentialManager } from './credential-manager'
-export {
+export type {
   WhatsAppBotAccountEntry,
-  WhatsAppBotAccountEntrySchema,
   WhatsAppBotConfig,
-  WhatsAppBotConfigSchema,
   WhatsAppBotCredentials,
-  WhatsAppBotCredentialsSchema,
-  WhatsAppBotError,
   WhatsAppBotMessageResponse,
   WhatsAppBotTemplate,
   WhatsAppBotTemplateComponent,
+} from './types'
+export {
+  WhatsAppBotAccountEntrySchema,
+  WhatsAppBotConfigSchema,
+  WhatsAppBotCredentialsSchema,
+  WhatsAppBotError,
 } from './types'
