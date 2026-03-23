@@ -23,7 +23,7 @@ yarn global add agent-messenger
 bun add -g agent-messenger
 ```
 
-This installs eight CLI tools:
+This installs these CLI tools:
 
 - `agent-slack` — Slack CLI (user token, zero-config)
 - `agent-slackbot` — Slack Bot CLI (bot token, for server-side/CI/CD)
@@ -31,6 +31,9 @@ This installs eight CLI tools:
 - `agent-discordbot` — Discord Bot CLI (bot token, for server-side/CI/CD)
 - `agent-teams` — Microsoft Teams CLI
 - `agent-telegram` — Telegram CLI (user account via TDLib)
+- `agent-whatsapp` — WhatsApp CLI (user account via Baileys, pairing code auth)
+- `agent-whatsappbot` — WhatsApp Bot CLI (Cloud API, for server-side/CI/CD)
+- `agent-kakaotalk` — KakaoTalk CLI (sub-device login, LOCO protocol)
 - `agent-channeltalk` — Channel Talk CLI (beta, zero-config, extracted cookies)
 - `agent-channeltalkbot` — Channel Talk Bot CLI (beta, API credentials, for server-side/CI/CD)
 
@@ -50,6 +53,9 @@ agent-teams auth extract
 
 # For Telegram — interactive login with auto API credential provisioning
 agent-telegram auth login
+
+# For KakaoTalk — login as sub-device (desktop stays running)
+agent-kakaotalk auth login
 
 # For Channel Talk (beta) — auto-extracted from desktop app
 agent-channeltalk auth extract
@@ -115,6 +121,9 @@ agent-slack workspace current
 - [Discord Bot Reference](/docs/cli/discordbot) - Bot token for server-side/CI/CD
 - [Teams Reference](/docs/cli/teams) - Full command reference
 - [Telegram Reference](/docs/cli/telegram) - TDLib setup and command reference
+- [WhatsApp Reference](/docs/cli/whatsapp) - Full command reference
+- [WhatsApp Bot Reference](/docs/cli/whatsappbot) - Cloud API for WhatsApp Business
+- [KakaoTalk Reference](/docs/cli/kakaotalk) - Full command reference
 - [Channel Talk Reference](/docs/cli/channeltalk) - Full command reference (beta)
 - [Channel Talk Bot Reference](/docs/cli/channeltalkbot) - Bot API for Channel Talk (beta)
 - [Agent Skills](/docs/agent-skills) - Integrate with AI coding agents

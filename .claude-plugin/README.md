@@ -1,6 +1,6 @@
 # Agent Messenger - Claude Code Plugin
 
-Messaging platform interaction skills for AI agents and Claude Code. Supports Slack, Discord, Microsoft Teams, Telegram, WhatsApp, and Channel Talk (beta).
+Messaging platform interaction skills for AI agents and Claude Code. Supports Slack, Discord, Microsoft Teams, Telegram, WhatsApp, KakaoTalk, and Channel Talk (beta).
 
 ## Installation
 
@@ -89,6 +89,13 @@ Enables AI agents to interact with messaging platforms through CLI interfaces:
 - **Template messaging** for outbound notifications
 - Designed for **server-side and CI/CD** use cases
 
+### KakaoTalk (`agent-kakaotalk`)
+- **Send messages** to chat rooms (1:1, group, open chat)
+- **Read chats** and message history
+- **Sub-device login** — registers as tablet, desktop app stays running
+- **Credential extraction** from desktop app (macOS/Windows)
+- **LOCO protocol** — native binary messaging protocol
+
 ### Channel Talk (`agent-channeltalk`) — Beta
 - **Send messages** to groups, user chats, and direct chats
 - **Read chats** and message history
@@ -121,6 +128,9 @@ agent-discord auth extract
 # Teams
 agent-teams auth extract
 
+# For KakaoTalk — login as sub-device (desktop stays running)
+agent-kakaotalk auth login
+
 # Channel Talk (auto-extracted from desktop app)
 agent-channeltalk auth extract
 ```
@@ -139,7 +149,7 @@ All commands output JSON by default for easy AI consumption. Use `--pretty` for 
 
 ## Requirements
 
-- Desktop app installed and logged in for the platform(s) you want to use (Slack, Discord, Teams, and/or Channel Talk)
+- Desktop app installed and logged in for the platform(s) you want to use (Slack, Discord, Teams, KakaoTalk, and/or Channel Talk)
 - For Telegram: TDLib is bundled; API credentials are auto-provisioned on first login
 - Node.js 18+ or Bun runtime
 
@@ -226,5 +236,6 @@ agent-discord file upload <channel-id> ./report.pdf
 - [Telegram Skill Documentation](https://github.com/devxoul/agent-messenger/blob/main/skills/agent-telegram/SKILL.md)
 - [WhatsApp Skill Documentation](https://github.com/devxoul/agent-messenger/blob/main/skills/agent-whatsapp/SKILL.md)
 - [WhatsApp Bot Skill Documentation](https://github.com/devxoul/agent-messenger/blob/main/skills/agent-whatsappbot/SKILL.md)
+- [KakaoTalk Skill Documentation](https://github.com/devxoul/agent-messenger/blob/main/skills/agent-kakaotalk/SKILL.md)
 - [Channel Talk Skill Documentation](https://github.com/devxoul/agent-messenger/blob/main/skills/agent-channeltalk/SKILL.md)
 - [Channel Talk Bot Skill Documentation](https://github.com/devxoul/agent-messenger/blob/main/skills/agent-channeltalkbot/SKILL.md)

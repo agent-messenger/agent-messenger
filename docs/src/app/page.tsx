@@ -111,6 +111,19 @@ function WhatsAppIcon({ className, style }: { className?: string; style?: React.
   )
 }
 
+function KakaoTalkIcon({ className, style }: { className?: string; style?: React.CSSProperties }) {
+  return (
+    <svg viewBox="0 0 128 128" fill="currentColor" className={className} style={style}>
+      <title>KakaoTalk icon</title>
+      <rect width="128" height="128" rx="28" fill="#FEE500" />
+      <path
+        d="M64 32C45.2 32 30 43.8 30 58.4c0 9.4 6.2 17.7 15.6 22.4l-3.2 11.8c-.3 1 .9 1.8 1.7 1.2l14.1-9.4c1.9.3 3.8.4 5.8.4 18.8 0 34-11.8 34-26.4S82.8 32 64 32z"
+        fill="#3C1E1E"
+      />
+    </svg>
+  )
+}
+
 function ChannelTalkIcon({ className, style }: { className?: string; style?: React.CSSProperties }) {
   return (
     <svg viewBox="0 0 128 128" fill="currentColor" className={className} style={style}>
@@ -375,7 +388,7 @@ const FEATURES = [
   {
     icon: <ShieldIcon className="size-5" />,
     title: 'Auto-Extract Auth',
-    description: 'Reads tokens from Slack, Discord, Teams, and Channel Talk desktop apps. Telegram and WhatsApp authenticate with a one-time code — still under a minute.',
+    description: 'Reads tokens from Slack, Discord, Teams, KakaoTalk, and Channel Talk desktop apps. Telegram and WhatsApp authenticate with a one-time code — still under a minute.',
   },
   {
     icon: <UserIcon className="size-5" />,
@@ -385,7 +398,7 @@ const FEATURES = [
   {
     icon: <TerminalIcon className="size-5" />,
     title: 'One Interface',
-    description: 'Same command patterns across 6 platforms: message send, message search, channel list, snapshot. Learn once.',
+    description: 'Same command patterns across 7 platforms: message send, message search, channel list, snapshot. Learn once.',
   },
   {
     icon: <CpuIcon className="size-5" />,
@@ -461,6 +474,17 @@ const TERMINAL_DEMOS = [
     ],
   },
   {
+    platform: 'KakaoTalk',
+    commands: [
+      { prompt: '$ ', cmd: 'agent-kakaotalk chat list' },
+      { output: '✓ 12 chat rooms loaded' },
+      { prompt: '$ ', cmd: 'agent-kakaotalk message list 9876543210 -n 10' },
+      { output: '✓ 10 messages loaded' },
+      { prompt: '$ ', cmd: 'agent-kakaotalk message send 9876543210 "Build passed, deploying now"' },
+      { output: '✓ Message sent' },
+    ],
+  },
+  {
     platform: 'Channel Talk',
     commands: [
       { prompt: '$ ', cmd: 'agent-channeltalk message search "billing issue"' },
@@ -479,6 +503,7 @@ const PLATFORMS = [
   { name: 'Teams', href: '/docs/cli/teams', Icon: TeamsIcon, color: '#6264A7', glowColor: 'rgba(98,100,167,0.4)' },
   { name: 'Telegram', href: '/docs/cli/telegram', Icon: TelegramIcon, color: '#2AABEE', glowColor: 'rgba(42,171,238,0.4)' },
   { name: 'WhatsApp', href: '/docs/cli/whatsapp', Icon: WhatsAppIcon, color: '#25D366', glowColor: 'rgba(37,211,102,0.4)' },
+  { name: 'KakaoTalk', href: '/docs/cli/kakaotalk', Icon: KakaoTalkIcon, color: '#FEE500', glowColor: 'rgba(254,229,0,0.4)' },
   { name: 'Channel Talk', href: '/docs/cli/channeltalk', Icon: ChannelTalkIcon, color: '#3B3FE4', glowColor: 'rgba(59,63,228,0.4)' },
 ]
 
@@ -487,13 +512,13 @@ const HOW_IT_WORKS = [
     step: 1,
     title: 'Install',
     code: 'npm install -g agent-messenger',
-    description: 'Installs 12 CLIs — agent-slack, agent-discord, agent-teams, agent-telegram, agent-whatsapp, agent-channeltalk, plus 4 bot variants and agent-kakaotalk.',
+    description: 'Installs agent-slack, agent-discord, agent-teams, agent-telegram, agent-whatsapp, agent-kakaotalk, agent-channeltalk, plus bot variants.',
   },
   {
     step: 2,
     title: 'Run',
     code: 'agent-slack snapshot --pretty',
-    description: 'Slack, Discord, Teams, and Channel Talk tokens are read from your desktop app automatically. Telegram and WhatsApp authenticate with a one-time code.',
+    description: 'Slack, Discord, Teams, KakaoTalk, and Channel Talk tokens are read from your desktop app automatically. Telegram and WhatsApp authenticate with a one-time code.',
   },
   {
     step: 3,
@@ -519,22 +544,23 @@ const CAPABILITIES: {
   teams: boolean
   telegram: boolean
   whatsapp: boolean
+  kakaotalk: boolean
   channeltalk: boolean
 }[] = [
-  { feature: 'Zero-config credentials', slack: true, discord: true, teams: true, telegram: false, whatsapp: false, channeltalk: true },
-  { feature: 'Send & list messages', slack: true, discord: true, teams: true, telegram: true, whatsapp: true, channeltalk: true },
-  { feature: 'Search messages', slack: true, discord: true, teams: false, telegram: false, whatsapp: true, channeltalk: true },
-  { feature: 'Threads', slack: true, discord: true, teams: false, telegram: false, whatsapp: false, channeltalk: false },
-  { feature: 'Reactions', slack: true, discord: true, teams: true, telegram: false, whatsapp: true, channeltalk: false },
-  { feature: 'File upload & download', slack: true, discord: true, teams: true, telegram: false, whatsapp: false, channeltalk: false },
-  { feature: 'Workspace snapshot', slack: true, discord: true, teams: true, telegram: false, whatsapp: false, channeltalk: true },
-  { feature: 'Multi-account', slack: true, discord: true, teams: true, telegram: true, whatsapp: true, channeltalk: true },
-  { feature: 'Bot CLI available', slack: true, discord: true, teams: false, telegram: false, whatsapp: true, channeltalk: true },
-  { feature: 'Real-time events (SDK)', slack: true, discord: false, teams: false, telegram: false, whatsapp: false, channeltalk: false },
+  { feature: 'Zero-config credentials', slack: true, discord: true, teams: true, telegram: false, whatsapp: false, kakaotalk: true, channeltalk: true },
+  { feature: 'Send & list messages', slack: true, discord: true, teams: true, telegram: true, whatsapp: true, kakaotalk: true, channeltalk: true },
+  { feature: 'Search messages', slack: true, discord: true, teams: false, telegram: false, whatsapp: true, kakaotalk: false, channeltalk: true },
+  { feature: 'Threads', slack: true, discord: true, teams: false, telegram: false, whatsapp: false, kakaotalk: false, channeltalk: false },
+  { feature: 'Reactions', slack: true, discord: true, teams: true, telegram: false, whatsapp: true, kakaotalk: false, channeltalk: false },
+  { feature: 'File upload & download', slack: true, discord: true, teams: true, telegram: false, whatsapp: false, kakaotalk: false, channeltalk: false },
+  { feature: 'Workspace snapshot', slack: true, discord: true, teams: true, telegram: false, whatsapp: false, kakaotalk: false, channeltalk: true },
+  { feature: 'Multi-account', slack: true, discord: true, teams: true, telegram: true, whatsapp: true, kakaotalk: false, channeltalk: true },
+  { feature: 'Bot CLI available', slack: true, discord: true, teams: false, telegram: false, whatsapp: true, kakaotalk: false, channeltalk: true },
+  { feature: 'Real-time events (SDK)', slack: true, discord: false, teams: false, telegram: false, whatsapp: false, kakaotalk: false, channeltalk: false },
 ]
 
-const PLATFORM_COLUMNS = ['Slack', 'Discord', 'Teams', 'Telegram', 'WhatsApp', 'Ch. Talk'] as const
-const PLATFORM_KEYS = ['slack', 'discord', 'teams', 'telegram', 'whatsapp', 'channeltalk'] as const
+const PLATFORM_COLUMNS = ['Slack', 'Discord', 'Teams', 'Telegram', 'WhatsApp', 'KakaoTalk', 'Ch. Talk'] as const
+const PLATFORM_KEYS = ['slack', 'discord', 'teams', 'telegram', 'whatsapp', 'kakaotalk', 'channeltalk'] as const
 
 
 
@@ -600,7 +626,7 @@ export default function Home() {
 
           {/* Subtitle */}
           <p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-zinc-600 dark:text-zinc-400">
-            One CLI for Slack, Discord, Teams, Telegram, WhatsApp, and Channel Talk.
+            One CLI for Slack, Discord, Teams, Telegram, WhatsApp, KakaoTalk, and Channel Talk.
             Credentials extracted from desktop apps or authenticated in seconds — no API keys, no OAuth, no admin approval.
           </p>
 
@@ -692,7 +718,7 @@ export default function Home() {
                 Solution
               </div>
               <p className="leading-relaxed text-zinc-600 dark:text-zinc-400">
-                Agent Messenger reads session tokens from your Slack, Discord, or Teams desktop app — zero config.
+                Agent Messenger reads session tokens from your Slack, Discord, Teams, or KakaoTalk desktop app — zero config.
                 Telegram and WhatsApp authenticate with a one-time phone or pairing code.
                 Either way, your agent operates <strong className="text-zinc-900 dark:text-zinc-100">as you</strong> — same name, same permissions, same context.
               </p>
