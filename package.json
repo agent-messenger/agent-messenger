@@ -34,6 +34,10 @@
     "./discord": {
       "types": "./src/platforms/discord/index.ts",
       "default": "./src/platforms/discord/index.ts"
+    },
+    "./teams": {
+      "types": "./src/platforms/teams/index.ts",
+      "default": "./src/platforms/teams/index.ts"
     }
   },
   "type": "module",
@@ -42,7 +46,8 @@
   "typesVersions": {
     "*": {
       "slack": ["./src/platforms/slack/index.ts"],
-      "discord": ["./src/platforms/discord/index.ts"]
+      "discord": ["./src/platforms/discord/index.ts"],
+      "teams": ["./src/platforms/teams/index.ts"]
     }
   },
   "scripts": {
