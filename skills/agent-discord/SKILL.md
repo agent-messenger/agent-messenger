@@ -404,6 +404,14 @@ Credentials stored in `~/.config/agent-messenger/discord-credentials.json` (0600
 ### Setup
 
 ```typescript
+import { createDiscordClient } from 'agent-messenger/discord'
+
+const client = await createDiscordClient()
+```
+
+Or with manual credential management:
+
+```typescript
 import { DiscordClient, DiscordCredentialManager } from 'agent-messenger/discord'
 
 const manager = new DiscordCredentialManager()

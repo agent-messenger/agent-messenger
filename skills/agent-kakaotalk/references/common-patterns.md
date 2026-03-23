@@ -351,7 +351,9 @@ agent-kakaotalk message send "$CHAT_ID" "$MESSAGE"
 When using `KakaoTalkClient` programmatically, note that calling `close()` is permanent — any subsequent method call throws a `KakaoTalkError` with code `client_closed`. Create a new `KakaoTalkClient` instance if you need to reconnect. Always use `try/finally` to ensure `close()` runs:
 
 ```typescript
-const client = new KakaoTalkClient(oauthToken, userId, deviceUuid)
+import { createKakaoTalkClient } from 'agent-messenger/kakaotalk'
+
+const client = await createKakaoTalkClient()
 try {
   const chats = await client.getChats()
   const firstChat = chats[0]
