@@ -1,5 +1,6 @@
 export { TeamsClient } from './client'
 export { TeamsCredentialManager } from './credential-manager'
+export { TeamsError } from './types'
 export type {
   TeamsAccount,
   TeamsAccountType,
@@ -20,7 +21,6 @@ export {
   TeamsConfigLegacySchema,
   TeamsConfigSchema,
   TeamsCredentialsSchema,
-  TeamsError,
   TeamsFileSchema,
   TeamsMessageSchema,
   TeamsReactionSchema,
