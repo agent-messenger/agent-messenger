@@ -14,6 +14,7 @@ import {
   ChannelClient,
   ChannelCredentialManager,
   ChannelError,
+  createChannelClient,
 } from 'agent-messenger/channeltalk'
 ```
 
@@ -25,6 +26,14 @@ The main client for interacting with Channel Talk's internal API programmaticall
 import { ChannelClient } from 'agent-messenger/channeltalk'
 
 const client = new ChannelClient(accountCookie, sessionCookie)
+```
+
+Or use automatic credential extraction — credentials are extracted from the desktop app, no manual token needed:
+
+```typescript
+import { createChannelClient } from 'agent-messenger/channeltalk'
+
+const client = await createChannelClient()
 ```
 
 ### Account

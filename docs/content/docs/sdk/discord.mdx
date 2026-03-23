@@ -14,6 +14,7 @@ import {
   DiscordClient,
   DiscordCredentialManager,
   DiscordError,
+  createDiscordClient,
 } from 'agent-messenger/discord'
 ```
 
@@ -25,6 +26,14 @@ The main client for interacting with Discord's API programmatically. All API met
 import { DiscordClient } from 'agent-messenger/discord'
 
 const client = new DiscordClient(token)
+```
+
+Or use automatic credential extraction — credentials are extracted from the desktop app, no manual token needed:
+
+```typescript
+import { createDiscordClient } from 'agent-messenger/discord'
+
+const client = await createDiscordClient()
 ```
 
 ### Authentication

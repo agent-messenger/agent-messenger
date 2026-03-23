@@ -13,6 +13,7 @@ npm install agent-messenger
 import {
   KakaoTalkClient,
   CredentialManager,
+  createKakaoTalkClient,
 } from 'agent-messenger/kakaotalk'
 ```
 
@@ -25,6 +26,14 @@ import { KakaoTalkClient } from 'agent-messenger/kakaotalk'
 
 const client = new KakaoTalkClient(oauthToken, userId, deviceUuid)
 // deviceUuid is optional — defaults to `agent-messenger-${userId}`
+```
+
+Or use automatic credential extraction — credentials are read from stored login state:
+
+```typescript
+import { createKakaoTalkClient } from 'agent-messenger/kakaotalk'
+
+const client = await createKakaoTalkClient()
 ```
 
 ### Chat Rooms
