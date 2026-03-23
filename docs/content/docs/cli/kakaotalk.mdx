@@ -104,6 +104,13 @@ agent-kakaotalk auth logout <account-id>
 # List all chat rooms (sorted by most recent activity)
 agent-kakaotalk chat list
 agent-kakaotalk chat list --pretty
+
+# Fetch all chats (paginate beyond login snapshot)
+agent-kakaotalk chat list --all
+
+# Search for a chat by display name
+agent-kakaotalk chat list --search "Alice"
+agent-kakaotalk chat list --all --search "project"
 ```
 
 Output includes:
@@ -169,8 +176,8 @@ agent-kakaotalk message list 9876543210 --from 123456789
 
 ## Limitations
 
-- macOS and Windows only (desktop app required for credential extraction)
-- No Linux support (KakaoTalk desktop not available on Linux)
+- `auth extract` requires macOS or Windows (reads from the KakaoTalk desktop app)
+- `auth login` works on any platform (email + password, no desktop app needed)
 - No real-time events / push notifications
 - No file upload or download
 - No channel/chat room creation or management
