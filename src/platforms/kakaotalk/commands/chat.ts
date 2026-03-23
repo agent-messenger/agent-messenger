@@ -12,13 +12,13 @@ async function listAction(options: {
   pretty?: boolean
 }): Promise<void> {
   const account = await ensureKakaoAuth()
-  const client = new KakaoTalkClient(
-    account.oauth_token,
-    account.user_id,
-    account.device_uuid,
-  )
-
+  let client: KakaoTalkClient | undefined
   try {
+    client = new KakaoTalkClient(
+      account.oauth_token,
+      account.user_id,
+      account.device_uuid,
+    )
     const chats = await client.getChats({
       all: options.all,
       search: options.search,
@@ -27,7 +27,7 @@ async function listAction(options: {
   } catch (error) {
     handleError(error as Error)
   } finally {
-    client.close()
+    client?.close()
   }
 }
 

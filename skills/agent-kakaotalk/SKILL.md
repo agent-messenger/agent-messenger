@@ -405,10 +405,12 @@ try {
   const chats = await client.getChats()
 
   // Send a message
-  const result = await client.sendMessage(chats[0].chat_id, 'Hello from SDK!')
+  if (chats.length === 0) throw new Error('No chats found')
+  const chatId = chats[0].chat_id
+  const result = await client.sendMessage(chatId, 'Hello from SDK!')
 
   // Read messages
-  const messages = await client.getMessages(chats[0].chat_id, { count: 50 })
+  const messages = await client.getMessages(chatId, { count: 50 })
 } finally {
   // Always close when done (LOCO TCP connection)
   client.close()

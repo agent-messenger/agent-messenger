@@ -11,13 +11,13 @@ async function listAction(
   options: { count?: string; from?: string; pretty?: boolean },
 ): Promise<void> {
   const account = await ensureKakaoAuth()
-  const client = new KakaoTalkClient(
-    account.oauth_token,
-    account.user_id,
-    account.device_uuid,
-  )
-
+  let client: KakaoTalkClient | undefined
   try {
+    client = new KakaoTalkClient(
+      account.oauth_token,
+      account.user_id,
+      account.device_uuid,
+    )
     const count = options.count ? Number.parseInt(options.count, 10) : 20
     const messages = await client.getMessages(chatId, {
       count,
@@ -27,7 +27,7 @@ async function listAction(
   } catch (error) {
     handleError(error as Error)
   } finally {
-    client.close()
+    client?.close()
   }
 }
 
@@ -37,19 +37,19 @@ async function sendAction(
   options: { pretty?: boolean },
 ): Promise<void> {
   const account = await ensureKakaoAuth()
-  const client = new KakaoTalkClient(
-    account.oauth_token,
-    account.user_id,
-    account.device_uuid,
-  )
-
+  let client: KakaoTalkClient | undefined
   try {
+    client = new KakaoTalkClient(
+      account.oauth_token,
+      account.user_id,
+      account.device_uuid,
+    )
     const result = await client.sendMessage(chatId, text)
     console.log(formatOutput(result, options.pretty))
   } catch (error) {
     handleError(error as Error)
   } finally {
-    client.close()
+    client?.close()
   }
 }
 

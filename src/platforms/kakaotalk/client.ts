@@ -257,7 +257,11 @@ export class KakaoTalkClient {
   }
 
   close(): void {
-    this.state?.session.close()
+    if (this.state) {
+      this.state.session.close()
+    } else if (this.initPromise) {
+      this.initPromise.then((s) => s.session.close()).catch(() => {})
+    }
     this.state = null
     this.initPromise = null
   }
