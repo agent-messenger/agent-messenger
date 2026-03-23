@@ -35,7 +35,9 @@
     },
   },
   "trustedDependencies": [
+    "better-sqlite3",
     "@whiskeysockets/baileys",
+    "classic-level",
     "protobufjs",
   ],
   "packages": {
