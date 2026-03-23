@@ -1,27 +1,29 @@
 export { ChannelBotClient } from './client'
 export { ChannelBotCredentialManager } from './credential-manager'
-export {
+export type {
   ChannelBotBot,
-  ChannelBotBotSchema,
   ChannelBotChannel,
-  ChannelBotChannelSchema,
   ChannelBotConfig,
-  ChannelBotConfigSchema,
   ChannelBotCredentials,
-  ChannelBotCredentialsSchema,
-  ChannelBotError,
   ChannelBotGroup,
-  ChannelBotGroupSchema,
   ChannelBotManager,
-  ChannelBotManagerSchema,
   ChannelBotMessage,
-  ChannelBotMessageSchema,
   ChannelBotUser,
   ChannelBotUserChat,
+  ChannelBotWorkspaceEntry,
+  MessageBlock,
+} from './types'
+export {
+  ChannelBotBotSchema,
+  ChannelBotChannelSchema,
+  ChannelBotConfigSchema,
+  ChannelBotCredentialsSchema,
+  ChannelBotError,
+  ChannelBotGroupSchema,
+  ChannelBotManagerSchema,
+  ChannelBotMessageSchema,
   ChannelBotUserChatSchema,
   ChannelBotUserSchema,
-  ChannelBotWorkspaceEntry,
   ChannelBotWorkspaceEntrySchema,
-  MessageBlock,
   MessageBlockSchema,
 } from './types'
