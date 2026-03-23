@@ -48,7 +48,7 @@ fi
 echo -e "${YELLOW}Fetching chat list...${NC}" >&2
 CHATS_RESULT=$(agent-whatsapp chat list 2>&1) || true
 
-if ! echo "$CHATS_RESULT" | jq -e '.[0]' > /dev/null 2>&1; then
+if ! echo "$CHATS_RESULT" | jq -e 'type == "array"' > /dev/null 2>&1; then
   echo -e "${RED}Failed to get chat list${NC}" >&2
   if echo "$CHATS_RESULT" | jq -e '.error' > /dev/null 2>&1; then
     ERROR_MSG=$(echo "$CHATS_RESULT" | jq -r '.error // "Unknown error"')

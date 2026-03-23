@@ -41,7 +41,7 @@ if ! echo "$AUTH_STATUS" | jq -e '.valid' > /dev/null 2>&1; then
   echo -e "${RED}Not authenticated!${NC}" >&2
   echo "" >&2
   echo "Run this to authenticate:" >&2
-  echo "  agent-whatsappbot auth set --token <token> --phone-id <phone-id>" >&2
+  echo "  agent-whatsappbot auth set <phone-number-id> <access-token>" >&2
   exit 1
 fi
 

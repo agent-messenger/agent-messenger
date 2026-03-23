@@ -56,8 +56,8 @@ check_messages() {
   # Get latest message
   MESSAGES=$(agent-whatsapp message list "$CHAT" --limit 1 2>&1) || true
 
-  # Check if successful
-  if ! echo "$MESSAGES" | jq -e '.[0]' > /dev/null 2>&1; then
+  # Check if successful (must be a JSON array)
+  if ! echo "$MESSAGES" | jq -e 'type == "array"' > /dev/null 2>&1; then
     if echo "$MESSAGES" | jq -e '.error' > /dev/null 2>&1; then
       ERROR_MSG=$(echo "$MESSAGES" | jq -r '.error // "Unknown error"')
       echo -e "${RED}Error: $ERROR_MSG${NC}"
@@ -67,7 +67,7 @@ check_messages() {
     return 1
   fi
 
-  # Extract latest message
+  # Extract latest message (may be empty array)
   LATEST_ID=$(echo "$MESSAGES" | jq -r '.[0].id // ""')
 
   # No messages in chat
@@ -152,6 +152,6 @@ trap 'echo -e "\n${YELLOW}Monitoring stopped${NC}"; exit 0' INT
 
 # Main monitoring loop
 while true; do
-  check_messages
+  check_messages || true
   sleep "$INTERVAL"
 done

@@ -42,10 +42,18 @@ COMPONENTS=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --language)
+      if [ $# -lt 2 ]; then
+        echo "Error: --language requires a value"
+        exit 1
+      fi
       LANGUAGE="$2"
       shift 2
       ;;
     --components)
+      if [ $# -lt 2 ]; then
+        echo "Error: --components requires a value"
+        exit 1
+      fi
       COMPONENTS="$2"
       shift 2
       ;;
@@ -79,7 +87,7 @@ if ! echo "$AUTH_STATUS" | jq -e '.valid' > /dev/null 2>&1; then
   echo -e "${RED}Not authenticated!${NC}"
   echo ""
   echo "Run this to authenticate:"
-  echo "  agent-whatsappbot auth set --token <token> --phone-id <phone-id>"
+  echo "  agent-whatsappbot auth set <phone-number-id> <access-token>"
   exit 1
 fi
 
