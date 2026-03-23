@@ -1,0 +1,375 @@
+---
+title: Channel Talk
+description: TypeScript SDK reference for Channel Talk — client, credential management, and types.
+---
+
+## Installation
+
+```bash
+npm install agent-messenger
+```
+
+```typescript
+import {
+  ChannelClient,
+  ChannelCredentialManager,
+} from 'agent-messenger/channeltalk'
+```
+
+## ChannelClient
+
+The main client for interacting with Channel Talk's internal API programmatically. Channel Talk uses cookie-based authentication extracted from the desktop app.
+
+```typescript
+import { ChannelClient } from 'agent-messenger/channeltalk'
+
+const client = new ChannelClient(accountCookie, sessionCookie)
+```
+
+### Account
+
+```typescript
+// Get the authenticated account
+const account = await client.getAccount()
+// → ChannelAccount { id, name, email, emailVerified, language, country, createdAt }
+```
+
+### Channels (Workspaces)
+
+In Channel Talk, a "channel" is a workspace (not a chat channel like Slack).
+
+```typescript
+// List all channels (workspaces) the account belongs to
+const channels = await client.listChannels()
+const limited = await client.listChannels({ limit: 10 })
+// → Channel[]
+
+// Get a specific channel by ID
+const channel = await client.getChannel(channelId)
+// → Channel { id, name, botName?, color?, country?, homepageUrl?, timeZone?, state?, createdAt?, updatedAt? }
+```
+
+### Managers
+
+```typescript
+// List managers in a channel
+const managers = await client.listManagers(channelId)
+const limited = await client.listManagers(channelId, { limit: 20 })
+// → ChannelManager[]
+
+// Get the current manager's role and permissions
+const role = await client.getManagerRole(channelId)
+// → { permissions: unknown[] }
+```
+
+### Groups
+
+```typescript
+// List groups in a channel
+const groups = await client.listGroups(channelId)
+const limited = await client.listGroups(channelId, { limit: 10 })
+// → ChannelGroup[]
+
+// Get a specific group by ID
+const group = await client.getGroup(channelId, groupId)
+// → ChannelGroup { id, channelId, title?, scope?, managerIds?, icon?, name, active?, createdAt?, updatedAt? }
+
+// Get messages from a group
+const messages = await client.getGroupMessages(channelId, groupId)
+const filtered = await client.getGroupMessages(channelId, groupId, {
+  sortOrder: 'desc',
+  limit: 25,
+  since: '2024-01-01T00:00:00Z',
+})
+// → ChannelMessage[]
+
+// Send a message to a group
+const blocks = ChannelClient.wrapTextInBlocks('Hello team!')
+const msg = await client.sendGroupMessage(channelId, groupId, blocks)
+const withRequestId = await client.sendGroupMessage(channelId, groupId, blocks, 'unique-id')
+// → ChannelMessage
+```
+
+### Direct Chats
+
+```typescript
+// List direct chats in a channel
+const chats = await client.listDirectChats(channelId)
+const limited = await client.listDirectChats(channelId, { limit: 10 })
+// → ChannelDirectChat[]
+
+// Get messages from a direct chat
+const messages = await client.getDirectChatMessages(channelId, chatId)
+const filtered = await client.getDirectChatMessages(channelId, chatId, {
+  sortOrder: 'desc',
+  limit: 20,
+})
+// → ChannelMessage[]
+
+// Send a message in a direct chat
+const blocks = ChannelClient.wrapTextInBlocks('Hey, quick question...')
+const msg = await client.sendDirectChatMessage(channelId, chatId, blocks)
+const withRequestId = await client.sendDirectChatMessage(channelId, chatId, blocks, 'unique-id')
+// → ChannelMessage
+```
+
+### User Chats
+
+User chats are conversations between managers and end-users (customers).
+
+```typescript
+// List user chats in a channel
+const chats = await client.listUserChats(channelId)
+const openOnly = await client.listUserChats(channelId, { state: 'opened', limit: 20 })
+// → ChannelUserChat[]
+
+// Get a specific user chat by ID
+const chat = await client.getUserChat(channelId, chatId)
+// → ChannelUserChat { id, channelId, state?, assigneeId?, createdAt?, updatedAt? }
+
+// Get messages from a user chat
+const messages = await client.getUserChatMessages(channelId, chatId)
+const filtered = await client.getUserChatMessages(channelId, chatId, {
+  sortOrder: 'desc',
+  limit: 10,
+})
+// → ChannelMessage[]
+
+// Send a message in a user chat
+const blocks = ChannelClient.wrapTextInBlocks('Thanks for reaching out!')
+const msg = await client.sendUserChatMessage(channelId, chatId, blocks)
+const withRequestId = await client.sendUserChatMessage(channelId, chatId, blocks, 'unique-id')
+// → ChannelMessage
+```
+
+### Bots
+
+```typescript
+// List bots in a channel
+const bots = await client.listBots(channelId)
+const limited = await client.listBots(channelId, { limit: 10 })
+// → ChannelBot[]
+```
+
+### Search
+
+```typescript
+// Search messages in team chats (groups + direct chats)
+const teamResults = await client.searchTeamChatMessages(channelId, 'deployment')
+const filtered = await client.searchTeamChatMessages(channelId, 'deployment', { limit: 10 })
+// → ChannelSearchResponse
+
+// Search messages in user chats (customer conversations)
+const userResults = await client.searchUserChatMessages(channelId, 'billing')
+const filtered = await client.searchUserChatMessages(channelId, 'billing', { limit: 10 })
+// → ChannelSearchResponse
+```
+
+### Utilities
+
+Static helper methods for working with Channel Talk's block-based message format.
+
+```typescript
+// Wrap plain text into Channel Talk message blocks
+const blocks = ChannelClient.wrapTextInBlocks('Hello world')
+// → MessageBlock[]
+
+// Extract plain text from a message object
+const text = ChannelClient.extractText(message)
+// → string
+```
+
+## ChannelCredentialManager
+
+Manages Channel Talk credentials stored at `~/.config/agent-messenger/channeltalk-credentials.json`. Files are written with `0o600` permissions. The environment variables `E2E_CHANNEL_ACCOUNT_COOKIE` (for account cookie), `E2E_CHANNEL_SESSION_COOKIE` (for session cookie), and `E2E_CHANNEL_WORKSPACE_ID` (for current workspace) take precedence over file-based credentials.
+
+```typescript
+import { ChannelCredentialManager } from 'agent-messenger/channeltalk'
+
+const manager = new ChannelCredentialManager()
+// Custom path: new ChannelCredentialManager('/custom/config/dir')
+```
+
+```typescript
+// Load full config from disk (returns defaults if file doesn't exist)
+const config = await manager.load()
+// → ChannelConfig
+
+// Save full config to disk
+await manager.save(config)
+
+// Get credentials for a workspace (env vars take precedence)
+const creds = await manager.getCredentials()
+const specific = await manager.getCredentials(workspaceId)
+// → ChannelCredentials | null
+
+// Store credentials for a workspace
+await manager.setCredentials(entry)
+
+// Remove a workspace's credentials
+const removed = await manager.removeWorkspace(workspaceId)
+// → boolean
+
+// Set the current default workspace
+const ok = await manager.setCurrent(workspaceId)
+// → boolean
+
+// List all saved workspaces with current marker
+const all = await manager.listAll()
+// → Array<ChannelWorkspaceEntry & { is_current: boolean }>
+
+// Clear all stored credentials
+await manager.clearCredentials()
+```
+
+## Types
+
+```typescript
+import type {
+  Channel,
+  ChannelAccount,
+  ChannelBot,
+  ChannelConfig,
+  ChannelCredentials,
+  ChannelDirectChat,
+  ChannelGroup,
+  ChannelManager,
+  ChannelMessage,
+  ChannelSearchHit,
+  ChannelSearchResponse,
+  ChannelUserChat,
+  ChannelWorkspaceEntry,
+  MessageBlock,
+  MessageBlockType,
+  MessagePersonType,
+  PersonEntity,
+  SortOrder,
+  UserChatState,
+} from 'agent-messenger/channeltalk'
+```
+
+### Zod Schemas
+
+Runtime-validated schemas are also exported for parsing API responses:
+
+```typescript
+import {
+  ChannelSchema,
+  ChannelAccountSchema,
+  ChannelBotSchema,
+  ChannelConfigSchema,
+  ChannelCredentialsSchema,
+  ChannelDirectChatSchema,
+  ChannelGroupSchema,
+  ChannelManagerSchema,
+  ChannelMessageSchema,
+  ChannelSearchHitSchema,
+  ChannelSearchResponseSchema,
+  ChannelUserChatSchema,
+  ChannelWorkspaceEntrySchema,
+  MessageBlockSchema,
+  MessageBlockTypeSchema,
+  MessagePersonTypeSchema,
+  PersonEntitySchema,
+  SortOrderSchema,
+  UserChatStateSchema,
+  MessageBlockArraySchema,
+} from 'agent-messenger/channeltalk'
+```
+
+## Examples
+
+### Workspace Overview
+
+Extract credentials, list channels and groups, and print a summary.
+
+```typescript
+import { ChannelClient, ChannelCredentialManager } from 'agent-messenger/channeltalk'
+
+const manager = new ChannelCredentialManager()
+const creds = await manager.getCredentials()
+if (!creds) throw new Error('No credentials')
+
+const client = new ChannelClient(creds.account_cookie, creds.session_cookie)
+const account = await client.getAccount()
+console.log(`Logged in as ${account.name} (${account.email})`)
+
+const channels = await client.listChannels()
+for (const ch of channels) {
+  const groups = await client.listGroups(ch.id)
+  console.log(`${ch.name}: ${groups.length} groups`)
+}
+```
+
+### Team Chat Messenger
+
+Send a message to a group and read recent messages.
+
+```typescript
+import { ChannelClient } from 'agent-messenger/channeltalk'
+
+const client = new ChannelClient(accountCookie, sessionCookie)
+
+// Send a message to a group
+const blocks = ChannelClient.wrapTextInBlocks('Deployment v2.1.0 complete')
+const msg = await client.sendGroupMessage(channelId, groupId, blocks)
+
+// Read recent messages
+const messages = await client.getGroupMessages(channelId, groupId, { limit: 10 })
+for (const m of messages) {
+  const text = ChannelClient.extractText(m)
+  console.log(`[${m.personType}] ${text}`)
+}
+```
+
+### Customer Support Triage
+
+List open user chats, read the latest message, and reply.
+
+```typescript
+import { ChannelClient } from 'agent-messenger/channeltalk'
+
+const client = new ChannelClient(accountCookie, sessionCookie)
+
+// List open user chats
+const chats = await client.listUserChats(channelId, { state: 'opened' })
+console.log(`${chats.length} open conversations`)
+
+for (const chat of chats.slice(0, 5)) {
+  // Get recent messages
+  const messages = await client.getUserChatMessages(channelId, chat.id, { limit: 5 })
+  const lastMsg = messages[0]
+
+  if (lastMsg) {
+    const text = ChannelClient.extractText(lastMsg)
+    console.log(`Chat ${chat.id}: "${text.slice(0, 80)}"`)
+
+    // Reply to customer
+    const reply = ChannelClient.wrapTextInBlocks('Thanks for reaching out, looking into this now!')
+    await client.sendUserChatMessage(channelId, chat.id, reply)
+  }
+}
+```
+
+### Cross-Chat Search
+
+Search across team and user chats for specific topics.
+
+```typescript
+import { ChannelClient } from 'agent-messenger/channeltalk'
+
+const client = new ChannelClient(accountCookie, sessionCookie)
+
+// Search team chats for deployment mentions
+const teamResults = await client.searchTeamChatMessages(channelId, 'deployment', { limit: 10 })
+console.log(`Found ${teamResults.hits.length} team chat matches`)
+
+for (const hit of teamResults.hits) {
+  const text = ChannelClient.extractText(hit.source)
+  console.log(`[${hit.source.chatType}] ${text.slice(0, 100)}`)
+}
+
+// Search user chats for billing questions
+const userResults = await client.searchUserChatMessages(channelId, 'billing', { limit: 10 })
+console.log(`Found ${userResults.hits.length} user chat matches`)
+```
