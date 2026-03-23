@@ -95,6 +95,7 @@ export class KakaoTalkClient {
   private deviceUuid: string
   private state: SessionState | null = null
   private initPromise: Promise<SessionState> | null = null
+  private closed = false
 
   constructor(oauthToken: string, userId: string, deviceUuid?: string) {
     if (!oauthToken) throw new KakaoTalkError('OAuth token is required', 'missing_token')
@@ -105,6 +106,7 @@ export class KakaoTalkClient {
   }
 
   private async ensureSession(): Promise<SessionState> {
+    if (this.closed) throw new KakaoTalkError('Client is closed', 'client_closed')
     if (this.state) return this.state
 
     // Guard against concurrent init — reuse the in-flight promise
@@ -114,6 +116,11 @@ export class KakaoTalkClient {
 
     try {
       const state = await this.initPromise
+      // close() may have been called while we were awaiting connect()
+      if (this.closed) {
+        state.session.close()
+        throw new KakaoTalkError('Client is closed', 'client_closed')
+      }
       this.state = state
       return state
     } catch (error) {
@@ -257,6 +264,7 @@ export class KakaoTalkClient {
   }
 
   close(): void {
+    this.closed = true
     if (this.state) {
       this.state.session.close()
     } else if (this.initPromise) {

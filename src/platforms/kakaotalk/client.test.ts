@@ -450,13 +450,20 @@ describe('KakaoTalkClient', () => {
 
       client.close()
       expect(mockClose).toHaveBeenCalledTimes(1)
+    })
 
-      // After close, next call creates a new session
-      mockLogin.mockResolvedValue(DEFAULT_LOGIN_RESULT)
+    test('methods throw client_closed after close', async () => {
+      const client = new KakaoTalkClient('token', 'user1', 'device1')
       await client.getChats()
-      expect(mockLogin).toHaveBeenCalledTimes(2)
-
       client.close()
+
+      try {
+        await client.getChats()
+        expect.unreachable('should have thrown')
+      } catch (error) {
+        expect(error).toBeInstanceOf(KakaoTalkError)
+        expect((error as KakaoTalkError).code).toBe('client_closed')
+      }
     })
 
     test('close is idempotent', () => {
