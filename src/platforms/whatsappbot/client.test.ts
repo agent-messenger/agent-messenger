@@ -291,17 +291,13 @@ describe('WhatsAppBotClient', () => {
       mockResponse({ data: [] })
 
       const client = new WhatsAppBotClient('phone-123', 'my-token')
-      await expect(client.getTemplate('nonexistent')).rejects.toThrow(WhatsAppBotError)
 
       try {
-        const manager2 = new WhatsAppBotClient('phone-123', 'my-token')
-        mockResponse({ data: [] })
-        await manager2.getTemplate('nonexistent')
+        await client.getTemplate('nonexistent')
+        expect.unreachable('should have thrown')
       } catch (err) {
-        expect(err instanceof WhatsAppBotError).toBe(true)
-        if (err instanceof WhatsAppBotError) {
-          expect(err.code).toBe('not_found')
-        }
+        expect(err).toBeInstanceOf(WhatsAppBotError)
+        expect((err as WhatsAppBotError).code).toBe('not_found')
       }
     })
   })
@@ -330,7 +326,7 @@ describe('WhatsAppBotClient', () => {
       await client.verifyToken()
       const elapsed = Date.now() - startTime
 
-      expect(elapsed).toBeGreaterThanOrEqual(50)
+      expect(elapsed).toBeGreaterThanOrEqual(80)
       expect(fetchCalls.length).toBe(2)
     })
 
