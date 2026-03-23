@@ -41,3 +41,20 @@ export {
   WorkspaceCredentialsSchema,
   ConfigSchema,
 } from './types'
+
+import { SlackClient, SlackError } from './client'
+import { CredentialManager } from './credential-manager'
+
+export async function createSlackClient(): Promise<SlackClient> {
+  const { ensureSlackAuth } = await import('./ensure-auth')
+  await ensureSlackAuth()
+  const credManager = new CredentialManager()
+  const workspace = await credManager.getWorkspace()
+  if (!workspace) {
+    throw new SlackError(
+      'No workspace credentials found. Make sure Slack desktop app is installed and logged in.',
+      'no_credentials',
+    )
+  }
+  return new SlackClient(workspace.token, workspace.cookie)
+}
