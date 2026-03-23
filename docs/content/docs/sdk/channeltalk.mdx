@@ -157,12 +157,12 @@ const limited = await client.listBots(channelId, { limit: 10 })
 ```typescript
 // Search messages in team chats (groups + direct chats)
 const teamResults = await client.searchTeamChatMessages(channelId, 'deployment')
-const filtered = await client.searchTeamChatMessages(channelId, 'deployment', { limit: 10 })
+const teamFiltered = await client.searchTeamChatMessages(channelId, 'deployment', { limit: 10 })
 // → ChannelSearchResponse
 
 // Search messages in user chats (customer conversations)
 const userResults = await client.searchUserChatMessages(channelId, 'billing')
-const filtered = await client.searchUserChatMessages(channelId, 'billing', { limit: 10 })
+const userFiltered = await client.searchUserChatMessages(channelId, 'billing', { limit: 10 })
 // → ChannelSearchResponse
 ```
 
@@ -182,7 +182,7 @@ const text = ChannelClient.extractText(message)
 
 ## ChannelCredentialManager
 
-Manages Channel Talk credentials stored at `~/.config/agent-messenger/channel-credentials.json`. Files are written with `0o600` permissions. The environment variables `E2E_CHANNEL_ACCOUNT_COOKIE` (for account cookie), `E2E_CHANNEL_SESSION_COOKIE` (for session cookie), and `E2E_CHANNEL_WORKSPACE_ID` (for current workspace) take precedence over file-based credentials.
+Manages Channel Talk credentials stored at `~/.config/agent-messenger/channel-credentials.json`. Files are written with `0o600` permissions. The environment variables `E2E_CHANNEL_ACCOUNT_COOKIE` (for account cookie), `E2E_CHANNEL_SESSION_COOKIE` (for session cookie), and `E2E_CHANNEL_WORKSPACE_ID` (for current workspace) take precedence when calling `getCredentials()` without a `workspaceId`.
 
 ```typescript
 import { ChannelCredentialManager } from 'agent-messenger/channeltalk'

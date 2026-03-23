@@ -43,7 +43,7 @@ const chats = await client.listUserChats()
 const filtered = await client.listUserChats({
   state: 'opened',
   sortOrder: 'desc',
-  since: 1700000000000,
+  since: '1700000000000',
   limit: 20,
 })
 // → ChannelBotUserChat[]
@@ -56,7 +56,7 @@ const chat = await client.getUserChat(chatId)
 const messages = await client.getUserChatMessages(chatId)
 const recent = await client.getUserChatMessages(chatId, {
   sortOrder: 'desc',
-  since: 1700000000000,
+  since: '1700000000000',
   limit: 10,
 })
 // → ChannelBotMessage[]
@@ -84,7 +84,7 @@ const file = await client.getUserChatFileUrl(chatId, fileKey)
 ```typescript
 // List groups with optional pagination
 const groups = await client.listGroups()
-const paginated = await client.listGroups({ since: 1700000000000, limit: 50 })
+const paginated = await client.listGroups({ since: '1700000000000', limit: 50 })
 // → ChannelBotGroup[]
 
 // Get a specific group by ID
@@ -92,14 +92,14 @@ const group = await client.getGroup(groupId)
 // → ChannelBotGroup { id, channelId, name }
 
 // Get a group by its exact name
-const group = await client.getGroupByName('engineering')
+const groupByName = await client.getGroupByName('engineering')
 // → ChannelBotGroup
 
 // Get messages in a group
 const messages = await client.getGroupMessages(groupId)
 const recent = await client.getGroupMessages(groupId, {
   sortOrder: 'desc',
-  since: 1700000000000,
+  since: '1700000000000',
   limit: 10,
 })
 // → ChannelBotMessage[]
@@ -115,8 +115,8 @@ const file = await client.getGroupFileUrl(groupId, fileKey)
 // → { url: string }
 
 // Resolve a group by ID or @name (auto-detects format)
-const group = await client.resolveGroup('@engineering')  // by name
-const group = await client.resolveGroup('abc123')         // by ID
+const resolved = await client.resolveGroup('@engineering')  // by name
+const byId = await client.resolveGroup('abc123')            // by ID
 // → ChannelBotGroup
 ```
 
@@ -125,7 +125,7 @@ const group = await client.resolveGroup('abc123')         // by ID
 ```typescript
 // List managers with optional pagination
 const managers = await client.listManagers()
-const paginated = await client.listManagers({ since: 1700000000000, limit: 50 })
+const paginated = await client.listManagers({ since: '1700000000000', limit: 50 })
 // → ChannelBotManager[]
 
 // Get a specific manager by ID
@@ -138,7 +138,7 @@ const manager = await client.getManager(managerId)
 ```typescript
 // List bots with optional pagination
 const bots = await client.listBots()
-const paginated = await client.listBots({ since: 1700000000000, limit: 50 })
+const paginated = await client.listBots({ since: '1700000000000', limit: 50 })
 // → ChannelBotBot[]
 
 // Create a new bot (optional color and avatar)
@@ -158,7 +158,7 @@ await client.deleteBot(botId)
 ```typescript
 // List users with optional pagination
 const users = await client.listUsers()
-const paginated = await client.listUsers({ since: 1700000000000, limit: 50 })
+const paginated = await client.listUsers({ since: '1700000000000', limit: 50 })
 // → ChannelBotUser[]
 
 // Get a specific user by ID
@@ -176,7 +176,7 @@ const blocks = ChannelBotClient.wrapTextInBlocks('Hello, world!')
 
 ## ChannelBotCredentialManager
 
-Manages Channel Talk Bot credentials stored at `~/.config/agent-messenger/channelbot-credentials.json`. Files are written with `0o600` permissions. The environment variables `E2E_CHANNELBOT_ACCESS_KEY` and `E2E_CHANNELBOT_ACCESS_SECRET` take precedence over file-based credentials.
+Manages Channel Talk Bot credentials stored at `~/.config/agent-messenger/channelbot-credentials.json`. Files are written with `0o600` permissions. The environment variables `E2E_CHANNELBOT_ACCESS_KEY` and `E2E_CHANNELBOT_ACCESS_SECRET` take precedence when calling `getCredentials()` without a `workspaceId`.
 
 ```typescript
 import { ChannelBotCredentialManager } from 'agent-messenger/channeltalkbot'
