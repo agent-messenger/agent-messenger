@@ -8,6 +8,7 @@ import {
   KakaoSendResultSchema,
   KakaoTalkClient,
   KakaoTalkError,
+  createKakaoTalkClient,
 } from '@/platforms/kakaotalk/index'
 
 test('KakaoTalkClient is exported from barrel', () => {
@@ -20,6 +21,10 @@ test('KakaoTalkError is exported from barrel', () => {
 
 test('CredentialManager is exported from barrel', () => {
   expect(typeof CredentialManager).toBe('function')
+})
+
+test('createKakaoTalkClient is exported from barrel', () => {
+  expect(typeof createKakaoTalkClient).toBe('function')
 })
 
 test('KakaoChatSchema is exported from barrel', () => {

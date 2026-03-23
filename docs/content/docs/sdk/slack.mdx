@@ -15,6 +15,7 @@ import {
   SlackListener,
   SlackError,
   CredentialManager,
+  createSlackClient,
 } from 'agent-messenger/slack'
 ```
 
@@ -26,6 +27,14 @@ The main client for interacting with Slack's API programmatically. Most API meth
 import { SlackClient } from 'agent-messenger/slack'
 
 const client = new SlackClient(token, cookie)
+```
+
+Or use automatic credential extraction — credentials are extracted from the desktop app, no manual token needed:
+
+```typescript
+import { createSlackClient } from 'agent-messenger/slack'
+
+const client = await createSlackClient()
 ```
 
 ### Authentication
@@ -414,9 +423,9 @@ import {
 Post a deployment message, update it with progress in a thread, and mark it complete with a reaction.
 
 ```typescript
-import { SlackClient } from 'agent-messenger/slack'
+import { createSlackClient } from 'agent-messenger/slack'
 
-const client = new SlackClient(token, cookie)
+const client = await createSlackClient()
 const channel = await client.resolveChannel('deploys')
 
 // Post parent message

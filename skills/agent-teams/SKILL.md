@@ -350,6 +350,14 @@ Credentials stored in `~/.config/agent-messenger/teams-credentials.json` (0600 p
 ### Setup
 
 ```typescript
+import { createTeamsClient } from 'agent-messenger/teams'
+
+const client = await createTeamsClient()
+```
+
+Or with manual credential management:
+
+```typescript
 import { TeamsClient, TeamsCredentialManager } from 'agent-messenger/teams'
 
 const manager = new TeamsCredentialManager()

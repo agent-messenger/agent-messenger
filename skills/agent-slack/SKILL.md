@@ -512,6 +512,15 @@ Credentials stored in `~/.config/agent-messenger/slack-credentials.json` (0600 p
 ### Setup
 
 ```typescript
+import { createSlackClient, SlackListener } from 'agent-messenger/slack'
+
+const client = await createSlackClient()
+const listener = new SlackListener(client)
+```
+
+Or with manual credentials:
+
+```typescript
 import { SlackClient, SlackListener } from 'agent-messenger/slack'
 
 const client = new SlackClient(token, cookie)

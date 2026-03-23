@@ -15,6 +15,7 @@ import {
   TeamsReactionSchema,
   TeamsTeamSchema,
   TeamsUserSchema,
+  createTeamsClient,
 } from '@/platforms/teams/index'
 
 test('TeamsClient is exported from barrel', () => {
@@ -27,6 +28,10 @@ test('TeamsError is exported from barrel', () => {
 
 test('TeamsCredentialManager is exported from barrel', () => {
   expect(typeof TeamsCredentialManager).toBe('function')
+})
+
+test('createTeamsClient is exported from barrel', () => {
+  expect(typeof createTeamsClient).toBe('function')
 })
 
 test('TeamsTeamSchema is exported from barrel', () => {

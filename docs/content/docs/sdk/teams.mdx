@@ -14,6 +14,7 @@ import {
   TeamsClient,
   TeamsCredentialManager,
   TeamsError,
+  createTeamsClient,
 } from 'agent-messenger/teams'
 ```
 
@@ -28,6 +29,14 @@ import { TeamsClient } from 'agent-messenger/teams'
 
 const client = new TeamsClient(token)
 // With expiry tracking: new TeamsClient(token, '2025-03-23T12:00:00Z')
+```
+
+Or use automatic credential extraction — credentials are extracted from the desktop app, no manual token needed:
+
+```typescript
+import { createTeamsClient } from 'agent-messenger/teams'
+
+const client = await createTeamsClient()
 ```
 
 ### Authentication

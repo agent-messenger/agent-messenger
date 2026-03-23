@@ -388,6 +388,14 @@ Config format:
 ### Setup
 
 ```typescript
+import { createKakaoTalkClient } from 'agent-messenger/kakaotalk'
+
+const client = await createKakaoTalkClient()
+```
+
+Or with manual credential management:
+
+```typescript
 import { KakaoTalkClient, CredentialManager } from 'agent-messenger/kakaotalk'
 
 const manager = new CredentialManager()
