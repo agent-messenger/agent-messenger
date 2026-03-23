@@ -44,6 +44,10 @@ program.command('channeltalk', 'Interact with Channel Talk', {
   executableFile: join(__dirname, 'platforms', 'channeltalk', `cli${ext}`),
 })
 
+program.command('kakaotalk', 'Interact with KakaoTalk', {
+  executableFile: join(__dirname, 'platforms', 'kakaotalk', `cli${ext}`),
+})
+
 program.command('telegram', 'Interact with Telegram via TDLib', {
   executableFile: join(__dirname, 'platforms', 'telegram', `cli${ext}`),
 })
