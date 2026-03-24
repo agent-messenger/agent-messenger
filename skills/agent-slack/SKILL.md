@@ -483,6 +483,7 @@ Returns JSON with:
 - Channels (id, name, topic, purpose)
 - Recent messages (ts, text, user, channel)
 - Users (id, name, profile)
+- User groups (id, name, handle, description, members)
 
 ## Output Format
 
