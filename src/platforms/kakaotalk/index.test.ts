@@ -2,6 +2,7 @@ import { expect, test } from 'bun:test'
 import {
   CredentialManager,
   KakaoAccountCredentialsSchema,
+  KakaoCredentialManager,
   KakaoChatSchema,
   KakaoConfigSchema,
   KakaoMessageSchema,
@@ -21,6 +22,10 @@ test('KakaoTalkError is exported from barrel', () => {
 
 test('CredentialManager is exported from barrel', () => {
   expect(typeof CredentialManager).toBe('function')
+})
+
+test('KakaoCredentialManager is exported from barrel', () => {
+  expect(typeof KakaoCredentialManager).toBe('function')
 })
 
 test('createKakaoTalkClient is exported from barrel', () => {
