@@ -262,6 +262,50 @@ await client.completeReminder(reminderId)
 await client.deleteReminder(reminderId)
 ```
 
+### User Groups
+
+```typescript
+// List all user groups
+const usergroups = await client.listUsergroups()
+const usergroups = await client.listUsergroups({
+  includeDisabled: true,
+  includeUsers: true,
+  includeCount: true,
+})
+// → SlackUsergroup[]
+
+// Create a user group
+const group = await client.createUsergroup('Marketing Team', {
+  handle: 'marketing-team',
+  description: 'Marketing gurus',
+  channels: ['C012ABC'],
+})
+// → SlackUsergroup
+
+// Update a user group (name, handle, description, channels)
+const updated = await client.updateUsergroup('S0616NG6M', {
+  name: 'New Name',
+  handle: 'new-handle',
+  description: 'Updated description',
+  channels: ['C012ABC', 'C034DEF'],
+})
+// → SlackUsergroup
+
+// Enable / disable a user group
+const enabled = await client.enableUsergroup('S0616NG6M')
+const disabled = await client.disableUsergroup('S0616NG6M')
+// → SlackUsergroup
+
+// List members of a user group
+const members = await client.listUsergroupMembers('S0616NG6M')
+const members = await client.listUsergroupMembers('S0616NG6M', { includeDisabled: true })
+// → string[] (user IDs)
+
+// Update members (replaces all members)
+const result = await client.updateUsergroupMembers('S0616NG6M', ['U060R4BJ4', 'U060RNRCZ'])
+// → SlackUsergroup
+```
+
 ### Emoji
 
 ```typescript
@@ -386,6 +430,7 @@ import type {
   SlackScheduledMessage,
   SlackReminder,
   SlackUserProfile,
+  SlackUsergroup,
   SlackRTMEvent,
   SlackRTMMessageEvent,
   SlackRTMReactionEvent,
@@ -411,6 +456,7 @@ import {
   SlackFileSchema,
   SlackMessageSchema,
   SlackUserSchema,
+  SlackUsergroupSchema,
   WorkspaceCredentialsSchema,
   ConfigSchema,
 } from 'agent-messenger/slack'
