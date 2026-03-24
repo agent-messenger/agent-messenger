@@ -89,6 +89,19 @@ async function snapshotAction(options: {
       }))
     }
 
+    if (!options.channelsOnly && !options.usersOnly) {
+      const usergroups = await client.listUsergroups({ includeUsers: true, includeCount: true })
+
+      snapshot.usergroups = usergroups.map((ug) => ({
+        id: ug.id,
+        name: ug.name,
+        handle: ug.handle,
+        description: ug.description,
+        user_count: ug.user_count,
+        users: ug.users,
+      }))
+    }
+
     console.log(formatOutput(snapshot, options.pretty))
   } catch (error) {
     handleError(error as Error)

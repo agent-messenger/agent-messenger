@@ -1289,21 +1289,21 @@ export class SlackClient {
       name: ug.name || '',
       handle: ug.handle || '',
       description: ug.description || '',
-      is_external: ug.is_external || false,
+      is_external: ug.is_external ?? false,
       is_usergroup: ug.is_usergroup ?? true,
-      date_create: ug.date_create || 0,
-      date_update: ug.date_update || 0,
-      date_delete: ug.date_delete || 0,
-      auto_type: ug.auto_type || null,
+      date_create: ug.date_create ?? 0,
+      date_update: ug.date_update ?? 0,
+      date_delete: ug.date_delete ?? 0,
+      auto_type: ug.auto_type ?? null,
       created_by: ug.created_by || '',
       updated_by: ug.updated_by || '',
-      deleted_by: ug.deleted_by || null,
+      deleted_by: ug.deleted_by ?? null,
       prefs: {
         channels: ug.prefs?.channels || [],
         groups: ug.prefs?.groups || [],
       },
       users: ug.users || [],
-      user_count: ug.user_count || 0,
+      user_count: ug.user_count ?? 0,
     }
   }
 

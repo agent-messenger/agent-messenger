@@ -10,6 +10,7 @@ export type {
   SlackScheduledMessage,
   SlackUser,
   SlackUserProfile,
+  SlackUsergroup,
   SlackReaction,
   SlackFile,
   SlackSearchResult,
@@ -38,6 +39,7 @@ export {
   SlackFileSchema,
   SlackMessageSchema,
   SlackUserSchema,
+  SlackUsergroupSchema,
   WorkspaceCredentialsSchema,
   ConfigSchema,
 } from './types'
