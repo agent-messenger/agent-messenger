@@ -12,7 +12,7 @@ npm install agent-messenger
 ```typescript
 import {
   KakaoTalkClient,
-  CredentialManager,
+  KakaoCredentialManager,
   createKakaoTalkClient,
 } from 'agent-messenger/kakaotalk'
 ```
@@ -81,14 +81,14 @@ client.close()
 
 Once closed, any subsequent method call throws a `KakaoTalkError` with code `client_closed`. Create a new client if you need to reconnect.
 
-## CredentialManager
+## KakaoCredentialManager
 
 Manages KakaoTalk credentials stored at `~/.config/agent-messenger/kakaotalk-credentials.json`. Files are written with `0o600` permissions.
 
 ```typescript
-import { CredentialManager } from 'agent-messenger/kakaotalk'
+import { KakaoCredentialManager } from 'agent-messenger/kakaotalk'
 
-const manager = new CredentialManager()
+const manager = new KakaoCredentialManager()
 ```
 
 ```typescript
@@ -152,9 +152,9 @@ import {
 List all chats, count unread, and print a summary.
 
 ```typescript
-import { KakaoTalkClient, CredentialManager } from 'agent-messenger/kakaotalk'
+import { KakaoTalkClient, KakaoCredentialManager } from 'agent-messenger/kakaotalk'
 
-const manager = new CredentialManager()
+const manager = new KakaoCredentialManager()
 const account = await manager.getAccount()
 if (!account) throw new Error('Not authenticated')
 
@@ -177,9 +177,9 @@ try {
 Send a message to a specific chat.
 
 ```typescript
-import { KakaoTalkClient, CredentialManager } from 'agent-messenger/kakaotalk'
+import { KakaoTalkClient, KakaoCredentialManager } from 'agent-messenger/kakaotalk'
 
-const manager = new CredentialManager()
+const manager = new KakaoCredentialManager()
 const account = await manager.getAccount()
 if (!account) throw new Error('Not authenticated')
 
@@ -203,9 +203,9 @@ try {
 Poll for new messages in a chat room.
 
 ```typescript
-import { KakaoTalkClient, CredentialManager } from 'agent-messenger/kakaotalk'
+import { KakaoTalkClient, KakaoCredentialManager } from 'agent-messenger/kakaotalk'
 
-const manager = new CredentialManager()
+const manager = new KakaoCredentialManager()
 const account = await manager.getAccount()
 if (!account) throw new Error('Not authenticated')
 

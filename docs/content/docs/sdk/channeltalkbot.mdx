@@ -14,6 +14,7 @@ import {
   ChannelBotClient,
   ChannelBotCredentialManager,
   ChannelBotError,
+  createChannelBotClient,
 } from 'agent-messenger/channeltalkbot'
 ```
 
@@ -25,6 +26,14 @@ The main client for interacting with Channel Talk's Bot API programmatically. Au
 import { ChannelBotClient } from 'agent-messenger/channeltalkbot'
 
 const client = new ChannelBotClient(accessKey, accessSecret)
+```
+
+Or use automatic credential extraction — credentials are read from stored config:
+
+```typescript
+import { createChannelBotClient } from 'agent-messenger/channeltalkbot'
+
+const client = await createChannelBotClient()
 ```
 
 ### Channel (Workspace)
