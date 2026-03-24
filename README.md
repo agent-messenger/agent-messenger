@@ -183,12 +183,12 @@ Credentials are resolved the same way as the CLI — auto-extracted from your de
 | `agent-messenger/whatsappbot` | `createWhatsAppBotClient()` | `WhatsAppBotClient` |
 | `agent-messenger/kakaotalk` | `createKakaoTalkClient()` | `KakaoTalkClient` |
 | `agent-messenger/channeltalk` | `createChannelClient()` | `ChannelClient` |
-| `agent-messenger/channeltalkbot` | — | `ChannelBotClient` |
+| `agent-messenger/channeltalkbot` | `createChannelBotClient()` | `ChannelBotClient` |
 
 Each module also exports its credential manager, Zod schemas, and TypeScript types:
 
 ```typescript
-import { SlackClient, CredentialManager, SlackMessageSchema } from 'agent-messenger/slack'
+import { SlackClient, SlackCredentialManager, SlackMessageSchema } from 'agent-messenger/slack'
 import type { SlackMessage, SlackChannel } from 'agent-messenger/slack'
 ```
 
