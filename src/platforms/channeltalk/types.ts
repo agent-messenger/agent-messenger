@@ -38,6 +38,8 @@ export interface Channel {
   updatedAt?: number
 }
 
+export type ChannelTalkChannel = Channel
+
 export interface ChannelManager {
   id: string
   channelId: string

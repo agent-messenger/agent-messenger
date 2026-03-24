@@ -19,7 +19,6 @@ import {
   ChannelSearchHitSchema,
   ChannelSearchResponseSchema,
   ChannelSessionSchema,
-  ChannelTokenExtractor,
   ChannelUserChatSchema,
   ChannelWorkspaceEntrySchema,
   ExtractedChannelTokenSchema,
@@ -41,10 +40,6 @@ test('ChannelCredentialManager is exported from barrel', () => {
 
 test('createChannelClient is exported from barrel', () => {
   expect(typeof createChannelClient).toBe('function')
-})
-
-test('ChannelTokenExtractor is exported from barrel', () => {
-  expect(typeof ChannelTokenExtractor).toBe('function')
 })
 
 test('ChannelSchema is exported from barrel', () => {
