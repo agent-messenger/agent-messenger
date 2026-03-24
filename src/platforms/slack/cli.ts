@@ -21,6 +21,7 @@ import {
   snapshotCommand,
   unreadCommand,
   userCommand,
+  usergroupCommand,
   workspaceCommand,
 } from './commands/index'
 import { ensureSlackAuth } from './ensure-auth'
@@ -64,6 +65,7 @@ program.addCommand(pinCommand)
 program.addCommand(bookmarkCommand)
 program.addCommand(reminderCommand)
 program.addCommand(emojiCommand)
+program.addCommand(usergroupCommand)
 
 program.parse(process.argv)
 

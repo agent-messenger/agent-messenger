@@ -210,6 +210,29 @@ export interface SlackUserProfile {
   image_512?: string
 }
 
+export interface SlackUsergroup {
+  id: string
+  team_id: string
+  name: string
+  handle: string
+  description: string
+  is_external: boolean
+  is_usergroup: boolean
+  date_create: number
+  date_update: number
+  date_delete: number
+  auto_type: string | null
+  created_by: string
+  updated_by: string
+  deleted_by: string | null
+  prefs: {
+    channels: string[]
+    groups: string[]
+  }
+  users: string[]
+  user_count: number
+}
+
 // RTM event types
 
 export interface SlackRTMMessageEvent {
@@ -383,6 +406,29 @@ export const SlackUserSchema = z.object({
       status_text: z.string().optional(),
     })
     .optional(),
+})
+
+export const SlackUsergroupSchema = z.object({
+  id: z.string(),
+  team_id: z.string(),
+  name: z.string(),
+  handle: z.string(),
+  description: z.string(),
+  is_external: z.boolean(),
+  is_usergroup: z.boolean(),
+  date_create: z.number(),
+  date_update: z.number(),
+  date_delete: z.number(),
+  auto_type: z.string().nullable(),
+  created_by: z.string(),
+  updated_by: z.string(),
+  deleted_by: z.string().nullable(),
+  prefs: z.object({
+    channels: z.array(z.string()),
+    groups: z.array(z.string()),
+  }),
+  users: z.array(z.string()),
+  user_count: z.number(),
 })
 
 export const WorkspaceCredentialsSchema = z.object({

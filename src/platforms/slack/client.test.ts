@@ -1316,6 +1316,13 @@ describe('SlackClient extended methods', () => {
         if (method === 'bookmarks.edit') return Promise.resolve({ ok: true, bookmark: { id: 'Bm001', channel_id: 'C001', title: 'Updated', link: 'https://example.com', type: 'link', date_created: 0, date_updated: 1, created_by: 'U001' } })
         if (method === 'bookmarks.remove') return Promise.resolve({ ok: true })
         if (method === 'bookmarks.list') return Promise.resolve({ ok: true, bookmarks: [] })
+        if (method === 'usergroups.list') return Promise.resolve({ ok: true, usergroups: [{ id: 'S001', team_id: 'T001', name: 'Engineering', handle: 'engineering', description: 'Eng team', is_external: false, is_usergroup: true, date_create: 100, date_update: 200, date_delete: 0, auto_type: null, created_by: 'U001', updated_by: 'U001', deleted_by: null, prefs: { channels: [], groups: [] }, users: ['U001'], user_count: 1 }] })
+        if (method === 'usergroups.create') return Promise.resolve({ ok: true, usergroup: { id: 'S002', team_id: 'T001', name: 'Marketing', handle: 'marketing', description: '', is_external: false, is_usergroup: true, date_create: 100, date_update: 100, date_delete: 0, auto_type: null, created_by: 'U001', updated_by: 'U001', deleted_by: null, prefs: { channels: [], groups: [] }, users: [], user_count: 0 } })
+        if (method === 'usergroups.update') return Promise.resolve({ ok: true, usergroup: { id: 'S001', team_id: 'T001', name: 'Updated', handle: 'updated', description: 'New desc', is_external: false, is_usergroup: true, date_create: 100, date_update: 300, date_delete: 0, auto_type: null, created_by: 'U001', updated_by: 'U001', deleted_by: null, prefs: { channels: [], groups: [] }, users: ['U001'], user_count: 1 } })
+        if (method === 'usergroups.disable') return Promise.resolve({ ok: true, usergroup: { id: 'S001', team_id: 'T001', name: 'Engineering', handle: 'engineering', description: '', is_external: false, is_usergroup: true, date_create: 100, date_update: 300, date_delete: 400, auto_type: null, created_by: 'U001', updated_by: 'U001', deleted_by: 'U001', prefs: { channels: [], groups: [] }, users: [], user_count: 0 } })
+        if (method === 'usergroups.enable') return Promise.resolve({ ok: true, usergroup: { id: 'S001', team_id: 'T001', name: 'Engineering', handle: 'engineering', description: '', is_external: false, is_usergroup: true, date_create: 100, date_update: 500, date_delete: 0, auto_type: null, created_by: 'U001', updated_by: 'U001', deleted_by: null, prefs: { channels: [], groups: [] }, users: ['U001'], user_count: 1 } })
+        if (method === 'usergroups.users.list') return Promise.resolve({ ok: true, users: ['U001', 'U002'] })
+        if (method === 'usergroups.users.update') return Promise.resolve({ ok: true, usergroup: { id: 'S001', team_id: 'T001', name: 'Engineering', handle: 'engineering', description: '', is_external: false, is_usergroup: true, date_create: 100, date_update: 600, date_delete: 0, auto_type: null, created_by: 'U001', updated_by: 'U001', deleted_by: null, prefs: { channels: [], groups: [] }, users: ['U001', 'U003'], user_count: 2 } })
         return Promise.resolve({ ok: true })
       }),
     }
@@ -1729,6 +1736,164 @@ describe('SlackClient extended methods', () => {
       const { client, mock } = makeClient()
       mock.emoji.list.mockResolvedValue({ ok: false, error: 'invalid_auth' })
       await expect(client.listEmoji()).rejects.toThrow(SlackError)
+    })
+  })
+
+  describe('listUsergroups', () => {
+    test('returns mapped usergroups', async () => {
+      const { client } = makeClient()
+      const groups = await client.listUsergroups({ includeCount: true })
+      expect(groups).toHaveLength(1)
+      expect(groups[0].id).toBe('S001')
+      expect(groups[0].name).toBe('Engineering')
+      expect(groups[0].handle).toBe('engineering')
+      expect(groups[0].user_count).toBe(1)
+    })
+
+    test('calls apiCall with correct params', async () => {
+      const { client, mock } = makeClient()
+      await client.listUsergroups({ includeDisabled: true, includeUsers: true, includeCount: true })
+      expect(mock.apiCall).toHaveBeenCalledWith('usergroups.list', {
+        include_disabled: true,
+        include_users: true,
+        include_count: true,
+      })
+    })
+
+    test('throws SlackError on API failure', async () => {
+      const { client, mock } = makeClient()
+      mock.apiCall.mockResolvedValue({ ok: false, error: 'invalid_auth' })
+      await expect(client.listUsergroups()).rejects.toThrow(SlackError)
+    })
+  })
+
+  describe('createUsergroup', () => {
+    test('returns created usergroup', async () => {
+      const { client } = makeClient()
+      const group = await client.createUsergroup('Marketing', { handle: 'marketing' })
+      expect(group.id).toBe('S002')
+      expect(group.name).toBe('Marketing')
+    })
+
+    test('calls apiCall with correct params including channels', async () => {
+      const { client, mock } = makeClient()
+      await client.createUsergroup('Marketing', { handle: 'marketing', description: 'Mktg', channels: ['C001', 'C002'] })
+      expect(mock.apiCall).toHaveBeenCalledWith('usergroups.create', {
+        name: 'Marketing',
+        handle: 'marketing',
+        description: 'Mktg',
+        channels: 'C001,C002',
+      })
+    })
+
+    test('throws SlackError on API failure', async () => {
+      const { client, mock } = makeClient()
+      mock.apiCall.mockResolvedValue({ ok: false, error: 'name_already_exists' })
+      await expect(client.createUsergroup('Dup')).rejects.toThrow(SlackError)
+    })
+  })
+
+  describe('updateUsergroup', () => {
+    test('returns updated usergroup', async () => {
+      const { client } = makeClient()
+      const group = await client.updateUsergroup('S001', { name: 'Updated', handle: 'updated' })
+      expect(group.name).toBe('Updated')
+      expect(group.handle).toBe('updated')
+    })
+
+    test('calls apiCall with correct params', async () => {
+      const { client, mock } = makeClient()
+      await client.updateUsergroup('S001', { name: 'New', channels: ['C001'] })
+      expect(mock.apiCall).toHaveBeenCalledWith('usergroups.update', {
+        usergroup: 'S001',
+        name: 'New',
+        handle: undefined,
+        description: undefined,
+        channels: 'C001',
+      })
+    })
+
+    test('throws SlackError on API failure', async () => {
+      const { client, mock } = makeClient()
+      mock.apiCall.mockResolvedValue({ ok: false, error: 'no_such_subteam' })
+      await expect(client.updateUsergroup('S999', { name: 'X' })).rejects.toThrow(SlackError)
+    })
+  })
+
+  describe('disableUsergroup', () => {
+    test('returns disabled usergroup with date_delete set', async () => {
+      const { client } = makeClient()
+      const group = await client.disableUsergroup('S001')
+      expect(group.id).toBe('S001')
+      expect(group.date_delete).toBeGreaterThan(0)
+    })
+
+    test('throws SlackError on API failure', async () => {
+      const { client, mock } = makeClient()
+      mock.apiCall.mockResolvedValue({ ok: false, error: 'no_such_subteam' })
+      await expect(client.disableUsergroup('S999')).rejects.toThrow(SlackError)
+    })
+  })
+
+  describe('enableUsergroup', () => {
+    test('returns enabled usergroup with date_delete cleared', async () => {
+      const { client } = makeClient()
+      const group = await client.enableUsergroup('S001')
+      expect(group.id).toBe('S001')
+      expect(group.date_delete).toBe(0)
+    })
+
+    test('throws SlackError on API failure', async () => {
+      const { client, mock } = makeClient()
+      mock.apiCall.mockResolvedValue({ ok: false, error: 'no_such_subteam' })
+      await expect(client.enableUsergroup('S999')).rejects.toThrow(SlackError)
+    })
+  })
+
+  describe('listUsergroupMembers', () => {
+    test('returns user ID array', async () => {
+      const { client } = makeClient()
+      const users = await client.listUsergroupMembers('S001')
+      expect(users).toEqual(['U001', 'U002'])
+    })
+
+    test('calls apiCall with correct params', async () => {
+      const { client, mock } = makeClient()
+      await client.listUsergroupMembers('S001', { includeDisabled: true })
+      expect(mock.apiCall).toHaveBeenCalledWith('usergroups.users.list', {
+        usergroup: 'S001',
+        include_disabled: true,
+      })
+    })
+
+    test('throws SlackError on API failure', async () => {
+      const { client, mock } = makeClient()
+      mock.apiCall.mockResolvedValue({ ok: false, error: 'no_such_subteam' })
+      await expect(client.listUsergroupMembers('S999')).rejects.toThrow(SlackError)
+    })
+  })
+
+  describe('updateUsergroupMembers', () => {
+    test('returns updated usergroup with new members', async () => {
+      const { client } = makeClient()
+      const group = await client.updateUsergroupMembers('S001', ['U001', 'U003'])
+      expect(group.users).toEqual(['U001', 'U003'])
+      expect(group.user_count).toBe(2)
+    })
+
+    test('calls apiCall with comma-joined user IDs', async () => {
+      const { client, mock } = makeClient()
+      await client.updateUsergroupMembers('S001', ['U001', 'U003'])
+      expect(mock.apiCall).toHaveBeenCalledWith('usergroups.users.update', {
+        usergroup: 'S001',
+        users: 'U001,U003',
+      })
+    })
+
+    test('throws SlackError on API failure', async () => {
+      const { client, mock } = makeClient()
+      mock.apiCall.mockResolvedValue({ ok: false, error: 'no_users_provided' })
+      await expect(client.updateUsergroupMembers('S001', [])).rejects.toThrow(SlackError)
     })
   })
 })

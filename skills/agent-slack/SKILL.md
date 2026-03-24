@@ -420,6 +420,39 @@ agent-slack reminder complete <reminder-id>
 agent-slack reminder delete <reminder-id>
 ```
 
+### Usergroup Commands
+
+```bash
+# List all user groups
+agent-slack usergroup list
+agent-slack usergroup list --include-disabled
+agent-slack usergroup list --include-users --pretty
+
+# Create a user group
+agent-slack usergroup create "Marketing Team"
+agent-slack usergroup create "Marketing Team" --handle marketing-team --description "Marketing gurus"
+agent-slack usergroup create "Engineering" --channels C012ABC,C034DEF
+
+# Update a user group (name, handle, description, channels)
+agent-slack usergroup update <usergroup-id> --name "New Name"
+agent-slack usergroup update S0616NG6M --handle new-handle --description "Updated description"
+agent-slack usergroup update S0616NG6M --channels C012ABC,C034DEF
+
+# Enable a disabled user group
+agent-slack usergroup enable <usergroup-id>
+
+# Disable a user group
+agent-slack usergroup disable <usergroup-id>
+
+# List members of a user group
+agent-slack usergroup members <usergroup-id>
+agent-slack usergroup members S0616NG6M --include-disabled --pretty
+
+# Update members of a user group (replaces all members)
+agent-slack usergroup members-update <usergroup-id> <comma-separated-user-ids>
+agent-slack usergroup members-update S0616NG6M U060R4BJ4,U060RNRCZ
+```
+
 ### Emoji Commands
 
 ```bash
@@ -450,6 +483,7 @@ Returns JSON with:
 - Channels (id, name, topic, purpose)
 - Recent messages (ts, text, user, channel)
 - Users (id, name, profile)
+- User groups (id, name, handle, description, user_count, users)
 
 ## Output Format
 

@@ -239,6 +239,7 @@ await listener.start()
 | Scheduled messages         |  ✅   |    —    |   —   |    —     |    —     |    —      |         —           |
 | Channel management         |  ✅   |    —    |   —   |    —     |    —     |    —      |         —           |
 | Reminders                  |  ✅   |    —    |   —   |    —     |    —     |    —      |         —           |
+| User groups                |  ✅   |    —    |   —   |    —     |    —     |    —      |         —           |
 | Real-time events (SDK)     |  ✅   |    —    |   —   |    —     |    —     |    —      |         —           |
 | Bot support                |  ✅   |   ✅    |   —   |    —     |    ✅     |    —      |         ✅          |
 

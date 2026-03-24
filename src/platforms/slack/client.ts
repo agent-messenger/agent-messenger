@@ -18,6 +18,7 @@ import type {
   SlackUnreadCounts,
   SlackUser,
   SlackUserProfile,
+  SlackUsergroup,
 } from './types'
 
 export class SlackError extends Error {
@@ -1278,6 +1279,118 @@ export class SlackClient {
       const response = await this.client.emoji.list({})
       this.checkResponse(response)
       return ((response as any).emoji || {}) as Record<string, string>
+    })
+  }
+
+  private mapUsergroup(ug: any): SlackUsergroup {
+    return {
+      id: ug.id || '',
+      team_id: ug.team_id || '',
+      name: ug.name || '',
+      handle: ug.handle || '',
+      description: ug.description || '',
+      is_external: ug.is_external ?? false,
+      is_usergroup: ug.is_usergroup ?? true,
+      date_create: ug.date_create ?? 0,
+      date_update: ug.date_update ?? 0,
+      date_delete: ug.date_delete ?? 0,
+      auto_type: ug.auto_type ?? null,
+      created_by: ug.created_by || '',
+      updated_by: ug.updated_by || '',
+      deleted_by: ug.deleted_by ?? null,
+      prefs: {
+        channels: ug.prefs?.channels || [],
+        groups: ug.prefs?.groups || [],
+      },
+      users: ug.users || [],
+      user_count: ug.user_count ?? 0,
+    }
+  }
+
+  async listUsergroups(options?: { includeDisabled?: boolean; includeUsers?: boolean; includeCount?: boolean }): Promise<SlackUsergroup[]> {
+    return this.withRetry(async () => {
+      const response = await this.client.apiCall('usergroups.list', {
+        include_disabled: options?.includeDisabled,
+        include_users: options?.includeUsers,
+        include_count: options?.includeCount,
+      })
+      this.checkResponse(response)
+      return ((response as any).usergroups || []).map((ug: any) => this.mapUsergroup(ug))
+    })
+  }
+
+  async createUsergroup(
+    name: string,
+    options?: { handle?: string; description?: string; channels?: string[] },
+  ): Promise<SlackUsergroup> {
+    return this.withRetry(async () => {
+      const response = await this.client.apiCall('usergroups.create', {
+        name,
+        handle: options?.handle,
+        description: options?.description,
+        channels: options?.channels?.join(','),
+      })
+      this.checkResponse(response)
+      return this.mapUsergroup((response as any).usergroup)
+    })
+  }
+
+  async updateUsergroup(
+    usergroupId: string,
+    options: { name?: string; handle?: string; description?: string; channels?: string[] },
+  ): Promise<SlackUsergroup> {
+    return this.withRetry(async () => {
+      const response = await this.client.apiCall('usergroups.update', {
+        usergroup: usergroupId,
+        name: options.name,
+        handle: options.handle,
+        description: options.description,
+        channels: options.channels?.join(','),
+      })
+      this.checkResponse(response)
+      return this.mapUsergroup((response as any).usergroup)
+    })
+  }
+
+  async disableUsergroup(usergroupId: string): Promise<SlackUsergroup> {
+    return this.withRetry(async () => {
+      const response = await this.client.apiCall('usergroups.disable', {
+        usergroup: usergroupId,
+      })
+      this.checkResponse(response)
+      return this.mapUsergroup((response as any).usergroup)
+    })
+  }
+
+  async enableUsergroup(usergroupId: string): Promise<SlackUsergroup> {
+    return this.withRetry(async () => {
+      const response = await this.client.apiCall('usergroups.enable', {
+        usergroup: usergroupId,
+      })
+      this.checkResponse(response)
+      return this.mapUsergroup((response as any).usergroup)
+    })
+  }
+
+  async listUsergroupMembers(usergroupId: string, options?: { includeDisabled?: boolean }): Promise<string[]> {
+    return this.withRetry(async () => {
+      const response = await this.client.apiCall('usergroups.users.list', {
+        usergroup: usergroupId,
+        include_disabled: options?.includeDisabled,
+      })
+      this.checkResponse(response)
+      return (response as any).users || []
+    })
+  }
+
+  async updateUsergroupMembers(usergroupId: string, users: string[]): Promise<SlackUsergroup> {
+    return this.withRetry(async () => {
+      const response = await this.client.apiCall('usergroups.users.update', {
+        usergroup: usergroupId,
+        users: users.join(','),
+      })
+      this.checkResponse(response)
+      return this.mapUsergroup((response as any).usergroup)
     })
   }
 }
