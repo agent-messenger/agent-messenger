@@ -396,9 +396,9 @@ const client = await createKakaoTalkClient()
 Or with manual credential management:
 
 ```typescript
-import { KakaoTalkClient, CredentialManager } from 'agent-messenger/kakaotalk'
+import { KakaoTalkClient, KakaoCredentialManager } from 'agent-messenger/kakaotalk'
 
-const manager = new CredentialManager()
+const manager = new KakaoCredentialManager()
 const account = await manager.getAccount()
 if (!account) throw new Error('Not authenticated')
 
