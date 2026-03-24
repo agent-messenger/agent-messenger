@@ -1,5 +1,5 @@
 export { SlackClient, SlackError } from './client'
-export { CredentialManager } from './credential-manager'
+export { SlackCredentialManager, CredentialManager } from './credential-manager'
 export { SlackListener } from './listener'
 export type {
   SlackBookmark,
@@ -45,12 +45,12 @@ export {
 } from './types'
 
 import { SlackClient, SlackError } from './client'
-import { CredentialManager } from './credential-manager'
+import { SlackCredentialManager } from './credential-manager'
 
 export async function createSlackClient(): Promise<SlackClient> {
   const { ensureSlackAuth } = await import('./ensure-auth')
   await ensureSlackAuth()
-  const credManager = new CredentialManager()
+  const credManager = new SlackCredentialManager()
   const workspace = await credManager.getWorkspace()
   if (!workspace) {
     throw new SlackError(

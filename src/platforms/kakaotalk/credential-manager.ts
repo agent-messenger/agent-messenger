@@ -12,7 +12,7 @@ export interface PendingLoginState {
   created_at: string
 }
 
-export class CredentialManager {
+export class KakaoCredentialManager {
   private configDir: string
   private credentialsPath: string
   private pendingLoginPath: string
@@ -98,3 +98,5 @@ export class CredentialManager {
     }
   }
 }
+
+export { KakaoCredentialManager as CredentialManager }

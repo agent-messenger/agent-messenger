@@ -5,7 +5,7 @@ import { join } from 'node:path'
 
 import type { Config, WorkspaceCredentials } from './types'
 
-export class CredentialManager {
+export class SlackCredentialManager {
   private configDir: string
   private credentialsPath: string
 
@@ -88,3 +88,5 @@ export class CredentialManager {
     await this.save(config)
   }
 }
+
+export { SlackCredentialManager as CredentialManager }

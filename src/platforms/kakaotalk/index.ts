@@ -1,5 +1,5 @@
 export { KakaoTalkClient, KakaoTalkError } from './client'
-export { CredentialManager } from './credential-manager'
+export { KakaoCredentialManager, CredentialManager } from './credential-manager'
 export type { PendingLoginState } from './credential-manager'
 export type {
   KakaoAccountCredentials,
@@ -18,7 +18,7 @@ export {
 } from './types'
 
 import { KakaoTalkClient, KakaoTalkError } from './client'
-import { CredentialManager } from './credential-manager'
+import { KakaoCredentialManager } from './credential-manager'
 
 export async function createKakaoTalkClient(): Promise<KakaoTalkClient> {
   const { ensureKakaoAuth } = await import('./ensure-auth')

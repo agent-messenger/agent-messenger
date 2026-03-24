@@ -1,10 +1,10 @@
 export { ChannelClient } from './client'
 export { ChannelCredentialManager } from './credential-manager'
-export { ChannelTokenExtractor } from './token-extractor'
 export type {
   BlockInline,
   BlockInlineAttrs,
   Channel,
+  ChannelTalkChannel,
   ChannelAccount,
   ChannelBot,
   ChannelConfig,

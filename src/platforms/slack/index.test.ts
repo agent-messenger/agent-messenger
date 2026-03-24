@@ -2,6 +2,7 @@ import { expect, test } from 'bun:test'
 
 import {
   CredentialManager,
+  SlackCredentialManager,
   SlackChannelSchema,
   SlackClient,
   SlackError,
@@ -24,6 +25,10 @@ test('SlackError is exported from barrel', () => {
 
 test('CredentialManager is exported from barrel', () => {
   expect(typeof CredentialManager).toBe('function')
+})
+
+test('SlackCredentialManager is exported from barrel', () => {
+  expect(typeof SlackCredentialManager).toBe('function')
 })
 
 test('createSlackClient is exported from barrel', () => {
