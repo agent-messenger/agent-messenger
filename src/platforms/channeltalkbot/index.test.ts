@@ -15,6 +15,7 @@ import {
   ChannelBotUserSchema,
   ChannelBotWorkspaceEntrySchema,
   MessageBlockSchema,
+  createChannelBotClient,
 } from '@/platforms/channeltalkbot/index'
 
 test('ChannelBotClient is exported from barrel', () => {
@@ -71,4 +72,8 @@ test('ChannelBotWorkspaceEntrySchema is exported from barrel', () => {
 
 test('MessageBlockSchema is exported from barrel', () => {
   expect(typeof MessageBlockSchema.parse).toBe('function')
+})
+
+test('createChannelBotClient is exported from barrel', () => {
+  expect(typeof createChannelBotClient).toBe('function')
 })
