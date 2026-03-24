@@ -647,7 +647,6 @@ listener.stop()         // clean shutdown
 
 ## Limitations
 
-- No workspace admin operations
 - Plain text messages only (no blocks/formatting in v1)
 
 ## Troubleshooting
