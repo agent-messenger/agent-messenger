@@ -338,7 +338,7 @@ export const ChannelSearchResponseSchema = z.object({
   directChats: z.array(ChannelDirectChatSchema).optional(),
   groups: z.array(ChannelGroupSchema).optional(),
   userChats: z.array(ChannelUserChatSchema).optional(),
-  users: z.array(z.object({ id: z.string() }).passthrough()).optional(),
+  users: z.array(z.looseObject({ id: z.string() })).optional(),
 })
 
 export const ExtractedChannelTokenSchema = z.object({
