@@ -16,6 +16,7 @@ export class LocoConnection {
   private pendingResolvers = new Map<number, { resolve: (packet: LocoPacket) => void; timer: ReturnType<typeof setTimeout> }>()
   private timedOutIds = new Set<number>()
   private pushHandler: ((packet: LocoPacket) => void) | null = null
+  private closeHandler: (() => void) | null = null
 
   async connectTls(host: string, port: number): Promise<void> {
     await new Promise<void>((resolve, reject) => {
@@ -23,7 +24,7 @@ export class LocoConnection {
       this.socket = socket
       socket.on('error', reject)
       socket.on('data', (data: Buffer) => this.onData(data))
-      socket.on('close', () => this.onClose())
+      socket.on('close', () => this.handleClose())
     })
   }
 
@@ -33,7 +34,7 @@ export class LocoConnection {
       this.socket = socket
       socket.on('error', reject)
       socket.on('data', (data: Buffer) => this.onData(data))
-      socket.on('close', () => this.onClose())
+      socket.on('close', () => this.handleClose())
     })
     await this.performHandshake()
   }
@@ -70,6 +71,10 @@ export class LocoConnection {
 
   onPush(handler: (packet: LocoPacket) => void): void {
     this.pushHandler = handler
+  }
+
+  onClose(handler: () => void): void {
+    this.closeHandler = handler
   }
 
   close(): void {
@@ -143,11 +148,12 @@ export class LocoConnection {
     }
   }
 
-  private onClose(): void {
+  private handleClose(): void {
     for (const entry of this.pendingResolvers.values()) {
       clearTimeout(entry.timer)
       entry.resolve({ packetId: 0, statusCode: -1, method: '', bodyType: 0, body: { error: 'connection closed' } })
     }
     this.pendingResolvers.clear()
+    this.closeHandler?.()
   }
 }
