@@ -17,7 +17,7 @@ async function listAction(options: { type?: string; includeArchived?: boolean; p
       process.exit(1)
     }
 
-    const client = new SlackClient(workspace.token, workspace.cookie)
+    const client = await new SlackClient().login({ token: workspace.token, cookie: workspace.cookie })
 
     if (options.type === 'dm') {
       const dms = await client.listDMs({ includeArchived: options.includeArchived })
@@ -68,7 +68,7 @@ async function infoAction(channel: string, options: { pretty?: boolean }): Promi
       process.exit(1)
     }
 
-    const client = new SlackClient(workspace.token, workspace.cookie)
+    const client = await new SlackClient().login({ token: workspace.token, cookie: workspace.cookie })
     channel = await client.resolveChannel(channel)
     const ch = await client.getChannel(channel)
 
@@ -99,7 +99,7 @@ async function historyAction(channel: string, options: { limit?: number; pretty?
       process.exit(1)
     }
 
-    const client = new SlackClient(workspace.token, workspace.cookie)
+    const client = await new SlackClient().login({ token: workspace.token, cookie: workspace.cookie })
     channel = await client.resolveChannel(channel)
     const messages = await client.getMessages(channel, options.limit || 20)
 
@@ -129,7 +129,7 @@ async function openAction(users: string, options: { pretty?: boolean }): Promise
       process.exit(1)
     }
 
-    const client = new SlackClient(workspace.token, workspace.cookie)
+    const client = await new SlackClient().login({ token: workspace.token, cookie: workspace.cookie })
     const result = await client.openConversation(users)
 
     console.log(formatOutput(result, options.pretty))
@@ -148,7 +148,7 @@ async function usersAction(channel: string, options: { includeBots?: boolean; pr
       process.exit(1)
     }
 
-    const client = new SlackClient(workspace.token, workspace.cookie)
+    const client = await new SlackClient().login({ token: workspace.token, cookie: workspace.cookie })
     channel = await client.resolveChannel(channel)
     const memberIds = await client.listChannelMembers(channel)
 
@@ -186,7 +186,7 @@ async function createAction(
       process.exit(1)
     }
 
-    const client = new SlackClient(workspace.token, workspace.cookie)
+    const client = await new SlackClient().login({ token: workspace.token, cookie: workspace.cookie })
     const ch = await client.createChannel(name, options.private)
 
     console.log(
@@ -217,7 +217,7 @@ async function archiveAction(channel: string, options: { pretty?: boolean }): Pr
       process.exit(1)
     }
 
-    const client = new SlackClient(workspace.token, workspace.cookie)
+    const client = await new SlackClient().login({ token: workspace.token, cookie: workspace.cookie })
     channel = await client.resolveChannel(channel)
     await client.archiveChannel(channel)
 
@@ -237,7 +237,7 @@ async function setTopicAction(channel: string, topic: string, options: { pretty?
       process.exit(1)
     }
 
-    const client = new SlackClient(workspace.token, workspace.cookie)
+    const client = await new SlackClient().login({ token: workspace.token, cookie: workspace.cookie })
     channel = await client.resolveChannel(channel)
     const result = await client.setChannelTopic(channel, topic)
 
@@ -257,7 +257,7 @@ async function setPurposeAction(channel: string, purpose: string, options: { pre
       process.exit(1)
     }
 
-    const client = new SlackClient(workspace.token, workspace.cookie)
+    const client = await new SlackClient().login({ token: workspace.token, cookie: workspace.cookie })
     channel = await client.resolveChannel(channel)
     const result = await client.setChannelPurpose(channel, purpose)
 
@@ -277,7 +277,7 @@ async function inviteAction(channel: string, users: string, options: { pretty?: 
       process.exit(1)
     }
 
-    const client = new SlackClient(workspace.token, workspace.cookie)
+    const client = await new SlackClient().login({ token: workspace.token, cookie: workspace.cookie })
     channel = await client.resolveChannel(channel)
     const ch = await client.inviteToChannel(channel, users)
 
@@ -306,7 +306,7 @@ async function joinAction(channel: string, options: { pretty?: boolean }): Promi
       process.exit(1)
     }
 
-    const client = new SlackClient(workspace.token, workspace.cookie)
+    const client = await new SlackClient().login({ token: workspace.token, cookie: workspace.cookie })
     channel = await client.resolveChannel(channel)
     const ch = await client.joinChannel(channel)
 
@@ -335,7 +335,7 @@ async function leaveAction(channel: string, options: { pretty?: boolean }): Prom
       process.exit(1)
     }
 
-    const client = new SlackClient(workspace.token, workspace.cookie)
+    const client = await new SlackClient().login({ token: workspace.token, cookie: workspace.cookie })
     channel = await client.resolveChannel(channel)
     await client.leaveChannel(channel)
 

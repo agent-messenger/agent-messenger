@@ -23,7 +23,7 @@ async function snapshotAction(options: {
       process.exit(1)
     }
 
-    const client = new SlackClient(workspace.token, workspace.cookie)
+    const client = await new SlackClient().login({ token: workspace.token, cookie: workspace.cookie })
 
     const auth = await client.testAuth()
     const messageLimit = options.limit || 20

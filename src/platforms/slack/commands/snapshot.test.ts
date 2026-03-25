@@ -149,7 +149,7 @@ afterEach(() => {
 
 test('full snapshot returns workspace, channels, messages, and users', async () => {
   const credManager = new CredentialManager()
-  const client = new SlackClient('xoxc-test', 'test-cookie')
+  const client = await new SlackClient().login({ token: 'xoxc-test', cookie: 'test-cookie' })
 
   const _workspace = await credManager.getWorkspace()
   const auth = await client.testAuth()
@@ -219,7 +219,7 @@ test('full snapshot returns workspace, channels, messages, and users', async () 
 
 test('snapshot with --channels-only excludes messages and users', async () => {
   const credManager = new CredentialManager()
-  const client = new SlackClient('xoxc-test', 'test-cookie')
+  const client = await new SlackClient().login({ token: 'xoxc-test', cookie: 'test-cookie' })
 
   const _workspace = await credManager.getWorkspace()
   const auth = await client.testAuth()
@@ -250,7 +250,7 @@ test('snapshot with --channels-only excludes messages and users', async () => {
 
 test('snapshot with --users-only excludes channels and messages', async () => {
   const credManager = new CredentialManager()
-  const client = new SlackClient('xoxc-test', 'test-cookie')
+  const client = await new SlackClient().login({ token: 'xoxc-test', cookie: 'test-cookie' })
 
   const _workspace = await credManager.getWorkspace()
   const auth = await client.testAuth()
@@ -280,7 +280,7 @@ test('snapshot with --users-only excludes channels and messages', async () => {
 
 test('snapshot respects --limit option for messages', async () => {
   const credManager = new CredentialManager()
-  const client = new SlackClient('xoxc-test', 'test-cookie')
+  const client = await new SlackClient().login({ token: 'xoxc-test', cookie: 'test-cookie' })
 
   const _workspace = await credManager.getWorkspace()
   const auth = await client.testAuth()

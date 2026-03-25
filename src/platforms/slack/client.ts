@@ -35,23 +35,45 @@ const MAX_RETRIES = 3
 const RATE_LIMIT_ERROR_CODE = 'slack_webapi_rate_limited_error'
 
 export class SlackClient {
-  private client: WebClient
-  private token: string
-  private cookie: string
+  private client: WebClient | null = null
+  private token: string | null = null
+  private cookie: string | null = null
 
-  constructor(token: string, cookie: string) {
-    if (!token) {
-      throw new SlackError('Token is required', 'missing_token')
-    }
-    if (!cookie) {
-      throw new SlackError('Cookie is required', 'missing_cookie')
+  async login(credentials?: { token: string; cookie: string }): Promise<this> {
+    if (credentials) {
+      if (!credentials.token) {
+        throw new SlackError('Token is required', 'missing_token')
+      }
+      if (!credentials.cookie) {
+        throw new SlackError('Cookie is required', 'missing_cookie')
+      }
+      this.token = credentials.token
+      this.cookie = credentials.cookie
+      this.client = new WebClient(credentials.token, {
+        headers: { Cookie: `d=${credentials.cookie}` },
+      })
+      return this
     }
 
-    this.token = token
-    this.cookie = cookie
-    this.client = new WebClient(token, {
-      headers: { Cookie: `d=${cookie}` },
-    })
+    const { ensureSlackAuth } = await import('./ensure-auth')
+    await ensureSlackAuth()
+    const { SlackCredentialManager } = await import('./credential-manager')
+    const credManager = new SlackCredentialManager()
+    const workspace = await credManager.getWorkspace()
+    if (!workspace) {
+      throw new SlackError(
+        'No workspace credentials found. Make sure Slack desktop app is installed and logged in.',
+        'no_credentials',
+      )
+    }
+    return this.login({ token: workspace.token, cookie: workspace.cookie })
+  }
+
+  private ensureAuth(): WebClient {
+    if (!this.client) {
+      throw new SlackError('Not authenticated. Call .login() first.', 'not_authenticated')
+    }
+    return this.client
   }
 
   private async withRetry<T>(operation: () => Promise<T>): Promise<T> {
@@ -84,7 +106,7 @@ export class SlackClient {
 
   async testAuth(): Promise<{ user_id: string; team_id: string; user?: string; team?: string }> {
     return this.withRetry(async () => {
-      const response = await this.client.auth.test()
+      const response = await this.ensureAuth().auth.test()
       this.checkResponse(response)
       return {
         user_id: response.user_id!,
@@ -101,7 +123,7 @@ export class SlackClient {
       let cursor: string | undefined
 
       do {
-        const response = await this.client.conversations.list({
+        const response = await this.ensureAuth().conversations.list({
           cursor,
           limit: 200,
           types: 'public_channel,private_channel',
@@ -148,7 +170,7 @@ export class SlackClient {
       let cursor: string | undefined
 
       do {
-        const response = await this.client.conversations.list({
+        const response = await this.ensureAuth().conversations.list({
           cursor,
           limit: 200,
           types: 'im,mpim',
@@ -175,7 +197,7 @@ export class SlackClient {
 
   async getChannel(id: string): Promise<SlackChannel> {
     return this.withRetry(async () => {
-      const response = await this.client.conversations.info({ channel: id })
+      const response = await this.ensureAuth().conversations.info({ channel: id })
       this.checkResponse(response)
 
       const ch = response.channel!
@@ -228,7 +250,7 @@ export class SlackClient {
 
   async sendMessage(channel: string, text: string, threadTs?: string): Promise<SlackMessage> {
     return this.withRetry(async () => {
-      const response = await this.client.chat.postMessage({
+      const response = await this.ensureAuth().chat.postMessage({
         channel,
         text,
         thread_ts: threadTs,
@@ -254,7 +276,7 @@ export class SlackClient {
     const { limit = 20, oldest, latest } = options
 
     return this.withRetry(async () => {
-      const response = await this.client.conversations.history({
+      const response = await this.ensureAuth().conversations.history({
         channel,
         limit,
         oldest,
@@ -295,7 +317,7 @@ export class SlackClient {
 
   async getMessage(channel: string, ts: string): Promise<SlackMessage | null> {
     return this.withRetry(async () => {
-      const response = await this.client.conversations.history({
+      const response = await this.ensureAuth().conversations.history({
         channel,
         oldest: ts,
         inclusive: true,
@@ -341,7 +363,7 @@ export class SlackClient {
 
   async updateMessage(channel: string, ts: string, text: string): Promise<SlackMessage> {
     return this.withRetry(async () => {
-      const response = await this.client.chat.update({
+      const response = await this.ensureAuth().chat.update({
         channel,
         ts,
         text,
@@ -360,7 +382,7 @@ export class SlackClient {
 
   async deleteMessage(channel: string, ts: string): Promise<void> {
     return this.withRetry(async () => {
-      const response = await this.client.chat.delete({
+      const response = await this.ensureAuth().chat.delete({
         channel,
         ts,
       })
@@ -370,7 +392,7 @@ export class SlackClient {
 
   async addReaction(channel: string, ts: string, emoji: string): Promise<void> {
     return this.withRetry(async () => {
-      const response = await this.client.reactions.add({
+      const response = await this.ensureAuth().reactions.add({
         channel,
         timestamp: ts,
         name: emoji,
@@ -381,7 +403,7 @@ export class SlackClient {
 
   async removeReaction(channel: string, ts: string, emoji: string): Promise<void> {
     return this.withRetry(async () => {
-      const response = await this.client.reactions.remove({
+      const response = await this.ensureAuth().reactions.remove({
         channel,
         timestamp: ts,
         name: emoji,
@@ -396,7 +418,7 @@ export class SlackClient {
       let cursor: string | undefined
 
       do {
-        const response = await this.client.users.list({
+        const response = await this.ensureAuth().users.list({
           cursor,
           limit: 200,
         })
@@ -437,7 +459,7 @@ export class SlackClient {
       let cursor: string | undefined
 
       do {
-        const response = await this.client.conversations.members({
+        const response = await this.ensureAuth().conversations.members({
           channel,
           cursor,
           limit: 200,
@@ -457,7 +479,7 @@ export class SlackClient {
 
   async getUser(id: string): Promise<SlackUser> {
     return this.withRetry(async () => {
-      const response = await this.client.users.info({ user: id })
+      const response = await this.ensureAuth().users.info({ user: id })
       this.checkResponse(response)
 
       const member = response.user!
@@ -483,7 +505,7 @@ export class SlackClient {
 
   async uploadFile(channels: string[], file: Buffer, filename: string): Promise<SlackFile> {
     return this.withRetry(async () => {
-      const response = await this.client.files.uploadV2({
+      const response = await this.ensureAuth().files.uploadV2({
         channel_id: channels[0],
         file,
         filename,
@@ -511,7 +533,7 @@ export class SlackClient {
 
   async listFiles(channel?: string): Promise<SlackFile[]> {
     return this.withRetry(async () => {
-      const response = await this.client.files.list({
+      const response = await this.ensureAuth().files.list({
         channel,
       })
       this.checkResponse(response)
@@ -532,7 +554,7 @@ export class SlackClient {
 
   async getFileInfo(fileId: string): Promise<SlackFile> {
     return this.withRetry(async () => {
-      const response = await this.client.files.info({ file: fileId })
+      const response = await this.ensureAuth().files.info({ file: fileId })
       this.checkResponse(response)
 
       const f = response.file!
@@ -557,10 +579,11 @@ export class SlackClient {
       throw new SlackError('File has no download URL', 'no_download_url')
     }
 
+    this.ensureAuth()
     const response = await fetch(file.url_private, {
       headers: {
-        Authorization: `Bearer ${this.token}`,
-        Cookie: `d=${this.cookie}`,
+        Authorization: `Bearer ${this.token!}`,
+        Cookie: `d=${this.cookie!}`,
       },
     })
 
@@ -580,7 +603,7 @@ export class SlackClient {
     options: { sort?: 'score' | 'timestamp'; sortDir?: 'asc' | 'desc'; count?: number } = {},
   ): Promise<SlackSearchResult[]> {
     return this.withRetry(async () => {
-      const response = await this.client.search.messages({
+      const response = await this.ensureAuth().search.messages({
         query,
         sort: options.sort || 'timestamp',
         sort_dir: options.sortDir || 'desc',
@@ -609,7 +632,7 @@ export class SlackClient {
     options: { limit?: number; oldest?: string; latest?: string; cursor?: string } = {},
   ): Promise<{ messages: SlackMessage[]; has_more: boolean; next_cursor?: string }> {
     return this.withRetry(async () => {
-      const response = await this.client.conversations.replies({
+      const response = await this.ensureAuth().conversations.replies({
         channel,
         ts: threadTs,
         limit: options.limit || 100,
@@ -657,7 +680,7 @@ export class SlackClient {
 
   async getUnreadCounts(): Promise<SlackUnreadCounts> {
     return this.withRetry(async () => {
-      const response = await this.client.apiCall('client.counts')
+      const response = await this.ensureAuth().apiCall('client.counts')
       this.checkResponse(response)
 
       const channels = ((response as any).channels || []).map((ch: any) => ({
@@ -677,7 +700,7 @@ export class SlackClient {
 
   async getThreadView(channelId: string, ts: string): Promise<SlackThreadView> {
     return this.withRetry(async () => {
-      const response = await (this.client as any).subscriptions.thread.getView({
+      const response = await (this.ensureAuth() as any).subscriptions.thread.getView({
         channel: channelId,
         thread_ts: ts,
       })
@@ -696,7 +719,7 @@ export class SlackClient {
 
   async markRead(channelId: string, ts: string): Promise<void> {
     return this.withRetry(async () => {
-      const response = await this.client.conversations.mark({
+      const response = await this.ensureAuth().conversations.mark({
         channel: channelId,
         ts,
       })
@@ -706,7 +729,7 @@ export class SlackClient {
 
   async getActivityFeed(options?: { types?: string; mode?: string; limit?: number }): Promise<SlackActivityItem[]> {
     return this.withRetry(async () => {
-      const response = await this.client.apiCall('activity.feed', {
+      const response = await this.ensureAuth().apiCall('activity.feed', {
         types: options?.types || 'thread_reply,message_reaction,at_user,at_channel,keyword',
         mode: options?.mode || 'chrono_reads_and_unreads',
         limit: options?.limit || 20,
@@ -733,7 +756,7 @@ export class SlackClient {
     next_cursor?: string
   }> {
     return this.withRetry(async () => {
-      const response = await (this.client as any).apiCall('saved.list', {
+      const response = await (this.ensureAuth() as any).apiCall('saved.list', {
         cursor,
         limit: 50,
       })
@@ -774,7 +797,7 @@ export class SlackClient {
 
   async getChannelSections(): Promise<SlackChannelSection[]> {
     return this.withRetry(async () => {
-      const response = await (this.client as any).apiCall('users.channelSections.list')
+      const response = await (this.ensureAuth() as any).apiCall('users.channelSections.list')
       this.checkResponse(response)
 
       const sections = (response as any).channel_sections || []
@@ -790,7 +813,7 @@ export class SlackClient {
 
   async openConversation(users: string): Promise<{ channel_id: string; already_open: boolean }> {
     return this.withRetry(async () => {
-      const response = await this.client.conversations.open({ users })
+      const response = await this.ensureAuth().conversations.open({ users })
       this.checkResponse(response)
 
       return {
@@ -802,7 +825,7 @@ export class SlackClient {
 
   async getDrafts(cursor?: string): Promise<{ drafts: SlackDraft[]; next_cursor?: string }> {
     return this.withRetry(async () => {
-      const response = await this.client.apiCall('drafts.list', {
+      const response = await this.ensureAuth().apiCall('drafts.list', {
         cursor,
       })
       this.checkResponse(response)
@@ -824,11 +847,11 @@ export class SlackClient {
 
   async rtmConnect(): Promise<{ url: string; cookie: string; self: { id: string }; team: { id: string } }> {
     return this.withRetry(async () => {
-      const response = await this.client.apiCall('rtm.connect')
+      const response = await this.ensureAuth().apiCall('rtm.connect')
       this.checkResponse(response)
       return {
         url: (response as any).url,
-        cookie: this.cookie,
+        cookie: this.cookie!,
         self: { id: (response as any).self.id },
         team: { id: (response as any).team.id },
       }
@@ -837,21 +860,21 @@ export class SlackClient {
 
   async pinMessage(channel: string, ts: string): Promise<void> {
     return this.withRetry(async () => {
-      const response = await this.client.pins.add({ channel, timestamp: ts })
+      const response = await this.ensureAuth().pins.add({ channel, timestamp: ts })
       this.checkResponse(response)
     })
   }
 
   async unpinMessage(channel: string, ts: string): Promise<void> {
     return this.withRetry(async () => {
-      const response = await this.client.pins.remove({ channel, timestamp: ts })
+      const response = await this.ensureAuth().pins.remove({ channel, timestamp: ts })
       this.checkResponse(response)
     })
   }
 
   async listPins(channel: string): Promise<SlackPin[]> {
     return this.withRetry(async () => {
-      const response = await this.client.pins.list({ channel })
+      const response = await this.ensureAuth().pins.list({ channel })
       this.checkResponse(response)
 
       return ((response as any).items || [])
@@ -880,7 +903,7 @@ export class SlackClient {
     options?: { type?: string; emoji?: string },
   ): Promise<SlackBookmark> {
     return this.withRetry(async () => {
-      const response = await this.client.apiCall('bookmarks.add', {
+      const response = await this.ensureAuth().apiCall('bookmarks.add', {
         channel_id: channel,
         title,
         link,
@@ -911,7 +934,7 @@ export class SlackClient {
     options: Partial<Pick<SlackBookmark, 'title' | 'link' | 'emoji'>>,
   ): Promise<SlackBookmark> {
     return this.withRetry(async () => {
-      const response = await this.client.apiCall('bookmarks.edit', {
+      const response = await this.ensureAuth().apiCall('bookmarks.edit', {
         channel_id: channel,
         bookmark_id: bookmarkId,
         ...options,
@@ -936,7 +959,7 @@ export class SlackClient {
 
   async removeBookmark(channel: string, bookmarkId: string): Promise<void> {
     return this.withRetry(async () => {
-      const response = await this.client.apiCall('bookmarks.remove', {
+      const response = await this.ensureAuth().apiCall('bookmarks.remove', {
         channel_id: channel,
         bookmark_id: bookmarkId,
       })
@@ -946,7 +969,7 @@ export class SlackClient {
 
   async listBookmarks(channel: string): Promise<SlackBookmark[]> {
     return this.withRetry(async () => {
-      const response = await this.client.apiCall('bookmarks.list', { channel_id: channel })
+      const response = await this.ensureAuth().apiCall('bookmarks.list', { channel_id: channel })
       this.checkResponse(response)
 
       return ((response as any).bookmarks || []).map((b: any) => ({
@@ -966,7 +989,7 @@ export class SlackClient {
 
   async scheduleMessage(channel: string, text: string, postAt: number, threadTs?: string): Promise<SlackScheduledMessage> {
     return this.withRetry(async () => {
-      const response = await this.client.chat.scheduleMessage({
+      const response = await this.ensureAuth().chat.scheduleMessage({
         channel,
         text,
         post_at: postAt,
@@ -990,7 +1013,7 @@ export class SlackClient {
       let cursor: string | undefined
 
       do {
-        const response = await (this.client.chat.scheduledMessages.list as any)({
+        const response = await (this.ensureAuth().chat.scheduledMessages.list as any)({
           ...(channel ? { channel } : {}),
           ...(cursor ? { cursor } : {}),
         })
@@ -1013,7 +1036,7 @@ export class SlackClient {
 
   async deleteScheduledMessage(channel: string, scheduledMessageId: string): Promise<void> {
     return this.withRetry(async () => {
-      const response = await this.client.chat.deleteScheduledMessage({
+      const response = await this.ensureAuth().chat.deleteScheduledMessage({
         channel,
         scheduled_message_id: scheduledMessageId,
       })
@@ -1023,7 +1046,7 @@ export class SlackClient {
 
   async createChannel(name: string, isPrivate?: boolean): Promise<SlackChannel> {
     return this.withRetry(async () => {
-      const response = await this.client.conversations.create({ name, is_private: isPrivate })
+      const response = await this.ensureAuth().conversations.create({ name, is_private: isPrivate })
       this.checkResponse(response)
 
       const ch = response.channel!
@@ -1054,14 +1077,14 @@ export class SlackClient {
 
   async archiveChannel(channel: string): Promise<void> {
     return this.withRetry(async () => {
-      const response = await this.client.conversations.archive({ channel })
+      const response = await this.ensureAuth().conversations.archive({ channel })
       this.checkResponse(response)
     })
   }
 
   async setChannelTopic(channel: string, topic: string): Promise<{ topic: string }> {
     return this.withRetry(async () => {
-      const response = await this.client.conversations.setTopic({ channel, topic })
+      const response = await this.ensureAuth().conversations.setTopic({ channel, topic })
       this.checkResponse(response)
       return { topic: (response as any).topic || topic }
     })
@@ -1069,7 +1092,7 @@ export class SlackClient {
 
   async setChannelPurpose(channel: string, purpose: string): Promise<{ purpose: string }> {
     return this.withRetry(async () => {
-      const response = await this.client.conversations.setPurpose({ channel, purpose })
+      const response = await this.ensureAuth().conversations.setPurpose({ channel, purpose })
       this.checkResponse(response)
       return { purpose: (response as any).purpose || purpose }
     })
@@ -1077,7 +1100,7 @@ export class SlackClient {
 
   async inviteToChannel(channel: string, users: string): Promise<SlackChannel> {
     return this.withRetry(async () => {
-      const response = await this.client.conversations.invite({ channel, users })
+      const response = await this.ensureAuth().conversations.invite({ channel, users })
       this.checkResponse(response)
 
       const ch = response.channel!
@@ -1094,7 +1117,7 @@ export class SlackClient {
 
   async joinChannel(channel: string): Promise<SlackChannel> {
     return this.withRetry(async () => {
-      const response = await this.client.conversations.join({ channel })
+      const response = await this.ensureAuth().conversations.join({ channel })
       this.checkResponse(response)
 
       const ch = response.channel!
@@ -1111,14 +1134,14 @@ export class SlackClient {
 
   async leaveChannel(channel: string): Promise<void> {
     return this.withRetry(async () => {
-      const response = await this.client.conversations.leave({ channel })
+      const response = await this.ensureAuth().conversations.leave({ channel })
       this.checkResponse(response)
     })
   }
 
   async lookupUserByEmail(email: string): Promise<SlackUser> {
     return this.withRetry(async () => {
-      const response = await this.client.users.lookupByEmail({ email })
+      const response = await this.ensureAuth().users.lookupByEmail({ email })
       this.checkResponse(response)
 
       const member = response.user!
@@ -1144,7 +1167,7 @@ export class SlackClient {
 
   async getUserProfile(userId: string): Promise<SlackUserProfile> {
     return this.withRetry(async () => {
-      const response = await this.client.users.profile.get({ user: userId })
+      const response = await this.ensureAuth().users.profile.get({ user: userId })
       this.checkResponse(response)
 
       const p = (response as any).profile || {}
@@ -1174,7 +1197,7 @@ export class SlackClient {
 
   async setUserProfile(profile: SlackUserProfile): Promise<SlackUserProfile> {
     return this.withRetry(async () => {
-      const response = await this.client.users.profile.set({ profile: profile as any })
+      const response = await this.ensureAuth().users.profile.set({ profile: profile as any })
       this.checkResponse(response)
 
       const p = (response as any).profile || {}
@@ -1204,7 +1227,7 @@ export class SlackClient {
 
   async postEphemeral(channel: string, user: string, text: string): Promise<string> {
     return this.withRetry(async () => {
-      const response = await this.client.chat.postEphemeral({ channel, user, text })
+      const response = await this.ensureAuth().chat.postEphemeral({ channel, user, text })
       this.checkResponse(response)
       return (response as any).message_ts || ''
     })
@@ -1212,7 +1235,7 @@ export class SlackClient {
 
   async getPermalink(channel: string, ts: string): Promise<string> {
     return this.withRetry(async () => {
-      const response = await this.client.chat.getPermalink({ channel, message_ts: ts })
+      const response = await this.ensureAuth().chat.getPermalink({ channel, message_ts: ts })
       this.checkResponse(response)
       return (response as any).permalink || ''
     })
@@ -1220,7 +1243,7 @@ export class SlackClient {
 
   async addReminder(text: string, time: number, options?: { user?: string }): Promise<SlackReminder> {
     return this.withRetry(async () => {
-      const response = await this.client.reminders.add({ text, time: time as any, user: options?.user })
+      const response = await this.ensureAuth().reminders.add({ text, time: time as any, user: options?.user })
       this.checkResponse(response)
 
       const r = (response as any).reminder || {}
@@ -1238,7 +1261,7 @@ export class SlackClient {
 
   async listReminders(): Promise<SlackReminder[]> {
     return this.withRetry(async () => {
-      const response = await this.client.reminders.list({})
+      const response = await this.ensureAuth().reminders.list({})
       this.checkResponse(response)
 
       return ((response as any).reminders || []).map((r: any) => ({
@@ -1255,28 +1278,28 @@ export class SlackClient {
 
   async completeReminder(reminderId: string): Promise<void> {
     return this.withRetry(async () => {
-      const response = await this.client.reminders.complete({ reminder: reminderId })
+      const response = await this.ensureAuth().reminders.complete({ reminder: reminderId })
       this.checkResponse(response)
     })
   }
 
   async deleteReminder(reminderId: string): Promise<void> {
     return this.withRetry(async () => {
-      const response = await this.client.reminders.delete({ reminder: reminderId })
+      const response = await this.ensureAuth().reminders.delete({ reminder: reminderId })
       this.checkResponse(response)
     })
   }
 
   async deleteFile(fileId: string): Promise<void> {
     return this.withRetry(async () => {
-      const response = await this.client.files.delete({ file: fileId })
+      const response = await this.ensureAuth().files.delete({ file: fileId })
       this.checkResponse(response)
     })
   }
 
   async listEmoji(): Promise<Record<string, string>> {
     return this.withRetry(async () => {
-      const response = await this.client.emoji.list({})
+      const response = await this.ensureAuth().emoji.list({})
       this.checkResponse(response)
       return ((response as any).emoji || {}) as Record<string, string>
     })
@@ -1309,7 +1332,7 @@ export class SlackClient {
 
   async listUsergroups(options?: { includeDisabled?: boolean; includeUsers?: boolean; includeCount?: boolean }): Promise<SlackUsergroup[]> {
     return this.withRetry(async () => {
-      const response = await this.client.apiCall('usergroups.list', {
+      const response = await this.ensureAuth().apiCall('usergroups.list', {
         include_disabled: options?.includeDisabled,
         include_users: options?.includeUsers,
         include_count: options?.includeCount,
@@ -1324,7 +1347,7 @@ export class SlackClient {
     options?: { handle?: string; description?: string; channels?: string[] },
   ): Promise<SlackUsergroup> {
     return this.withRetry(async () => {
-      const response = await this.client.apiCall('usergroups.create', {
+      const response = await this.ensureAuth().apiCall('usergroups.create', {
         name,
         handle: options?.handle,
         description: options?.description,
@@ -1340,7 +1363,7 @@ export class SlackClient {
     options: { name?: string; handle?: string; description?: string; channels?: string[] },
   ): Promise<SlackUsergroup> {
     return this.withRetry(async () => {
-      const response = await this.client.apiCall('usergroups.update', {
+      const response = await this.ensureAuth().apiCall('usergroups.update', {
         usergroup: usergroupId,
         name: options.name,
         handle: options.handle,
@@ -1354,7 +1377,7 @@ export class SlackClient {
 
   async disableUsergroup(usergroupId: string): Promise<SlackUsergroup> {
     return this.withRetry(async () => {
-      const response = await this.client.apiCall('usergroups.disable', {
+      const response = await this.ensureAuth().apiCall('usergroups.disable', {
         usergroup: usergroupId,
       })
       this.checkResponse(response)
@@ -1364,7 +1387,7 @@ export class SlackClient {
 
   async enableUsergroup(usergroupId: string): Promise<SlackUsergroup> {
     return this.withRetry(async () => {
-      const response = await this.client.apiCall('usergroups.enable', {
+      const response = await this.ensureAuth().apiCall('usergroups.enable', {
         usergroup: usergroupId,
       })
       this.checkResponse(response)
@@ -1374,7 +1397,7 @@ export class SlackClient {
 
   async listUsergroupMembers(usergroupId: string, options?: { includeDisabled?: boolean }): Promise<string[]> {
     return this.withRetry(async () => {
-      const response = await this.client.apiCall('usergroups.users.list', {
+      const response = await this.ensureAuth().apiCall('usergroups.users.list', {
         usergroup: usergroupId,
         include_disabled: options?.includeDisabled,
       })
@@ -1385,7 +1408,7 @@ export class SlackClient {
 
   async updateUsergroupMembers(usergroupId: string, users: string[]): Promise<SlackUsergroup> {
     return this.withRetry(async () => {
-      const response = await this.client.apiCall('usergroups.users.update', {
+      const response = await this.ensureAuth().apiCall('usergroups.users.update', {
         usergroup: usergroupId,
         users: users.join(','),
       })

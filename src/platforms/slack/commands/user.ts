@@ -15,7 +15,7 @@ async function getClient(pretty?: boolean): Promise<SlackClient | null> {
     return null
   }
 
-  return new SlackClient(workspace.token, workspace.cookie)
+  return await new SlackClient().login({ token: workspace.token, cookie: workspace.cookie })
 }
 
 export const userCommand = new Command('user')

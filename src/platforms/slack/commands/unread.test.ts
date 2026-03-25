@@ -55,7 +55,7 @@ describe('unread commands', () => {
 
       clientGetUnreadCountsSpy.mockResolvedValue(mockCounts)
 
-      const mockClient = new SlackClient('xoxc-test', 'test-cookie')
+      const mockClient = await new SlackClient().login({ token: 'xoxc-test', cookie: 'test-cookie' })
       const result = await mockClient.getUnreadCounts()
 
       expect(result).toEqual(mockCounts)
@@ -77,7 +77,7 @@ describe('unread commands', () => {
 
       clientGetThreadViewSpy.mockResolvedValue(mockThreadView)
 
-      const mockClient = new SlackClient('xoxc-test', 'test-cookie')
+      const mockClient = await new SlackClient().login({ token: 'xoxc-test', cookie: 'test-cookie' })
       const result = await mockClient.getThreadView('C123', '1234567890.123456')
 
       expect(result).toEqual(mockThreadView)
@@ -88,7 +88,7 @@ describe('unread commands', () => {
 
   describe('markRead', () => {
     it('should mark channel as read', async () => {
-      const mockClient = new SlackClient('xoxc-test', 'test-cookie')
+      const mockClient = await new SlackClient().login({ token: 'xoxc-test', cookie: 'test-cookie' })
       await mockClient.markRead('C123', '1234567890.123456')
 
       expect(clientMarkReadSpy).toHaveBeenCalledWith('C123', '1234567890.123456')

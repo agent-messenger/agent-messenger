@@ -81,7 +81,7 @@ async function extractAction(options: {
       }
 
       try {
-        const client = new SlackClient(ws.token, ws.cookie)
+        const client = await new SlackClient().login({ token: ws.token, cookie: ws.cookie })
         const authInfo = await client.testAuth()
         ws.workspace_id = authInfo.team_id
         ws.workspace_name = authInfo.team || ws.workspace_name
@@ -202,7 +202,7 @@ async function statusAction(options: { pretty?: boolean }): Promise<void> {
     let valid = false
 
     try {
-      const client = new SlackClient(ws.token, ws.cookie)
+      const client = await new SlackClient().login({ token: ws.token, cookie: ws.cookie })
       authInfo = await client.testAuth()
       valid = true
     } catch {

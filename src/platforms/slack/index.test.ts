@@ -12,7 +12,6 @@ import {
   SlackUserSchema,
   WorkspaceCredentialsSchema,
   ConfigSchema,
-  createSlackClient,
 } from '@/platforms/slack/index'
 
 test('SlackClient is exported from barrel', () => {
@@ -29,10 +28,6 @@ test('CredentialManager is exported from barrel', () => {
 
 test('SlackCredentialManager is exported from barrel', () => {
   expect(typeof SlackCredentialManager).toBe('function')
-})
-
-test('createSlackClient is exported from barrel', () => {
-  expect(typeof createSlackClient).toBe('function')
 })
 
 test('SlackChannelSchema is exported from barrel', () => {

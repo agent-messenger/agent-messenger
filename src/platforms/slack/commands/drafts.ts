@@ -16,7 +16,7 @@ async function listAction(options: { limit?: number; cursor?: string; pretty?: b
       process.exit(1)
     }
 
-    const client = new SlackClient(workspace.token, workspace.cookie)
+    const client = await new SlackClient().login({ token: workspace.token, cookie: workspace.cookie })
     const result = await client.getDrafts(options.cursor)
 
     let drafts = result.drafts

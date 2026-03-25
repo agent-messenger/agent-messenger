@@ -21,7 +21,7 @@ async function sendAction(
       process.exit(1)
     }
 
-    const client = new SlackClient(workspace.token, workspace.cookie)
+    const client = await new SlackClient().login({ token: workspace.token, cookie: workspace.cookie })
     const channel = await client.resolveChannel(channelInput)
     const message = await client.sendMessage(channel, text, options.thread)
 
@@ -52,7 +52,7 @@ async function listAction(
       process.exit(1)
     }
 
-    const client = new SlackClient(workspace.token, workspace.cookie)
+    const client = await new SlackClient().login({ token: workspace.token, cookie: workspace.cookie })
     const channel = await client.resolveChannel(channelInput)
     const limit = options.limit || 20
     const messages = await client.getMessages(channel, limit)
@@ -86,7 +86,7 @@ async function getAction(channelInput: string, ts: string, options: { pretty?: b
       process.exit(1)
     }
 
-    const client = new SlackClient(workspace.token, workspace.cookie)
+    const client = await new SlackClient().login({ token: workspace.token, cookie: workspace.cookie })
     const channel = await client.resolveChannel(channelInput)
     const message = await client.getMessage(channel, ts)
 
@@ -129,7 +129,7 @@ async function updateAction(
       process.exit(1)
     }
 
-    const client = new SlackClient(workspace.token, workspace.cookie)
+    const client = await new SlackClient().login({ token: workspace.token, cookie: workspace.cookie })
     const channel = await client.resolveChannel(channelInput)
     const message = await client.updateMessage(channel, ts, text)
 
@@ -165,7 +165,7 @@ async function deleteAction(
       process.exit(0)
     }
 
-    const client = new SlackClient(workspace.token, workspace.cookie)
+    const client = await new SlackClient().login({ token: workspace.token, cookie: workspace.cookie })
     const channel = await client.resolveChannel(channelInput)
     await client.deleteMessage(channel, ts)
 
@@ -188,7 +188,7 @@ async function searchAction(
       process.exit(1)
     }
 
-    const client = new SlackClient(workspace.token, workspace.cookie)
+    const client = await new SlackClient().login({ token: workspace.token, cookie: workspace.cookie })
     const results = await client.searchMessages(query, {
       sort: options.sort as 'score' | 'timestamp',
       sortDir: options.sortDir as 'asc' | 'desc',
@@ -225,7 +225,7 @@ async function repliesAction(
       process.exit(1)
     }
 
-    const client = new SlackClient(workspace.token, workspace.cookie)
+    const client = await new SlackClient().login({ token: workspace.token, cookie: workspace.cookie })
     const channel = await client.resolveChannel(channelInput)
     const result = await client.getThreadReplies(channel, threadTs, {
       limit: options.limit,
@@ -274,7 +274,7 @@ async function scheduleAction(
       process.exit(1)
     }
 
-    const client = new SlackClient(workspace.token, workspace.cookie)
+    const client = await new SlackClient().login({ token: workspace.token, cookie: workspace.cookie })
     const channel = await client.resolveChannel(channelInput)
     const scheduled = await client.scheduleMessage(channel, text, postAtTimestamp, options.thread)
 
@@ -294,7 +294,7 @@ async function scheduledListAction(options: { channel?: string; pretty?: boolean
       process.exit(1)
     }
 
-    const client = new SlackClient(workspace.token, workspace.cookie)
+    const client = await new SlackClient().login({ token: workspace.token, cookie: workspace.cookie })
     const channel = options.channel ? await client.resolveChannel(options.channel) : undefined
     const messages = await client.listScheduledMessages(channel)
 
@@ -318,7 +318,7 @@ async function scheduledDeleteAction(
       process.exit(1)
     }
 
-    const client = new SlackClient(workspace.token, workspace.cookie)
+    const client = await new SlackClient().login({ token: workspace.token, cookie: workspace.cookie })
     const channel = await client.resolveChannel(channelInput)
     await client.deleteScheduledMessage(channel, scheduledMessageId)
 
@@ -343,7 +343,7 @@ async function ephemeralAction(
       process.exit(1)
     }
 
-    const client = new SlackClient(workspace.token, workspace.cookie)
+    const client = await new SlackClient().login({ token: workspace.token, cookie: workspace.cookie })
     const channel = await client.resolveChannel(channelInput)
     const messageTs = await client.postEphemeral(channel, user, text)
 
@@ -363,7 +363,7 @@ async function permalinkAction(channelInput: string, ts: string, options: { pret
       process.exit(1)
     }
 
-    const client = new SlackClient(workspace.token, workspace.cookie)
+    const client = await new SlackClient().login({ token: workspace.token, cookie: workspace.cookie })
     const channel = await client.resolveChannel(channelInput)
     const permalink = await client.getPermalink(channel, ts)
 

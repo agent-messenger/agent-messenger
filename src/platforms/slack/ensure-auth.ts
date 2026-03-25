@@ -8,7 +8,7 @@ export async function ensureSlackAuth(): Promise<void> {
 
   if (workspace) {
     try {
-      const client = new SlackClient(workspace.token, workspace.cookie)
+      const client = await new SlackClient().login({ token: workspace.token, cookie: workspace.cookie })
       await client.testAuth()
       return
     } catch {
@@ -24,7 +24,7 @@ export async function ensureSlackAuth(): Promise<void> {
     const validWorkspaces = []
     for (const ws of workspaces) {
       try {
-        const client = new SlackClient(ws.token, ws.cookie)
+        const client = await new SlackClient().login({ token: ws.token, cookie: ws.cookie })
         const authInfo = await client.testAuth()
         ws.workspace_id = authInfo.team_id
         ws.workspace_name = authInfo.team || ws.workspace_name
@@ -66,7 +66,7 @@ export async function tryWebTokenRefresh(
     const freshToken = await refreshTokenFromWeb(domain, ws.cookie)
     if (!freshToken) return null
 
-    const client = new SlackClient(freshToken, ws.cookie)
+    const client = await new SlackClient().login({ token: freshToken, cookie: ws.cookie })
     const authInfo = await client.testAuth()
     return { token: freshToken, workspace_name: authInfo.team || ws.workspace_name }
   } catch {
@@ -101,7 +101,7 @@ export async function refreshCookie(
     const freshCookie = await extractor.extractCookie()
     if (!freshCookie) return null
 
-    const client = new SlackClient(token, freshCookie)
+    const client = await new SlackClient().login({ token: token, cookie: freshCookie })
     const authInfo = await client.testAuth()
 
     const config = await credManager.load()

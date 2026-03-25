@@ -46,23 +46,23 @@ function resetMocks() {
 }
 
 describe('SlackClient', () => {
-  describe('constructor', () => {
-    test('throws SlackError when token is empty', () => {
-      expect(() => new SlackClient('', 'xoxd-cookie')).toThrow(SlackError)
-      expect(() => new SlackClient('', 'xoxd-cookie')).toThrow('Token is required')
+  describe('login', () => {
+    test('throws SlackError when token is empty', async () => {
+      await expect(new SlackClient().login({ token: '', cookie: 'xoxd-cookie' })).rejects.toThrow(SlackError)
+      await expect(new SlackClient().login({ token: '', cookie: 'xoxd-cookie' })).rejects.toThrow('Token is required')
     })
 
-    test('throws SlackError when cookie is empty', () => {
-      expect(() => new SlackClient('xoxc-token', '')).toThrow(SlackError)
-      expect(() => new SlackClient('xoxc-token', '')).toThrow('Cookie is required')
+    test('throws SlackError when cookie is empty', async () => {
+      await expect(new SlackClient().login({ token: 'xoxc-token', cookie: '' })).rejects.toThrow(SlackError)
+      await expect(new SlackClient().login({ token: 'xoxc-token', cookie: '' })).rejects.toThrow('Cookie is required')
     })
 
-    test('throws SlackError when both token and cookie are empty', () => {
-      expect(() => new SlackClient('', '')).toThrow(SlackError)
+    test('throws SlackError when both token and cookie are empty', async () => {
+      await expect(new SlackClient().login({ token: '', cookie: '' })).rejects.toThrow(SlackError)
     })
 
-    test('creates client successfully with valid token and cookie', () => {
-      const client = new SlackClient('xoxc-token', 'xoxd-cookie')
+    test('creates client successfully with valid token and cookie', async () => {
+      const client = await new SlackClient().login({ token: 'xoxc-token', cookie: 'xoxd-cookie' })
       expect(client).toBeInstanceOf(SlackClient)
     })
   })
@@ -79,7 +79,7 @@ describe('SlackClient', () => {
         team: 'Test Team',
       })
 
-      const client = new SlackClient('xoxc-token', 'xoxd-cookie')
+      const client = await new SlackClient().login({ token: 'xoxc-token', cookie: 'xoxd-cookie' })
       // @ts-expect-error - accessing private property for testing
       client.client = mockWebClient as unknown as WebClient
 
@@ -94,7 +94,7 @@ describe('SlackClient', () => {
         error: 'invalid_auth',
       })
 
-      const client = new SlackClient('xoxc-token', 'xoxd-cookie')
+      const client = await new SlackClient().login({ token: 'xoxc-token', cookie: 'xoxd-cookie' })
       // @ts-expect-error - accessing private property for testing
       client.client = mockWebClient as unknown as WebClient
 
@@ -128,7 +128,7 @@ describe('SlackClient', () => {
         ],
       })
 
-      const client = new SlackClient('xoxc-token', 'xoxd-cookie')
+      const client = await new SlackClient().login({ token: 'xoxc-token', cookie: 'xoxd-cookie' })
       // @ts-expect-error - accessing private property for testing
       client.client = mockWebClient as unknown as WebClient
 
@@ -168,7 +168,7 @@ describe('SlackClient', () => {
           ],
         })
 
-      const client = new SlackClient('xoxc-token', 'xoxd-cookie')
+      const client = await new SlackClient().login({ token: 'xoxc-token', cookie: 'xoxd-cookie' })
       // @ts-expect-error - accessing private property for testing
       client.client = mockWebClient as unknown as WebClient
 
@@ -183,7 +183,7 @@ describe('SlackClient', () => {
         error: 'channel_not_found',
       })
 
-      const client = new SlackClient('xoxc-token', 'xoxd-cookie')
+      const client = await new SlackClient().login({ token: 'xoxc-token', cookie: 'xoxd-cookie' })
       // @ts-expect-error - accessing private property for testing
       client.client = mockWebClient as unknown as WebClient
 
@@ -207,7 +207,7 @@ describe('SlackClient', () => {
         },
       })
 
-      const client = new SlackClient('xoxc-token', 'xoxd-cookie')
+      const client = await new SlackClient().login({ token: 'xoxc-token', cookie: 'xoxd-cookie' })
       // @ts-expect-error - accessing private property for testing
       client.client = mockWebClient as unknown as WebClient
 
@@ -222,7 +222,7 @@ describe('SlackClient', () => {
         error: 'channel_not_found',
       })
 
-      const client = new SlackClient('xoxc-token', 'xoxd-cookie')
+      const client = await new SlackClient().login({ token: 'xoxc-token', cookie: 'xoxd-cookie' })
       // @ts-expect-error - accessing private property for testing
       client.client = mockWebClient as unknown as WebClient
 
@@ -234,19 +234,19 @@ describe('SlackClient', () => {
     beforeEach(() => resetMocks())
 
     test('returns channel ID unchanged when input starts with C', async () => {
-      const client = new SlackClient('xoxc-token', 'xoxd-cookie')
+      const client = await new SlackClient().login({ token: 'xoxc-token', cookie: 'xoxd-cookie' })
       const channel = await client.resolveChannel('C123ABC')
       expect(channel).toBe('C123ABC')
     })
 
     test('returns channel ID unchanged when input starts with D', async () => {
-      const client = new SlackClient('xoxc-token', 'xoxd-cookie')
+      const client = await new SlackClient().login({ token: 'xoxc-token', cookie: 'xoxd-cookie' })
       const channel = await client.resolveChannel('D123ABC')
       expect(channel).toBe('D123ABC')
     })
 
     test('returns channel ID unchanged when input starts with G', async () => {
-      const client = new SlackClient('xoxc-token', 'xoxd-cookie')
+      const client = await new SlackClient().login({ token: 'xoxc-token', cookie: 'xoxd-cookie' })
       const channel = await client.resolveChannel('G123ABC')
       expect(channel).toBe('G123ABC')
     })
@@ -266,7 +266,7 @@ describe('SlackClient', () => {
         ],
       })
 
-      const client = new SlackClient('xoxc-token', 'xoxd-cookie')
+      const client = await new SlackClient().login({ token: 'xoxc-token', cookie: 'xoxd-cookie' })
       // @ts-expect-error - accessing private property for testing
       client.client = mockWebClient as unknown as WebClient
 
@@ -290,7 +290,7 @@ describe('SlackClient', () => {
         ],
       })
 
-      const client = new SlackClient('xoxc-token', 'xoxd-cookie')
+      const client = await new SlackClient().login({ token: 'xoxc-token', cookie: 'xoxd-cookie' })
       // @ts-expect-error - accessing private property for testing
       client.client = mockWebClient as unknown as WebClient
 
@@ -300,7 +300,7 @@ describe('SlackClient', () => {
     })
 
     test('returns channel ID unchanged when input is #C prefixed ID', async () => {
-      const client = new SlackClient('xoxc-token', 'xoxd-cookie')
+      const client = await new SlackClient().login({ token: 'xoxc-token', cookie: 'xoxd-cookie' })
       const channel = await client.resolveChannel('#C123ABC')
       expect(channel).toBe('C123ABC')
     })
@@ -320,7 +320,7 @@ describe('SlackClient', () => {
         ],
       })
 
-      const client = new SlackClient('xoxc-token', 'xoxd-cookie')
+      const client = await new SlackClient().login({ token: 'xoxc-token', cookie: 'xoxd-cookie' })
       // @ts-expect-error - accessing private property for testing
       client.client = mockWebClient as unknown as WebClient
 
@@ -345,7 +345,7 @@ describe('SlackClient', () => {
         messages,
       })
 
-      const client = new SlackClient('xoxc-token', 'xoxd-cookie')
+      const client = await new SlackClient().login({ token: 'xoxc-token', cookie: 'xoxd-cookie' })
       // @ts-expect-error - accessing private property for testing
       client.client = mockWebClient as unknown as WebClient
 
@@ -362,7 +362,7 @@ describe('SlackClient', () => {
         messages: [{ ts: '123.456', text: 'Hello', type: 'message' }],
       })
 
-      const client = new SlackClient('xoxc-token', 'xoxd-cookie')
+      const client = await new SlackClient().login({ token: 'xoxc-token', cookie: 'xoxd-cookie' })
       // @ts-expect-error - accessing private property for testing
       client.client = mockWebClient as unknown as WebClient
 
@@ -378,7 +378,7 @@ describe('SlackClient', () => {
         error: 'channel_not_found',
       })
 
-      const client = new SlackClient('xoxc-token', 'xoxd-cookie')
+      const client = await new SlackClient().login({ token: 'xoxc-token', cookie: 'xoxd-cookie' })
       // @ts-expect-error - accessing private property for testing
       client.client = mockWebClient as unknown as WebClient
 
@@ -396,7 +396,7 @@ describe('SlackClient', () => {
         message: { ts: '123.456', text: 'Hello', type: 'message' },
       })
 
-      const client = new SlackClient('xoxc-token', 'xoxd-cookie')
+      const client = await new SlackClient().login({ token: 'xoxc-token', cookie: 'xoxd-cookie' })
       // @ts-expect-error - accessing private property for testing
       client.client = mockWebClient as unknown as WebClient
 
@@ -414,7 +414,7 @@ describe('SlackClient', () => {
         message: { ts: '123.789', text: 'Reply', type: 'message', thread_ts: '123.456' },
       })
 
-      const client = new SlackClient('xoxc-token', 'xoxd-cookie')
+      const client = await new SlackClient().login({ token: 'xoxc-token', cookie: 'xoxd-cookie' })
       // @ts-expect-error - accessing private property for testing
       client.client = mockWebClient as unknown as WebClient
 
@@ -431,7 +431,7 @@ describe('SlackClient', () => {
         error: 'channel_not_found',
       })
 
-      const client = new SlackClient('xoxc-token', 'xoxd-cookie')
+      const client = await new SlackClient().login({ token: 'xoxc-token', cookie: 'xoxd-cookie' })
       // @ts-expect-error - accessing private property for testing
       client.client = mockWebClient as unknown as WebClient
 
@@ -449,7 +449,7 @@ describe('SlackClient', () => {
         message: { ts: '123.456', text: 'Updated', type: 'message' },
       })
 
-      const client = new SlackClient('xoxc-token', 'xoxd-cookie')
+      const client = await new SlackClient().login({ token: 'xoxc-token', cookie: 'xoxd-cookie' })
       // @ts-expect-error - accessing private property for testing
       client.client = mockWebClient as unknown as WebClient
 
@@ -466,7 +466,7 @@ describe('SlackClient', () => {
         error: 'message_not_found',
       })
 
-      const client = new SlackClient('xoxc-token', 'xoxd-cookie')
+      const client = await new SlackClient().login({ token: 'xoxc-token', cookie: 'xoxd-cookie' })
       // @ts-expect-error - accessing private property for testing
       client.client = mockWebClient as unknown as WebClient
 
@@ -480,7 +480,7 @@ describe('SlackClient', () => {
     test('deletes message', async () => {
       mockWebClient.chat.delete.mockResolvedValue({ ok: true })
 
-      const client = new SlackClient('xoxc-token', 'xoxd-cookie')
+      const client = await new SlackClient().login({ token: 'xoxc-token', cookie: 'xoxd-cookie' })
       // @ts-expect-error - accessing private property for testing
       client.client = mockWebClient as unknown as WebClient
 
@@ -496,7 +496,7 @@ describe('SlackClient', () => {
         error: 'message_not_found',
       })
 
-      const client = new SlackClient('xoxc-token', 'xoxd-cookie')
+      const client = await new SlackClient().login({ token: 'xoxc-token', cookie: 'xoxd-cookie' })
       // @ts-expect-error - accessing private property for testing
       client.client = mockWebClient as unknown as WebClient
 
@@ -510,7 +510,7 @@ describe('SlackClient', () => {
     test('adds reaction to message', async () => {
       mockWebClient.reactions.add.mockResolvedValue({ ok: true })
 
-      const client = new SlackClient('xoxc-token', 'xoxd-cookie')
+      const client = await new SlackClient().login({ token: 'xoxc-token', cookie: 'xoxd-cookie' })
       // @ts-expect-error - accessing private property for testing
       client.client = mockWebClient as unknown as WebClient
 
@@ -526,7 +526,7 @@ describe('SlackClient', () => {
         error: 'already_reacted',
       })
 
-      const client = new SlackClient('xoxc-token', 'xoxd-cookie')
+      const client = await new SlackClient().login({ token: 'xoxc-token', cookie: 'xoxd-cookie' })
       // @ts-expect-error - accessing private property for testing
       client.client = mockWebClient as unknown as WebClient
 
@@ -540,7 +540,7 @@ describe('SlackClient', () => {
     test('removes reaction from message', async () => {
       mockWebClient.reactions.remove.mockResolvedValue({ ok: true })
 
-      const client = new SlackClient('xoxc-token', 'xoxd-cookie')
+      const client = await new SlackClient().login({ token: 'xoxc-token', cookie: 'xoxd-cookie' })
       // @ts-expect-error - accessing private property for testing
       client.client = mockWebClient as unknown as WebClient
 
@@ -556,7 +556,7 @@ describe('SlackClient', () => {
         error: 'no_reaction',
       })
 
-      const client = new SlackClient('xoxc-token', 'xoxd-cookie')
+      const client = await new SlackClient().login({ token: 'xoxc-token', cookie: 'xoxd-cookie' })
       // @ts-expect-error - accessing private property for testing
       client.client = mockWebClient as unknown as WebClient
 
@@ -592,7 +592,7 @@ describe('SlackClient', () => {
         ],
       })
 
-      const client = new SlackClient('xoxc-token', 'xoxd-cookie')
+      const client = await new SlackClient().login({ token: 'xoxc-token', cookie: 'xoxd-cookie' })
       // @ts-expect-error - accessing private property for testing
       client.client = mockWebClient as unknown as WebClient
 
@@ -634,7 +634,7 @@ describe('SlackClient', () => {
           ],
         })
 
-      const client = new SlackClient('xoxc-token', 'xoxd-cookie')
+      const client = await new SlackClient().login({ token: 'xoxc-token', cookie: 'xoxd-cookie' })
       // @ts-expect-error - accessing private property for testing
       client.client = mockWebClient as unknown as WebClient
 
@@ -649,7 +649,7 @@ describe('SlackClient', () => {
         error: 'invalid_auth',
       })
 
-      const client = new SlackClient('xoxc-token', 'xoxd-cookie')
+      const client = await new SlackClient().login({ token: 'xoxc-token', cookie: 'xoxd-cookie' })
       // @ts-expect-error - accessing private property for testing
       client.client = mockWebClient as unknown as WebClient
 
@@ -666,7 +666,7 @@ describe('SlackClient', () => {
         members: ['U123', 'U456', 'U789'],
       })
 
-      const client = new SlackClient('xoxc-token', 'xoxd-cookie')
+      const client = await new SlackClient().login({ token: 'xoxc-token', cookie: 'xoxd-cookie' })
       // @ts-expect-error - accessing private property for testing
       client.client = mockWebClient as unknown as WebClient
 
@@ -689,7 +689,7 @@ describe('SlackClient', () => {
           members: ['U789'],
         })
 
-      const client = new SlackClient('xoxc-token', 'xoxd-cookie')
+      const client = await new SlackClient().login({ token: 'xoxc-token', cookie: 'xoxd-cookie' })
       // @ts-expect-error - accessing private property for testing
       client.client = mockWebClient as unknown as WebClient
 
@@ -704,7 +704,7 @@ describe('SlackClient', () => {
         error: 'channel_not_found',
       })
 
-      const client = new SlackClient('xoxc-token', 'xoxd-cookie')
+      const client = await new SlackClient().login({ token: 'xoxc-token', cookie: 'xoxd-cookie' })
       // @ts-expect-error - accessing private property for testing
       client.client = mockWebClient as unknown as WebClient
 
@@ -729,7 +729,7 @@ describe('SlackClient', () => {
         },
       })
 
-      const client = new SlackClient('xoxc-token', 'xoxd-cookie')
+      const client = await new SlackClient().login({ token: 'xoxc-token', cookie: 'xoxd-cookie' })
       // @ts-expect-error - accessing private property for testing
       client.client = mockWebClient as unknown as WebClient
 
@@ -744,7 +744,7 @@ describe('SlackClient', () => {
         error: 'user_not_found',
       })
 
-      const client = new SlackClient('xoxc-token', 'xoxd-cookie')
+      const client = await new SlackClient().login({ token: 'xoxc-token', cookie: 'xoxd-cookie' })
       // @ts-expect-error - accessing private property for testing
       client.client = mockWebClient as unknown as WebClient
 
@@ -777,7 +777,7 @@ describe('SlackClient', () => {
         ],
       })
 
-      const client = new SlackClient('xoxc-token', 'xoxd-cookie')
+      const client = await new SlackClient().login({ token: 'xoxc-token', cookie: 'xoxd-cookie' })
       // @ts-expect-error - accessing private property for testing
       client.client = mockWebClient as unknown as WebClient
 
@@ -794,7 +794,7 @@ describe('SlackClient', () => {
         error: 'file_upload_failed',
       })
 
-      const client = new SlackClient('xoxc-token', 'xoxd-cookie')
+      const client = await new SlackClient().login({ token: 'xoxc-token', cookie: 'xoxd-cookie' })
       // @ts-expect-error - accessing private property for testing
       client.client = mockWebClient as unknown as WebClient
 
@@ -807,7 +807,7 @@ describe('SlackClient', () => {
         files: [],
       })
 
-      const client = new SlackClient('xoxc-token', 'xoxd-cookie')
+      const client = await new SlackClient().login({ token: 'xoxc-token', cookie: 'xoxd-cookie' })
       // @ts-expect-error - accessing private property for testing
       client.client = mockWebClient as unknown as WebClient
 
@@ -820,7 +820,7 @@ describe('SlackClient', () => {
         files: [{ ok: true, files: [] }],
       })
 
-      const client = new SlackClient('xoxc-token', 'xoxd-cookie')
+      const client = await new SlackClient().login({ token: 'xoxc-token', cookie: 'xoxd-cookie' })
       // @ts-expect-error - accessing private property for testing
       client.client = mockWebClient as unknown as WebClient
 
@@ -848,7 +848,7 @@ describe('SlackClient', () => {
         ],
       })
 
-      const client = new SlackClient('xoxc-token', 'xoxd-cookie')
+      const client = await new SlackClient().login({ token: 'xoxc-token', cookie: 'xoxd-cookie' })
       // @ts-expect-error - accessing private property for testing
       client.client = mockWebClient as unknown as WebClient
 
@@ -863,7 +863,7 @@ describe('SlackClient', () => {
         files: [],
       })
 
-      const client = new SlackClient('xoxc-token', 'xoxd-cookie')
+      const client = await new SlackClient().login({ token: 'xoxc-token', cookie: 'xoxd-cookie' })
       // @ts-expect-error - accessing private property for testing
       client.client = mockWebClient as unknown as WebClient
 
@@ -877,7 +877,7 @@ describe('SlackClient', () => {
         error: 'invalid_auth',
       })
 
-      const client = new SlackClient('xoxc-token', 'xoxd-cookie')
+      const client = await new SlackClient().login({ token: 'xoxc-token', cookie: 'xoxd-cookie' })
       // @ts-expect-error - accessing private property for testing
       client.client = mockWebClient as unknown as WebClient
 
@@ -904,7 +904,7 @@ describe('SlackClient', () => {
         },
       })
 
-      const client = new SlackClient('xoxc-token', 'xoxd-cookie')
+      const client = await new SlackClient().login({ token: 'xoxc-token', cookie: 'xoxd-cookie' })
       // @ts-expect-error - accessing private property for testing
       client.client = mockWebClient as unknown as WebClient
 
@@ -917,7 +917,7 @@ describe('SlackClient', () => {
     test('throws on API failure', async () => {
       mockWebClient.files.info.mockResolvedValue({ ok: false, error: 'file_not_found' })
 
-      const client = new SlackClient('xoxc-token', 'xoxd-cookie')
+      const client = await new SlackClient().login({ token: 'xoxc-token', cookie: 'xoxd-cookie' })
       // @ts-expect-error - accessing private property for testing
       client.client = mockWebClient as unknown as WebClient
 
@@ -947,7 +947,7 @@ describe('SlackClient', () => {
       globalThis.fetch = async () => new Response(Buffer.from('test content'), { status: 200 })
 
       try {
-        const client = new SlackClient('xoxc-token', 'xoxd-cookie')
+        const client = await new SlackClient().login({ token: 'xoxc-token', cookie: 'xoxd-cookie' })
         // @ts-expect-error - accessing private property for testing
         client.client = mockWebClient as unknown as WebClient
 
@@ -975,7 +975,7 @@ describe('SlackClient', () => {
         },
       })
 
-      const client = new SlackClient('xoxc-token', 'xoxd-cookie')
+      const client = await new SlackClient().login({ token: 'xoxc-token', cookie: 'xoxd-cookie' })
       // @ts-expect-error - accessing private property for testing
       client.client = mockWebClient as unknown as WebClient
 
@@ -1001,7 +1001,7 @@ describe('SlackClient', () => {
       globalThis.fetch = async () => new Response('Forbidden', { status: 403, statusText: 'Forbidden' })
 
       try {
-        const client = new SlackClient('xoxc-token', 'xoxd-cookie')
+        const client = await new SlackClient().login({ token: 'xoxc-token', cookie: 'xoxd-cookie' })
         // @ts-expect-error - accessing private property for testing
         client.client = mockWebClient as unknown as WebClient
 
@@ -1034,7 +1034,7 @@ describe('SlackClient', () => {
       }
 
       try {
-        const client = new SlackClient('xoxc-test-token', 'xoxd-test-cookie')
+        const client = await new SlackClient().login({ token: 'xoxc-test-token', cookie: 'xoxd-test-cookie' })
         // @ts-expect-error - accessing private property for testing
         client.client = mockWebClient as unknown as WebClient
 
@@ -1080,7 +1080,7 @@ describe('SlackClient', () => {
         has_more: false,
       })
 
-      const client = new SlackClient('xoxc-token', 'xoxd-cookie')
+      const client = await new SlackClient().login({ token: 'xoxc-token', cookie: 'xoxd-cookie' })
       // @ts-expect-error - accessing private property for testing
       client.client = mockWebClient as unknown as WebClient
 
@@ -1100,7 +1100,7 @@ describe('SlackClient', () => {
         has_more: false,
       })
 
-      const client = new SlackClient('xoxc-token', 'xoxd-cookie')
+      const client = await new SlackClient().login({ token: 'xoxc-token', cookie: 'xoxd-cookie' })
       // @ts-expect-error - accessing private property for testing
       client.client = mockWebClient as unknown as WebClient
 
@@ -1117,7 +1117,7 @@ describe('SlackClient', () => {
         has_more: false,
       })
 
-      const client = new SlackClient('xoxc-token', 'xoxd-cookie')
+      const client = await new SlackClient().login({ token: 'xoxc-token', cookie: 'xoxd-cookie' })
       // @ts-expect-error - accessing private property for testing
       client.client = mockWebClient as unknown as WebClient
 
@@ -1143,7 +1143,7 @@ describe('SlackClient', () => {
         response_metadata: { next_cursor: 'cursor123' },
       })
 
-      const client = new SlackClient('xoxc-token', 'xoxd-cookie')
+      const client = await new SlackClient().login({ token: 'xoxc-token', cookie: 'xoxd-cookie' })
       // @ts-expect-error - accessing private property for testing
       client.client = mockWebClient as unknown as WebClient
 
@@ -1158,7 +1158,7 @@ describe('SlackClient', () => {
         error: 'thread_not_found',
       })
 
-      const client = new SlackClient('xoxc-token', 'xoxd-cookie')
+      const client = await new SlackClient().login({ token: 'xoxc-token', cookie: 'xoxd-cookie' })
       // @ts-expect-error - accessing private property for testing
       client.client = mockWebClient as unknown as WebClient
 
@@ -1171,7 +1171,7 @@ describe('SlackClient', () => {
         error: 'channel_not_found',
       })
 
-      const client = new SlackClient('xoxc-token', 'xoxd-cookie')
+      const client = await new SlackClient().login({ token: 'xoxc-token', cookie: 'xoxd-cookie' })
       // @ts-expect-error - accessing private property for testing
       client.client = mockWebClient as unknown as WebClient
 
@@ -1204,7 +1204,7 @@ describe('SlackClient', () => {
           ],
         })
 
-      const client = new SlackClient('xoxc-token', 'xoxd-cookie')
+      const client = await new SlackClient().login({ token: 'xoxc-token', cookie: 'xoxd-cookie' })
       // @ts-expect-error - accessing private property for testing
       client.client = mockWebClient as unknown as WebClient
 
@@ -1220,7 +1220,7 @@ describe('SlackClient', () => {
 
       mockWebClient.conversations.list.mockRejectedValue(rateLimitError)
 
-      const client = new SlackClient('xoxc-token', 'xoxd-cookie')
+      const client = await new SlackClient().login({ token: 'xoxc-token', cookie: 'xoxd-cookie' })
       // @ts-expect-error - accessing private property for testing
       client.client = mockWebClient as unknown as WebClient
 
@@ -1235,7 +1235,7 @@ describe('SlackClient', () => {
 
       mockWebClient.conversations.list.mockRejectedValue(otherError)
 
-      const client = new SlackClient('xoxc-token', 'xoxd-cookie')
+      const client = await new SlackClient().login({ token: 'xoxc-token', cookie: 'xoxd-cookie' })
       // @ts-expect-error - accessing private property for testing
       client.client = mockWebClient as unknown as WebClient
 
@@ -1265,8 +1265,8 @@ describe('SlackClient', () => {
 })
 
 describe('SlackClient extended methods', () => {
-  function makeClient() {
-    const client = new SlackClient('xoxc-token', 'xoxd-cookie')
+  async function makeClient() {
+    const client = await new SlackClient().login({ token: 'xoxc-token', cookie: 'xoxd-cookie' })
     const mock: any = {
       pins: {
         add: mock_fn(() => Promise.resolve({ ok: true })),
@@ -1337,13 +1337,13 @@ describe('SlackClient extended methods', () => {
 
   describe('pinMessage', () => {
     test('calls pins.add with correct args', async () => {
-      const { client, mock } = makeClient()
+      const { client, mock } = await makeClient()
       await client.pinMessage('C001', '123.456')
       expect(mock.pins.add).toHaveBeenCalledWith({ channel: 'C001', timestamp: '123.456' })
     })
 
     test('throws SlackError on API failure', async () => {
-      const { client, mock } = makeClient()
+      const { client, mock } = await makeClient()
       mock.pins.add.mockResolvedValue({ ok: false, error: 'not_pinned' })
       await expect(client.pinMessage('C001', '123.456')).rejects.toThrow(SlackError)
     })
@@ -1351,13 +1351,13 @@ describe('SlackClient extended methods', () => {
 
   describe('unpinMessage', () => {
     test('calls pins.remove with correct args', async () => {
-      const { client, mock } = makeClient()
+      const { client, mock } = await makeClient()
       await client.unpinMessage('C001', '123.456')
       expect(mock.pins.remove).toHaveBeenCalledWith({ channel: 'C001', timestamp: '123.456' })
     })
 
     test('throws SlackError on API failure', async () => {
-      const { client, mock } = makeClient()
+      const { client, mock } = await makeClient()
       mock.pins.remove.mockResolvedValue({ ok: false, error: 'no_pin' })
       await expect(client.unpinMessage('C001', '123.456')).rejects.toThrow(SlackError)
     })
@@ -1365,7 +1365,7 @@ describe('SlackClient extended methods', () => {
 
   describe('listPins', () => {
     test('returns mapped pin items', async () => {
-      const { client, mock } = makeClient()
+      const { client, mock } = await makeClient()
       mock.pins.list.mockResolvedValue({
         ok: true,
         items: [{ message: { ts: '1.2', text: 'hi', type: 'message' }, created: 100, created_by: 'U001' }],
@@ -1377,7 +1377,7 @@ describe('SlackClient extended methods', () => {
     })
 
     test('throws SlackError on API failure', async () => {
-      const { client, mock } = makeClient()
+      const { client, mock } = await makeClient()
       mock.pins.list.mockResolvedValue({ ok: false, error: 'channel_not_found' })
       await expect(client.listPins('C001')).rejects.toThrow(SlackError)
     })
@@ -1385,14 +1385,14 @@ describe('SlackClient extended methods', () => {
 
   describe('addBookmark', () => {
     test('calls bookmarks.add and returns bookmark', async () => {
-      const { client } = makeClient()
+      const { client } = await makeClient()
       const result = await client.addBookmark('C001', 'Test', 'https://example.com')
       expect(result.id).toBe('Bm001')
       expect(result.title).toBe('Test')
     })
 
     test('throws SlackError on API failure', async () => {
-      const { client, mock } = makeClient()
+      const { client, mock } = await makeClient()
       mock.apiCall.mockResolvedValue({ ok: false, error: 'channel_not_found' })
       await expect(client.addBookmark('C001', 'Test', 'https://example.com')).rejects.toThrow(SlackError)
     })
@@ -1400,13 +1400,13 @@ describe('SlackClient extended methods', () => {
 
   describe('editBookmark', () => {
     test('calls bookmarks.edit and returns updated bookmark', async () => {
-      const { client } = makeClient()
+      const { client } = await makeClient()
       const result = await client.editBookmark('C001', 'Bm001', { title: 'Updated' })
       expect(result.title).toBe('Updated')
     })
 
     test('throws SlackError on API failure', async () => {
-      const { client, mock } = makeClient()
+      const { client, mock } = await makeClient()
       mock.apiCall.mockResolvedValue({ ok: false, error: 'bookmark_not_found' })
       await expect(client.editBookmark('C001', 'Bm001', { title: 'X' })).rejects.toThrow(SlackError)
     })
@@ -1414,13 +1414,13 @@ describe('SlackClient extended methods', () => {
 
   describe('removeBookmark', () => {
     test('calls bookmarks.remove successfully', async () => {
-      const { client, mock } = makeClient()
+      const { client, mock } = await makeClient()
       await client.removeBookmark('C001', 'Bm001')
       expect(mock.apiCall).toHaveBeenCalledWith('bookmarks.remove', { channel_id: 'C001', bookmark_id: 'Bm001' })
     })
 
     test('throws SlackError on API failure', async () => {
-      const { client, mock } = makeClient()
+      const { client, mock } = await makeClient()
       mock.apiCall.mockResolvedValue({ ok: false, error: 'bookmark_not_found' })
       await expect(client.removeBookmark('C001', 'Bm001')).rejects.toThrow(SlackError)
     })
@@ -1428,13 +1428,13 @@ describe('SlackClient extended methods', () => {
 
   describe('listBookmarks', () => {
     test('returns empty array when no bookmarks', async () => {
-      const { client } = makeClient()
+      const { client } = await makeClient()
       const result = await client.listBookmarks('C001')
       expect(result).toHaveLength(0)
     })
 
     test('throws SlackError on API failure', async () => {
-      const { client, mock } = makeClient()
+      const { client, mock } = await makeClient()
       mock.apiCall.mockResolvedValue({ ok: false, error: 'channel_not_found' })
       await expect(client.listBookmarks('C001')).rejects.toThrow(SlackError)
     })
@@ -1442,7 +1442,7 @@ describe('SlackClient extended methods', () => {
 
   describe('scheduleMessage', () => {
     test('returns scheduled message with id', async () => {
-      const { client } = makeClient()
+      const { client } = await makeClient()
       const result = await client.scheduleMessage('C001', 'Hello', 1700000000)
       expect(result.id).toBe('SM001')
       expect(result.text).toBe('Hello')
@@ -1450,7 +1450,7 @@ describe('SlackClient extended methods', () => {
     })
 
     test('throws SlackError on API failure', async () => {
-      const { client, mock } = makeClient()
+      const { client, mock } = await makeClient()
       mock.chat.scheduleMessage.mockResolvedValue({ ok: false, error: 'invalid_time' })
       await expect(client.scheduleMessage('C001', 'Hello', 1700000000)).rejects.toThrow(SlackError)
     })
@@ -1458,13 +1458,13 @@ describe('SlackClient extended methods', () => {
 
   describe('listScheduledMessages', () => {
     test('returns empty array when no scheduled messages', async () => {
-      const { client } = makeClient()
+      const { client } = await makeClient()
       const result = await client.listScheduledMessages()
       expect(result).toHaveLength(0)
     })
 
     test('throws SlackError on API failure', async () => {
-      const { client, mock } = makeClient()
+      const { client, mock } = await makeClient()
       mock.chat.scheduledMessages.list.mockResolvedValue({ ok: false, error: 'invalid_auth' })
       await expect(client.listScheduledMessages()).rejects.toThrow(SlackError)
     })
@@ -1472,13 +1472,13 @@ describe('SlackClient extended methods', () => {
 
   describe('deleteScheduledMessage', () => {
     test('calls deleteScheduledMessage with correct args', async () => {
-      const { client, mock } = makeClient()
+      const { client, mock } = await makeClient()
       await client.deleteScheduledMessage('C001', 'SM001')
       expect(mock.chat.deleteScheduledMessage).toHaveBeenCalledWith({ channel: 'C001', scheduled_message_id: 'SM001' })
     })
 
     test('throws SlackError on API failure', async () => {
-      const { client, mock } = makeClient()
+      const { client, mock } = await makeClient()
       mock.chat.deleteScheduledMessage.mockResolvedValue({ ok: false, error: 'invalid_scheduled_message_id' })
       await expect(client.deleteScheduledMessage('C001', 'SM001')).rejects.toThrow(SlackError)
     })
@@ -1486,14 +1486,14 @@ describe('SlackClient extended methods', () => {
 
   describe('createChannel', () => {
     test('returns created channel', async () => {
-      const { client } = makeClient()
+      const { client } = await makeClient()
       const ch = await client.createChannel('new-channel')
       expect(ch.id).toBe('C001')
       expect(ch.name).toBe('test')
     })
 
     test('throws SlackError on API failure', async () => {
-      const { client, mock } = makeClient()
+      const { client, mock } = await makeClient()
       mock.conversations.create.mockResolvedValue({ ok: false, error: 'name_taken' })
       await expect(client.createChannel('existing')).rejects.toThrow(SlackError)
     })
@@ -1501,13 +1501,13 @@ describe('SlackClient extended methods', () => {
 
   describe('archiveChannel', () => {
     test('archives channel successfully', async () => {
-      const { client, mock } = makeClient()
+      const { client, mock } = await makeClient()
       await client.archiveChannel('C001')
       expect(mock.conversations.archive).toHaveBeenCalledWith({ channel: 'C001' })
     })
 
     test('throws SlackError on API failure', async () => {
-      const { client, mock } = makeClient()
+      const { client, mock } = await makeClient()
       mock.conversations.archive.mockResolvedValue({ ok: false, error: 'already_archived' })
       await expect(client.archiveChannel('C001')).rejects.toThrow(SlackError)
     })
@@ -1515,13 +1515,13 @@ describe('SlackClient extended methods', () => {
 
   describe('setChannelTopic', () => {
     test('returns new topic', async () => {
-      const { client } = makeClient()
+      const { client } = await makeClient()
       const result = await client.setChannelTopic('C001', 'new-topic')
       expect(result.topic).toBe('new-topic')
     })
 
     test('throws SlackError on API failure', async () => {
-      const { client, mock } = makeClient()
+      const { client, mock } = await makeClient()
       mock.conversations.setTopic.mockResolvedValue({ ok: false, error: 'channel_not_found' })
       await expect(client.setChannelTopic('C001', 'topic')).rejects.toThrow(SlackError)
     })
@@ -1529,13 +1529,13 @@ describe('SlackClient extended methods', () => {
 
   describe('setChannelPurpose', () => {
     test('returns new purpose', async () => {
-      const { client } = makeClient()
+      const { client } = await makeClient()
       const result = await client.setChannelPurpose('C001', 'new-purpose')
       expect(result.purpose).toBe('new-purpose')
     })
 
     test('throws SlackError on API failure', async () => {
-      const { client, mock } = makeClient()
+      const { client, mock } = await makeClient()
       mock.conversations.setPurpose.mockResolvedValue({ ok: false, error: 'channel_not_found' })
       await expect(client.setChannelPurpose('C001', 'purpose')).rejects.toThrow(SlackError)
     })
@@ -1543,13 +1543,13 @@ describe('SlackClient extended methods', () => {
 
   describe('inviteToChannel', () => {
     test('returns channel after invite', async () => {
-      const { client } = makeClient()
+      const { client } = await makeClient()
       const ch = await client.inviteToChannel('C001', 'U002')
       expect(ch.id).toBe('C001')
     })
 
     test('throws SlackError on API failure', async () => {
-      const { client, mock } = makeClient()
+      const { client, mock } = await makeClient()
       mock.conversations.invite.mockResolvedValue({ ok: false, error: 'user_not_found' })
       await expect(client.inviteToChannel('C001', 'U999')).rejects.toThrow(SlackError)
     })
@@ -1557,13 +1557,13 @@ describe('SlackClient extended methods', () => {
 
   describe('joinChannel', () => {
     test('returns channel after joining', async () => {
-      const { client } = makeClient()
+      const { client } = await makeClient()
       const ch = await client.joinChannel('C001')
       expect(ch.id).toBe('C001')
     })
 
     test('throws SlackError on API failure', async () => {
-      const { client, mock } = makeClient()
+      const { client, mock } = await makeClient()
       mock.conversations.join.mockResolvedValue({ ok: false, error: 'channel_not_found' })
       await expect(client.joinChannel('C001')).rejects.toThrow(SlackError)
     })
@@ -1571,13 +1571,13 @@ describe('SlackClient extended methods', () => {
 
   describe('leaveChannel', () => {
     test('leaves channel successfully', async () => {
-      const { client, mock } = makeClient()
+      const { client, mock } = await makeClient()
       await client.leaveChannel('C001')
       expect(mock.conversations.leave).toHaveBeenCalledWith({ channel: 'C001' })
     })
 
     test('throws SlackError on API failure', async () => {
-      const { client, mock } = makeClient()
+      const { client, mock } = await makeClient()
       mock.conversations.leave.mockResolvedValue({ ok: false, error: 'channel_not_found' })
       await expect(client.leaveChannel('C001')).rejects.toThrow(SlackError)
     })
@@ -1585,14 +1585,14 @@ describe('SlackClient extended methods', () => {
 
   describe('lookupUserByEmail', () => {
     test('returns user for given email', async () => {
-      const { client } = makeClient()
+      const { client } = await makeClient()
       const user = await client.lookupUserByEmail('test@example.com')
       expect(user.id).toBe('U001')
       expect(user.name).toBe('test')
     })
 
     test('throws SlackError on API failure', async () => {
-      const { client, mock } = makeClient()
+      const { client, mock } = await makeClient()
       mock.users.lookupByEmail.mockResolvedValue({ ok: false, error: 'users_not_found' })
       await expect(client.lookupUserByEmail('nobody@example.com')).rejects.toThrow(SlackError)
     })
@@ -1600,13 +1600,13 @@ describe('SlackClient extended methods', () => {
 
   describe('getUserProfile', () => {
     test('returns user profile', async () => {
-      const { client } = makeClient()
+      const { client } = await makeClient()
       const profile = await client.getUserProfile('U001')
       expect(profile.display_name).toBe('Test')
     })
 
     test('throws SlackError on API failure', async () => {
-      const { client, mock } = makeClient()
+      const { client, mock } = await makeClient()
       mock.users.profile.get.mockResolvedValue({ ok: false, error: 'user_not_found' })
       await expect(client.getUserProfile('U999')).rejects.toThrow(SlackError)
     })
@@ -1614,13 +1614,13 @@ describe('SlackClient extended methods', () => {
 
   describe('setUserProfile', () => {
     test('returns updated profile', async () => {
-      const { client } = makeClient()
+      const { client } = await makeClient()
       const profile = await client.setUserProfile({ status_text: 'Working', status_emoji: ':computer:' })
       expect(profile.status_text).toBe('Working')
     })
 
     test('throws SlackError on API failure', async () => {
-      const { client, mock } = makeClient()
+      const { client, mock } = await makeClient()
       mock.users.profile.set.mockResolvedValue({ ok: false, error: 'invalid_profile' })
       await expect(client.setUserProfile({ status_text: 'x' })).rejects.toThrow(SlackError)
     })
@@ -1628,13 +1628,13 @@ describe('SlackClient extended methods', () => {
 
   describe('postEphemeral', () => {
     test('returns message_ts on success', async () => {
-      const { client } = makeClient()
+      const { client } = await makeClient()
       const ts = await client.postEphemeral('C001', 'U001', 'Hello!')
       expect(ts).toBe('123.456')
     })
 
     test('throws SlackError on API failure', async () => {
-      const { client, mock } = makeClient()
+      const { client, mock } = await makeClient()
       mock.chat.postEphemeral.mockResolvedValue({ ok: false, error: 'user_not_in_channel' })
       await expect(client.postEphemeral('C001', 'U001', 'Hello!')).rejects.toThrow(SlackError)
     })
@@ -1642,13 +1642,13 @@ describe('SlackClient extended methods', () => {
 
   describe('getPermalink', () => {
     test('returns permalink on success', async () => {
-      const { client } = makeClient()
+      const { client } = await makeClient()
       const link = await client.getPermalink('C001', '123.456')
       expect(link).toBe('https://slack.com/archives/C001/p123456')
     })
 
     test('throws SlackError on API failure', async () => {
-      const { client, mock } = makeClient()
+      const { client, mock } = await makeClient()
       mock.chat.getPermalink.mockResolvedValue({ ok: false, error: 'message_not_found' })
       await expect(client.getPermalink('C001', '123.456')).rejects.toThrow(SlackError)
     })
@@ -1656,14 +1656,14 @@ describe('SlackClient extended methods', () => {
 
   describe('addReminder', () => {
     test('returns reminder on success', async () => {
-      const { client } = makeClient()
+      const { client } = await makeClient()
       const reminder = await client.addReminder('Do something', 1700000000)
       expect(reminder.id).toBe('Rm001')
       expect(reminder.text).toBe('Test')
     })
 
     test('throws SlackError on API failure', async () => {
-      const { client, mock } = makeClient()
+      const { client, mock } = await makeClient()
       mock.reminders.add.mockResolvedValue({ ok: false, error: 'invalid_time' })
       await expect(client.addReminder('Do something', 1700000000)).rejects.toThrow(SlackError)
     })
@@ -1671,13 +1671,13 @@ describe('SlackClient extended methods', () => {
 
   describe('listReminders', () => {
     test('returns empty array when no reminders', async () => {
-      const { client } = makeClient()
+      const { client } = await makeClient()
       const result = await client.listReminders()
       expect(result).toHaveLength(0)
     })
 
     test('throws SlackError on API failure', async () => {
-      const { client, mock } = makeClient()
+      const { client, mock } = await makeClient()
       mock.reminders.list.mockResolvedValue({ ok: false, error: 'invalid_auth' })
       await expect(client.listReminders()).rejects.toThrow(SlackError)
     })
@@ -1685,13 +1685,13 @@ describe('SlackClient extended methods', () => {
 
   describe('completeReminder', () => {
     test('completes reminder successfully', async () => {
-      const { client, mock } = makeClient()
+      const { client, mock } = await makeClient()
       await client.completeReminder('Rm001')
       expect(mock.reminders.complete).toHaveBeenCalledWith({ reminder: 'Rm001' })
     })
 
     test('throws SlackError on API failure', async () => {
-      const { client, mock } = makeClient()
+      const { client, mock } = await makeClient()
       mock.reminders.complete.mockResolvedValue({ ok: false, error: 'reminder_not_found' })
       await expect(client.completeReminder('Rm999')).rejects.toThrow(SlackError)
     })
@@ -1699,13 +1699,13 @@ describe('SlackClient extended methods', () => {
 
   describe('deleteReminder', () => {
     test('deletes reminder successfully', async () => {
-      const { client, mock } = makeClient()
+      const { client, mock } = await makeClient()
       await client.deleteReminder('Rm001')
       expect(mock.reminders.delete).toHaveBeenCalledWith({ reminder: 'Rm001' })
     })
 
     test('throws SlackError on API failure', async () => {
-      const { client, mock } = makeClient()
+      const { client, mock } = await makeClient()
       mock.reminders.delete.mockResolvedValue({ ok: false, error: 'reminder_not_found' })
       await expect(client.deleteReminder('Rm999')).rejects.toThrow(SlackError)
     })
@@ -1713,13 +1713,13 @@ describe('SlackClient extended methods', () => {
 
   describe('deleteFile', () => {
     test('deletes file successfully', async () => {
-      const { client, mock } = makeClient()
+      const { client, mock } = await makeClient()
       await client.deleteFile('F001')
       expect(mock.files.delete).toHaveBeenCalledWith({ file: 'F001' })
     })
 
     test('throws SlackError on API failure', async () => {
-      const { client, mock } = makeClient()
+      const { client, mock } = await makeClient()
       mock.files.delete.mockResolvedValue({ ok: false, error: 'file_not_found' })
       await expect(client.deleteFile('F999')).rejects.toThrow(SlackError)
     })
@@ -1727,13 +1727,13 @@ describe('SlackClient extended methods', () => {
 
   describe('listEmoji', () => {
     test('returns emoji map on success', async () => {
-      const { client } = makeClient()
+      const { client } = await makeClient()
       const emoji = await client.listEmoji()
       expect(emoji['party_blob']).toBe('https://example.com/party_blob.gif')
     })
 
     test('throws SlackError on API failure', async () => {
-      const { client, mock } = makeClient()
+      const { client, mock } = await makeClient()
       mock.emoji.list.mockResolvedValue({ ok: false, error: 'invalid_auth' })
       await expect(client.listEmoji()).rejects.toThrow(SlackError)
     })
@@ -1741,7 +1741,7 @@ describe('SlackClient extended methods', () => {
 
   describe('listUsergroups', () => {
     test('returns mapped usergroups', async () => {
-      const { client } = makeClient()
+      const { client } = await makeClient()
       const groups = await client.listUsergroups({ includeCount: true })
       expect(groups).toHaveLength(1)
       expect(groups[0].id).toBe('S001')
@@ -1751,7 +1751,7 @@ describe('SlackClient extended methods', () => {
     })
 
     test('calls apiCall with correct params', async () => {
-      const { client, mock } = makeClient()
+      const { client, mock } = await makeClient()
       await client.listUsergroups({ includeDisabled: true, includeUsers: true, includeCount: true })
       expect(mock.apiCall).toHaveBeenCalledWith('usergroups.list', {
         include_disabled: true,
@@ -1761,7 +1761,7 @@ describe('SlackClient extended methods', () => {
     })
 
     test('throws SlackError on API failure', async () => {
-      const { client, mock } = makeClient()
+      const { client, mock } = await makeClient()
       mock.apiCall.mockResolvedValue({ ok: false, error: 'invalid_auth' })
       await expect(client.listUsergroups()).rejects.toThrow(SlackError)
     })
@@ -1769,14 +1769,14 @@ describe('SlackClient extended methods', () => {
 
   describe('createUsergroup', () => {
     test('returns created usergroup', async () => {
-      const { client } = makeClient()
+      const { client } = await makeClient()
       const group = await client.createUsergroup('Marketing', { handle: 'marketing' })
       expect(group.id).toBe('S002')
       expect(group.name).toBe('Marketing')
     })
 
     test('calls apiCall with correct params including channels', async () => {
-      const { client, mock } = makeClient()
+      const { client, mock } = await makeClient()
       await client.createUsergroup('Marketing', { handle: 'marketing', description: 'Mktg', channels: ['C001', 'C002'] })
       expect(mock.apiCall).toHaveBeenCalledWith('usergroups.create', {
         name: 'Marketing',
@@ -1787,7 +1787,7 @@ describe('SlackClient extended methods', () => {
     })
 
     test('throws SlackError on API failure', async () => {
-      const { client, mock } = makeClient()
+      const { client, mock } = await makeClient()
       mock.apiCall.mockResolvedValue({ ok: false, error: 'name_already_exists' })
       await expect(client.createUsergroup('Dup')).rejects.toThrow(SlackError)
     })
@@ -1795,14 +1795,14 @@ describe('SlackClient extended methods', () => {
 
   describe('updateUsergroup', () => {
     test('returns updated usergroup', async () => {
-      const { client } = makeClient()
+      const { client } = await makeClient()
       const group = await client.updateUsergroup('S001', { name: 'Updated', handle: 'updated' })
       expect(group.name).toBe('Updated')
       expect(group.handle).toBe('updated')
     })
 
     test('calls apiCall with correct params', async () => {
-      const { client, mock } = makeClient()
+      const { client, mock } = await makeClient()
       await client.updateUsergroup('S001', { name: 'New', channels: ['C001'] })
       expect(mock.apiCall).toHaveBeenCalledWith('usergroups.update', {
         usergroup: 'S001',
@@ -1814,7 +1814,7 @@ describe('SlackClient extended methods', () => {
     })
 
     test('throws SlackError on API failure', async () => {
-      const { client, mock } = makeClient()
+      const { client, mock } = await makeClient()
       mock.apiCall.mockResolvedValue({ ok: false, error: 'no_such_subteam' })
       await expect(client.updateUsergroup('S999', { name: 'X' })).rejects.toThrow(SlackError)
     })
@@ -1822,14 +1822,14 @@ describe('SlackClient extended methods', () => {
 
   describe('disableUsergroup', () => {
     test('returns disabled usergroup with date_delete set', async () => {
-      const { client } = makeClient()
+      const { client } = await makeClient()
       const group = await client.disableUsergroup('S001')
       expect(group.id).toBe('S001')
       expect(group.date_delete).toBeGreaterThan(0)
     })
 
     test('throws SlackError on API failure', async () => {
-      const { client, mock } = makeClient()
+      const { client, mock } = await makeClient()
       mock.apiCall.mockResolvedValue({ ok: false, error: 'no_such_subteam' })
       await expect(client.disableUsergroup('S999')).rejects.toThrow(SlackError)
     })
@@ -1837,14 +1837,14 @@ describe('SlackClient extended methods', () => {
 
   describe('enableUsergroup', () => {
     test('returns enabled usergroup with date_delete cleared', async () => {
-      const { client } = makeClient()
+      const { client } = await makeClient()
       const group = await client.enableUsergroup('S001')
       expect(group.id).toBe('S001')
       expect(group.date_delete).toBe(0)
     })
 
     test('throws SlackError on API failure', async () => {
-      const { client, mock } = makeClient()
+      const { client, mock } = await makeClient()
       mock.apiCall.mockResolvedValue({ ok: false, error: 'no_such_subteam' })
       await expect(client.enableUsergroup('S999')).rejects.toThrow(SlackError)
     })
@@ -1852,13 +1852,13 @@ describe('SlackClient extended methods', () => {
 
   describe('listUsergroupMembers', () => {
     test('returns user ID array', async () => {
-      const { client } = makeClient()
+      const { client } = await makeClient()
       const users = await client.listUsergroupMembers('S001')
       expect(users).toEqual(['U001', 'U002'])
     })
 
     test('calls apiCall with correct params', async () => {
-      const { client, mock } = makeClient()
+      const { client, mock } = await makeClient()
       await client.listUsergroupMembers('S001', { includeDisabled: true })
       expect(mock.apiCall).toHaveBeenCalledWith('usergroups.users.list', {
         usergroup: 'S001',
@@ -1867,7 +1867,7 @@ describe('SlackClient extended methods', () => {
     })
 
     test('throws SlackError on API failure', async () => {
-      const { client, mock } = makeClient()
+      const { client, mock } = await makeClient()
       mock.apiCall.mockResolvedValue({ ok: false, error: 'no_such_subteam' })
       await expect(client.listUsergroupMembers('S999')).rejects.toThrow(SlackError)
     })
@@ -1875,14 +1875,14 @@ describe('SlackClient extended methods', () => {
 
   describe('updateUsergroupMembers', () => {
     test('returns updated usergroup with new members', async () => {
-      const { client } = makeClient()
+      const { client } = await makeClient()
       const group = await client.updateUsergroupMembers('S001', ['U001', 'U003'])
       expect(group.users).toEqual(['U001', 'U003'])
       expect(group.user_count).toBe(2)
     })
 
     test('calls apiCall with comma-joined user IDs', async () => {
-      const { client, mock } = makeClient()
+      const { client, mock } = await makeClient()
       await client.updateUsergroupMembers('S001', ['U001', 'U003'])
       expect(mock.apiCall).toHaveBeenCalledWith('usergroups.users.update', {
         usergroup: 'S001',
@@ -1891,7 +1891,7 @@ describe('SlackClient extended methods', () => {
     })
 
     test('throws SlackError on API failure', async () => {
-      const { client, mock } = makeClient()
+      const { client, mock } = await makeClient()
       mock.apiCall.mockResolvedValue({ ok: false, error: 'no_users_provided' })
       await expect(client.updateUsergroupMembers('S001', [])).rejects.toThrow(SlackError)
     })
