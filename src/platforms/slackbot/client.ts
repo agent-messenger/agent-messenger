@@ -1,22 +1,40 @@
 import { WebClient } from '@slack/web-api'
 
+import { SlackBotCredentialManager } from './credential-manager'
 import { SlackBotError, type SlackChannel, type SlackMessage, type SlackUser } from './types'
 
 const MAX_RETRIES = 3
 const RATE_LIMIT_ERROR_CODE = 'slack_webapi_rate_limited_error'
 
 export class SlackBotClient {
-  private client: WebClient
+  private client: WebClient | null = null
 
-  constructor(token: string) {
-    if (!token) {
-      throw new SlackBotError('Token is required', 'missing_token')
+  async login(credentials?: { token: string }): Promise<this> {
+    if (credentials) {
+      const { token } = credentials
+      if (!token) {
+        throw new SlackBotError('Token is required', 'missing_token')
+      }
+      if (!token.startsWith('xoxb-')) {
+        throw new SlackBotError('Token must be a bot token (xoxb-)', 'invalid_token_type')
+      }
+      this.client = new WebClient(token)
+    } else {
+      const credManager = new SlackBotCredentialManager()
+      const creds = await credManager.getCredentials()
+      if (!creds) {
+        throw new SlackBotError('No credentials configured. Run "auth set <token>" first.', 'not_authenticated')
+      }
+      await this.login({ token: creds.token })
     }
-    if (!token.startsWith('xoxb-')) {
-      throw new SlackBotError('Token must be a bot token (xoxb-)', 'invalid_token_type')
-    }
+    return this
+  }
 
-    this.client = new WebClient(token)
+  private ensureAuth(): WebClient {
+    if (!this.client) {
+      throw new SlackBotError('Not authenticated. Call .login() first.', 'not_authenticated')
+    }
+    return this.client
   }
 
   private async withRetry<T>(operation: () => Promise<T>): Promise<T> {
@@ -55,7 +73,7 @@ export class SlackBotClient {
     team?: string
   }> {
     return this.withRetry(async () => {
-      const response = await this.client.auth.test()
+      const response = await this.ensureAuth().auth.test()
       this.checkResponse(response)
       return {
         user_id: response.user_id!,
@@ -69,7 +87,7 @@ export class SlackBotClient {
 
   async postMessage(channel: string, text: string, options?: { thread_ts?: string }): Promise<SlackMessage> {
     return this.withRetry(async () => {
-      const response = await this.client.chat.postMessage({
+      const response = await this.ensureAuth().chat.postMessage({
         channel,
         text,
         thread_ts: options?.thread_ts,
@@ -92,7 +110,7 @@ export class SlackBotClient {
     options?: { limit?: number; cursor?: string },
   ): Promise<SlackMessage[]> {
     return this.withRetry(async () => {
-      const response = await this.client.conversations.history({
+      const response = await this.ensureAuth().conversations.history({
         channel,
         limit: options?.limit || 20,
         cursor: options?.cursor,
@@ -131,7 +149,7 @@ export class SlackBotClient {
 
   async getMessage(channel: string, ts: string): Promise<SlackMessage | null> {
     return this.withRetry(async () => {
-      const response = await this.client.conversations.history({
+      const response = await this.ensureAuth().conversations.history({
         channel,
         oldest: ts,
         inclusive: true,
@@ -179,7 +197,7 @@ export class SlackBotClient {
     const normalizedEmoji = emoji.replace(/^:|:$/g, '')
 
     return this.withRetry(async () => {
-      const response = await this.client.reactions.add({
+      const response = await this.ensureAuth().reactions.add({
         channel,
         timestamp,
         name: normalizedEmoji,
@@ -193,7 +211,7 @@ export class SlackBotClient {
     const normalizedEmoji = emoji.replace(/^:|:$/g, '')
 
     return this.withRetry(async () => {
-      const response = await this.client.reactions.remove({
+      const response = await this.ensureAuth().reactions.remove({
         channel,
         timestamp,
         name: normalizedEmoji,
@@ -209,7 +227,7 @@ export class SlackBotClient {
     do {
       // Only wrap individual API call in withRetry, not the entire loop
       const response = await this.withRetry(async () => {
-        const res = await this.client.conversations.list({
+        const res = await this.ensureAuth().conversations.list({
           cursor,
           limit: options?.limit || 200,
           types: 'public_channel,private_channel',
@@ -255,7 +273,7 @@ export class SlackBotClient {
 
   async getChannelInfo(channel: string): Promise<SlackChannel> {
     return this.withRetry(async () => {
-      const response = await this.client.conversations.info({ channel })
+      const response = await this.ensureAuth().conversations.info({ channel })
       this.checkResponse(response)
 
       const ch = response.channel!
@@ -312,7 +330,7 @@ export class SlackBotClient {
     do {
       // Only wrap individual API call in withRetry, not the entire loop
       const response = await this.withRetry(async () => {
-        const res = await this.client.users.list({
+        const res = await this.ensureAuth().users.list({
           cursor,
           limit: options?.limit || 200,
         })
@@ -352,7 +370,7 @@ export class SlackBotClient {
 
   async getUserInfo(userId: string): Promise<SlackUser> {
     return this.withRetry(async () => {
-      const response = await this.client.users.info({ user: userId })
+      const response = await this.ensureAuth().users.info({ user: userId })
       this.checkResponse(response)
 
       const member = response.user!
@@ -378,7 +396,7 @@ export class SlackBotClient {
 
   async updateMessage(channel: string, ts: string, text: string): Promise<SlackMessage> {
     return this.withRetry(async () => {
-      const response = await this.client.chat.update({ channel, ts, text })
+      const response = await this.ensureAuth().chat.update({ channel, ts, text })
       this.checkResponse(response)
       const msg = (response as any).message
       return {
@@ -396,7 +414,7 @@ export class SlackBotClient {
     options?: { limit?: number; cursor?: string },
   ): Promise<SlackMessage[]> {
     return this.withRetry(async () => {
-      const response = await this.client.conversations.replies({
+      const response = await this.ensureAuth().conversations.replies({
         channel,
         ts,
         limit: options?.limit || 100,
@@ -435,14 +453,14 @@ export class SlackBotClient {
 
   async joinChannel(channel: string): Promise<void> {
     return this.withRetry(async () => {
-      const response = await this.client.conversations.join({ channel })
+      const response = await this.ensureAuth().conversations.join({ channel })
       this.checkResponse(response)
     })
   }
 
   async deleteMessage(channel: string, ts: string): Promise<void> {
     return this.withRetry(async () => {
-      const response = await this.client.chat.delete({ channel, ts })
+      const response = await this.ensureAuth().chat.delete({ channel, ts })
       this.checkResponse(response)
     })
   }

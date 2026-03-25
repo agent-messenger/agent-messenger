@@ -17,11 +17,7 @@ const mockTestAuth = mock(() =>
 
 mock.module('../client', () => ({
   SlackBotClient: class MockSlackBotClient {
-    constructor(token: string) {
-      if (!token.startsWith('xoxb-')) {
-        throw new Error('Token must be a bot token (xoxb-)')
-      }
-    }
+    async login(_credentials?: any) { return this }
     testAuth = mockTestAuth
   },
 }))
