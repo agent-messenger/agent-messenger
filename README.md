@@ -1,12 +1,14 @@
+<div align="center">
+
 # Agent Messenger
 
 [![npm](https://img.shields.io/npm/v/agent-messenger?color=E67E22)](https://www.npmjs.com/package/agent-messenger) [![platform](https://img.shields.io/badge/platform-slack-4A154B)](https://agent-messenger.dev/docs/cli/slack) [![platform](https://img.shields.io/badge/platform-discord-5865F2)](https://agent-messenger.dev/docs/cli/discord) [![platform](https://img.shields.io/badge/platform-teams-6264A7)](https://agent-messenger.dev/docs/cli/teams) [![platform](https://img.shields.io/badge/platform-telegram-2AABEE)](https://agent-messenger.dev/docs/cli/telegram) [![platform](https://img.shields.io/badge/platform-whatsapp-25D366)](https://agent-messenger.dev/docs/cli/whatsapp) [![platform](https://img.shields.io/badge/platform-kakaotalk-FEE500)](https://agent-messenger.dev/docs/cli/kakaotalk) [![platform](https://img.shields.io/badge/platform-channel_talk-3B3FE4)](https://agent-messenger.dev/docs/cli/channeltalk)
 
-![Agent Messenger](./docs/public/cover.png)
+**Your agent messages as you — not as a bot**
 
-**Give your AI agent the power to read and send messages across Slack, Discord, Teams, Telegram, WhatsApp, KakaoTalk, Channel Talk (beta) and more — via CLI or TypeScript SDK**
+</div>
 
-A unified, agent-friendly CLI and TypeScript SDK for messaging platforms. Zero-config credential extraction from your desktop apps—no OAuth flows, no API keys, no admin approval needed. Works out of the box.
+One CLI for Slack, Discord, Teams, Telegram, WhatsApp, KakaoTalk, and Channel Talk. Credentials extracted from desktop apps or authenticated in seconds — no API keys, no OAuth, no admin approval. TypeScript SDK included.
 
 ## Table of Contents
 
@@ -33,17 +35,19 @@ A unified, agent-friendly CLI and TypeScript SDK for messaging platforms. Zero-c
 
 ## Why Agent Messenger?
 
-Messaging platforms only offer Bot tokens for API access—your AI agent can never act **as you**. Agent Messenger extracts user credentials directly from your installed desktop apps, letting your agent operate on your behalf. Bot tokens are fully supported too for server-side and CI/CD use cases.
+**You shouldn't need a bot token to send a message.**
 
-- **Act as yourself, not a bot** — Extracted user tokens let your agent operate on your behalf
-- **No API keys needed** — Automatically extracts credentials from your installed desktop apps
-- **Zero setup** — Credentials are auto-extracted on first command. No manual auth step required
-- **One interface, multiple platforms** — Learn once, use everywhere (Slack, Discord, Teams, Telegram, WhatsApp, KakaoTalk, Channel Talk)
-- **AI-agent friendly** — JSON output by default, perfect for LLM tool use
+Every platform gates API access behind OAuth apps that need admin approval — days of waiting just to send a message. And even then, your agent is a **bot**, not you. Different name, different permissions, different context.
+
+Agent Messenger reads session tokens from your Slack, Discord, Teams, KakaoTalk, or Channel Talk desktop app — zero config. Telegram and WhatsApp authenticate with a one-time phone or pairing code. Either way, your agent operates **as you** — same name, same permissions, same context. Bot tokens are fully supported too for server-side and CI/CD use cases.
+
+- **Auto-Extract Auth** — Reads tokens from Slack, Discord, Teams, KakaoTalk, and Channel Talk desktop apps. Telegram and WhatsApp authenticate with a one-time code — still under a minute
+- **Act As Yourself** — Extracts your user session — not a bot token. Your agent sends messages, reacts, and searches as you. Need bot mode? Bot CLIs are included too
+- **One Interface** — Consistent command style across 7 platforms for supported actions (e.g. message send, message search, channel list, snapshot). Learn once
+- **Agent-Native Output** — JSON by default for LLM tool use. `--pretty` for human-readable. Structured output your agent can parse and act on
+- **Token Efficient** — CLI, not MCP. One skill file, one shell command per action. No server to run, no tool registration. ([Why not MCP?](#philosophy))
+- **Persistent Memory** — Stores workspace IDs, channel mappings, and preferences in ~/.config so your agent never asks twice
 - **TypeScript SDK** — Import clients directly into your app. Full type safety with Zod schemas
-- **Agent memory** — Remembers workspace IDs, channel names, and preferences across sessions
-- **Human friendly too** — Add `--pretty` for readable output
-- **Token efficient** — CLI, not MCP. Load only what you need. ([Why not MCP?](#philosophy))
 
 ## Installation
 
@@ -77,19 +81,7 @@ This installs:
 
 ## Agent Skills
 
-Agent Messenger includes [Agent Skills](https://agentskills.io/) that teach your AI agent how to use these CLIs effectively. Eleven skills are available:
-
-- **`agent-slack`** — Slack (user token, zero-config)
-- **`agent-slackbot`** — Slack Bot (bot token, for server-side/CI/CD)
-- **`agent-discord`** — Discord
-- **`agent-discordbot`** — Discord Bot (bot token, for server-side/CI/CD)
-- **`agent-teams`** — Microsoft Teams
-- **`agent-telegram`** — Telegram (user account via TDLib)
-- **`agent-whatsapp`** — WhatsApp (user account via Baileys, pairing code auth)
-- **`agent-whatsappbot`** — WhatsApp Bot (Cloud API, for server-side/CI/CD)
-- **`agent-kakaotalk`** — KakaoTalk (sub-device login, LOCO protocol)
-- **`agent-channeltalk`** — Channel Talk (beta, zero-config, extracted cookies)
-- **`agent-channeltalkbot`** — Channel Talk Bot (beta, API credentials, for server-side/CI/CD)
+Agent Messenger includes [Agent Skills](https://agentskills.io/) that teach your AI agent how to use each CLI above. One skill per CLI — install only what you need.
 
 ### SkillPad
 
@@ -315,9 +307,24 @@ These are just starting points. Your agent has full read/write access to Slack, 
 
 ## Philosophy
 
-**Why not MCP?** MCP servers expose all tools at once, bloating context and confusing agents. **[Agent Skills](https://agentskills.io/) + agent-friendly CLI** offer a better approach—load what you need, when you need it. Fewer tokens, cleaner context, better output. The SDK complements the CLI for when you need programmatic access—same credentials, same platform coverage, full type safety.
+### Why CLI, not MCP?
 
-**Why not OAuth?** OAuth requires an app and it requires workspace admin approval to install, which can take days. This tool just works—zero setup required. For those who prefer bot tokens (e.g., server-side or CI/CD), see [`agent-slackbot`](skills/agent-slackbot/SKILL.md).
+MCP servers expose all tools at once, bloating context and confusing agents.
+
+| MCP Approach | Agent Skills + CLI |
+| --- | --- |
+| All tools loaded at once | Load only what you need |
+| Bloated context window | Minimal token usage |
+| Agent confused by options | Focused, relevant tools |
+| Requires a running server | One shell command per action |
+
+With Agent Messenger, your agent loads the skill it needs, uses the CLI, and moves on. No wasted tokens. The SDK complements the CLI for when you need programmatic access—same credentials, same platform coverage, full type safety.
+
+### Why not OAuth?
+
+OAuth requires creating an app and workspace admin approval—days of waiting just to send a message. Agent Messenger skips all of that. Your desktop apps already have valid session tokens; Agent Messenger extracts them directly so you can start messaging immediately.
+
+For server-side bots and CI/CD, bot tokens are fully supported via [`agent-slackbot`](skills/agent-slackbot/SKILL.md), [`agent-discordbot`](skills/agent-discordbot/SKILL.md), [`agent-whatsappbot`](skills/agent-whatsappbot/SKILL.md), and [`agent-channeltalkbot`](skills/agent-channeltalkbot/SKILL.md).
 
 Inspired by [agent-browser](https://github.com/vercel-labs/agent-browser) from Vercel Labs.
 
