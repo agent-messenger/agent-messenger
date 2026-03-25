@@ -2,7 +2,6 @@ import { expect, test } from 'bun:test'
 
 import {
   createAccountId,
-  createWhatsAppClient,
   extractMessageText,
   getMessageType,
   jidToType,
@@ -21,10 +20,6 @@ test('WhatsAppCredentialManager is exported from barrel', () => {
 
 test('WhatsAppError is exported from barrel', () => {
   expect(typeof WhatsAppError).toBe('function')
-})
-
-test('createWhatsAppClient is exported from barrel', () => {
-  expect(typeof createWhatsAppClient).toBe('function')
 })
 
 test('createAccountId is exported from barrel', () => {

@@ -50,7 +50,7 @@ export async function withWhatsAppClient<T>(
   }
 
   const paths = await manager.ensureAccountPaths(account.account_id)
-  const client = new WhatsAppClient(paths.auth_dir)
+  const client = await new WhatsAppClient().login({ authDir: paths.auth_dir })
 
   try {
     await client.connect()
