@@ -14,6 +14,7 @@ import {
   DiscordClient,
   DiscordCredentialManager,
   DiscordError,
+  DiscordListener,
 } from 'agent-messenger/discord'
 ```
 
@@ -210,6 +211,68 @@ await client.archiveThread(threadId, false) // unarchive
 // → DiscordChannel
 ```
 
+## Real-Time Events
+
+`DiscordListener` connects to Discord's Gateway WebSocket for instant event streaming.
+
+```typescript
+import { DiscordClient, DiscordListener } from 'agent-messenger/discord'
+
+const client = await new DiscordClient().login()
+const listener = new DiscordListener(client)
+
+listener.on('message_create', (event) => {
+  console.log(`#${event.channel_id} <${event.author.username}>: ${event.content}`)
+})
+
+listener.on('message_reaction_add', (event) => {
+  console.log(`:${event.emoji.name}: by ${event.user_id}`)
+})
+
+// Catch-all for any Gateway dispatch event
+listener.on('discord_event', (event) => {
+  console.log(event.type, event)
+})
+
+listener.on('error', (err) => console.error(err))
+
+await listener.start()  // connects via Gateway WebSocket
+// listener.stop()      // clean shutdown
+```
+
+Custom intents (default includes non-privileged message/reaction/typing intents — add `MessageContent` to read message text):
+
+```typescript
+import { DiscordIntent } from 'agent-messenger/discord'
+
+const listener = new DiscordListener(client, {
+  intents: DiscordIntent.Guilds | DiscordIntent.GuildMessages | DiscordIntent.MessageContent, // MessageContent is privileged
+})
+```
+
+### Available Events
+
+| Event | Description |
+|-------|-------------|
+| `message_create` | New message in a channel or DM |
+| `message_update` | Message content edited |
+| `message_delete` | Message deleted |
+| `message_reaction_add` / `message_reaction_remove` | Reaction changes |
+| `guild_member_add` / `guild_member_remove` | Member joins/leaves server |
+| `typing_start` | Typing indicator |
+| `presence_update` | User online/idle/dnd/offline status |
+| `channel_create` / `channel_update` / `channel_delete` | Channel lifecycle |
+| `discord_event` | Catch-all for every Gateway dispatch event |
+| `connected` / `disconnected` | Connection lifecycle |
+| `error` | Connection or protocol error |
+
+Features:
+- Gateway intents configurable (non-privileged defaults — `MessageContent`, `GuildMembers`, `GuildPresences` require opt-in)
+- Auto-reconnect with exponential backoff
+- Heartbeat keepalive with zombie connection detection
+- Session resume on reconnect (replays missed events)
+- Non-recoverable close code detection (stops cleanly on fatal auth/config errors)
+
 ## DiscordCredentialManager
 
 Manages Discord credentials stored at `~/.config/agent-messenger/discord-credentials.json`. Files are written with `0o600` permissions. The environment variable `E2E_DISCORD_TOKEN` (for token) and `E2E_DISCORD_SERVER_ID` (for current server) take precedence over file-based credentials.
@@ -281,6 +344,17 @@ import type {
   DiscordUserProfile,
   DiscordCredentials,
   DiscordConfig,
+  DiscordGatewayMessageCreateEvent,
+  DiscordGatewayMessageUpdateEvent,
+  DiscordGatewayMessageDeleteEvent,
+  DiscordGatewayReactionEvent,
+  DiscordGatewayMemberEvent,
+  DiscordGatewayPresenceEvent,
+  DiscordGatewayTypingEvent,
+  DiscordGatewayChannelEvent,
+  DiscordGatewayGenericEvent,
+  DiscordGatewayEvent,
+  DiscordListenerEventMap,
 } from 'agent-messenger/discord'
 ```
 
