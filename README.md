@@ -214,6 +214,19 @@ listener.on('message', (event) => {
 await listener.start()
 ```
 
+### Real-time Events (KakaoTalk)
+
+```typescript
+import { KakaoTalkClient, KakaoTalkListener } from 'agent-messenger/kakaotalk'
+
+const client = await new KakaoTalkClient().login()
+const listener = new KakaoTalkListener(client)
+listener.on('message', (event) => {
+  console.log(`New message in ${event.chat_id}: ${event.message}`)
+})
+await listener.start()
+```
+
 ## Supported Platforms
 
 | Feature                    | Slack | Discord | Teams | Telegram | WhatsApp | KakaoTalk | Channel Talk (beta) |
@@ -238,7 +251,7 @@ await listener.start()
 | Channel management         |  ✅   |    —    |   —   |    —     |    —     |    —      |         —           |
 | Reminders                  |  ✅   |    —    |   —   |    —     |    —     |    —      |         —           |
 | User groups                |  ✅   |    —    |   —   |    —     |    —     |    —      |         —           |
-| Real-time events (SDK)     |  ✅   |    —    |   —   |    —     |    —     |    —      |         —           |
+| Real-time events (SDK)     |  ✅   |    ✅    |   —   |    —     |    —     |    ✅      |         —           |
 | Bot support                |  ✅   |   ✅    |   —   |    —     |    ✅     |    —      |         ✅          |
 
 > ⚠️ **Teams tokens expire in 60-90 minutes.** Re-run `agent-teams auth extract` to refresh. See [Teams Guide](skills/agent-teams/SKILL.md) for details.

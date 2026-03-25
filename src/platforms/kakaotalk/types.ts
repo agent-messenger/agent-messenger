@@ -139,3 +139,73 @@ export const KakaoConfigSchema = z.object({
   current_account: z.string().nullable(),
   accounts: z.record(z.string(), KakaoAccountCredentialsSchema),
 })
+
+// Real-time push event types
+
+export interface KakaoTalkPushMessageEvent {
+  type: 'MSG'
+  chat_id: string
+  log_id: string
+  author_id: number
+  message: string
+  message_type: number
+  sent_at: number
+}
+
+export interface KakaoTalkPushMemberEvent {
+  type: 'NEWMEM' | 'DELMEM'
+  chat_id: string
+  member: { user_id: number }
+}
+
+export interface KakaoTalkPushReadEvent {
+  type: 'DECUNREAD'
+  chat_id: string
+  user_id: number
+  watermark: string
+}
+
+export interface KakaoTalkPushGenericEvent {
+  type: string
+  [key: string]: unknown
+}
+
+export type KakaoTalkPushEvent =
+  | KakaoTalkPushMessageEvent
+  | KakaoTalkPushMemberEvent
+  | KakaoTalkPushReadEvent
+  | KakaoTalkPushGenericEvent
+
+export interface KakaoTalkListenerEventMap {
+  message: [event: KakaoTalkPushMessageEvent]
+  member_joined: [event: KakaoTalkPushMemberEvent]
+  member_left: [event: KakaoTalkPushMemberEvent]
+  read: [event: KakaoTalkPushReadEvent]
+  kakaotalk_event: [event: KakaoTalkPushGenericEvent]
+  connected: [info: { userId: string }]
+  disconnected: []
+  error: [error: Error]
+}
+
+export const KakaoTalkPushMessageEventSchema = z.object({
+  type: z.literal('MSG'),
+  chat_id: z.string(),
+  log_id: z.string(),
+  author_id: z.number(),
+  message: z.string(),
+  message_type: z.number(),
+  sent_at: z.number(),
+})
+
+export const KakaoTalkPushMemberEventSchema = z.object({
+  type: z.enum(['NEWMEM', 'DELMEM']),
+  chat_id: z.string(),
+  member: z.object({ user_id: z.number() }),
+})
+
+export const KakaoTalkPushReadEventSchema = z.object({
+  type: z.literal('DECUNREAD'),
+  chat_id: z.string(),
+  user_id: z.number(),
+  watermark: z.string(),
+})

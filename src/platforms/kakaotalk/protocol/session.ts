@@ -19,6 +19,7 @@ export class LocoSession {
   private connection: LocoConnection | null = null
   private pingTimer: ReturnType<typeof setInterval> | null = null
   private pushHandler: ((packet: LocoPacket) => void) | null = null
+  private closeHandler: (() => void) | null = null
 
   async login(oauthToken: string, userId: string, deviceUuid: string): Promise<LoginListResponse> {
     const { host, port } = await this.bookAndCheckin(userId)
@@ -28,6 +29,9 @@ export class LocoSession {
 
     if (this.pushHandler) {
       this.connection.onPush(this.pushHandler)
+    }
+    if (this.closeHandler) {
+      this.connection.onClose(this.closeHandler)
     }
 
     const response = await this.connection.sendPacket('LOGINLIST', {
@@ -125,6 +129,13 @@ export class LocoSession {
     this.pushHandler = handler
     if (this.connection) {
       this.connection.onPush(handler)
+    }
+  }
+
+  onClose(handler: () => void): void {
+    this.closeHandler = handler
+    if (this.connection) {
+      this.connection.onClose(handler)
     }
   }
 

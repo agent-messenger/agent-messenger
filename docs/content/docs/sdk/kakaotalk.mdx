@@ -80,6 +80,60 @@ client.close()
 
 Once closed, any subsequent method call throws a `KakaoTalkError` with code `client_closed`. Create a new client if you need to reconnect.
 
+## KakaoTalkListener
+
+Real-time event listener that receives push events from KakaoTalk via the LOCO protocol. Manages its own LOCO session with automatic reconnection.
+
+```typescript
+import { KakaoTalkClient, KakaoTalkListener } from 'agent-messenger/kakaotalk'
+
+const client = await new KakaoTalkClient().login()
+const listener = new KakaoTalkListener(client)
+
+listener.on('connected', (info) => {
+  console.log(`Connected as ${info.userId}`)
+})
+
+listener.on('message', (event) => {
+  console.log(`[${event.chat_id}] ${event.author_id}: ${event.message}`)
+})
+
+listener.on('member_joined', (event) => {
+  console.log(`User ${event.member.user_id} joined ${event.chat_id}`)
+})
+
+listener.on('member_left', (event) => {
+  console.log(`User ${event.member.user_id} left ${event.chat_id}`)
+})
+
+listener.on('read', (event) => {
+  console.log(`User ${event.user_id} read ${event.chat_id} up to ${event.watermark}`)
+})
+
+listener.on('disconnected', () => console.log('Reconnecting...'))
+listener.on('error', (err) => console.error(err))
+
+await listener.start()
+// listener.stop() to disconnect
+```
+
+### Events
+
+| Event | Payload | Description |
+|-------|---------|-------------|
+| `message` | `KakaoTalkPushMessageEvent` | New message received |
+| `member_joined` | `KakaoTalkPushMemberEvent` | Member joined a chat |
+| `member_left` | `KakaoTalkPushMemberEvent` | Member left a chat |
+| `read` | `KakaoTalkPushReadEvent` | Read receipt (unread count decreased) |
+| `kakaotalk_event` | `KakaoTalkPushGenericEvent` | Catch-all for all push events |
+| `connected` | `{ userId: string }` | Connected to LOCO server |
+| `disconnected` | — | Disconnected (will auto-reconnect) |
+| `error` | `Error` | Connection or protocol error |
+
+### Reconnection
+
+The listener automatically reconnects with exponential backoff (1s → 2s → 4s → ... → 30s max) when the connection drops. Server-requested migrations (`CHANGESVR`) trigger immediate reconnection. If the session is kicked by another device (`KICKOUT`), the listener stops and emits an error.
+
 ## KakaoCredentialManager
 
 Manages KakaoTalk credentials stored at `~/.config/agent-messenger/kakaotalk-credentials.json`. Files are written with `0o600` permissions.

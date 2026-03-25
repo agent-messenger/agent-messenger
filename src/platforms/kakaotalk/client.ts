@@ -111,6 +111,15 @@ export class KakaoTalkClient {
     return this.login({ oauthToken: account.oauth_token, userId: account.user_id, deviceUuid: account.device_uuid })
   }
 
+  getCredentials(): { oauthToken: string; userId: string; deviceUuid: string } {
+    this.ensureAuth()
+    return {
+      oauthToken: this.oauthToken!,
+      userId: this.userId!,
+      deviceUuid: this.deviceUuid!,
+    }
+  }
+
   private ensureAuth(): void {
     if (this.oauthToken === null) {
       throw new KakaoTalkError('Not authenticated. Call .login() first.', 'not_authenticated')
