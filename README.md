@@ -81,7 +81,7 @@ This installs:
 
 ## Agent Skills
 
-Agent Messenger includes [Agent Skills](https://agentskills.io/) that teach your AI agent how to use each CLI above. One skill per platform — install only what you need.
+Agent Messenger includes [Agent Skills](https://agentskills.io/) that teach your AI agent how to use each CLI above. One skill per CLI — install only what you need.
 
 ### SkillPad
 
