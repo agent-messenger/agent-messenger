@@ -22,7 +22,7 @@ async function getClient(): Promise<DiscordBotClient> {
   const credManager = new DiscordBotCredentialManager()
   const creds = await credManager.getCredentials()
   if (!creds) throw new Error('No discordbot credentials')
-  return new DiscordBotClient(creds.token)
+  return new DiscordBotClient().login({ token: creds.token })
 }
 
 async function cleanupBotMessages(messages: TrackedMessage[]) {
