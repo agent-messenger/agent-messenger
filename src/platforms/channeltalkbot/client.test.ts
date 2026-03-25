@@ -49,7 +49,7 @@ describe('ChannelBotClient', () => {
   test('successful GET request returns unwrapped JSON', async () => {
     mockResponse({ channel: { id: 'ch-1', name: 'My Channel' } })
 
-    const client = new ChannelBotClient('key-1', 'secret-1')
+    const client = await new ChannelBotClient().login({ accessKey: 'key-1', accessSecret: 'secret-1' })
     const channel = await client.getChannel()
 
     expect(channel.id).toBe('ch-1')
@@ -60,7 +60,7 @@ describe('ChannelBotClient', () => {
     mockResponse({ channel: { id: 'ch-1', name: 'My Channel' } })
     mockResponse({ user: { id: 'u-1', channelId: 'ch-1' } })
 
-    const client = new ChannelBotClient('my-access-key', 'my-access-secret')
+    const client = await new ChannelBotClient().login({ accessKey: 'my-access-key', accessSecret: 'my-access-secret' })
     await client.getChannel()
     await client.getUser('u-1')
 
@@ -77,7 +77,7 @@ describe('ChannelBotClient', () => {
     mockResponse({ message: 'Rate limited' }, 429, { 'Retry-After': '0.05' })
     mockResponse({ channel: { id: 'ch-1', name: 'My Channel' } })
 
-    const client = new ChannelBotClient('key-1', 'secret-1')
+    const client = await new ChannelBotClient().login({ accessKey: 'key-1', accessSecret: 'secret-1' })
     const start = Date.now()
     const channel = await client.getChannel()
     const elapsed = Date.now() - start
@@ -92,7 +92,7 @@ describe('ChannelBotClient', () => {
     mockResponse({ message: 'Server error' }, 500)
     mockResponse({ channel: { id: 'ch-1', name: 'My Channel' } })
 
-    const client = new ChannelBotClient('key-1', 'secret-1')
+    const client = await new ChannelBotClient().login({ accessKey: 'key-1', accessSecret: 'secret-1' })
     const start = Date.now()
     const channel = await client.getChannel()
     const elapsed = Date.now() - start
@@ -105,7 +105,7 @@ describe('ChannelBotClient', () => {
   test('4xx non-429 throws immediately without retry', async () => {
     mockResponse({ message: 'Forbidden' }, 403)
 
-    const client = new ChannelBotClient('key-1', 'secret-1')
+    const client = await new ChannelBotClient().login({ accessKey: 'key-1', accessSecret: 'secret-1' })
     await expect(client.getChannel()).rejects.toThrow(ChannelBotError)
     expect(fetchCalls).toHaveLength(1)
   })
@@ -119,7 +119,7 @@ describe('ChannelBotClient', () => {
       throw new Error('socket hang up')
     }
 
-    const client = new ChannelBotClient('key-1', 'secret-1')
+    const client = await new ChannelBotClient().login({ accessKey: 'key-1', accessSecret: 'secret-1' })
 
     try {
       await client.getChannel()
@@ -134,7 +134,7 @@ describe('ChannelBotClient', () => {
   test('204 response returns undefined', async () => {
     mockResponse(null, 204)
 
-    const client = new ChannelBotClient('key-1', 'secret-1')
+    const client = await new ChannelBotClient().login({ accessKey: 'key-1', accessSecret: 'secret-1' })
     const result = await client.deleteUserChat('chat-1')
 
     expect(result).toBeUndefined()
@@ -149,7 +149,7 @@ describe('ChannelBotClient', () => {
   test('sendUserChatMessage includes botName in query string', async () => {
     mockResponse({ message: { id: 'm-1' } })
 
-    const client = new ChannelBotClient('key-1', 'secret-1')
+    const client = await new ChannelBotClient().login({ accessKey: 'key-1', accessSecret: 'secret-1' })
     await client.sendUserChatMessage('chat-1', [{ type: 'text', value: 'hello' }], 'SupportBot')
 
     expect(fetchCalls[0].url).toBe('https://api.channel.io/open/v5/user-chats/chat-1/messages?botName=SupportBot')
@@ -158,7 +158,7 @@ describe('ChannelBotClient', () => {
   test('sendGroupMessage includes botName in query string', async () => {
     mockResponse({ message: { id: 'm-1' } })
 
-    const client = new ChannelBotClient('key-1', 'secret-1')
+    const client = await new ChannelBotClient().login({ accessKey: 'key-1', accessSecret: 'secret-1' })
     await client.sendGroupMessage('grp-1', [{ type: 'text', value: 'hello' }], 'OpsBot')
 
     expect(fetchCalls[0].url).toBe('https://api.channel.io/open/v5/groups/grp-1/messages?botName=OpsBot')
@@ -167,7 +167,7 @@ describe('ChannelBotClient', () => {
   test('resolveGroup("@team-name") calls groups by name endpoint', async () => {
     mockResponse({ group: { id: 'grp-1', channelId: 'ch-1', name: 'team-name' } })
 
-    const client = new ChannelBotClient('key-1', 'secret-1')
+    const client = await new ChannelBotClient().login({ accessKey: 'key-1', accessSecret: 'secret-1' })
     await client.resolveGroup('@team-name')
 
     expect(fetchCalls[0].url).toBe('https://api.channel.io/open/v5/groups/@team-name')
@@ -176,7 +176,7 @@ describe('ChannelBotClient', () => {
   test('resolveGroup("grp123") calls groups by id endpoint', async () => {
     mockResponse({ group: { id: 'grp123', channelId: 'ch-1', name: 'team-name' } })
 
-    const client = new ChannelBotClient('key-1', 'secret-1')
+    const client = await new ChannelBotClient().login({ accessKey: 'key-1', accessSecret: 'secret-1' })
     await client.resolveGroup('grp123')
 
     expect(fetchCalls[0].url).toBe('https://api.channel.io/open/v5/groups/grp123')
@@ -185,7 +185,7 @@ describe('ChannelBotClient', () => {
   test('pagination params are included in query string', async () => {
     mockResponse({ messages: [] })
 
-    const client = new ChannelBotClient('key-1', 'secret-1')
+    const client = await new ChannelBotClient().login({ accessKey: 'key-1', accessSecret: 'secret-1' })
     await client.getUserChatMessages('chat-1', { since: 'cursor-1', limit: 25, sortOrder: 'desc' })
 
     const url = new URL(fetchCalls[0].url)

@@ -27,7 +27,7 @@ export async function setAction(
   options: ActionOptions,
 ): Promise<ActionResult> {
   try {
-    const client = new ChannelBotClient(accessKey, accessSecret)
+    const client = await new ChannelBotClient().login({ accessKey, accessSecret })
     const channel = await client.getChannel()
 
     const workspaceId = channel.id
@@ -66,7 +66,7 @@ export async function statusAction(options: ActionOptions): Promise<ActionResult
     let workspaceName: string | undefined
 
     try {
-      const client = new ChannelBotClient(creds.access_key, creds.access_secret)
+      const client = await new ChannelBotClient().login({ accessKey: creds.access_key, accessSecret: creds.access_secret })
       const channel = await client.getChannel()
       valid = true
       workspaceId = channel.id
