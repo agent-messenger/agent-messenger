@@ -9,6 +9,10 @@ import {
   KakaoSendResultSchema,
   KakaoTalkClient,
   KakaoTalkError,
+  KakaoTalkListener,
+  KakaoTalkPushMemberEventSchema,
+  KakaoTalkPushMessageEventSchema,
+  KakaoTalkPushReadEventSchema,
 } from '@/platforms/kakaotalk/index'
 
 test('KakaoTalkClient is exported from barrel', () => {
@@ -25,6 +29,10 @@ test('CredentialManager is exported from barrel', () => {
 
 test('KakaoCredentialManager is exported from barrel', () => {
   expect(typeof KakaoCredentialManager).toBe('function')
+})
+
+test('KakaoTalkListener is exported from barrel', () => {
+  expect(typeof KakaoTalkListener).toBe('function')
 })
 
 test('KakaoChatSchema is exported from barrel', () => {
@@ -45,4 +53,16 @@ test('KakaoAccountCredentialsSchema is exported from barrel', () => {
 
 test('KakaoConfigSchema is exported from barrel', () => {
   expect(typeof KakaoConfigSchema.parse).toBe('function')
+})
+
+test('KakaoTalkPushMessageEventSchema is exported from barrel', () => {
+  expect(typeof KakaoTalkPushMessageEventSchema.parse).toBe('function')
+})
+
+test('KakaoTalkPushMemberEventSchema is exported from barrel', () => {
+  expect(typeof KakaoTalkPushMemberEventSchema.parse).toBe('function')
+})
+
+test('KakaoTalkPushReadEventSchema is exported from barrel', () => {
+  expect(typeof KakaoTalkPushReadEventSchema.parse).toBe('function')
 })
