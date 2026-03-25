@@ -11,6 +11,7 @@ import type {
   MessageBlock,
 } from './types'
 import { ChannelError } from './types'
+import { ChannelCredentialManager } from './credential-manager'
 
 const BASE_URL = 'https://desk-api.channel.io'
 const MAX_RETRIES = 3
@@ -23,18 +24,37 @@ interface ChannelApiErrorResponse {
 }
 
 export class ChannelClient {
-  private accountCookie: string
+  private accountCookie: string | null = null
   private sessionCookie: string | undefined
   private rateLimitRemaining: number | null = null
   private rateLimitResetAt = 0
 
-  constructor(accountCookie: string, sessionCookie?: string) {
-    if (!accountCookie) {
-      throw new ChannelError('Account cookie is required', 'missing_account_cookie')
+  async login(credentials?: { accountCookie: string; sessionCookie?: string }): Promise<this> {
+    if (credentials) {
+      if (!credentials.accountCookie) {
+        throw new ChannelError('Account cookie is required', 'missing_account_cookie')
+      }
+      this.accountCookie = credentials.accountCookie
+      this.sessionCookie = credentials.sessionCookie
+      return this
     }
 
-    this.accountCookie = accountCookie
-    this.sessionCookie = sessionCookie
+    const { ensureChannelAuth } = await import('./ensure-auth')
+    await ensureChannelAuth()
+    const creds = await new ChannelCredentialManager().getCredentials()
+    if (!creds) {
+      throw new ChannelError(
+        'No Channel Talk credentials found. Make sure Channel Talk desktop app is installed and logged in.',
+        'no_credentials',
+      )
+    }
+    return this.login({ accountCookie: creds.account_cookie, sessionCookie: creds.session_cookie ?? undefined })
+  }
+
+  private ensureAuth(): void {
+    if (this.accountCookie === null) {
+      throw new ChannelError('Not authenticated. Call .login() first.', 'not_authenticated')
+    }
   }
 
   static wrapTextInBlocks(text: string): MessageBlock[] {
@@ -222,8 +242,8 @@ export class ChannelClient {
   private getHeaders(): Record<string, string> {
     return {
       Cookie: this.sessionCookie
-        ? `x-account=${this.accountCookie}; ch-session-1=${this.sessionCookie}`
-        : `x-account=${this.accountCookie}`,
+        ? `x-account=${this.accountCookie!}; ch-session-1=${this.sessionCookie}`
+        : `x-account=${this.accountCookie!}`,
       'Content-Type': 'application/json',
     }
   }
@@ -255,6 +275,7 @@ export class ChannelClient {
   }
 
   private async request<T>(method: string, path: string, body?: unknown, unwrapKey?: string): Promise<T> {
+    this.ensureAuth()
     const url = `${BASE_URL}${path}`
     let lastError: Error | undefined
 

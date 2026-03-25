@@ -23,7 +23,6 @@ import {
   ChannelWorkspaceEntrySchema,
   ExtractedChannelTokenSchema,
   MessageBlockSchema,
-  createChannelClient,
 } from '@/platforms/channeltalk/index'
 
 test('ChannelClient is exported from barrel', () => {
@@ -36,10 +35,6 @@ test('ChannelError is exported from barrel', () => {
 
 test('ChannelCredentialManager is exported from barrel', () => {
   expect(typeof ChannelCredentialManager).toBe('function')
-})
-
-test('createChannelClient is exported from barrel', () => {
-  expect(typeof createChannelClient).toBe('function')
 })
 
 test('ChannelSchema is exported from barrel', () => {
