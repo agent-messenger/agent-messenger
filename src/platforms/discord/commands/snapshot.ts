@@ -23,7 +23,7 @@ export async function snapshotAction(options: {
       process.exit(1)
     }
 
-    const client = new DiscordClient(config.token as string)
+    const client = await new DiscordClient().login({ token: config.token as string })
     const serverId = config.current_server as string
     const messageLimit = options.limit || 20
 

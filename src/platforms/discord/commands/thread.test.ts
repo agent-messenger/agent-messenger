@@ -46,7 +46,7 @@ afterEach(() => {
 
 test('createThread: creates thread with name', async () => {
   // given: discord client
-  const client = new DiscordClient('test-token')
+  const client = await new DiscordClient().login({ token: 'test-token' })
 
   // when: creating thread
   const thread = await client.createThread('ch-1', 'Test Thread')
@@ -61,7 +61,7 @@ test('createThread: creates thread with name', async () => {
 
 test('createThread: creates thread with auto_archive_duration', async () => {
   // given: discord client
-  const client = new DiscordClient('test-token')
+  const client = await new DiscordClient().login({ token: 'test-token' })
 
   // when: creating thread with auto_archive_duration
   await client.createThread('ch-1', 'Test Thread', { auto_archive_duration: 60 })
@@ -74,7 +74,7 @@ test('createThread: creates thread with auto_archive_duration', async () => {
 
 test('createThread: creates thread with rate_limit_per_user', async () => {
   // given: discord client
-  const client = new DiscordClient('test-token')
+  const client = await new DiscordClient().login({ token: 'test-token' })
 
   // when: creating thread with rate_limit_per_user
   await client.createThread('ch-1', 'Test Thread', { rate_limit_per_user: 10 })
@@ -87,7 +87,7 @@ test('createThread: creates thread with rate_limit_per_user', async () => {
 
 test('archiveThread: archives thread', async () => {
   // given: discord client
-  const client = new DiscordClient('test-token')
+  const client = await new DiscordClient().login({ token: 'test-token' })
 
   // when: archiving thread
   const thread = await client.archiveThread('thread-1')
@@ -111,7 +111,7 @@ test('archiveThread: unarchives thread when archived=false', async () => {
       auto_archive_duration: 1440,
     },
   })
-  const client = new DiscordClient('test-token')
+  const client = await new DiscordClient().login({ token: 'test-token' })
 
   // when: unarchiving thread
   const thread = await client.archiveThread('thread-1', false)

@@ -17,7 +17,7 @@ export async function sendAction(channelId: string, content: string, options: { 
       process.exit(1)
     }
 
-    const client = new DiscordClient(config.token)
+    const client = await new DiscordClient().login({ token: config.token })
     const message = await client.sendMessage(channelId, content)
 
     const output = {
@@ -43,7 +43,7 @@ export async function listAction(channelId: string, options: { limit?: number; p
       process.exit(1)
     }
 
-    const client = new DiscordClient(config.token)
+    const client = await new DiscordClient().login({ token: config.token })
     const limit = options.limit || 50
     const messages = await client.getMessages(channelId, limit)
 
@@ -71,7 +71,7 @@ export async function getAction(channelId: string, messageId: string, options: {
       process.exit(1)
     }
 
-    const client = new DiscordClient(config.token)
+    const client = await new DiscordClient().login({ token: config.token })
     const message = await client.getMessage(channelId, messageId)
 
     if (!message) {
@@ -112,7 +112,7 @@ export async function deleteAction(
       process.exit(0)
     }
 
-    const client = new DiscordClient(config.token)
+    const client = await new DiscordClient().login({ token: config.token })
     await client.deleteMessage(channelId, messageId)
 
     console.log(formatOutput({ deleted: messageId }, options.pretty))
@@ -131,7 +131,7 @@ export async function ackAction(channelId: string, messageId: string, options: {
       process.exit(1)
     }
 
-    const client = new DiscordClient(config.token)
+    const client = await new DiscordClient().login({ token: config.token })
     await client.ackMessage(channelId, messageId)
 
     console.log(formatOutput({ acknowledged: messageId }, options.pretty))
@@ -167,7 +167,7 @@ export async function searchAction(
       process.exit(1)
     }
 
-    const client = new DiscordClient(config.token)
+    const client = await new DiscordClient().login({ token: config.token })
 
     const searchOptions: DiscordSearchOptions = {}
     if (options.channel) searchOptions.channelId = options.channel

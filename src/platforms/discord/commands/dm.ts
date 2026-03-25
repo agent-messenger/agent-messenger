@@ -17,7 +17,7 @@ export async function listAction(options: { pretty?: boolean }): Promise<void> {
       process.exit(1)
     }
 
-    const client = new DiscordClient(config.token)
+    const client = await new DiscordClient().login({ token: config.token })
     const channels = await client.listDMChannels()
 
     const output = channels.map((channel: DiscordDMChannel) => ({
@@ -47,7 +47,7 @@ export async function createAction(userId: string, options: { pretty?: boolean }
       process.exit(1)
     }
 
-    const client = new DiscordClient(config.token)
+    const client = await new DiscordClient().login({ token: config.token })
     const channel = await client.createDM(userId)
 
     const output = {

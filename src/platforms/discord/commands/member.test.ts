@@ -55,7 +55,7 @@ afterEach(() => {
 })
 
 test('search: returns members matching query', async () => {
-  const client = new DiscordClient('test-token')
+  const client = await new DiscordClient().login({ token: 'test-token' })
   const members = await client.searchMembers('guild-1', 'alice', 10)
 
   expect(members).toBeDefined()
@@ -65,7 +65,7 @@ test('search: returns members matching query', async () => {
 })
 
 test('search: includes member metadata', async () => {
-  const client = new DiscordClient('test-token')
+  const client = await new DiscordClient().login({ token: 'test-token' })
   const members = await client.searchMembers('guild-1', 'alice', 10)
 
   const member = members[0]
@@ -83,7 +83,7 @@ test('search: includes member metadata', async () => {
 })
 
 test('search: respects limit parameter', async () => {
-  const client = new DiscordClient('test-token')
+  const client = await new DiscordClient().login({ token: 'test-token' })
 
   await client.searchMembers('guild-1', 'alice', 5)
 
@@ -91,7 +91,7 @@ test('search: respects limit parameter', async () => {
 })
 
 test('search: uses default limit of 10', async () => {
-  const client = new DiscordClient('test-token')
+  const client = await new DiscordClient().login({ token: 'test-token' })
 
   const members = await client.searchMembers('guild-1', 'alice')
 

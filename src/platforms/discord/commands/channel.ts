@@ -16,7 +16,7 @@ export async function listAction(options: { pretty?: boolean }): Promise<void> {
       process.exit(1)
     }
 
-    const client = new DiscordClient(config.token)
+    const client = await new DiscordClient().login({ token: config.token })
     const channels = await client.listChannels(config.current_server)
 
     const textChannels = channels.filter((ch) => ch.type === 0)
@@ -45,7 +45,7 @@ export async function infoAction(channelId: string, options: { pretty?: boolean 
       process.exit(1)
     }
 
-    const client = new DiscordClient(config.token)
+    const client = await new DiscordClient().login({ token: config.token })
     const channel = await client.getChannel(channelId)
 
     const output = {
@@ -73,7 +73,7 @@ export async function historyAction(channelId: string, options: { limit?: number
       process.exit(1)
     }
 
-    const client = new DiscordClient(config.token)
+    const client = await new DiscordClient().login({ token: config.token })
     const messages = await client.getMessages(channelId, options.limit || 50)
 
     const output = messages.map((msg) => ({

@@ -12,7 +12,7 @@ export async function ensureDiscordAuth(): Promise<void> {
     const extracted = await extractor.extract()
     if (!extracted) return
 
-    const client = new DiscordClient(extracted.token)
+    const client = await new DiscordClient().login({ token: extracted.token })
     const authInfo = await client.testAuth()
     if (!authInfo) return
 

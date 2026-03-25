@@ -35,19 +35,3 @@ export {
   DiscordUserSchema,
 } from './types'
 
-import { DiscordClient, DiscordError } from './client'
-import { DiscordCredentialManager } from './credential-manager'
-
-export async function createDiscordClient(): Promise<DiscordClient> {
-  const { ensureDiscordAuth } = await import('./ensure-auth')
-  await ensureDiscordAuth()
-  const credManager = new DiscordCredentialManager()
-  const token = await credManager.getToken()
-  if (!token) {
-    throw new DiscordError(
-      'No Discord credentials found. Make sure Discord desktop app is installed and logged in.',
-      'no_credentials',
-    )
-  }
-  return new DiscordClient(token)
-}

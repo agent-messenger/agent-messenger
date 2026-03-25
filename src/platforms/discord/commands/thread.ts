@@ -20,7 +20,7 @@ export async function createAction(
       process.exit(1)
     }
 
-    const client = new DiscordClient(config.token)
+    const client = await new DiscordClient().login({ token: config.token })
     const threadOptions: { auto_archive_duration?: number } = {}
 
     if (options.autoArchiveDuration) {
@@ -52,7 +52,7 @@ export async function archiveAction(threadId: string, options: { pretty?: boolea
       process.exit(1)
     }
 
-    const client = new DiscordClient(config.token)
+    const client = await new DiscordClient().login({ token: config.token })
     const thread = await client.archiveThread(threadId)
 
     const output = {

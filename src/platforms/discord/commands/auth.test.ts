@@ -57,14 +57,14 @@ test('extract: calls DiscordTokenExtractor', async () => {
 })
 
 test('extract: validates token with DiscordClient', async () => {
-  const client = new DiscordClient('test-token-123')
+  const client = await new DiscordClient().login({ token: 'test-token-123' })
   const authInfo = await client.testAuth()
   expect(authInfo).toBeDefined()
   expect(authInfo.id).toBe('user-123')
 })
 
 test('extract: discovers servers', async () => {
-  const client = new DiscordClient('test-token-123')
+  const client = await new DiscordClient().login({ token: 'test-token-123' })
   const servers = await client.listServers()
   expect(servers).toHaveLength(2)
   expect(servers[0].id).toBe('server-1')
