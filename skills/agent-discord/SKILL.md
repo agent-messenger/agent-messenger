@@ -443,13 +443,38 @@ const thread = await client.createThread(channelId, 'Discussion Topic')
 await client.sendMessage(thread.id, 'First message in thread')
 ```
 
+### Real-Time Events (SDK)
+
+`DiscordListener` connects to Discord's Gateway WebSocket for instant event streaming:
+
+```typescript
+import { DiscordClient, DiscordListener, DiscordIntent } from 'agent-messenger/discord'
+
+const client = await new DiscordClient().login()
+const listener = new DiscordListener(client, {
+  intents: DiscordIntent.Guilds | DiscordIntent.GuildMessages | DiscordIntent.MessageContent,
+})
+
+listener.on('message_create', (event) => {
+  console.log(`${event.author.username}: ${event.content}`)
+})
+
+listener.on('error', (err) => console.error(err))
+
+await listener.start()
+// listener.stop()
+```
+
+Available events: `message_create`, `message_update`, `message_delete`, `message_reaction_add`, `message_reaction_remove`, `guild_member_add`, `guild_member_remove`, `typing_start`, `presence_update`, `channel_create`, `channel_update`, `channel_delete`, `discord_event` (catch-all), `connected`, `disconnected`, `error`.
+
+Note: `MessageContent`, `GuildMembers`, and `GuildPresences` are privileged intents — pass them explicitly via `options.intents`.
+
 ### Full API Reference
 
 See the [Discord SDK documentation](https://agent-messenger.dev/docs/sdk/discord) for complete method signatures, types, schemas, and examples.
 
 ## Limitations
 
-- No real-time events / Gateway connection
 - No voice channel support
 - No server management (create/delete channels, roles)
 - No slash commands

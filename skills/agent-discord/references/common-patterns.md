@@ -68,7 +68,7 @@ done
 
 **When to use**: Building a simple bot that reacts to messages.
 
-**Limitations**: Polling-based, not real-time. For production bots, use Discord's Gateway API with a proper bot token.
+**Limitations**: Polling-based, not real-time. For real-time events, use `DiscordListener` from the SDK (see SKILL.md "Real-Time Events" section).
 
 ## Pattern 3: Get Server Overview
 
