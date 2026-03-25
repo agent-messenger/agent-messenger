@@ -20,44 +20,44 @@ program.command('slack', 'Interact with Slack workspaces', {
   executableFile: join(__dirname, 'platforms', 'slack', `cli${ext}`),
 })
 
-program.command('discord', 'Interact with Discord guilds', {
-  executableFile: join(__dirname, 'platforms', 'discord', `cli${ext}`),
-})
-
-program.command('teams', 'Interact with Microsoft Teams', {
-  executableFile: join(__dirname, 'platforms', 'teams', `cli${ext}`),
-})
-
 program.command('slackbot', 'Interact with Slack using bot tokens', {
   executableFile: join(__dirname, 'platforms', 'slackbot', `cli${ext}`),
+})
+
+program.command('discord', 'Interact with Discord guilds', {
+  executableFile: join(__dirname, 'platforms', 'discord', `cli${ext}`),
 })
 
 program.command('discordbot', 'Interact with Discord using bot tokens', {
   executableFile: join(__dirname, 'platforms', 'discordbot', `cli${ext}`),
 })
 
-program.command('channeltalkbot', 'Interact with Channel Talk using API credentials', {
-  executableFile: join(__dirname, 'platforms', 'channeltalkbot', `cli${ext}`),
-})
-
-program.command('channeltalk', 'Interact with Channel Talk', {
-  executableFile: join(__dirname, 'platforms', 'channeltalk', `cli${ext}`),
-})
-
-program.command('kakaotalk', 'Interact with KakaoTalk', {
-  executableFile: join(__dirname, 'platforms', 'kakaotalk', `cli${ext}`),
+program.command('teams', 'Interact with Microsoft Teams', {
+  executableFile: join(__dirname, 'platforms', 'teams', `cli${ext}`),
 })
 
 program.command('telegram', 'Interact with Telegram via TDLib', {
   executableFile: join(__dirname, 'platforms', 'telegram', `cli${ext}`),
 })
 
+program.command('whatsapp', 'Interact with WhatsApp via linked device', {
+  executableFile: join(__dirname, 'platforms', 'whatsapp', `cli${ext}`),
+})
+
 program.command('whatsappbot', 'Interact with WhatsApp using Cloud API credentials', {
   executableFile: join(__dirname, 'platforms', 'whatsappbot', `cli${ext}`),
 })
 
-program.command('whatsapp', 'Interact with WhatsApp via linked device', {
-  executableFile: join(__dirname, 'platforms', 'whatsapp', `cli${ext}`),
+program.command('kakaotalk', 'Interact with KakaoTalk', {
+  executableFile: join(__dirname, 'platforms', 'kakaotalk', `cli${ext}`),
+})
+
+program.command('channeltalk', 'Interact with Channel Talk', {
+  executableFile: join(__dirname, 'platforms', 'channeltalk', `cli${ext}`),
+})
+
+program.command('channeltalkbot', 'Interact with Channel Talk using API credentials', {
+  executableFile: join(__dirname, 'platforms', 'channeltalkbot', `cli${ext}`),
 })
 
 program.parse(process.argv)
