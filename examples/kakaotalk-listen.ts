@@ -16,7 +16,7 @@ async function main() {
   })
 
   listener.on('message', (event) => {
-    const time = new Date(event.sent_at).toLocaleTimeString()
+    const time = new Date(event.sent_at * 1000).toLocaleTimeString()
     console.log(`[${time}] message chat:${event.chat_id} <${event.author_id}>: ${event.message}`)
   })
 

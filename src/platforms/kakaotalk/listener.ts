@@ -163,7 +163,10 @@ export class KakaoTalkListener {
 
       case 'CHANGESVR': {
         this.reconnectAttempts = 0
-        this.session?.close()
+        const prev = this.session
+        this.session = null
+        prev?.close()
+        this.connect()
         break
       }
 
@@ -184,6 +187,7 @@ export class KakaoTalkListener {
   }
 
   private scheduleReconnect(): void {
+    this.clearTimers()
     const delay = Math.min(RECONNECT_BASE_DELAY * 2 ** this.reconnectAttempts, RECONNECT_MAX_DELAY)
     this.reconnectAttempts++
     this.reconnectTimer = setTimeout(() => this.connect(), delay)
