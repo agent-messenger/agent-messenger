@@ -1,23 +1,10 @@
 #!/usr/bin/env bun
 import { DiscordClient } from '../src/platforms/discord/client'
 import { DiscordListener } from '../src/platforms/discord/listener'
-import { DiscordIntent } from '../src/platforms/discord/types'
 
 async function main() {
   const client = await new DiscordClient().login()
-  const listener = new DiscordListener(client, {
-    intents:
-      DiscordIntent.Guilds |
-      DiscordIntent.GuildMembers |
-      DiscordIntent.GuildPresences |
-      DiscordIntent.GuildMessages |
-      DiscordIntent.GuildMessageReactions |
-      DiscordIntent.GuildMessageTyping |
-      DiscordIntent.DirectMessages |
-      DiscordIntent.DirectMessageReactions |
-      DiscordIntent.DirectMessageTyping |
-      DiscordIntent.MessageContent,
-  })
+  const listener = new DiscordListener(client)
 
   listener.on('connected', (info) => {
     console.log(`Connected (user: ${info.user.id}, session: ${info.sessionId})`)
@@ -49,20 +36,8 @@ async function main() {
     console.log(`[reaction removed] :${event.emoji.name}: by ${event.user_id}`)
   })
 
-  listener.on('guild_member_add', (event) => {
-    console.log(`[join] ${event.user.username} joined guild ${event.guild_id}`)
-  })
-
-  listener.on('guild_member_remove', (event) => {
-    console.log(`[leave] ${event.user.username} left guild ${event.guild_id}`)
-  })
-
   listener.on('typing_start', (event) => {
     console.log(`[typing] ${event.user_id} in #${event.channel_id}`)
-  })
-
-  listener.on('presence_update', (event) => {
-    console.log(`[presence] ${event.user.id} is now ${event.status}`)
   })
 
   listener.on('error', (err) => {
