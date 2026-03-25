@@ -41,7 +41,7 @@ Agent Messenger reads session tokens from your Slack, Discord, Teams, KakaoTalk,
 
 - **Auto-Extract Auth** — Reads tokens from Slack, Discord, Teams, KakaoTalk, and Channel Talk desktop apps. Telegram and WhatsApp authenticate with a one-time code — still under a minute
 - **Act As Yourself** — Extracts your user session — not a bot token. Your agent sends messages, reacts, and searches as you. Need bot mode? Bot CLIs are included too
-- **One Interface** — Same command patterns across 7 platforms: message send, message search, channel list, snapshot. Learn once
+- **One Interface** — Consistent command style across 7 platforms for supported actions (e.g. message send, message search, channel list, snapshot). Learn once
 - **Agent-Native Output** — JSON by default for LLM tool use. `--pretty` for human-readable. Structured output your agent can parse and act on
 - **Token Efficient** — CLI, not MCP. One skill file, one shell command per action. No server to run, no tool registration. ([Why not MCP?](#philosophy))
 - **Persistent Memory** — Stores workspace IDs, channel mappings, and preferences in ~/.config so your agent never asks twice
@@ -334,7 +334,7 @@ With Agent Messenger, your agent loads the skill it needs, uses the CLI, and mov
 
 OAuth requires creating an app and workspace admin approval—days of waiting just to send a message. Agent Messenger skips all of that. Your desktop apps already have valid session tokens; Agent Messenger extracts them directly so you can start messaging immediately.
 
-For server-side bots and CI/CD, bot tokens are fully supported via [`agent-slackbot`](skills/agent-slackbot/SKILL.md), [`agent-discordbot`](skills/agent-discordbot/SKILL.md), and [`agent-channeltalkbot`](skills/agent-channeltalkbot/SKILL.md).
+For server-side bots and CI/CD, bot tokens are fully supported via [`agent-slackbot`](skills/agent-slackbot/SKILL.md), [`agent-discordbot`](skills/agent-discordbot/SKILL.md), [`agent-whatsappbot`](skills/agent-whatsappbot/SKILL.md), and [`agent-channeltalkbot`](skills/agent-channeltalkbot/SKILL.md).
 
 Inspired by [agent-browser](https://github.com/vercel-labs/agent-browser) from Vercel Labs.
 
