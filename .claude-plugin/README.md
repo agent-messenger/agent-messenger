@@ -38,6 +38,13 @@ Enables AI agents to interact with messaging platforms through CLI interfaces:
 - **Activity feed, drafts, saved items, unread tracking**
 - **Multi-workspace support** with easy switching
 
+### Slack Bot (`agent-slackbot`)
+- **Send messages** using bot tokens (xoxb-)
+- **Read channels** and message history
+- **Manage reactions** (add/remove)
+- **Multi-bot management** with easy switching
+- Designed for **server-side and CI/CD** use cases
+
 ### Discord (`agent-discord`)
 - **Send messages** to channels
 - **Read channels** and message history
@@ -46,21 +53,6 @@ Enables AI agents to interact with messaging platforms through CLI interfaces:
 - **Search messages** across server
 - **Multi-guild support** with easy switching
 
-### Teams (`agent-teams`)
-- **Send messages** to channels
-- **Read channels** and message history
-- **Manage reactions** (add/remove)
-- **Upload files** to channels
-- **Workspace snapshots** for quick overview
-- **Multi-team support** with easy switching
-
-### Slack Bot (`agent-slackbot`)
-- **Send messages** using bot tokens (xoxb-)
-- **Read channels** and message history
-- **Manage reactions** (add/remove)
-- **Multi-bot management** with easy switching
-- Designed for **server-side and CI/CD** use cases
-
 ### Discord Bot (`agent-discordbot`)
 - **Send messages** using bot tokens
 - **Read channels** and message history
@@ -68,6 +60,14 @@ Enables AI agents to interact with messaging platforms through CLI interfaces:
 - **Upload files** to channels
 - **Multi-bot management** with easy switching
 - Designed for **server-side and CI/CD** use cases
+
+### Teams (`agent-teams`)
+- **Send messages** to channels
+- **Read channels** and message history
+- **Manage reactions** (add/remove)
+- **Upload files** to channels
+- **Workspace snapshots** for quick overview
+- **Multi-team support** with easy switching
 
 ### Telegram (`agent-telegram`)
 - **Send messages** to chats and users

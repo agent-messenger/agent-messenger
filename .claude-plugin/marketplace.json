@@ -21,19 +21,6 @@
       "keywords": ["slack", "messaging", "workspace", "ai-agent", "cli", "communication"]
     },
     {
-      "name": "agent-discord",
-      "description": "Interact with Discord servers through a CLI interface. Features seamless token extraction from Discord desktop app, multi-guild support, message operations, channel management, reactions, and file uploads.",
-      "version": "1.15.0",
-      "author": {
-        "name": "devxoul",
-        "url": "https://github.com/devxoul"
-      },
-      "source": "./",
-      "category": "productivity",
-      "homepage": "https://github.com/devxoul/agent-messenger",
-      "keywords": ["discord", "messaging", "guild", "server", "ai-agent", "cli", "communication"]
-    },
-    {
       "name": "agent-slackbot",
       "description": "Interact with Slack workspaces using bot tokens (xoxb-). Designed for server-side and CI/CD integrations. Supports message operations, channel management, reactions, and multi-bot/multi-workspace credential management.",
       "version": "1.15.0",
@@ -45,6 +32,19 @@
       "category": "productivity",
       "homepage": "https://github.com/devxoul/agent-messenger",
       "keywords": ["slack", "slackbot", "bot", "messaging", "ai-agent", "cli", "ci-cd"]
+    },
+    {
+      "name": "agent-discord",
+      "description": "Interact with Discord servers through a CLI interface. Features seamless token extraction from Discord desktop app, multi-guild support, message operations, channel management, reactions, and file uploads.",
+      "version": "1.15.0",
+      "author": {
+        "name": "devxoul",
+        "url": "https://github.com/devxoul"
+      },
+      "source": "./",
+      "category": "productivity",
+      "homepage": "https://github.com/devxoul/agent-messenger",
+      "keywords": ["discord", "messaging", "guild", "server", "ai-agent", "cli", "communication"]
     },
     {
       "name": "agent-discordbot",
