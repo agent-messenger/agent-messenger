@@ -80,7 +80,8 @@ export class KakaoTalkListener {
 
       session.onPush((packet) => this.handlePush(packet))
       session.onClose(() => {
-        if (this.session === session) this.session = null
+        if (this.session !== session) return
+        this.session = null
         if (this.running) {
           this.emitter.emit('disconnected')
           this.scheduleReconnect()
