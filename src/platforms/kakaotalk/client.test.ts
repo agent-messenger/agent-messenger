@@ -71,31 +71,31 @@ describe('KakaoTalkClient', () => {
   })
 
   describe('constructor', () => {
-    test('creates client with required params', () => {
-      const client = new KakaoTalkClient('token', 'user1')
+    test('creates client with required params', async () => {
+      const client = await new KakaoTalkClient().login({ oauthToken: 'token', userId: 'user1' })
       expect(client).toBeInstanceOf(KakaoTalkClient)
       client.close()
     })
 
-    test('defaults deviceUuid when not provided', () => {
-      const client = new KakaoTalkClient('token', 'user1')
+    test('defaults deviceUuid when not provided', async () => {
+      const client = await new KakaoTalkClient().login({ oauthToken: 'token', userId: 'user1' })
       expect(client).toBeInstanceOf(KakaoTalkClient)
       client.close()
     })
 
-    test('throws KakaoTalkError with code missing_token when oauthToken is empty', () => {
-      expect(() => new KakaoTalkClient('', 'user1')).toThrow(KakaoTalkError)
+    test('throws KakaoTalkError with code missing_token when oauthToken is empty', async () => {
+      await expect(new KakaoTalkClient().login({ oauthToken: '', userId: 'user1' })).rejects.toThrow(KakaoTalkError)
       try {
-        new KakaoTalkClient('', 'user1')
+        await new KakaoTalkClient().login({ oauthToken: '', userId: 'user1' })
       } catch (e) {
         expect((e as KakaoTalkError).code).toBe('missing_token')
       }
     })
 
-    test('throws KakaoTalkError with code missing_user_id when userId is empty', () => {
-      expect(() => new KakaoTalkClient('token', '')).toThrow(KakaoTalkError)
+    test('throws KakaoTalkError with code missing_user_id when userId is empty', async () => {
+      await expect(new KakaoTalkClient().login({ oauthToken: 'token', userId: '' })).rejects.toThrow(KakaoTalkError)
       try {
-        new KakaoTalkClient('token', '')
+        await new KakaoTalkClient().login({ oauthToken: 'token', userId: '' })
       } catch (e) {
         expect((e as KakaoTalkError).code).toBe('missing_user_id')
       }
@@ -104,7 +104,7 @@ describe('KakaoTalkClient', () => {
 
   describe('getChats', () => {
     test('returns formatted chats from login snapshot', async () => {
-      const client = new KakaoTalkClient('token', 'user1', 'device1')
+      const client = await new KakaoTalkClient().login({ oauthToken: 'token', userId: 'user1', deviceUuid: 'device1' })
       const chats = await client.getChats()
 
       expect(chats).toHaveLength(2)
@@ -123,7 +123,7 @@ describe('KakaoTalkClient', () => {
     })
 
     test('sorts chats by recency (o field descending)', async () => {
-      const client = new KakaoTalkClient('token', 'user1', 'device1')
+      const client = await new KakaoTalkClient().login({ oauthToken: 'token', userId: 'user1', deviceUuid: 'device1' })
       const chats = await client.getChats()
 
       // chat 100 has o=1700000000, chat 200 has o=1699999000
@@ -134,7 +134,7 @@ describe('KakaoTalkClient', () => {
     })
 
     test('filters by search term', async () => {
-      const client = new KakaoTalkClient('token', 'user1', 'device1')
+      const client = await new KakaoTalkClient().login({ oauthToken: 'token', userId: 'user1', deviceUuid: 'device1' })
       const chats = await client.getChats({ search: 'alice' })
 
       expect(chats).toHaveLength(1)
@@ -170,7 +170,7 @@ describe('KakaoTalkClient', () => {
         },
       })
 
-      const client = new KakaoTalkClient('token', 'user1', 'device1')
+      const client = await new KakaoTalkClient().login({ oauthToken: 'token', userId: 'user1', deviceUuid: 'device1' })
       const chats = await client.getChats({ all: true })
 
       expect(chats).toHaveLength(3)
@@ -207,7 +207,7 @@ describe('KakaoTalkClient', () => {
         },
       })
 
-      const client = new KakaoTalkClient('token', 'user1', 'device1')
+      const client = await new KakaoTalkClient().login({ oauthToken: 'token', userId: 'user1', deviceUuid: 'device1' })
       const chats = await client.getChats({ all: true })
 
       expect(chats).toHaveLength(2) // Not 3 — deduped
@@ -217,7 +217,7 @@ describe('KakaoTalkClient', () => {
     test('wraps errors as KakaoTalkError', async () => {
       mockLogin.mockRejectedValue(new Error('Connection refused'))
 
-      const client = new KakaoTalkClient('token', 'user1', 'device1')
+      const client = await new KakaoTalkClient().login({ oauthToken: 'token', userId: 'user1', deviceUuid: 'device1' })
       await expect(client.getChats()).rejects.toThrow(KakaoTalkError)
 
       // Reset for second attempt
@@ -236,7 +236,7 @@ describe('KakaoTalkClient', () => {
       mockLogin.mockResolvedValue(loginResult)
       mockGetChatList.mockRejectedValue(new Error('Network error'))
 
-      const client = new KakaoTalkClient('token', 'user1', 'device1')
+      const client = await new KakaoTalkClient().login({ oauthToken: 'token', userId: 'user1', deviceUuid: 'device1' })
       try {
         await client.getChats({ all: true })
         expect.unreachable('should have thrown')
@@ -261,7 +261,7 @@ describe('KakaoTalkClient', () => {
         },
       })
 
-      const client = new KakaoTalkClient('token', 'user1', 'device1')
+      const client = await new KakaoTalkClient().login({ oauthToken: 'token', userId: 'user1', deviceUuid: 'device1' })
       const messages = await client.getMessages('100')
 
       expect(messages).toHaveLength(2)
@@ -296,7 +296,7 @@ describe('KakaoTalkClient', () => {
         body: { chatLogs: logs, isOK: true },
       })
 
-      const client = new KakaoTalkClient('token', 'user1', 'device1')
+      const client = await new KakaoTalkClient().login({ oauthToken: 'token', userId: 'user1', deviceUuid: 'device1' })
       const messages = await client.getMessages('100', { count: 5 })
 
       expect(messages).toHaveLength(5)
@@ -318,7 +318,7 @@ describe('KakaoTalkClient', () => {
         },
       })
 
-      const client = new KakaoTalkClient('token', 'user1', 'device1')
+      const client = await new KakaoTalkClient().login({ oauthToken: 'token', userId: 'user1', deviceUuid: 'device1' })
       const messages = await client.getMessages('100')
 
       expect(messages[0].message).toBe('first')
@@ -335,7 +335,7 @@ describe('KakaoTalkClient', () => {
         body: { logId: makeLong(42), sendAt: 1700000099 },
       })
 
-      const client = new KakaoTalkClient('token', 'user1', 'device1')
+      const client = await new KakaoTalkClient().login({ oauthToken: 'token', userId: 'user1', deviceUuid: 'device1' })
       const result = await client.sendMessage('100', 'hello')
 
       expect(result).toEqual({
@@ -355,7 +355,7 @@ describe('KakaoTalkClient', () => {
         body: { logId: makeLong(0), sendAt: 0 },
       })
 
-      const client = new KakaoTalkClient('token', 'user1', 'device1')
+      const client = await new KakaoTalkClient().login({ oauthToken: 'token', userId: 'user1', deviceUuid: 'device1' })
       const result = await client.sendMessage('100', 'hello')
 
       expect(result.success).toBe(false)
@@ -367,7 +367,7 @@ describe('KakaoTalkClient', () => {
     test('wraps transport errors as KakaoTalkError', async () => {
       mockSendMessage.mockRejectedValue(new Error('Socket closed'))
 
-      const client = new KakaoTalkClient('token', 'user1', 'device1')
+      const client = await new KakaoTalkClient().login({ oauthToken: 'token', userId: 'user1', deviceUuid: 'device1' })
       await expect(client.sendMessage('100', 'hello')).rejects.toThrow(KakaoTalkError)
 
       mockSendMessage.mockRejectedValue(new Error('Socket closed'))
@@ -382,14 +382,14 @@ describe('KakaoTalkClient', () => {
   })
 
   describe('session lifecycle', () => {
-    test('lazy init: does not call login until first method call', () => {
-      const client = new KakaoTalkClient('token', 'user1', 'device1')
+    test('lazy init: does not call login until first method call', async () => {
+      const client = await new KakaoTalkClient().login({ oauthToken: 'token', userId: 'user1', deviceUuid: 'device1' })
       expect(mockLogin).not.toHaveBeenCalled()
       client.close()
     })
 
     test('calls login on first method call', async () => {
-      const client = new KakaoTalkClient('token', 'user1', 'device1')
+      const client = await new KakaoTalkClient().login({ oauthToken: 'token', userId: 'user1', deviceUuid: 'device1' })
       await client.getChats()
       expect(mockLogin).toHaveBeenCalledTimes(1)
       client.close()
@@ -400,7 +400,7 @@ describe('KakaoTalkClient', () => {
         body: { chatLogs: [], isOK: true },
       })
 
-      const client = new KakaoTalkClient('token', 'user1', 'device1')
+      const client = await new KakaoTalkClient().login({ oauthToken: 'token', userId: 'user1', deviceUuid: 'device1' })
       await client.getChats()
       await client.getMessages('100')
 
@@ -418,7 +418,7 @@ describe('KakaoTalkClient', () => {
         body: { chatLogs: [], isOK: true },
       })
 
-      const client = new KakaoTalkClient('token', 'user1', 'device1')
+      const client = await new KakaoTalkClient().login({ oauthToken: 'token', userId: 'user1', deviceUuid: 'device1' })
       await Promise.all([client.getChats(), client.getMessages('100')])
 
       expect(mockLogin).toHaveBeenCalledTimes(1)
@@ -431,7 +431,7 @@ describe('KakaoTalkClient', () => {
         .mockRejectedValueOnce(new Error('Connection refused'))
         .mockResolvedValueOnce(DEFAULT_LOGIN_RESULT)
 
-      const client = new KakaoTalkClient('token', 'user1', 'device1')
+      const client = await new KakaoTalkClient().login({ oauthToken: 'token', userId: 'user1', deviceUuid: 'device1' })
 
       // First call fails
       await expect(client.getChats()).rejects.toThrow(KakaoTalkError)
@@ -445,7 +445,7 @@ describe('KakaoTalkClient', () => {
     })
 
     test('close cleans up session state', async () => {
-      const client = new KakaoTalkClient('token', 'user1', 'device1')
+      const client = await new KakaoTalkClient().login({ oauthToken: 'token', userId: 'user1', deviceUuid: 'device1' })
       await client.getChats()
 
       client.close()
@@ -453,7 +453,7 @@ describe('KakaoTalkClient', () => {
     })
 
     test('methods throw client_closed after close', async () => {
-      const client = new KakaoTalkClient('token', 'user1', 'device1')
+      const client = await new KakaoTalkClient().login({ oauthToken: 'token', userId: 'user1', deviceUuid: 'device1' })
       await client.getChats()
       client.close()
 
@@ -466,8 +466,8 @@ describe('KakaoTalkClient', () => {
       }
     })
 
-    test('close is idempotent', () => {
-      const client = new KakaoTalkClient('token', 'user1', 'device1')
+    test('close is idempotent', async () => {
+      const client = await new KakaoTalkClient().login({ oauthToken: 'token', userId: 'user1', deviceUuid: 'device1' })
       client.close()
       expect(() => client.close()).not.toThrow()
     })
@@ -475,7 +475,7 @@ describe('KakaoTalkClient', () => {
     test('login failure closes the session to prevent socket leak', async () => {
       mockLogin.mockRejectedValue(new Error('Auth failed'))
 
-      const client = new KakaoTalkClient('token', 'user1', 'device1')
+      const client = await new KakaoTalkClient().login({ oauthToken: 'token', userId: 'user1', deviceUuid: 'device1' })
       await expect(client.getChats()).rejects.toThrow()
 
       // LocoSession.close() should have been called to clean up

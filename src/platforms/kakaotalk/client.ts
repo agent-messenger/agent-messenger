@@ -90,22 +90,35 @@ function wrapError(error: unknown, code: string): KakaoTalkError {
 const MAX_PAGES = 50
 
 export class KakaoTalkClient {
-  private oauthToken: string
-  private userId: string
-  private deviceUuid: string
+  private oauthToken: string | null = null
+  private userId: string | null = null
+  private deviceUuid: string | null = null
   private state: SessionState | null = null
   private initPromise: Promise<SessionState> | null = null
   private closed = false
 
-  constructor(oauthToken: string, userId: string, deviceUuid?: string) {
-    if (!oauthToken) throw new KakaoTalkError('OAuth token is required', 'missing_token')
-    if (!userId) throw new KakaoTalkError('User ID is required', 'missing_user_id')
-    this.oauthToken = oauthToken
-    this.userId = userId
-    this.deviceUuid = deviceUuid ?? `agent-messenger-${userId}`
+  async login(credentials?: { oauthToken: string; userId: string; deviceUuid?: string }): Promise<this> {
+    if (credentials) {
+      if (!credentials.oauthToken) throw new KakaoTalkError('OAuth token is required', 'missing_token')
+      if (!credentials.userId) throw new KakaoTalkError('User ID is required', 'missing_user_id')
+      this.oauthToken = credentials.oauthToken
+      this.userId = credentials.userId
+      this.deviceUuid = credentials.deviceUuid ?? `agent-messenger-${credentials.userId}`
+      return this
+    }
+    const { ensureKakaoAuth } = await import('./ensure-auth')
+    const account = await ensureKakaoAuth()
+    return this.login({ oauthToken: account.oauth_token, userId: account.user_id, deviceUuid: account.device_uuid })
+  }
+
+  private ensureAuth(): void {
+    if (this.oauthToken === null) {
+      throw new KakaoTalkError('Not authenticated. Call .login() first.', 'not_authenticated')
+    }
   }
 
   private async ensureSession(): Promise<SessionState> {
+    this.ensureAuth()
     if (this.closed) throw new KakaoTalkError('Client is closed', 'client_closed')
     if (this.state) return this.state
 
@@ -134,7 +147,7 @@ export class KakaoTalkClient {
   private async connect(): Promise<SessionState> {
     const session = new LocoSession()
     try {
-      const loginResult = await session.login(this.oauthToken, this.userId, this.deviceUuid)
+      const loginResult = await session.login(this.oauthToken!, this.userId!, this.deviceUuid!)
       return { session, loginResult }
     } catch (error) {
       session.close()
