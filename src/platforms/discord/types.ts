@@ -379,7 +379,6 @@ export interface DiscordGatewayChannelEvent {
   id: string
   guild_id?: string
   name?: string
-  channel_type: number
 }
 
 export interface DiscordGatewayGenericEvent {

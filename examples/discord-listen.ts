@@ -1,10 +1,23 @@
 #!/usr/bin/env bun
 import { DiscordClient } from '../src/platforms/discord/client'
 import { DiscordListener } from '../src/platforms/discord/listener'
+import { DiscordIntent } from '../src/platforms/discord/types'
 
 async function main() {
   const client = await new DiscordClient().login()
-  const listener = new DiscordListener(client)
+  const listener = new DiscordListener(client, {
+    intents:
+      DiscordIntent.Guilds |
+      DiscordIntent.GuildMembers |
+      DiscordIntent.GuildPresences |
+      DiscordIntent.GuildMessages |
+      DiscordIntent.GuildMessageReactions |
+      DiscordIntent.GuildMessageTyping |
+      DiscordIntent.DirectMessages |
+      DiscordIntent.DirectMessageReactions |
+      DiscordIntent.DirectMessageTyping |
+      DiscordIntent.MessageContent,
+  })
 
   listener.on('connected', (info) => {
     console.log(`Connected (user: ${info.user.id}, session: ${info.sessionId})`)
