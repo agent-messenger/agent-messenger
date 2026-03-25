@@ -388,9 +388,9 @@ Config format:
 ### Setup
 
 ```typescript
-import { createKakaoTalkClient } from 'agent-messenger/kakaotalk'
+import { KakaoTalkClient } from 'agent-messenger/kakaotalk'
 
-const client = await createKakaoTalkClient()
+const client = await new KakaoTalkClient().login()
 ```
 
 Or with manual credential management:
@@ -402,7 +402,7 @@ const manager = new KakaoCredentialManager()
 const account = await manager.getAccount()
 if (!account) throw new Error('Not authenticated')
 
-const client = new KakaoTalkClient(account.oauth_token, account.user_id, account.device_uuid)
+const client = await new KakaoTalkClient().login({ oauthToken: account.oauth_token, userId: account.user_id, deviceUuid: account.device_uuid })
 ```
 
 ### Example

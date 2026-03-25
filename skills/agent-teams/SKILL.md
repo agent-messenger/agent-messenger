@@ -350,9 +350,9 @@ Credentials stored in `~/.config/agent-messenger/teams-credentials.json` (0600 p
 ### Setup
 
 ```typescript
-import { createTeamsClient } from 'agent-messenger/teams'
+import { TeamsClient } from 'agent-messenger/teams'
 
-const client = await createTeamsClient()
+const client = await new TeamsClient().login()
 ```
 
 Or with manual credential management:
@@ -365,7 +365,7 @@ const creds = await manager.getTokenWithExpiry()
 if (!creds) {
   throw new Error('Teams token not found. Run auth extract first.')
 }
-const client = new TeamsClient(creds.token, creds.tokenExpiresAt)
+const client = await new TeamsClient().login({ token: creds.token, tokenExpiresAt: creds.tokenExpiresAt })
 ```
 
 ### Example
