@@ -41,9 +41,7 @@ const mockListUsers = mock((_guildId: string) =>
 
 mock.module('../client', () => ({
   DiscordBotClient: class MockDiscordBotClient {
-    constructor(token: string) {
-      if (!token) throw new Error('Token is required')
-    }
+    async login(_credentials?: any) { return this }
     listChannels = mockListChannels
     getMessages = mockGetMessages
     listUsers = mockListUsers

@@ -48,13 +48,13 @@ describe('DiscordBotClient', () => {
   }
 
   describe('constructor', () => {
-    test('requires token', () => {
-      expect(() => new DiscordBotClient('')).toThrow(DiscordBotError)
-      expect(() => new DiscordBotClient('')).toThrow('Token is required')
+    test('requires token', async () => {
+      await expect(new DiscordBotClient().login({ token: '' })).rejects.toThrow(DiscordBotError)
+      await expect(new DiscordBotClient().login({ token: '' })).rejects.toThrow('Token is required')
     })
 
-    test('accepts valid token', () => {
-      const client = new DiscordBotClient('bot-test-token')
+    test('accepts valid token', async () => {
+      const client = await new DiscordBotClient().login({ token: 'bot-test-token' })
       expect(client).toBeInstanceOf(DiscordBotClient)
     })
   })
@@ -68,7 +68,7 @@ describe('DiscordBotClient', () => {
         avatar: 'abc123',
       })
 
-      const client = new DiscordBotClient('my-bot-token')
+      const client = await new DiscordBotClient().login({ token: 'my-bot-token' })
       const user = await client.testAuth()
 
       expect(user.id).toBe('123456789')
@@ -84,7 +84,7 @@ describe('DiscordBotClient', () => {
     test('throws DiscordBotError on API error', async () => {
       mockResponse({ message: 'Unauthorized', code: 401 }, 401)
 
-      const client = new DiscordBotClient('bad-token')
+      const client = await new DiscordBotClient().login({ token: 'bad-token' })
       await expect(client.testAuth()).rejects.toThrow(DiscordBotError)
     })
   })
@@ -96,7 +96,7 @@ describe('DiscordBotClient', () => {
         { id: '222', name: 'Guild Two' },
       ])
 
-      const client = new DiscordBotClient('bot-token')
+      const client = await new DiscordBotClient().login({ token: 'bot-token' })
       const guilds = await client.listGuilds()
 
       expect(guilds).toHaveLength(2)
@@ -109,7 +109,7 @@ describe('DiscordBotClient', () => {
     test('returns guild info', async () => {
       mockResponse({ id: '111', name: 'Test Guild' })
 
-      const client = new DiscordBotClient('bot-token')
+      const client = await new DiscordBotClient().login({ token: 'bot-token' })
       const guild = await client.getGuild('111')
 
       expect(guild.id).toBe('111')
@@ -125,7 +125,7 @@ describe('DiscordBotClient', () => {
         { id: 'ch2', guild_id: '111', name: 'random', type: 0 },
       ])
 
-      const client = new DiscordBotClient('bot-token')
+      const client = await new DiscordBotClient().login({ token: 'bot-token' })
       const channels = await client.listChannels('111')
 
       expect(channels).toHaveLength(2)
@@ -144,7 +144,7 @@ describe('DiscordBotClient', () => {
         timestamp: '2024-01-01T00:00:00.000Z',
       })
 
-      const client = new DiscordBotClient('bot-token')
+      const client = await new DiscordBotClient().login({ token: 'bot-token' })
       const message = await client.sendMessage('ch1', 'Hello world')
 
       expect(message.content).toBe('Hello world')
@@ -162,7 +162,7 @@ describe('DiscordBotClient', () => {
         timestamp: '2024-01-01T00:00:00.000Z',
       })
 
-      const client = new DiscordBotClient('bot-token')
+      const client = await new DiscordBotClient().login({ token: 'bot-token' })
       await client.sendMessage('ch1', 'Thread reply', { thread_id: 'thread123' })
 
       expect(fetchCalls[0].options?.body).toBe(JSON.stringify({ content: 'Thread reply', thread_id: 'thread123' }))
@@ -180,7 +180,7 @@ describe('DiscordBotClient', () => {
         edited_timestamp: '2024-01-01T00:01:00.000Z',
       })
 
-      const client = new DiscordBotClient('bot-token')
+      const client = await new DiscordBotClient().login({ token: 'bot-token' })
       const message = await client.editMessage('ch1', 'msg1', 'Updated content')
 
       expect(message.content).toBe('Updated content')
@@ -194,7 +194,7 @@ describe('DiscordBotClient', () => {
     test('deletes message and returns void', async () => {
       mockResponse(null, 204)
 
-      const client = new DiscordBotClient('bot-token')
+      const client = await new DiscordBotClient().login({ token: 'bot-token' })
       const result = await client.deleteMessage('ch1', 'msg1')
 
       expect(result).toBeUndefined()
@@ -207,7 +207,7 @@ describe('DiscordBotClient', () => {
     test('adds reaction with encoded emoji', async () => {
       mockResponse(null, 204)
 
-      const client = new DiscordBotClient('bot-token')
+      const client = await new DiscordBotClient().login({ token: 'bot-token' })
       await client.addReaction('ch1', 'msg1', '👍')
 
       expect(fetchCalls[0].url).toBe(
@@ -221,7 +221,7 @@ describe('DiscordBotClient', () => {
     test('removes reaction with DELETE', async () => {
       mockResponse(null, 204)
 
-      const client = new DiscordBotClient('bot-token')
+      const client = await new DiscordBotClient().login({ token: 'bot-token' })
       await client.removeReaction('ch1', 'msg1', '👍')
 
       expect(fetchCalls[0].url).toBe(
@@ -235,7 +235,7 @@ describe('DiscordBotClient', () => {
     test('maps guild members to users', async () => {
       mockResponse([{ user: { id: 'u1', username: 'user1' } }, { user: { id: 'u2', username: 'user2' } }])
 
-      const client = new DiscordBotClient('bot-token')
+      const client = await new DiscordBotClient().login({ token: 'bot-token' })
       const users = await client.listUsers('111')
 
       expect(users).toHaveLength(2)
@@ -248,7 +248,7 @@ describe('DiscordBotClient', () => {
     test('returns user info', async () => {
       mockResponse({ id: 'u1', username: 'testuser' })
 
-      const client = new DiscordBotClient('bot-token')
+      const client = await new DiscordBotClient().login({ token: 'bot-token' })
       const user = await client.getUser('u1')
 
       expect(user.id).toBe('u1')
@@ -280,7 +280,7 @@ describe('DiscordBotClient', () => {
         ],
       })
 
-      const client = new DiscordBotClient('bot-token')
+      const client = await new DiscordBotClient().login({ token: 'bot-token' })
       const file = await client.uploadFile('ch1', tempFile)
 
       expect(file.filename).toBe('test-discordbot-upload.txt')
@@ -313,7 +313,7 @@ describe('DiscordBotClient', () => {
         },
       ])
 
-      const client = new DiscordBotClient('bot-token')
+      const client = await new DiscordBotClient().login({ token: 'bot-token' })
       const files = await client.listFiles('ch1')
 
       expect(files).toHaveLength(1)
@@ -330,7 +330,7 @@ describe('DiscordBotClient', () => {
         type: 11,
       })
 
-      const client = new DiscordBotClient('bot-token')
+      const client = await new DiscordBotClient().login({ token: 'bot-token' })
       const thread = await client.createThread('ch1', 'My Thread', { auto_archive_duration: 1440 })
 
       expect(thread.id).toBe('thread1')
@@ -351,7 +351,7 @@ describe('DiscordBotClient', () => {
         thread_metadata: { archived: true },
       })
 
-      const client = new DiscordBotClient('bot-token')
+      const client = await new DiscordBotClient().login({ token: 'bot-token' })
       await client.archiveThread('thread1')
 
       expect(fetchCalls[0].url).toBe('https://discord.com/api/v10/channels/thread1')
@@ -362,7 +362,7 @@ describe('DiscordBotClient', () => {
 
   describe('resolveChannel', () => {
     test('returns channel ID directly if all digits', async () => {
-      const client = new DiscordBotClient('bot-token')
+      const client = await new DiscordBotClient().login({ token: 'bot-token' })
       const id = await client.resolveChannel('111', '123456789')
 
       expect(id).toBe('123456789')
@@ -375,7 +375,7 @@ describe('DiscordBotClient', () => {
         { id: 'ch2', guild_id: '111', name: 'random', type: 0 },
       ])
 
-      const client = new DiscordBotClient('bot-token')
+      const client = await new DiscordBotClient().login({ token: 'bot-token' })
       const id = await client.resolveChannel('111', 'random')
 
       expect(id).toBe('ch2')
@@ -384,7 +384,7 @@ describe('DiscordBotClient', () => {
     test('strips # prefix when looking up by name', async () => {
       mockResponse([{ id: 'ch1', guild_id: '111', name: 'general', type: 0 }])
 
-      const client = new DiscordBotClient('bot-token')
+      const client = await new DiscordBotClient().login({ token: 'bot-token' })
       const id = await client.resolveChannel('111', '#general')
 
       expect(id).toBe('ch1')
@@ -393,7 +393,7 @@ describe('DiscordBotClient', () => {
     test('throws when channel name not found', async () => {
       mockResponse([{ id: 'ch1', guild_id: '111', name: 'general', type: 0 }])
 
-      const client = new DiscordBotClient('bot-token')
+      const client = await new DiscordBotClient().login({ token: 'bot-token' })
       try {
         await client.resolveChannel('111', 'nonexistent')
         expect.unreachable('Should have thrown')
@@ -418,7 +418,7 @@ describe('DiscordBotClient', () => {
         'X-RateLimit-Bucket': 'user-bucket',
       })
 
-      const client = new DiscordBotClient('bot-token')
+      const client = await new DiscordBotClient().login({ token: 'bot-token' })
       await client.testAuth()
 
       const startTime = Date.now()
@@ -433,7 +433,7 @@ describe('DiscordBotClient', () => {
       mockResponse({ message: 'Rate limited', retry_after: 0.1 }, 429, { 'Retry-After': '0.1' })
       mockResponse({ id: '123', username: 'bot' })
 
-      const client = new DiscordBotClient('bot-token')
+      const client = await new DiscordBotClient().login({ token: 'bot-token' })
       const user = await client.testAuth()
 
       expect(user.id).toBe('123')
@@ -447,7 +447,7 @@ describe('DiscordBotClient', () => {
       })
       mockResponse({ id: '123', username: 'bot' })
 
-      const client = new DiscordBotClient('bot-token')
+      const client = await new DiscordBotClient().login({ token: 'bot-token' })
       const user = await client.testAuth()
 
       expect(user.id).toBe('123')
@@ -459,7 +459,7 @@ describe('DiscordBotClient', () => {
         mockResponse({ message: 'Rate limited' }, 429, { 'Retry-After': '0.01' })
       }
 
-      const client = new DiscordBotClient('bot-token')
+      const client = await new DiscordBotClient().login({ token: 'bot-token' })
       await expect(client.testAuth()).rejects.toThrow(DiscordBotError)
       expect(fetchCalls.length).toBeLessThanOrEqual(4)
     })
@@ -470,7 +470,7 @@ describe('DiscordBotClient', () => {
       mockResponse({ message: 'Internal Server Error' }, 500)
       mockResponse({ id: '123', username: 'bot' })
 
-      const client = new DiscordBotClient('bot-token')
+      const client = await new DiscordBotClient().login({ token: 'bot-token' })
       const user = await client.testAuth()
 
       expect(user.id).toBe('123')
@@ -480,7 +480,7 @@ describe('DiscordBotClient', () => {
     test('does not retry on 4xx client errors (except 429)', async () => {
       mockResponse({ message: 'Not Found' }, 404)
 
-      const client = new DiscordBotClient('bot-token')
+      const client = await new DiscordBotClient().login({ token: 'bot-token' })
       await expect(client.testAuth()).rejects.toThrow(DiscordBotError)
       expect(fetchCalls.length).toBe(1)
     })
@@ -490,7 +490,7 @@ describe('DiscordBotClient', () => {
       mockResponse({ message: 'Error' }, 500)
       mockResponse({ id: '123', username: 'bot' })
 
-      const client = new DiscordBotClient('bot-token')
+      const client = await new DiscordBotClient().login({ token: 'bot-token' })
       const startTime = Date.now()
       await client.testAuth()
       const elapsed = Date.now() - startTime
