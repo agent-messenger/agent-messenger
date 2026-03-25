@@ -429,4 +429,8 @@ export class DiscordClient {
       archived,
     })
   }
+
+  async gatewayConnect(): Promise<{ token: string }> {
+    return { token: this.ensureAuth() }
+  }
 }
