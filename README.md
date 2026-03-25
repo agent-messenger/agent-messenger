@@ -1,10 +1,12 @@
+<div align="center">
+
 # Agent Messenger
 
 [![npm](https://img.shields.io/npm/v/agent-messenger?color=E67E22)](https://www.npmjs.com/package/agent-messenger) [![platform](https://img.shields.io/badge/platform-slack-4A154B)](https://agent-messenger.dev/docs/cli/slack) [![platform](https://img.shields.io/badge/platform-discord-5865F2)](https://agent-messenger.dev/docs/cli/discord) [![platform](https://img.shields.io/badge/platform-teams-6264A7)](https://agent-messenger.dev/docs/cli/teams) [![platform](https://img.shields.io/badge/platform-telegram-2AABEE)](https://agent-messenger.dev/docs/cli/telegram) [![platform](https://img.shields.io/badge/platform-whatsapp-25D366)](https://agent-messenger.dev/docs/cli/whatsapp) [![platform](https://img.shields.io/badge/platform-kakaotalk-FEE500)](https://agent-messenger.dev/docs/cli/kakaotalk) [![platform](https://img.shields.io/badge/platform-channel_talk-3B3FE4)](https://agent-messenger.dev/docs/cli/channeltalk)
 
-![Agent Messenger](./docs/public/cover.png)
-
 **Your agent messages as you — not as a bot**
+
+</div>
 
 One CLI for Slack, Discord, Teams, Telegram, WhatsApp, KakaoTalk, and Channel Talk. Credentials extracted from desktop apps or authenticated in seconds — no API keys, no OAuth, no admin approval. TypeScript SDK included.
 
@@ -79,19 +81,7 @@ This installs:
 
 ## Agent Skills
 
-Agent Messenger includes [Agent Skills](https://agentskills.io/) that teach your AI agent how to use these CLIs effectively. Eleven skills are available:
-
-- **`agent-slack`** — Slack (user token, zero-config)
-- **`agent-slackbot`** — Slack Bot (bot token, for server-side/CI/CD)
-- **`agent-discord`** — Discord
-- **`agent-discordbot`** — Discord Bot (bot token, for server-side/CI/CD)
-- **`agent-teams`** — Microsoft Teams
-- **`agent-telegram`** — Telegram (user account via TDLib)
-- **`agent-whatsapp`** — WhatsApp (user account via Baileys, pairing code auth)
-- **`agent-whatsappbot`** — WhatsApp Bot (Cloud API, for server-side/CI/CD)
-- **`agent-kakaotalk`** — KakaoTalk (sub-device login, LOCO protocol)
-- **`agent-channeltalk`** — Channel Talk (beta, zero-config, extracted cookies)
-- **`agent-channeltalkbot`** — Channel Talk Bot (beta, API credentials, for server-side/CI/CD)
+Agent Messenger includes [Agent Skills](https://agentskills.io/) that teach your AI agent how to use each CLI above. One skill per platform — install only what you need.
 
 ### SkillPad
 
