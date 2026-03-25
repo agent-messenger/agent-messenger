@@ -29,9 +29,7 @@ const mockResolveChannel = mock((_guildId: string, channel: string) => {
 
 mock.module('../client', () => ({
   DiscordBotClient: class MockDiscordBotClient {
-    constructor(token: string) {
-      if (!token) throw new Error('Token is required')
-    }
+    async login(_credentials?: any) { return this }
     createThread = mockCreateThread
     archiveThread = mockArchiveThread
     resolveChannel = mockResolveChannel

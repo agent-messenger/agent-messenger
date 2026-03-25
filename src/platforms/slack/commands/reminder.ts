@@ -26,7 +26,7 @@ async function addAction(
       process.exit(1)
     }
 
-    const client = new SlackClient(ws.token, ws.cookie)
+    const client = await new SlackClient().login({ token: ws.token, cookie: ws.cookie })
     const reminder = await client.addReminder(text, timeValue, { user: options.user })
 
     console.log(formatOutput(reminder, options.pretty))
@@ -45,7 +45,7 @@ async function listAction(options: { pretty?: boolean }): Promise<void> {
       process.exit(1)
     }
 
-    const client = new SlackClient(ws.token, ws.cookie)
+    const client = await new SlackClient().login({ token: ws.token, cookie: ws.cookie })
     const reminders = await client.listReminders()
 
     console.log(formatOutput(reminders, options.pretty))
@@ -64,7 +64,7 @@ async function completeAction(reminderId: string, options: { pretty?: boolean })
       process.exit(1)
     }
 
-    const client = new SlackClient(ws.token, ws.cookie)
+    const client = await new SlackClient().login({ token: ws.token, cookie: ws.cookie })
     await client.completeReminder(reminderId)
 
     console.log(formatOutput({ success: true, reminder_id: reminderId }, options.pretty))
@@ -83,7 +83,7 @@ async function deleteAction(reminderId: string, options: { pretty?: boolean }): 
       process.exit(1)
     }
 
-    const client = new SlackClient(ws.token, ws.cookie)
+    const client = await new SlackClient().login({ token: ws.token, cookie: ws.cookie })
     await client.deleteReminder(reminderId)
 
     console.log(formatOutput({ success: true, reminder_id: reminderId }, options.pretty))

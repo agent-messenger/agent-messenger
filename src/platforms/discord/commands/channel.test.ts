@@ -74,7 +74,7 @@ afterEach(() => {
 
 test('list: returns text channels (type=0) from server', async () => {
   // given: discord client with channels
-  const client = new DiscordClient('test-token')
+  const client = await new DiscordClient().login({ token: 'test-token' })
   const channels = await client.listChannels('server-1')
 
   // when: filtering text channels
@@ -88,7 +88,7 @@ test('list: returns text channels (type=0) from server', async () => {
 
 test('list: includes channel metadata', async () => {
   // given: discord client with channels
-  const client = new DiscordClient('test-token')
+  const client = await new DiscordClient().login({ token: 'test-token' })
   const channels = await client.listChannels('server-1')
   const textChannels = channels.filter((ch) => ch.type === 0)
 
@@ -104,7 +104,7 @@ test('list: includes channel metadata', async () => {
 
 test('info: returns channel details', async () => {
   // given: discord client with channel data
-  const client = new DiscordClient('test-token')
+  const client = await new DiscordClient().login({ token: 'test-token' })
   const channel = await client.getChannel('ch-1')
 
   // when: getting channel info
@@ -119,7 +119,7 @@ test('info: returns channel details', async () => {
 
 test('info: throws error for non-existent channel', async () => {
   // given: discord client
-  const client = new DiscordClient('test-token')
+  const client = await new DiscordClient().login({ token: 'test-token' })
 
   // when: getting non-existent channel
   // then: error is thrown
@@ -133,7 +133,7 @@ test('info: throws error for non-existent channel', async () => {
 
 test('history: returns messages in reverse chronological order', async () => {
   // given: discord client with messages
-  const client = new DiscordClient('test-token')
+  const client = await new DiscordClient().login({ token: 'test-token' })
   const messages = await client.getMessages('ch-1', 50)
 
   // when: getting message history
@@ -149,7 +149,7 @@ test('history: returns messages in reverse chronological order', async () => {
 
 test('history: includes message metadata', async () => {
   // given: discord client with messages
-  const client = new DiscordClient('test-token')
+  const client = await new DiscordClient().login({ token: 'test-token' })
   const messages = await client.getMessages('ch-1', 50)
 
   // when: checking message properties

@@ -16,7 +16,7 @@ async function getAction(userId: string, options: { pretty?: boolean }): Promise
       process.exit(1)
     }
 
-    const client = new DiscordClient(config.token)
+    const client = await new DiscordClient().login({ token: config.token })
     const note = await client.getUserNote(userId)
 
     if (note === null) {
@@ -39,7 +39,7 @@ async function setAction(userId: string, note: string, options: { pretty?: boole
       process.exit(1)
     }
 
-    const client = new DiscordClient(config.token)
+    const client = await new DiscordClient().login({ token: config.token })
     const result = await client.setUserNote(userId, note)
 
     console.log(formatOutput(result, options.pretty))

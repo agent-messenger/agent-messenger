@@ -16,7 +16,7 @@ export async function countsAction(options: { pretty?: boolean }): Promise<void>
       process.exit(1)
     }
 
-    const client = new SlackClient(workspace.token, workspace.cookie)
+    const client = await new SlackClient().login({ token: workspace.token, cookie: workspace.cookie })
     const counts = await client.getUnreadCounts()
 
     const output = {
@@ -46,7 +46,7 @@ export async function threadsAction(channel: string, threadTs: string, options: 
       process.exit(1)
     }
 
-    const client = new SlackClient(workspace.token, workspace.cookie)
+    const client = await new SlackClient().login({ token: workspace.token, cookie: workspace.cookie })
     channel = await client.resolveChannel(channel)
     const threadView = await client.getThreadView(channel, threadTs)
 
@@ -74,7 +74,7 @@ export async function markAction(channel: string, ts: string, options: { pretty?
       process.exit(1)
     }
 
-    const client = new SlackClient(workspace.token, workspace.cookie)
+    const client = await new SlackClient().login({ token: workspace.token, cookie: workspace.cookie })
     channel = await client.resolveChannel(channel)
     await client.markRead(channel, ts)
 

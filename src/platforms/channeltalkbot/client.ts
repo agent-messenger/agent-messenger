@@ -10,6 +10,7 @@ import type {
 } from './types'
 import { ChannelBotError as ChannelBotErrorClass } from './types'
 import { wrapTextInBlocks } from './message-utils'
+import { ChannelBotCredentialManager } from './credential-manager'
 
 const BASE_URL = 'https://api.channel.io/open/v5'
 const MAX_RETRIES = 3
@@ -20,20 +21,38 @@ interface ChannelBotFileUrlResponse {
 }
 
 export class ChannelBotClient {
-  private accessKey: string
-  private accessSecret: string
+  private accessKey: string | null = null
+  private accessSecret: string | null = null
   private rateLimitRemaining: number | null = null
   private rateLimitResetAt: number = 0
 
-  constructor(accessKey: string, accessSecret: string) {
-    if (!accessKey) {
-      throw new ChannelBotErrorClass('Access key is required', 'missing_access_key')
+  async login(credentials?: { accessKey: string; accessSecret: string }): Promise<this> {
+    if (credentials) {
+      if (!credentials.accessKey) {
+        throw new ChannelBotErrorClass('Access key is required', 'missing_access_key')
+      }
+      if (!credentials.accessSecret) {
+        throw new ChannelBotErrorClass('Access secret is required', 'missing_access_secret')
+      }
+      this.accessKey = credentials.accessKey
+      this.accessSecret = credentials.accessSecret
+      return this
     }
-    if (!accessSecret) {
-      throw new ChannelBotErrorClass('Access secret is required', 'missing_access_secret')
+
+    const creds = await new ChannelBotCredentialManager().getCredentials()
+    if (!creds) {
+      throw new ChannelBotErrorClass(
+        'No Channel Talk Bot credentials found. Set access key and secret via "agent-channeltalkbot auth set".',
+        'no_credentials',
+      )
     }
-    this.accessKey = accessKey
-    this.accessSecret = accessSecret
+    return this.login({ accessKey: creds.access_key, accessSecret: creds.access_secret })
+  }
+
+  private ensureAuth(): void {
+    if (this.accessKey === null || this.accessSecret === null) {
+      throw new ChannelBotErrorClass('Not authenticated. Call .login() first.', 'not_authenticated')
+    }
   }
 
   static wrapTextInBlocks = wrapTextInBlocks
@@ -166,8 +185,8 @@ export class ChannelBotClient {
 
   private getHeaders(): Record<string, string> {
     return {
-      'x-access-key': this.accessKey,
-      'x-access-secret': this.accessSecret,
+      'x-access-key': this.accessKey!,
+      'x-access-secret': this.accessSecret!,
       'Content-Type': 'application/json',
     }
   }
@@ -199,6 +218,7 @@ export class ChannelBotClient {
   }
 
   private async request<T>(method: string, path: string, body?: unknown, unwrapKey?: string): Promise<T> {
+    this.ensureAuth()
     const url = `${BASE_URL}${path}`
     let lastError: Error | undefined
 

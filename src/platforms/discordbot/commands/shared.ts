@@ -19,7 +19,7 @@ export async function getClient(options: BotOption): Promise<DiscordBotClient> {
     process.exit(1)
   }
 
-  return new DiscordBotClient(creds.token)
+  return new DiscordBotClient().login({ token: creds.token })
 }
 
 export async function getCurrentServer(options: BotOption): Promise<string> {

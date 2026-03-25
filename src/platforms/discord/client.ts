@@ -39,15 +39,38 @@ const MAX_RETRIES = 3
 const BASE_BACKOFF_MS = 100
 
 export class DiscordClient {
-  private token: string
+  private token: string | null = null
   private buckets: Map<string, RateLimitBucket> = new Map()
   private globalRateLimitUntil: number = 0
 
-  constructor(token: string) {
-    if (!token) {
-      throw new DiscordError('Token is required', 'missing_token')
+  async login(credentials?: { token: string }): Promise<this> {
+    if (credentials) {
+      if (!credentials.token) {
+        throw new DiscordError('Token is required', 'missing_token')
+      }
+      this.token = credentials.token
+      return this
     }
-    this.token = token
+
+    const { ensureDiscordAuth } = await import('./ensure-auth')
+    await ensureDiscordAuth()
+    const { DiscordCredentialManager } = await import('./credential-manager')
+    const credManager = new DiscordCredentialManager()
+    const token = await credManager.getToken()
+    if (!token) {
+      throw new DiscordError(
+        'No Discord credentials found. Make sure Discord desktop app is installed and logged in.',
+        'no_credentials',
+      )
+    }
+    return this.login({ token })
+  }
+
+  private ensureAuth(): string {
+    if (!this.token) {
+      throw new DiscordError('Not authenticated. Call .login() first.', 'not_authenticated')
+    }
+    return this.token
   }
 
   private getBucketKey(method: string, path: string): string {
@@ -110,7 +133,7 @@ export class DiscordClient {
     for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
       await this.waitForRateLimit(bucketKey)
 
-      const headers: Record<string, string> = getDiscordHeaders(this.token)
+      const headers: Record<string, string> = getDiscordHeaders(this.ensureAuth())
 
       const options: RequestInit = {
         method,
@@ -163,7 +186,7 @@ export class DiscordClient {
 
     await this.waitForRateLimit(bucketKey)
 
-    const headers = getDiscordHeaders(this.token)
+    const headers = getDiscordHeaders(this.ensureAuth())
     const response = await fetch(url, {
       method: 'POST',
       headers,

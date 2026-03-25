@@ -14,7 +14,7 @@ export async function getClient(options: SharedOptions = {}): Promise<ChannelCli
     throw new Error('No credentials. Run "agent-channeltalk auth extract" first.')
   }
 
-  return new ChannelClient(creds.account_cookie, creds.session_cookie)
+  return new ChannelClient().login({ accountCookie: creds.account_cookie, sessionCookie: creds.session_cookie })
 }
 
 export async function getCurrentWorkspaceId(options: SharedOptions = {}): Promise<string> {

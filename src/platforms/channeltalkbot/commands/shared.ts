@@ -19,7 +19,7 @@ export async function getClient(options: WorkspaceOption): Promise<ChannelBotCli
     process.exit(1)
   }
 
-  return new ChannelBotClient(creds.access_key, creds.access_secret)
+  return new ChannelBotClient().login({ accessKey: creds.access_key, accessSecret: creds.access_secret })
 }
 
 export async function getCurrentWorkspace(options: WorkspaceOption): Promise<string> {

@@ -404,9 +404,9 @@ Credentials stored in `~/.config/agent-messenger/discord-credentials.json` (0600
 ### Setup
 
 ```typescript
-import { createDiscordClient } from 'agent-messenger/discord'
+import { DiscordClient } from 'agent-messenger/discord'
 
-const client = await createDiscordClient()
+const client = await new DiscordClient().login()
 ```
 
 Or with manual credential management:
@@ -419,7 +419,7 @@ const token = await manager.getToken()
 if (!token) {
   throw new Error('Discord token not found. Run auth extract first.')
 }
-const client = new DiscordClient(token)
+const client = await new DiscordClient().login({ token })
 ```
 
 ### Example

@@ -18,5 +18,5 @@ export async function getClient(options: AccountOption): Promise<WhatsAppBotClie
     process.exit(1)
   }
 
-  return new WhatsAppBotClient(creds.phone_number_id, creds.access_token)
+  return await new WhatsAppBotClient().login({ phoneNumberId: creds.phone_number_id, accessToken: creds.access_token })
 }

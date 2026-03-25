@@ -20,7 +20,7 @@ async function searchAction(
       process.exit(1)
     }
 
-    const client = new DiscordClient(config.token)
+    const client = await new DiscordClient().login({ token: config.token })
     const limit = options.limit ? parseInt(options.limit, 10) : 10
     const members = await client.searchMembers(guildId, query, limit)
 

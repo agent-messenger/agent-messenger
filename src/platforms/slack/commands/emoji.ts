@@ -22,7 +22,7 @@ export const emojiCommand = new Command('emoji')
             process.exit(1)
           }
 
-          const client = new SlackClient(ws.token, ws.cookie)
+          const client = await new SlackClient().login({ token: ws.token, cookie: ws.cookie })
           const emoji = await client.listEmoji()
 
           console.log(formatOutput(emoji, options.pretty))

@@ -23,7 +23,7 @@ async function uploadAction(
       process.exit(1)
     }
 
-    const client = new SlackClient(workspace.token, workspace.cookie)
+    const client = await new SlackClient().login({ token: workspace.token, cookie: workspace.cookie })
     channel = await client.resolveChannel(channel)
 
     const filePath = resolve(path)
@@ -60,7 +60,7 @@ async function listAction(options: { channel?: string; pretty?: boolean }): Prom
       process.exit(1)
     }
 
-    const client = new SlackClient(workspace.token, workspace.cookie)
+    const client = await new SlackClient().login({ token: workspace.token, cookie: workspace.cookie })
     const channel = options.channel ? await client.resolveChannel(options.channel) : undefined
     const files = await client.listFiles(channel)
 
@@ -92,7 +92,7 @@ async function infoAction(fileId: string, options: { pretty?: boolean }): Promis
       process.exit(1)
     }
 
-    const client = new SlackClient(workspace.token, workspace.cookie)
+    const client = await new SlackClient().login({ token: workspace.token, cookie: workspace.cookie })
     const fileData = await client.getFileInfo(fileId)
 
     const output = {
@@ -127,7 +127,7 @@ async function downloadAction(
       process.exit(1)
     }
 
-    const client = new SlackClient(workspace.token, workspace.cookie)
+    const client = await new SlackClient().login({ token: workspace.token, cookie: workspace.cookie })
     const { buffer, file } = await client.downloadFile(fileId)
 
     const safeName = basename(file.name.replace(/\\/g, '/'))
@@ -175,7 +175,7 @@ async function deleteFileAction(fileId: string, options: { pretty?: boolean }): 
       process.exit(1)
     }
 
-    const client = new SlackClient(workspace.token, workspace.cookie)
+    const client = await new SlackClient().login({ token: workspace.token, cookie: workspace.cookie })
     await client.deleteFile(fileId)
 
     console.log(formatOutput({ success: true, file_id: fileId }, options.pretty))

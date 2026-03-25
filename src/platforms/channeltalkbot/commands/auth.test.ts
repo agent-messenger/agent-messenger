@@ -13,11 +13,7 @@ const mockGetChannel = mock(() =>
 
 mock.module('../client', () => ({
   ChannelBotClient: class MockChannelBotClient {
-    constructor(accessKey: string, accessSecret: string) {
-      if (!accessKey || !accessSecret) {
-        throw new Error('Credentials required')
-      }
-    }
+    async login(_credentials?: any) { return this }
     getChannel = mockGetChannel
   },
 }))

@@ -4,20 +4,14 @@ import { handleError } from '@/shared/utils/error-handler'
 import { formatOutput } from '@/shared/utils/output'
 
 import { KakaoTalkClient } from '../client'
-import { ensureKakaoAuth } from '../ensure-auth'
 
 async function listAction(
   chatId: string,
   options: { count?: string; from?: string; pretty?: boolean },
 ): Promise<void> {
-  const account = await ensureKakaoAuth()
   let client: KakaoTalkClient | undefined
   try {
-    client = new KakaoTalkClient(
-      account.oauth_token,
-      account.user_id,
-      account.device_uuid,
-    )
+    client = await new KakaoTalkClient().login()
     const count = options.count ? Number.parseInt(options.count, 10) : 20
     const messages = await client.getMessages(chatId, {
       count,
@@ -36,14 +30,9 @@ async function sendAction(
   text: string,
   options: { pretty?: boolean },
 ): Promise<void> {
-  const account = await ensureKakaoAuth()
   let client: KakaoTalkClient | undefined
   try {
-    client = new KakaoTalkClient(
-      account.oauth_token,
-      account.user_id,
-      account.device_uuid,
-    )
+    client = await new KakaoTalkClient().login()
     const result = await client.sendMessage(chatId, text)
     console.log(formatOutput(result, options.pretty))
   } catch (error) {

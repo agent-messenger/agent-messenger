@@ -16,7 +16,7 @@ async function getAction(userId: string, options: { pretty?: boolean }): Promise
       process.exit(1)
     }
 
-    const client = new DiscordClient(config.token)
+    const client = await new DiscordClient().login({ token: config.token })
     const profile = await client.getUserProfile(userId)
 
     const output = {

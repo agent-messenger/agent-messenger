@@ -16,7 +16,7 @@ async function addAction(channel: string, ts: string, emoji: string, options: { 
       process.exit(1)
     }
 
-    const client = new SlackClient(ws.token, ws.cookie)
+    const client = await new SlackClient().login({ token: ws.token, cookie: ws.cookie })
     channel = await client.resolveChannel(channel)
     await client.addReaction(channel, ts, emoji)
 
@@ -46,7 +46,7 @@ async function removeAction(channel: string, ts: string, emoji: string, options:
       process.exit(1)
     }
 
-    const client = new SlackClient(ws.token, ws.cookie)
+    const client = await new SlackClient().login({ token: ws.token, cookie: ws.cookie })
     channel = await client.resolveChannel(channel)
     await client.removeReaction(channel, ts, emoji)
 
@@ -76,7 +76,7 @@ async function listAction(channel: string, ts: string, options: { pretty?: boole
       process.exit(1)
     }
 
-    const client = new SlackClient(ws.token, ws.cookie)
+    const client = await new SlackClient().login({ token: ws.token, cookie: ws.cookie })
     channel = await client.resolveChannel(channel)
     const message = await client.getMessage(channel, ts)
 

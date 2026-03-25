@@ -15,7 +15,6 @@ import {
   SlackListener,
   SlackError,
   SlackCredentialManager,
-  createSlackClient,
 } from 'agent-messenger/slack'
 ```
 
@@ -26,15 +25,15 @@ The main client for interacting with Slack's API programmatically. Most API meth
 ```typescript
 import { SlackClient } from 'agent-messenger/slack'
 
-const client = new SlackClient(token, cookie)
+const client = await new SlackClient().login({ token, cookie })
 ```
 
 Or use automatic credential extraction — credentials are extracted from the desktop app, no manual token needed:
 
 ```typescript
-import { createSlackClient } from 'agent-messenger/slack'
+import { SlackClient } from 'agent-messenger/slack'
 
-const client = await createSlackClient()
+const client = await new SlackClient().login()
 ```
 
 ### Authentication
@@ -367,7 +366,7 @@ const rtm = await client.rtmConnect()
 ```typescript
 import { SlackClient, SlackListener } from 'agent-messenger/slack'
 
-const client = new SlackClient(token, cookie)
+const client = await new SlackClient().login({ token, cookie })
 const listener = new SlackListener(client)
 
 listener.on('message', (event) => {
@@ -469,9 +468,9 @@ import {
 Post a deployment message, update it with progress in a thread, and mark it complete with a reaction.
 
 ```typescript
-import { createSlackClient } from 'agent-messenger/slack'
+import { SlackClient } from 'agent-messenger/slack'
 
-const client = await createSlackClient()
+const client = await new SlackClient().login()
 const channel = await client.resolveChannel('deploys')
 
 // Post parent message
@@ -496,7 +495,7 @@ Create a channel, configure it, invite the team, and pin a welcome message — a
 ```typescript
 import { SlackClient } from 'agent-messenger/slack'
 
-const client = new SlackClient(token, cookie)
+const client = await new SlackClient().login({ token, cookie })
 
 // Create and configure
 const channel = await client.createChannel('project-alpha')
@@ -532,7 +531,7 @@ Listen for messages mentioning `@bot` and reply in thread. Uses `SlackListener` 
 ```typescript
 import { SlackClient, SlackListener } from 'agent-messenger/slack'
 
-const client = new SlackClient(token, cookie)
+const client = await new SlackClient().login({ token, cookie })
 const listener = new SlackListener(client)
 
 const auth = await client.testAuth()
@@ -572,7 +571,7 @@ Summarize unread activity and post a digest to a channel.
 ```typescript
 import { SlackClient } from 'agent-messenger/slack'
 
-const client = new SlackClient(token, cookie)
+const client = await new SlackClient().login({ token, cookie })
 const channel = await client.resolveChannel('team-pulse')
 
 // Gather data
@@ -613,7 +612,7 @@ Search for urgent messages, acknowledge with a reaction, and schedule a follow-u
 ```typescript
 import { SlackClient } from 'agent-messenger/slack'
 
-const client = new SlackClient(token, cookie)
+const client = await new SlackClient().login({ token, cookie })
 
 // Find urgent messages from the last day
 const results = await client.searchMessages('urgent OR blocker', {
@@ -649,7 +648,7 @@ Download files from one channel and re-upload to another with a summary.
 ```typescript
 import { SlackClient } from 'agent-messenger/slack'
 
-const client = new SlackClient(token, cookie)
+const client = await new SlackClient().login({ token, cookie })
 
 const source = await client.resolveChannel('design-uploads')
 const target = await client.resolveChannel('design-archive')

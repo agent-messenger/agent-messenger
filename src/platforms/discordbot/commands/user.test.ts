@@ -28,11 +28,7 @@ const mockGetUser = mock((userId: string) => {
 
 mock.module('../client', () => ({
   DiscordBotClient: class MockDiscordBotClient {
-    constructor(token: string) {
-      if (!token) {
-        throw new Error('Token is required')
-      }
-    }
+    async login(_credentials?: any) { return this }
     listUsers = mockListUsers
     getUser = mockGetUser
   },

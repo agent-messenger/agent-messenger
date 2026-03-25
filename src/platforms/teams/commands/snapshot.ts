@@ -33,7 +33,7 @@ export async function snapshotAction(options: {
       process.exit(1)
     }
 
-    const client = new TeamsClient(cred.token, cred.tokenExpiresAt)
+    const client = await new TeamsClient().login({ token: cred.token, tokenExpiresAt: cred.tokenExpiresAt })
     const messageLimit = options.limit || 20
 
     const snapshot: Record<string, unknown> = {}

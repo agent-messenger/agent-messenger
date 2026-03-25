@@ -15,7 +15,7 @@ async function getClient(pretty?: boolean): Promise<SlackClient | null> {
     return null
   }
 
-  return new SlackClient(ws.token, ws.cookie)
+  return await new SlackClient().login({ token: ws.token, cookie: ws.cookie })
 }
 
 async function listAction(options: { includeDisabled?: boolean; includeUsers?: boolean; pretty?: boolean }): Promise<void> {

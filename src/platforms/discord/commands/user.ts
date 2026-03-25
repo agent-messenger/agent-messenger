@@ -22,7 +22,7 @@ async function listAction(options: { pretty?: boolean }): Promise<void> {
       process.exit(1)
     }
 
-    const client = new DiscordClient(config.token)
+    const client = await new DiscordClient().login({ token: config.token })
     const users = await client.listUsers(config.current_server)
 
     const output = users.map((user) => ({
@@ -49,7 +49,7 @@ async function infoAction(userId: string, options: { pretty?: boolean }): Promis
       process.exit(1)
     }
 
-    const client = new DiscordClient(config.token)
+    const client = await new DiscordClient().login({ token: config.token })
 
     // Check if requesting current user - use @me endpoint (works with user tokens)
     const me = await client.testAuth()
@@ -86,7 +86,7 @@ async function meAction(options: { pretty?: boolean }): Promise<void> {
       process.exit(1)
     }
 
-    const client = new DiscordClient(config.token)
+    const client = await new DiscordClient().login({ token: config.token })
     const user = await client.testAuth()
 
     const output = {

@@ -4,21 +4,15 @@ import { handleError } from '@/shared/utils/error-handler'
 import { formatOutput } from '@/shared/utils/output'
 
 import { KakaoTalkClient } from '../client'
-import { ensureKakaoAuth } from '../ensure-auth'
 
 async function listAction(options: {
   all?: boolean
   search?: string
   pretty?: boolean
 }): Promise<void> {
-  const account = await ensureKakaoAuth()
   let client: KakaoTalkClient | undefined
   try {
-    client = new KakaoTalkClient(
-      account.oauth_token,
-      account.user_id,
-      account.device_uuid,
-    )
+    client = await new KakaoTalkClient().login()
     const chats = await client.getChats({
       all: options.all,
       search: options.search,

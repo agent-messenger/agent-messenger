@@ -48,7 +48,7 @@ afterEach(() => {
 
 test('getMentions: returns mentions', async () => {
   // given: discord client
-  const client = new DiscordClient('test-token')
+  const client = await new DiscordClient().login({ token: 'test-token' })
 
   // when: getting mentions
   const mentions = await client.getMentions()
@@ -64,7 +64,7 @@ test('getMentions: returns mentions', async () => {
 
 test('getMentions: respects limit option', async () => {
   // given: discord client with limit option
-  const client = new DiscordClient('test-token')
+  const client = await new DiscordClient().login({ token: 'test-token' })
   clientGetMentionsSpy.mockResolvedValue([
     {
       id: 'msg-1',
@@ -87,7 +87,7 @@ test('getMentions: respects limit option', async () => {
 
 test('getMentions: respects guildId option', async () => {
   // given: discord client with guildId option
-  const client = new DiscordClient('test-token')
+  const client = await new DiscordClient().login({ token: 'test-token' })
   clientGetMentionsSpy.mockResolvedValue([
     {
       id: 'msg-1',
@@ -112,7 +112,7 @@ test('getMentions: respects guildId option', async () => {
 
 test('getMentions: includes mention metadata', async () => {
   // given: discord client with mentions
-  const client = new DiscordClient('test-token')
+  const client = await new DiscordClient().login({ token: 'test-token' })
   const mentions = await client.getMentions()
 
   // when: checking mention properties

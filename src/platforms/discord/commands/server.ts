@@ -34,7 +34,7 @@ export async function infoAction(serverId: string, options: { pretty?: boolean }
       process.exit(1)
     }
 
-    const client = new DiscordClient(config.token)
+    const client = await new DiscordClient().login({ token: config.token })
     const server = await client.getServer(serverId)
 
     const output = {

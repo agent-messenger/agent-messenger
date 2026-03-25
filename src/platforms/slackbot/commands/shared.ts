@@ -18,5 +18,5 @@ export async function getClient(options: BotOption): Promise<SlackBotClient> {
     process.exit(1)
   }
 
-  return new SlackBotClient(creds.token)
+  return new SlackBotClient().login({ token: creds.token })
 }

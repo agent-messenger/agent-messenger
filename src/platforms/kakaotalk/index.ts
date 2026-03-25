@@ -17,11 +17,4 @@ export {
   KakaoSendResultSchema,
 } from './types'
 
-import { KakaoTalkClient, KakaoTalkError } from './client'
-import { KakaoCredentialManager } from './credential-manager'
 
-export async function createKakaoTalkClient(): Promise<KakaoTalkClient> {
-  const { ensureKakaoAuth } = await import('./ensure-auth')
-  const account = await ensureKakaoAuth()
-  return new KakaoTalkClient(account.oauth_token, account.user_id, account.device_uuid)
-}

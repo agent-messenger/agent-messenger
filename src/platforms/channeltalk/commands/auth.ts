@@ -50,15 +50,17 @@ type ChannelCredentialManagerLike = Pick<
 >
 type ChannelTokenExtractorLike = Pick<ChannelTokenExtractor, 'extract'>
 
-let createChannelClient = (accountCookie: string, sessionCookie?: string): ChannelClientLike =>
-  new ChannelClient(accountCookie, sessionCookie)
+let createChannelClient: (accountCookie: string, sessionCookie?: string) => ChannelClientLike | Promise<ChannelClientLike> = async (
+  accountCookie: string,
+  sessionCookie?: string,
+): Promise<ChannelClientLike> => new ChannelClient().login({ accountCookie, sessionCookie })
 
 let createCredentialManager = (): ChannelCredentialManagerLike => new ChannelCredentialManager()
 
 let createTokenExtractor = (): ChannelTokenExtractorLike => new ChannelTokenExtractor()
 
 export function setChannelAuthCommandDependenciesForTesting(dependencies: {
-  createChannelClient?: (accountCookie: string, sessionCookie?: string) => ChannelClientLike
+  createChannelClient?: (accountCookie: string, sessionCookie?: string) => ChannelClientLike | Promise<ChannelClientLike>
   createCredentialManager?: () => ChannelCredentialManagerLike
   createTokenExtractor?: () => ChannelTokenExtractorLike
 }): void {
@@ -68,8 +70,8 @@ export function setChannelAuthCommandDependenciesForTesting(dependencies: {
 }
 
 export function resetChannelAuthCommandDependenciesForTesting(): void {
-  createChannelClient = (accountCookie: string, sessionCookie?: string): ChannelClientLike =>
-    new ChannelClient(accountCookie, sessionCookie)
+  createChannelClient = async (accountCookie: string, sessionCookie?: string): Promise<ChannelClientLike> =>
+    new ChannelClient().login({ accountCookie, sessionCookie })
   createCredentialManager = (): ChannelCredentialManagerLike => new ChannelCredentialManager()
   createTokenExtractor = (): ChannelTokenExtractorLike => new ChannelTokenExtractor()
 }
@@ -86,7 +88,7 @@ export async function extractAction(options: ActionOptions = {}): Promise<Extrac
       }
     }
 
-    const client = createChannelClient(extracted.accountCookie, extracted.sessionCookie)
+    const client = await createChannelClient(extracted.accountCookie, extracted.sessionCookie)
     const account = await client.getAccount()
     const channels = await client.listChannels()
 
@@ -141,7 +143,7 @@ export async function statusAction(options: ActionOptions = {}): Promise<StatusR
     const storedWorkspace = (await credManager.listAll()).find((workspace) => workspace.workspace_id === creds.workspace_id)
 
     try {
-      const client = createChannelClient(creds.account_cookie, creds.session_cookie ?? undefined)
+      const client = await createChannelClient(creds.account_cookie, creds.session_cookie ?? undefined)
       const account = await client.getAccount()
 
       return {

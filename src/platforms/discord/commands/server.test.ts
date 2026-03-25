@@ -82,7 +82,7 @@ test('list: marks current server', async () => {
 
 test('info: returns server details', async () => {
   // given: discord client with server data
-  const client = new DiscordClient('test-token')
+  const client = await new DiscordClient().login({ token: 'test-token' })
   const server = await client.getServer('server-1')
 
   // when: getting server info
@@ -97,7 +97,7 @@ test('info: returns server details', async () => {
 
 test('info: throws error for non-existent server', async () => {
   // given: discord client
-  const client = new DiscordClient('test-token')
+  const client = await new DiscordClient().login({ token: 'test-token' })
 
   // when: getting non-existent server
   // then: error is thrown

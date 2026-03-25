@@ -21,7 +21,7 @@ async function listAction(options: {
       process.exit(1)
     }
 
-    const client = new SlackClient(ws.token, ws.cookie)
+    const client = await new SlackClient().login({ token: ws.token, cookie: ws.cookie })
 
     const mode = options.unread ? 'priority_unreads_v1' : 'chrono_reads_and_unreads'
     const limit = options.limit ? parseInt(options.limit, 10) : 20

@@ -16,7 +16,7 @@ async function addAction(channel: string, ts: string, options: { pretty?: boolea
       process.exit(1)
     }
 
-    const client = new SlackClient(ws.token, ws.cookie)
+    const client = await new SlackClient().login({ token: ws.token, cookie: ws.cookie })
     channel = await client.resolveChannel(channel)
     await client.pinMessage(channel, ts)
 
@@ -36,7 +36,7 @@ async function removeAction(channel: string, ts: string, options: { pretty?: boo
       process.exit(1)
     }
 
-    const client = new SlackClient(ws.token, ws.cookie)
+    const client = await new SlackClient().login({ token: ws.token, cookie: ws.cookie })
     channel = await client.resolveChannel(channel)
     await client.unpinMessage(channel, ts)
 
@@ -56,7 +56,7 @@ async function listAction(channel: string, options: { pretty?: boolean }): Promi
       process.exit(1)
     }
 
-    const client = new SlackClient(ws.token, ws.cookie)
+    const client = await new SlackClient().login({ token: ws.token, cookie: ws.cookie })
     channel = await client.resolveChannel(channel)
     const pins = await client.listPins(channel)
 

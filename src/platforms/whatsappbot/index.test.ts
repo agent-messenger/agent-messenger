@@ -7,7 +7,6 @@ import {
   WhatsAppBotCredentialManager,
   WhatsAppBotCredentialsSchema,
   WhatsAppBotError,
-  createWhatsAppBotClient,
 } from '@/platforms/whatsappbot/index'
 
 test('WhatsAppBotClient is exported from barrel', () => {
@@ -20,10 +19,6 @@ test('WhatsAppBotCredentialManager is exported from barrel', () => {
 
 test('WhatsAppBotError is exported from barrel', () => {
   expect(typeof WhatsAppBotError).toBe('function')
-})
-
-test('createWhatsAppBotClient is exported from barrel', () => {
-  expect(typeof createWhatsAppBotClient).toBe('function')
 })
 
 test('WhatsAppBotAccountEntrySchema is exported from barrel', () => {

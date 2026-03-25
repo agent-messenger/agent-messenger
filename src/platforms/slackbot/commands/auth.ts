@@ -37,7 +37,7 @@ export async function setAction(token: string, options: ActionOptions): Promise<
       return { error: 'Token must be a bot token (xoxb-). User tokens (xoxp-) are not supported.' }
     }
 
-    const client = new SlackBotClient(token)
+    const client = await new SlackBotClient().login({ token })
     const authInfo = await client.testAuth()
 
     const botId = options.bot || authInfo.bot_id || authInfo.user || 'default'
@@ -100,7 +100,7 @@ export async function statusAction(options: ActionOptions): Promise<ActionResult
     } | null = null
 
     try {
-      const client = new SlackBotClient(creds.token)
+      const client = await new SlackBotClient().login({ token: creds.token })
       authInfo = await client.testAuth()
       valid = true
     } catch {

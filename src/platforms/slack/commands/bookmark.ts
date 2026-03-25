@@ -21,7 +21,7 @@ async function addAction(
       process.exit(1)
     }
 
-    const client = new SlackClient(ws.token, ws.cookie)
+    const client = await new SlackClient().login({ token: ws.token, cookie: ws.cookie })
     channel = await client.resolveChannel(channel)
     const bookmark = await client.addBookmark(channel, title, link, {
       emoji: options.emoji,
@@ -53,7 +53,7 @@ async function editAction(
       process.exit(1)
     }
 
-    const client = new SlackClient(ws.token, ws.cookie)
+    const client = await new SlackClient().login({ token: ws.token, cookie: ws.cookie })
     channel = await client.resolveChannel(channel)
     const bookmark = await client.editBookmark(channel, bookmarkId, {
       title: options.title,
@@ -77,7 +77,7 @@ async function removeAction(channel: string, bookmarkId: string, options: { pret
       process.exit(1)
     }
 
-    const client = new SlackClient(ws.token, ws.cookie)
+    const client = await new SlackClient().login({ token: ws.token, cookie: ws.cookie })
     channel = await client.resolveChannel(channel)
     await client.removeBookmark(channel, bookmarkId)
 
@@ -97,7 +97,7 @@ async function listAction(channel: string, options: { pretty?: boolean }): Promi
       process.exit(1)
     }
 
-    const client = new SlackClient(ws.token, ws.cookie)
+    const client = await new SlackClient().login({ token: ws.token, cookie: ws.cookie })
     channel = await client.resolveChannel(channel)
     const bookmarks = await client.listBookmarks(channel)
 

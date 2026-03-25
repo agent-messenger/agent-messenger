@@ -6,28 +6,47 @@ const MAX_RETRIES = 3
 const BASE_BACKOFF_MS = 100
 
 export class WhatsAppBotClient {
-  private phoneNumberId: string
-  private accessToken: string
+  private phoneNumberId: string | null = null
+  private accessToken: string | null = null
   private rateLimitRemaining: number | null = null
   private rateLimitResetAt: number = 0
 
-  constructor(phoneNumberId: string, accessToken: string) {
-    if (!phoneNumberId) {
-      throw new WhatsAppBotError('Phone number ID is required', 'missing_phone_number_id')
+  async login(credentials?: { phoneNumberId: string; accessToken: string }): Promise<this> {
+    if (credentials) {
+      if (!credentials.phoneNumberId) {
+        throw new WhatsAppBotError('Phone number ID is required', 'missing_phone_number_id')
+      }
+      if (!credentials.accessToken) {
+        throw new WhatsAppBotError('Access token is required', 'missing_access_token')
+      }
+      this.phoneNumberId = credentials.phoneNumberId
+      this.accessToken = credentials.accessToken
+      return this
     }
-    if (!accessToken) {
-      throw new WhatsAppBotError('Access token is required', 'missing_access_token')
+    const { WhatsAppBotCredentialManager } = await import('./credential-manager')
+    const credManager = new WhatsAppBotCredentialManager()
+    const creds = await credManager.getCredentials()
+    if (!creds) {
+      throw new WhatsAppBotError(
+        'No WhatsApp Bot credentials found. Run "agent-whatsappbot auth set" first.',
+        'no_credentials',
+      )
     }
-    this.phoneNumberId = phoneNumberId
-    this.accessToken = accessToken
+    return this.login({ phoneNumberId: creds.phone_number_id, accessToken: creds.access_token })
+  }
+
+  private ensureAuth(): void {
+    if (this.phoneNumberId === null) {
+      throw new WhatsAppBotError('Not authenticated. Call .login() first.', 'not_authenticated')
+    }
   }
 
   async verifyToken(): Promise<{ verified_name: string }> {
-    return this.request<{ verified_name: string }>('GET', `/${this.phoneNumberId}?fields=verified_name`)
+    return this.request<{ verified_name: string }>('GET', `/${this.phoneNumberId!}?fields=verified_name`)
   }
 
   async sendTextMessage(to: string, text: string, previewUrl?: boolean): Promise<WhatsAppBotMessageResponse> {
-    return this.request<WhatsAppBotMessageResponse>('POST', `/${this.phoneNumberId}/messages`, {
+    return this.request<WhatsAppBotMessageResponse>('POST', `/${this.phoneNumberId!}/messages`, {
       messaging_product: 'whatsapp',
       to,
       type: 'text',
@@ -133,6 +152,7 @@ export class WhatsAppBotClient {
   }
 
   private async request<T>(method: string, path: string, body?: unknown, unwrapKey?: string): Promise<T> {
+    this.ensureAuth()
     const url = `${BASE_URL}${path}`
     let lastError: Error | undefined
 

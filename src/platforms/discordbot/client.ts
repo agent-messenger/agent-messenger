@@ -14,20 +14,41 @@ interface RateLimitBucket {
 }
 
 export class DiscordBotClient {
-  private token: string
+  private token: string | null = null
   private buckets: Map<string, RateLimitBucket> = new Map()
   private globalRateLimitUntil: number = 0
 
-  constructor(token: string) {
-    if (!token) {
-      throw new DiscordBotError('Token is required', 'missing_token')
+  async login(credentials?: { token: string }): Promise<this> {
+    if (credentials) {
+      if (!credentials.token) {
+        throw new DiscordBotError('Token is required', 'missing_token')
+      }
+      this.token = credentials.token
+      return this
     }
-    this.token = token
+
+    const { DiscordBotCredentialManager } = await import('./credential-manager')
+    const credManager = new DiscordBotCredentialManager()
+    const creds = await credManager.getCredentials()
+    if (!creds?.token) {
+      throw new DiscordBotError(
+        'No Discord bot credentials found. Run "auth set <token>" first.',
+        'no_credentials',
+      )
+    }
+    return this.login({ token: creds.token })
+  }
+
+  private ensureAuth(): string {
+    if (!this.token) {
+      throw new DiscordBotError('Not authenticated. Call .login() first.', 'not_authenticated')
+    }
+    return this.token
   }
 
   private getHeaders(): Record<string, string> {
     return {
-      Authorization: `Bot ${this.token}`,
+      Authorization: `Bot ${this.ensureAuth()}`,
       'User-Agent': 'DiscordBot (https://github.com/devxoul/agent-messenger, 1.0)',
       'Content-Type': 'application/json',
     }
@@ -164,7 +185,7 @@ export class DiscordBotClient {
       await this.waitForRateLimit(bucketKey)
 
       const headers: Record<string, string> = {
-        Authorization: `Bot ${this.token}`,
+        Authorization: `Bot ${this.ensureAuth()}`,
         'User-Agent': 'DiscordBot (https://github.com/devxoul/agent-messenger, 1.0)',
       }
 

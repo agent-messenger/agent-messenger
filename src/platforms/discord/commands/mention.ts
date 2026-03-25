@@ -16,7 +16,7 @@ export async function listAction(options: { limit?: number; guild?: string; pret
       process.exit(1)
     }
 
-    const client = new DiscordClient(config.token)
+    const client = await new DiscordClient().login({ token: config.token })
     const mentions = await client.getMentions({
       limit: options.limit,
       guildId: options.guild,

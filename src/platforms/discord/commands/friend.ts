@@ -16,7 +16,7 @@ async function listAction(options: { pretty?: boolean }): Promise<void> {
       process.exit(1)
     }
 
-    const client = new DiscordClient(config.token)
+    const client = await new DiscordClient().login({ token: config.token })
     const relationships = await client.getRelationships()
 
     const output = relationships.map((rel) => ({

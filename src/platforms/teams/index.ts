@@ -28,20 +28,3 @@ export {
   TeamsUserSchema,
 } from './types'
 
-import { TeamsClient } from './client'
-import { TeamsCredentialManager } from './credential-manager'
-import { TeamsError } from './types'
-
-export async function createTeamsClient(): Promise<TeamsClient> {
-  const { ensureTeamsAuth } = await import('./ensure-auth')
-  await ensureTeamsAuth()
-  const credManager = new TeamsCredentialManager()
-  const creds = await credManager.getTokenWithExpiry()
-  if (!creds) {
-    throw new TeamsError(
-      'No Teams credentials found. Make sure Microsoft Teams desktop app is installed and logged in.',
-      'no_credentials',
-    )
-  }
-  return new TeamsClient(creds.token, creds.tokenExpiresAt)
-}

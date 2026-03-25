@@ -71,7 +71,7 @@ export async function extractAction(options: { pretty?: boolean; debug?: boolean
       }
 
       try {
-        const client = new TeamsClient(token)
+        const client = await new TeamsClient().login({ token })
         const authInfo = await client.testAuth()
         const teams = await client.listTeams()
 
@@ -162,7 +162,7 @@ async function extractManualToken(token: string, options: { pretty?: boolean; de
   }
 
   try {
-    const client = new TeamsClient(token)
+    const client = await new TeamsClient().login({ token })
     const authInfo = await client.testAuth()
     const teams = await client.listTeams()
 
@@ -284,7 +284,7 @@ export async function statusAction(options: { pretty?: boolean }): Promise<void>
 
       if (!isExpired) {
         try {
-          const client = new TeamsClient(account.token, account.token_expires_at)
+          const client = await new TeamsClient().login({ token: account.token, tokenExpiresAt: account.token_expires_at ?? undefined })
           const authInfo = await client.testAuth()
           displayName = authInfo.displayName
           valid = true

@@ -163,27 +163,33 @@ Use Agent Messenger as a TypeScript library. Each platform exports a typed clien
 ### Quick Example
 
 ```typescript
-import { createSlackClient } from 'agent-messenger/slack'
+import { SlackClient } from 'agent-messenger/slack'
 
-const slack = await createSlackClient()
+const slack = await new SlackClient().login()
 const channels = await slack.listChannels()
 await slack.sendMessage(channels[0].id, 'Hello from the SDK!')
 ```
 
-Credentials are resolved the same way as the CLI — auto-extracted from your desktop apps.
+Credentials are resolved the same way as the CLI — auto-extracted from your desktop apps. Call `.login()` with no arguments for auto-extraction, or pass credentials explicitly:
+
+```typescript
+const slack = await new SlackClient().login({ token: 'xoxc-...', cookie: 'xoxd-...' })
+```
 
 ### Available Imports
 
-| Import Path | Factory | Client |
-| --- | --- | --- |
-| `agent-messenger/slack` | `createSlackClient()` | `SlackClient` |
-| `agent-messenger/discord` | `createDiscordClient()` | `DiscordClient` |
-| `agent-messenger/teams` | `createTeamsClient()` | `TeamsClient` |
-| `agent-messenger/whatsapp` | `createWhatsAppClient()` | `WhatsAppClient` |
-| `agent-messenger/whatsappbot` | `createWhatsAppBotClient()` | `WhatsAppBotClient` |
-| `agent-messenger/kakaotalk` | `createKakaoTalkClient()` | `KakaoTalkClient` |
-| `agent-messenger/channeltalk` | `createChannelClient()` | `ChannelClient` |
-| `agent-messenger/channeltalkbot` | `createChannelBotClient()` | `ChannelBotClient` |
+| Import Path | Client |
+| --- | --- |
+| `agent-messenger/slack` | `SlackClient` |
+| `agent-messenger/slackbot` | `SlackBotClient` |
+| `agent-messenger/discord` | `DiscordClient` |
+| `agent-messenger/discordbot` | `DiscordBotClient` |
+| `agent-messenger/teams` | `TeamsClient` |
+| `agent-messenger/whatsapp` | `WhatsAppClient` |
+| `agent-messenger/whatsappbot` | `WhatsAppBotClient` |
+| `agent-messenger/kakaotalk` | `KakaoTalkClient` |
+| `agent-messenger/channeltalk` | `ChannelClient` |
+| `agent-messenger/channeltalkbot` | `ChannelBotClient` |
 
 Each module also exports its credential manager, Zod schemas, and TypeScript types:
 
@@ -194,21 +200,21 @@ import type { SlackMessage, SlackChannel } from 'agent-messenger/slack'
 
 ### Manual Credential Setup
 
-Factory functions handle credentials automatically. For more control, instantiate clients directly:
+Every client supports `.login()` with explicit credentials for advanced use cases:
 
 ```typescript
 import { SlackClient } from 'agent-messenger/slack'
 
-const client = new SlackClient(token, cookie)
+const client = await new SlackClient().login({ token: 'xoxc-...', cookie: 'xoxd-...' })
 const messages = await client.getMessages('C01234567')
 ```
 
 ### Real-time Events (Slack)
 
 ```typescript
-import { createSlackClient, SlackListener } from 'agent-messenger/slack'
+import { SlackClient, SlackListener } from 'agent-messenger/slack'
 
-const client = await createSlackClient()
+const client = await new SlackClient().login()
 const listener = new SlackListener(client)
 listener.on('message', (event) => {
   console.log(`New message in ${event.channel}: ${event.text}`)

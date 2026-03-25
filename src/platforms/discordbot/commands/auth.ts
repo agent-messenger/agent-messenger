@@ -28,7 +28,7 @@ interface ActionResult {
 
 export async function setAction(token: string, options: ActionOptions): Promise<ActionResult> {
   try {
-    const client = new DiscordBotClient(token)
+    const client = await new DiscordBotClient().login({ token })
     const authInfo = await client.testAuth()
 
     if (!authInfo.bot) {
@@ -90,7 +90,7 @@ export async function statusAction(options: ActionOptions): Promise<ActionResult
     let authInfo: { id: string; username: string; bot?: boolean } | null = null
 
     try {
-      const client = new DiscordBotClient(creds.token)
+      const client = await new DiscordBotClient().login({ token: creds.token })
       authInfo = await client.testAuth()
       valid = authInfo.bot === true
     } catch {

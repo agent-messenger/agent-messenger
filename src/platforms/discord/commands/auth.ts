@@ -52,7 +52,7 @@ export async function extractAction(options: { pretty?: boolean; debug?: boolean
     }
 
     try {
-      const client = new DiscordClient(extracted.token)
+      const client = await new DiscordClient().login({ token: extracted.token })
 
       if (options.debug) {
         console.error(`[debug] Testing token validity...`)
@@ -160,7 +160,7 @@ export async function statusAction(options: { pretty?: boolean }): Promise<void>
     let valid = false
 
     try {
-      const client = new DiscordClient(config.token)
+      const client = await new DiscordClient().login({ token: config.token })
       authInfo = await client.testAuth()
       valid = true
     } catch {

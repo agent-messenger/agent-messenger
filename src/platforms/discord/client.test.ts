@@ -48,13 +48,13 @@ describe('DiscordClient', () => {
   }
 
   describe('constructor', () => {
-    test('requires token', () => {
-      expect(() => new DiscordClient('')).toThrow(DiscordError)
-      expect(() => new DiscordClient('')).toThrow('Token is required')
+    test('requires token', async () => {
+      await expect(new DiscordClient().login({ token: '' })).rejects.toThrow(DiscordError)
+      await expect(new DiscordClient().login({ token: '' })).rejects.toThrow('Token is required')
     })
 
-    test('accepts valid token', () => {
-      const client = new DiscordClient('test-token')
+    test('accepts valid token', async () => {
+      const client = await new DiscordClient().login({ token: 'test-token' })
       expect(client).toBeInstanceOf(DiscordClient)
     })
   })
@@ -68,7 +68,7 @@ describe('DiscordClient', () => {
         avatar: 'abc123',
       })
 
-      const client = new DiscordClient('test-token')
+      const client = await new DiscordClient().login({ token: 'test-token' })
       const user = await client.testAuth()
 
       expect(user.id).toBe('123456789')
@@ -83,7 +83,7 @@ describe('DiscordClient', () => {
     test('throws DiscordError on API error', async () => {
       mockResponse({ message: 'Unauthorized', code: 401 }, 401)
 
-      const client = new DiscordClient('bad-token')
+      const client = await new DiscordClient().login({ token: 'bad-token' })
       await expect(client.testAuth()).rejects.toThrow(DiscordError)
     })
   })
@@ -95,7 +95,7 @@ describe('DiscordClient', () => {
         { id: '222', name: 'Server Two' },
       ])
 
-      const client = new DiscordClient('test-token')
+      const client = await new DiscordClient().login({ token: 'test-token' })
       const servers = await client.listServers()
 
       expect(servers).toHaveLength(2)
@@ -108,7 +108,7 @@ describe('DiscordClient', () => {
     test('returns server info', async () => {
       mockResponse({ id: '111', name: 'Test Server' })
 
-      const client = new DiscordClient('test-token')
+      const client = await new DiscordClient().login({ token: 'test-token' })
       const server = await client.getServer('111')
 
       expect(server.id).toBe('111')
@@ -124,7 +124,7 @@ describe('DiscordClient', () => {
         { id: 'ch2', guild_id: '111', name: 'random', type: 0 },
       ])
 
-      const client = new DiscordClient('test-token')
+      const client = await new DiscordClient().login({ token: 'test-token' })
       const channels = await client.listChannels('111')
 
       expect(channels).toHaveLength(2)
@@ -137,7 +137,7 @@ describe('DiscordClient', () => {
     test('returns channel info', async () => {
       mockResponse({ id: 'ch1', guild_id: '111', name: 'general', type: 0 })
 
-      const client = new DiscordClient('test-token')
+      const client = await new DiscordClient().login({ token: 'test-token' })
       const channel = await client.getChannel('ch1')
 
       expect(channel.id).toBe('ch1')
@@ -156,7 +156,7 @@ describe('DiscordClient', () => {
         timestamp: '2024-01-01T00:00:00.000Z',
       })
 
-      const client = new DiscordClient('test-token')
+      const client = await new DiscordClient().login({ token: 'test-token' })
       const message = await client.sendMessage('ch1', 'Hello world')
 
       expect(message.content).toBe('Hello world')
@@ -178,7 +178,7 @@ describe('DiscordClient', () => {
         },
       ])
 
-      const client = new DiscordClient('test-token')
+      const client = await new DiscordClient().login({ token: 'test-token' })
       const messages = await client.getMessages('ch1', 50)
 
       expect(messages).toHaveLength(1)
@@ -189,7 +189,7 @@ describe('DiscordClient', () => {
     test('uses default limit of 50', async () => {
       mockResponse([])
 
-      const client = new DiscordClient('test-token')
+      const client = await new DiscordClient().login({ token: 'test-token' })
       await client.getMessages('ch1')
 
       expect(fetchCalls[0].url).toBe('https://discord.com/api/v10/channels/ch1/messages?limit=50')
@@ -206,7 +206,7 @@ describe('DiscordClient', () => {
         timestamp: '2024-01-01T00:00:00.000Z',
       })
 
-      const client = new DiscordClient('test-token')
+      const client = await new DiscordClient().login({ token: 'test-token' })
       const message = await client.getMessage('ch1', 'msg1')
 
       expect(message.id).toBe('msg1')
@@ -218,7 +218,7 @@ describe('DiscordClient', () => {
     test('deletes message', async () => {
       mockResponse(null, 204)
 
-      const client = new DiscordClient('test-token')
+      const client = await new DiscordClient().login({ token: 'test-token' })
       await client.deleteMessage('ch1', 'msg1')
 
       expect(fetchCalls[0].url).toBe('https://discord.com/api/v10/channels/ch1/messages/msg1')
@@ -230,7 +230,7 @@ describe('DiscordClient', () => {
     test('adds reaction to message', async () => {
       mockResponse(null, 204)
 
-      const client = new DiscordClient('test-token')
+      const client = await new DiscordClient().login({ token: 'test-token' })
       await client.addReaction('ch1', 'msg1', '👍')
 
       expect(fetchCalls[0].url).toBe(
@@ -244,7 +244,7 @@ describe('DiscordClient', () => {
     test('removes reaction from message', async () => {
       mockResponse(null, 204)
 
-      const client = new DiscordClient('test-token')
+      const client = await new DiscordClient().login({ token: 'test-token' })
       await client.removeReaction('ch1', 'msg1', '👍')
 
       expect(fetchCalls[0].url).toBe(
@@ -258,7 +258,7 @@ describe('DiscordClient', () => {
     test('returns list of server members', async () => {
       mockResponse([{ user: { id: 'u1', username: 'user1' } }, { user: { id: 'u2', username: 'user2' } }])
 
-      const client = new DiscordClient('test-token')
+      const client = await new DiscordClient().login({ token: 'test-token' })
       const users = await client.listUsers('111')
 
       expect(users).toHaveLength(2)
@@ -271,7 +271,7 @@ describe('DiscordClient', () => {
     test('returns user info', async () => {
       mockResponse({ id: 'u1', username: 'testuser' })
 
-      const client = new DiscordClient('test-token')
+      const client = await new DiscordClient().login({ token: 'test-token' })
       const user = await client.getUser('u1')
 
       expect(user.id).toBe('u1')
@@ -301,7 +301,7 @@ describe('DiscordClient', () => {
         ],
       })
 
-      const client = new DiscordClient('test-token')
+      const client = await new DiscordClient().login({ token: 'test-token' })
       const file = await client.uploadFile('ch1', tempFile)
 
       expect(file.filename).toBe('test-upload.txt')
@@ -331,7 +331,7 @@ describe('DiscordClient', () => {
         },
       ])
 
-      const client = new DiscordClient('test-token')
+      const client = await new DiscordClient().login({ token: 'test-token' })
       const files = await client.listFiles('ch1')
 
       expect(files).toHaveLength(1)
@@ -352,7 +352,7 @@ describe('DiscordClient', () => {
         'X-RateLimit-Bucket': 'user-bucket',
       })
 
-      const client = new DiscordClient('test-token')
+      const client = await new DiscordClient().login({ token: 'test-token' })
       await client.testAuth()
 
       const startTime = Date.now()
@@ -367,7 +367,7 @@ describe('DiscordClient', () => {
       mockResponse({ message: 'Rate limited', retry_after: 0.1 }, 429, { 'Retry-After': '0.1' })
       mockResponse({ id: '123', username: 'user' })
 
-      const client = new DiscordClient('test-token')
+      const client = await new DiscordClient().login({ token: 'test-token' })
       const user = await client.testAuth()
 
       expect(user.id).toBe('123')
@@ -381,7 +381,7 @@ describe('DiscordClient', () => {
       })
       mockResponse({ id: '123', username: 'user' })
 
-      const client = new DiscordClient('test-token')
+      const client = await new DiscordClient().login({ token: 'test-token' })
       const user = await client.testAuth()
 
       expect(user.id).toBe('123')
@@ -393,7 +393,7 @@ describe('DiscordClient', () => {
         mockResponse({ message: 'Rate limited' }, 429, { 'Retry-After': '0.01' })
       }
 
-      const client = new DiscordClient('test-token')
+      const client = await new DiscordClient().login({ token: 'test-token' })
       await expect(client.testAuth()).rejects.toThrow(DiscordError)
       expect(fetchCalls.length).toBeLessThanOrEqual(4)
     })
@@ -404,7 +404,7 @@ describe('DiscordClient', () => {
       mockResponse({ message: 'Internal Server Error' }, 500)
       mockResponse({ id: '123', username: 'user' })
 
-      const client = new DiscordClient('test-token')
+      const client = await new DiscordClient().login({ token: 'test-token' })
       const user = await client.testAuth()
 
       expect(user.id).toBe('123')
@@ -414,7 +414,7 @@ describe('DiscordClient', () => {
     test('does not retry on 4xx client errors (except 429)', async () => {
       mockResponse({ message: 'Not Found' }, 404)
 
-      const client = new DiscordClient('test-token')
+      const client = await new DiscordClient().login({ token: 'test-token' })
       await expect(client.testAuth()).rejects.toThrow(DiscordError)
       expect(fetchCalls.length).toBe(1)
     })
@@ -424,7 +424,7 @@ describe('DiscordClient', () => {
       mockResponse({ message: 'Error' }, 500)
       mockResponse({ id: '123', username: 'user' })
 
-      const client = new DiscordClient('test-token')
+      const client = await new DiscordClient().login({ token: 'test-token' })
       const startTime = Date.now()
       await client.testAuth()
       const elapsed = Date.now() - startTime
@@ -439,7 +439,7 @@ describe('DiscordClient', () => {
       mockResponse([])
       mockResponse([])
 
-      const client = new DiscordClient('test-token')
+      const client = await new DiscordClient().login({ token: 'test-token' })
       await client.getMessages('123456789')
       await client.getMessages('987654321')
 

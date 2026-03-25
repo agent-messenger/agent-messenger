@@ -49,19 +49,19 @@ describe('WhatsAppBotClient', () => {
     )
   }
 
-  describe('constructor', () => {
-    test('throws on empty phoneNumberId', () => {
-      expect(() => new WhatsAppBotClient('', 'access-token')).toThrow(WhatsAppBotError)
-      expect(() => new WhatsAppBotClient('', 'access-token')).toThrow('Phone number ID is required')
+  describe('login', () => {
+    test('throws on empty phoneNumberId', async () => {
+      await expect(new WhatsAppBotClient().login({ phoneNumberId: '', accessToken: 'access-token' })).rejects.toThrow(WhatsAppBotError)
+      await expect(new WhatsAppBotClient().login({ phoneNumberId: '', accessToken: 'access-token' })).rejects.toThrow('Phone number ID is required')
     })
 
-    test('throws on empty accessToken', () => {
-      expect(() => new WhatsAppBotClient('phone-123', '')).toThrow(WhatsAppBotError)
-      expect(() => new WhatsAppBotClient('phone-123', '')).toThrow('Access token is required')
+    test('throws on empty accessToken', async () => {
+      await expect(new WhatsAppBotClient().login({ phoneNumberId: 'phone-123', accessToken: '' })).rejects.toThrow(WhatsAppBotError)
+      await expect(new WhatsAppBotClient().login({ phoneNumberId: 'phone-123', accessToken: '' })).rejects.toThrow('Access token is required')
     })
 
-    test('accepts valid phoneNumberId and accessToken', () => {
-      const client = new WhatsAppBotClient('phone-123', 'access-token')
+    test('accepts valid phoneNumberId and accessToken', async () => {
+      const client = await new WhatsAppBotClient().login({ phoneNumberId: 'phone-123', accessToken: 'access-token' })
       expect(client).toBeInstanceOf(WhatsAppBotClient)
     })
   })
@@ -70,7 +70,7 @@ describe('WhatsAppBotClient', () => {
     test('sends GET request with correct URL and auth header', async () => {
       mockResponse({ verified_name: 'Test Business' })
 
-      const client = new WhatsAppBotClient('phone-123', 'my-token')
+      const client = await new WhatsAppBotClient().login({ phoneNumberId: 'phone-123', accessToken: 'my-token' })
       const result = await client.verifyToken()
 
       expect(result.verified_name).toBe('Test Business')
@@ -84,7 +84,7 @@ describe('WhatsAppBotClient', () => {
     test('throws WhatsAppBotError on API error', async () => {
       mockResponse({ error: { message: 'Invalid token', code: 190 } }, 401)
 
-      const client = new WhatsAppBotClient('phone-123', 'bad-token')
+      const client = await new WhatsAppBotClient().login({ phoneNumberId: 'phone-123', accessToken: 'bad-token' })
       await expect(client.verifyToken()).rejects.toThrow(WhatsAppBotError)
     })
   })
@@ -97,7 +97,7 @@ describe('WhatsAppBotClient', () => {
         messages: [{ id: 'wamid.abc123' }],
       })
 
-      const client = new WhatsAppBotClient('phone-123', 'my-token')
+      const client = await new WhatsAppBotClient().login({ phoneNumberId: 'phone-123', accessToken: 'my-token' })
       const result = await client.sendTextMessage('+15551234567', 'Hello world')
 
       expect(result.messages[0].id).toBe('wamid.abc123')
@@ -120,7 +120,7 @@ describe('WhatsAppBotClient', () => {
         messages: [{ id: 'wamid.test' }],
       })
 
-      const client = new WhatsAppBotClient('phone-123', 'secret-token')
+      const client = await new WhatsAppBotClient().login({ phoneNumberId: 'phone-123', accessToken: 'secret-token' })
       await client.sendTextMessage('+15551234567', 'Hello')
 
       expect(fetchCalls[0].options?.headers).toMatchObject({
@@ -135,7 +135,7 @@ describe('WhatsAppBotClient', () => {
         messages: [{ id: 'wamid.abc123' }],
       })
 
-      const client = new WhatsAppBotClient('phone-123', 'my-token')
+      const client = await new WhatsAppBotClient().login({ phoneNumberId: 'phone-123', accessToken: 'my-token' })
       const result = await client.sendTextMessage('+15551234567', 'Hello')
 
       expect(result.messaging_product).toBe('whatsapp')
@@ -152,7 +152,7 @@ describe('WhatsAppBotClient', () => {
         messages: [{ id: 'wamid.template1' }],
       })
 
-      const client = new WhatsAppBotClient('phone-123', 'my-token')
+      const client = await new WhatsAppBotClient().login({ phoneNumberId: 'phone-123', accessToken: 'my-token' })
       await client.sendTemplateMessage('+15551234567', 'hello_world', 'en_US')
 
       const body = JSON.parse(fetchCalls[0].options?.body as string)
@@ -172,7 +172,7 @@ describe('WhatsAppBotClient', () => {
       })
 
       const components = [{ type: 'body', parameters: [{ type: 'text', text: 'World' }] }]
-      const client = new WhatsAppBotClient('phone-123', 'my-token')
+      const client = await new WhatsAppBotClient().login({ phoneNumberId: 'phone-123', accessToken: 'my-token' })
       await client.sendTemplateMessage('+15551234567', 'greeting', 'en_US', components)
 
       const body = JSON.parse(fetchCalls[0].options?.body as string)
@@ -188,7 +188,7 @@ describe('WhatsAppBotClient', () => {
         messages: [{ id: 'wamid.reaction1' }],
       })
 
-      const client = new WhatsAppBotClient('phone-123', 'my-token')
+      const client = await new WhatsAppBotClient().login({ phoneNumberId: 'phone-123', accessToken: 'my-token' })
       await client.sendReaction('+15551234567', 'wamid.orig123', '👍')
 
       const body = JSON.parse(fetchCalls[0].options?.body as string)
@@ -209,7 +209,7 @@ describe('WhatsAppBotClient', () => {
         messages: [{ id: 'wamid.image1' }],
       })
 
-      const client = new WhatsAppBotClient('phone-123', 'my-token')
+      const client = await new WhatsAppBotClient().login({ phoneNumberId: 'phone-123', accessToken: 'my-token' })
       await client.sendImageMessage('+15551234567', 'https://example.com/photo.jpg', 'My photo')
 
       const body = JSON.parse(fetchCalls[0].options?.body as string)
@@ -230,7 +230,7 @@ describe('WhatsAppBotClient', () => {
         messages: [{ id: 'wamid.doc1' }],
       })
 
-      const client = new WhatsAppBotClient('phone-123', 'my-token')
+      const client = await new WhatsAppBotClient().login({ phoneNumberId: 'phone-123', accessToken: 'my-token' })
       await client.sendDocumentMessage('+15551234567', 'https://example.com/report.pdf', 'report.pdf', 'Q4 Report')
 
       const body = JSON.parse(fetchCalls[0].options?.body as string)
@@ -252,7 +252,7 @@ describe('WhatsAppBotClient', () => {
         ],
       })
 
-      const client = new WhatsAppBotClient('phone-123', 'my-token')
+      const client = await new WhatsAppBotClient().login({ phoneNumberId: 'phone-123', accessToken: 'my-token' })
       const templates = await client.listTemplates()
 
       expect(templates).toHaveLength(2)
@@ -265,7 +265,7 @@ describe('WhatsAppBotClient', () => {
     test('passes limit parameter in URL', async () => {
       mockResponse({ data: [] })
 
-      const client = new WhatsAppBotClient('phone-123', 'my-token')
+      const client = await new WhatsAppBotClient().login({ phoneNumberId: 'phone-123', accessToken: 'my-token' })
       await client.listTemplates({ limit: 10 })
 
       expect(fetchCalls[0].url).toContain('limit=10')
@@ -280,7 +280,7 @@ describe('WhatsAppBotClient', () => {
         ],
       })
 
-      const client = new WhatsAppBotClient('phone-123', 'my-token')
+      const client = await new WhatsAppBotClient().login({ phoneNumberId: 'phone-123', accessToken: 'my-token' })
       const template = await client.getTemplate('hello_world')
 
       expect(template.name).toBe('hello_world')
@@ -290,7 +290,7 @@ describe('WhatsAppBotClient', () => {
     test('throws WhatsAppBotError with not_found code when template not found', async () => {
       mockResponse({ data: [] })
 
-      const client = new WhatsAppBotClient('phone-123', 'my-token')
+      const client = await new WhatsAppBotClient().login({ phoneNumberId: 'phone-123', accessToken: 'my-token' })
 
       try {
         await client.getTemplate('nonexistent')
@@ -319,7 +319,7 @@ describe('WhatsAppBotClient', () => {
       mockResponse({ verified_name: 'Test Business' }, 200, { 'x-business-use-case-usage': usageHeader })
       mockResponse({ verified_name: 'Test Business' })
 
-      const client = new WhatsAppBotClient('phone-123', 'my-token')
+      const client = await new WhatsAppBotClient().login({ phoneNumberId: 'phone-123', accessToken: 'my-token' })
       await client.verifyToken()
 
       const startTime = Date.now()
@@ -334,7 +334,7 @@ describe('WhatsAppBotClient', () => {
       mockResponse({ error: { message: 'Rate limited', code: 613 } }, 429, { 'Retry-After': '0.1' })
       mockResponse({ verified_name: 'Test Business' })
 
-      const client = new WhatsAppBotClient('phone-123', 'my-token')
+      const client = await new WhatsAppBotClient().login({ phoneNumberId: 'phone-123', accessToken: 'my-token' })
       const result = await client.verifyToken()
 
       expect(result.verified_name).toBe('Test Business')
@@ -346,7 +346,7 @@ describe('WhatsAppBotClient', () => {
         mockResponse({ error: { message: 'Rate limited', code: 613 } }, 429, { 'Retry-After': '0.01' })
       }
 
-      const client = new WhatsAppBotClient('phone-123', 'my-token')
+      const client = await new WhatsAppBotClient().login({ phoneNumberId: 'phone-123', accessToken: 'my-token' })
       await expect(client.verifyToken()).rejects.toThrow(WhatsAppBotError)
       expect(fetchCalls.length).toBe(4)
     })
@@ -357,7 +357,7 @@ describe('WhatsAppBotClient', () => {
       mockResponse({ error: { message: 'Internal Server Error' } }, 500)
       mockResponse({ verified_name: 'Test Business' })
 
-      const client = new WhatsAppBotClient('phone-123', 'my-token')
+      const client = await new WhatsAppBotClient().login({ phoneNumberId: 'phone-123', accessToken: 'my-token' })
       const result = await client.verifyToken()
 
       expect(result.verified_name).toBe('Test Business')
@@ -367,7 +367,7 @@ describe('WhatsAppBotClient', () => {
     test('does not retry on 500 for POST requests', async () => {
       mockResponse({ error: { message: 'Internal Server Error' } }, 500)
 
-      const client = new WhatsAppBotClient('phone-123', 'my-token')
+      const client = await new WhatsAppBotClient().login({ phoneNumberId: 'phone-123', accessToken: 'my-token' })
       await expect(client.sendTextMessage('+15551234567', 'Hello')).rejects.toThrow(WhatsAppBotError)
       expect(fetchCalls.length).toBe(1)
     })
@@ -375,7 +375,7 @@ describe('WhatsAppBotClient', () => {
     test('does not retry on 4xx client errors (except 429)', async () => {
       mockResponse({ error: { message: 'Not Found', code: 100 } }, 404)
 
-      const client = new WhatsAppBotClient('phone-123', 'my-token')
+      const client = await new WhatsAppBotClient().login({ phoneNumberId: 'phone-123', accessToken: 'my-token' })
       await expect(client.verifyToken()).rejects.toThrow(WhatsAppBotError)
       expect(fetchCalls.length).toBe(1)
     })
@@ -383,7 +383,7 @@ describe('WhatsAppBotClient', () => {
     test('does not retry on 403 forbidden', async () => {
       mockResponse({ error: { message: 'Forbidden', code: 200 } }, 403)
 
-      const client = new WhatsAppBotClient('phone-123', 'my-token')
+      const client = await new WhatsAppBotClient().login({ phoneNumberId: 'phone-123', accessToken: 'my-token' })
       await expect(client.verifyToken()).rejects.toThrow(WhatsAppBotError)
       expect(fetchCalls.length).toBe(1)
     })
@@ -392,7 +392,7 @@ describe('WhatsAppBotClient', () => {
   describe('request URL construction', () => {
     test('all requests go to https://graph.facebook.com/v23.0/...', async () => {
       mockResponse({ verified_name: 'Test' })
-      const client = new WhatsAppBotClient('my-phone', 'my-token')
+      const client = await new WhatsAppBotClient().login({ phoneNumberId: 'my-phone', accessToken: 'my-token' })
       await client.verifyToken()
 
       expect(fetchCalls[0].url.startsWith('https://graph.facebook.com/v23.0/')).toBe(true)
@@ -400,7 +400,7 @@ describe('WhatsAppBotClient', () => {
 
     test('Authorization header is Bearer <token>', async () => {
       mockResponse({ verified_name: 'Test' })
-      const client = new WhatsAppBotClient('phone-123', 'my-secret-token')
+      const client = await new WhatsAppBotClient().login({ phoneNumberId: 'phone-123', accessToken: 'my-secret-token' })
       await client.verifyToken()
 
       expect(fetchCalls[0].options?.headers).toMatchObject({

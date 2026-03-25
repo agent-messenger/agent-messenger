@@ -16,7 +16,7 @@ async function listAction(options: { pretty?: boolean }): Promise<void> {
       process.exit(1)
     }
 
-    const client = new SlackClient(workspace.token, workspace.cookie)
+    const client = await new SlackClient().login({ token: workspace.token, cookie: workspace.cookie })
     const sections = await client.getChannelSections()
 
     const output = sections.map((section) => ({

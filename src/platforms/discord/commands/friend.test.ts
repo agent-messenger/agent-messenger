@@ -64,7 +64,7 @@ afterEach(() => {
 
 test('list: returns all relationships', async () => {
   // given: discord client with relationships
-  const client = new DiscordClient('test-token')
+  const client = await new DiscordClient().login({ token: 'test-token' })
   const relationships = await client.getRelationships()
 
   // when: getting all relationships
@@ -76,7 +76,7 @@ test('list: returns all relationships', async () => {
 
 test('list: includes relationship metadata', async () => {
   // given: discord client with relationships
-  const client = new DiscordClient('test-token')
+  const client = await new DiscordClient().login({ token: 'test-token' })
   const relationships = await client.getRelationships()
 
   // when: checking relationship properties
@@ -92,7 +92,7 @@ test('list: includes relationship metadata', async () => {
 
 test('list: filters friends (type=1)', async () => {
   // given: discord client with relationships
-  const client = new DiscordClient('test-token')
+  const client = await new DiscordClient().login({ token: 'test-token' })
   const relationships = await client.getRelationships()
 
   // when: filtering friends
@@ -106,7 +106,7 @@ test('list: filters friends (type=1)', async () => {
 
 test('list: includes optional nickname', async () => {
   // given: discord client with relationships
-  const client = new DiscordClient('test-token')
+  const client = await new DiscordClient().login({ token: 'test-token' })
   const relationships = await client.getRelationships()
 
   // when: checking for nickname
@@ -120,7 +120,7 @@ test('list: includes optional nickname', async () => {
 
 test('list: distinguishes relationship types', async () => {
   // given: discord client with relationships
-  const client = new DiscordClient('test-token')
+  const client = await new DiscordClient().login({ token: 'test-token' })
   const relationships = await client.getRelationships()
 
   // when: grouping by type

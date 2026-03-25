@@ -23,7 +23,7 @@ export async function uploadAction(
       process.exit(1)
     }
 
-    const client = new DiscordClient(config.token)
+    const client = await new DiscordClient().login({ token: config.token })
 
     const filePath = resolve(path)
     const file = await client.uploadFile(channelId, filePath)
@@ -52,7 +52,7 @@ export async function listAction(channelId: string, options: { pretty?: boolean 
       process.exit(1)
     }
 
-    const client = new DiscordClient(config.token)
+    const client = await new DiscordClient().login({ token: config.token })
     const files = await client.listFiles(channelId)
 
     const output = files.map((file: DiscordFile) => ({
@@ -79,7 +79,7 @@ export async function infoAction(channelId: string, fileId: string, options: { p
       process.exit(1)
     }
 
-    const client = new DiscordClient(config.token)
+    const client = await new DiscordClient().login({ token: config.token })
     const files = await client.listFiles(channelId)
     const fileData = files.find((f) => f.id === fileId)
 

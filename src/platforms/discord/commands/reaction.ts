@@ -21,7 +21,7 @@ export async function addAction(
       process.exit(1)
     }
 
-    const client = new DiscordClient(config.token)
+    const client = await new DiscordClient().login({ token: config.token })
     await client.addReaction(channelId, messageId, emoji)
 
     console.log(
@@ -55,7 +55,7 @@ export async function removeAction(
       process.exit(1)
     }
 
-    const client = new DiscordClient(config.token)
+    const client = await new DiscordClient().login({ token: config.token })
     await client.removeReaction(channelId, messageId, emoji)
 
     console.log(
@@ -84,7 +84,7 @@ export async function listAction(channelId: string, messageId: string, options: 
       process.exit(1)
     }
 
-    const client = new DiscordClient(config.token)
+    const client = await new DiscordClient().login({ token: config.token })
     const message = await client.getMessage(channelId, messageId)
 
     if (!message) {

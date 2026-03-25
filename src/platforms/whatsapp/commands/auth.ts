@@ -20,7 +20,7 @@ async function loginAction(options: LoginOptions): Promise<void> {
     const manager = new WhatsAppCredentialManager()
     const accountId = createAccountId(options.phone)
     const paths = await manager.ensureAccountPaths(accountId)
-    const client = new WhatsAppClient(paths.auth_dir)
+    const client = await new WhatsAppClient().login({ authDir: paths.auth_dir })
 
     let code: string
     let waitForAuth: () => Promise<void>
@@ -149,7 +149,7 @@ async function logoutAction(options: { account?: string; pretty?: boolean }): Pr
 
     const paths = manager.getAccountPaths(account.account_id)
     try {
-      const client = new WhatsAppClient(paths.auth_dir)
+      const client = await new WhatsAppClient().login({ authDir: paths.auth_dir })
       await client.connect()
       if (client.getSocket()) {
         await client.getSocket()!.logout('Logged out via agent-whatsapp CLI')

@@ -74,7 +74,7 @@ function summarizeChat(
 
 export class WhatsAppClient {
   private sock: WASocket | null = null
-  private authDir: string
+  private authDir: string | null = null
   private logger: ReturnType<typeof pino>
   private chats: Map<string, Chat> = new Map()
   private messages: Map<string, WAMessage[]> = new Map()
@@ -83,18 +83,43 @@ export class WhatsAppClient {
   private pendingPromise: Promise<void> | null = null
   private authCompleteResolve: (() => void) | null = null
 
-  private storePath: string
+  private storePath: string | null = null
 
-  constructor(authDir: string) {
-    this.authDir = authDir
-    this.storePath = join(authDir, '..', 'store.json')
+  constructor() {
     this.logger = pino({ level: 'fatal' })
   }
 
+  async login(credentials?: { authDir: string }): Promise<this> {
+    if (credentials) {
+      this.authDir = credentials.authDir
+      this.storePath = join(credentials.authDir, '..', 'store.json')
+      return this
+    }
+    const { WhatsAppCredentialManager } = await import('./credential-manager')
+    const { WhatsAppError } = await import('./types')
+    const manager = new WhatsAppCredentialManager()
+    const account = await manager.getAccount()
+    if (!account) {
+      throw new WhatsAppError(
+        'No WhatsApp credentials found. Run "agent-whatsapp auth login --phone <phone-number>" first.',
+        'no_credentials',
+      )
+    }
+    const paths = manager.getAccountPaths(account.account_id)
+    return this.login({ authDir: paths.auth_dir })
+  }
+
+  private ensureAuth(): void {
+    if (this.authDir === null) {
+      throw new WhatsAppError('Not authenticated. Call .login() first.', 'not_authenticated')
+    }
+  }
+
   private async loadStore(): Promise<void> {
-    if (!existsSync(this.storePath)) return
+    this.ensureAuth()
+    if (!existsSync(this.storePath!)) return
     try {
-      const raw = await readFile(this.storePath, 'utf-8')
+      const raw = await readFile(this.storePath!, 'utf-8')
       const data = JSON.parse(raw) as { chats?: Record<string, Chat>; contacts?: Record<string, Contact> }
       if (data.chats) {
         for (const [id, chat] of Object.entries(data.chats)) {
@@ -112,15 +137,17 @@ export class WhatsAppClient {
   }
 
   private async saveStore(): Promise<void> {
+    this.ensureAuth()
     const data = {
       chats: Object.fromEntries(this.chats),
       contacts: Object.fromEntries(this.contacts),
     }
-    await writeFile(this.storePath, JSON.stringify(data), { mode: 0o600 })
+    await writeFile(this.storePath!, JSON.stringify(data), { mode: 0o600 })
   }
 
   private async createSocket(): Promise<{ sock: WASocket; saveCreds: () => Promise<void> }> {
-    const { state, saveCreds } = await useMultiFileAuthState(this.authDir)
+    this.ensureAuth()
+    const { state, saveCreds } = await useMultiFileAuthState(this.authDir!)
     const { version } = await fetchLatestBaileysVersion()
 
     const sock = makeWASocket({
@@ -142,6 +169,7 @@ export class WhatsAppClient {
   }
 
   async connect(): Promise<void> {
+    this.ensureAuth()
     await this.loadStore()
 
     this.pendingPromise = new Promise<void>((resolve) => {
@@ -211,6 +239,7 @@ export class WhatsAppClient {
   }
 
   async connectForPairing(phoneNumber: string): Promise<{ code: string; waitForAuth: () => Promise<void> }> {
+    this.ensureAuth()
     this.pendingPromise = new Promise<void>((resolve) => {
       this.pendingResolve = resolve
     })

@@ -14,7 +14,6 @@ import {
   ChannelClient,
   ChannelCredentialManager,
   ChannelError,
-  createChannelClient,
 } from 'agent-messenger/channeltalk'
 ```
 
@@ -25,15 +24,15 @@ The main client for interacting with Channel Talk's internal API programmaticall
 ```typescript
 import { ChannelClient } from 'agent-messenger/channeltalk'
 
-const client = new ChannelClient(accountCookie, sessionCookie)
+const client = await new ChannelClient().login({ accountCookie, sessionCookie })
 ```
 
 Or use automatic credential extraction — credentials are extracted from the desktop app, no manual cookies needed:
 
 ```typescript
-import { createChannelClient } from 'agent-messenger/channeltalk'
+import { ChannelClient } from 'agent-messenger/channeltalk'
 
-const client = await createChannelClient()
+const client = await new ChannelClient().login()
 ```
 
 ### Account
@@ -300,7 +299,7 @@ const manager = new ChannelCredentialManager()
 const creds = await manager.getCredentials()
 if (!creds) throw new Error('No credentials')
 
-const client = new ChannelClient(creds.account_cookie, creds.session_cookie)
+const client = await new ChannelClient().login({ accountCookie: creds.account_cookie, sessionCookie: creds.session_cookie })
 const account = await client.getAccount()
 console.log(`Logged in as ${account.name} (${account.email})`)
 
@@ -318,7 +317,7 @@ Send a message to a group and read recent messages.
 ```typescript
 import { ChannelClient } from 'agent-messenger/channeltalk'
 
-const client = new ChannelClient(accountCookie, sessionCookie)
+const client = await new ChannelClient().login({ accountCookie, sessionCookie })
 
 // Send a message to a group
 const blocks = ChannelClient.wrapTextInBlocks('Deployment v2.1.0 complete')
@@ -339,7 +338,7 @@ List open user chats, read the latest message, and reply.
 ```typescript
 import { ChannelClient } from 'agent-messenger/channeltalk'
 
-const client = new ChannelClient(accountCookie, sessionCookie)
+const client = await new ChannelClient().login({ accountCookie, sessionCookie })
 
 // List open user chats
 const chats = await client.listUserChats(channelId, { state: 'opened' })
@@ -368,7 +367,7 @@ Search across team and user chats for specific topics.
 ```typescript
 import { ChannelClient } from 'agent-messenger/channeltalk'
 
-const client = new ChannelClient(accountCookie, sessionCookie)
+const client = await new ChannelClient().login({ accountCookie, sessionCookie })
 
 // Search team chats for deployment mentions
 const teamResults = await client.searchTeamChatMessages(channelId, 'deployment', { limit: 10 })

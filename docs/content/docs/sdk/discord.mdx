@@ -14,7 +14,6 @@ import {
   DiscordClient,
   DiscordCredentialManager,
   DiscordError,
-  createDiscordClient,
 } from 'agent-messenger/discord'
 ```
 
@@ -25,15 +24,15 @@ The main client for interacting with Discord's API programmatically. All API met
 ```typescript
 import { DiscordClient } from 'agent-messenger/discord'
 
-const client = new DiscordClient(token)
+const client = await new DiscordClient().login({ token })
 ```
 
 Or use automatic credential extraction — credentials are extracted from the desktop app, no manual token needed:
 
 ```typescript
-import { createDiscordClient } from 'agent-messenger/discord'
+import { DiscordClient } from 'agent-messenger/discord'
 
-const client = await createDiscordClient()
+const client = await new DiscordClient().login()
 ```
 
 ### Authentication
@@ -316,7 +315,7 @@ Post a deployment message, stream progress with replies, and mark it complete wi
 ```typescript
 import { DiscordClient } from 'agent-messenger/discord'
 
-const client = new DiscordClient(token)
+const client = await new DiscordClient().login({ token })
 
 // Post parent message to deploys channel
 const msg = await client.sendMessage(channelId, '🚀 Deploying v2.1.0 to production...')
@@ -341,7 +340,7 @@ Create a thread for a project kickoff, invite members, and post an announcement.
 ```typescript
 import { DiscordClient } from 'agent-messenger/discord'
 
-const client = new DiscordClient(token)
+const client = await new DiscordClient().login({ token })
 
 // Create a thread for project coordination
 const thread = await client.createThread(channelId, 'Project Alpha — Kickoff', {
@@ -374,7 +373,7 @@ Watch for mentions, acknowledge them, and set a follow-up note.
 ```typescript
 import { DiscordClient } from 'agent-messenger/discord'
 
-const client = new DiscordClient(token)
+const client = await new DiscordClient().login({ token })
 
 // Get recent mentions across all servers
 const mentions = await client.getMentions({ limit: 25 })
@@ -405,7 +404,7 @@ Search for urgent messages, acknowledge with a reaction, and reply with a follow
 ```typescript
 import { DiscordClient } from 'agent-messenger/discord'
 
-const client = new DiscordClient(token)
+const client = await new DiscordClient().login({ token })
 
 // Search for urgent messages in the server
 const { results, total } = await client.searchMessages(serverId, 'urgent OR blocker', {
@@ -435,7 +434,7 @@ Collect files from one channel and re-upload them to an archive channel with a s
 ```typescript
 import { DiscordClient } from 'agent-messenger/discord'
 
-const client = new DiscordClient(token)
+const client = await new DiscordClient().login({ token })
 
 // Get files from the source channel
 const files = await client.listFiles(sourceChannelId)
