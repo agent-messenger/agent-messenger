@@ -14,7 +14,6 @@ import {
   TeamsClient,
   TeamsCredentialManager,
   TeamsError,
-  createTeamsClient,
 } from 'agent-messenger/teams'
 ```
 
@@ -27,16 +26,16 @@ Teams tokens expire in 60-90 minutes. The client checks expiry before each reque
 ```typescript
 import { TeamsClient } from 'agent-messenger/teams'
 
-const client = new TeamsClient(token)
-// With expiry tracking: new TeamsClient(token, '2025-03-23T12:00:00Z')
+const client = await new TeamsClient().login({ token })
+// With expiry tracking: await new TeamsClient().login({ token, tokenExpiresAt: '2025-03-23T12:00:00Z' })
 ```
 
 Or use automatic credential extraction — credentials are extracted from the desktop app, no manual token needed:
 
 ```typescript
-import { createTeamsClient } from 'agent-messenger/teams'
+import { TeamsClient } from 'agent-messenger/teams'
 
-const client = await createTeamsClient()
+const client = await new TeamsClient().login()
 ```
 
 ### Authentication
@@ -243,7 +242,7 @@ Post a deployment message, stream progress, and mark it complete with a reaction
 ```typescript
 import { TeamsClient } from 'agent-messenger/teams'
 
-const client = new TeamsClient(token, tokenExpiresAt)
+const client = await new TeamsClient().login({ token, tokenExpiresAt })
 
 // Post parent message to deploys channel
 const msg = await client.sendMessage(teamId, channelId, '🚀 Deploying v2.1.0 to production...')
@@ -268,7 +267,7 @@ List channels in a team and pull recent messages from each one.
 ```typescript
 import { TeamsClient } from 'agent-messenger/teams'
 
-const client = new TeamsClient(token, tokenExpiresAt)
+const client = await new TeamsClient().login({ token, tokenExpiresAt })
 
 // List all channels in the team
 const channels = await client.listChannels(teamId)
@@ -290,7 +289,7 @@ Build a snapshot-style overview of a team: members, channels, and latest activit
 ```typescript
 import { TeamsClient } from 'agent-messenger/teams'
 
-const client = new TeamsClient(token, tokenExpiresAt)
+const client = await new TeamsClient().login({ token, tokenExpiresAt })
 
 // Gather team info
 const team = await client.getTeam(teamId)
@@ -323,7 +322,7 @@ Collect files from one channel and re-upload them to an archive channel with a s
 ```typescript
 import { TeamsClient } from 'agent-messenger/teams'
 
-const client = new TeamsClient(token, tokenExpiresAt)
+const client = await new TeamsClient().login({ token, tokenExpiresAt })
 
 // Get files from the source channel
 const files = await client.listFiles(teamId, sourceChannelId)

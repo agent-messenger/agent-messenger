@@ -14,7 +14,6 @@ import {
   ChannelBotClient,
   ChannelBotCredentialManager,
   ChannelBotError,
-  createChannelBotClient,
 } from 'agent-messenger/channeltalkbot'
 ```
 
@@ -25,15 +24,15 @@ The main client for interacting with Channel Talk's Bot API programmatically. Au
 ```typescript
 import { ChannelBotClient } from 'agent-messenger/channeltalkbot'
 
-const client = new ChannelBotClient(accessKey, accessSecret)
+const client = await new ChannelBotClient().login({ accessKey, accessSecret })
 ```
 
 Or use automatic credential extraction — credentials are read from stored config:
 
 ```typescript
-import { createChannelBotClient } from 'agent-messenger/channeltalkbot'
+import { ChannelBotClient } from 'agent-messenger/channeltalkbot'
 
-const client = await createChannelBotClient()
+const client = await new ChannelBotClient().login()
 ```
 
 ### Channel (Workspace)
@@ -287,7 +286,7 @@ List open user chats, send a reply, and close the chat.
 ```typescript
 import { ChannelBotClient } from 'agent-messenger/channeltalkbot'
 
-const client = new ChannelBotClient(accessKey, accessSecret)
+const client = await new ChannelBotClient().login({ accessKey, accessSecret })
 
 const chats = await client.listUserChats({ state: 'opened', limit: 10 })
 
@@ -312,7 +311,7 @@ Resolve a group by name and send an announcement.
 ```typescript
 import { ChannelBotClient } from 'agent-messenger/channeltalkbot'
 
-const client = new ChannelBotClient(accessKey, accessSecret)
+const client = await new ChannelBotClient().login({ accessKey, accessSecret })
 
 // Resolve group by @name
 const group = await client.resolveGroup('@engineering')
@@ -335,7 +334,7 @@ Create a bot, list bots, and send a message as the new bot.
 ```typescript
 import { ChannelBotClient } from 'agent-messenger/channeltalkbot'
 
-const client = new ChannelBotClient(accessKey, accessSecret)
+const client = await new ChannelBotClient().login({ accessKey, accessSecret })
 
 // Create a dedicated alert bot
 const bot = await client.createBot('Alert Bot', {
@@ -363,7 +362,7 @@ List chats by state, read messages, and send acknowledgments.
 ```typescript
 import { ChannelBotClient } from 'agent-messenger/channeltalkbot'
 
-const client = new ChannelBotClient(accessKey, accessSecret)
+const client = await new ChannelBotClient().login({ accessKey, accessSecret })
 
 // Get workspace info
 const channel = await client.getChannel()
