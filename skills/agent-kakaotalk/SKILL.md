@@ -433,7 +433,6 @@ See the [KakaoTalk SDK documentation](https://agent-messenger.dev/docs/sdk/kakao
 
 - macOS and Windows only (desktop app required for credential extraction)
 - No Linux support (KakaoTalk desktop not available on Linux)
-- No real-time events / push notifications
 - No file upload or download
 - No channel/chat room creation or management
 - No friend list management
