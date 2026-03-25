@@ -3,6 +3,7 @@ import { basename } from 'node:path'
 
 import type { TeamsChannel, TeamsFile, TeamsMessage, TeamsTeam, TeamsUser } from './types'
 import { TeamsError } from './types'
+import { TeamsCredentialManager } from './credential-manager'
 
 interface RateLimitBucket {
   remaining: number
@@ -15,19 +16,41 @@ const MAX_RETRIES = 3
 const BASE_BACKOFF_MS = 100
 
 export class TeamsClient {
-  private token: string
+  private token: string | null = null
   private tokenExpiresAt?: Date
   private buckets: Map<string, RateLimitBucket> = new Map()
   private globalRateLimitUntil: number = 0
 
-  constructor(token: string, tokenExpiresAt?: string) {
-    if (!token) {
-      throw new TeamsError('Token is required', 'missing_token')
+  async login(credentials?: { token: string; tokenExpiresAt?: string }): Promise<this> {
+    if (credentials) {
+      if (!credentials.token) {
+        throw new TeamsError('Token is required', 'missing_token')
+      }
+      this.token = credentials.token
+      if (credentials.tokenExpiresAt) {
+        this.tokenExpiresAt = new Date(credentials.tokenExpiresAt)
+      }
+      return this
     }
-    this.token = token
-    if (tokenExpiresAt) {
-      this.tokenExpiresAt = new Date(tokenExpiresAt)
+
+    const { ensureTeamsAuth } = await import('./ensure-auth')
+    await ensureTeamsAuth()
+    const credManager = new TeamsCredentialManager()
+    const creds = await credManager.getTokenWithExpiry()
+    if (!creds) {
+      throw new TeamsError(
+        'No Teams credentials found. Make sure Microsoft Teams desktop app is installed and logged in.',
+        'no_credentials',
+      )
     }
+    return this.login({ token: creds.token, tokenExpiresAt: creds.tokenExpiresAt })
+  }
+
+  private ensureAuth(): string {
+    if (this.token === null) {
+      throw new TeamsError('Not authenticated. Call .login() first.', 'not_authenticated')
+    }
+    return this.token
   }
 
   private isTokenExpired(): boolean {
@@ -97,7 +120,7 @@ export class TeamsClient {
       await this.waitForRateLimit(bucketKey)
 
       const headers: Record<string, string> = {
-        'X-Skypetoken': this.token,
+        'X-Skypetoken': this.ensureAuth(),
         'Content-Type': 'application/json',
       }
 
@@ -163,7 +186,7 @@ export class TeamsClient {
     const response = await fetch(url, {
       method: 'POST',
       headers: {
-        'X-Skypetoken': this.token,
+        'X-Skypetoken': this.ensureAuth(),
       },
       body: formData,
     })

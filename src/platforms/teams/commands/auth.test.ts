@@ -58,7 +58,7 @@ test('extract: calls TeamsTokenExtractor', async () => {
 })
 
 test('extract: validates token with TeamsClient', async () => {
-  const client = new TeamsClient('test-skype-token-123')
+  const client = await new TeamsClient().login({ token: 'test-skype-token-123' })
   const authInfo = await client.testAuth()
   expect(authInfo).toBeDefined()
   expect(authInfo.id).toBe('user-123')
@@ -66,7 +66,7 @@ test('extract: validates token with TeamsClient', async () => {
 })
 
 test('extract: discovers teams', async () => {
-  const client = new TeamsClient('test-skype-token-123')
+  const client = await new TeamsClient().login({ token: 'test-skype-token-123' })
   const teams = await client.listTeams()
   expect(teams).toHaveLength(2)
   expect(teams[0].id).toBe('team-1')

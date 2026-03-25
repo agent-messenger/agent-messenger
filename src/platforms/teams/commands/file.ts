@@ -24,7 +24,7 @@ export async function uploadAction(
       process.exit(1)
     }
 
-    const client = new TeamsClient(cred.token, cred.tokenExpiresAt)
+    const client = await new TeamsClient().login({ token: cred.token, tokenExpiresAt: cred.tokenExpiresAt })
     const filePath = resolve(path)
     const file = await client.uploadFile(teamId, channelId, filePath)
 
@@ -52,7 +52,7 @@ export async function listAction(teamId: string, channelId: string, options: { p
       process.exit(1)
     }
 
-    const client = new TeamsClient(cred.token, cred.tokenExpiresAt)
+    const client = await new TeamsClient().login({ token: cred.token, tokenExpiresAt: cred.tokenExpiresAt })
     const files = await client.listFiles(teamId, channelId)
 
     const output = files.map((file: TeamsFile) => ({
@@ -84,7 +84,7 @@ export async function infoAction(
       process.exit(1)
     }
 
-    const client = new TeamsClient(cred.token, cred.tokenExpiresAt)
+    const client = await new TeamsClient().login({ token: cred.token, tokenExpiresAt: cred.tokenExpiresAt })
     const files = await client.listFiles(teamId, channelId)
     const fileData = files.find((f) => f.id === fileId)
 

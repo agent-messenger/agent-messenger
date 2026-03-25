@@ -16,7 +16,7 @@ async function listAction(teamId: string, options: { pretty?: boolean }): Promis
       process.exit(1)
     }
 
-    const client = new TeamsClient(cred.token, cred.tokenExpiresAt)
+    const client = await new TeamsClient().login({ token: cred.token, tokenExpiresAt: cred.tokenExpiresAt })
     const users = await client.listUsers(teamId)
 
     const output = users.map((user) => ({
@@ -42,7 +42,7 @@ async function infoAction(userId: string, options: { pretty?: boolean }): Promis
       process.exit(1)
     }
 
-    const client = new TeamsClient(cred.token, cred.tokenExpiresAt)
+    const client = await new TeamsClient().login({ token: cred.token, tokenExpiresAt: cred.tokenExpiresAt })
     const user = await client.getUser(userId)
 
     const output = {
@@ -68,7 +68,7 @@ async function meAction(options: { pretty?: boolean }): Promise<void> {
       process.exit(1)
     }
 
-    const client = new TeamsClient(cred.token, cred.tokenExpiresAt)
+    const client = await new TeamsClient().login({ token: cred.token, tokenExpiresAt: cred.tokenExpiresAt })
     const user = await client.testAuth()
 
     const output = {

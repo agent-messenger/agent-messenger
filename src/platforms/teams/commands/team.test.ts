@@ -90,7 +90,7 @@ test('list: marks current team', async () => {
 
 test('info: returns team details', async () => {
   // given: teams client with team data
-  const client = new TeamsClient('test-token')
+  const client = await new TeamsClient().login({ token: 'test-token' })
   const team = await client.getTeam('team-1')
 
   // when: getting team info
@@ -104,7 +104,7 @@ test('info: returns team details', async () => {
 
 test('info: throws error for non-existent team', async () => {
   // given: teams client
-  const client = new TeamsClient('test-token')
+  const client = await new TeamsClient().login({ token: 'test-token' })
 
   // when: getting non-existent team
   // then: error is thrown
