@@ -156,10 +156,32 @@ export class KakaoTalkClient {
     }
   }
 
+  private async executeWithReconnect<T>(operation: (state: SessionState) => Promise<T>): Promise<T> {
+    let state = await this.ensureSession()
+    try {
+      return await operation(state)
+    } catch {
+      // Session likely dead (desktop app reclaimed, network drop, etc.) — reconnect once
+      try { this.state?.session.close() } catch {}
+      this.state = null
+      this.initPromise = null
+      state = await this.ensureSession()
+      return operation(state)
+    }
+  }
+
   private async connect(): Promise<SessionState> {
     const session = new LocoSession()
     try {
       const loginResult = await session.login(this.oauthToken!, this.userId!, this.deviceUuid!)
+
+      session.onClose(() => {
+        if (this.state?.session === session) {
+          this.state = null
+          this.initPromise = null
+        }
+      })
+
       return { session, loginResult }
     } catch (error) {
       session.close()
@@ -172,120 +194,115 @@ export class KakaoTalkClient {
   }
 
   async getChats(options?: { all?: boolean; search?: string }): Promise<KakaoChat[]> {
-    const { session, loginResult } = await this.ensureSession()
+    return this.executeWithReconnect(async ({ session, loginResult }) => {
+      try {
+        const allChats: ChatData[] = []
+        const seenChatIds = new Set<string>()
 
-    try {
-      const allChats: ChatData[] = []
-      const seenChatIds = new Set<string>()
+        collectChats((loginResult.chatDatas ?? []) as ChatData[], allChats, seenChatIds)
 
-      collectChats((loginResult.chatDatas ?? []) as ChatData[], allChats, seenChatIds)
+        if (options?.all || options?.search) {
+          let cursor: ChatListResponse = loginResult
+          let pages = 0
 
-      if (options?.all || options?.search) {
-        let cursor: ChatListResponse = loginResult
-        let pages = 0
+          while (!cursor.eof && pages < MAX_PAGES) {
+            const lastTokenId = bsonToLong(cursor.lastTokenId)
+            const lastChatId = bsonToLong(cursor.lastChatId)
 
-        while (!cursor.eof && pages < MAX_PAGES) {
-          const lastTokenId = bsonToLong(cursor.lastTokenId)
-          const lastChatId = bsonToLong(cursor.lastChatId)
+            const response = await session.getChatList(lastTokenId, lastChatId)
+            const body = response.body as unknown as ChatListResponse
+            const chatDatas = (body.chatDatas ?? []) as ChatData[]
 
-          const response = await session.getChatList(lastTokenId, lastChatId)
-          const body = response.body as unknown as ChatListResponse
-          const chatDatas = (body.chatDatas ?? []) as ChatData[]
+            if (chatDatas.length === 0) break
 
-          if (chatDatas.length === 0) break
-
-          collectChats(chatDatas, allChats, seenChatIds)
-          cursor = body
-          pages++
-        }
-      }
-
-      allChats.sort((a, b) => ((b.o as number) ?? 0) - ((a.o as number) ?? 0))
-
-      let results = allChats
-      if (options?.search) {
-        results = allChats.filter((c) => matchesSearch(c, options.search!))
-      }
-
-      return results.map(formatChat)
-    } catch (error) {
-      throw wrapError(error, 'get_chats_failed')
-    }
-  }
-
-  async getMessages(chatId: string, options?: { count?: number; from?: string }): Promise<KakaoMessage[]> {
-    const { session, loginResult } = await this.ensureSession()
-
-    try {
-      const rawChats = (loginResult.chatDatas ?? []) as ChatData[]
-      const chat = rawChats.find((c) => String(c.c) === chatId)
-      const lastLogId = chat?.ll as { high: number; low: number } | undefined
-      // maxLogId is undefined when the chat isn't in the login snapshot (e.g. archived chats).
-      // syncMessages() treats undefined as Long(0) — no upper bound — which is the correct behavior.
-      const maxLogId = lastLogId ? new Long(lastLogId.low, lastLogId.high) : undefined
-
-      const count = options?.count ?? 20
-      const cursor = options?.from ? parseLong(options.from) : undefined
-
-      const cid = parseLong(chatId)
-      const startCursor = cursor ?? Long.fromNumber(0)
-      const allMessages: Array<Record<string, unknown>> = []
-      const seenLogIds = new Set<string>()
-      let cur = startCursor
-
-      for (;;) {
-        const response = await session.syncMessages(cid, 80, cur, maxLogId)
-        const batch = (response.body.chatLogs ?? []) as Array<Record<string, unknown>>
-        if (batch.length === 0) break
-
-        for (const log of batch) {
-          const lid = longToString(log.logId)
-          if (!seenLogIds.has(lid)) {
-            seenLogIds.add(lid)
-            allMessages.push(log)
+            collectChats(chatDatas, allChats, seenChatIds)
+            cursor = body
+            pages++
           }
         }
 
-        const maxLog = batch.reduce<Long | null>((max, l) => {
-          const lid = l.logId as { high: number; low: number }
-          const long = new Long(lid.low, lid.high)
-          return !max || long.greaterThan(max) ? long : max
-        }, null)
+        allChats.sort((a, b) => ((b.o as number) ?? 0) - ((a.o as number) ?? 0))
 
-        if (!maxLog || maxLog.equals(cur) || response.body.isOK) break
-        cur = maxLog
+        let results = allChats
+        if (options?.search) {
+          results = allChats.filter((c) => matchesSearch(c, options.search!))
+        }
+
+        return results.map(formatChat)
+      } catch (error) {
+        throw wrapError(error, 'get_chats_failed')
       }
+    })
+  }
 
-      allMessages.sort((a, b) => (a.sendAt as number) - (b.sendAt as number))
+  async getMessages(chatId: string, options?: { count?: number; from?: string }): Promise<KakaoMessage[]> {
+    return this.executeWithReconnect(async ({ session }) => {
+      try {
+        const maxLogId = undefined
 
-      return allMessages.slice(-count).map((log) => ({
-        log_id: longToString(log.logId),
-        type: log.type as number,
-        author_id: log.authorId as number,
-        message: log.message as string,
-        sent_at: log.sendAt as number,
-      }))
-    } catch (error) {
-      throw wrapError(error, 'get_messages_failed')
-    }
+        const count = options?.count ?? 20
+        const cursor = options?.from ? parseLong(options.from) : undefined
+
+        const cid = parseLong(chatId)
+        const startCursor = cursor ?? Long.fromNumber(0)
+        const allMessages: Array<Record<string, unknown>> = []
+        const seenLogIds = new Set<string>()
+        let cur = startCursor
+
+        for (;;) {
+          const response = await session.syncMessages(cid, 80, cur, maxLogId)
+          const batch = (response.body.chatLogs ?? []) as Array<Record<string, unknown>>
+          if (batch.length === 0) break
+
+          for (const log of batch) {
+            const lid = longToString(log.logId)
+            if (!seenLogIds.has(lid)) {
+              seenLogIds.add(lid)
+              allMessages.push(log)
+            }
+          }
+
+          const maxLog = batch.reduce<Long | null>((max, l) => {
+            const lid = l.logId as { high: number; low: number }
+            const long = new Long(lid.low, lid.high)
+            return !max || long.greaterThan(max) ? long : max
+          }, null)
+
+          if (!maxLog || maxLog.equals(cur) || response.body.isOK) break
+          cur = maxLog
+        }
+
+        allMessages.sort((a, b) => (a.sendAt as number) - (b.sendAt as number))
+
+        return allMessages.slice(-count).map((log) => ({
+          log_id: longToString(log.logId),
+          type: log.type as number,
+          author_id: log.authorId as number,
+          message: log.message as string,
+          sent_at: log.sendAt as number,
+        }))
+      } catch (error) {
+        throw wrapError(error, 'get_messages_failed')
+      }
+    })
   }
 
   async sendMessage(chatId: string, text: string): Promise<KakaoSendResult> {
-    const { session } = await this.ensureSession()
+    return this.executeWithReconnect(async ({ session }) => {
+      try {
+        const response = await session.sendMessage(parseLong(chatId), text)
 
-    try {
-      const response = await session.sendMessage(parseLong(chatId), text)
-
-      return {
-        success: response.statusCode === 0,
-        status_code: response.statusCode,
-        chat_id: chatId,
-        log_id: longToString(response.body.logId),
-        sent_at: response.body.sendAt as number,
+        return {
+          success: response.statusCode === 0,
+          status_code: response.statusCode,
+          chat_id: chatId,
+          log_id: longToString(response.body.logId),
+          sent_at: response.body.sendAt as number,
+        }
+      } catch (error) {
+        throw wrapError(error, 'send_message_failed')
       }
-    } catch (error) {
-      throw wrapError(error, 'send_message_failed')
-    }
+    })
   }
 
   close(): void {
