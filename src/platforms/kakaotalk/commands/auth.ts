@@ -56,6 +56,8 @@ async function promptHidden(message: string): Promise<string | undefined> {
   }
 }
 
+
+
 async function loginAction(options: KakaoAuthOptions): Promise<void> {
   try {
     const credManager = new CredentialManager()
@@ -63,8 +65,6 @@ async function loginAction(options: KakaoAuthOptions): Promise<void> {
 
     let { email, password, deviceType, force } = options
 
-    // Try extracting email + password from the desktop app's Cache.db
-    // so the user doesn't need to type credentials manually.
     if (!email || !password) {
       const extractor = new KakaoTokenExtractor()
       const cached = await extractor.extract()
@@ -96,10 +96,8 @@ async function loginAction(options: KakaoAuthOptions): Promise<void> {
       if (!password) { console.error('Password is required.'); process.exit(1) }
     }
 
-    // Load saved device UUID for subsequent calls (passcode flow is multi-step)
-    const existing = await credManager.getAccount()
     const pendingState = await credManager.loadPendingLogin()
-    const savedDeviceUuid = pendingState?.device_uuid ?? existing?.device_uuid
+    const savedDeviceUuid = pendingState?.device_uuid
 
     const onPasscodeDisplay = (code: string) => {
       if (interactive) {
@@ -110,6 +108,8 @@ async function loginAction(options: KakaoAuthOptions): Promise<void> {
       }
     }
 
+    const debugLog = options.debug ? (msg: string) => console.error(`[debug] ${msg}`) : undefined
+
     const result = await loginFlow({
       email,
       password,
@@ -117,6 +117,7 @@ async function loginAction(options: KakaoAuthOptions): Promise<void> {
       force: force ?? false,
       savedDeviceUuid,
       onPasscodeDisplay,
+      debugLog,
     })
 
     if (result.next_action === 'choose_device') {
@@ -148,6 +149,7 @@ async function loginAction(options: KakaoAuthOptions): Promise<void> {
         force: true,
         savedDeviceUuid: chosenType === (deviceType ?? 'tablet') ? savedDeviceUuid : undefined,
         onPasscodeDisplay,
+        debugLog,
       })
 
       return handleLoginResult(forceResult, credManager, options)
