@@ -19,6 +19,126 @@ function isInteractiveSession(): boolean {
   return Boolean(process.stdin.isTTY && process.stdout.isTTY)
 }
 
+function hasTTY(): boolean {
+  try {
+    const { openSync, closeSync } = require('node:fs') as typeof import('node:fs')
+    const fd = openSync('/dev/tty', 'r')
+    closeSync(fd)
+    return true
+  } catch { return false }
+}
+
+async function promptPasswordGUI(email?: string): Promise<string | undefined> {
+  const { execSync } = require('node:child_process') as typeof import('node:child_process')
+  const label = email
+    ? `agent-messenger wants to log in to KakaoTalk as ${email}.\\n\\nEnter your password:`
+    : 'agent-messenger wants to log in to KakaoTalk.\\n\\nEnter your password:'
+
+  if (process.platform === 'darwin') {
+    try {
+      const { writeFileSync, unlinkSync } = require('node:fs') as typeof import('node:fs')
+      const { tmpdir } = require('node:os') as typeof import('node:os')
+      const { join } = require('node:path') as typeof import('node:path')
+      const scriptPath = join(tmpdir(), `kakao-pw-${Date.now()}.swift`)
+      const infoText = email ? `Enter password for ${email}` : 'Enter your KakaoTalk password'
+      const escapedEmail = (email ?? '').replace(/\\/g, '\\\\').replace(/"/g, '\\"')
+      writeFileSync(scriptPath, `
+import AppKit
+let app = NSApplication.shared
+app.setActivationPolicy(.accessory)
+let alert = NSAlert()
+alert.messageText = "KakaoTalk Login"
+alert.informativeText = "agent-messenger wants to sign in to your KakaoTalk account.\\nThis is a one-time device registration."
+alert.alertStyle = .informational
+alert.addButton(withTitle: "Sign In")
+alert.addButton(withTitle: "Cancel")
+let iconPaths = [
+  "/Applications/KakaoTalk.app/Contents/Resources/AppIcon.icns",
+  NSString("~/Applications/KakaoTalk.app/Contents/Resources/AppIcon.icns").expandingTildeInPath,
+]
+for path in iconPaths {
+  if let icon = NSImage(contentsOfFile: path) {
+    alert.icon = icon
+    break
+  }
+}
+let container = NSView(frame: NSRect(x: 0, y: 0, width: 260, height: 54))
+let emailField = NSTextField(frame: NSRect(x: 0, y: 30, width: 260, height: 24))
+emailField.stringValue = "${escapedEmail}"
+emailField.isEditable = false
+emailField.isSelectable = false
+emailField.isBezeled = true
+emailField.bezelStyle = .roundedBezel
+emailField.backgroundColor = .windowBackgroundColor
+emailField.textColor = .secondaryLabelColor
+container.addSubview(emailField)
+let passwordField = NSSecureTextField(frame: NSRect(x: 0, y: 0, width: 260, height: 24))
+passwordField.placeholderString = "Password"
+container.addSubview(passwordField)
+alert.accessoryView = container
+alert.window.initialFirstResponder = passwordField
+app.activate(ignoringOtherApps: true)
+alert.window.makeKeyAndOrderFront(nil)
+let response = alert.runModal()
+if response == .alertFirstButtonReturn {
+  print(passwordField.stringValue)
+} else {
+  exit(1)
+}
+`)
+      try {
+        const result = execSync(`swift ${scriptPath}`, { encoding: 'utf-8', timeout: 120_000, stdio: ['pipe', 'pipe', 'pipe'] })
+        return result.trim() || undefined
+      } finally {
+        try { unlinkSync(scriptPath) } catch {}
+      }
+    } catch { return undefined }
+  }
+
+  if (process.platform === 'win32') {
+    try {
+      const escapedEmail = (email ?? '').replace(/'/g, "''")
+      const ps = [
+        'Add-Type -AssemblyName System.Windows.Forms;',
+        'Add-Type -AssemblyName System.Drawing;',
+        "$f = New-Object Windows.Forms.Form -Property @{Text='KakaoTalk Login'; Width=340; Height=230; StartPosition='CenterScreen'; FormBorderStyle='FixedDialog'; MaximizeBox=$false; MinimizeBox=$false};",
+        "$d = New-Object Windows.Forms.Label -Property @{Text='agent-messenger wants to sign in to your KakaoTalk account.'; Left=12; Top=12; Width=300; Height=18; ForeColor=[Drawing.Color]::Gray; Font=New-Object Drawing.Font('Segoe UI',8.5)};",
+        "$el = New-Object Windows.Forms.Label -Property @{Text='Account'; Left=12; Top=40; Width=300; Height=16; Font=New-Object Drawing.Font('Segoe UI',8)};",
+        `$e = New-Object Windows.Forms.TextBox -Property @{Text='${escapedEmail}'; Left=12; Top=58; Width=300; ReadOnly=$true; BackColor=[Drawing.SystemColors]::Control};`,
+        "$pl = New-Object Windows.Forms.Label -Property @{Text='Password'; Left=12; Top=90; Width=300; Height=16; Font=New-Object Drawing.Font('Segoe UI',8)};",
+        "$p = New-Object Windows.Forms.TextBox -Property @{Left=12; Top=108; Width=300; PasswordChar='*'};",
+        "$ot = New-Object Windows.Forms.Label -Property @{Text='This is a one-time device registration.'; Left=12; Top=140; Width=300; Height=16; ForeColor=[Drawing.Color]::Gray; Font=New-Object Drawing.Font('Segoe UI',8)};",
+        "$b = New-Object Windows.Forms.Button -Property @{Text='Sign In'; Left=232; Top=162; Width=80; DialogResult='OK'; FlatStyle='System'};",
+        "$c = New-Object Windows.Forms.Button -Property @{Text='Cancel'; Left=148; Top=162; Width=80; DialogResult='Cancel'; FlatStyle='System'};",
+        '$f.AcceptButton = $b; $f.CancelButton = $c; $f.Controls.AddRange(@($d,$el,$e,$pl,$p,$ot,$b,$c)); $f.ActiveControl = $p;',
+        "if ($f.ShowDialog() -eq 'OK') { Write-Output $p.Text }",
+      ].join(' ')
+      const result = execSync(`powershell -Command "${ps}"`, { encoding: 'utf-8', timeout: 120_000 })
+      return result.trim() || undefined
+    } catch { return undefined }
+  }
+
+  if (process.platform === 'linux') {
+    const escapedEmail = (email ?? '').replace(/"/g, '\\"')
+    try {
+      const result = execSync(
+        `zenity --password --title="KakaoTalk Login" --text="agent-messenger · KakaoTalk\\n${escapedEmail}" 2>/dev/null`,
+        { encoding: 'utf-8', timeout: 120_000 },
+      )
+      return result.trim() || undefined
+    } catch { /* zenity not available or cancelled */ }
+    try {
+      const result = execSync(
+        `kdialog --password "agent-messenger · KakaoTalk\\n${escapedEmail}" --title "KakaoTalk Login" 2>/dev/null`,
+        { encoding: 'utf-8', timeout: 120_000 },
+      )
+      return result.trim() || undefined
+    } catch { /* kdialog not available or cancelled */ }
+  }
+
+  return undefined
+}
+
 async function promptLine(message: string): Promise<string | undefined> {
   const { createInterface } = await import('node:readline/promises')
   const rl = createInterface({ input: process.stdin, output: process.stdout, terminal: true })
@@ -56,6 +176,31 @@ async function promptHidden(message: string): Promise<string | undefined> {
   }
 }
 
+async function promptHiddenTTY(message: string): Promise<string | undefined> {
+  const { createReadStream } = await import('node:fs')
+  const { createInterface } = await import('node:readline/promises')
+  const ttyIn = createReadStream('/dev/tty')
+  const ttyOut = new (class extends Writable {
+    muted = false
+    _write(chunk: Buffer | string, encoding: BufferEncoding, cb: (error?: Error | null) => void): void {
+      if (!this.muted) process.stderr.write(chunk, encoding)
+      cb()
+    }
+  })()
+  const rl = createInterface({ input: ttyIn, output: ttyOut, terminal: true })
+  try {
+    ttyOut.muted = true
+    process.stderr.write(`${message}: `)
+    const answer = await rl.question('')
+    process.stderr.write('\n')
+    return answer.trim() || undefined
+  } finally {
+    ttyOut.muted = false
+    rl.close()
+    ttyIn.close()
+  }
+}
+
 async function loginAction(options: KakaoAuthOptions): Promise<void> {
   try {
     const credManager = new CredentialManager()
@@ -63,17 +208,50 @@ async function loginAction(options: KakaoAuthOptions): Promise<void> {
 
     let { email, password, deviceType, force } = options
 
-    // Try extracting email + password from the desktop app's Cache.db
-    // so the user doesn't need to type credentials manually.
+    if (!password && options.passwordFile) {
+      const { readFileSync, unlinkSync } = await import('node:fs')
+      password = readFileSync(options.passwordFile, 'utf-8').trim()
+      unlinkSync(options.passwordFile)
+    }
+
     if (!email || !password) {
       const extractor = new KakaoTokenExtractor()
       const cached = await extractor.extract()
       if (cached?.login_form_body) {
         const params = new URLSearchParams(cached.login_form_body)
         if (!email) email = params.get('email') ?? undefined
-        if (!password) password = params.get('password') ?? undefined
+        const cachedPassword = params.get('password') ?? undefined
+
+        // Recent macOS KakaoTalk versions hash the password (128-char hex)
+        // before caching. This hash won't work against the Android login
+        // endpoint, so we discard it and prompt for the plaintext password.
+        const isHashedPassword = cachedPassword && /^[0-9a-f]{128}$/.test(cachedPassword)
+        if (!isHashedPassword && !password) {
+          password = cachedPassword
+        }
+
         if (email && interactive) {
           console.error(`  Using cached credentials for ${email}`)
+        }
+        if (isHashedPassword && !password) {
+          const passwordPrompt = email ? `Password for ${email}` : 'Password'
+          if (interactive) {
+            console.error(`  One-time setup: password is needed to register this device.`)
+            password = await promptHidden(passwordPrompt)
+          } else if (hasTTY()) {
+            console.error(`  One-time setup: password is needed to register this device.`)
+            try { password = await promptHiddenTTY(passwordPrompt) } catch { /* /dev/tty open failed */ }
+          }
+          if (!password) {
+            password = await promptPasswordGUI(email)
+          }
+          if (!password) {
+            console.log(formatOutput({
+              next_action: 'run_interactive',
+              message: 'One-time device registration required. Run `agent-kakaotalk auth login` in a terminal so the user can enter their password securely.',
+            }, options.pretty))
+            return
+          }
         }
       }
     }
@@ -96,7 +274,6 @@ async function loginAction(options: KakaoAuthOptions): Promise<void> {
       if (!password) { console.error('Password is required.'); process.exit(1) }
     }
 
-    // Load saved device UUID for subsequent calls (passcode flow is multi-step)
     const existing = await credManager.getAccount()
     const pendingState = await credManager.loadPendingLogin()
     const savedDeviceUuid = pendingState?.device_uuid ?? existing?.device_uuid
@@ -110,6 +287,8 @@ async function loginAction(options: KakaoAuthOptions): Promise<void> {
       }
     }
 
+    const debugLog = options.debug ? (msg: string) => console.error(`[debug] ${msg}`) : undefined
+
     const result = await loginFlow({
       email,
       password,
@@ -117,6 +296,7 @@ async function loginAction(options: KakaoAuthOptions): Promise<void> {
       force: force ?? false,
       savedDeviceUuid,
       onPasscodeDisplay,
+      debugLog,
     })
 
     if (result.next_action === 'choose_device') {
@@ -148,6 +328,7 @@ async function loginAction(options: KakaoAuthOptions): Promise<void> {
         force: true,
         savedDeviceUuid: chosenType === (deviceType ?? 'tablet') ? savedDeviceUuid : undefined,
         onPasscodeDisplay,
+        debugLog,
       })
 
       return handleLoginResult(forceResult, credManager, options)
@@ -300,6 +481,7 @@ export const authCommand = new Command('auth')
       .description('Login as a sub-device; prompts interactively or accepts flags for AI agents')
       .option('--email <email>', 'KakaoTalk email address')
       .option('--password <password>', 'KakaoTalk password')
+      .option('--password-file <path>', 'Read password from file (deleted after read)')
       .option('--device-type <type>', 'Device slot: tablet (default, safe) or pc', 'tablet')
       .option('--force', 'Force login even if device slot is occupied (kicks existing session)')
       .option('--pretty', 'Pretty print JSON output')

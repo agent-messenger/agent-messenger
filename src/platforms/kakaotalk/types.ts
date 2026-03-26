@@ -32,6 +32,7 @@ export type KakaoDeviceType = 'pc' | 'tablet'
 export interface KakaoAuthOptions {
   email?: string
   password?: string
+  passwordFile?: string
   passcode?: string
   deviceType?: KakaoDeviceType
   force?: boolean
