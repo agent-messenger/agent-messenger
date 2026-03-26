@@ -109,20 +109,29 @@ If extraction succeeds → retry the original command. Extraction is silent and 
 
 **Step 3: If extraction fails, use login flow**
 
-Ask the user for their KakaoTalk email and password (these are the only things needed).
-
 ```bash
-agent-kakaotalk auth login --email <email> --password <password>
+agent-kakaotalk auth login
 ```
+
+The CLI will auto-extract the email from the desktop app. On fresh installs, the CLI may prompt for the KakaoTalk password once (one-time device registration). After registration, the password is never needed again.
 
 Possible responses:
 
 - `{"authenticated": true, ...}` → Success. Retry original command.
 - `{"next_action": "confirm_on_phone", "passcode": "1234", ...}` → Tell the user to enter the displayed code on their phone. The CLI is polling — wait for it to complete, then the login will finish automatically.
 - `{"next_action": "choose_device", ...}` → Tablet slot is occupied. Ask user which slot to use, then re-run with `--device-type pc --force` or `--device-type tablet --force`.
+- `{"error": "bad_credentials", ...}` → Wrong email or password. Ask the user to provide their credentials manually via `--email` and `--password` flags.
+- `{"next_action": "run_interactive", ...}` → One-time device registration. On macOS/Windows, the CLI normally shows a native password dialog automatically. This response only appears in headless environments where no GUI or TTY is available. Ask the user to run `agent-kakaotalk auth login` in any terminal. Do **NOT** ask for the password in chat.
+
+Alternatively, use `--password-file`:
+
+```bash
+agent-kakaotalk auth login --password-file /tmp/.kakao-pw
+```
+
+The `--password-file` flag reads the password from the file and **deletes the file immediately after reading**. The password never appears in chat, shell history, or process list.
 
 **Step 4: Retry the original command**
-
 After successful auth, immediately execute whatever the user originally asked for.
 
 ### Device Slots
@@ -351,7 +360,8 @@ All commands return consistent error format:
 Common errors:
 
 - `No KakaoTalk credentials found` — not authenticated. Run `auth login` or `auth extract`.
-- `login_failed` — wrong email/password or device slot conflict.
+- `bad_credentials` — wrong email or password. Cached credentials from the desktop app may be stale. Ask the user to provide credentials manually with `--email` and `--password`.
+- `login_failed` — device slot conflict or unknown login error. Run with `--debug` for the full server response.
 - `passcode_request_failed` — failed to request device verification code.
 - `registration_timeout` — passcode expired before user confirmed on phone.
 - `login_http_error` — network issue reaching KakaoTalk servers.
@@ -476,9 +486,23 @@ If `auth extract` fails:
 2. Run `agent-kakaotalk auth extract --debug` for detailed diagnostics
 3. If extraction still fails, use `agent-kakaotalk auth login` instead (recommended)
 
+### Password prompt on fresh install
+
+On fresh installs, the macOS desktop app hashes the password before caching, so the CLI cannot extract it automatically. The CLI will prompt for the password once to register the device. After registration, the password is never needed again.
+
+When the CLI returns `{"next_action": "run_interactive", ...}`, use a tmux session to let the user type their password securely. See "Handling `run_interactive`" above for the exact steps.
+
+**NEVER** ask for the password in chat or pass it via `--password` — this exposes the plaintext password in conversation logs, shell history, and process lists.
+
+### Bad credentials
+
+If login returns `bad_credentials`, the provided password is incorrect. **Do NOT retry with `--force` or switch device slots** — the issue is the credentials themselves, not the device slot.
+
+If the issue persists, run with `--debug` to see the full server response.
+
 ### Device slot occupied
 
-If login fails because the tablet slot is occupied:
+If login fails because the tablet slot is occupied (error: `login_failed`, not `bad_credentials`):
 
 ```bash
 # Option 1: Use the PC slot instead
