@@ -53,6 +53,7 @@ export interface LoginCredentials {
 }
 
 const STATUS_OK = 0
+const STATUS_BAD_CREDENTIALS = new Set([12, 30])
 const STATUS_DEVICE_NOT_REGISTERED = -100
 
 export async function attemptLogin(
@@ -61,6 +62,7 @@ export async function attemptLogin(
   deviceUuid: string,
   deviceType: KakaoDeviceType,
   forced: boolean,
+  debugLog?: (message: string) => void,
 ): Promise<KakaoLoginResult & { credentials?: LoginCredentials }> {
   const body = new URLSearchParams({
     password,
@@ -71,6 +73,11 @@ export async function attemptLogin(
     email,
     device_uuid: deviceUuid,
   })
+
+  debugLog?.(`POST ${ANDROID_LOGIN_URL}`)
+  debugLog?.(`Agent: ${ANDROID_AGENT}`)
+  debugLog?.(`User-Agent: ${ANDROID_USER_AGENT}`)
+  debugLog?.(`device_name=${DEVICE_NAME} device_uuid=${deviceUuid.substring(0, 8)}... forced=${forced}`)
 
   const response = await fetch(ANDROID_LOGIN_URL, {
     method: 'POST',
@@ -83,6 +90,7 @@ export async function attemptLogin(
   }
 
   const data = (await response.json()) as LoginResponse
+  debugLog?.(`Response: ${JSON.stringify(data)}`)
 
   if (data.status === STATUS_OK && data.access_token) {
     return {
@@ -97,6 +105,16 @@ export async function attemptLogin(
         device_uuid: deviceUuid,
         device_type: deviceType,
       },
+    }
+  }
+
+  if (STATUS_BAD_CREDENTIALS.has(data.status)) {
+    return {
+      authenticated: false,
+      error: 'bad_credentials',
+      message: typeof data.message === 'string'
+        ? `Login failed: ${data.message}`
+        : 'Login failed: incorrect email or password.',
     }
   }
 
@@ -223,13 +241,14 @@ export async function loginFlow(options: {
   force?: boolean
   savedDeviceUuid?: string
   onPasscodeDisplay?: (code: string) => void
+  debugLog?: (message: string) => void
 }): Promise<KakaoLoginResult & { credentials?: LoginCredentials }> {
   const deviceType = options.deviceType ?? 'tablet'
   const deviceUuid = options.savedDeviceUuid ?? generateDeviceUuid()
   const forced = options.force ?? false
 
   // Step 1: Try login (forced:false for tablet-first safe attempt)
-  const loginResult = await attemptLogin(options.email, options.password, deviceUuid, deviceType, forced)
+  const loginResult = await attemptLogin(options.email, options.password, deviceUuid, deviceType, forced, options.debugLog)
 
   if (loginResult.authenticated) {
     return loginResult
@@ -258,7 +277,7 @@ export async function loginFlow(options: {
     }
 
     // Step 4: Login again after registration
-    return attemptLogin(options.email, options.password, deviceUuid, deviceType, forced)
+    return attemptLogin(options.email, options.password, deviceUuid, deviceType, forced, options.debugLog)
   }
 
   // Slot occupied — need user to choose device type or force
