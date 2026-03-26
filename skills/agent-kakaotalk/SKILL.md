@@ -109,20 +109,20 @@ If extraction succeeds → retry the original command. Extraction is silent and 
 
 **Step 3: If extraction fails, use login flow**
 
-Ask the user for their KakaoTalk email and password (these are the only things needed).
-
 ```bash
-agent-kakaotalk auth login --email <email> --password <password>
+agent-kakaotalk auth login
 ```
+
+The CLI auto-extracts email and password from the desktop app's cache. On the first login, the user must confirm a passcode on their phone (one-time device registration). After registration, subsequent logins on any machine with the same account work without passcode.
 
 Possible responses:
 
 - `{"authenticated": true, ...}` → Success. Retry original command.
 - `{"next_action": "confirm_on_phone", "passcode": "1234", ...}` → Tell the user to enter the displayed code on their phone. The CLI is polling — wait for it to complete, then the login will finish automatically.
 - `{"next_action": "choose_device", ...}` → Tablet slot is occupied. Ask user which slot to use, then re-run with `--device-type pc --force` or `--device-type tablet --force`.
+- `{"error": "bad_credentials", ...}` → Wrong email or password. Ask the user to provide their credentials manually via `--email` and `--password` flags.
 
 **Step 4: Retry the original command**
-
 After successful auth, immediately execute whatever the user originally asked for.
 
 ### Device Slots
@@ -351,7 +351,8 @@ All commands return consistent error format:
 Common errors:
 
 - `No KakaoTalk credentials found` — not authenticated. Run `auth login` or `auth extract`.
-- `login_failed` — wrong email/password or device slot conflict.
+- `bad_credentials` — wrong email or password. Cached credentials from the desktop app may be stale. Ask the user to provide credentials manually with `--email` and `--password`.
+- `login_failed` — device slot conflict or unknown login error. Run with `--debug` for the full server response.
 - `passcode_request_failed` — failed to request device verification code.
 - `registration_timeout` — passcode expired before user confirmed on phone.
 - `login_http_error` — network issue reaching KakaoTalk servers.
@@ -476,9 +477,15 @@ If `auth extract` fails:
 2. Run `agent-kakaotalk auth extract --debug` for detailed diagnostics
 3. If extraction still fails, use `agent-kakaotalk auth login` instead (recommended)
 
+### Bad credentials
+
+If login returns `bad_credentials`, the provided password is incorrect. **Do NOT retry with `--force` or switch device slots** — the issue is the credentials themselves, not the device slot.
+
+If the issue persists, run with `--debug` to see the full server response.
+
 ### Device slot occupied
 
-If login fails because the tablet slot is occupied:
+If login fails because the tablet slot is occupied (error: `login_failed`, not `bad_credentials`):
 
 ```bash
 # Option 1: Use the PC slot instead
