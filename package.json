@@ -1,7 +1,7 @@
 {
   "name": "agent-messenger",
   "version": "1.15.0",
-  "description": "Multi-platform messaging CLI for AI agents (Slack, Discord, Teams, Telegram, Channel Talk)",
+  "description": "Multi-platform messaging CLI for AI agents (Slack, Discord, Teams, Telegram, Channel Talk, Instagram)",
   "repository": {
     "type": "git",
     "url": "https://github.com/devxoul/agent-messenger"
@@ -19,7 +19,8 @@
     "agent-whatsappbot": "./src/platforms/whatsappbot/cli.ts",
     "agent-kakaotalk": "./src/platforms/kakaotalk/cli.ts",
     "agent-channeltalk": "./src/platforms/channeltalk/cli.ts",
-    "agent-channeltalkbot": "./src/platforms/channeltalkbot/cli.ts"
+    "agent-channeltalkbot": "./src/platforms/channeltalkbot/cli.ts",
+    "agent-instagram": "./src/platforms/instagram/cli.ts"
   },
   "exports": {
     "./package.json": "./package.json",
@@ -58,6 +59,10 @@
     "./channeltalkbot": {
       "types": "./src/platforms/channeltalkbot/index.ts",
       "default": "./src/platforms/channeltalkbot/index.ts"
+    },
+    "./instagram": {
+      "types": "./src/platforms/instagram/index.ts",
+      "default": "./src/platforms/instagram/index.ts"
     }
   },
   "type": "module",
@@ -72,7 +77,8 @@
       "whatsappbot": ["./src/platforms/whatsappbot/index.ts"],
       "kakaotalk": ["./src/platforms/kakaotalk/index.ts"],
       "channeltalk": ["./src/platforms/channeltalk/index.ts"],
-      "channeltalkbot": ["./src/platforms/channeltalkbot/index.ts"]
+      "channeltalkbot": ["./src/platforms/channeltalkbot/index.ts"],
+      "instagram": ["./src/platforms/instagram/index.ts"]
     }
   },
   "scripts": {

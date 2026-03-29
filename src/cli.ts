@@ -60,6 +60,10 @@ program.command('channeltalkbot', 'Interact with Channel Talk using API credenti
   executableFile: join(__dirname, 'platforms', 'channeltalkbot', `cli${ext}`),
 })
 
+program.command('instagram', 'Interact with Instagram DMs', {
+  executableFile: join(__dirname, 'platforms', 'instagram', `cli${ext}`),
+})
+
 program.parse(process.argv)
 
 export default program
