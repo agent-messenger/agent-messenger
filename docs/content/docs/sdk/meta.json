@@ -1,4 +1,4 @@
 {
   "title": "TypeScript SDK",
-  "pages": ["slack", "discord", "teams", "kakaotalk", "channeltalk", "channeltalkbot"]
+  "pages": ["slack", "discord", "teams", "kakaotalk", "instagram", "channeltalk", "channeltalkbot"]
 }
