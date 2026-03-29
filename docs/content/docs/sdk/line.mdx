@@ -1,0 +1,347 @@
+---
+title: LINE
+description: TypeScript SDK reference for LINE — client, real-time events, credential management, and types.
+---
+
+## Installation
+
+```bash
+npm install agent-messenger
+```
+
+```typescript
+import {
+  LineClient,
+  LineListener,
+  LineError,
+  LineCredentialManager,
+} from 'agent-messenger/line'
+```
+
+## LineClient
+
+The main client for interacting with LINE via the Thrift protocol. Maintains a persistent connection to LINE servers. Call `close()` when done.
+
+```typescript
+import { LineClient } from 'agent-messenger/line'
+
+const client = await new LineClient().login()
+```
+
+Or pass a custom credential manager:
+
+```typescript
+const credManager = new LineCredentialManager()
+const client = await new LineClient(credManager).login()
+```
+
+### Login
+
+Auto-login reads credentials from stored login state:
+
+```typescript
+const client = await new LineClient().login()
+```
+
+Explicit login with known credentials:
+
+```typescript
+const client = await new LineClient().login({
+  account_id: 'u1234abcd...',
+  auth_token: 'eyJ...',
+  device: 'ANDROIDSECONDARY',
+  display_name: 'Alice',
+  created_at: '2025-01-15T09:00:00Z',
+  updated_at: '2025-03-28T14:30:00Z',
+})
+```
+
+### QR Login
+
+Authenticate by scanning a QR code with your phone. The `onQRUrl` callback receives the URL to display, and `onPincode` receives the PIN the user must enter in the LINE mobile app.
+
+```typescript
+const result = await client.loginWithQR({
+  device: 'ANDROIDSECONDARY',
+  onQRUrl: (url) => console.log(`Scan this QR code: ${url}`),
+  onPincode: (pin) => console.log(`Enter this PIN in the LINE mobile app: ${pin}`),
+})
+// → LineLoginResult { authenticated, account_id, display_name, device }
+```
+
+### Email Login
+
+Authenticate with email and password. Enter the displayed PIN in the LINE mobile app if LINE requires an extra verification step.
+
+```typescript
+const result = await client.loginWithEmail({
+  email: 'alice@example.com',
+  password: 'hunter2',
+  device: 'ANDROIDSECONDARY',
+  onPincode: (pin) => console.log(`Enter this PIN in the LINE mobile app: ${pin}`),
+})
+// → LineLoginResult { authenticated, account_id, display_name, device }
+```
+
+### Profile
+
+```typescript
+const profile = await client.getProfile()
+// → LineProfile { mid, display_name, status_message?, picture_url? }
+```
+
+### Friends
+
+```typescript
+const friends = await client.getFriends()
+// → LineFriend[] { mid, display_name, status_message?, picture_url? }
+```
+
+### Chat Rooms
+
+```typescript
+// List chat rooms
+const chats = await client.getChats()
+// → LineChat[] { chat_id, type, display_name, member_count?, picture_url? }
+
+// Limit results
+const recent = await client.getChats({ limit: 10 })
+```
+
+### Messages
+
+```typescript
+// Get messages from a chat (default: 20)
+const messages = await client.getMessages('c1234abcd...')
+// → LineMessage[] { message_id, chat_id, author_id, text, content_type, sent_at }
+
+// Get more messages
+const more = await client.getMessages('c1234abcd...', { count: 50 })
+```
+
+### Sending
+
+```typescript
+const result = await client.sendMessage('c1234abcd...', 'Hello from SDK!')
+// → LineSendResult { success, chat_id, message_id, sent_at }
+```
+
+The client tries E2EE (end-to-end encryption) first and falls back to plaintext automatically.
+
+### Cleanup
+
+```typescript
+client.close()
+```
+
+Once closed, any subsequent method call throws a `LineError` with code `not_connected`. Call `login()` again to reconnect, or create a new client if you prefer a fresh instance.
+
+## LineListener
+
+Real-time event listener that receives push events from LINE. Manages its own session with automatic reconnection.
+
+```typescript
+import { LineClient, LineListener } from 'agent-messenger/line'
+
+const client = await new LineClient().login()
+const listener = new LineListener(client)
+
+listener.on('connected', (info) => {
+  console.log(`Connected as ${info.account_id}`)
+})
+
+listener.on('message', (event) => {
+  console.log(`[${event.chat_id}] ${event.author_id}: ${event.text}`)
+})
+
+listener.on('disconnected', () => console.log('Reconnecting...'))
+listener.on('error', (err) => console.error(err))
+
+await listener.start()
+// listener.stop() to disconnect
+// client.close() to release resources
+```
+
+### Events
+
+| Event | Payload | Description |
+|-------|---------|-------------|
+| `message` | `LinePushMessageEvent` | New message received |
+| `line_event` | `LinePushGenericEvent` | Catch-all for all LINE events |
+| `connected` | `{ account_id: string }` | Connected to LINE server |
+| `disconnected` | — | Disconnected (will auto-reconnect) |
+| `error` | `Error` | Connection or protocol error |
+
+### Reconnection
+
+The listener automatically reconnects with exponential backoff (1s, 2s, 4s ... up to 30s max) when the connection drops.
+
+## LineCredentialManager
+
+Manages LINE credentials stored at `~/.config/agent-messenger/line-credentials.json`. Files are written with `0o600` permissions.
+
+```typescript
+import { LineCredentialManager } from 'agent-messenger/line'
+
+const manager = new LineCredentialManager()
+```
+
+```typescript
+// Load full config from disk (returns defaults if file doesn't exist)
+const config = await manager.load()
+// → LineConfig { current_account, accounts }
+
+// Save full config to disk
+await manager.save(config)
+
+// Get the current account's credentials
+const account = await manager.getAccount()
+// → LineAccountCredentials | null
+
+// Get a specific account by MID
+const specific = await manager.getAccount('u1234abcd...')
+// → LineAccountCredentials | null
+
+// Store account credentials
+await manager.setAccount(credentials)
+
+// Remove an account
+await manager.removeAccount('u1234abcd...')
+
+// Switch the current account
+await manager.setCurrentAccount('u1234abcd...')
+
+// List all stored accounts
+const accounts = await manager.listAccounts()
+// → Array<{ account_id, display_name?, device, is_current, created_at }>
+
+// Remove all stored credentials
+await manager.clearAll()
+```
+
+## Types
+
+```typescript
+import type {
+  LineAccountCredentials,
+  LineChat,
+  LineConfig,
+  LineDevice,
+  LineFriend,
+  LineListenerEventMap,
+  LineLoginResult,
+  LineMessage,
+  LineProfile,
+  LinePushGenericEvent,
+  LinePushMessageEvent,
+  LineSendResult,
+} from 'agent-messenger/line'
+```
+
+### Zod Schemas
+
+Runtime-validated schemas are also exported for parsing API responses:
+
+```typescript
+import {
+  LineAccountCredentialsSchema,
+  LineChatSchema,
+  LineConfigSchema,
+  LineFriendSchema,
+  LineMessageSchema,
+  LineProfileSchema,
+  LineSendResultSchema,
+} from 'agent-messenger/line'
+```
+
+## Examples
+
+### Chat Summary
+
+List chats and print a summary of each conversation.
+
+```typescript
+import { LineClient } from 'agent-messenger/line'
+
+const client = await new LineClient().login()
+
+try {
+  const chats = await client.getChats()
+  console.log(`${chats.length} chats:`)
+  for (const chat of chats) {
+    const label = chat.type === 'group' ? `[Group] ${chat.display_name}` : chat.display_name
+    console.log(`  ${label} (${chat.member_count ?? 1} members)`)
+  }
+} finally {
+  client.close()
+}
+```
+
+### Send Notification
+
+Find a chat by name and send a message.
+
+```typescript
+import { LineClient } from 'agent-messenger/line'
+
+const client = await new LineClient().login()
+
+try {
+  const chats = await client.getChats()
+  const target = chats.find((c) => c.display_name.includes('Team'))
+
+  if (target) {
+    const result = await client.sendMessage(target.chat_id, 'Deploy complete!')
+    console.log(`Sent (message_id: ${result.message_id})`)
+  }
+} finally {
+  client.close()
+}
+```
+
+### Message Monitor
+
+Real-time listener that responds to keywords.
+
+```typescript
+import { LineClient, LineListener } from 'agent-messenger/line'
+
+const client = await new LineClient().login()
+const listener = new LineListener(client)
+
+listener.on('message', async (event) => {
+  if (event.text?.toLowerCase().includes('ping')) {
+    await client.sendMessage(event.chat_id, 'pong!')
+  }
+})
+
+listener.on('error', (err) => console.error('Listener error:', err))
+
+await listener.start()
+```
+
+### Multi-Account
+
+Switch between accounts and send from different identities.
+
+```typescript
+import { LineClient, LineCredentialManager } from 'agent-messenger/line'
+
+const manager = new LineCredentialManager()
+const accounts = await manager.listAccounts()
+
+for (const acct of accounts) {
+  await manager.setCurrentAccount(acct.account_id)
+  const client = await new LineClient(manager).login()
+
+  try {
+    const profile = await client.getProfile()
+    console.log(`Logged in as ${profile.display_name} (${profile.mid})`)
+
+    const chats = await client.getChats({ limit: 5 })
+    console.log(`  ${chats.length} recent chats`)
+  } finally {
+    client.close()
+  }
+}
+```
