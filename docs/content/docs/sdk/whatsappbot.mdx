@@ -19,7 +19,7 @@ import {
 
 ## WhatsAppBotClient
 
-The main client for interacting with the WhatsApp Business Cloud API (Meta Graph API v23.0) programmatically. All requests are stateless HTTP calls. The client handles rate-limiting automatically, reading the `x-business-use-case-usage` header and backing off when throttled. Failed requests are retried up to 3 times with exponential backoff.
+The main client for interacting with the WhatsApp Business Cloud API (Meta Graph API v23.0) programmatically. All requests are stateless HTTP calls. The client handles rate-limiting automatically, reading the `x-business-use-case-usage` header and waiting on `429` responses. Network errors and `5xx` responses are retried with exponential backoff for `GET` requests.
 
 ```typescript
 import { WhatsAppBotClient } from 'agent-messenger/whatsappbot'
