@@ -1,0 +1,266 @@
+---
+title: WhatsApp Bot
+description: TypeScript SDK reference for WhatsApp Bot — Cloud API client, credential management, and types.
+---
+
+## Installation
+
+```bash
+npm install agent-messenger
+```
+
+```typescript
+import {
+  WhatsAppBotClient,
+  WhatsAppBotCredentialManager,
+  WhatsAppBotError,
+} from 'agent-messenger/whatsappbot'
+```
+
+## WhatsAppBotClient
+
+The main client for interacting with the WhatsApp Business Cloud API (Meta Graph API v23.0) programmatically. All requests are stateless HTTP calls. The client handles rate-limiting automatically, reading the `x-business-use-case-usage` header and backing off when throttled. Failed requests are retried up to 3 times with exponential backoff.
+
+```typescript
+import { WhatsAppBotClient } from 'agent-messenger/whatsappbot'
+
+const client = await new WhatsAppBotClient().login({ phoneNumberId, accessToken })
+```
+
+Or use automatic credential extraction, where credentials are read from stored config:
+
+```typescript
+import { WhatsAppBotClient } from 'agent-messenger/whatsappbot'
+
+const client = await new WhatsAppBotClient().login()
+```
+
+### Verification
+
+```typescript
+// Verify the phone number's registered name
+const info = await client.verifyToken()
+// → { verified_name: string }
+```
+
+### Messages
+
+Phone numbers should be in E.164 format without the `+` prefix (e.g., `12025551234`).
+
+```typescript
+// Send a text message
+const msg = await client.sendTextMessage('12025551234', 'Hello from the bot!')
+const withPreview = await client.sendTextMessage('12025551234', 'Check https://example.com', true)
+// → WhatsAppBotMessageResponse
+
+// Send a template message
+const tmpl = await client.sendTemplateMessage('12025551234', 'hello_world', 'en_US')
+const withComponents = await client.sendTemplateMessage('12025551234', 'order_update', 'en_US', [
+  { type: 'body', parameters: [{ type: 'text', text: 'ORD-1234' }] },
+])
+// → WhatsAppBotMessageResponse
+
+// React to a message
+const reaction = await client.sendReaction('12025551234', 'wamid.abc123', '\u{1F44D}')
+// → WhatsAppBotMessageResponse
+
+// Send an image message
+const image = await client.sendImageMessage('12025551234', 'https://example.com/photo.jpg')
+const captioned = await client.sendImageMessage(
+  '12025551234',
+  'https://example.com/photo.jpg',
+  'Product screenshot',
+)
+// → WhatsAppBotMessageResponse
+
+// Send a document message
+const doc = await client.sendDocumentMessage(
+  '12025551234',
+  'https://example.com/invoice.pdf',
+  'invoice-2024.pdf',
+  'Your invoice is attached',
+)
+// → WhatsAppBotMessageResponse
+```
+
+### Templates
+
+```typescript
+// List message templates (optional limit)
+const templates = await client.listTemplates()
+const limited = await client.listTemplates({ limit: 10 })
+// → WhatsAppBotTemplate[]
+
+// Get a specific template by name
+const template = await client.getTemplate('hello_world')
+// → WhatsAppBotTemplate { name, status, category, language, components }
+```
+
+## WhatsAppBotCredentialManager
+
+Manages WhatsApp Bot credentials stored at `~/.config/agent-messenger/whatsappbot-credentials.json`. Files are written with `0o600` permissions. The environment variables `E2E_WHATSAPPBOT_ACCESS_TOKEN` and `E2E_WHATSAPPBOT_PHONE_NUMBER_ID` take precedence when calling `getCredentials()` without an `accountId`.
+
+```typescript
+import { WhatsAppBotCredentialManager } from 'agent-messenger/whatsappbot'
+
+const manager = new WhatsAppBotCredentialManager()
+// Custom path: new WhatsAppBotCredentialManager('/custom/config/dir')
+```
+
+```typescript
+// Load full config from disk (returns defaults if file doesn't exist)
+const config = await manager.load()
+// → WhatsAppBotConfig
+
+// Save full config to disk
+await manager.save(config)
+
+// Get credentials for an account (env vars take precedence)
+const creds = await manager.getCredentials()
+const specific = await manager.getCredentials(accountId)
+// → WhatsAppBotCredentials | null
+
+// Store credentials for an account
+await manager.setCredentials({
+  phone_number_id: '100200300400',
+  account_name: 'My Business',
+  access_token: 'EAAx...',
+})
+
+// Remove an account's credentials
+const removed = await manager.removeAccount('100200300400')
+// → boolean
+
+// Set the current default account
+const ok = await manager.setCurrent('100200300400')
+// → boolean
+
+// List all saved accounts with current marker
+const all = await manager.listAll()
+// → Array<WhatsAppBotAccountEntry & { is_current: boolean }>
+
+// Clear all stored credentials
+await manager.clearCredentials()
+```
+
+## Types
+
+```typescript
+import type {
+  WhatsAppBotAccountEntry,
+  WhatsAppBotConfig,
+  WhatsAppBotCredentials,
+  WhatsAppBotMessageResponse,
+  WhatsAppBotTemplate,
+  WhatsAppBotTemplateComponent,
+} from 'agent-messenger/whatsappbot'
+```
+
+## WhatsAppBotError
+
+Thrown on authentication failures, network errors, rate limits, and API errors. Includes a `code` string for programmatic handling.
+
+```typescript
+import { WhatsAppBotError } from 'agent-messenger/whatsappbot'
+
+try {
+  await client.sendTextMessage('12025551234', 'Hello')
+} catch (error) {
+  if (error instanceof WhatsAppBotError) {
+    console.error(`${error.code}: ${error.message}`)
+    // e.g. "rate_limited: Rate limited"
+    // e.g. "not_authenticated: Not authenticated. Call .login() first."
+  }
+}
+```
+
+### Zod Schemas
+
+Runtime-validated schemas are also exported for parsing API responses:
+
+```typescript
+import {
+  WhatsAppBotAccountEntrySchema,
+  WhatsAppBotConfigSchema,
+  WhatsAppBotCredentialsSchema,
+} from 'agent-messenger/whatsappbot'
+```
+
+## Examples
+
+### Send Text Message
+
+Send a simple text message to a phone number.
+
+```typescript
+import { WhatsAppBotClient } from 'agent-messenger/whatsappbot'
+
+const client = await new WhatsAppBotClient().login({ phoneNumberId, accessToken })
+
+const response = await client.sendTextMessage('12025551234', 'Your order has shipped!')
+console.log(`Message ID: ${response.messages[0].id}`)
+console.log(`WhatsApp ID: ${response.contacts[0].wa_id}`)
+```
+
+### Template Broadcast
+
+Send a template message with dynamic components to multiple recipients.
+
+```typescript
+import { WhatsAppBotClient } from 'agent-messenger/whatsappbot'
+
+const client = await new WhatsAppBotClient().login({ phoneNumberId, accessToken })
+
+const recipients = ['12025551234', '447700900123', '5511999887766']
+
+for (const phone of recipients) {
+  const response = await client.sendTemplateMessage(phone, 'order_update', 'en_US', [
+    {
+      type: 'body',
+      parameters: [
+        { type: 'text', text: 'ORD-5678' },
+        { type: 'text', text: 'March 30, 2026' },
+      ],
+    },
+  ])
+  console.log(`Sent to ${phone}: ${response.messages[0].id}`)
+}
+```
+
+### Multi-Account Management
+
+Set up and switch between multiple WhatsApp Business accounts.
+
+```typescript
+import { WhatsAppBotCredentialManager, WhatsAppBotClient } from 'agent-messenger/whatsappbot'
+
+const manager = new WhatsAppBotCredentialManager()
+
+// Store credentials for two accounts
+await manager.setCredentials({
+  phone_number_id: '100200300400',
+  account_name: 'Support Line',
+  access_token: 'EAAx...',
+})
+
+await manager.setCredentials({
+  phone_number_id: '500600700800',
+  account_name: 'Marketing Line',
+  access_token: 'EAAy...',
+})
+
+// List all accounts
+const accounts = await manager.listAll()
+for (const acct of accounts) {
+  const marker = acct.is_current ? '(current)' : ''
+  console.log(`${acct.account_name} [${acct.phone_number_id}] ${marker}`)
+}
+
+// Switch to the support account
+await manager.setCurrent('100200300400')
+
+// Login picks up the current account automatically
+const client = await new WhatsAppBotClient().login()
+const info = await client.verifyToken()
+console.log(`Logged in as: ${info.verified_name}`)
+```

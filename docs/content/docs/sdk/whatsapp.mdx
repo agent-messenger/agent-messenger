@@ -1,0 +1,293 @@
+---
+title: WhatsApp
+description: TypeScript SDK reference for WhatsApp — client, credential management, and types.
+---
+
+## Installation
+
+```bash
+npm install agent-messenger
+```
+
+```typescript
+import {
+  WhatsAppClient,
+  WhatsAppCredentialManager,
+} from 'agent-messenger/whatsapp'
+```
+
+## WhatsAppClient
+
+The main client for interacting with WhatsApp via the Baileys library. WhatsApp uses a linked-device model: your application pairs with an existing WhatsApp account and maintains a persistent WebSocket connection. Call `close()` when done.
+
+The connection lifecycle has two steps: `login()` sets up credentials, then `connect()` opens the WebSocket. Both are required before calling any chat or message methods.
+
+### Authentication
+
+```typescript
+import { WhatsAppClient } from 'agent-messenger/whatsapp'
+
+// Explicit credentials — point to a Baileys auth directory
+const client = await new WhatsAppClient().login({ authDir: '/path/to/auth' })
+```
+
+Or use automatic credential extraction, which reads from stored login state managed by `WhatsAppCredentialManager`:
+
+```typescript
+import { WhatsAppClient } from 'agent-messenger/whatsapp'
+
+const client = await new WhatsAppClient().login()
+```
+
+### Connection
+
+After `login()`, call `connect()` to open the WebSocket and sync chat history. This must complete before calling any API methods.
+
+```typescript
+await client.connect()
+// Connection is now open — you can call listChats, sendMessage, etc.
+```
+
+For first-time device pairing, use `connectForPairing()` instead. It returns a pairing code to enter on your phone, plus a promise that resolves when authentication finishes.
+
+```typescript
+const { code, waitForAuth } = await client.connectForPairing('+1234567890')
+console.log(`Enter this code on your phone: ${code}`)
+await waitForAuth()
+// Device is now linked
+```
+
+### Chat Rooms
+
+WhatsApp identifies chats by JID (Jabber ID). Individuals use `phone@s.whatsapp.net`, groups use `id@g.us`.
+
+```typescript
+// List recent chats (sorted by last activity)
+const chats = await client.listChats()
+// → WhatsAppChatSummary[]
+
+// Limit results
+const recent = await client.listChats(10)
+
+// Search chats by name or JID
+const results = await client.searchChats('Team', 5)
+// → WhatsAppChatSummary[]
+```
+
+### Messages
+
+```typescript
+// Get recent messages from a chat (default: 25)
+const messages = await client.getMessages('5511999999999@s.whatsapp.net')
+// → WhatsAppMessageSummary[]
+
+// Get more messages
+const more = await client.getMessages('5511999999999@s.whatsapp.net', 100)
+
+// Phone numbers without @s.whatsapp.net are resolved automatically
+const msgs = await client.getMessages('5511999999999')
+```
+
+### Sending
+
+```typescript
+// Send a text message
+const sent = await client.sendMessage('5511999999999@s.whatsapp.net', 'Hello from SDK!')
+// → WhatsAppMessageSummary { id, chat_id, from, timestamp, is_outgoing, type, text }
+```
+
+### Reactions
+
+```typescript
+// React to a message
+await client.sendReaction('5511999999999@s.whatsapp.net', 'ABCDEF1234', '👍')
+
+// React to your own message
+await client.sendReaction('5511999999999@s.whatsapp.net', 'ABCDEF1234', '✅', true)
+
+// Remove a reaction (empty string)
+await client.sendReaction('5511999999999@s.whatsapp.net', 'ABCDEF1234', '')
+```
+
+### Socket Access
+
+For advanced Baileys operations not covered by the client API, access the raw socket directly.
+
+```typescript
+const sock = client.getSocket()
+// → WASocket | null
+```
+
+### Cleanup
+
+```typescript
+// Close the connection and persist store (MUST call when done)
+await client.close()
+```
+
+Once closed, any subsequent method call throws a `WhatsAppError` with code `not_connected`. Create a new client if you need to reconnect.
+
+## WhatsAppCredentialManager
+
+Manages WhatsApp credentials stored at `~/.config/agent-messenger/whatsapp-credentials.json`. Baileys auth state is stored per-account under `~/.config/agent-messenger/whatsapp/<account-id>/auth/`. Files are written with `0o600` permissions.
+
+```typescript
+import { WhatsAppCredentialManager } from 'agent-messenger/whatsapp'
+
+const manager = new WhatsAppCredentialManager()
+```
+
+```typescript
+// Load full config from disk (returns defaults if file doesn't exist)
+const config = await manager.loadConfig()
+// → WhatsAppConfig { current, accounts }
+
+// Save full config to disk
+await manager.saveConfig(config)
+
+// Get the current account
+const account = await manager.getAccount()
+// → WhatsAppAccount | null
+
+// Get a specific account by ID
+const specific = await manager.getAccount('plus-1234567890')
+// → WhatsAppAccount | null
+
+// List all accounts
+const accounts = await manager.listAccounts()
+// → Array<WhatsAppAccount & { is_current: boolean }>
+
+// Store an account
+await manager.setAccount(account)
+
+// Switch the current account
+const switched = await manager.setCurrent('plus-1234567890')
+// → boolean (false if account not found)
+
+// Remove an account (also deletes auth state on disk)
+const removed = await manager.removeAccount('plus-1234567890')
+// → boolean (false if account not found)
+
+// Delete all credentials and auth state
+await manager.clearCredentials()
+
+// Get filesystem paths for an account
+const paths = manager.getAccountPaths('plus-1234567890')
+// → WhatsAppAccountPaths { account_dir, auth_dir }
+
+// Get paths, creating directories if they don't exist
+const ensured = await manager.ensureAccountPaths('plus-1234567890')
+// → WhatsAppAccountPaths { account_dir, auth_dir }
+```
+
+## Types
+
+```typescript
+import type {
+  WhatsAppAccount,
+  WhatsAppAccountPaths,
+  WhatsAppChatSummary,
+  WhatsAppConfig,
+  WhatsAppMessageSummary,
+} from 'agent-messenger/whatsapp'
+```
+
+## Exported Utilities
+
+```typescript
+import {
+  createAccountId,
+  extractMessageText,
+  getMessageType,
+  jidToType,
+  WhatsAppError,
+} from 'agent-messenger/whatsapp'
+```
+
+| Export | Description |
+|--------|-------------|
+| `createAccountId(input)` | Normalizes a phone number or string into a safe account ID |
+| `extractMessageText(message)` | Pulls the text content from a Baileys `proto.IMessage` |
+| `getMessageType(message)` | Returns the message type (`text`, `image`, `video`, etc.) from a Baileys `proto.IMessage` |
+| `jidToType(jid)` | Maps a JID to its chat type: `individual`, `group`, `broadcast`, or `status` |
+| `WhatsAppError` | Error class with a `code` property for programmatic error handling |
+
+## Examples
+
+### Chat Summary
+
+List all chats, count unread, and print a summary.
+
+```typescript
+import { WhatsAppClient } from 'agent-messenger/whatsapp'
+
+const client = await new WhatsAppClient().login()
+await client.connect()
+
+try {
+  const chats = await client.listChats()
+  const unread = chats.filter(c => c.unread_count > 0)
+  console.log(`${unread.length} chats with unread messages:`)
+  for (const chat of unread) {
+    console.log(`  ${chat.name} (${chat.type}) — ${chat.unread_count} unread`)
+  }
+} finally {
+  await client.close()
+}
+```
+
+### Send Notification
+
+Find a chat by name and send a message.
+
+```typescript
+import { WhatsAppClient } from 'agent-messenger/whatsapp'
+
+const client = await new WhatsAppClient().login()
+await client.connect()
+
+try {
+  const chats = await client.searchChats('Team')
+  const teamChat = chats[0]
+
+  if (teamChat) {
+    const result = await client.sendMessage(teamChat.id, '🚀 Deployment complete!')
+    console.log(`Sent (id: ${result.id}, timestamp: ${result.timestamp})`)
+  }
+} finally {
+  await client.close()
+}
+```
+
+### Message Monitor
+
+Poll for new messages in a chat.
+
+```typescript
+import { WhatsAppClient } from 'agent-messenger/whatsapp'
+
+const client = await new WhatsAppClient().login()
+await client.connect()
+
+const chatJid = '5511999999999@s.whatsapp.net'
+let knownIds = new Set<string>()
+
+const poll = async () => {
+  try {
+    const messages = await client.getMessages(chatJid, 10)
+    for (const msg of messages) {
+      if (!knownIds.has(msg.id)) {
+        knownIds.add(msg.id)
+        const sender = msg.from_name ?? msg.from
+        console.log(`[${sender}] ${msg.text ?? `(${msg.type})`}`)
+      }
+    }
+  } catch (error) {
+    console.error('Poll failed:', error)
+  }
+}
+
+const timer = setInterval(poll, 10_000)
+
+// To stop: clearInterval(timer); await client.close()
+```
