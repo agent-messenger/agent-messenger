@@ -389,6 +389,12 @@ try {
 }
 ```
 
+### Auto-Reconnect
+
+`getChats`, `getMessages`, and `sendMessage` automatically reconnect once when the LOCO session dies (e.g. the KakaoTalk desktop app reclaims the session or the network drops). The reconnect is transparent — callers don't need to handle session-drop errors.
+
+Reconnect only triggers on actual session death. Operation-level errors (invalid chat ID, server rejection, etc.) are thrown immediately without retry, so side effects like `sendMessage` are never duplicated.
+
 ## See Also
 
 - [Authentication Guide](authentication.md) - Setting up credentials
