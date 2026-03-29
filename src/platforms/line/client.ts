@@ -15,8 +15,10 @@ import type {
   LineAccountCredentials,
   LineChat,
   LineDevice,
+  LineFriend,
   LineLoginResult,
   LineMessage,
+  LineProfile,
   LineSendResult,
 } from './types'
 import { LineError } from './types'
@@ -159,6 +161,43 @@ export class LineClient {
       return this
     } catch (error) {
       throw wrapError(error, 'login_failed')
+    }
+  }
+
+  async getProfile(): Promise<LineProfile> {
+    try {
+      const profile = await this.ensureClient().base.talk.getProfile()
+      return {
+        mid: profile.mid,
+        display_name: profile.displayName,
+        status_message: profile.statusMessage || undefined,
+        picture_url: profile.picturePath
+          ? `https://profile.line-scdn.net${profile.picturePath}`
+          : undefined,
+      }
+    } catch (error) {
+      throw wrapError(error, 'get_profile_failed')
+    }
+  }
+
+  async getFriends(): Promise<LineFriend[]> {
+    try {
+      const client = this.ensureClient()
+      const response = await client.base.relation.getUserFriendIds({})
+      const friendMids = response?.userFriendMids
+      if (!friendMids?.length) return []
+
+      const contacts = await client.base.talk.getContacts({ mids: friendMids })
+      return (contacts ?? []).map((contact) => ({
+        mid: contact.mid,
+        display_name: contact.displayName,
+        status_message: contact.statusMessage || undefined,
+        picture_url: contact.picturePath
+          ? `https://profile.line-scdn.net${contact.picturePath}`
+          : undefined,
+      }))
+    } catch (error) {
+      throw wrapError(error, 'get_friends_failed')
     }
   }
 

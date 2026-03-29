@@ -6,14 +6,18 @@ export type {
   LineChat,
   LineConfig,
   LineDevice,
+  LineFriend,
   LineLoginResult,
   LineMessage,
+  LineProfile,
   LineSendResult,
 } from './types'
 export {
   LineAccountCredentialsSchema,
   LineChatSchema,
   LineConfigSchema,
+  LineFriendSchema,
   LineMessageSchema,
+  LineProfileSchema,
   LineSendResultSchema,
 } from './types'

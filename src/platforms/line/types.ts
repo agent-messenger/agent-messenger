@@ -54,6 +54,20 @@ export interface LineSendResult {
   sent_at: string
 }
 
+export interface LineProfile {
+  mid: string
+  display_name: string
+  status_message?: string
+  picture_url?: string
+}
+
+export interface LineFriend {
+  mid: string
+  display_name: string
+  status_message?: string
+  picture_url?: string
+}
+
 export class LineError extends Error {
   readonly code: string
   constructor(code: string, message: string) {
@@ -94,6 +108,20 @@ export const LineMessageSchema = z.object({
   text: z.string().nullable(),
   content_type: z.string(),
   sent_at: z.string(),
+})
+
+export const LineProfileSchema = z.object({
+  mid: z.string(),
+  display_name: z.string(),
+  status_message: z.string().optional(),
+  picture_url: z.string().optional(),
+})
+
+export const LineFriendSchema = z.object({
+  mid: z.string(),
+  display_name: z.string(),
+  status_message: z.string().optional(),
+  picture_url: z.string().optional(),
 })
 
 export const LineSendResultSchema = z.object({
