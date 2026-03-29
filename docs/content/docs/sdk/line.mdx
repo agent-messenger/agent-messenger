@@ -49,7 +49,7 @@ Explicit login with known credentials:
 const client = await new LineClient().login({
   account_id: 'u1234abcd...',
   auth_token: 'eyJ...',
-  device: 'DESKTOPMAC',
+  device: 'ANDROIDSECONDARY',
   display_name: 'Alice',
   created_at: '2025-01-15T09:00:00Z',
   updated_at: '2025-03-28T14:30:00Z',
@@ -58,11 +58,11 @@ const client = await new LineClient().login({
 
 ### QR Login
 
-Authenticate by scanning a QR code with your phone. The `onQRUrl` callback receives the URL to display, and `onPincode` receives a confirmation PIN shown on the phone.
+Authenticate by scanning a QR code with your phone. The `onQRUrl` callback receives the URL to display, and `onPincode` receives the PIN the user must confirm in the LINE mobile app.
 
 ```typescript
 const result = await client.loginWithQR({
-  device: 'DESKTOPMAC',
+  device: 'ANDROIDSECONDARY',
   onQRUrl: (url) => console.log(`Scan this QR code: ${url}`),
   onPincode: (pin) => console.log(`Confirm PIN on your phone: ${pin}`),
 })
@@ -71,13 +71,13 @@ const result = await client.loginWithQR({
 
 ### Email Login
 
-Authenticate with email and password. A PIN confirmation step may be required.
+Authenticate with email and password. A PIN confirmation step in the LINE mobile app may be required.
 
 ```typescript
 const result = await client.loginWithEmail({
   email: 'alice@example.com',
   password: 'hunter2',
-  device: 'DESKTOPMAC',
+  device: 'ANDROIDSECONDARY',
   onPincode: (pin) => console.log(`Confirm PIN on your phone: ${pin}`),
 })
 // → LineLoginResult { authenticated, account_id, display_name, device }
@@ -135,7 +135,7 @@ The client tries E2EE (end-to-end encryption) first and falls back to plaintext 
 client.close()
 ```
 
-Once closed, any subsequent method call throws a `LineError` with code `not_connected`. Create a new client if you need to reconnect.
+Once closed, any subsequent method call throws a `LineError` with code `not_connected`. Call `login()` again to reconnect, or create a new client if you prefer a fresh instance.
 
 ## LineListener
 
