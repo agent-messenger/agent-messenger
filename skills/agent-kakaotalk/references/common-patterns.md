@@ -172,7 +172,32 @@ done
 
 **When to use**: Announcements, notifications across multiple chats.
 
-## Pattern 7: Unread Message Summary
+## Pattern 7: Multi-Account Operations
+
+**Use case**: Manage and operate across multiple KakaoTalk accounts
+
+```bash
+#!/bin/bash
+
+# List all configured accounts
+agent-kakaotalk auth list
+
+# Switch the default account
+agent-kakaotalk auth use 9876543210
+
+# Send from a specific account without switching default
+agent-kakaotalk message send "$CHAT_ID" "Hello from account A" --account 1111111111
+
+# List chats from a specific account
+agent-kakaotalk chat list --account 2222222222
+
+# Check auth status of a specific account
+agent-kakaotalk auth status --account 1111111111
+```
+
+**When to use**: Managing multiple KakaoTalk identities, sending messages as different accounts, or checking status across accounts.
+
+## Pattern 8: Unread Message Summary
 
 **Use case**: Check which chats have unread messages
 
@@ -194,7 +219,7 @@ echo "$UNREAD" | jq -r '.[] | "  \(.display_name // "Unknown") — \(.unread_cou
 
 **When to use**: Morning catch-up, checking for urgent messages, triage.
 
-## Pattern 8: Error Handling and Retry
+## Pattern 9: Error Handling and Retry
 
 **Use case**: Robust message sending with retries
 

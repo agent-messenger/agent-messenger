@@ -90,11 +90,36 @@ agent-kakaotalk auth login --device-type tablet --force
 ```bash
 # Check auth status
 agent-kakaotalk auth status
+agent-kakaotalk auth status --account <account-id>
+
+# List all stored accounts
+agent-kakaotalk auth list
+
+# Switch the current account
+agent-kakaotalk auth use <account-id>
 
 # Remove stored credentials
 agent-kakaotalk auth logout
-agent-kakaotalk auth logout <account-id>
+agent-kakaotalk auth logout --account <account-id>
 ```
+
+## Multi-Account
+
+KakaoTalk supports multiple accounts. Each login or extraction stores credentials separately, keyed by user ID.
+
+```bash
+# List all stored accounts
+agent-kakaotalk auth list
+
+# Switch the current account
+agent-kakaotalk auth use <account-id>
+
+# Use a specific account for any command
+agent-kakaotalk chat list --account <account-id>
+agent-kakaotalk message send <chat-id> "Hello" --account <account-id>
+```
+
+Without `--account`, commands use the current (default) account.
 
 ## Commands
 
@@ -104,6 +129,7 @@ agent-kakaotalk auth logout <account-id>
 # List all chat rooms (sorted by most recent activity)
 agent-kakaotalk chat list
 agent-kakaotalk chat list --pretty
+agent-kakaotalk chat list --account <account-id>
 
 # Fetch all chats (paginate beyond login snapshot)
 agent-kakaotalk chat list --all
@@ -134,6 +160,10 @@ agent-kakaotalk message list <chat-id> --pretty
 # Send a text message
 agent-kakaotalk message send <chat-id> "Hello world"
 agent-kakaotalk message send <chat-id> "Hello world" --pretty
+
+# Use a specific account
+agent-kakaotalk message list <chat-id> --account <account-id>
+agent-kakaotalk message send <chat-id> "Hello" --account <account-id>
 ```
 
 Each message includes:
@@ -164,9 +194,10 @@ agent-kakaotalk message list 9876543210 --from 123456789
 
 ## Global Options
 
-| Option     | Description                           |
-| ---------- | ------------------------------------- |
-| `--pretty` | Human-readable output instead of JSON |
+| Option      | Description                                                 |
+| ----------- | ----------------------------------------------------------- |
+| `--account` | Use a specific KakaoTalk account (default: current account) |
+| `--pretty`  | Human-readable output instead of JSON                       |
 
 ## Storage
 
@@ -185,7 +216,7 @@ agent-kakaotalk message list 9876543210 --from 123456789
 - No message editing or deletion
 - No open chat browsing or joining
 - No search across chats
-- No multi-account switching (single account at a time)
+
 - Plain text messages only (no photos, videos, or rich content)
 - Chat IDs are numeric and not human-readable — use `chat list` to discover them
 

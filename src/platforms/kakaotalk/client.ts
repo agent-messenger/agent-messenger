@@ -97,7 +97,10 @@ export class KakaoTalkClient {
   private initPromise: Promise<SessionState> | null = null
   private closed = false
 
-  async login(credentials?: { oauthToken: string; userId: string; deviceUuid?: string }): Promise<this> {
+  async login(
+    credentials?: { oauthToken: string; userId: string; deviceUuid?: string },
+    accountId?: string,
+  ): Promise<this> {
     if (credentials) {
       if (!credentials.oauthToken) throw new KakaoTalkError('OAuth token is required', 'missing_token')
       if (!credentials.userId) throw new KakaoTalkError('User ID is required', 'missing_user_id')
@@ -107,7 +110,7 @@ export class KakaoTalkClient {
       return this
     }
     const { ensureKakaoAuth } = await import('./ensure-auth')
-    const account = await ensureKakaoAuth()
+    const account = await ensureKakaoAuth(accountId)
     return this.login({ oauthToken: account.oauth_token, userId: account.user_id, deviceUuid: account.device_uuid })
   }
 

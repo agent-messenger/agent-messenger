@@ -241,6 +241,50 @@ Output when not authenticated:
 }
 ```
 
+## Multi-Account
+
+KakaoTalk supports multiple accounts. Each login or extraction stores credentials separately, keyed by user ID.
+
+### Listing Accounts
+
+```bash
+agent-kakaotalk auth list
+```
+
+Output:
+
+```json
+[
+  {
+    "account_id": "1234567890",
+    "user_id": "1234567890",
+    "device_type": "tablet",
+    "created_at": "2025-01-15T10:30:00.000Z",
+    "updated_at": "2025-01-15T10:30:00.000Z",
+    "is_current": true
+  }
+]
+```
+
+### Switching Accounts
+
+```bash
+agent-kakaotalk auth use <account-id>
+```
+
+### Using a Specific Account Per-Command
+
+All data commands accept `--account <id>` to target a specific account without changing the default:
+
+```bash
+agent-kakaotalk auth status --account 1234567890
+agent-kakaotalk chat list --account 1234567890
+agent-kakaotalk message list <chat-id> --account 1234567890
+agent-kakaotalk message send <chat-id> "Hello" --account 1234567890
+```
+
+Without `--account`, commands use the current (default) account.
+
 ## Logout
 
 Remove stored credentials:
@@ -250,7 +294,7 @@ Remove stored credentials:
 agent-kakaotalk auth logout
 
 # Remove specific account
-agent-kakaotalk auth logout 1234567890
+agent-kakaotalk auth logout --account 1234567890
 ```
 
 ## Token Lifecycle
