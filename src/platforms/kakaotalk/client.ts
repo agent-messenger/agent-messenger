@@ -255,10 +255,11 @@ export class KakaoTalkClient {
         const seenLogIds = new Set<string>()
         let cur = startCursor
 
+        let reachedEnd = false
         for (let page = 0; page < MAX_PAGES; page++) {
           const response = await session.syncMessages(cid, 80, cur, maxLogId)
           const batch = (response.body.chatLogs ?? []) as Array<Record<string, unknown>>
-          if (batch.length === 0) break
+          if (batch.length === 0) { reachedEnd = true; break }
 
           for (const log of batch) {
             const lid = longToString(log.logId)
@@ -274,8 +275,11 @@ export class KakaoTalkClient {
             return !max || long.greaterThan(max) ? long : max
           }, null)
 
-          if (!maxLog || maxLog.equals(cur) || response.body.isOK) break
+          if (!maxLog || maxLog.equals(cur) || response.body.isOK) { reachedEnd = true; break }
           cur = maxLog
+        }
+        if (!reachedEnd) {
+          console.error(`[agent-kakaotalk] Warning: message fetch capped at ${MAX_PAGES} pages. Results may be incomplete.`)
         }
 
         allMessages.sort((a, b) => (a.sendAt as number) - (b.sendAt as number))
