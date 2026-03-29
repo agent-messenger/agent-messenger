@@ -60,10 +60,10 @@ Two-factor authentication required.
 Enter verification code: 123456
 ```
 
-Non-interactive mode requires a second step:
+Non-interactive mode requires a second step. The `--identifier` value comes from the login response's `two_factor_identifier` field:
 
 ```bash
-agent-instagram auth verify --code 123456
+agent-instagram auth verify --username your_username --code 123456 --identifier <two_factor_identifier>
 ```
 
 Response:
@@ -79,11 +79,8 @@ Instagram may trigger a challenge for logins from new devices or locations. The 
 Interactive mode walks you through the challenge automatically. In non-interactive mode:
 
 ```bash
-# Check what challenge is pending
-agent-instagram auth challenge --status
-
-# Submit the challenge response (e.g. a code sent to your email or phone)
-agent-instagram auth challenge --code 123456
+agent-instagram auth challenge --username your_username --method email
+agent-instagram auth challenge --username your_username --code 123456
 ```
 
 ### Debug Mode

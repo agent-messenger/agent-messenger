@@ -49,19 +49,18 @@ agent-instagram auth login --username your_username --password your_password
 If 2FA is enabled, the CLI handles it automatically in interactive mode. In non-interactive mode, use a separate verify step:
 
 ```bash
-agent-instagram auth verify --code 123456
+agent-instagram auth verify --username your_username --code 123456 --identifier <two_factor_identifier>
 ```
+
+The `--identifier` value comes from the login response's `two_factor_identifier` field.
 
 ### Challenge Required
 
 Instagram may require a challenge for logins from new devices or locations. The CLI resolves challenges interactively when possible. In non-interactive mode:
 
 ```bash
-# Check pending challenge
-agent-instagram auth challenge --status
-
-# Submit challenge response
-agent-instagram auth challenge --code 123456
+agent-instagram auth challenge --username your_username --method email
+agent-instagram auth challenge --username your_username --code 123456
 ```
 
 ### Debug Mode
@@ -121,16 +120,17 @@ agent-instagram message send 12345678901 "Hello!"
 agent-instagram message send-to <username> <text>
 agent-instagram message send-to alice "Hello!"
 
-# Search messages in a thread
-agent-instagram message search <thread> <query>
-agent-instagram message search 12345678901 "meeting notes"
+# Search messages by text content
+agent-instagram message search <query>
+agent-instagram message search "meeting notes" --thread 12345678901
+agent-instagram message search "hello" --limit 10
 
 # Search for users by name or username
 agent-instagram message search-users <query>
 agent-instagram message search-users "alice"
 ```
 
-The `<thread>` argument accepts a thread ID, which is a numeric string (e.g. `12345678901`).
+Thread IDs are numeric strings returned by `chat list` (e.g. `340282366841710300949128138443434234567`).
 
 ## Global Options
 

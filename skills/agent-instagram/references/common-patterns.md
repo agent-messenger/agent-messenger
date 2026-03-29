@@ -237,7 +237,7 @@ send_with_retry() {
     echo "Failed: $ERROR"
 
     # Don't retry auth errors
-    if echo "$ERROR" | grep -q "No Instagram account linked"; then
+    if echo "$ERROR" | grep -q "Not authenticated"; then
       echo "Not authenticated. Run: agent-instagram auth login"
       return 1
     fi
