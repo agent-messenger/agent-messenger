@@ -235,7 +235,7 @@ await listener.start()
 | -------------------------- | :---: | :-----: | :---: | :------: | :------: | :-------: | :-----------------: | :-------: |
 | Auto credential extraction |  ✅   |   ✅    |  ✅   |    —     |    —     |    ✅     |         ✅          |     —     |
 | Send & list messages       |  ✅   |   ✅    |  ✅   |    ✅     |    ✅     |    ✅     |         ✅          |    ✅     |
-| Search messages            |  ✅   |   ✅    |   —   |    —     |    ✅     |    —      |         ✅          |     —     |
+| Search messages            |  ✅   |   ✅    |   —   |    —     |    ✅     |    —      |         ✅          |    ✅     |
 | Threads                    |  ✅   |   ✅    |   —   |    —     |    —     |    —      |         —           |     —     |
 | Channels & Users           |  ✅   |   ✅    |  ✅   | partial  |    —     |    —      |         ✅          |     —     |
 | Reactions                  |  ✅   |   ✅    |  ✅   |    —     |    ✅     |    —      |         —           |     —     |
@@ -253,7 +253,7 @@ await listener.start()
 | Channel management         |  ✅   |    —    |   —   |    —     |    —     |    —      |         —           |     —     |
 | Reminders                  |  ✅   |    —    |   —   |    —     |    —     |    —      |         —           |     —     |
 | User groups                |  ✅   |    —    |   —   |    —     |    —     |    —      |         —           |     —     |
-| Real-time events (SDK)     |  ✅   |    ✅    |   —   |    —     |    —     |    ✅      |         —           |     —     |
+| Real-time events (SDK)     |  ✅   |    ✅    |   —   |    —     |    —     |    ✅      |         —           |    ✅     |
 | Bot support                |  ✅   |   ✅    |   —   |    —     |    ✅     |    —      |         ✅          |     —     |
 
 > ⚠️ **Teams tokens expire in 60-90 minutes.** Re-run `agent-teams auth extract` to refresh. See [Teams Guide](skills/agent-teams/SKILL.md) for details.

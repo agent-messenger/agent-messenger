@@ -49,7 +49,7 @@ export async function withInstagramClient<T>(
     process.exit(1)
   }
 
-  const client = new InstagramClient()
-  await client.login()
+  const client = new InstagramClient(manager)
+  await client.login(undefined, account.account_id)
   return fn(client)
 }

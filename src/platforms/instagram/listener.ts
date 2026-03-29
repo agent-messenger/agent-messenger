@@ -42,7 +42,7 @@ export class InstagramListener {
         }
       }
       this.initialized = true
-      this.emitter.emit('connected', { userId: '' })
+      this.emitter.emit('connected', { userId: this.client.getUserId() ?? '' })
       this.schedulePoll()
     } catch (error) {
       this.emitter.emit('error', error instanceof Error ? error : new Error(String(error)))

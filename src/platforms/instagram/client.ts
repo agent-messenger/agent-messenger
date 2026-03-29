@@ -52,13 +52,13 @@ export class InstagramClient {
     this.credentialManager = credentialManager ?? new InstagramCredentialManager()
   }
 
-  async login(credentials?: { username: string; password: string }): Promise<this> {
+  async login(credentials?: { username: string; password: string }, accountId?: string): Promise<this> {
     if (credentials) {
       await this.authenticate(credentials.username, credentials.password)
       return this
     }
 
-    const account = await this.credentialManager.getAccount()
+    const account = await this.credentialManager.getAccount(accountId)
     if (!account) {
       throw new InstagramError(
         'No Instagram credentials found. Run "agent-instagram auth login --username <username>" first.',
@@ -406,6 +406,10 @@ export class InstagramClient {
     return this.session?.challenge_path
   }
 
+  getUserId(): string | null {
+    return this.userId
+  }
+
   private async preLoginFlow(): Promise<{ keyId: string; publicKey: string } | null> {
     const url = `${IG_BASE_URL}/qe/sync/`
     const headers = this.buildHeaders()
@@ -468,7 +472,7 @@ export class InstagramClient {
 
   private plaintextPassword(password: string): string {
     const timestamp = Math.floor(Date.now() / 1000).toString()
-    return `#PWD_INSTAGRAM:0:${timestamp}:${Buffer.from(password).toString('base64')}`
+    return `#PWD_INSTAGRAM:0:${timestamp}:${password}`
   }
 
   private async request(
@@ -492,15 +496,15 @@ export class InstagramClient {
       this.session.authorization = authHeader
     }
 
+    if (response.status === 429) {
+      throw new InstagramError('Rate limited by Instagram. Try again later.', 'rate_limited')
+    }
+
     let data: Record<string, unknown>
     try {
       data = (await response.json()) as Record<string, unknown>
     } catch {
       throw new InstagramError(`Failed to parse response from ${path}`, response.status)
-    }
-
-    if (response.status === 429) {
-      throw new InstagramError('Rate limited by Instagram. Try again later.', 'rate_limited')
     }
 
     return { status: response.status, data }
@@ -560,7 +564,9 @@ export class InstagramClient {
       setCookies = headers.getSetCookie()
     } else {
       const raw = headers.get('set-cookie')
-      if (raw) setCookies = raw.split(', ')
+      if (raw) {
+        setCookies = raw.split(/,\s*(?=[a-zA-Z_][a-zA-Z0-9_]*=)/)
+      }
     }
 
     for (const sc of setCookies) {
