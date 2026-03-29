@@ -52,6 +52,10 @@ program.command('kakaotalk', 'Interact with KakaoTalk', {
   executableFile: join(__dirname, 'platforms', 'kakaotalk', `cli${ext}`),
 })
 
+program.command('line', 'Interact with LINE', {
+  executableFile: join(__dirname, 'platforms', 'line', `cli${ext}`),
+})
+
 program.command('channeltalk', 'Interact with Channel Talk', {
   executableFile: join(__dirname, 'platforms', 'channeltalk', `cli${ext}`),
 })

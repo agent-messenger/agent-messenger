@@ -1,7 +1,7 @@
 {
   "name": "agent-messenger",
   "version": "1.15.0",
-  "description": "Multi-platform messaging CLI for AI agents (Slack, Discord, Teams, Telegram, Channel Talk, Instagram)",
+  "description": "Multi-platform messaging CLI for AI agents (Slack, Discord, Teams, Telegram, LINE, Channel Talk, Instagram)",
   "repository": {
     "type": "git",
     "url": "https://github.com/devxoul/agent-messenger"
@@ -20,6 +20,7 @@
     "agent-kakaotalk": "./src/platforms/kakaotalk/cli.ts",
     "agent-channeltalk": "./src/platforms/channeltalk/cli.ts",
     "agent-channeltalkbot": "./src/platforms/channeltalkbot/cli.ts",
+    "agent-line": "./src/platforms/line/cli.ts",
     "agent-instagram": "./src/platforms/instagram/cli.ts"
   },
   "exports": {
@@ -60,6 +61,10 @@
       "types": "./src/platforms/channeltalkbot/index.ts",
       "default": "./src/platforms/channeltalkbot/index.ts"
     },
+    "./line": {
+      "types": "./src/platforms/line/index.ts",
+      "default": "./src/platforms/line/index.ts"
+    },
     "./instagram": {
       "types": "./src/platforms/instagram/index.ts",
       "default": "./src/platforms/instagram/index.ts"
@@ -78,6 +83,7 @@
       "kakaotalk": ["./src/platforms/kakaotalk/index.ts"],
       "channeltalk": ["./src/platforms/channeltalk/index.ts"],
       "channeltalkbot": ["./src/platforms/channeltalkbot/index.ts"],
+      "line": ["./src/platforms/line/index.ts"],
       "instagram": ["./src/platforms/instagram/index.ts"]
     }
   },
@@ -95,6 +101,7 @@
     "postpublish": "git checkout package.json"
   },
   "dependencies": {
+    "@evex/linejs": "npm:@jsr/evex__linejs",
     "@hapi/boom": "^10.0.1",
     "@slack/web-api": "^6.9.0",
     "@whiskeysockets/baileys": "^7.0.0-rc.9",
@@ -103,6 +110,7 @@
     "classic-level": "^1.3.0",
     "commander": "^11.1.0",
     "pino": "^10.3.1",
+    "qrcode": "^1.5.4",
     "ws": "^8.19.0",
     "zod": "^4.3.6"
   },
@@ -115,6 +123,7 @@
     "@types/bun": "latest",
     "@types/hapi__boom": "^9.0.1",
     "@types/node": "^20.10.6",
+    "@types/qrcode": "^1.5.6",
     "@types/ws": "^8.18.1",
     "oxfmt": "^0.36.0",
     "oxlint": "^1.51.0",

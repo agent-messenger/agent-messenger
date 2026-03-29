@@ -1,0 +1,306 @@
+---
+title: LINE
+description: Complete reference for the agent-line CLI.
+---
+
+> **Tip**: After `npm install -g agent-messenger`, `agent-line` is available directly. For one-off execution without a global install you can use `npm exec --package agent-messenger agent-line ...`, `pnpm dlx --package agent-messenger agent-line ...`, `yarn dlx agent-messenger agent-line ...`, or `bunx --package agent-messenger agent-line ...`.
+
+## Key Concepts
+
+Before diving in, a few things about LINE's architecture:
+
+| Term                       | Description                                                                                         |
+| -------------------------- | --------------------------------------------------------------------------------------------------- |
+| **MID**                    | LINE's unique identifier for users, chats, and rooms. Prefixed with `u` (user), `c` (group chat), or `r` (room). |
+| **QR code login**          | The primary authentication method. Scan a QR code with the LINE mobile app to authorize the CLI.    |
+| **ANDROIDSECONDARY**       | The default device type. Registers as a secondary Android device so your phone and desktop sessions stay active. |
+| **E2EE (Letter Sealing)**  | LINE's end-to-end encryption. The CLI attempts E2EE first and falls back to plaintext if keys aren't available. |
+| **Device types**           | Controls which device slot the CLI occupies. Secondary devices coexist with your other sessions.    |
+| **PIN verification**       | During login, LINE may display a PIN that you confirm on your phone to authorize the new device.    |
+
+## Quick Start
+
+```bash
+# 1. Login (QR code — opens in browser, scan with LINE app)
+agent-line auth login
+
+# 2. List chat rooms
+agent-line chat list
+
+# 3. Send a message
+agent-line message send <chat-id> "Hello from agent-line!"
+
+# 4. List messages in a chat
+agent-line message list <chat-id>
+```
+
+## Authentication
+
+LINE offers three authentication methods. **QR code login** is recommended because it doesn't require your email or password.
+
+### Method 1: QR Code Login (Recommended)
+
+Registers the CLI as a secondary device using the **ANDROIDSECONDARY** slot by default. Your phone and desktop sessions keep running.
+
+```bash
+# Interactive — opens QR code in browser + prints to terminal
+agent-line auth login
+```
+
+On login:
+
+1. The CLI generates a QR code URL and opens it in your browser
+2. The QR code also prints in the terminal as a fallback
+3. Scan the QR code with the LINE mobile app
+4. LINE may display a PIN to confirm on your phone
+5. Login completes automatically after confirmation
+
+### Method 2: Email/Password Login
+
+Uses email and password credentials. LINE may still require PIN verification on your phone.
+
+```bash
+# Interactive — prompts for email and password
+agent-line auth login --email user@example.com --password mypass
+```
+
+### Method 3: Token Login
+
+Directly authenticates with an existing auth token. Useful when you already have a valid token from another source.
+
+```bash
+agent-line auth login --token <auth-token>
+```
+
+### Device Types
+
+LINE allows multiple simultaneous sessions depending on the device type:
+
+| Device             | Default? | Side Effect                                    |
+| ------------------ | -------- | ---------------------------------------------- |
+| ANDROIDSECONDARY   | Yes      | Secondary device, coexists with all sessions   |
+| IOSIPAD            | No       | Secondary device, coexists with all sessions   |
+| DESKTOPMAC         | No       | Replaces existing macOS desktop session        |
+| DESKTOPWIN         | No       | Replaces existing Windows desktop session      |
+
+```bash
+# Default: ANDROIDSECONDARY (safe for most users)
+agent-line auth login
+
+# Use iPad slot instead
+agent-line auth login --device IOSIPAD
+
+# Replace desktop session (kicks LINE desktop)
+agent-line auth login --device DESKTOPMAC
+```
+
+### Non-Interactive Mode (AI Agents)
+
+When running outside a TTY (no interactive terminal), the CLI returns a `next_action` JSON response instead of displaying the QR code:
+
+```json
+{
+  "next_action": "run_interactive",
+  "message": "QR code login requires an interactive terminal. Run agent-line auth login in a terminal with TTY support."
+}
+```
+
+For non-interactive environments, use `--email`/`--password` or `--token` to authenticate without a QR code.
+
+### Auth Management
+
+```bash
+# Check auth status
+agent-line auth status
+
+# List all stored accounts
+agent-line auth list
+
+# Switch active account
+agent-line auth use <account-id>
+
+# Remove stored credentials
+agent-line auth logout
+agent-line auth logout <account-id>
+```
+
+## Commands
+
+### Profile Command
+
+```bash
+# Get your LINE profile
+agent-line profile
+agent-line profile --pretty
+```
+
+Output includes:
+
+- `mid` — your LINE user ID
+- `display_name` — your display name
+- `status_message` — your status message
+- `picture_url` — profile picture URL
+
+### Friend Commands
+
+```bash
+# List all friends
+agent-line friend list
+agent-line friend list --pretty
+```
+
+Output includes:
+
+- `mid` — friend's LINE user ID
+- `display_name` — friend's display name
+- `status_message` — friend's status message
+- `picture_url` — friend's profile picture URL
+
+### Chat Commands
+
+```bash
+# List conversations (DMs and groups)
+agent-line chat list
+agent-line chat list --pretty
+
+# Limit number of chats returned
+agent-line chat list -n 20
+```
+
+Output includes:
+
+- `chat_id` — MID of the chat (u/c/r prefix)
+- `type` — chat type (user, group, room, square)
+- `display_name` — chat or contact name
+- `member_count` — number of members (groups only)
+
+### Message Commands
+
+```bash
+# List messages in a chat room
+agent-line message list <chat-id>
+agent-line message list <chat-id> -n 50
+agent-line message list <chat-id> --pretty
+
+# Send a text message
+agent-line message send <chat-id> "Hello world"
+agent-line message send <chat-id> "Hello world" --pretty
+```
+
+Each message includes:
+
+- `message_id` — unique message identifier
+- `chat_id` — which chat the message belongs to
+- `author_id` — sender's MID
+- `text` — message text content (null for non-text messages)
+- `content_type` — message type (NONE = text, IMAGE, VIDEO, etc.)
+- `sent_at` — ISO 8601 timestamp
+
+#### Fetching More Messages
+
+Use the `-n` flag to control how many messages to fetch in a single request:
+
+```bash
+# Get latest 20 messages (default)
+agent-line message list c7a8b9c0d1e2f3a4b5c6d7e8
+
+# Get 50 messages
+agent-line message list c7a8b9c0d1e2f3a4b5c6d7e8 -n 50
+
+# Get 200 messages
+agent-line message list c7a8b9c0d1e2f3a4b5c6d7e8 -n 200
+```
+
+## Global Options
+
+| Option     | Description                           |
+| ---------- | ------------------------------------- |
+| `--pretty` | Human-readable output instead of JSON |
+
+## Storage
+
+- Credentials stored in `~/.config/agent-messenger/line-credentials.json` (0600 permissions)
+- E2EE key storage in `~/.config/agent-messenger/line-storage/`
+
+## Limitations
+
+- No file upload or download
+- No channel/chat room creation or management
+- No reactions or emoji
+- No message editing or deletion
+- No search across chats
+- Plain text messages only (no photos, videos, or rich content)
+- Chat IDs are MID strings, not human-readable — use `chat list` to discover them
+
+## Troubleshooting
+
+### `agent-line: command not found`
+
+**`agent-line` is NOT the npm package name.** The npm package is `agent-messenger`.
+
+```bash
+# If installed globally
+agent-line chat list --pretty
+
+# If not installed, use --package
+npx -y --package agent-messenger agent-line chat list --pretty
+```
+
+**NEVER run `npx agent-line`** without `--package agent-messenger`. It will fail or install a wrong package.
+
+### No credentials found
+
+If `auth status` shows no account:
+
+1. Run `agent-line auth login` to authenticate via QR code
+2. Or use `agent-line auth login --email ... --password ...` for email login
+3. Verify it worked with `agent-line auth status`
+
+### QR code not displaying
+
+If the QR code doesn't open in your browser:
+
+1. Check the terminal output for the ASCII QR code fallback
+2. The QR URL is also printed — you can open it manually
+3. Make sure you're running in an interactive terminal (TTY)
+
+### E2EE errors
+
+The CLI tries E2EE (Letter Sealing) first and falls back automatically. If you see E2EE-related warnings, messages are still sent successfully without encryption.
+
+### PIN verification timeout
+
+If the PIN expires before you confirm on your phone:
+
+1. Run `agent-line auth login` again — a new QR code and PIN will be generated
+2. Confirm the PIN on your phone within the time limit
+3. The CLI automatically completes login after confirmation
+
+## SDK Usage
+
+For programmatic access, import `LineClient` directly:
+
+```typescript
+import { LineClient } from 'agent-messenger/line'
+
+const client = await new LineClient().login()
+try {
+  const profile = await client.getProfile()
+  console.log(profile.display_name)
+
+  const chats = await client.getChats()
+  const firstChat = chats[0]
+  if (!firstChat) throw new Error('No chats available')
+
+  await client.sendMessage(firstChat.chat_id, 'Hello from SDK!')
+} finally {
+  client.close()
+}
+```
+
+## AI Agent Integration
+
+See [`skills/agent-line/`](https://github.com/devxoul/agent-messenger/tree/main/skills/agent-line) for:
+
+- Complete skill documentation
+- Common patterns for AI agent workflows
