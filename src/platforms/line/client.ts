@@ -35,14 +35,13 @@ function mapChatType(rawType: unknown): 'user' | 'group' | 'room' | 'square' {
 }
 
 function getDefaultDevice(): LineDevice {
-  return 'IOSIPAD'
+  return process.platform === 'darwin' ? 'DESKTOPMAC' : 'DESKTOPWIN'
 }
 
 function createStorage(accountId?: string): FileStorage {
   const dir = join(homedir(), '.config', 'agent-messenger', 'line-storage')
   mkdirSync(dir, { recursive: true })
-  const filename = accountId ? `${accountId}.json` : 'default.json'
-  return new FileStorage(join(dir, filename))
+  return new FileStorage(join(dir, `${accountId ?? 'default'}.json`))
 }
 
 export class LineClient {
@@ -154,7 +153,7 @@ export class LineClient {
       }
 
       const device: LineDevice = creds.device ?? getDefaultDevice()
-      const storage = createStorage(creds.account_id)
+      const storage = createStorage()
 
       this.client = await linejsLoginWithAuthToken(creds.auth_token, { device, storage })
       return this
@@ -184,17 +183,28 @@ export class LineClient {
 
   async getMessages(chatId: string, options?: { count?: number }): Promise<LineMessage[]> {
     try {
-      const chat = await this.ensureClient().getChat(chatId)
+      const client = this.ensureClient()
       const count = options?.count ?? 20
-      const messages = await chat.fetchMessages(count)
 
-      return messages.map((msg) => ({
-        message_id: msg.raw.id,
+      const serverTime = await client.base.talk.getServerTime()
+      const rawMessages = await client.base.talk.getPreviousMessagesV2WithRequest({
+        request: {
+          messageBoxId: chatId,
+          endMessageId: {
+            deliveredTime: BigInt(serverTime),
+            messageId: BigInt(0),
+          },
+          messagesCount: count,
+        },
+      })
+
+      return (rawMessages ?? []).map((msg) => ({
+        message_id: String(msg.id),
         chat_id: chatId,
-        author_id: msg.from.id,
-        text: msg.raw.text || null,
-        content_type: String(msg.raw.contentType),
-        sent_at: new Date(Number(msg.raw.createdTime)).toISOString(),
+        author_id: String(msg.from ?? ''),
+        text: msg.text || null,
+        content_type: String(msg.contentType ?? 'NONE'),
+        sent_at: new Date(Number(msg.createdTime)).toISOString(),
       }))
     } catch (error) {
       throw wrapError(error, 'get_messages_failed')
@@ -203,14 +213,20 @@ export class LineClient {
 
   async sendMessage(chatId: string, text: string): Promise<LineSendResult> {
     try {
-      const chat = await this.ensureClient().getChat(chatId)
-      const msg = await chat.sendMessage(text)
+      const client = this.ensureClient()
+      let sent;
+
+      try {
+        sent = await client.base.talk.sendMessage({ to: chatId, text, e2ee: true })
+      } catch {
+        sent = await client.base.talk.sendMessage({ to: chatId, text, e2ee: false })
+      }
 
       return {
         success: true,
         chat_id: chatId,
-        message_id: msg.raw.id,
-        sent_at: new Date(Number(msg.raw.createdTime)).toISOString(),
+        message_id: String(sent.id),
+        sent_at: new Date(Number(sent.createdTime)).toISOString(),
       }
     } catch (error) {
       throw wrapError(error, 'send_message_failed')

@@ -19,7 +19,7 @@ function isInteractiveSession(): boolean {
 }
 
 function getDefaultDevice(): LineDevice {
-  return 'IOSIPAD'
+  return process.platform === 'darwin' ? 'DESKTOPMAC' : 'DESKTOPWIN'
 }
 
 async function openQRInBrowser(url: string): Promise<void> {
@@ -183,7 +183,7 @@ export const authCommand = new Command('auth')
       .option('--email <email>', 'Email address for email/password login')
       .option('--password <password>', 'Password for email login')
       .option('--token <token>', 'Login with existing auth token directly')
-      .option('--device <type>', 'Device type (default: IOSIPAD). IOSIPAD/ANDROID are secondary (won\'t kick desktop). DESKTOPWIN/DESKTOPMAC replace desktop session.')
+      .option('--device <type>', 'Device type (default: auto-detect). Use IOSIPAD for secondary device (won\'t kick desktop but limited API).')
       .option('--pretty', 'Pretty print JSON output')
       .action(loginAction),
   )
