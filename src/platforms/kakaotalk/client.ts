@@ -239,9 +239,12 @@ export class KakaoTalkClient {
   }
 
   async getMessages(chatId: string, options?: { count?: number; from?: string }): Promise<KakaoMessage[]> {
-    return this.executeWithReconnect(async ({ session }) => {
+    return this.executeWithReconnect(async ({ session, loginResult }) => {
       try {
-        const maxLogId = undefined
+        const rawChats = (loginResult.chatDatas ?? []) as ChatData[]
+        const chat = rawChats.find((c) => String(c.c) === chatId)
+        const lastLogId = chat?.ll as { high: number; low: number } | undefined
+        const maxLogId = lastLogId ? new Long(lastLogId.low, lastLogId.high) : undefined
 
         const count = options?.count ?? 20
         const cursor = options?.from ? parseLong(options.from) : undefined
@@ -252,7 +255,7 @@ export class KakaoTalkClient {
         const seenLogIds = new Set<string>()
         let cur = startCursor
 
-        for (;;) {
+        for (let page = 0; page < MAX_PAGES; page++) {
           const response = await session.syncMessages(cid, 80, cur, maxLogId)
           const batch = (response.body.chatLogs ?? []) as Array<Record<string, unknown>>
           if (batch.length === 0) break
