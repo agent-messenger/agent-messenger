@@ -203,7 +203,8 @@ export class LineClient {
   async getChats(options?: { limit?: number }): Promise<LineChat[]> {
     try {
       const client = this.ensureClient()
-      const limit = options?.limit ?? 50
+      const raw = options?.limit ?? 50
+      const limit = Number.isFinite(raw) && raw > 0 ? raw : 50
       const seen = new Set<string>()
       const results: LineChat[] = []
 

@@ -12,7 +12,8 @@ async function listAction(options: {
   let client: LineClient | undefined
   try {
     client = await new LineClient().login()
-    const limit = options.limit ? Number.parseInt(options.limit, 10) : 50
+    const parsed = options.limit ? Number.parseInt(options.limit, 10) : 50
+    const limit = Number.isFinite(parsed) && parsed > 0 ? parsed : 50
     const chats = await client.getChats({ limit })
     console.log(formatOutput(chats, options.pretty))
   } catch (error) {
