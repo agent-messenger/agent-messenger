@@ -143,8 +143,9 @@ listener.on('disconnected', () => {
 
 await listener.start()
 
-// Stop when done
+// Stop when done:
 // listener.stop()
+// client.close()
 ```
 
 **When to use**: Building bots, automations, or real-time integrations that need instant message delivery.
