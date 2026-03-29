@@ -159,7 +159,7 @@ Output includes:
 ### Chat Commands
 
 ```bash
-# List all chat rooms (sorted by most recent activity)
+# List conversations (DMs and groups)
 agent-line chat list
 agent-line chat list --pretty
 
@@ -198,7 +198,7 @@ Each message includes:
 
 #### Fetching More Messages
 
-The CLI handles internal pagination automatically. Just increase `-n` to get more messages:
+Use the `-n` flag to control how many messages to fetch in a single request:
 
 ```bash
 # Get latest 20 messages (default)

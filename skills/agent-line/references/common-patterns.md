@@ -105,13 +105,51 @@ try {
   }, 10_000)
 } catch (error) {
   console.error(error)
+} finally {
   client.close()
 }
 ```
 
-**When to use**: Building a simple bot that reacts to messages.
+**When to use**: Quick scripts that only need to check for new messages periodically.
 
-**Limitations**: Polling-based, not real-time. Use reasonable intervals (10s+) to avoid rate limiting.
+**Limitations**: Polling-based, not real-time. Use reasonable intervals (10s+) to avoid rate limiting. For real-time events, use the LineListener (see Pattern 4b).
+
+## Pattern 4b: Real-Time Message Listening (SDK)
+
+**Use case**: React to incoming messages in real-time using the SDK
+
+```typescript
+import { LineClient } from 'agent-messenger/line'
+import { LineListener } from 'agent-messenger/line'
+
+const client = new LineClient()
+const listener = new LineListener(client)
+
+listener.on('connected', (info) => {
+  console.log(`Connected as ${info.account_id}`)
+})
+
+listener.on('message', (event) => {
+  console.log(`[${event.chat_id}] ${event.author_id}: ${event.text}`)
+})
+
+listener.on('error', (error) => {
+  console.error('Listener error:', error.message)
+})
+
+listener.on('disconnected', () => {
+  console.log('Disconnected — will auto-reconnect')
+})
+
+await listener.start()
+
+// Stop when done
+// listener.stop()
+```
+
+**When to use**: Building bots, automations, or real-time integrations that need instant message delivery.
+
+**Features**: Auto-reconnects with exponential backoff, typed events, AbortController-based clean shutdown.
 
 ## Pattern 5: Get User Profile
 
