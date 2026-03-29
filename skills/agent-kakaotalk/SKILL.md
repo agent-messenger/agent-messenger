@@ -269,7 +269,7 @@ agent-kakaotalk auth status
 
 # Remove stored credentials
 agent-kakaotalk auth logout
-agent-kakaotalk auth logout <account-id>
+agent-kakaotalk auth logout --account <account-id>
 
 # List all stored accounts
 agent-kakaotalk auth list
