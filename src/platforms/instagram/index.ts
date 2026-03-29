@@ -1,5 +1,6 @@
 export { InstagramClient } from './client'
 export { InstagramCredentialManager } from './credential-manager'
+export { InstagramListener, type InstagramListenerEventMap } from './listener'
 export {
   createAccountId,
   extractMessageText,
