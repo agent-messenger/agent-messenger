@@ -432,10 +432,54 @@ async function extractAction(options: {
   }
 }
 
-async function statusAction(options: { pretty?: boolean }): Promise<void> {
+async function listAction(options: { pretty?: boolean }): Promise<void> {
   try {
     const credManager = new CredentialManager()
-    const account = await credManager.getAccount()
+    const accounts = await credManager.listAccounts()
+    console.log(
+      formatOutput(
+        accounts.map(({ account_id, user_id, device_type, created_at, updated_at, is_current }) => ({
+          account_id,
+          user_id,
+          device_type,
+          created_at,
+          updated_at,
+          is_current,
+        })),
+        options.pretty,
+      ),
+    )
+  } catch (error) {
+    handleError(error as Error)
+  }
+}
+
+async function useAction(accountId: string, options: { pretty?: boolean }): Promise<void> {
+  try {
+    const credManager = new CredentialManager()
+    const account = await credManager.getAccount(accountId)
+    if (!account) {
+      console.log(
+        formatOutput(
+          {
+            error: `Account "${accountId}" not found. Run "agent-kakaotalk auth list" to see available accounts.`,
+          },
+          options.pretty,
+        ),
+      )
+      process.exit(1)
+    }
+    await credManager.setCurrentAccount(account.account_id)
+    console.log(formatOutput({ success: true, account_id: account.account_id }, options.pretty))
+  } catch (error) {
+    handleError(error as Error)
+  }
+}
+
+async function statusAction(options: { account?: string; pretty?: boolean }): Promise<void> {
+  try {
+    const credManager = new CredentialManager()
+    const account = await credManager.getAccount(options.account)
 
     if (!account) {
       console.log(formatOutput({ error: 'No account configured. Run "auth login" or "auth extract" first.' }, options.pretty))
@@ -456,11 +500,11 @@ async function statusAction(options: { pretty?: boolean }): Promise<void> {
   }
 }
 
-async function logoutAction(account: string | undefined, options: { pretty?: boolean }): Promise<void> {
+async function logoutAction(options: { account?: string; pretty?: boolean }): Promise<void> {
   try {
     const credManager = new CredentialManager()
     const config = await credManager.load()
-    const targetAccount = account ?? config.current_account
+    const targetAccount = options.account ?? config.current_account
 
     if (!targetAccount || !config.accounts[targetAccount]) {
       console.log(formatOutput({ error: `Account not found: ${targetAccount ?? '(none)'}` }, options.pretty))
@@ -497,15 +541,29 @@ export const authCommand = new Command('auth')
       .action(extractAction),
   )
   .addCommand(
+    new Command('list')
+      .description('List all authenticated KakaoTalk accounts')
+      .option('--pretty', 'Pretty print JSON output')
+      .action(listAction),
+  )
+  .addCommand(
+    new Command('use')
+      .description('Switch the active KakaoTalk account')
+      .argument('<account>', 'Account ID to activate')
+      .option('--pretty', 'Pretty print JSON output')
+      .action(useAction),
+  )
+  .addCommand(
     new Command('status')
       .description('Show authentication status')
+      .option('--account <id>', 'Use a specific KakaoTalk account')
       .option('--pretty', 'Pretty print JSON output')
       .action(statusAction),
   )
   .addCommand(
     new Command('logout')
       .description('Remove stored credentials')
-      .argument('[account]', 'Account ID')
+      .option('--account <id>', 'Account to remove (default: current)')
       .option('--pretty', 'Pretty print JSON output')
       .action(logoutAction),
   )

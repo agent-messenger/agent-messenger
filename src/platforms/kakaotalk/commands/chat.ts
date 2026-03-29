@@ -3,25 +3,21 @@ import { Command } from 'commander'
 import { handleError } from '@/shared/utils/error-handler'
 import { formatOutput } from '@/shared/utils/output'
 
-import { KakaoTalkClient } from '../client'
+import { withKakaoClient } from './shared'
 
 async function listAction(options: {
+  account?: string
   all?: boolean
   search?: string
   pretty?: boolean
 }): Promise<void> {
-  let client: KakaoTalkClient | undefined
   try {
-    client = await new KakaoTalkClient().login()
-    const chats = await client.getChats({
-      all: options.all,
-      search: options.search,
-    })
+    const chats = await withKakaoClient(options, (client) =>
+      client.getChats({ all: options.all, search: options.search }),
+    )
     console.log(formatOutput(chats, options.pretty))
   } catch (error) {
     handleError(error as Error)
-  } finally {
-    client?.close()
   }
 }
 
@@ -30,6 +26,7 @@ export const chatCommand = new Command('chat')
   .addCommand(
     new Command('list')
       .description('List chat rooms')
+      .option('--account <id>', 'Use a specific KakaoTalk account')
       .option('--all', 'Fetch all chats (paginate beyond login snapshot)')
       .option('--search <name>', 'Search for a chat by display name')
       .option('--pretty', 'Pretty print JSON output')
