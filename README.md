@@ -244,7 +244,7 @@ await listener.start()
 | File uploads               |  ✅   |   ✅    |  ✅   |    —     |    —     |   —   |     —     |    —      |         —           |
 | File downloads             |  ✅   |    —    |   —   |    —     |    —     |   —   |     —     |    —      |         —           |
 | Workspace snapshots        |  ✅   |   ✅    |  ✅   |    —     |    —     |   —   |     —     |    —      |         ✅          |
-| Multi-workspace / account  |  ✅   |   ✅    |  ✅   |    ✅     |    ✅     |  ✅   |    ✅     |    —      |         ✅          |
+| Multi-workspace / account  |  ✅   |   ✅    |  ✅   |    ✅     |    ✅     |  ✅   |    ✅     |    ✅     |         ✅          |
 | Activity feed              |  ✅   |    —    |   —   |    —     |    —     |   —   |     —     |    —      |         —           |
 | Drafts                     |  ✅   |    —    |   —   |    —     |    —     |   —   |     —     |    —      |         —           |
 | Saved items                |  ✅   |    —    |   —   |    —     |    —     |   —   |     —     |    —      |         —           |

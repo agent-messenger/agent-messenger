@@ -152,6 +152,35 @@ agent-kakaotalk auth login --device-type pc
 agent-kakaotalk auth login --device-type tablet --force
 ```
 
+## Multi-Account
+
+KakaoTalk supports multiple accounts. Each login or extraction stores credentials separately, keyed by user ID.
+
+### Listing Accounts
+
+```bash
+agent-kakaotalk auth list
+agent-kakaotalk auth list --pretty
+```
+
+### Switching Accounts
+
+```bash
+agent-kakaotalk auth use <account-id>
+```
+
+### Using a Specific Account
+
+All data commands accept `--account <id>` to use a specific account without switching the default:
+
+```bash
+agent-kakaotalk chat list --account 1234567890
+agent-kakaotalk message list <chat-id> --account 1234567890
+agent-kakaotalk message send <chat-id> "Hello" --account 1234567890
+```
+
+Without `--account`, commands use the current (default) account.
+
 ## Memory
 
 The agent maintains a `~/.config/agent-messenger/MEMORY.md` file as persistent memory across sessions. This is agent-managed — the CLI does not read or write this file. Use the `Read` and `Write` tools to manage your memory file.
@@ -241,6 +270,19 @@ agent-kakaotalk auth status
 # Remove stored credentials
 agent-kakaotalk auth logout
 agent-kakaotalk auth logout <account-id>
+
+# List all stored accounts
+agent-kakaotalk auth list
+agent-kakaotalk auth list --pretty
+
+# Switch the current account
+agent-kakaotalk auth use <account-id>
+
+# Check status of specific account
+agent-kakaotalk auth status --account <account-id>
+
+# Remove specific account
+agent-kakaotalk auth logout --account <account-id>
 ```
 
 ### Chat Commands
@@ -249,6 +291,8 @@ agent-kakaotalk auth logout <account-id>
 # List all chat rooms (sorted by most recent activity)
 agent-kakaotalk chat list
 agent-kakaotalk chat list --pretty
+agent-kakaotalk chat list --account <account-id>
+agent-kakaotalk chat list --account <account-id> --pretty
 ```
 
 Output includes:
@@ -271,6 +315,10 @@ agent-kakaotalk message list <chat-id> --pretty
 # Send a text message
 agent-kakaotalk message send <chat-id> "Hello world"
 agent-kakaotalk message send <chat-id> "Hello world" --pretty
+
+# Use a specific account
+agent-kakaotalk message list <chat-id> --account <account-id>
+agent-kakaotalk message send <chat-id> "Hello" --account <account-id>
 ```
 
 #### Message List Output
@@ -331,9 +379,10 @@ agent-kakaotalk chat list --pretty
 
 ## Global Options
 
-| Option     | Description                           |
-| ---------- | ------------------------------------- |
-| `--pretty` | Human-readable output instead of JSON |
+| Option      | Description                                                  |
+| ----------- | ------------------------------------------------------------ |
+| `--account` | Use a specific KakaoTalk account (default: current account)  |
+| `--pretty`  | Human-readable output instead of JSON                        |
 
 ## Common Patterns
 
@@ -450,7 +499,6 @@ See the [KakaoTalk SDK documentation](https://agent-messenger.dev/docs/sdk/kakao
 - No message editing or deletion
 - No open chat (오픈채팅) browsing or joining
 - No search across chats
-- No multi-account switching (single account at a time)
 - Plain text messages only (no photos, videos, or rich content)
 - Chat IDs are numeric and not human-readable — use `chat list` to discover them
 
