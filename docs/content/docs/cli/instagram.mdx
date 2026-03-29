@@ -1,0 +1,211 @@
+---
+title: Instagram
+description: Complete reference for the agent-instagram CLI.
+---
+
+> **Tip**: After `npm install -g agent-messenger`, `agent-instagram` is available directly. For one-off execution without a global install you can use `npm exec --package agent-messenger agent-instagram ...`, `pnpm dlx --package agent-messenger agent-instagram ...`, `yarn dlx agent-messenger agent-instagram ...`, or `bunx --package agent-messenger agent-instagram ...`.
+
+## Requirements
+
+Instagram integration uses a private mobile API (not the official Graph API). No new npm dependencies are required:
+
+- Authenticates with **username and password**, with support for 2FA and login challenges.
+- Each command makes HTTP requests on demand. No persistent connection or background process.
+- Multiple Instagram accounts can be linked simultaneously.
+
+## Quick Start
+
+```bash
+# Log in with your Instagram credentials
+agent-instagram auth login
+
+# List DM threads
+agent-instagram chat list
+
+# Send a message
+agent-instagram message send 12345678901 "Hello from agent-instagram"
+```
+
+## Authentication
+
+### Username/Password Login
+
+The CLI authenticates as a mobile client using your Instagram username and password. Your existing app sessions are never affected.
+
+**Interactive mode** (TTY): prompts for credentials automatically.
+
+```bash
+agent-instagram auth login
+```
+
+**Non-interactive mode** (CI / agents): pass credentials as flags.
+
+```bash
+agent-instagram auth login --username your_username --password your_password
+```
+
+### Two-Factor Authentication
+
+If 2FA is enabled, the CLI handles it automatically in interactive mode. In non-interactive mode, use a separate verify step:
+
+```bash
+agent-instagram auth verify --username your_username --code 123456 --identifier <two_factor_identifier>
+```
+
+The `--identifier` value comes from the login response's `two_factor_identifier` field.
+
+### Challenge Required
+
+Instagram may require a challenge for logins from new devices or locations. The CLI resolves challenges interactively when possible. In non-interactive mode:
+
+```bash
+agent-instagram auth challenge --username your_username --method email
+agent-instagram auth challenge --username your_username --code 123456
+```
+
+### Debug Mode
+
+Use `--debug` on login to see raw API responses when troubleshooting:
+
+```bash
+agent-instagram auth login --username your_username --password your_password --debug
+```
+
+### Account Management
+
+```bash
+# Check current auth state
+agent-instagram auth status
+agent-instagram auth status --account <id>
+
+# List linked accounts
+agent-instagram auth list
+
+# Switch active account
+agent-instagram auth use <id>
+
+# Remove stored session
+agent-instagram auth logout
+agent-instagram auth logout --account <id>
+```
+
+## Commands
+
+### Chat Commands
+
+```bash
+# List DM threads (sorted by most recent activity)
+agent-instagram chat list
+agent-instagram chat list --limit 50
+agent-instagram chat list --account <id>
+
+# Search threads by name
+agent-instagram chat search "project"
+agent-instagram chat search "project" --limit 10
+agent-instagram chat search "project" --account <id>
+```
+
+### Message Commands
+
+```bash
+# List messages in a thread
+agent-instagram message list <thread> --limit 20
+agent-instagram message list 12345678901 --limit 50
+
+# Send a text message by thread ID
+agent-instagram message send <thread> <text>
+agent-instagram message send 12345678901 "Hello!"
+
+# Send a text message by username (resolves the user first)
+agent-instagram message send-to <username> <text>
+agent-instagram message send-to alice "Hello!"
+
+# Search messages by text content
+agent-instagram message search <query>
+agent-instagram message search "meeting notes" --thread 12345678901
+agent-instagram message search "hello" --limit 10
+
+# Search for users by name or username
+agent-instagram message search-users <query>
+agent-instagram message search-users "alice"
+```
+
+Thread IDs are numeric strings returned by `chat list` (e.g. `340282366841710300949128138443434234567`).
+
+## Global Options
+
+| Option           | Description                                |
+| ---------------- | ------------------------------------------ |
+| `--pretty`       | Human-readable output instead of JSON      |
+| `--account <id>` | Use a specific account for this command     |
+
+## Storage
+
+- Credentials stored in `~/.config/agent-messenger/instagram-credentials.json`
+- Session data stored in `~/.config/agent-messenger/instagram/<account-id>/`
+
+## Limitations
+
+- **HTTP on demand**: Each command makes HTTP requests and returns. No persistent daemon or WebSocket connection.
+- **Ban risk**: Instagram monitors for automated behavior. Avoid high-volume messaging, rapid-fire sends, or bulk operations. Space out commands when sending multiple messages.
+- **No file uploads or downloads**
+- **No voice or video calls**
+- **No Stories, Reels, or Feed access**
+- **Private API**: This uses Instagram's private mobile API, not the official Graph API. Behavior may change without notice.
+
+## Troubleshooting
+
+### `agent-instagram: command not found`
+
+**`agent-instagram` is NOT the npm package name.** The npm package is `agent-messenger`.
+
+```bash
+# If installed globally
+agent-instagram chat list --pretty
+
+# If not installed, use --package
+npx -y --package agent-messenger agent-instagram chat list --pretty
+```
+
+**NEVER run `npx agent-instagram`** without `--package agent-messenger`. It will fail or install a wrong package.
+
+### Login fails with "challenge_required"
+
+Instagram flagged the login as suspicious. Complete the challenge:
+
+```bash
+# Check what challenge is pending
+agent-instagram auth challenge --status
+
+# Submit the code sent to your email or phone
+agent-instagram auth challenge --code 123456
+```
+
+If challenges keep appearing, try logging in from the Instagram app first to "warm up" the account, then retry the CLI.
+
+### Login fails with "two_factor_required"
+
+Your account has 2FA enabled. Complete the verification:
+
+```bash
+agent-instagram auth verify --code 123456
+```
+
+### Session expired
+
+Instagram may invalidate sessions after extended inactivity or password changes. If commands start failing:
+
+```bash
+# Check if still authenticated
+agent-instagram auth status
+
+# Re-login if needed
+agent-instagram auth login
+```
+
+## AI Agent Integration
+
+See [`skills/agent-instagram/`](https://github.com/devxoul/agent-messenger/tree/main/skills/agent-instagram) for:
+
+- Complete skill documentation
+- Common patterns for AI agent workflows
