@@ -1,6 +1,6 @@
 import { z } from 'zod'
 
-export type LineDevice = 'DESKTOPWIN' | 'DESKTOPMAC' | 'ANDROID' | 'IOS' | 'IOSIPAD'
+export type LineDevice = 'DESKTOPWIN' | 'DESKTOPMAC' | 'ANDROID' | 'ANDROIDSECONDARY' | 'IOS' | 'IOSIPAD'
 
 export interface LineAccountCredentials {
   account_id: string
@@ -81,7 +81,7 @@ export const LineAccountCredentialsSchema = z.object({
   account_id: z.string(),
   auth_token: z.string(),
   certificate: z.string().optional(),
-  device: z.enum(['DESKTOPWIN', 'DESKTOPMAC', 'ANDROID', 'IOS', 'IOSIPAD']),
+  device: z.enum(['DESKTOPWIN', 'DESKTOPMAC', 'ANDROID', 'ANDROIDSECONDARY', 'IOS', 'IOSIPAD']),
   display_name: z.string().optional(),
   created_at: z.string(),
   updated_at: z.string(),

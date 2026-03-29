@@ -37,7 +37,7 @@ function mapChatType(rawType: unknown): 'user' | 'group' | 'room' | 'square' {
 }
 
 function getDefaultDevice(): LineDevice {
-  return process.platform === 'darwin' ? 'DESKTOPMAC' : 'DESKTOPWIN'
+  return 'ANDROIDSECONDARY'
 }
 
 function createStorage(accountId?: string): FileStorage {
