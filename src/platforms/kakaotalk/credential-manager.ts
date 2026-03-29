@@ -74,6 +74,14 @@ export class KakaoCredentialManager {
     await this.save(config)
   }
 
+  async listAccounts(): Promise<Array<KakaoAccountCredentials & { is_current: boolean }>> {
+    const config = await this.load()
+    return Object.values(config.accounts).map((account) => ({
+      ...account,
+      is_current: account.account_id === config.current_account,
+    }))
+  }
+
   async setCurrentAccount(id: string): Promise<void> {
     const config = await this.load()
     config.current_account = id
