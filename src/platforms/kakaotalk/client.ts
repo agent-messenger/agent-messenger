@@ -160,10 +160,14 @@ export class KakaoTalkClient {
     let state = await this.ensureSession()
     try {
       return await operation(state)
-    } catch {
-      // Session likely dead (desktop app reclaimed, network drop, etc.) — reconnect once
-      try { this.state?.session.close() } catch {}
-      this.state = null
+    } catch (error) {
+      // Only retry when the session is dead (desktop app eviction, network drop, etc.).
+      // The onClose handler nullifies this.state when the connection drops, so a non-null
+      // state means the session is still alive and this is an operation-level error that
+      // should not be retried (e.g. could duplicate sendMessage side effects).
+      if (this.state !== null) throw error
+
+      try { state.session.close() } catch {}
       this.initPromise = null
       state = await this.ensureSession()
       return operation(state)
