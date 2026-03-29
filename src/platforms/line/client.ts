@@ -318,8 +318,13 @@ export class LineClient {
 
       try {
         sent = await client.base.talk.sendMessage({ to: chatId, text, e2ee: true })
-      } catch {
-        sent = await client.base.talk.sendMessage({ to: chatId, text, e2ee: false })
+      } catch (e2eeError) {
+        const msg = e2eeError instanceof Error ? e2eeError.message : String(e2eeError)
+        if (msg.includes('E2EE') || msg.includes('e2ee') || msg.includes('KeyNotFound') || msg.includes('saveE2EE')) {
+          sent = await client.base.talk.sendMessage({ to: chatId, text, e2ee: false })
+        } else {
+          throw e2eeError
+        }
       }
 
       return {

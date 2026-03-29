@@ -70,9 +70,13 @@ export class LineListener {
 
       internalClient.on('message', (msg: any) => {
         try {
+          const toType = msg.raw.toType
+          const isGroupOrRoom = toType === 'GROUP' || toType === 'ROOM' || toType === 0 || toType === 1
+          const chatId = isGroupOrRoom ? msg.to.id : (msg.isMyMessage ? msg.to.id : msg.from.id)
+
           const event: LinePushMessageEvent = {
             type: 'message',
-            chat_id: msg.isMyMessage ? msg.to.id : msg.from.id,
+            chat_id: chatId,
             message_id: String(msg.raw.id),
             author_id: msg.from.id,
             text: msg.text ?? null,
@@ -81,7 +85,9 @@ export class LineListener {
           }
           this.emitter.emit('message', event)
           this.emitter.emit('line_event', { ...event })
-        } catch {}
+        } catch (error) {
+          this.emitter.emit('error', error instanceof Error ? error : new Error(String(error)))
+        }
       })
 
       internalClient.on('event', (op: any) => {

@@ -63,18 +63,21 @@ async function loginAction(options: {
 
     if (options.token) {
       const now = new Date().toISOString()
-      const credentials = {
-        account_id: 'token-login',
+      const tempCredentials = {
+        account_id: 'pending',
         auth_token: options.token,
         device,
         created_at: now,
         updated_at: now,
       }
-      await client.login(credentials)
+      await client.login(tempCredentials)
+      const profile = await client.getProfile()
+      const credentials = { ...tempCredentials, account_id: profile.mid, display_name: profile.display_name }
       await credManager.setAccount(credentials)
       console.log(formatOutput({
         authenticated: true,
-        account_id: credentials.account_id,
+        account_id: profile.mid,
+        display_name: profile.display_name,
         device,
       }, options.pretty))
     } else if (options.email && options.password) {
