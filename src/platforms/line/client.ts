@@ -200,20 +200,82 @@ export class LineClient {
     }
   }
 
-  async getChats(): Promise<LineChat[]> {
+  async getChats(options?: { limit?: number }): Promise<LineChat[]> {
     try {
-      const chats = await this.ensureClient().fetchJoinedChats()
-      return chats.map((chat) => {
-        const memberMids = chat.raw.extra?.groupExtra?.memberMids
-        const memberCount = memberMids ? Object.keys(memberMids).length : undefined
+      const client = this.ensureClient()
+      const limit = options?.limit ?? 50
+      const seen = new Set<string>()
+      const results: LineChat[] = []
 
-        return {
+      const [boxes, joinedChats] = await Promise.all([
+        client.base.talk.getMessageBoxes({
+          messageBoxListRequest: {
+            messageBoxCountLimit: limit,
+            lastMessagesPerMessageBoxCount: 0,
+          },
+          syncReason: 'INTERNAL',
+        }),
+        client.fetchJoinedChats().catch(() => []),
+      ])
+
+      for (const chat of joinedChats) {
+        if (seen.has(chat.mid)) continue
+        seen.add(chat.mid)
+        const memberMids = chat.raw.extra?.groupExtra?.memberMids
+        results.push({
           chat_id: chat.mid,
           type: mapChatType(chat.raw.type),
           display_name: chat.name,
-          member_count: memberCount,
-        }
-      })
+          member_count: memberMids ? Object.keys(memberMids).length : undefined,
+        })
+      }
+
+      const messageBoxes = boxes?.messageBoxes ?? []
+      const userMids = messageBoxes
+        .filter((box) => box.midType === 'USER' && !seen.has(box.id))
+        .map((box) => box.id)
+      const groupMids = messageBoxes
+        .filter((box) => box.midType !== 'USER' && !seen.has(box.id))
+        .map((box) => box.id)
+
+      const nameMap = new Map<string, { name: string; type: 'user' | 'group' | 'room' | 'square'; memberCount?: number }>()
+
+      if (userMids.length > 0) {
+        try {
+          const contacts = await client.base.talk.getContacts({ mids: userMids })
+          for (const c of contacts ?? []) {
+            nameMap.set(c.mid, { name: c.displayName, type: 'user' })
+          }
+        } catch {}
+      }
+
+      if (groupMids.length > 0) {
+        try {
+          const { chats } = await client.base.talk.getChats({ chatMids: groupMids })
+          for (const c of chats ?? []) {
+            const memberMids = c.extra?.groupExtra?.memberMids
+            nameMap.set(c.chatMid, {
+              name: c.chatName ?? c.chatMid,
+              type: mapChatType(c.type),
+              memberCount: memberMids ? Object.keys(memberMids).length : undefined,
+            })
+          }
+        } catch {}
+      }
+
+      for (const box of messageBoxes) {
+        if (seen.has(box.id)) continue
+        seen.add(box.id)
+        const info = nameMap.get(box.id)
+        results.push({
+          chat_id: box.id,
+          type: info?.type ?? (box.midType === 'USER' ? 'user' as const : 'group' as const),
+          display_name: info?.name ?? box.id,
+          member_count: info?.memberCount,
+        })
+      }
+
+      return results
     } catch (error) {
       throw wrapError(error, 'get_chats_failed')
     }
