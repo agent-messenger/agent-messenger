@@ -1,0 +1,367 @@
+---
+title: Instagram
+description: TypeScript SDK reference for Instagram — client, real-time events, and types.
+---
+
+## Installation
+
+```bash
+npm install agent-messenger
+```
+
+```typescript
+import {
+  InstagramClient,
+  InstagramListener,
+  InstagramError,
+  InstagramCredentialManager,
+} from 'agent-messenger/instagram'
+```
+
+## InstagramClient
+
+The main client for interacting with Instagram DMs via the private mobile API. Authenticates as a mobile device using username and password — no Graph API or OAuth required.
+
+```typescript
+import { InstagramClient } from 'agent-messenger/instagram'
+
+const client = await new InstagramClient().login({ username: 'alice', password: 's3cret' })
+```
+
+Or use stored credentials from a previous login:
+
+```typescript
+import { InstagramClient } from 'agent-messenger/instagram'
+
+const client = await new InstagramClient().login()
+```
+
+### Authentication
+
+```typescript
+// Username/password login
+const result = await client.authenticate('alice', 's3cret')
+// → { userId: string, requiresTwoFactor?: boolean, twoFactorInfo?: object, challengeRequired?: boolean, challengePath?: string }
+
+// Two-factor authentication
+const tfResult = await client.twoFactorLogin('alice', '123456', twoFactorIdentifier)
+// → { userId: string }
+
+// Challenge flow (Instagram security verification)
+const sendResult = await client.challengeSendCode(challengePath, 'email')
+// → { contactPoint: string, stepName: string }
+
+const verifyResult = await client.challengeSubmitCode(challengePath, '123456')
+// → { userId: string }
+```
+
+### Chats
+
+```typescript
+// List DM threads (sorted by most recent activity)
+const chats = await client.listChats()
+const chats = await client.listChats(50) // custom limit
+// → InstagramChatSummary[]
+
+// Search threads by name
+const results = await client.searchChats('project')
+const results = await client.searchChats('project', 10) // custom limit
+// → InstagramChatSummary[]
+```
+
+### Messages
+
+```typescript
+// Get messages from a thread (returns chronological order)
+const messages = await client.getMessages('340282366841710300...')
+const messages = await client.getMessages('340282366841710300...', 50) // custom limit
+// → InstagramMessageSummary[]
+
+// Send a text message to a thread
+const msg = await client.sendMessage('340282366841710300...', 'Hello!')
+// → InstagramMessageSummary
+
+// Send a text message to a user by their pk (user ID)
+const msg = await client.sendMessageToUser('12345678', 'Hey there!')
+// → InstagramMessageSummary
+
+// Search messages by text content
+const results = await client.searchMessages('meeting notes')
+const results = await client.searchMessages('hello', { threadId: '340282366841710300...', limit: 10 })
+// → InstagramMessageSummary[]
+```
+
+### Users
+
+```typescript
+// Search Instagram users by username
+const users = await client.searchUsers('alice')
+// → Array<{ pk: string, username: string, fullName: string }>
+```
+
+### Session
+
+```typescript
+// Get the logged-in user's ID
+const userId = client.getUserId()
+// → string | null
+
+// Get pending challenge path (if any)
+const path = client.getChallengePath()
+// → string | undefined
+
+// Load a session from a specific file
+await client.loadSession('/path/to/session.json')
+
+// Set a custom session path
+client.setSessionPath('/path/to/session.json')
+
+// Enable debug logging
+client.setDebugLog((msg) => console.error(`[debug] ${msg}`))
+```
+
+## Real-Time Events
+
+`InstagramListener` polls the Instagram inbox for new messages at a configurable interval.
+
+```typescript
+import { InstagramClient, InstagramListener } from 'agent-messenger/instagram'
+
+const client = await new InstagramClient().login()
+const listener = new InstagramListener(client, { pollInterval: 5000 })
+
+listener.on('message', (msg) => {
+  console.log(`[${msg.thread_id}] ${msg.from}: ${msg.text}`)
+})
+
+listener.on('connected', (info) => {
+  console.log(`Listening as ${info.userId}`)
+})
+
+listener.on('error', (err) => console.error(err))
+listener.on('disconnected', () => console.log('Stopped'))
+
+await listener.start()
+// listener.stop() to disconnect
+```
+
+### Events
+
+| Event | Payload | Description |
+|-------|---------|-------------|
+| `message` | `InstagramMessageSummary` | New message received |
+| `connected` | `{ userId: string }` | Initial poll completed, listener active |
+| `disconnected` | — | Listener stopped |
+| `error` | `Error` | Network or API error |
+
+The listener seeds its seen-message set on startup, so it only emits `message` events for messages that arrive after `start()`.
+
+## InstagramCredentialManager
+
+Manages Instagram credentials stored at `~/.config/agent-messenger/instagram-credentials.json`. Session files are stored per-account under `~/.config/agent-messenger/instagram/<account-id>/`. Files are written with `0o600` permissions.
+
+```typescript
+import { InstagramCredentialManager } from 'agent-messenger/instagram'
+
+const manager = new InstagramCredentialManager()
+```
+
+```typescript
+// Load full config from disk (returns defaults if file doesn't exist)
+const config = await manager.loadConfig()
+// → InstagramConfig { current, accounts }
+
+// Save full config to disk
+await manager.saveConfig(config)
+
+// Get the current account
+const account = await manager.getAccount()
+// → InstagramAccount | null
+
+// Get a specific account by ID
+const specific = await manager.getAccount('alice')
+// → InstagramAccount | null
+
+// Store account credentials
+await manager.setAccount(account)
+
+// List all accounts (includes is_current flag)
+const accounts = await manager.listAccounts()
+// → Array<InstagramAccount & { is_current: boolean }>
+
+// Switch the current account
+await manager.setCurrent('alice')
+// → boolean (true if found)
+
+// Remove an account and its session data
+await manager.removeAccount('alice')
+// → boolean (true if found)
+
+// Clear all credentials and session data
+await manager.clearCredentials()
+
+// Get paths for an account
+const paths = manager.getAccountPaths('alice')
+// → { account_dir: string, session_path: string }
+
+// Ensure account directories exist
+const paths = await manager.ensureAccountPaths('alice')
+// → { account_dir: string, session_path: string }
+```
+
+## Types
+
+```typescript
+import type {
+  InstagramAccount,
+  InstagramAccountPaths,
+  InstagramChatSummary,
+  InstagramConfig,
+  InstagramMessageSummary,
+  InstagramSessionState,
+  InstagramListenerEventMap,
+} from 'agent-messenger/instagram'
+```
+
+### Key Types
+
+```typescript
+interface InstagramChatSummary {
+  id: string             // Thread ID
+  name: string           // Thread title or participant names
+  type: 'private' | 'group'
+  is_group: boolean
+  participant_count: number
+  unread_count: number
+  last_message?: InstagramMessageSummary
+}
+
+interface InstagramMessageSummary {
+  id: string             // Message item ID
+  thread_id: string
+  from: string           // User pk (numeric ID)
+  from_name?: string
+  timestamp: string      // ISO 8601
+  is_outgoing: boolean
+  type: string           // 'text', 'media', 'reel_share', 'link', 'like', etc.
+  text?: string
+  media_url?: string
+}
+```
+
+### Utility Functions
+
+```typescript
+import {
+  createAccountId,      // Normalize a username to an account ID
+  getMessageType,       // Extract message type from API item
+  extractMessageText,   // Extract text from any message type
+  extractMediaUrl,      // Extract media URL from any message type
+} from 'agent-messenger/instagram'
+```
+
+## Examples
+
+### DM Inbox Summary
+
+List all DM threads and show unread counts.
+
+```typescript
+import { InstagramClient } from 'agent-messenger/instagram'
+
+const client = await new InstagramClient().login()
+
+const chats = await client.listChats(50)
+const unread = chats.filter(c => c.unread_count > 0)
+
+console.log(`${unread.length} threads with unread messages:`)
+for (const chat of unread) {
+  console.log(`  ${chat.name} (${chat.type}) — ${chat.unread_count} unread`)
+  if (chat.last_message?.text) {
+    console.log(`    Last: ${chat.last_message.text.slice(0, 80)}`)
+  }
+}
+```
+
+### Send a DM by Username
+
+Look up a user and send them a direct message.
+
+```typescript
+import { InstagramClient } from 'agent-messenger/instagram'
+
+const client = await new InstagramClient().login()
+
+// Find the user
+const users = await client.searchUsers('alice_smith')
+const alice = users.find(u => u.username === 'alice_smith')
+
+if (alice) {
+  const msg = await client.sendMessageToUser(alice.pk, 'Hey! Wanted to follow up on our chat.')
+  console.log(`Sent to thread ${msg.thread_id}`)
+}
+```
+
+### Message Monitor
+
+Watch for new DMs using the real-time listener.
+
+```typescript
+import { InstagramClient, InstagramListener } from 'agent-messenger/instagram'
+
+const client = await new InstagramClient().login()
+const listener = new InstagramListener(client, { pollInterval: 10_000 })
+
+listener.on('message', (msg) => {
+  if (msg.is_outgoing) return
+  console.log(`New DM from ${msg.from}: ${msg.text ?? `[${msg.type}]`}`)
+})
+
+listener.on('error', (err) => {
+  console.error('Listener error:', err.message)
+})
+
+await listener.start()
+// Process keeps running until listener.stop() is called
+```
+
+### Search Across Threads
+
+Find messages mentioning a keyword across all conversations.
+
+```typescript
+import { InstagramClient } from 'agent-messenger/instagram'
+
+const client = await new InstagramClient().login()
+
+const results = await client.searchMessages('meeting tomorrow', { limit: 10 })
+
+for (const msg of results) {
+  console.log(`[${msg.thread_id}] ${msg.from}: ${msg.text}`)
+  console.log(`  ${msg.timestamp}`)
+}
+```
+
+### Multi-Account
+
+Manage multiple Instagram accounts and switch between them.
+
+```typescript
+import { InstagramClient, InstagramCredentialManager } from 'agent-messenger/instagram'
+
+const manager = new InstagramCredentialManager()
+
+// List all linked accounts
+const accounts = await manager.listAccounts()
+for (const acc of accounts) {
+  console.log(`${acc.username} ${acc.is_current ? '(active)' : ''}`)
+}
+
+// Switch to a specific account
+await manager.setCurrent('work-account')
+
+// Use the new active account
+const client = await new InstagramClient(manager).login()
+const chats = await client.listChats()
+console.log(`${chats.length} threads in work account`)
+```
