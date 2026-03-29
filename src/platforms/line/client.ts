@@ -183,8 +183,7 @@ export class LineClient {
   async getFriends(): Promise<LineFriend[]> {
     try {
       const client = this.ensureClient()
-      const response = await client.base.relation.getUserFriendIds({})
-      const friendMids = response?.userFriendMids
+      const friendMids = await client.base.talk.getAllContactIds()
       if (!friendMids?.length) return []
 
       const contacts = await client.base.talk.getContacts({ mids: friendMids })
