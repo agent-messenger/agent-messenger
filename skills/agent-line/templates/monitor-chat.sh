@@ -13,6 +13,7 @@ fi
 
 CHAT_ID="$1"
 INTERVAL="${2:-10}"
+MESSAGE_WINDOW="${AGENT_LINE_MESSAGE_WINDOW:-100}"
 LAST_MESSAGE_ID=""
 
 if ! command -v agent-line >/dev/null 2>&1; then
@@ -33,10 +34,10 @@ if echo "$AUTH_STATUS" | jq -e '.error' >/dev/null 2>&1; then
   exit 1
 fi
 
-echo "Monitoring chat $CHAT_ID every ${INTERVAL}s..."
+echo "Monitoring chat $CHAT_ID every ${INTERVAL}s using a ${MESSAGE_WINDOW}-message window..."
 
 while true; do
-  MESSAGES=$(agent-line message list "$CHAT_ID" -n 5 2>/dev/null || true)
+  MESSAGES=$(agent-line message list "$CHAT_ID" -n "$MESSAGE_WINDOW" 2>/dev/null || true)
 
   if ! echo "$MESSAGES" | jq -e 'type == "array"' >/dev/null 2>&1; then
     echo "Failed to fetch messages"
@@ -59,10 +60,15 @@ while true; do
   if [ "$LATEST_ID" != "$LAST_MESSAGE_ID" ]; then
     NEW_MESSAGES=$(echo "$MESSAGES" | jq --arg last "$LAST_MESSAGE_ID" '
       (map(.message_id) | index($last)) as $index
-      | if $index == null then . else .[$index + 1:] end
+      | if $index == null then [] else .[$index + 1:] end
     ')
 
-    echo "$NEW_MESSAGES" | jq -r '.[] | "[\(.sent_at)] \(.author_id): \(.text // "[non-text]")"'
+    if [ "$(echo "$NEW_MESSAGES" | jq 'length')" -eq 0 ]; then
+      echo "Warning: skipped messages fell outside the ${MESSAGE_WINDOW}-message polling window" >&2
+    else
+      echo "$NEW_MESSAGES" | jq -r '.[] | "[\(.sent_at)] \(.author_id): \(.text // "[non-text]")"'
+    fi
+
     LAST_MESSAGE_ID="$LATEST_ID"
   fi
 

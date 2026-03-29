@@ -32,7 +32,7 @@ if echo "$AUTH_STATUS" | jq -e '.error' >/dev/null 2>&1; then
   exit 1
 fi
 
-MESSAGES=$(agent-line message list "$CHAT_ID" -n "$COUNT")
+MESSAGES=$(agent-line message list "$CHAT_ID" -n "$COUNT" 2>/dev/null || true)
 
 if ! echo "$MESSAGES" | jq -e 'type == "array"' >/dev/null 2>&1; then
   echo "Failed to fetch messages"
