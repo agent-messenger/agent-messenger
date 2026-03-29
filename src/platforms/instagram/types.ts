@@ -57,6 +57,7 @@ export interface InstagramMessageSummary {
   is_outgoing: boolean
   type: string
   text?: string
+  media_url?: string
 }
 
 export interface InstagramSessionState {
@@ -115,6 +116,38 @@ export function extractMessageText(item: Record<string, unknown>): string | unde
 
   const actionLog = item['action_log'] as Record<string, unknown> | undefined
   if (actionLog?.['description'] != null) return actionLog['description'] as string
+
+  return undefined
+}
+
+function findImageUrl(candidates: unknown): string | undefined {
+  if (!Array.isArray(candidates) || candidates.length === 0) return undefined
+  const best = candidates[0] as Record<string, unknown> | undefined
+  return (best?.['url'] as string) ?? undefined
+}
+
+export function extractMediaUrl(item: Record<string, unknown>): string | undefined {
+  const media = item['media'] as Record<string, unknown> | undefined
+  if (media) {
+    const images = media['image_versions2'] as Record<string, unknown> | undefined
+    const url = findImageUrl(images?.['candidates'])
+    if (url) return url
+    const videoVersions = media['video_versions'] as unknown[] | undefined
+    if (videoVersions?.[0]) return ((videoVersions[0] as Record<string, unknown>)['url'] as string) ?? undefined
+  }
+
+  const mediaShare = item['media_share'] as Record<string, unknown> | undefined
+  if (mediaShare) {
+    const images = mediaShare['image_versions2'] as Record<string, unknown> | undefined
+    return findImageUrl(images?.['candidates'])
+  }
+
+  const visualMedia = item['visual_media'] as Record<string, unknown> | undefined
+  if (visualMedia) {
+    const innerMedia = visualMedia['media'] as Record<string, unknown> | undefined
+    const images = innerMedia?.['image_versions2'] as Record<string, unknown> | undefined
+    return findImageUrl(images?.['candidates'])
+  }
 
   return undefined
 }

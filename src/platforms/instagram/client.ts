@@ -4,6 +4,7 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { InstagramCredentialManager } from './credential-manager'
 import {
   InstagramError,
+  extractMediaUrl,
   extractMessageText,
   getMessageType,
   type InstagramChatSummary,
@@ -642,6 +643,7 @@ export class InstagramClient {
       is_outgoing: userId === this.userId,
       type: getMessageType(item),
       text: extractMessageText(item),
+      media_url: extractMediaUrl(item),
     }
   }
 }

@@ -3,6 +3,7 @@ export { InstagramCredentialManager } from './credential-manager'
 export { InstagramListener, type InstagramListenerEventMap } from './listener'
 export {
   createAccountId,
+  extractMediaUrl,
   extractMessageText,
   getMessageType,
   InstagramError,
