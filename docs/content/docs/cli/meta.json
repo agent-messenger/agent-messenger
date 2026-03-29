@@ -9,10 +9,10 @@
     "telegram",
     "whatsapp",
     "whatsappbot",
-    "kakaotalk",
     "line",
+    "instagram",
+    "kakaotalk",
     "channeltalk",
-    "channeltalkbot",
-    "instagram"
+    "channeltalkbot"
   ]
 }
