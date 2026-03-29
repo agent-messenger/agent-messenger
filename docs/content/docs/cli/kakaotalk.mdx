@@ -176,7 +176,7 @@ Each message includes:
 
 #### Fetching More Messages
 
-The CLI handles internal pagination automatically. Just increase `-n` to get more messages:
+The CLI handles internal pagination automatically. Just increase `-n` to get more messages. Pagination is capped at ~4,000 raw messages (50 pages × 80 per page). If the cap is hit, a warning is printed to stderr and results may be incomplete.
 
 ```bash
 # Get latest 20 messages (default)
