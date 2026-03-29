@@ -237,6 +237,56 @@ export class InstagramClient {
     throw new InstagramError(message, 'challenge_verify_failed')
   }
 
+  async searchUsers(query: string): Promise<Array<{ pk: string; username: string; fullName: string }>> {
+    this.ensureSession()
+    const { data } = await this.request('GET', `/users/search/?q=${encodeURIComponent(query)}&count=10`)
+
+    if (data['status'] !== 'ok') {
+      throw new InstagramError('User search failed', 'search_failed')
+    }
+
+    const users = (data['users'] ?? []) as Array<Record<string, unknown>>
+    return users.map((u) => ({
+      pk: String(u['pk'] ?? ''),
+      username: (u['username'] as string) ?? '',
+      fullName: (u['full_name'] as string) ?? '',
+    }))
+  }
+
+  async sendMessageToUser(userPk: string, text: string): Promise<InstagramMessageSummary> {
+    this.ensureSession()
+
+    const { data } = await this.request('POST', '/direct_v2/threads/broadcast/text/', {
+      recipient_users: `[[${userPk}]]`,
+      text,
+      action: 'send_item',
+      client_context: randomUUID(),
+    })
+
+    if (data['status'] !== 'ok') {
+      throw new InstagramError('Failed to send message', 'send_failed')
+    }
+
+    const payload = data['payload'] as Record<string, unknown> | undefined
+    const threadId = (payload?.['thread_id'] as string) ?? ''
+    const items = (payload?.['items'] ?? []) as Array<Record<string, unknown>>
+    const sentItem = items[0]
+
+    if (!sentItem) {
+      return {
+        id: '',
+        thread_id: threadId,
+        from: this.userId ?? '',
+        timestamp: new Date().toISOString(),
+        is_outgoing: true,
+        type: 'text',
+        text,
+      }
+    }
+
+    return this.mapMessage(sentItem, threadId)
+  }
+
   async listChats(limit = 20): Promise<InstagramChatSummary[]> {
     this.ensureSession()
     const { data } = await this.request('GET', `/direct_v2/inbox/?limit=${limit}`)
@@ -256,6 +306,36 @@ export class InstagramClient {
     return allChats
       .filter((c) => c.name.toLowerCase().includes(lower) || c.id.includes(query))
       .slice(0, limit)
+  }
+
+  async searchMessages(
+    query: string,
+    options: { threadId?: string; limit?: number } = {},
+  ): Promise<InstagramMessageSummary[]> {
+    this.ensureSession()
+    const limit = options.limit ?? 20
+    const lower = query.toLowerCase()
+    const results: InstagramMessageSummary[] = []
+
+    if (options.threadId) {
+      const messages = await this.getMessages(options.threadId, 100)
+      for (const msg of messages) {
+        if (msg.text?.toLowerCase().includes(lower)) results.push(msg)
+        if (results.length >= limit) break
+      }
+      return results
+    }
+
+    const chats = await this.listChats(20)
+    for (const chat of chats) {
+      if (results.length >= limit) break
+      const messages = await this.getMessages(chat.id, 50)
+      for (const msg of messages) {
+        if (msg.text?.toLowerCase().includes(lower)) results.push(msg)
+        if (results.length >= limit) break
+      }
+    }
+    return results
   }
 
   async getMessages(threadId: string, limit = 25): Promise<InstagramMessageSummary[]> {
