@@ -241,21 +241,47 @@ agent-line auth logout <account-id>
 agent-line auth logout --pretty
 ```
 
+### Profile Command
+
+```bash
+# Show your LINE profile
+agent-line profile
+agent-line profile --pretty
+```
+
+Output includes:
+- `mid` - your LINE MID
+- `display_name` - your display name
+- `status_message` - your status message
+- `picture_url` - your profile picture URL
+
+### Friend Commands
+
+```bash
+# List all LINE friends
+agent-line friend list
+agent-line friend list --pretty
+```
+
+Output includes:
+- `mid` - friend's MID
+- `display_name` - friend's display name
+- `status_message` - friend's status message
+- `picture_url` - friend's profile picture URL
+
 ### Chat Commands
 
 ```bash
-# List all chat rooms (sorted by most recent activity)
+# List all chat rooms
 agent-line chat list
 agent-line chat list --pretty
 ```
 
 Output includes:
 - `chat_id` - MID of the chat room
-- `type` - chat type (user, group, room)
-- `display_name` - chat name or comma-separated member names
-- `member_count` - number of members
-- `unread_count` - unread message count
-- `last_message` - most recent message preview
+- `type` - chat type (user, group, room, square)
+- `display_name` - chat name
+- `member_count` - number of members (groups only)
 
 ### Message Commands
 
@@ -410,7 +436,7 @@ See the [LINE SDK documentation](https://agent-messenger.dev/docs/sdk/line) for 
 - No file upload support yet
 - No sticker or rich message sending (text only)
 - No group creation or management
-- No friend list management
+- No group creation or management commands (list only)
 - No reactions or emoji responses
 - No message editing or deletion
 - No voice/video call support
