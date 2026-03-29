@@ -1,5 +1,6 @@
 export { LineClient } from './client'
 export { LineCredentialManager, CredentialManager } from './credential-manager'
+export { LineListener } from './listener'
 export { LineError } from './types'
 export type {
   LineAccountCredentials,
@@ -7,9 +8,12 @@ export type {
   LineConfig,
   LineDevice,
   LineFriend,
+  LineListenerEventMap,
   LineLoginResult,
   LineMessage,
   LineProfile,
+  LinePushGenericEvent,
+  LinePushMessageEvent,
   LineSendResult,
 } from './types'
 export {

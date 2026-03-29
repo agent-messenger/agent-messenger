@@ -131,6 +131,29 @@ export const LineSendResultSchema = z.object({
   sent_at: z.string(),
 })
 
+export interface LinePushMessageEvent {
+  type: 'message'
+  chat_id: string
+  message_id: string
+  author_id: string
+  text: string | null
+  content_type: string
+  sent_at: string
+}
+
+export interface LinePushGenericEvent {
+  type: string
+  [key: string]: unknown
+}
+
+export interface LineListenerEventMap {
+  connected: [info: { account_id: string }]
+  disconnected: []
+  error: [error: Error]
+  message: [event: LinePushMessageEvent]
+  line_event: [event: LinePushGenericEvent]
+}
+
 export const LINE_NEXT_ACTIONS: Record<string, { next_action: string; message: string }> = {
   scan_qr: {
     next_action: 'scan_qr',
