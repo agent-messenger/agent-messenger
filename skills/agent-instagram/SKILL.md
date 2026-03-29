@@ -166,11 +166,24 @@ Never store auth credentials, passwords, session tokens, or any sensitive data. 
 ### Auth Commands
 
 ```bash
-# Log in with credentials
+# Log in (interactive: prompts for username/password)
+agent-instagram auth login
+
+# Log in (non-interactive: pass credentials as flags)
 agent-instagram auth login --username <username> --password <password>
 
-# Complete 2FA verification
+# Log in with debug output (shows raw API responses)
+agent-instagram auth login --username <username> --password <password> --debug
+
+# Complete 2FA verification (non-interactive)
 agent-instagram auth verify --username <username> --code <code> --identifier <identifier>
+
+# Resolve a security challenge — send verification code
+agent-instagram auth challenge --username <username> --method email
+agent-instagram auth challenge --username <username> --method sms
+
+# Resolve a security challenge — submit verification code
+agent-instagram auth challenge --username <username> --code <code>
 
 # Check auth status
 agent-instagram auth status
@@ -218,9 +231,22 @@ agent-instagram message list <thread-id>
 agent-instagram message list <thread-id> --limit 50
 agent-instagram message list <thread-id> --limit 10 --account <id>
 
-# Send a text message
+# Send a text message to a thread
 agent-instagram message send <thread-id> <text>
 agent-instagram message send <thread-id> "Hello!" --account <id>
+
+# Send a text message to a user by @username
+agent-instagram message send-to <username> <text>
+agent-instagram message send-to @alice "Hello!"
+
+# Search messages by text content
+agent-instagram message search <query>
+agent-instagram message search "meeting" --thread <thread-id>
+agent-instagram message search "hello" --limit 10
+
+# Search Instagram users by username
+agent-instagram message search-users <query>
+agent-instagram message search-users "alice"
 ```
 
 ## Output Format
