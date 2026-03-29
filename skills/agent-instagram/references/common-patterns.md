@@ -155,7 +155,7 @@ agent-instagram message send-to "$USERNAME" "Hey, just wanted to follow up!"
 THREAD="12345678901"
 
 # Search messages in a thread
-RESULTS=$(agent-instagram message search "$THREAD" "meeting notes")
+RESULTS=$(agent-instagram message search "meeting notes" --thread "$THREAD")
 
 MATCH_COUNT=$(echo "$RESULTS" | jq 'length')
 echo "Found $MATCH_COUNT matching messages"

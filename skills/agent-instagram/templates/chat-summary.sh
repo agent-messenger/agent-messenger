@@ -27,6 +27,11 @@ CYAN='\033[0;36m'
 BOLD='\033[1m'
 NC='\033[0m'
 
+if ! command -v jq &> /dev/null; then
+  echo -e "${RED}Error: jq not found. Install it: https://jqlang.github.io/jq/download/${NC}" >&2
+  exit 1
+fi
+
 if ! command -v agent-instagram &> /dev/null; then
   echo -e "${RED}Error: agent-instagram not found${NC}" >&2
   echo "" >&2

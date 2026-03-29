@@ -26,6 +26,11 @@ if [ $# -lt 2 ]; then
   exit 1
 fi
 
+if [ "$1" = "--user" ] && [ $# -lt 3 ]; then
+  echo "Usage: $0 --user <username> <message>"
+  exit 1
+fi
+
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
@@ -79,6 +84,11 @@ send_message() {
   echo -e "${RED}Failed after $max_attempts attempts${NC}"
   return 1
 }
+
+if ! command -v jq &> /dev/null; then
+  echo -e "${RED}Error: jq not found. Install it: https://jqlang.github.io/jq/download/${NC}"
+  exit 1
+fi
 
 if ! command -v agent-instagram &> /dev/null; then
   echo -e "${RED}Error: agent-instagram not found${NC}"

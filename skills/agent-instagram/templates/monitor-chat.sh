@@ -27,6 +27,11 @@ fi
 THREAD="$1"
 INTERVAL="${2:-15}"
 
+if ! [[ "$INTERVAL" =~ ^[0-9]+$ ]] || [ "$INTERVAL" -lt 1 ]; then
+  echo "Error: interval must be a positive integer (got: $INTERVAL)"
+  exit 1
+fi
+
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
@@ -95,6 +100,11 @@ check_messages() {
   FIRST_RUN=false
   return 0
 }
+
+if ! command -v jq &> /dev/null; then
+  echo -e "${RED}Error: jq not found. Install it: https://jqlang.github.io/jq/download/${NC}"
+  exit 1
+fi
 
 if ! command -v agent-instagram &> /dev/null; then
   echo -e "${RED}Error: agent-instagram not found${NC}"
