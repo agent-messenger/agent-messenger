@@ -58,27 +58,27 @@ const client = await new LineClient().login({
 
 ### QR Login
 
-Authenticate by scanning a QR code with your phone. The `onQRUrl` callback receives the URL to display, and `onPincode` receives the PIN the user must confirm in the LINE mobile app.
+Authenticate by scanning a QR code with your phone. The `onQRUrl` callback receives the URL to display, and `onPincode` receives the PIN the user must enter in the LINE mobile app.
 
 ```typescript
 const result = await client.loginWithQR({
   device: 'ANDROIDSECONDARY',
   onQRUrl: (url) => console.log(`Scan this QR code: ${url}`),
-  onPincode: (pin) => console.log(`Confirm PIN on your phone: ${pin}`),
+  onPincode: (pin) => console.log(`Enter this PIN in the LINE mobile app: ${pin}`),
 })
 // → LineLoginResult { authenticated, account_id, display_name, device }
 ```
 
 ### Email Login
 
-Authenticate with email and password. A PIN confirmation step in the LINE mobile app may be required.
+Authenticate with email and password. Enter the displayed PIN in the LINE mobile app if LINE requires an extra verification step.
 
 ```typescript
 const result = await client.loginWithEmail({
   email: 'alice@example.com',
   password: 'hunter2',
   device: 'ANDROIDSECONDARY',
-  onPincode: (pin) => console.log(`Confirm PIN on your phone: ${pin}`),
+  onPincode: (pin) => console.log(`Enter this PIN in the LINE mobile app: ${pin}`),
 })
 // → LineLoginResult { authenticated, account_id, display_name, device }
 ```
@@ -131,7 +131,6 @@ The client tries E2EE (end-to-end encryption) first and falls back to plaintext 
 ### Cleanup
 
 ```typescript
-// Close the connection (MUST call when done)
 client.close()
 ```
 
