@@ -48,12 +48,16 @@ program.command('whatsappbot', 'Interact with WhatsApp using Cloud API credentia
   executableFile: join(__dirname, 'platforms', 'whatsappbot', `cli${ext}`),
 })
 
-program.command('kakaotalk', 'Interact with KakaoTalk', {
-  executableFile: join(__dirname, 'platforms', 'kakaotalk', `cli${ext}`),
-})
-
 program.command('line', 'Interact with LINE', {
   executableFile: join(__dirname, 'platforms', 'line', `cli${ext}`),
+})
+
+program.command('instagram', 'Interact with Instagram DMs', {
+  executableFile: join(__dirname, 'platforms', 'instagram', `cli${ext}`),
+})
+
+program.command('kakaotalk', 'Interact with KakaoTalk', {
+  executableFile: join(__dirname, 'platforms', 'kakaotalk', `cli${ext}`),
 })
 
 program.command('channeltalk', 'Interact with Channel Talk', {
@@ -62,10 +66,6 @@ program.command('channeltalk', 'Interact with Channel Talk', {
 
 program.command('channeltalkbot', 'Interact with Channel Talk using API credentials', {
   executableFile: join(__dirname, 'platforms', 'channeltalkbot', `cli${ext}`),
-})
-
-program.command('instagram', 'Interact with Instagram DMs', {
-  executableFile: join(__dirname, 'platforms', 'instagram', `cli${ext}`),
 })
 
 program.parse(process.argv)

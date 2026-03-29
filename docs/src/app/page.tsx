@@ -124,6 +124,24 @@ function KakaoTalkIcon({ className, style }: { className?: string; style?: React
   )
 }
 
+function LineIcon({ className, style }: { className?: string; style?: React.CSSProperties }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" className={className} style={style}>
+      <title>LINE icon</title>
+      <path d="M19.365 9.863c.349 0 .63.285.63.631 0 .345-.281.63-.63.63H17.61v1.125h1.755c.349 0 .63.283.63.63 0 .344-.281.629-.63.629h-2.386c-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.63-.63h2.386c.346 0 .627.285.627.63 0 .349-.281.63-.63.63H17.61v1.125h1.755zm-3.855 3.016c0 .27-.174.51-.432.596-.064.021-.133.031-.199.031-.211 0-.391-.09-.51-.25l-2.443-3.317v2.94c0 .344-.279.629-.631.629-.346 0-.626-.285-.626-.629V8.108c0-.27.173-.51.43-.595.06-.023.136-.033.194-.033.195 0 .375.104.495.254l2.462 3.33V8.108c0-.345.282-.63.63-.63.345 0 .63.285.63.63v4.771zm-5.741 0c0 .344-.282.629-.631.629-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.63-.63.346 0 .628.285.628.63v4.771zm-2.466.629H4.917c-.345 0-.63-.285-.63-.629V8.108c0-.345.285-.63.63-.63.348 0 .63.285.63.63v4.141h1.756c.348 0 .629.283.629.63 0 .344-.282.629-.629.629M24 10.314C24 4.943 18.615.572 12 .572S0 4.943 0 10.314c0 4.811 4.27 8.842 10.035 9.608.391.082.923.258 1.058.59.12.301.079.766.038 1.08l-.164 1.02c-.045.301-.24 1.186 1.049.645 1.291-.539 6.916-4.078 9.436-6.975C23.176 14.393 24 12.458 24 10.314" />
+    </svg>
+  )
+}
+
+function InstagramIcon({ className, style }: { className?: string; style?: React.CSSProperties }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" className={className} style={style}>
+      <title>Instagram icon</title>
+      <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z" />
+    </svg>
+  )
+}
+
 function ChannelTalkIcon({ className, style }: { className?: string; style?: React.CSSProperties }) {
   return (
     <svg viewBox="0 0 128 128" fill="currentColor" className={className} style={style}>
@@ -503,6 +521,8 @@ const PLATFORMS = [
   { name: 'Teams', href: '/docs/cli/teams', Icon: TeamsIcon, color: '#6264A7', glowColor: 'rgba(98,100,167,0.4)' },
   { name: 'Telegram', href: '/docs/cli/telegram', Icon: TelegramIcon, color: '#2AABEE', glowColor: 'rgba(42,171,238,0.4)' },
   { name: 'WhatsApp', href: '/docs/cli/whatsapp', Icon: WhatsAppIcon, color: '#25D366', glowColor: 'rgba(37,211,102,0.4)' },
+  { name: 'LINE', href: '/docs/cli/line', Icon: LineIcon, color: '#06C755', glowColor: 'rgba(6,199,85,0.4)' },
+  { name: 'Instagram', href: '/docs/cli/instagram', Icon: InstagramIcon, color: '#E4405F', glowColor: 'rgba(228,64,95,0.4)' },
   { name: 'KakaoTalk', href: '/docs/cli/kakaotalk', Icon: KakaoTalkIcon, color: '#FEE500', glowColor: 'rgba(254,229,0,0.4)' },
   { name: 'Channel Talk', href: '/docs/cli/channeltalk', Icon: ChannelTalkIcon, color: '#3B3FE4', glowColor: 'rgba(59,63,228,0.4)' },
 ]
@@ -512,7 +532,7 @@ const HOW_IT_WORKS = [
     step: 1,
     title: 'Install',
     code: 'npm install -g agent-messenger',
-    description: 'Installs agent-slack, agent-discord, agent-teams, agent-telegram, agent-whatsapp, agent-kakaotalk, agent-channeltalk, plus bot variants.',
+    description: 'Installs agent-slack, agent-discord, agent-teams, agent-telegram, agent-whatsapp, agent-line, agent-instagram, agent-kakaotalk, agent-channeltalk, plus bot variants.',
   },
   {
     step: 2,
@@ -544,23 +564,25 @@ const CAPABILITIES: {
   teams: boolean
   telegram: boolean
   whatsapp: boolean
+  line: boolean
+  instagram: boolean
   kakaotalk: boolean
   channeltalk: boolean
 }[] = [
-  { feature: 'Zero-config credentials', slack: true, discord: true, teams: true, telegram: false, whatsapp: false, kakaotalk: true, channeltalk: true },
-  { feature: 'Send & list messages', slack: true, discord: true, teams: true, telegram: true, whatsapp: true, kakaotalk: true, channeltalk: true },
-  { feature: 'Search messages', slack: true, discord: true, teams: false, telegram: false, whatsapp: true, kakaotalk: false, channeltalk: true },
-  { feature: 'Threads', slack: true, discord: true, teams: false, telegram: false, whatsapp: false, kakaotalk: false, channeltalk: false },
-  { feature: 'Reactions', slack: true, discord: true, teams: true, telegram: false, whatsapp: true, kakaotalk: false, channeltalk: false },
-  { feature: 'File upload & download', slack: true, discord: true, teams: true, telegram: false, whatsapp: false, kakaotalk: false, channeltalk: false },
-  { feature: 'Workspace snapshot', slack: true, discord: true, teams: true, telegram: false, whatsapp: false, kakaotalk: false, channeltalk: true },
-  { feature: 'Multi-account', slack: true, discord: true, teams: true, telegram: true, whatsapp: true, kakaotalk: false, channeltalk: true },
-  { feature: 'Bot CLI available', slack: true, discord: true, teams: false, telegram: false, whatsapp: true, kakaotalk: false, channeltalk: true },
-  { feature: 'Real-time events (SDK)', slack: true, discord: false, teams: false, telegram: false, whatsapp: false, kakaotalk: false, channeltalk: false },
+  { feature: 'Zero-config credentials', slack: true, discord: true, teams: true, telegram: false, whatsapp: false, line: false, instagram: false, kakaotalk: true, channeltalk: true },
+  { feature: 'Send & list messages', slack: true, discord: true, teams: true, telegram: true, whatsapp: true, line: true, instagram: true, kakaotalk: true, channeltalk: true },
+  { feature: 'Search messages', slack: true, discord: true, teams: false, telegram: false, whatsapp: true, line: false, instagram: true, kakaotalk: false, channeltalk: true },
+  { feature: 'Threads', slack: true, discord: true, teams: false, telegram: false, whatsapp: false, line: false, instagram: false, kakaotalk: false, channeltalk: false },
+  { feature: 'Reactions', slack: true, discord: true, teams: true, telegram: false, whatsapp: true, line: false, instagram: false, kakaotalk: false, channeltalk: false },
+  { feature: 'File upload & download', slack: true, discord: true, teams: true, telegram: false, whatsapp: false, line: false, instagram: false, kakaotalk: false, channeltalk: false },
+  { feature: 'Workspace snapshot', slack: true, discord: true, teams: true, telegram: false, whatsapp: false, line: false, instagram: false, kakaotalk: false, channeltalk: true },
+  { feature: 'Multi-account', slack: true, discord: true, teams: true, telegram: true, whatsapp: true, line: true, instagram: true, kakaotalk: false, channeltalk: true },
+  { feature: 'Bot CLI available', slack: true, discord: true, teams: false, telegram: false, whatsapp: true, line: false, instagram: false, kakaotalk: false, channeltalk: true },
+  { feature: 'Real-time events (SDK)', slack: true, discord: false, teams: false, telegram: false, whatsapp: false, line: true, instagram: true, kakaotalk: false, channeltalk: false },
 ]
 
-const PLATFORM_COLUMNS = ['Slack', 'Discord', 'Teams', 'Telegram', 'WhatsApp', 'KakaoTalk', 'Ch. Talk'] as const
-const PLATFORM_KEYS = ['slack', 'discord', 'teams', 'telegram', 'whatsapp', 'kakaotalk', 'channeltalk'] as const
+const PLATFORM_COLUMNS = ['Slack', 'Discord', 'Teams', 'Telegram', 'WhatsApp', 'LINE', 'Instagram', 'KakaoTalk', 'Ch. Talk'] as const
+const PLATFORM_KEYS = ['slack', 'discord', 'teams', 'telegram', 'whatsapp', 'line', 'instagram', 'kakaotalk', 'channeltalk'] as const
 
 
 
@@ -626,7 +648,7 @@ export default function Home() {
 
           {/* Subtitle */}
           <p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-zinc-600 dark:text-zinc-400">
-            One CLI for Slack, Discord, Teams, Telegram, WhatsApp, KakaoTalk, and Channel Talk.
+            One CLI for Slack, Discord, Teams, Telegram, WhatsApp, LINE, Instagram, KakaoTalk, and Channel Talk.
             Credentials extracted from desktop apps or authenticated in seconds — no API keys, no OAuth, no admin approval.
           </p>
 
@@ -719,7 +741,7 @@ export default function Home() {
               </div>
               <p className="leading-relaxed text-zinc-600 dark:text-zinc-400">
                 Agent Messenger reads session tokens from your Slack, Discord, Teams, or KakaoTalk desktop app — zero config.
-                Telegram and WhatsApp authenticate with a one-time phone or pairing code.
+                Telegram, WhatsApp, LINE, and Instagram authenticate with a one-time code or credentials.
                 Either way, your agent operates <strong className="text-zinc-900 dark:text-zinc-100">as you</strong> — same name, same permissions, same context.
               </p>
             </div>

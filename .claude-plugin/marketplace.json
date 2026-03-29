@@ -1,7 +1,7 @@
 {
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
   "name": "agent-messenger",
-  "description": "Messaging platform interaction skills for AI agents - Slack, Discord, Microsoft Teams, Telegram, and Channel Talk",
+  "description": "Messaging platform interaction skills for AI agents - Slack, Discord, Microsoft Teams, Telegram, WhatsApp, LINE, Instagram, KakaoTalk, and Channel Talk",
   "owner": {
     "name": "devxoul",
     "url": "https://github.com/devxoul"
