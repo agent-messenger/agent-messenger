@@ -161,11 +161,10 @@ export class KakaoTalkClient {
     try {
       return await operation(state)
     } catch (error) {
-      // Only retry when the session is dead (desktop app eviction, network drop, etc.).
-      // The onClose handler nullifies this.state when the connection drops, so a non-null
-      // state means the session is still alive and this is an operation-level error that
-      // should not be retried (e.g. could duplicate sendMessage side effects).
-      if (this.state !== null) throw error
+      // Only retry when the session we started with is dead (desktop app eviction,
+      // network drop, etc.). Comparing session identity (not just null) handles the case
+      // where a concurrent call already reconnected and replaced this.state.
+      if (this.state?.session === state.session) throw error
 
       try { state.session.close() } catch {}
       this.initPromise = null
