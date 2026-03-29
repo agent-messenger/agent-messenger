@@ -29,10 +29,10 @@ Before diving in, a few things about LINE's architecture:
 - **QR code login** = the primary authentication method. The CLI generates a QR code URL, you scan it with your phone, and the session is established.
 - **Email/password login** = an alternative when QR scanning isn't practical.
 - **Auth token reuse** = after initial login, the CLI stores an auth token locally. Subsequent commands reuse it without re-authentication.
-- **Device types** = the CLI registers as a desktop client. Two options:
-  - `DESKTOPWIN` (default on Windows and Linux)
-  - `DESKTOPMAC` (default on macOS)
-  - The CLI auto-detects your OS, but you can override with `--device`.
+- **Device types** = the CLI registers as `ANDROIDSECONDARY` by default — a secondary device that coexists with the LINE desktop app. Override with `--device`:
+  - `ANDROIDSECONDARY` (default) — secondary device, V3-capable, won't kick LINE desktop
+  - `DESKTOPMAC` / `DESKTOPWIN` — replaces the desktop session (kicks LINE desktop app)
+  - `IOSIPAD` — secondary but limited API (no V3 token refresh)
 - **Chat ID** = an MID that identifies a conversation. Use `chat list` to discover them.
 
 ## Quick Start
