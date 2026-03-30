@@ -40,6 +40,7 @@
     "./skills/agent-instagram",
     "./skills/agent-kakaotalk",
     "./skills/agent-channeltalk",
-    "./skills/agent-channeltalkbot"
+    "./skills/agent-channeltalkbot",
+    "./skills/agent-webex"
   ]
 }

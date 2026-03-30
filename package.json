@@ -21,7 +21,8 @@
     "agent-instagram": "./src/platforms/instagram/cli.ts",
     "agent-kakaotalk": "./src/platforms/kakaotalk/cli.ts",
     "agent-channeltalk": "./src/platforms/channeltalk/cli.ts",
-    "agent-channeltalkbot": "./src/platforms/channeltalkbot/cli.ts"
+    "agent-channeltalkbot": "./src/platforms/channeltalkbot/cli.ts",
+    "agent-webex": "./src/platforms/webex/cli.ts"
   },
   "exports": {
     "./package.json": "./package.json",
@@ -68,6 +69,10 @@
     "./channeltalkbot": {
       "types": "./src/platforms/channeltalkbot/index.ts",
       "default": "./src/platforms/channeltalkbot/index.ts"
+    },
+    "./webex": {
+      "types": "./src/platforms/webex/index.ts",
+      "default": "./src/platforms/webex/index.ts"
     }
   },
   "type": "module",
@@ -104,6 +109,9 @@
       ],
       "channeltalkbot": [
         "./src/platforms/channeltalkbot/index.ts"
+      ],
+      "webex": [
+        "./src/platforms/webex/index.ts"
       ]
     }
   },

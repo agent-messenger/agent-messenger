@@ -110,6 +110,19 @@
       "category": "productivity",
       "homepage": "https://github.com/devxoul/agent-messenger",
       "keywords": ["channel-talk", "channeltalkbot", "bot", "messaging", "ai-agent", "cli", "ci-cd"]
+    },
+    {
+      "name": "agent-webex",
+      "description": "Interact with Cisco Webex through a CLI interface. Features token-based authentication, space management, message operations, membership listing, and workspace snapshots.",
+      "version": "2.0.0",
+      "author": {
+        "name": "devxoul",
+        "url": "https://github.com/devxoul"
+      },
+      "source": "./",
+      "category": "productivity",
+      "homepage": "https://github.com/devxoul/agent-messenger",
+      "keywords": ["webex", "cisco", "messaging", "ai-agent", "cli", "communication"]
     }
   ]
 }
