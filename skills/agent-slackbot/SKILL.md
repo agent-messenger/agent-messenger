@@ -1,6 +1,6 @@
 ---
 name: agent-slackbot
-description: Interact with Slack workspaces using bot tokens - send messages, read channels, manage reactions
+description: Interact with Slack workspaces using bot tokens (xoxb-) - send messages, read channels, manage reactions. Designed for server-side and CI/CD integrations with multi-bot credential management.
 version: 1.15.0
 allowed-tools: Bash(agent-slackbot:*)
 metadata:
