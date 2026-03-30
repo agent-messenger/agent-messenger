@@ -11,10 +11,11 @@ export class KakaoTalkAdapter implements PlatformAdapter {
   private currentAccount: Workspace | null = null
 
   async login(): Promise<void> {
-    this.client?.close()
+    const previousClient = this.client
     const client = new KakaoTalkClient()
     await client.login()
     this.client = client
+    previousClient?.close()
 
     const config = await this.credManager.load()
     if (config.current_account && config.accounts[config.current_account]) {
