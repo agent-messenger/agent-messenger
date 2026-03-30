@@ -3,6 +3,7 @@
     "index",
     "quick-start",
     "agent-skills",
+    "tui",
     "---",
     "cli",
     "sdk"
