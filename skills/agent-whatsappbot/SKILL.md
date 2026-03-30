@@ -1,7 +1,7 @@
 ---
 name: agent-whatsappbot
 description: Interact with WhatsApp using Cloud API credentials - send messages, manage templates
-version: 1.15.0
+version: 2.0.0
 allowed-tools: Bash(agent-whatsappbot:*)
 metadata:
   openclaw:

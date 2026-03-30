@@ -1,6 +1,6 @@
 {
   "name": "agent-messenger",
-  "version": "1.15.0",
+  "version": "2.0.0",
   "description": "Multi-platform messaging CLI for AI agents (Slack, Discord, Teams, Telegram, WhatsApp, LINE, Instagram, KakaoTalk, Channel Talk)",
   "repository": {
     "type": "git",
@@ -75,16 +75,36 @@
   "module": "dist/cli.js",
   "typesVersions": {
     "*": {
-      "slack": ["./src/platforms/slack/index.ts"],
-      "discord": ["./src/platforms/discord/index.ts"],
-      "teams": ["./src/platforms/teams/index.ts"],
-      "whatsapp": ["./src/platforms/whatsapp/index.ts"],
-      "whatsappbot": ["./src/platforms/whatsappbot/index.ts"],
-      "line": ["./src/platforms/line/index.ts"],
-      "instagram": ["./src/platforms/instagram/index.ts"],
-      "kakaotalk": ["./src/platforms/kakaotalk/index.ts"],
-      "channeltalk": ["./src/platforms/channeltalk/index.ts"],
-      "channeltalkbot": ["./src/platforms/channeltalkbot/index.ts"]
+      "slack": [
+        "./src/platforms/slack/index.ts"
+      ],
+      "discord": [
+        "./src/platforms/discord/index.ts"
+      ],
+      "teams": [
+        "./src/platforms/teams/index.ts"
+      ],
+      "whatsapp": [
+        "./src/platforms/whatsapp/index.ts"
+      ],
+      "whatsappbot": [
+        "./src/platforms/whatsappbot/index.ts"
+      ],
+      "line": [
+        "./src/platforms/line/index.ts"
+      ],
+      "instagram": [
+        "./src/platforms/instagram/index.ts"
+      ],
+      "kakaotalk": [
+        "./src/platforms/kakaotalk/index.ts"
+      ],
+      "channeltalk": [
+        "./src/platforms/channeltalk/index.ts"
+      ],
+      "channeltalkbot": [
+        "./src/platforms/channeltalkbot/index.ts"
+      ]
     }
   },
   "scripts": {
