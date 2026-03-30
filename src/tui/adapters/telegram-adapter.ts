@@ -16,10 +16,15 @@ export class TelegramAdapter implements PlatformAdapter {
 
     const paths = this.credManager.getAccountPaths(account.account_id)
     const client = await TelegramTdlibClient.create(account, paths)
-    const state = await client.connect()
 
-    if (state?.['@type'] !== 'authorizationStateReady') {
-      throw new Error('Telegram account not authenticated')
+    try {
+      const state = await client.connect()
+      if (state?.['@type'] !== 'authorizationStateReady') {
+        throw new Error('Telegram account not authenticated')
+      }
+    } catch (err) {
+      await client.close().catch(() => {})
+      throw err
     }
 
     this.client = client
@@ -65,6 +70,7 @@ export class TelegramAdapter implements PlatformAdapter {
   async switchWorkspace(accountId: string): Promise<void> {
     if (this.client) {
       await this.client.close().catch(() => {})
+      this.client = null
     }
 
     const account = await this.credManager.getAccount(accountId)
@@ -72,10 +78,15 @@ export class TelegramAdapter implements PlatformAdapter {
 
     const paths = this.credManager.getAccountPaths(account.account_id)
     const client = await TelegramTdlibClient.create(account, paths)
-    const state = await client.connect()
 
-    if (state?.['@type'] !== 'authorizationStateReady') {
-      throw new Error('Telegram account not authenticated')
+    try {
+      const state = await client.connect()
+      if (state?.['@type'] !== 'authorizationStateReady') {
+        throw new Error('Telegram account not authenticated')
+      }
+    } catch (err) {
+      await client.close().catch(() => {})
+      throw err
     }
 
     this.client = client

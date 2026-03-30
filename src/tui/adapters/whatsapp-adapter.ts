@@ -60,6 +60,7 @@ export class WhatsAppAdapter implements PlatformAdapter {
   async switchWorkspace(accountId: string): Promise<void> {
     if (this.client) {
       await this.client.close().catch(() => {})
+      this.client = null
     }
 
     const account = await this.credManager.getAccount(accountId)

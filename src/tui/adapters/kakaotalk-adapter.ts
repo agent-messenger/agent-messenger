@@ -11,6 +11,7 @@ export class KakaoTalkAdapter implements PlatformAdapter {
   private currentAccount: Workspace | null = null
 
   async login(): Promise<void> {
+    this.client?.close()
     const client = new KakaoTalkClient()
     await client.login()
     this.client = client
