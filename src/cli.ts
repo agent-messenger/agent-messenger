@@ -68,6 +68,10 @@ program.command('channeltalkbot', 'Interact with Channel Talk using API credenti
   executableFile: join(__dirname, 'platforms', 'channeltalkbot', `cli${ext}`),
 })
 
+program.command('tui', 'Launch unified messenger TUI', {
+  executableFile: join(__dirname, 'tui', `cli${ext}`),
+})
+
 program.parse(process.argv)
 
 export default program
