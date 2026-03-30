@@ -166,6 +166,7 @@ export async function createApp(): Promise<void> {
       activePlatformIndex = platformIndex
       messageLog.setContent('')
       messageLog.setLabel(' Messages ')
+      inputBox.setLabel(' Message ')
       mode = 'selection'
       renderHeader()
       await showWorkspaceLevel()

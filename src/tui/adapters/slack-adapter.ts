@@ -89,6 +89,7 @@ export class SlackAdapter implements PlatformAdapter {
     const client = new SlackClient()
     await client.login({ token: creds.token, cookie: creds.cookie })
     await this.buildUserMap(client)
+    await this.credManager.setCurrentWorkspace(workspaceId)
     this.currentWorkspace = { id: creds.workspace_id, name: creds.workspace_name }
   }
 

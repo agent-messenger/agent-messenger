@@ -93,24 +93,27 @@ export class InstagramAdapter implements PlatformAdapter {
 
     const result = await client.authenticate(username, password)
 
+    let userId = result.userId
     if (result.requiresTwoFactor) {
       const twoFactorId = (result.twoFactorInfo?.['two_factor_identifier'] as string) ?? ''
       const code = await io.prompt('Verification code')
       if (!code) throw new Error('Verification code is required')
-      await client.twoFactorLogin(username, code, twoFactorId)
+      const tfResult = await client.twoFactorLogin(username, code, twoFactorId)
+      userId = tfResult.userId || userId
     } else if (result.challengeRequired && result.challengePath) {
       io.print('Security challenge required. Sending verification code via email...')
       await client.challengeSendCode(result.challengePath, 'email')
       const code = await io.prompt('Verification code (check your email)')
       if (!code) throw new Error('Verification code is required')
-      await client.challengeSubmitCode(result.challengePath, code)
+      const challengeResult = await client.challengeSubmitCode(result.challengePath, code)
+      userId = challengeResult.userId || userId
     }
 
     const now = new Date().toISOString()
     await this.credManager.setAccount({
       account_id: accountId,
       username,
-      pk: result.userId,
+      pk: userId,
       created_at: now,
       updated_at: now,
     })
