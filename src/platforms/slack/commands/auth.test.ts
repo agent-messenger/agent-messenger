@@ -75,13 +75,16 @@ describe('TokenExtractor', () => {
   })
 
   describe('extract', () => {
-    test('throws error when Slack directory does not exist', async () => {
-      // Given: Slack directory does not exist (use unique path to avoid any collision)
+    test('returns empty array when Slack directory does not exist (falls back to browser)', async () => {
+      // given
       const nonExistentPath = `/tmp/nonexistent-slack-${Date.now()}-${Math.random()}`
       extractor = new TokenExtractor('darwin', nonExistentPath)
 
-      // When/Then: extract should throw
-      await expect(extractor.extract()).rejects.toThrow('Slack directory not found')
+      // when
+      const result = await extractor.extract()
+
+      // then
+      expect(result).toEqual([])
     })
 
     test('returns empty array when no tokens found', async () => {
@@ -430,12 +433,13 @@ describe('Error Handling', () => {
   })
 
   test('handles missing Slack installation gracefully', async () => {
-    // Given: Slack is not installed (use unique path)
+    // given — Slack is not installed
     const nonExistentPath = `/tmp/nonexistent-slack-${Date.now()}-${Math.random()}`
     const extractor = new TokenExtractor('darwin', nonExistentPath)
 
-    // When/Then: Should throw descriptive error
-    await expect(extractor.extract()).rejects.toThrow('Slack directory not found')
+    // when/then — falls back to browser profiles, returns empty array
+    const result = await extractor.extract()
+    expect(result).toEqual([])
   })
 
   test('handles empty Slack directory gracefully', async () => {

@@ -6,7 +6,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-import { TokenExtractor } from './token-extractor'
+import { ExtractedWorkspace, TokenExtractor } from './token-extractor'
 
 const tempDirs: string[] = []
 
@@ -788,5 +788,102 @@ describe('TokenExtractor getWorkspaceDomains', () => {
 
     // then
     expect(domains).toEqual({ T111: 'acme-corp' })
+  })
+})
+
+describe('TokenExtractor browser fallback', () => {
+  test('extractFromBrowsers returns empty array when no browser profiles have tokens', async () => {
+    const slackDir = mkdtempSync(join(tmpdir(), 'slack-nonexistent-'))
+    tempDirs.push(slackDir)
+    rmSync(slackDir, { recursive: true, force: true })
+
+    const extractor = new TokenExtractor('darwin', slackDir)
+    const result = await extractor.extractFromBrowsers()
+    expect(result).toEqual([])
+  })
+
+  test('extract tries desktop before browser profiles', async () => {
+    // given — slackDir with LevelDB token data
+    const slackDir = mkdtempSync(join(tmpdir(), 'slack-fallback-desktop-'))
+    tempDirs.push(slackDir)
+
+    const hex64 = 'a'.repeat(64)
+    const token = `xoxc-1111111111-2222222222-3333333333-${hex64}`
+    const leveldbDir = join(slackDir, 'Local Storage', 'leveldb')
+    mkdirSync(leveldbDir, { recursive: true })
+    writeFileSync(join(leveldbDir, '000001.log'), `"${token}"T12345678"name":"desktop-workspace"`)
+
+    const extractFromBrowsersSpy = spyOn(
+      TokenExtractor.prototype as any,
+      'extractFromBrowsers',
+    ).mockResolvedValue([])
+
+    // when
+    const extractor = new TokenExtractor('darwin', slackDir)
+    const result = await extractor.extract()
+
+    // then — desktop extraction succeeded, browser not called
+    expect(result.length).toBeGreaterThan(0)
+    expect(extractFromBrowsersSpy).not.toHaveBeenCalled()
+
+    extractFromBrowsersSpy.mockRestore()
+  })
+
+  test('extract falls back to browser profiles when desktop has no tokens', async () => {
+    // given — empty slackDir (no tokens)
+    const slackDir = mkdtempSync(join(tmpdir(), 'slack-fallback-browser-'))
+    tempDirs.push(slackDir)
+
+    const hex64 = 'b'.repeat(64)
+    const browserToken = `xoxc-9999999999-8888888888-7777777777-${hex64}`
+    const browserWorkspace: ExtractedWorkspace = {
+      workspace_id: 'T99999999',
+      workspace_name: 'browser-workspace',
+      token: browserToken,
+      cookie: '',
+    }
+
+    const extractFromBrowsersSpy = spyOn(
+      TokenExtractor.prototype as any,
+      'extractFromBrowsers',
+    ).mockResolvedValue([browserWorkspace])
+
+    // when
+    const extractor = new TokenExtractor('darwin', slackDir)
+    const result = await extractor.extract()
+
+    // then — browser fallback used
+    expect(extractFromBrowsersSpy).toHaveBeenCalled()
+    expect(result).toEqual([browserWorkspace])
+
+    extractFromBrowsersSpy.mockRestore()
+  })
+
+  test('extract falls back to browser when slackDir does not exist', async () => {
+    // given — non-existent slackDir
+    const slackDir = '/nonexistent/slack/dir'
+    const hex64 = 'c'.repeat(64)
+    const browserToken = `xoxc-1234567890-0987654321-1122334455-${hex64}`
+    const browserWorkspace: ExtractedWorkspace = {
+      workspace_id: 'T11111111',
+      workspace_name: 'browser-ws',
+      token: browserToken,
+      cookie: 'xoxd-browser-cookie',
+    }
+
+    const extractFromBrowsersSpy = spyOn(
+      TokenExtractor.prototype as any,
+      'extractFromBrowsers',
+    ).mockResolvedValue([browserWorkspace])
+
+    // when
+    const extractor = new TokenExtractor('darwin', slackDir)
+    const result = await extractor.extract()
+
+    // then
+    expect(extractFromBrowsersSpy).toHaveBeenCalled()
+    expect(result).toEqual([browserWorkspace])
+
+    extractFromBrowsersSpy.mockRestore()
   })
 })
