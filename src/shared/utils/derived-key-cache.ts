@@ -3,7 +3,7 @@ import { mkdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
 
-export type Platform = 'slack' | 'discord' | 'teams'
+export type Platform = 'slack' | 'discord' | 'teams' | 'webex'
 
 /**
  * Caches derived encryption keys to avoid repeated macOS Keychain prompts.

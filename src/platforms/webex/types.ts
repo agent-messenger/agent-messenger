@@ -55,7 +55,7 @@ export interface WebexConfig {
   expiresAt: number
   clientId?: string
   clientSecret?: string
-  tokenType?: 'oauth' | 'manual'
+  tokenType?: 'oauth' | 'manual' | 'extracted'
 }
 
 export class WebexError extends Error {
@@ -123,5 +123,5 @@ export const WebexConfigSchema = z.object({
   expiresAt: z.number(),
   clientId: z.string().optional(),
   clientSecret: z.string().optional(),
-  tokenType: z.enum(['oauth', 'manual']).optional(),
+  tokenType: z.enum(['oauth', 'manual', 'extracted']).optional(),
 })
