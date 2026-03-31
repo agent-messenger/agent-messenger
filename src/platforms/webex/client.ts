@@ -180,7 +180,7 @@ export class WebexClient {
     options?: { markdown?: boolean },
   ): Promise<WebexMessage> {
     if (this.useInternalAPI) {
-      return this.sendMessageInternal(roomId, text)
+      return this.sendMessageInternal(roomId, text, options)
     }
     const body = options?.markdown ? { roomId, markdown: text } : { roomId, text }
     return this.request<WebexMessage>('POST', '/messages', body)
@@ -237,13 +237,20 @@ export class WebexClient {
     }
   }
 
-  private async sendMessageInternal(roomId: string, text: string): Promise<WebexMessage> {
+  private async sendMessageInternal(
+    roomId: string,
+    text: string,
+    options?: { markdown?: boolean },
+  ): Promise<WebexMessage> {
     const convUuid = this.decodeConvUuid(roomId)
+    const object = options?.markdown
+      ? { objectType: 'comment', displayName: text, content: text, markdown: text }
+      : { objectType: 'comment', displayName: text, content: text }
     const result = await this.internalRequest<InternalActivity>('/activities', {
       method: 'POST',
       body: JSON.stringify({
         verb: 'post',
-        object: { objectType: 'comment', displayName: text, content: text },
+        object,
         target: { id: convUuid, objectType: 'conversation' },
         clientTempId: `tmp-${Date.now()}`,
       }),
@@ -261,7 +268,7 @@ export class WebexClient {
       if (!roomId) {
         throw new WebexError(`No existing direct conversation with ${personEmail}`, 'not_found')
       }
-      return this.sendMessageInternal(roomId, text)
+      return this.sendMessageInternal(roomId, text, options)
     }
     const body = options?.markdown
       ? { toPersonEmail: personEmail, markdown: text }
@@ -304,7 +311,9 @@ export class WebexClient {
   async getMessage(messageId: string): Promise<WebexMessage> {
     if (this.useInternalAPI) {
       const activity = await this.internalRequest<InternalActivity>(`/activities/${messageId}`)
-      return this.activityToMessage(activity, '')
+      const convId = activity.target?.id ?? ''
+      const roomId = convId ? Buffer.from(`ciscospark://urn:TEAM:unknown/ROOM/${convId}`).toString('base64') : ''
+      return this.activityToMessage(activity, roomId)
     }
     return this.request<WebexMessage>('GET', `/messages/${messageId}`)
   }
