@@ -1,7 +1,7 @@
 ---
 name: agent-line
 description: Interact with LINE - send messages, read chats, manage conversations
-version: 2.0.0
+version: 2.1.0
 allowed-tools: Bash(agent-line:*)
 metadata:
   openclaw:
