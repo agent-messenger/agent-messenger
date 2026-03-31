@@ -16,12 +16,15 @@ metadata:
 
 # Agent Webex
 
-A TypeScript CLI tool that enables AI agents and humans to interact with Cisco Webex through a simple command interface. Supports personal access tokens and bot tokens for flexible authentication.
+A TypeScript CLI tool that enables AI agents and humans to interact with Cisco Webex through a simple command interface. Uses OAuth browser-based login — zero configuration required.
 
 ## Quick Start
 
 ```bash
-# Get workspace snapshot (requires token — see Authentication)
+# Log in (opens browser automatically)
+agent-webex auth login
+
+# Get workspace snapshot
 agent-webex snapshot
 
 # Send a message
@@ -33,11 +36,14 @@ agent-webex space list
 
 ## Authentication
 
-Webex uses token-based authentication. You'll need a token from the [Webex Developer Portal](https://developer.webex.com).
+Webex uses OAuth Authorization Code Flow with automatic browser-based login. No tokens to copy, no developer portal setup needed.
 
 ```bash
-# Log in with a token
-agent-webex auth login --token <token>
+# Log in (opens browser, user approves, done)
+agent-webex auth login
+
+# Log in with a bot token instead (optional)
+agent-webex auth login --token <bot-token>
 
 # Check auth status
 agent-webex auth status
@@ -46,12 +52,20 @@ agent-webex auth status
 agent-webex auth logout
 ```
 
+### How Login Works
+
+1. Run `agent-webex auth login`
+2. Browser opens to Webex login page
+3. Sign in with your Webex account and approve access
+4. Browser redirects to localhost — CLI captures the token automatically
+5. Access token + refresh token stored locally with auto-refresh
+
 ### Token Types
 
-- **Personal Access Token (PAT)**: Generated at https://developer.webex.com/docs/getting-started. Lasts **12 hours**, good for development and testing.
-- **Bot Token**: Created when you register a bot at https://developer.webex.com/my-apps/new/bot. Never expires. Best for long-running automations.
+- **OAuth (default)**: Browser-based login. Access token auto-refreshes via refresh token. No manual token management.
+- **Bot Token**: Pass via `--token` flag. Created at https://developer.webex.com/my-apps/new/bot. Never expires. Best for CI/CD and unattended automations.
 
-**IMPORTANT**: NEVER guide the user to open a web browser, use DevTools, or manually copy tokens from a browser's network inspector. Always direct them to the Webex Developer Portal to generate a token properly.
+**IMPORTANT**: NEVER guide the user to open a web browser, use DevTools, or manually copy tokens from a browser's network inspector. Always use `agent-webex auth login` for interactive authentication.
 
 For detailed token management, see [references/authentication.md](references/authentication.md).
 
