@@ -240,6 +240,42 @@ test('WebexConfigSchema validates config with clientId and clientSecret', () => 
   }
 })
 
+test('WebexConfigSchema validates config with tokenType oauth', () => {
+  const result = WebexConfigSchema.safeParse({
+    accessToken: 'test',
+    refreshToken: 'test',
+    expiresAt: 1234567890,
+    tokenType: 'oauth',
+  })
+  expect(result.success).toBe(true)
+  if (result.success) {
+    expect(result.data.tokenType).toBe('oauth')
+  }
+})
+
+test('WebexConfigSchema validates config with tokenType manual', () => {
+  const result = WebexConfigSchema.safeParse({
+    accessToken: 'test',
+    refreshToken: '',
+    expiresAt: 0,
+    tokenType: 'manual',
+  })
+  expect(result.success).toBe(true)
+  if (result.success) {
+    expect(result.data.tokenType).toBe('manual')
+  }
+})
+
+test('WebexConfigSchema rejects invalid tokenType', () => {
+  const result = WebexConfigSchema.safeParse({
+    accessToken: 'test',
+    refreshToken: 'test',
+    expiresAt: 1234567890,
+    tokenType: 'invalid',
+  })
+  expect(result.success).toBe(false)
+})
+
 test('WebexConfigSchema accepts config without clientId/clientSecret (backward compat)', () => {
   const result = WebexConfigSchema.safeParse({
     accessToken: 'test',
