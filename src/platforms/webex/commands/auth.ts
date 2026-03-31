@@ -172,6 +172,7 @@ export async function extractAction(options: { pretty?: boolean; debug?: boolean
       refreshToken: extracted.refreshToken ?? '',
       expiresAt: extracted.expiresAt ?? 0,
       tokenType: 'extracted',
+      deviceUrl: extracted.deviceUrl,
     })
 
     console.log(

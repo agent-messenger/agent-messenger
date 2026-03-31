@@ -9,6 +9,7 @@ function makeWebexStorageJson(overrides?: {
   accessToken?: string
   refreshToken?: string
   expires?: number
+  deviceUrl?: string
 }): string {
   return JSON.stringify({
     Credentials: {
@@ -20,6 +21,11 @@ function makeWebexStorageJson(overrides?: {
           refresh_token: overrides?.refreshToken ?? 'MDEyMzQ1Njc4OTAxMjM0NTY3_refresh',
           scope: 'spark:all',
         },
+      },
+    },
+    Device: {
+      '@': {
+        url: overrides?.deviceUrl ?? 'https://wdm-r.wbx2.com/wdm/api/v1/devices/test-device-id',
       },
     },
   })
@@ -104,6 +110,7 @@ describe('WebexTokenExtractor', () => {
       expect(result!.accessToken).toBe('ZDI3MGEyYzQtNmFlNS00NDNh_PF84_1eb65fdf-userId_orgId')
       expect(result!.refreshToken).toBe('MDEyMzQ1Njc4OTAxMjM0NTY3_refresh')
       expect(result!.expiresAt).toBeGreaterThan(Date.now())
+      expect(result!.deviceUrl).toBe('https://wdm-r.wbx2.com/wdm/api/v1/devices/test-device-id')
     })
 
     test('finds token from .ldb file', async () => {
@@ -146,6 +153,7 @@ describe('WebexTokenExtractor', () => {
         accessToken: 'my-long-access-token-that-is-at-least-20-chars',
         refreshToken: 'my-refresh-token-value',
         expires,
+        deviceUrl: 'https://wdm-a.wbx2.com/wdm/api/v1/devices/abc-123',
       })
       writeFileSync(join(leveldbDir, '000003.log'), webexJson)
 
@@ -156,6 +164,44 @@ describe('WebexTokenExtractor', () => {
       expect(result!.accessToken).toBe('my-long-access-token-that-is-at-least-20-chars')
       expect(result!.refreshToken).toBe('my-refresh-token-value')
       expect(result!.expiresAt).toBe(expires)
+      expect(result!.deviceUrl).toBe('https://wdm-a.wbx2.com/wdm/api/v1/devices/abc-123')
+    })
+
+    test('extracts deviceUrl when Device field is present', async () => {
+      const leveldbDir = createLevelDBDir(tempDir)
+      const webexJson = makeWebexStorageJson({
+        deviceUrl: 'https://wdm-eu.wbx2.com/wdm/api/v1/devices/eu-device-id',
+      })
+      writeFileSync(join(leveldbDir, '000003.log'), webexJson)
+
+      const extractor = new WebexTokenExtractor('darwin', undefined, tempDir)
+      const result = await extractor.extract()
+
+      expect(result).not.toBeNull()
+      expect(result!.deviceUrl).toBe('https://wdm-eu.wbx2.com/wdm/api/v1/devices/eu-device-id')
+    })
+
+    test('returns token without deviceUrl when Device field is absent', async () => {
+      const leveldbDir = createLevelDBDir(tempDir)
+      const webexJson = JSON.stringify({
+        Credentials: {
+          '@': {
+            supertoken: {
+              access_token: 'token-without-device-url-at-least-twenty',
+              token_type: 'Bearer',
+              expires: Date.now() + 3600000,
+            },
+          },
+        },
+      })
+      writeFileSync(join(leveldbDir, '000003.log'), webexJson)
+
+      const extractor = new WebexTokenExtractor('darwin', undefined, tempDir)
+      const result = await extractor.extract()
+
+      expect(result).not.toBeNull()
+      expect(result!.accessToken).toBe('token-without-device-url-at-least-twenty')
+      expect(result!.deviceUrl).toBeUndefined()
     })
 
     test('skips profiles without leveldb directory', async () => {

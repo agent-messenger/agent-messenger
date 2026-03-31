@@ -16,6 +16,7 @@ export interface ExtractedWebexToken {
   accessToken: string
   refreshToken?: string
   expiresAt?: number
+  deviceUrl?: string
 }
 
 interface BrowserConfig {
@@ -301,11 +302,15 @@ export class WebexTokenExtractor {
   }
 
   private extractTokenFromString(content: string): ExtractedWebexToken | null {
-    let markerIdx = content.indexOf('"supertoken"')
-    if (markerIdx === -1) {
-      markerIdx = content.indexOf('"Credentials"')
-      if (markerIdx === -1) return null
-    }
+    const outerObjectMarkerIdx = content.indexOf('"Credentials"')
+    const innermostMarkerIdx = content.indexOf('"supertoken"')
+
+    const markerIdx =
+      outerObjectMarkerIdx !== -1 ? outerObjectMarkerIdx
+      : innermostMarkerIdx !== -1 ? innermostMarkerIdx
+      : -1
+
+    if (markerIdx === -1) return null
 
     const json = this.extractJsonAroundIndex(content, markerIdx)
     if (!json) return null
@@ -370,6 +375,14 @@ export class WebexTokenExtractor {
         result.expiresAt = supertoken.expires
       } else if (typeof supertoken.expires_in === 'number') {
         result.expiresAt = Date.now() + supertoken.expires_in * 1000
+      }
+
+      const deviceUrl =
+        data?.Device?.['@']?.url ??
+        data?.['@']?.deviceUrl ??
+        null
+      if (deviceUrl && typeof deviceUrl === 'string') {
+        result.deviceUrl = deviceUrl
       }
 
       return result
