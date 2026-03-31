@@ -16,7 +16,7 @@ metadata:
 
 # Agent Webex
 
-A TypeScript CLI tool that enables AI agents and humans to interact with Cisco Webex through a simple command interface. Uses OAuth browser-based login — zero configuration required.
+A TypeScript CLI tool that enables AI agents and humans to interact with Cisco Webex through a simple command interface. Uses OAuth Device Grant flow, zero configuration required.
 
 ## Quick Start
 
@@ -36,14 +36,23 @@ agent-webex space list
 
 ## Authentication
 
-Webex uses OAuth Authorization Code Flow with automatic browser-based login. No tokens to copy, no developer portal setup needed.
+Webex uses OAuth Device Grant flow with built-in Integration credentials. No tokens to copy, no developer portal setup needed.
+
+`agent-webex auth login` starts the Device Grant flow: it displays a verification URL and user code, then opens the browser. You enter the code at the verification page and approve access. The CLI polls for the token automatically. Access and refresh tokens are stored locally, and the access token auto-refreshes via the refresh token.
+
+Optionally, pass `--token <bot-token>` for bot token auth. Or pass `--client-id <id> --client-secret <secret>` to use your own Webex Integration credentials instead of the built-in ones.
+
+Env vars `AGENT_WEBEX_CLIENT_ID` / `AGENT_WEBEX_CLIENT_SECRET` can also override the built-in credentials.
 
 ```bash
-# Log in (opens browser, user approves, done)
+# Log in (Device Grant flow, opens browser)
 agent-webex auth login
 
-# Log in with a bot token instead (optional)
-agent-webex auth login --token <bot-token>
+# Log in with custom Integration credentials
+agent-webex auth login --client-id <id> --client-secret <secret>
+
+# Log in with a bot token
+agent-webex auth login --token <token>
 
 # Check auth status
 agent-webex auth status
@@ -55,15 +64,17 @@ agent-webex auth logout
 ### How Login Works
 
 1. Run `agent-webex auth login`
-2. Browser opens to Webex login page
-3. Sign in with your Webex account and approve access
-4. Browser redirects to localhost — CLI captures the token automatically
-5. Access token + refresh token stored locally with auto-refresh
+2. CLI requests a device code from Webex
+3. Browser opens to Webex verification page
+4. Enter the displayed code and sign in
+5. CLI automatically detects approval and stores tokens
+6. Access token auto-refreshes via refresh token
 
 ### Token Types
 
-- **OAuth (default)**: Browser-based login. Access token auto-refreshes via refresh token. No manual token management.
-- **Bot Token**: Pass via `--token` flag. Created at https://developer.webex.com/my-apps/new/bot. Never expires. Best for CI/CD and unattended automations.
+- **OAuth Device Grant (default)**: Zero-config login. Access token auto-refreshes. Built-in Integration credentials used unless overridden.
+- **Bot Token**: Pass via `--token` flag. Never expires. Best for CI/CD.
+- **Custom Integration**: Pass `--client-id` + `--client-secret` or set env vars for your own Webex Integration.
 
 **IMPORTANT**: NEVER guide the user to open a web browser, use DevTools, or manually copy tokens from a browser's network inspector. Always use `agent-webex auth login` for interactive authentication.
 
@@ -141,7 +152,13 @@ If a memorized ID returns an error (space not found, member not found), remove i
 ### Auth Commands
 
 ```bash
-# Log in with a token
+# Log in (Device Grant flow, opens browser)
+agent-webex auth login
+
+# Log in with custom Integration credentials
+agent-webex auth login --client-id <id> --client-secret <secret>
+
+# Log in with a bot token
 agent-webex auth login --token <token>
 
 # Check auth status
@@ -249,14 +266,15 @@ All commands return consistent error format:
 
 ```json
 {
-  "error": "Not authenticated. Run \"auth login --token <token>\" first."
+  "error": "Not authenticated. Run \"auth login\" first."
 }
 ```
 
 Common errors:
 
-- `Not authenticated`: No valid token. Run `auth login --token <token>`
-- `401 Unauthorized`: Token expired or invalid. Get a new token from https://developer.webex.com
+- `Not authenticated`: No valid token. Run `auth login` first
+- `Device authorization timed out`: User didn't complete verification in time. Run `auth login` again.
+- `401 Unauthorized`: Token expired or invalid. Re-run `auth login`
 - `429 Too Many Requests`: Rate limited. Wait and retry (Webex allows ~600 requests per minute)
 - `404 Not Found`: Invalid space ID, message ID, or resource
 - `Space not found`: Invalid space ID
@@ -268,7 +286,11 @@ Credentials stored in `~/.config/agent-messenger/webex-credentials.json` (0600 p
 
 ```json
 {
-  "token": "YOUR_TOKEN_HERE"
+  "accessToken": "...",
+  "refreshToken": "...",
+  "expiresAt": 1234567890,
+  "clientId": "...",
+  "clientSecret": "..."
 }
 ```
 
@@ -284,19 +306,6 @@ See [references/authentication.md](references/authentication.md) for format and 
 import { WebexClient } from 'agent-messenger/webex'
 
 const client = await new WebexClient().login()
-```
-
-Or with manual credential management:
-
-```typescript
-import { WebexClient, WebexCredentialManager } from 'agent-messenger/webex'
-
-const manager = new WebexCredentialManager()
-const creds = await manager.getCredentials()
-if (!creds) {
-  throw new Error('Webex token not found. Run auth login --token first.')
-}
-const client = await new WebexClient().login({ token: creds.token })
 ```
 
 ### Example
@@ -321,27 +330,25 @@ See the [Webex SDK documentation](https://agent-messenger.dev/docs/sdk/webex) fo
 
 ## Limitations
 
-- No auto credential extraction (manual token login only)
 - No real-time events / WebSocket connection
 - No file upload or download
 - No reactions / emoji support
 - No thread support
 - No message search
-- Personal Access Tokens expire in **12 hours**. Bot tokens don't expire.
 - No voice/video or meeting support
 - No space management (create/delete spaces, roles)
 
 ## Troubleshooting
 
-### Token expired (PAT)
+### Token refresh failed
 
-Personal Access Tokens last 12 hours. When yours expires, generate a new one at https://developer.webex.com/docs/getting-started and log in again:
+OAuth tokens auto-refresh, so expiration is handled automatically. If a refresh fails (revoked access, network issues), re-run:
 
 ```bash
-agent-webex auth login --token <new-token>
+agent-webex auth login
 ```
 
-For long-running automations, use a bot token instead. Bot tokens never expire.
+Bot tokens never expire and don't need refreshing.
 
 ### `agent-webex: command not found`
 

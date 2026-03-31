@@ -8,18 +8,21 @@ This guide covers typical workflows for AI agents interacting with Cisco Webex u
 
 ## Auth Patterns
 
-### Pattern 1: Log In with Token
+### Pattern 1: Log In
 
 **Use case**: First-time setup or token renewal
 
 ```bash
 #!/bin/bash
 
-# Log in with a personal access token (12-hour lifetime)
-agent-webex auth login --token "YOUR_PAT_HERE"
+# Default: Device Grant (zero-config, opens browser)
+agent-webex auth login
 
-# Or with a bot token (never expires)
+# With a bot token (never expires, for CI/CD)
 agent-webex auth login --token "YOUR_BOT_TOKEN_HERE"
+
+# With a PAT (12-hour lifetime, for quick testing)
+agent-webex auth login --token "YOUR_PAT_HERE"
 ```
 
 **When to use**: Before any other command, if not already authenticated.
@@ -34,7 +37,7 @@ agent-webex auth login --token "YOUR_BOT_TOKEN_HERE"
 STATUS=$(agent-webex auth status)
 
 if echo "$STATUS" | jq -e '.error' > /dev/null 2>&1; then
-  echo "Not authenticated. Please provide a token."
+  echo "Not authenticated. Run 'auth login' first."
   exit 1
 fi
 
@@ -56,9 +59,25 @@ agent-webex auth logout
 
 **When to use**: Switching accounts, cleaning up, or revoking access.
 
+### Pattern 4: Send a Direct Message
+
+**Use case**: Message someone directly by email, without finding a space ID first
+
+```bash
+#!/bin/bash
+
+# Send a DM by email
+agent-webex message dm alice@example.com "Hey, quick question about the PR"
+
+# Send a DM with markdown
+agent-webex message dm alice@example.com "**Build failed** - can you check?" --markdown
+```
+
+**When to use**: Quick 1:1 messages when you know the recipient's email.
+
 ## Space Patterns
 
-### Pattern 4: List All Spaces
+### Pattern 5: List All Spaces
 
 **Use case**: Discover available spaces
 
@@ -70,7 +89,7 @@ SPACES=$(agent-webex space list)
 echo "$SPACES" | jq -r '.[] | "\(.title) (\(.id))"'
 ```
 
-### Pattern 5: Filter Spaces by Type
+### Pattern 6: Filter Spaces by Type
 
 **Use case**: Show only group spaces or direct messages
 
@@ -87,7 +106,7 @@ agent-webex space list --type direct
 agent-webex space list --type group --limit 10
 ```
 
-### Pattern 6: Get Space Info
+### Pattern 7: Get Space Info
 
 **Use case**: Look up details for a specific space
 
@@ -103,7 +122,7 @@ TYPE=$(echo "$INFO" | jq -r '.type')
 echo "Space: $TITLE ($TYPE)"
 ```
 
-### Pattern 7: Find Space by Title
+### Pattern 8: Find Space by Title
 
 **Use case**: Get a space ID from its title
 
@@ -135,7 +154,7 @@ fi
 
 ## Message Patterns
 
-### Pattern 8: Send a Simple Message
+### Pattern 9: Send a Simple Message
 
 **Use case**: Post a notification or update
 
@@ -154,7 +173,7 @@ else
 fi
 ```
 
-### Pattern 9: Send a Markdown Message
+### Pattern 10: Send a Markdown Message
 
 **Use case**: Rich formatting in messages
 
@@ -169,7 +188,7 @@ agent-webex message send "$SPACE_ID" "**Build Status**
 - Coverage: 94.2%" --markdown
 ```
 
-### Pattern 10: List Recent Messages
+### Pattern 11: List Recent Messages
 
 **Use case**: Read conversation history
 
@@ -184,7 +203,7 @@ MESSAGES=$(agent-webex message list "$SPACE_ID" --limit 10)
 echo "$MESSAGES" | jq -r '.[] | "[\(.created)] \(.personEmail): \(.text)"'
 ```
 
-### Pattern 11: Get a Specific Message
+### Pattern 12: Get a Specific Message
 
 **Use case**: Retrieve a message by ID
 
@@ -197,7 +216,7 @@ MSG=$(agent-webex message get "$MESSAGE_ID")
 echo "$MSG" | jq -r '.text'
 ```
 
-### Pattern 12: Delete a Message
+### Pattern 13: Delete a Message
 
 **Use case**: Remove a message (your own or as moderator)
 
@@ -213,7 +232,7 @@ agent-webex message delete "$MESSAGE_ID"
 agent-webex message delete "$MESSAGE_ID" --force
 ```
 
-### Pattern 13: Edit a Message
+### Pattern 14: Edit a Message
 
 **Use case**: Update an existing message
 
@@ -229,7 +248,7 @@ agent-webex message edit "$MESSAGE_ID" "$SPACE_ID" "Updated: all systems operati
 agent-webex message edit "$MESSAGE_ID" "$SPACE_ID" "**Updated**: all systems operational" --markdown
 ```
 
-### Pattern 14: Send and Track a Message
+### Pattern 15: Send and Track a Message
 
 **Use case**: Send a message and save its ID for later editing or deletion
 
@@ -251,7 +270,7 @@ agent-webex message edit "$MSG_ID" "$SPACE_ID" "Deployed v2.1.0 successfully!"
 
 ## Member Patterns
 
-### Pattern 15: List Space Members
+### Pattern 16: List Space Members
 
 **Use case**: See who's in a space
 
@@ -264,7 +283,7 @@ MEMBERS=$(agent-webex member list "$SPACE_ID")
 echo "$MEMBERS" | jq -r '.[] | "\(.personDisplayName) (\(.personEmail))"'
 ```
 
-### Pattern 16: List Members with Limit
+### Pattern 17: List Members with Limit
 
 **Use case**: Large spaces with many members
 
@@ -277,7 +296,7 @@ SPACE_ID="Y2lzY29zcGFyazovL..."
 agent-webex member list "$SPACE_ID" --limit 50
 ```
 
-### Pattern 17: Find a Specific Member
+### Pattern 18: Find a Specific Member
 
 **Use case**: Look up a person in a space
 
@@ -301,7 +320,7 @@ echo "Found: $(echo "$MATCH" | jq -r '.personDisplayName') ($(echo "$MATCH" | jq
 
 ## Snapshot Patterns
 
-### Pattern 18: Full Workspace Snapshot
+### Pattern 19: Full Workspace Snapshot
 
 **Use case**: Get complete workspace state for AI context
 
@@ -317,7 +336,7 @@ echo "Total spaces: $SPACE_COUNT"
 echo "$SNAPSHOT" | jq -r '.spaces[] | "  \(.title) (\(.type))"'
 ```
 
-### Pattern 19: Spaces-Only Snapshot
+### Pattern 20: Spaces-Only Snapshot
 
 **Use case**: Quick overview without messages or members
 
@@ -327,7 +346,7 @@ echo "$SNAPSHOT" | jq -r '.spaces[] | "  \(.title) (\(.type))"'
 agent-webex snapshot --spaces-only
 ```
 
-### Pattern 20: Members-Only Snapshot
+### Pattern 21: Members-Only Snapshot
 
 **Use case**: Get member lists across all spaces
 
@@ -337,7 +356,7 @@ agent-webex snapshot --spaces-only
 agent-webex snapshot --members-only
 ```
 
-### Pattern 21: Snapshot with Message Limit
+### Pattern 22: Snapshot with Message Limit
 
 **Use case**: Control how many messages per space
 
@@ -350,7 +369,7 @@ agent-webex snapshot --limit 5
 
 ## Pipeline Patterns
 
-### Pattern 22: Send to Multiple Spaces
+### Pattern 23: Send to Multiple Spaces
 
 **Use case**: Broadcast a message across spaces
 
@@ -385,7 +404,7 @@ for name in "${SPACE_NAMES[@]}"; do
 done
 ```
 
-### Pattern 23: Conditional Messaging
+### Pattern 24: Conditional Messaging
 
 **Use case**: Send different messages based on conditions
 
@@ -402,7 +421,7 @@ else
 fi
 ```
 
-### Pattern 24: Error Handling with Retry
+### Pattern 25: Error Handling with Retry
 
 **Use case**: Robust message sending for production scripts
 
@@ -456,7 +475,9 @@ SPACE_ID="Y2lzY29zcGFyazovL..."
 send_with_retry "$SPACE_ID" "Important notification!"
 ```
 
-### Pattern 25: Token Refresh Wrapper (PAT)
+### Pattern 26: Token Refresh Wrapper (for PAT/bot tokens)
+
+> **Note**: If using Device Grant auth (the default), tokens auto-refresh. This wrapper is only needed for manual PAT/bot token auth.
 
 **Use case**: Handle PAT expiry in long-running scripts
 
@@ -486,7 +507,7 @@ SPACES=$(webex_cmd agent-webex space list)
 RESULT=$(webex_cmd agent-webex message send "$SPACE_ID" "Hello!")
 ```
 
-### Pattern 26: Daily Summary Report
+### Pattern 27: Daily Summary Report
 
 **Use case**: Generate a workspace activity summary
 
@@ -514,7 +535,7 @@ SUMMARY="**Daily Summary**
 agent-webex message send "$SPACE_ID" "$SUMMARY" --markdown
 ```
 
-### Pattern 27: Monitor and Respond
+### Pattern 28: Monitor and Respond
 
 **Use case**: Poll a space and respond to keywords
 
@@ -553,7 +574,7 @@ while true; do
 done
 ```
 
-### Pattern 28: Batch Message Cleanup
+### Pattern 29: Batch Message Cleanup
 
 **Use case**: Delete multiple messages (e.g., bot spam cleanup)
 
@@ -623,15 +644,17 @@ for space_id in "${SPACE_IDS[@]}"; do
 done
 ```
 
-### 4. Use Bot Tokens for Automation
+### 4. Use Bot Tokens or Device Grant for Automation
 
 ```bash
-# Good - bot token never expires
+# Best: Device Grant (auto-refreshes, no token management)
+agent-webex auth login
+
+# Also good: bot token (never expires)
 agent-webex auth login --token "$BOT_TOKEN"
 
-# Risky - PAT expires in 12 hours
+# Risky: PAT expires in 12 hours
 agent-webex auth login --token "$PAT_TOKEN"
-# Script will break after 12 hours
 ```
 
 ### 5. Don't Spam Spaces
@@ -661,8 +684,8 @@ agent-webex message send "$SPACE_ID" "Hello"
 
 # Good
 RESULT=$(agent-webex message send "$SPACE_ID" "Hello")
-if echo "$RESULT" | grep -qi "401\|not authenticated"; then
-  echo "Auth failed. Check your token."
+if echo "$RESULT" | grep -qi "401\|unauthorized\|not authenticated"; then
+  echo "Auth failed. Run 'auth login' to re-authenticate."
   exit 1
 fi
 ```
