@@ -333,6 +333,20 @@ export class WebexClient {
     text: string,
     options?: { markdown?: boolean },
   ): Promise<WebexMessage> {
+    if (this.useInternalAPI) {
+      const convUuid = this.decodeConvUuid(roomId)
+      const result = await this.internalRequest<InternalActivity>('/activities', {
+        method: 'POST',
+        body: JSON.stringify({
+          verb: 'post',
+          object: { objectType: 'comment', displayName: text, content: text },
+          target: { id: convUuid, objectType: 'conversation' },
+          parent: { id: messageId, type: 'edit' },
+          clientTempId: `tmp-${Date.now()}`,
+        }),
+      })
+      return this.activityToMessage(result, roomId)
+    }
     const body = options?.markdown ? { roomId, markdown: text } : { roomId, text }
     return this.request<WebexMessage>('PUT', `/messages/${messageId}`, body)
   }
