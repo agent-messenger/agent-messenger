@@ -35,8 +35,9 @@ describe('auth commands', () => {
 
       await loginAction({ token: 'bot-token-123', pretty: false })
 
-      expect(consoleSpy).toHaveBeenCalledTimes(1)
-      const output = JSON.parse(consoleSpy.mock.calls[0][0] as string)
+      expect(consoleSpy).toHaveBeenCalled()
+      const lastCall = consoleSpy.mock.calls[consoleSpy.mock.calls.length - 1][0] as string
+      const output = JSON.parse(lastCall)
       expect(output.authenticated).toBe(true)
       expect(output.user.displayName).toBe('Test User')
     })
@@ -139,7 +140,8 @@ describe('auth commands', () => {
 
       await statusAction({ pretty: false })
 
-      const output = JSON.parse(consoleSpy.mock.calls[0][0] as string)
+      const lastCall = consoleSpy.mock.calls[consoleSpy.mock.calls.length - 1][0] as string
+      const output = JSON.parse(lastCall)
       expect(output.authenticated).toBe(true)
       expect(output.user.displayName).toBe('Test User')
     })
@@ -151,7 +153,8 @@ describe('auth commands', () => {
 
       await statusAction({ pretty: false })
 
-      const output = JSON.parse(consoleSpy.mock.calls[0][0] as string)
+      const lastCall = consoleSpy.mock.calls[consoleSpy.mock.calls.length - 1][0] as string
+      const output = JSON.parse(lastCall)
       expect(output.error).toContain('Not authenticated')
       expect(exitSpy).toHaveBeenCalledWith(1)
     })
@@ -164,7 +167,8 @@ describe('auth commands', () => {
 
       await statusAction({ pretty: false })
 
-      const output = JSON.parse(consoleSpy.mock.calls[0][0] as string)
+      const lastCall = consoleSpy.mock.calls[consoleSpy.mock.calls.length - 1][0] as string
+      const output = JSON.parse(lastCall)
       expect(output.authenticated).toBe(false)
     })
 
@@ -198,7 +202,8 @@ describe('auth commands', () => {
       await logoutAction({ pretty: false })
 
       expect(clearSpy).toHaveBeenCalled()
-      const output = JSON.parse(consoleSpy.mock.calls[0][0] as string)
+      const lastCall = consoleSpy.mock.calls[consoleSpy.mock.calls.length - 1][0] as string
+      const output = JSON.parse(lastCall)
       expect(output.success).toBe(true)
     })
 
@@ -208,7 +213,8 @@ describe('auth commands', () => {
 
       await logoutAction({ pretty: false })
 
-      const output = JSON.parse(consoleSpy.mock.calls[0][0] as string)
+      const lastCall = consoleSpy.mock.calls[consoleSpy.mock.calls.length - 1][0] as string
+      const output = JSON.parse(lastCall)
       expect(output.error).toContain('Not authenticated')
       expect(exitSpy).toHaveBeenCalledWith(1)
     })

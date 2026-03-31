@@ -112,6 +112,7 @@ export async function statusAction(options: { pretty?: boolean }): Promise<void>
         formatOutput({ error: 'Not authenticated. Run "auth login" first.' }, options.pretty),
       )
       process.exit(1)
+      return
     }
 
     try {
@@ -144,6 +145,7 @@ export async function logoutAction(options: { pretty?: boolean }): Promise<void>
         formatOutput({ error: 'Not authenticated. Run "auth login" first.' }, options.pretty),
       )
       process.exit(1)
+      return
     }
 
     await credManager.clearCredentials()

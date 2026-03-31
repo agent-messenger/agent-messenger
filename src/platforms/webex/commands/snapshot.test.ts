@@ -34,7 +34,7 @@ describe('snapshot command', () => {
     await snapshotAction({})
 
     expect(consoleSpy).toHaveBeenCalled()
-    const output = JSON.parse(consoleSpy.mock.calls[0][0])
+    const output = JSON.parse(consoleSpy.mock.calls[consoleSpy.mock.calls.length - 1][0])
     expect(output.spaces).toBeDefined()
     expect(output.spaces[0].id).toBe('space-1')
     expect(output.spaces[0].title).toBe('General')
@@ -49,7 +49,7 @@ describe('snapshot command', () => {
     await snapshotAction({ spacesOnly: true })
 
     expect(consoleSpy).toHaveBeenCalled()
-    const output = JSON.parse(consoleSpy.mock.calls[0][0])
+    const output = JSON.parse(consoleSpy.mock.calls[consoleSpy.mock.calls.length - 1][0])
     expect(output.spaces).toBeDefined()
     expect(output.recent_messages).toBeUndefined()
     expect(output.members).toBeUndefined()
@@ -59,7 +59,7 @@ describe('snapshot command', () => {
     await snapshotAction({ membersOnly: true })
 
     expect(consoleSpy).toHaveBeenCalled()
-    const output = JSON.parse(consoleSpy.mock.calls[0][0])
+    const output = JSON.parse(consoleSpy.mock.calls[consoleSpy.mock.calls.length - 1][0])
     expect(output.spaces).toBeUndefined()
     expect(output.recent_messages).toBeUndefined()
     expect(output.members).toBeDefined()
