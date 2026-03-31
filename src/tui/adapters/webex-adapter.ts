@@ -1,3 +1,5 @@
+import { exec } from 'node:child_process'
+
 import { WebexClient } from '@/platforms/webex/client'
 import { WebexCredentialManager } from '@/platforms/webex/credential-manager'
 import { getWebexAppCredentials } from '@/platforms/webex/app-config'
@@ -60,8 +62,9 @@ export class WebexAdapter implements PlatformAdapter {
     io.print('Starting Webex OAuth Device Grant flow...')
     const device = await credManager.requestDeviceCode(clientId)
 
-    io.print(`\nOpen this URL in your browser:\n  ${device.verificationUriComplete}`)
-    io.print(`\nOr go to ${device.verificationUri} and enter code: ${device.userCode}`)
+    io.print(`\nOpening browser for authorization...`)
+    io.print(`Code: ${device.userCode}`)
+    openBrowser(device.verificationUriComplete)
     io.print('\nWaiting for authorization...')
 
     const config = await credManager.pollDeviceToken(
@@ -87,4 +90,14 @@ export class WebexAdapter implements PlatformAdapter {
       throw new Error('Not logged in. Call login() first.')
     }
   }
+}
+
+function openBrowser(url: string): void {
+  const command =
+    process.platform === 'darwin'
+      ? `open "${url}"`
+      : process.platform === 'win32'
+        ? `start "" "${url}"`
+        : `xdg-open "${url}"`
+  exec(command)
 }
