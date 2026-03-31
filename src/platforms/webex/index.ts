@@ -3,7 +3,6 @@ export { WebexCredentialManager } from './credential-manager'
 export { WebexError } from './types'
 export type {
   WebexConfig,
-  WebexCredentials,
   WebexMembership,
   WebexMessage,
   WebexPerson,
@@ -11,7 +10,6 @@ export type {
 } from './types'
 export {
   WebexConfigSchema,
-  WebexCredentialsSchema,
   WebexMembershipSchema,
   WebexMessageSchema,
   WebexPersonSchema,

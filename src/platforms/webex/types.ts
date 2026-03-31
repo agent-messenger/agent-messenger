@@ -49,12 +49,12 @@ export interface WebexMembership {
   created: string
 }
 
-export interface WebexCredentials {
-  token: string
-}
-
 export interface WebexConfig {
-  token: string
+  accessToken: string
+  refreshToken: string
+  expiresAt: number
+  clientId?: string
+  clientSecret?: string
 }
 
 export class WebexError extends Error {
@@ -116,10 +116,10 @@ export const WebexMembershipSchema = z.object({
   created: z.string(),
 })
 
-export const WebexCredentialsSchema = z.object({
-  token: z.string(),
-})
-
 export const WebexConfigSchema = z.object({
-  token: z.string(),
+  accessToken: z.string(),
+  refreshToken: z.string(),
+  expiresAt: z.number(),
+  clientId: z.string().optional(),
+  clientSecret: z.string().optional(),
 })

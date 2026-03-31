@@ -2,7 +2,6 @@ import { expect, test } from 'bun:test'
 
 import {
   WebexConfigSchema,
-  WebexCredentialsSchema,
   WebexError,
   WebexMembershipSchema,
   WebexMessageSchema,
@@ -217,26 +216,44 @@ test('WebexMembershipSchema rejects missing required fields', () => {
   expect(result.success).toBe(false)
 })
 
-test('WebexCredentialsSchema validates valid credentials', () => {
-  const result = WebexCredentialsSchema.safeParse({
-    token: 'NmQ4MDY4YzItMDEwNS00NzU5LWFmZjItOWE5MDZkZDE0NWFjMjcwZmQ5OTct',
-  })
-  expect(result.success).toBe(true)
-})
-
-test('WebexCredentialsSchema rejects missing token', () => {
-  const result = WebexCredentialsSchema.safeParse({})
-  expect(result.success).toBe(false)
-})
-
-test('WebexConfigSchema validates valid config', () => {
+test('WebexConfigSchema validates valid OAuth config', () => {
   const result = WebexConfigSchema.safeParse({
-    token: 'NmQ4MDY4YzItMDEwNS00NzU5LWFmZjItOWE5MDZkZDE0NWFjMjcwZmQ5OTct',
+    accessToken: 'test',
+    refreshToken: 'test',
+    expiresAt: 1234567890,
   })
   expect(result.success).toBe(true)
 })
 
-test('WebexConfigSchema rejects missing token', () => {
+test('WebexConfigSchema validates config with clientId and clientSecret', () => {
+  const result = WebexConfigSchema.safeParse({
+    accessToken: 'test',
+    refreshToken: 'test',
+    expiresAt: 1234567890,
+    clientId: 'C123abc',
+    clientSecret: 'secret456',
+  })
+  expect(result.success).toBe(true)
+  if (result.success) {
+    expect(result.data.clientId).toBe('C123abc')
+    expect(result.data.clientSecret).toBe('secret456')
+  }
+})
+
+test('WebexConfigSchema accepts config without clientId/clientSecret (backward compat)', () => {
+  const result = WebexConfigSchema.safeParse({
+    accessToken: 'test',
+    refreshToken: 'test',
+    expiresAt: 1234567890,
+  })
+  expect(result.success).toBe(true)
+  if (result.success) {
+    expect(result.data.clientId).toBeUndefined()
+    expect(result.data.clientSecret).toBeUndefined()
+  }
+})
+
+test('WebexConfigSchema rejects missing fields', () => {
   const result = WebexConfigSchema.safeParse({})
   expect(result.success).toBe(false)
 })

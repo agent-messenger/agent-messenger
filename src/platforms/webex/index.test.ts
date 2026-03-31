@@ -20,7 +20,6 @@ describe('webex barrel exports', () => {
     expect(webex.WebexMessageSchema).toBeDefined()
     expect(webex.WebexPersonSchema).toBeDefined()
     expect(webex.WebexMembershipSchema).toBeDefined()
-    expect(webex.WebexCredentialsSchema).toBeDefined()
     expect(webex.WebexConfigSchema).toBeDefined()
   })
 })
