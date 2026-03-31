@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, test } from 'bun:test'
+import { afterEach, describe, expect, spyOn, test } from 'bun:test'
 import { createCipheriv, randomBytes } from 'node:crypto'
 import { existsSync, mkdtempSync, mkdirSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -57,8 +57,47 @@ describe('ChannelTokenExtractor', () => {
     })
   })
 
+  describe('getBrowserCookiesPaths', () => {
+    test('returns browser cookie paths on macOS including Default profile', () => {
+      const extractor = new ChannelTokenExtractor('darwin')
+      const paths = extractor.getBrowserCookiesPaths()
+
+      const chromeBase = join(
+        process.env.HOME || '/tmp',
+        'Library',
+        'Application Support',
+        'Google',
+        'Chrome',
+      )
+      expect(paths).toContain(join(chromeBase, 'Default', 'Cookies'))
+      expect(paths).toContain(join(chromeBase, 'Default', 'Network', 'Cookies'))
+    })
+
+    test('returns browser cookie paths on Linux', () => {
+      const extractor = new ChannelTokenExtractor('linux')
+      const paths = extractor.getBrowserCookiesPaths()
+
+      const chromeBase = join(process.env.HOME || '/tmp', '.config', 'google-chrome')
+      expect(paths).toContain(join(chromeBase, 'Default', 'Cookies'))
+    })
+
+    test('returns browser cookie paths on Windows', () => {
+      const extractor = new ChannelTokenExtractor('win32')
+      const paths = extractor.getBrowserCookiesPaths()
+
+      const localAppData = process.env.LOCALAPPDATA || join(process.env.HOME || '/tmp', 'AppData', 'Local')
+      const chromeBase = join(localAppData, 'Google', 'Chrome', 'User Data')
+      expect(paths).toContain(join(chromeBase, 'Default', 'Cookies'))
+    })
+
+    test('returns empty array for unsupported platform', () => {
+      const extractor = new ChannelTokenExtractor('freebsd' as NodeJS.Platform)
+      expect(extractor.getBrowserCookiesPaths()).toEqual([])
+    })
+  })
+
   describe('extract', () => {
-    test('returns null when cookies path does not exist', async () => {
+    test('returns null when desktop cookies path does not exist', async () => {
       class MissingPathExtractor extends ChannelTokenExtractor {
         override getCookiesPath(): string | null {
           return null
@@ -68,6 +107,44 @@ describe('ChannelTokenExtractor', () => {
       const extractor = new MissingPathExtractor('darwin')
 
       expect(await extractor.extract()).toBeNull()
+    })
+
+    test('tries desktop app before browser profiles', async () => {
+      const extractor = new ChannelTokenExtractor('darwin')
+
+      const desktopSpy = spyOn(extractor as any, 'extractFromDesktopApp').mockResolvedValue({
+        accountCookie: 'desktop-account',
+        sessionCookie: 'desktop-session',
+      })
+      const browserSpy = spyOn(extractor as any, 'extractFromBrowsers').mockResolvedValue(null)
+
+      const result = await extractor.extract()
+
+      expect(desktopSpy).toHaveBeenCalled()
+      expect(browserSpy).not.toHaveBeenCalled()
+      expect(result?.accountCookie).toBe('desktop-account')
+
+      desktopSpy.mockRestore()
+      browserSpy.mockRestore()
+    })
+
+    test('falls back to browser profiles when desktop extraction returns null', async () => {
+      const extractor = new ChannelTokenExtractor('darwin')
+
+      const desktopSpy = spyOn(extractor as any, 'extractFromDesktopApp').mockResolvedValue(null)
+      const browserSpy = spyOn(extractor as any, 'extractFromBrowsers').mockResolvedValue({
+        accountCookie: 'browser-account',
+        sessionCookie: undefined,
+      })
+
+      const result = await extractor.extract()
+
+      expect(desktopSpy).toHaveBeenCalled()
+      expect(browserSpy).toHaveBeenCalled()
+      expect(result?.accountCookie).toBe('browser-account')
+
+      desktopSpy.mockRestore()
+      browserSpy.mockRestore()
     })
 
     test('extracts plaintext cookies from a real sqlite database', async () => {
