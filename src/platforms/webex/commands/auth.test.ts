@@ -1,6 +1,5 @@
 import { afterEach, beforeEach, describe, expect, mock, spyOn, test } from 'bun:test'
-
-mock.module('node:child_process', () => ({ exec: mock() }))
+import * as childProcess from 'node:child_process'
 
 import { WebexClient } from '../client'
 import { WebexCredentialManager } from '../credential-manager'
@@ -21,6 +20,7 @@ describe('auth commands', () => {
   beforeEach(() => {
     consoleSpy = spyOn(console, 'log').mockImplementation(() => {})
     _consoleErrorSpy = spyOn(console, 'error').mockImplementation(() => {})
+    spyOn(childProcess, 'exec').mockImplementation((() => {}) as any)
   })
 
   afterEach(() => {
