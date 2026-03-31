@@ -35,16 +35,8 @@ async function resolveClientCredentials(options: {
     return { clientId: options.clientId, clientSecret: options.clientSecret }
   }
 
-  // 2. Stored config from previous login
-  const credManager = new WebexCredentialManager()
-  const config = await credManager.loadConfig()
-  if (config?.clientId && config?.clientSecret) {
-    return { clientId: config.clientId, clientSecret: config.clientSecret }
-  }
-
-  // 3. Env vars → 4. Built-in defaults (always resolves)
-  const appCreds = getWebexAppCredentials()
-  return { clientId: appCreds.clientId, clientSecret: appCreds.clientSecret }
+  // 2. Env vars → 3. Built-in defaults (always resolves)
+  return getWebexAppCredentials()
 }
 
 export async function loginAction(options: { token?: string; clientId?: string; clientSecret?: string; pretty?: boolean }): Promise<void> {
@@ -57,7 +49,8 @@ export async function loginAction(options: { token?: string; clientId?: string; 
       await credManager.saveConfig({
         accessToken: options.token,
         refreshToken: '',
-        expiresAt: Date.now() + 365 * 24 * 60 * 60 * 1000,
+        expiresAt: 0,
+        tokenType: 'manual',
       })
       console.log(
         formatOutput(
@@ -89,7 +82,7 @@ export async function loginAction(options: { token?: string; clientId?: string; 
       clientSecret,
     )
 
-    await credManager.saveConfig({ ...config, clientId, clientSecret })
+    await credManager.saveConfig({ ...config, clientId, clientSecret, tokenType: 'oauth' })
 
     const client = await new WebexClient().login({ token: config.accessToken })
     const person = await client.testAuth()

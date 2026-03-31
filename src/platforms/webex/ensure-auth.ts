@@ -13,5 +13,7 @@ export async function ensureWebexAuth(): Promise<void> {
     const client = new WebexClient()
     await client.login({ token })
     await client.testAuth()
-  } catch {}
+  } catch {
+    // Intentionally silent — best-effort preflight that should not block commands
+  }
 }

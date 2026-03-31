@@ -1,5 +1,7 @@
 import { afterEach, beforeEach, describe, expect, mock, spyOn, test } from 'bun:test'
 
+mock.module('node:child_process', () => ({ exec: mock() }))
+
 import { WebexClient } from '../client'
 import { WebexCredentialManager } from '../credential-manager'
 import { loginAction, logoutAction, statusAction } from './auth'
@@ -38,6 +40,19 @@ describe('auth commands', () => {
       expect(output.authenticated).toBe(true)
       expect(output.user.displayName).toBe('Test User')
     })
+
+    test('saves tokenType as manual with expiresAt 0', async () => {
+      spyOn(WebexClient.prototype, 'login').mockResolvedValue(new WebexClient())
+      spyOn(WebexClient.prototype, 'testAuth').mockResolvedValue(mockPerson)
+      const saveSpy = spyOn(WebexCredentialManager.prototype, 'saveConfig').mockResolvedValue(undefined)
+
+      await loginAction({ token: 'bot-token-123', pretty: false })
+
+      const savedConfig = saveSpy.mock.calls[0][0] as { tokenType: string; expiresAt: number; refreshToken: string }
+      expect(savedConfig.tokenType).toBe('manual')
+      expect(savedConfig.expiresAt).toBe(0)
+      expect(savedConfig.refreshToken).toBe('')
+    })
   })
 
   describe('loginAction with --client-id and --client-secret', () => {
@@ -63,6 +78,30 @@ describe('auth commands', () => {
 
       expect(WebexCredentialManager.prototype.requestDeviceCode).toHaveBeenCalledWith('my-id')
       expect(WebexCredentialManager.prototype.pollDeviceToken).toHaveBeenCalledWith('d', 0.01, 300, 'my-id', 'my-secret')
+    })
+
+    test('saves tokenType as oauth in config', async () => {
+      spyOn(WebexCredentialManager.prototype, 'requestDeviceCode').mockResolvedValue({
+        deviceCode: 'd',
+        userCode: 'u',
+        verificationUri: 'https://v',
+        verificationUriComplete: 'https://vc',
+        expiresIn: 300,
+        interval: 0.01,
+      })
+      spyOn(WebexCredentialManager.prototype, 'pollDeviceToken').mockResolvedValue({
+        accessToken: 'at',
+        refreshToken: 'rt',
+        expiresAt: Date.now() + 3600000,
+      })
+      const saveSpy = spyOn(WebexCredentialManager.prototype, 'saveConfig').mockResolvedValue(undefined)
+      spyOn(WebexClient.prototype, 'login').mockResolvedValue(new WebexClient())
+      spyOn(WebexClient.prototype, 'testAuth').mockResolvedValue(mockPerson)
+
+      await loginAction({ clientId: 'my-id', clientSecret: 'my-secret', pretty: false })
+
+      const savedConfig = saveSpy.mock.calls[0][0] as { tokenType: string }
+      expect(savedConfig.tokenType).toBe('oauth')
     })
 
     test('saves clientId and clientSecret in config', async () => {
