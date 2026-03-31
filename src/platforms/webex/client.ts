@@ -13,6 +13,8 @@ interface RateLimitBucket {
 
 export class WebexClient {
   private token: string | null = null
+  private deviceUrl: string | null = null
+  private tokenType: string | null = null
   private buckets: Map<string, RateLimitBucket> = new Map()
   private globalRateLimitUntil: number = 0
 
@@ -36,6 +38,8 @@ export class WebexClient {
         'no_credentials',
       )
     }
+    this.deviceUrl = config?.deviceUrl ?? null
+    this.tokenType = config?.tokenType ?? null
     return this.login({ token })
   }
 
@@ -175,8 +179,65 @@ export class WebexClient {
     text: string,
     options?: { markdown?: boolean },
   ): Promise<WebexMessage> {
+    if (this.tokenType === 'extracted' && this.deviceUrl) {
+      return this.sendMessageViaConversationAPI(roomId, text)
+    }
     const body = options?.markdown ? { roomId, markdown: text } : { roomId, text }
     return this.request<WebexMessage>('POST', '/messages', body)
+  }
+
+  private async sendMessageViaConversationAPI(roomId: string, text: string): Promise<WebexMessage> {
+    const token = this.ensureAuth()
+
+    const decodedRoomId = Buffer.from(roomId, 'base64').toString('utf8')
+    const convUuid = decodedRoomId.split('/').pop() ?? roomId
+
+    const clusterSuffixMatch = this.deviceUrl!.match(/wdm(-[a-z0-9]+)\.wbx2\.com/)
+    const clusterSuffix = clusterSuffixMatch?.[1] ?? ''
+    const convBaseUrl = `https://conv${clusterSuffix}.wbx2.com/conversation/api/v1`
+
+    const activity = {
+      verb: 'post',
+      object: { objectType: 'comment', displayName: text, content: text },
+      target: { id: convUuid, objectType: 'conversation' },
+      clientTempId: `tmp-${Date.now()}`,
+    }
+
+    const response = await fetch(`${convBaseUrl}/activities`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+        'cisco-device-url': this.deviceUrl!,
+      },
+      body: JSON.stringify(activity),
+    })
+
+    if (!response.ok) {
+      const errorBody = (await response.json().catch(() => null)) as { message?: string } | null
+      throw new WebexError(
+        errorBody?.message ?? `HTTP ${response.status}`,
+        `http_${response.status}`,
+      )
+    }
+
+    const result = (await response.json()) as {
+      id: string
+      actor: { displayName: string; emailAddress: string; entryUUID?: string; id?: string }
+      object: { content?: string; displayName?: string }
+      target: { id: string }
+      published: string
+    }
+
+    return {
+      id: result.id,
+      roomId,
+      roomType: 'group' as const,
+      text: result.object.content ?? result.object.displayName,
+      personId: result.actor.entryUUID ?? result.actor.id ?? '',
+      personEmail: result.actor.emailAddress,
+      created: result.published,
+    }
   }
 
   async sendDirectMessage(
