@@ -66,11 +66,11 @@ const msg = await client.sendMessage(roomId, 'Hello world')
 // → WebexMessage { id, roomId, roomType, text, personId, personEmail, created }
 
 // Send a markdown message
-const msg = await client.sendMessage(roomId, '**Bold** and _italic_', { markdown: true })
+await client.sendMessage(roomId, '**Bold** and _italic_', { markdown: true })
 
 // Send a direct message by email
 const dm = await client.sendDirectMessage('alice@example.com', 'Hey!')
-const dm = await client.sendDirectMessage('alice@example.com', '**Important**', { markdown: true })
+await client.sendDirectMessage('alice@example.com', '**Important**', { markdown: true })
 
 // List messages in a space (default limit: 50)
 const messages = await client.listMessages(roomId)
@@ -83,7 +83,7 @@ const message = await client.getMessage(messageId)
 
 // Edit a message
 const updated = await client.editMessage(messageId, roomId, 'Updated text')
-const updated = await client.editMessage(messageId, roomId, '**Updated**', { markdown: true })
+await client.editMessage(messageId, roomId, '**Updated**', { markdown: true })
 // → WebexMessage
 
 // Delete a message
@@ -95,7 +95,7 @@ await client.deleteMessage(messageId)
 ```typescript
 // List people (search by email or display name)
 const people = await client.listPeople({ email: 'alice@example.com' })
-const people = await client.listPeople({ displayName: 'Alice', max: 10 })
+const byName = await client.listPeople({ displayName: 'Alice', max: 10 })
 // → WebexPerson[]
 ```
 
@@ -140,7 +140,7 @@ const device = await manager.requestDeviceCode(clientId)
 // → { deviceCode, userCode, verificationUri, verificationUriComplete, expiresIn, interval }
 
 // Poll for device token approval
-const config = await manager.pollDeviceToken(deviceCode, interval, expiresIn, clientId, clientSecret)
+const tokenConfig = await manager.pollDeviceToken(deviceCode, interval, expiresIn, clientId, clientSecret)
 // → WebexConfig
 
 // Clear all stored credentials (deletes the file)
