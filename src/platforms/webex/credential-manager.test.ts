@@ -237,6 +237,18 @@ describe('WebexCredentialManager', () => {
     expect(token).toBeNull()
   })
 
+  test('getToken returns manual token without attempting refresh', async () => {
+    await credManager.saveConfig({
+      accessToken: 'my-bot-token',
+      refreshToken: '',
+      expiresAt: 0,
+      tokenType: 'manual',
+    })
+
+    const token = await credManager.getToken()
+    expect(token).toBe('my-bot-token')
+  })
+
   test('getToken uses stored clientId/clientSecret for refresh', async () => {
     const originalFetch = globalThis.fetch
     globalThis.fetch = mock(() =>

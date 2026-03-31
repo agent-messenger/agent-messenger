@@ -1,5 +1,5 @@
 import { existsSync } from 'node:fs'
-import { mkdir, readFile, rm, writeFile } from 'node:fs/promises'
+import { mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
 
@@ -33,15 +33,21 @@ export class WebexCredentialManager {
 
   async saveConfig(config: WebexConfig): Promise<void> {
     await mkdir(this.configDir, { recursive: true })
-    await writeFile(this.credentialsPath, JSON.stringify(config, null, 2), {
+    const tmpPath = `${this.credentialsPath}.tmp`
+    await writeFile(tmpPath, JSON.stringify(config, null, 2), {
       encoding: 'utf-8',
       mode: 0o600,
     })
+    await rename(tmpPath, this.credentialsPath)
   }
 
   async getToken(clientId?: string, clientSecret?: string): Promise<string | null> {
     const config = await this.loadConfig()
     if (!config) return null
+
+    if (config.tokenType === 'manual') {
+      return config.accessToken
+    }
 
     if (config.expiresAt < Date.now() + 5 * 60 * 1000) {
       const builtinCreds = getWebexAppCredentials()
