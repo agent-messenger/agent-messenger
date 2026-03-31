@@ -1,6 +1,16 @@
-import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
-import { homedir } from 'node:os'
+import {
+  copyFileSync,
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  statSync,
+} from 'node:fs'
+import { homedir, tmpdir } from 'node:os'
 import { join } from 'node:path'
+
+import { ClassicLevel } from 'classic-level'
 
 export interface ExtractedWebexToken {
   accessToken: string
@@ -60,8 +70,7 @@ const BROWSERS: BrowserConfig[] = [
   },
 ]
 
-const SUPERTOKEN_MARKER = '"supertoken"'
-const CREDENTIALS_MARKER = '"Credentials"'
+const WEBEX_STORAGE_KEY = '_https://web.webex.com\x00\x01webex-web-client-bounded'
 
 export class WebexTokenExtractor {
   private platform: NodeJS.Platform
@@ -125,13 +134,11 @@ export class WebexTokenExtractor {
 
     if (!existsSync(browserBase)) return dirs
 
-    // Check Default profile
     const defaultLeveldb = join(browserBase, 'Default', 'Local Storage', 'leveldb')
     if (existsSync(defaultLeveldb)) {
       dirs.push(defaultLeveldb)
     }
 
-    // Discover Profile N directories
     try {
       const entries = readdirSync(browserBase, { withFileTypes: true })
       for (const entry of entries) {
@@ -160,7 +167,10 @@ export class WebexTokenExtractor {
 
     for (const leveldbDir of profileDirs) {
       this.debug(`Scanning: ${leveldbDir}`)
-      const token = this.extractFromLevelDBDir(leveldbDir)
+
+      const token = await this.extractViaClassicLevelCopy(leveldbDir)
+        ?? this.extractFromRawFiles(leveldbDir)
+
       if (token) {
         this.debug(`Found token in: ${leveldbDir}`)
         return token
@@ -171,14 +181,81 @@ export class WebexTokenExtractor {
     return null
   }
 
-  private extractFromLevelDBDir(leveldbDir: string): ExtractedWebexToken | null {
+  private async extractViaClassicLevelCopy(dbPath: string): Promise<ExtractedWebexToken | null> {
+    const tempDir = join(tmpdir(), `webex-leveldb-${Date.now()}-${Math.random().toString(36).slice(2)}`)
+
+    try {
+      mkdirSync(tempDir, { recursive: true })
+
+      const files = readdirSync(dbPath)
+      for (const file of files) {
+        if (file === 'LOCK') continue
+        const src = join(dbPath, file)
+        try {
+          if (statSync(src).isFile()) {
+            copyFileSync(src, join(tempDir, file))
+          }
+        } catch {}
+      }
+
+      return await this.extractViaClassicLevel(tempDir)
+    } catch {
+      return null
+    } finally {
+      try {
+        rmSync(tempDir, { recursive: true, force: true })
+      } catch {}
+    }
+  }
+
+  private async extractViaClassicLevel(dbPath: string): Promise<ExtractedWebexToken | null> {
+    let db: ClassicLevel<string, Buffer> | null = null
+    try {
+      db = new ClassicLevel(dbPath, { keyEncoding: 'utf8', valueEncoding: 'buffer' })
+
+      for await (const [key, value] of db.iterator()) {
+        if (!key.includes('web.webex.com')) continue
+
+        const decoded = this.decodeLevelDBValue(value)
+        if (!decoded.includes('"supertoken"') && !decoded.includes('"Credentials"')) continue
+
+        const token = this.extractTokenFromString(decoded)
+        if (token) return token
+      }
+    } catch (e) {
+      this.debug(`ClassicLevel failed: ${e instanceof Error ? e.message : String(e)}`)
+    } finally {
+      if (db) {
+        try {
+          await db.close()
+        } catch {}
+      }
+    }
+    return null
+  }
+
+  private decodeLevelDBValue(buf: Buffer): string {
+    if (buf.length < 2) return buf.toString('utf8')
+    // Chromium localStorage: 0x00 prefix = UTF-16LE, 0x01 prefix = Latin1/UTF-8
+    if (buf[0] === 0x00 && (buf.length - 1) % 2 === 0) {
+      return buf.subarray(1).toString('utf16le')
+    }
+    if (buf[0] === 0x01) {
+      return buf.subarray(1).toString('utf8')
+    }
+    return buf.toString('utf8')
+  }
+
+  private extractFromRawFiles(leveldbDir: string): ExtractedWebexToken | null {
     try {
       const files = readdirSync(leveldbDir)
 
-      // Scan .log files first (cleaner data, not compacted)
-      const logFiles = files
-        .filter((f) => f.endsWith('.log'))
+      const sorted = [...files]
+        .filter((f) => f.endsWith('.log') || f.endsWith('.ldb'))
         .sort((a, b) => {
+          const aIsLog = a.endsWith('.log') ? 0 : 1
+          const bIsLog = b.endsWith('.log') ? 0 : 1
+          if (aIsLog !== bIsLog) return aIsLog - bIsLog
           try {
             return statSync(join(leveldbDir, b)).mtimeMs - statSync(join(leveldbDir, a)).mtimeMs
           } catch {
@@ -186,23 +263,7 @@ export class WebexTokenExtractor {
           }
         })
 
-      for (const file of logFiles) {
-        const token = this.extractFromFile(join(leveldbDir, file))
-        if (token) return token
-      }
-
-      // Then .ldb files (compacted, may have fragmented data)
-      const ldbFiles = files
-        .filter((f) => f.endsWith('.ldb'))
-        .sort((a, b) => {
-          try {
-            return statSync(join(leveldbDir, b)).mtimeMs - statSync(join(leveldbDir, a)).mtimeMs
-          } catch {
-            return 0
-          }
-        })
-
-      for (const file of ldbFiles) {
+      for (const file of sorted) {
         const token = this.extractFromFile(join(leveldbDir, file))
         if (token) return token
       }
@@ -216,7 +277,6 @@ export class WebexTokenExtractor {
   private extractFromFile(filePath: string): ExtractedWebexToken | null {
     try {
       const stat = statSync(filePath)
-      // Skip files larger than 50MB
       if (stat.size > 50 * 1024 * 1024) return null
 
       const buffer = readFileSync(filePath)
@@ -227,17 +287,26 @@ export class WebexTokenExtractor {
   }
 
   private extractTokenFromBuffer(buffer: Buffer): ExtractedWebexToken | null {
-    const content = buffer.toString('utf8')
+    // Try UTF-8 first, then strip null bytes for Chromium's UTF-16LE localStorage encoding
+    return this.extractTokenFromString(buffer.toString('utf8'))
+      ?? this.extractTokenFromString(this.stripNullBytes(buffer))
+  }
 
-    // Look for the supertoken marker — most specific indicator of Webex SDK storage
-    let markerIdx = content.indexOf(SUPERTOKEN_MARKER)
+  private stripNullBytes(buffer: Buffer): string {
+    const bytes: number[] = []
+    for (let i = 0; i < buffer.length; i++) {
+      if (buffer[i] !== 0) bytes.push(buffer[i]!)
+    }
+    return Buffer.from(bytes).toString('utf8')
+  }
+
+  private extractTokenFromString(content: string): ExtractedWebexToken | null {
+    let markerIdx = content.indexOf('"supertoken"')
     if (markerIdx === -1) {
-      // Fallback: look for Credentials marker
-      markerIdx = content.indexOf(CREDENTIALS_MARKER)
+      markerIdx = content.indexOf('"Credentials"')
       if (markerIdx === -1) return null
     }
 
-    // Try to extract JSON containing the marker
     const json = this.extractJsonAroundIndex(content, markerIdx)
     if (!json) return null
 
@@ -245,7 +314,6 @@ export class WebexTokenExtractor {
   }
 
   private extractJsonAroundIndex(content: string, markerIdx: number): string | null {
-    // Walk backward to find the opening brace of the outermost JSON object
     let depth = 0
     let start = -1
     for (let i = markerIdx; i >= 0; i--) {
@@ -260,7 +328,6 @@ export class WebexTokenExtractor {
     }
     if (start === -1) return null
 
-    // Walk forward to find the matching closing brace
     depth = 0
     let end = -1
     for (let i = start; i < content.length; i++) {
@@ -278,11 +345,10 @@ export class WebexTokenExtractor {
     return content.substring(start, end)
   }
 
-  private parseWebexStorage(jsonStr: string): ExtractedWebexToken | null {
+  parseWebexStorage(jsonStr: string): ExtractedWebexToken | null {
     try {
       const data = JSON.parse(jsonStr)
 
-      // Navigate: Credentials.@.supertoken or direct supertoken
       const supertoken =
         data?.Credentials?.['@']?.supertoken ??
         data?.['@']?.supertoken ??

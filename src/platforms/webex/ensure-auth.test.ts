@@ -3,11 +3,13 @@ import { afterEach, beforeEach, describe, expect, spyOn, test } from 'bun:test'
 import { WebexClient } from './client'
 import { WebexCredentialManager } from './credential-manager'
 import { ensureWebexAuth } from './ensure-auth'
+import { WebexTokenExtractor } from './token-extractor'
 
 let loadConfigSpy: ReturnType<typeof spyOn>
 let getTokenSpy: ReturnType<typeof spyOn>
 let loginSpy: ReturnType<typeof spyOn>
 let testAuthSpy: ReturnType<typeof spyOn>
+let extractSpy: ReturnType<typeof spyOn>
 
 beforeEach(() => {
   loadConfigSpy = spyOn(WebexCredentialManager.prototype, 'loadConfig').mockResolvedValue(null)
@@ -19,6 +21,7 @@ beforeEach(() => {
     emails: ['test@example.com'],
     type: 'person',
   })
+  extractSpy = spyOn(WebexTokenExtractor.prototype, 'extract').mockResolvedValue(null)
 })
 
 afterEach(() => {
@@ -26,6 +29,7 @@ afterEach(() => {
   getTokenSpy?.mockRestore()
   loginSpy?.mockRestore()
   testAuthSpy?.mockRestore()
+  extractSpy?.mockRestore()
 })
 
 describe('ensureWebexAuth', () => {
