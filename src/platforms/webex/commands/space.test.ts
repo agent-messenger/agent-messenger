@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, spyOn, test } from 'bun:test'
 
 import { WebexClient } from '../client'
-import { WebexCredentialManager } from '../credential-manager'
+import { WebexError } from '../types'
 import { infoAction, listAction } from './space'
 
 const mockSpaces = [
@@ -39,8 +39,8 @@ const mockSpace = {
 let clientLoginSpy: ReturnType<typeof spyOn>
 let clientListSpacesSpy: ReturnType<typeof spyOn>
 let clientGetSpaceSpy: ReturnType<typeof spyOn>
-let credManagerGetTokenSpy: ReturnType<typeof spyOn>
 let consoleLogSpy: ReturnType<typeof spyOn>
+let consoleErrorSpy: ReturnType<typeof spyOn>
 let processExitSpy: ReturnType<typeof spyOn>
 
 beforeEach(() => {
@@ -52,11 +52,8 @@ beforeEach(() => {
 
   clientGetSpaceSpy = spyOn(WebexClient.prototype, 'getSpace').mockResolvedValue(mockSpace)
 
-  credManagerGetTokenSpy = spyOn(WebexCredentialManager.prototype, 'getToken').mockResolvedValue(
-    'test-token',
-  )
-
   consoleLogSpy = spyOn(console, 'log').mockImplementation(() => {})
+  consoleErrorSpy = spyOn(console, 'error').mockImplementation(() => {})
 
   processExitSpy = spyOn(process, 'exit').mockImplementation((_code?: number) => {
     throw new Error(`process.exit(${_code})`)
@@ -67,8 +64,8 @@ afterEach(() => {
   clientLoginSpy?.mockRestore()
   clientListSpacesSpy?.mockRestore()
   clientGetSpaceSpy?.mockRestore()
-  credManagerGetTokenSpy?.mockRestore()
   consoleLogSpy?.mockRestore()
+  consoleErrorSpy?.mockRestore()
   processExitSpy?.mockRestore()
 })
 
@@ -137,15 +134,12 @@ describe('listAction', () => {
   })
 
   test('not authenticated: outputs error and exits', async () => {
-    credManagerGetTokenSpy.mockResolvedValue(null)
+    clientLoginSpy.mockRejectedValue(new WebexError('No Webex credentials found.', 'no_credentials'))
 
     await expect(listAction({})).rejects.toThrow('process.exit(1)')
 
     expect(clientListSpacesSpy).not.toHaveBeenCalled()
-    expect(consoleLogSpy).toHaveBeenCalledWith(expect.stringContaining('Not authenticated'))
-    expect(consoleLogSpy).toHaveBeenCalledWith(
-      expect.stringContaining('auth login --token <token>'),
-    )
+    expect(consoleErrorSpy).toHaveBeenCalledWith(expect.stringContaining('No Webex credentials found'))
   })
 })
 
@@ -202,14 +196,11 @@ describe('infoAction', () => {
   })
 
   test('not authenticated: outputs error and exits', async () => {
-    credManagerGetTokenSpy.mockResolvedValue(null)
+    clientLoginSpy.mockRejectedValue(new WebexError('No Webex credentials found.', 'no_credentials'))
 
     await expect(infoAction('space-1', {})).rejects.toThrow('process.exit(1)')
 
     expect(clientGetSpaceSpy).not.toHaveBeenCalled()
-    expect(consoleLogSpy).toHaveBeenCalledWith(expect.stringContaining('Not authenticated'))
-    expect(consoleLogSpy).toHaveBeenCalledWith(
-      expect.stringContaining('auth login --token <token>'),
-    )
+    expect(consoleErrorSpy).toHaveBeenCalledWith(expect.stringContaining('No Webex credentials found'))
   })
 })

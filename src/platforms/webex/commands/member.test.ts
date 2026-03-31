@@ -1,11 +1,12 @@
 import { afterEach, beforeEach, describe, expect, mock, spyOn, test } from 'bun:test'
 
 import { WebexClient } from '../client'
-import { WebexCredentialManager } from '../credential-manager'
+import { WebexError } from '../types'
 import { listAction } from './member'
 
 describe('member commands', () => {
   let consoleSpy: ReturnType<typeof spyOn>
+  let consoleErrorSpy: ReturnType<typeof spyOn>
   let processExitSpy: ReturnType<typeof spyOn>
   const mockMembers = [
     {
@@ -30,11 +31,10 @@ describe('member commands', () => {
 
   beforeEach(() => {
     consoleSpy = spyOn(console, 'log').mockImplementation(() => {})
-    spyOn(console, 'error').mockImplementation(() => {})
+    consoleErrorSpy = spyOn(console, 'error').mockImplementation(() => {})
     processExitSpy = spyOn(process, 'exit').mockImplementation((_code?: number) => {
       throw new Error(`process.exit(${_code})`)
     })
-    spyOn(WebexCredentialManager.prototype, 'getToken').mockResolvedValue('test-token')
     spyOn(WebexClient.prototype, 'login').mockResolvedValue(new WebexClient() as any)
     spyOn(WebexClient.prototype, 'listMemberships').mockResolvedValue(mockMembers)
   })
@@ -83,12 +83,14 @@ describe('member commands', () => {
     expect(listMembershipsSpy).toHaveBeenCalledWith('room-1', { max: 25 })
   })
 
-  test('listAction handles not-authenticated case when getToken returns null', async () => {
-    spyOn(WebexCredentialManager.prototype, 'getToken').mockResolvedValue(null)
+  test('listAction handles not-authenticated case', async () => {
+    spyOn(WebexClient.prototype, 'login').mockRejectedValue(
+      new WebexError('No Webex credentials found.', 'no_credentials'),
+    )
 
     await expect(listAction('room-1', {})).rejects.toThrow('process.exit(1)')
 
-    expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('Not authenticated'))
+    expect(consoleErrorSpy).toHaveBeenCalledWith(expect.stringContaining('No Webex credentials found'))
   })
 
   test('listAction handles API error', async () => {

@@ -4,7 +4,6 @@ import { handleError } from '@/shared/utils/error-handler'
 import { formatOutput } from '@/shared/utils/output'
 
 import { WebexClient } from '../client'
-import { WebexCredentialManager } from '../credential-manager'
 
 export async function listAction(options: {
   type?: string
@@ -12,18 +11,7 @@ export async function listAction(options: {
   pretty?: boolean
 }): Promise<void> {
   try {
-    const credManager = new WebexCredentialManager()
-    const token = await credManager.getToken()
-    if (!token) {
-      console.log(
-        formatOutput(
-          { error: 'Not authenticated. Run "auth login --token <token>" first.' },
-          options.pretty,
-        ),
-      )
-      process.exit(1)
-    }
-    const client = await new WebexClient().login({ token })
+    const client = await new WebexClient().login()
     const spaces = await client.listSpaces({ type: options.type, max: options.limit })
     const output = spaces.map((s) => ({
       id: s.id,
@@ -43,18 +31,7 @@ export async function infoAction(
   options: { pretty?: boolean },
 ): Promise<void> {
   try {
-    const credManager = new WebexCredentialManager()
-    const token = await credManager.getToken()
-    if (!token) {
-      console.log(
-        formatOutput(
-          { error: 'Not authenticated. Run "auth login --token <token>" first.' },
-          options.pretty,
-        ),
-      )
-      process.exit(1)
-    }
-    const client = await new WebexClient().login({ token })
+    const client = await new WebexClient().login()
     const space = await client.getSpace(spaceId)
     const output = {
       id: space.id,

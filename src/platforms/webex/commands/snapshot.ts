@@ -3,7 +3,6 @@ import { parallelMap } from '@/shared/utils/concurrency'
 import { handleError } from '@/shared/utils/error-handler'
 import { formatOutput } from '@/shared/utils/output'
 import { WebexClient } from '../client'
-import { WebexCredentialManager } from '../credential-manager'
 import type { WebexSpace } from '../types'
 
 export async function snapshotAction(options: {
@@ -13,14 +12,7 @@ export async function snapshotAction(options: {
   pretty?: boolean
 }): Promise<void> {
   try {
-    const credManager = new WebexCredentialManager()
-    const token = await credManager.getToken()
-    if (!token) {
-      console.log(formatOutput({ error: 'Not authenticated. Run "auth login --token <token>" first.' }, options.pretty))
-      process.exit(1)
-    }
-
-    const client = await new WebexClient().login({ token })
+    const client = await new WebexClient().login()
     const messageLimit = options.limit || 20
     const snapshot: Record<string, unknown> = {}
 

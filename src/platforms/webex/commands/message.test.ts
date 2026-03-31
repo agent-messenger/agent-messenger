@@ -1,16 +1,18 @@
 import { afterEach, beforeEach, expect, mock, spyOn, test } from 'bun:test'
 
 import { WebexClient } from '../client'
-import { WebexCredentialManager } from '../credential-manager'
-import { deleteAction, editAction, getAction, listAction, sendAction } from './message'
+import { WebexError } from '../types'
+import { deleteAction, dmAction, editAction, getAction, listAction, sendAction } from './message'
 
 let clientSendMessageSpy: ReturnType<typeof spyOn>
+let clientSendDirectMessageSpy: ReturnType<typeof spyOn>
 let clientListMessagesSpy: ReturnType<typeof spyOn>
 let clientGetMessageSpy: ReturnType<typeof spyOn>
 let clientDeleteMessageSpy: ReturnType<typeof spyOn>
 let clientEditMessageSpy: ReturnType<typeof spyOn>
-let credManagerGetTokenSpy: ReturnType<typeof spyOn>
+let clientLoginSpy: ReturnType<typeof spyOn>
 const originalConsoleLog = console.log
+const originalConsoleError = console.error
 
 const mockMessage = {
   id: 'msg_123',
@@ -33,7 +35,11 @@ const mockMessage2 = {
 }
 
 beforeEach(() => {
+  clientLoginSpy = spyOn(WebexClient.prototype, 'login').mockResolvedValue(new WebexClient() as any)
+
   clientSendMessageSpy = spyOn(WebexClient.prototype, 'sendMessage').mockResolvedValue(mockMessage)
+
+  clientSendDirectMessageSpy = spyOn(WebexClient.prototype, 'sendDirectMessage').mockResolvedValue(mockMessage)
 
   clientListMessagesSpy = spyOn(WebexClient.prototype, 'listMessages').mockResolvedValue([
     mockMessage,
@@ -50,20 +56,18 @@ beforeEach(() => {
     ...mockMessage,
     text: 'Updated message',
   })
-
-  credManagerGetTokenSpy = spyOn(WebexCredentialManager.prototype, 'getToken').mockResolvedValue(
-    'test_token',
-  )
 })
 
 afterEach(() => {
+  clientLoginSpy?.mockRestore()
   clientSendMessageSpy?.mockRestore()
+  clientSendDirectMessageSpy?.mockRestore()
   clientListMessagesSpy?.mockRestore()
   clientGetMessageSpy?.mockRestore()
   clientDeleteMessageSpy?.mockRestore()
   clientEditMessageSpy?.mockRestore()
-  credManagerGetTokenSpy?.mockRestore()
   console.log = originalConsoleLog
+  console.error = originalConsoleError
 })
 
 test('send: calls sendMessage with correct args and outputs result', async () => {
@@ -92,9 +96,9 @@ test('send: with --markdown passes markdown option', async () => {
 })
 
 test('send: not authenticated shows error', async () => {
-  credManagerGetTokenSpy.mockResolvedValue(null)
-  const consoleSpy = mock((_msg: string) => {})
-  console.log = consoleSpy
+  clientLoginSpy.mockRejectedValue(new WebexError('No Webex credentials found.', 'no_credentials'))
+  const errorSpy = mock((_msg: string) => {})
+  console.error = errorSpy
 
   const originalExit = process.exit
   process.exit = mock((_code?: number) => {
@@ -103,14 +107,39 @@ test('send: not authenticated shows error', async () => {
 
   try {
     await sendAction('space_456', 'Hello', { pretty: false })
-  } catch (_e) {
+  } catch {
   } finally {
     process.exit = originalExit
   }
 
+  expect(errorSpy).toHaveBeenCalled()
+  const output = errorSpy.mock.calls[0][0]
+  expect(output).toContain('No Webex credentials found')
+})
+
+test('dm: calls sendDirectMessage with email and text', async () => {
+  const consoleSpy = mock((_msg: string) => {})
+  console.log = consoleSpy
+
+  await dmAction('alice@example.com', 'Hello!', { pretty: false })
+
+  expect(clientSendDirectMessageSpy).toHaveBeenCalledWith('alice@example.com', 'Hello!', {
+    markdown: undefined,
+  })
   expect(consoleSpy).toHaveBeenCalled()
   const output = consoleSpy.mock.calls[0][0]
-  expect(output).toContain('Not authenticated')
+  expect(output).toContain('msg_123')
+})
+
+test('dm: with --markdown passes markdown option', async () => {
+  const consoleSpy = mock((_msg: string) => {})
+  console.log = consoleSpy
+
+  await dmAction('alice@example.com', '**bold**', { markdown: true, pretty: false })
+
+  expect(clientSendDirectMessageSpy).toHaveBeenCalledWith('alice@example.com', '**bold**', {
+    markdown: true,
+  })
 })
 
 test('list: calls listMessages with limit and outputs array', async () => {
@@ -126,28 +155,6 @@ test('list: calls listMessages with limit and outputs array', async () => {
   expect(output).toContain('msg_124')
 })
 
-test('list: not authenticated shows error', async () => {
-  credManagerGetTokenSpy.mockResolvedValue(null)
-  const consoleSpy = mock((_msg: string) => {})
-  console.log = consoleSpy
-
-  const originalExit = process.exit
-  process.exit = mock((_code?: number) => {
-    throw new Error('process.exit called')
-  }) as never
-
-  try {
-    await listAction('space_456', { limit: 50, pretty: false })
-  } catch (_e) {
-  } finally {
-    process.exit = originalExit
-  }
-
-  expect(consoleSpy).toHaveBeenCalled()
-  const output = consoleSpy.mock.calls[0][0]
-  expect(output).toContain('Not authenticated')
-})
-
 test('get: calls getMessage with correct id and outputs result', async () => {
   const consoleSpy = mock((_msg: string) => {})
   console.log = consoleSpy
@@ -159,28 +166,6 @@ test('get: calls getMessage with correct id and outputs result', async () => {
   const output = consoleSpy.mock.calls[0][0]
   expect(output).toContain('msg_123')
   expect(output).toContain('user@example.com')
-})
-
-test('get: not authenticated shows error', async () => {
-  credManagerGetTokenSpy.mockResolvedValue(null)
-  const consoleSpy = mock((_msg: string) => {})
-  console.log = consoleSpy
-
-  const originalExit = process.exit
-  process.exit = mock((_code?: number) => {
-    throw new Error('process.exit called')
-  }) as never
-
-  try {
-    await getAction('msg_123', { pretty: false })
-  } catch (_e) {
-  } finally {
-    process.exit = originalExit
-  }
-
-  expect(consoleSpy).toHaveBeenCalled()
-  const output = consoleSpy.mock.calls[0][0]
-  expect(output).toContain('Not authenticated')
 })
 
 test('delete: with --force calls deleteMessage and outputs deleted id', async () => {
@@ -207,7 +192,7 @@ test('delete: without --force shows warning and does not delete', async () => {
 
   try {
     await deleteAction('msg_123', { force: false, pretty: false })
-  } catch (_e) {
+  } catch {
   } finally {
     process.exit = originalExit
   }
@@ -217,28 +202,6 @@ test('delete: without --force shows warning and does not delete', async () => {
   const output = consoleSpy.mock.calls[0][0]
   expect(output).toContain('warning')
   expect(output).toContain('--force')
-})
-
-test('delete: not authenticated shows error', async () => {
-  credManagerGetTokenSpy.mockResolvedValue(null)
-  const consoleSpy = mock((_msg: string) => {})
-  console.log = consoleSpy
-
-  const originalExit = process.exit
-  process.exit = mock((_code?: number) => {
-    throw new Error('process.exit called')
-  }) as never
-
-  try {
-    await deleteAction('msg_123', { force: true, pretty: false })
-  } catch (_e) {
-  } finally {
-    process.exit = originalExit
-  }
-
-  expect(consoleSpy).toHaveBeenCalled()
-  const output = consoleSpy.mock.calls[0][0]
-  expect(output).toContain('Not authenticated')
 })
 
 test('edit: calls editMessage with roomId in args and outputs result', async () => {
@@ -265,26 +228,4 @@ test('edit: with --markdown passes markdown option', async () => {
   expect(clientEditMessageSpy).toHaveBeenCalledWith('msg_123', 'space_456', '**updated**', {
     markdown: true,
   })
-})
-
-test('edit: not authenticated shows error', async () => {
-  credManagerGetTokenSpy.mockResolvedValue(null)
-  const consoleSpy = mock((_msg: string) => {})
-  console.log = consoleSpy
-
-  const originalExit = process.exit
-  process.exit = mock((_code?: number) => {
-    throw new Error('process.exit called')
-  }) as never
-
-  try {
-    await editAction('msg_123', 'space_456', 'Updated', { pretty: false })
-  } catch (_e) {
-  } finally {
-    process.exit = originalExit
-  }
-
-  expect(consoleSpy).toHaveBeenCalled()
-  const output = consoleSpy.mock.calls[0][0]
-  expect(output).toContain('Not authenticated')
 })

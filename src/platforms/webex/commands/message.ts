@@ -4,7 +4,6 @@ import { handleError } from '@/shared/utils/error-handler'
 import { formatOutput } from '@/shared/utils/output'
 
 import { WebexClient } from '../client'
-import { WebexCredentialManager } from '../credential-manager'
 import type { WebexMessage } from '../types'
 
 export async function sendAction(
@@ -13,20 +12,7 @@ export async function sendAction(
   options: { markdown?: boolean; pretty?: boolean },
 ): Promise<void> {
   try {
-    const credManager = new WebexCredentialManager()
-    const token = await credManager.getToken()
-
-    if (!token) {
-      console.log(
-        formatOutput(
-          { error: 'Not authenticated. Run "auth login --token <token>" first.' },
-          options.pretty,
-        ),
-      )
-      process.exit(1)
-    }
-
-    const client = await new WebexClient().login({ token })
+    const client = await new WebexClient().login()
     const message = await client.sendMessage(spaceId, text, { markdown: options.markdown })
 
     const output = {
@@ -48,20 +34,7 @@ export async function listAction(
   options: { limit?: number; pretty?: boolean },
 ): Promise<void> {
   try {
-    const credManager = new WebexCredentialManager()
-    const token = await credManager.getToken()
-
-    if (!token) {
-      console.log(
-        formatOutput(
-          { error: 'Not authenticated. Run "auth login --token <token>" first.' },
-          options.pretty,
-        ),
-      )
-      process.exit(1)
-    }
-
-    const client = await new WebexClient().login({ token })
+    const client = await new WebexClient().login()
     const limit = options.limit ?? 50
     const messages = await client.listMessages(spaceId, { max: limit })
 
@@ -84,20 +57,7 @@ export async function getAction(
   options: { pretty?: boolean },
 ): Promise<void> {
   try {
-    const credManager = new WebexCredentialManager()
-    const token = await credManager.getToken()
-
-    if (!token) {
-      console.log(
-        formatOutput(
-          { error: 'Not authenticated. Run "auth login --token <token>" first.' },
-          options.pretty,
-        ),
-      )
-      process.exit(1)
-    }
-
-    const client = await new WebexClient().login({ token })
+    const client = await new WebexClient().login()
     const message = await client.getMessage(messageId)
 
     const output = {
@@ -119,19 +79,6 @@ export async function deleteAction(
   options: { force?: boolean; pretty?: boolean },
 ): Promise<void> {
   try {
-    const credManager = new WebexCredentialManager()
-    const token = await credManager.getToken()
-
-    if (!token) {
-      console.log(
-        formatOutput(
-          { error: 'Not authenticated. Run "auth login --token <token>" first.' },
-          options.pretty,
-        ),
-      )
-      process.exit(1)
-    }
-
     if (!options.force) {
       console.log(
         formatOutput({ warning: 'Use --force to confirm deletion', messageId }, options.pretty),
@@ -139,7 +86,7 @@ export async function deleteAction(
       process.exit(0)
     }
 
-    const client = await new WebexClient().login({ token })
+    const client = await new WebexClient().login()
     await client.deleteMessage(messageId)
 
     console.log(formatOutput({ deleted: messageId }, options.pretty))
@@ -155,23 +102,33 @@ export async function editAction(
   options: { markdown?: boolean; pretty?: boolean },
 ): Promise<void> {
   try {
-    const credManager = new WebexCredentialManager()
-    const token = await credManager.getToken()
-
-    if (!token) {
-      console.log(
-        formatOutput(
-          { error: 'Not authenticated. Run "auth login --token <token>" first.' },
-          options.pretty,
-        ),
-      )
-      process.exit(1)
-    }
-
-    const client = await new WebexClient().login({ token })
+    const client = await new WebexClient().login()
     const message = await client.editMessage(messageId, spaceId, text, {
       markdown: options.markdown,
     })
+
+    const output = {
+      id: message.id,
+      roomId: message.roomId,
+      text: message.text,
+      personEmail: message.personEmail,
+      created: message.created,
+    }
+
+    console.log(formatOutput(output, options.pretty))
+  } catch (error) {
+    handleError(error as Error)
+  }
+}
+
+export async function dmAction(
+  email: string,
+  text: string,
+  options: { markdown?: boolean; pretty?: boolean },
+): Promise<void> {
+  try {
+    const client = await new WebexClient().login()
+    const message = await client.sendDirectMessage(email, text, { markdown: options.markdown })
 
     const output = {
       id: message.id,
@@ -197,6 +154,15 @@ export const messageCommand = new Command('message')
       .option('--markdown', 'Send as markdown')
       .option('--pretty', 'Pretty print JSON output')
       .action(sendAction),
+  )
+  .addCommand(
+    new Command('dm')
+      .description('Send a direct message by email')
+      .argument('<email>', 'Recipient email address')
+      .argument('<text>', 'Message text')
+      .option('--markdown', 'Send as markdown')
+      .option('--pretty', 'Pretty print JSON output')
+      .action(dmAction),
   )
   .addCommand(
     new Command('list')

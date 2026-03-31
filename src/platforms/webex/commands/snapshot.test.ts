@@ -1,10 +1,11 @@
 import { afterEach, beforeEach, describe, expect, mock, spyOn, test } from 'bun:test'
 import { WebexClient } from '../client'
-import { WebexCredentialManager } from '../credential-manager'
+import { WebexError } from '../types'
 import { snapshotAction } from './snapshot'
 
 describe('snapshot command', () => {
   let consoleSpy: ReturnType<typeof spyOn>
+  let consoleErrorSpy: ReturnType<typeof spyOn>
 
   const mockSpaces = [
     { id: 'space-1', title: 'General', type: 'group', isLocked: false, lastActivity: '2024-01-15T00:00:00.000Z', created: '2024-01-01T00:00:00.000Z', creatorId: 'person-1' },
@@ -20,7 +21,7 @@ describe('snapshot command', () => {
 
   beforeEach(() => {
     consoleSpy = spyOn(console, 'log').mockImplementation(() => {})
-    spyOn(WebexCredentialManager.prototype, 'getToken').mockResolvedValue('test-token')
+    consoleErrorSpy = spyOn(console, 'error').mockImplementation(() => {})
     spyOn(WebexClient.prototype, 'login').mockResolvedValue(new WebexClient() as any)
     spyOn(WebexClient.prototype, 'listSpaces').mockResolvedValue(mockSpaces as any)
     spyOn(WebexClient.prototype, 'listMessages').mockResolvedValue(mockMessages as any)
@@ -66,21 +67,23 @@ describe('snapshot command', () => {
   })
 
   test('not authenticated outputs error', async () => {
-    spyOn(WebexCredentialManager.prototype, 'getToken').mockResolvedValue(null)
+    spyOn(WebexClient.prototype, 'login').mockRejectedValue(
+      new WebexError('No Webex credentials found.', 'no_credentials'),
+    )
 
     const originalExit = process.exit
     process.exit = mock((_code?: number) => { throw new Error('process.exit called') }) as never
 
     try {
       await snapshotAction({})
-    } catch (_exitError) {
+    } catch {
     } finally {
       process.exit = originalExit
     }
 
-    expect(consoleSpy).toHaveBeenCalled()
-    const output = consoleSpy.mock.calls[0][0]
-    expect(output).toContain('Not authenticated')
+    expect(consoleErrorSpy).toHaveBeenCalled()
+    const output = consoleErrorSpy.mock.calls[0][0]
+    expect(output).toContain('No Webex credentials found')
   })
 
   test('passes limit option to listMessages', async () => {
