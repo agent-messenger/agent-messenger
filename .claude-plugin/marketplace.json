@@ -1,7 +1,7 @@
 {
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
   "name": "agent-messenger",
-  "description": "Messaging platform interaction skills for AI agents - Slack, Discord, Microsoft Teams, Telegram, WhatsApp, LINE, Instagram, KakaoTalk, and Channel Talk",
+  "description": "Messaging platform interaction skills for AI agents - Slack, Discord, Microsoft Teams, Webex, Telegram, WhatsApp, LINE, Instagram, KakaoTalk, and Channel Talk",
   "owner": {
     "name": "devxoul",
     "url": "https://github.com/devxoul"
@@ -73,6 +73,19 @@
       "keywords": ["teams", "microsoft-teams", "messaging", "ai-agent", "cli", "communication"]
     },
     {
+      "name": "agent-webex",
+      "description": "Interact with Cisco Webex through a CLI interface. Features zero-config OAuth Device Grant authentication, space management, message operations, direct messaging, membership listing, and workspace snapshots.",
+      "version": "2.0.0",
+      "author": {
+        "name": "devxoul",
+        "url": "https://github.com/devxoul"
+      },
+      "source": "./",
+      "category": "productivity",
+      "homepage": "https://github.com/devxoul/agent-messenger",
+      "keywords": ["webex", "cisco", "messaging", "ai-agent", "cli", "communication"]
+    },
+    {
       "name": "agent-telegram",
       "description": "Interact with Telegram through TDLib. Features automatic API credential provisioning via my.telegram.org, multi-account support, chat management, and message operations.",
       "version": "1.15.0",
@@ -110,19 +123,6 @@
       "category": "productivity",
       "homepage": "https://github.com/devxoul/agent-messenger",
       "keywords": ["channel-talk", "channeltalkbot", "bot", "messaging", "ai-agent", "cli", "ci-cd"]
-    },
-    {
-      "name": "agent-webex",
-      "description": "Interact with Cisco Webex through a CLI interface. Features token-based authentication, space management, message operations, membership listing, and workspace snapshots.",
-      "version": "2.0.0",
-      "author": {
-        "name": "devxoul",
-        "url": "https://github.com/devxoul"
-      },
-      "source": "./",
-      "category": "productivity",
-      "homepage": "https://github.com/devxoul/agent-messenger",
-      "keywords": ["webex", "cisco", "messaging", "ai-agent", "cli", "communication"]
     }
   ]
 }
