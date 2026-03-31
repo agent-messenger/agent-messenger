@@ -4,11 +4,11 @@ description: A unified terminal interface for all your messaging platforms in on
 icon: Monitor
 ---
 
-> **Experimental** — The TUI is a showcase of what's possible with Agent Messenger's SDK. It's not intended for production use, but demonstrates the power of having a unified adapter layer across 9 messaging platforms.
+> **Experimental** — The TUI is a showcase of what's possible with Agent Messenger's SDK. It's not intended for production use, but demonstrates the power of having a unified adapter layer across 10 messaging platforms.
 
 ## What Is It?
 
-The TUI (Terminal User Interface) is a `blessed`-based interactive terminal app that unifies all your messaging platforms into a single screen. Navigate between Slack, Discord, Teams, Telegram, WhatsApp, LINE, Instagram, KakaoTalk, and Channel Talk — all from your terminal.
+The TUI (Terminal User Interface) is a `blessed`-based interactive terminal app that unifies all your messaging platforms into a single screen. Navigate between Slack, Discord, Teams, Webex, Telegram, WhatsApp, LINE, Instagram, KakaoTalk, and Channel Talk — all from your terminal.
 
 ![Agent Messenger TUI](/tui.png)
 
@@ -30,7 +30,7 @@ The TUI has three navigation levels and three input modes.
 
 | Level | What it shows | How to enter |
 | --- | --- | --- |
-| **Platform** | All 9 platforms with online/offline status | Launch or press `Esc` from workspace level |
+| **Platform** | All 10 platforms with online/offline status | Launch or press `Esc` from workspace level |
 | **Workspace** | Workspaces for the selected platform (skipped if only one) | Select a platform |
 | **Channel** | Channels in the current workspace | Select a workspace |
 
@@ -125,6 +125,7 @@ src/tui/
 │   ├── slack-adapter.ts
 │   ├── discord-adapter.ts
 │   ├── teams-adapter.ts
+│   ├── webex-adapter.ts
 │   ├── telegram-adapter.ts
 │   ├── whatsapp-adapter.ts
 │   ├── line-adapter.ts

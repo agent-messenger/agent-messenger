@@ -236,7 +236,7 @@ await listener.start()
 
 ## TUI (Experimental)
 
-A unified terminal interface for all your messaging platforms in one screen. Navigate between Slack, Discord, Teams, Telegram, WhatsApp, LINE, Instagram, KakaoTalk, and Channel Talk — all from your terminal.
+A unified terminal interface for all your messaging platforms in one screen. Navigate between Slack, Discord, Teams, Webex, Telegram, WhatsApp, LINE, Instagram, KakaoTalk, and Channel Talk — all from your terminal.
 
 > **Note**: The TUI is a showcase of what's possible with Agent Messenger's SDK. It demonstrates the power of having a unified adapter layer across all platforms.
 
@@ -247,7 +247,7 @@ agent-messenger tui
 ![Agent Messenger TUI](docs/public/tui.png)
 
 Key features:
-- **Multi-platform** — All 9 platforms in one sidebar, auto-login on startup
+- **Multi-platform** — All 10 platforms in one sidebar, auto-login on startup
 - **Real-time messages** — Live message streaming for supported platforms
 - **Fuzzy pickers** — `Ctrl+K` for channels, `Ctrl+W` for workspaces
 - **Interactive auth** — Authenticate platforms that aren't set up yet, right in the TUI
