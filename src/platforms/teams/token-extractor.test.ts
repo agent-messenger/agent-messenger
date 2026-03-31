@@ -11,10 +11,10 @@ describe('TeamsTokenExtractor', () => {
     extractor = new TeamsTokenExtractor()
   })
 
-  describe('getTeamsCookiesPaths', () => {
-    test('returns darwin paths on macOS with New Teams first', () => {
+  describe('getDesktopCookiesPaths', () => {
+    test('returns darwin desktop paths on macOS', () => {
       const darwinExtractor = new TeamsTokenExtractor('darwin')
-      const paths = darwinExtractor.getTeamsCookiesPaths()
+      const paths = darwinExtractor.getDesktopCookiesPaths()
 
       expect(paths).toEqual([
         {
@@ -75,9 +75,9 @@ describe('TeamsTokenExtractor', () => {
       ])
     })
 
-    test('returns linux paths on Linux', () => {
+    test('returns linux desktop path on Linux', () => {
       const linuxExtractor = new TeamsTokenExtractor('linux')
-      const paths = linuxExtractor.getTeamsCookiesPaths()
+      const paths = linuxExtractor.getDesktopCookiesPaths()
 
       expect(paths).toEqual([
         {
@@ -87,9 +87,9 @@ describe('TeamsTokenExtractor', () => {
       ])
     })
 
-    test('returns win32 paths on Windows with New Teams first', () => {
+    test('returns win32 desktop paths on Windows', () => {
       const winExtractor = new TeamsTokenExtractor('win32')
-      const paths = winExtractor.getTeamsCookiesPaths()
+      const paths = winExtractor.getDesktopCookiesPaths()
 
       const localAppData = process.env.LOCALAPPDATA || join(homedir(), 'AppData', 'Local')
       const appdata = process.env.APPDATA || join(homedir(), 'AppData', 'Roaming')
@@ -145,6 +145,105 @@ describe('TeamsTokenExtractor', () => {
 
     test('returns empty array for unsupported platform', () => {
       const unsupportedExtractor = new TeamsTokenExtractor('freebsd' as NodeJS.Platform)
+      expect(unsupportedExtractor.getDesktopCookiesPaths()).toEqual([])
+    })
+  })
+
+  describe('getBrowserCookiesPaths', () => {
+    test('returns browser cookie paths on macOS (at least Default profile per browser)', () => {
+      const darwinExtractor = new TeamsTokenExtractor('darwin')
+      const paths = darwinExtractor.getBrowserCookiesPaths()
+
+      const chromeBase = join(homedir(), 'Library', 'Application Support', 'Google', 'Chrome')
+      expect(paths).toContainEqual({
+        path: join(chromeBase, 'Default', 'Cookies'),
+        accountType: 'work',
+      })
+      expect(paths).toContainEqual({
+        path: join(chromeBase, 'Default', 'Network', 'Cookies'),
+        accountType: 'work',
+      })
+    })
+
+    test('returns browser cookie paths on Linux', () => {
+      const linuxExtractor = new TeamsTokenExtractor('linux')
+      const paths = linuxExtractor.getBrowserCookiesPaths()
+
+      const chromeBase = join(homedir(), '.config', 'google-chrome')
+      expect(paths).toContainEqual({
+        path: join(chromeBase, 'Default', 'Cookies'),
+        accountType: 'work',
+      })
+    })
+
+    test('returns browser cookie paths on Windows', () => {
+      const winExtractor = new TeamsTokenExtractor('win32')
+      const paths = winExtractor.getBrowserCookiesPaths()
+
+      const localAppData = process.env.LOCALAPPDATA || join(homedir(), 'AppData', 'Local')
+      const chromeBase = join(localAppData, 'Google', 'Chrome', 'User Data')
+      expect(paths).toContainEqual({
+        path: join(chromeBase, 'Default', 'Cookies'),
+        accountType: 'work',
+      })
+    })
+
+    test('returns empty array for unsupported platform', () => {
+      const unsupportedExtractor = new TeamsTokenExtractor('freebsd' as NodeJS.Platform)
+      expect(unsupportedExtractor.getBrowserCookiesPaths()).toEqual([])
+    })
+
+    test('all browser paths have accountType work', () => {
+      const darwinExtractor = new TeamsTokenExtractor('darwin')
+      const paths = darwinExtractor.getBrowserCookiesPaths()
+      expect(paths.every((p) => p.accountType === 'work')).toBe(true)
+    })
+  })
+
+  describe('getTeamsCookiesPaths', () => {
+    test('returns darwin paths on macOS with desktop paths first', () => {
+      const darwinExtractor = new TeamsTokenExtractor('darwin')
+      const paths = darwinExtractor.getTeamsCookiesPaths()
+      const desktopPaths = darwinExtractor.getDesktopCookiesPaths()
+
+      expect(paths.slice(0, desktopPaths.length)).toEqual(desktopPaths)
+    })
+
+    test('browser paths come after desktop paths on macOS', () => {
+      const darwinExtractor = new TeamsTokenExtractor('darwin')
+      const paths = darwinExtractor.getTeamsCookiesPaths()
+      const desktopPaths = darwinExtractor.getDesktopCookiesPaths()
+      const browserPaths = darwinExtractor.getBrowserCookiesPaths()
+
+      expect(paths.length).toBe(desktopPaths.length + browserPaths.length)
+      expect(paths.slice(desktopPaths.length)).toEqual(browserPaths)
+    })
+
+    test('returns linux paths with desktop first then browser paths', () => {
+      const linuxExtractor = new TeamsTokenExtractor('linux')
+      const paths = linuxExtractor.getTeamsCookiesPaths()
+      const desktopPaths = linuxExtractor.getDesktopCookiesPaths()
+
+      expect(paths.slice(0, 1)).toEqual([
+        {
+          path: join(homedir(), '.config', 'Microsoft', 'Microsoft Teams', 'Cookies'),
+          accountType: 'work',
+        },
+      ])
+      expect(paths.length).toBeGreaterThan(desktopPaths.length)
+    })
+
+    test('returns win32 paths with desktop first then browser paths', () => {
+      const winExtractor = new TeamsTokenExtractor('win32')
+      const paths = winExtractor.getTeamsCookiesPaths()
+      const desktopPaths = winExtractor.getDesktopCookiesPaths()
+
+      expect(paths.slice(0, desktopPaths.length)).toEqual(desktopPaths)
+      expect(paths.length).toBeGreaterThan(desktopPaths.length)
+    })
+
+    test('returns empty array for unsupported platform', () => {
+      const unsupportedExtractor = new TeamsTokenExtractor('freebsd' as NodeJS.Platform)
       const paths = unsupportedExtractor.getTeamsCookiesPaths()
 
       expect(paths).toEqual([])
@@ -176,18 +275,38 @@ describe('TeamsTokenExtractor', () => {
   })
 
   describe('getKeychainVariants', () => {
-    test('returns keychain variants for macOS', () => {
+    test('includes Teams-specific keychain entries', () => {
       const macExtractor = new TeamsTokenExtractor('darwin')
+      const variants = macExtractor.getKeychainVariants()
 
-      expect(macExtractor.getKeychainVariants()).toEqual([
-        { service: 'Microsoft Teams Safe Storage', account: 'Microsoft Teams' },
-        {
-          service: 'Microsoft Teams (work or school) Safe Storage',
-          account: 'Microsoft Teams (work or school)',
-        },
-        { service: 'Microsoft Edge Safe Storage', account: 'Microsoft Edge' },
-        { service: 'Teams Safe Storage', account: 'Teams' },
-      ])
+      expect(variants).toContainEqual({ service: 'Microsoft Teams Safe Storage', account: 'Microsoft Teams' })
+      expect(variants).toContainEqual({
+        service: 'Microsoft Teams (work or school) Safe Storage',
+        account: 'Microsoft Teams (work or school)',
+      })
+      expect(variants).toContainEqual({ service: 'Microsoft Edge Safe Storage', account: 'Microsoft Edge' })
+      expect(variants).toContainEqual({ service: 'Teams Safe Storage', account: 'Teams' })
+    })
+
+    test('includes browser keychain entries appended after Teams entries', () => {
+      const macExtractor = new TeamsTokenExtractor('darwin')
+      const variants = macExtractor.getKeychainVariants()
+
+      expect(variants).toContainEqual({ service: 'Chrome Safe Storage', account: 'Chrome' })
+      expect(variants).toContainEqual({ service: 'Chrome Canary Safe Storage', account: 'Chrome Canary' })
+      expect(variants).toContainEqual({ service: 'Arc Safe Storage', account: 'Arc' })
+      expect(variants).toContainEqual({ service: 'Brave Safe Storage', account: 'Brave' })
+      expect(variants).toContainEqual({ service: 'Vivaldi Safe Storage', account: 'Vivaldi' })
+      expect(variants).toContainEqual({ service: 'Chromium Safe Storage', account: 'Chromium' })
+    })
+
+    test('Teams entries come before browser entries', () => {
+      const macExtractor = new TeamsTokenExtractor('darwin')
+      const variants = macExtractor.getKeychainVariants()
+
+      const teamsIdx = variants.findIndex((v) => v.service === 'Microsoft Teams Safe Storage')
+      const chromeIdx = variants.findIndex((v) => v.service === 'Chrome Safe Storage')
+      expect(teamsIdx).toBeLessThan(chromeIdx)
     })
   })
 

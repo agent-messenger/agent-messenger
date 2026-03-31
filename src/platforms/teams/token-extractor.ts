@@ -1,6 +1,6 @@
 import { execSync } from 'node:child_process'
 import { createDecipheriv, pbkdf2Sync } from 'node:crypto'
-import { copyFileSync, existsSync, readFileSync, unlinkSync } from 'node:fs'
+import { copyFileSync, existsSync, readFileSync, readdirSync, unlinkSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { homedir, tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -26,6 +26,13 @@ interface KeychainVariant {
   account: string
 }
 
+interface BrowserConfig {
+  name: string
+  darwin: string
+  linux: string
+  win32: string
+}
+
 const TEAMS_PROCESS_NAMES: Record<string, string> = {
   darwin: 'Microsoft Teams',
   win32: 'Teams.exe',
@@ -41,6 +48,51 @@ const TEAMS_HOST_PATTERNS = [
   '.microsoft.com',
 ]
 
+const BROWSERS: BrowserConfig[] = [
+  {
+    name: 'Chrome',
+    darwin: join('Google', 'Chrome'),
+    linux: 'google-chrome',
+    win32: join('Google', 'Chrome', 'User Data'),
+  },
+  {
+    name: 'Chrome Canary',
+    darwin: join('Google', 'Chrome Canary'),
+    linux: 'google-chrome-unstable',
+    win32: join('Google', 'Chrome SxS', 'User Data'),
+  },
+  {
+    name: 'Edge',
+    darwin: 'Microsoft Edge',
+    linux: 'microsoft-edge',
+    win32: join('Microsoft', 'Edge', 'User Data'),
+  },
+  {
+    name: 'Arc',
+    darwin: join('Arc', 'User Data'),
+    linux: '',
+    win32: join('Arc', 'User Data'),
+  },
+  {
+    name: 'Brave',
+    darwin: join('BraveSoftware', 'Brave-Browser'),
+    linux: join('BraveSoftware', 'Brave-Browser'),
+    win32: join('BraveSoftware', 'Brave-Browser', 'User Data'),
+  },
+  {
+    name: 'Vivaldi',
+    darwin: 'Vivaldi',
+    linux: 'vivaldi',
+    win32: join('Vivaldi', 'User Data'),
+  },
+  {
+    name: 'Chromium',
+    darwin: 'Chromium',
+    linux: 'chromium',
+    win32: join('Chromium', 'User Data'),
+  },
+]
+
 export class TeamsTokenExtractor {
   private platform: NodeJS.Platform
   private keyCache: DerivedKeyCache
@@ -51,7 +103,7 @@ export class TeamsTokenExtractor {
     this.keyCache = keyCache ?? new DerivedKeyCache()
   }
 
-  getTeamsCookiesPaths(): TeamsCookiePath[] {
+  getDesktopCookiesPaths(): TeamsCookiePath[] {
     switch (this.platform) {
       case 'darwin': {
         const ebWebViewBase = join(
@@ -107,6 +159,83 @@ export class TeamsTokenExtractor {
     }
   }
 
+  getBrowserCookiesPaths(): TeamsCookiePath[] {
+    const paths: TeamsCookiePath[] = []
+
+    for (const browser of BROWSERS) {
+      const browserBase = this.getBrowserBasePath(browser)
+      if (!browserBase) continue
+
+      const profileDirs = this.discoverProfileDirs(browserBase)
+      for (const profileDir of profileDirs) {
+        paths.push({ path: join(profileDir, 'Cookies'), accountType: 'work' })
+        paths.push({ path: join(profileDir, 'Network', 'Cookies'), accountType: 'work' })
+      }
+    }
+
+    return paths
+  }
+
+  getTeamsCookiesPaths(): TeamsCookiePath[] {
+    const desktopPaths = this.getDesktopCookiesPaths()
+    const browserPaths = this.getBrowserCookiesPaths()
+    return [...desktopPaths, ...browserPaths]
+  }
+
+  private getBrowserBasePath(browser: BrowserConfig): string | null {
+    let relative: string
+
+    switch (this.platform) {
+      case 'darwin':
+        relative = browser.darwin
+        if (!relative) return null
+        return join(homedir(), 'Library', 'Application Support', relative)
+      case 'linux':
+        relative = browser.linux
+        if (!relative) return null
+        return join(homedir(), '.config', relative)
+      case 'win32':
+        relative = browser.win32
+        if (!relative) return null
+        return join(
+          process.env.LOCALAPPDATA || join(homedir(), 'AppData', 'Local'),
+          relative,
+        )
+      default:
+        return null
+    }
+  }
+
+  private discoverProfileDirs(browserBase: string): string[] {
+    const dirs: string[] = []
+
+    dirs.push(join(browserBase, 'Default'))
+
+    if (!existsSync(browserBase)) return dirs
+
+    try {
+      const entries = readdirSync(browserBase, { withFileTypes: true })
+      for (const entry of entries) {
+        if (!entry.isDirectory()) continue
+        if (!/^Profile \d+$/i.test(entry.name)) continue
+        dirs.push(join(browserBase, entry.name))
+      }
+    } catch {}
+
+    return dirs
+  }
+
+  private findLocalStateForCookiePath(cookiePath: string): string | null {
+    const parts = cookiePath.split(/[/\\]/)
+    for (let levels = 2; levels <= 4; levels++) {
+      if (parts.length < levels) break
+      const base = parts.slice(0, parts.length - levels).join('/')
+      const candidate = join(base, 'Local State')
+      if (existsSync(candidate)) return candidate
+    }
+    return null
+  }
+
   getLocalStatePath(): string {
     switch (this.platform) {
       case 'darwin':
@@ -136,17 +265,21 @@ export class TeamsTokenExtractor {
 
   getKeychainVariants(): KeychainVariant[] {
     return [
-      // New Teams (com.microsoft.teams2) keychain entry - try first
+      // Teams-specific keychain entries
       { service: 'Microsoft Teams Safe Storage', account: 'Microsoft Teams' },
-      // Work/school variant
       {
         service: 'Microsoft Teams (work or school) Safe Storage',
         account: 'Microsoft Teams (work or school)',
       },
-      // Edge WebView2 fallback
       { service: 'Microsoft Edge Safe Storage', account: 'Microsoft Edge' },
-      // Classic Teams fallback
       { service: 'Teams Safe Storage', account: 'Teams' },
+      // Browser keychain entries for fallback
+      { service: 'Chrome Safe Storage', account: 'Chrome' },
+      { service: 'Chrome Canary Safe Storage', account: 'Chrome Canary' },
+      { service: 'Arc Safe Storage', account: 'Arc' },
+      { service: 'Brave Safe Storage', account: 'Brave' },
+      { service: 'Vivaldi Safe Storage', account: 'Vivaldi' },
+      { service: 'Chromium Safe Storage', account: 'Chromium' },
     ]
   }
 
@@ -206,7 +339,13 @@ export class TeamsTokenExtractor {
 
     try {
       this.copyDatabaseToTemp(dbPath, tempPath)
-      const token = await this.extractFromSQLite(tempPath)
+      // For Windows: find the Local State relative to the cookie path so browser cookies
+      // use the browser's own Local State instead of the Teams app Local State.
+      const localStatePath =
+        this.platform === 'win32'
+          ? (this.findLocalStateForCookiePath(dbPath) ?? this.getLocalStatePath())
+          : undefined
+      const token = await this.extractFromSQLite(tempPath, localStatePath)
       this.cleanupTempFile(tempPath)
       return token
     } catch {
@@ -230,7 +369,7 @@ export class TeamsTokenExtractor {
     }
   }
 
-  private async extractFromSQLite(dbPath: string): Promise<string | null> {
+  private async extractFromSQLite(dbPath: string, localStatePath?: string): Promise<string | null> {
     try {
       for (const hostPattern of TEAMS_HOST_PATTERNS) {
         const sql = `
@@ -257,7 +396,7 @@ export class TeamsTokenExtractor {
         }
 
         if (row?.encrypted_value) {
-          const decrypted = this.decryptCookie(Buffer.from(row.encrypted_value))
+          const decrypted = this.decryptCookie(Buffer.from(row.encrypted_value), localStatePath)
           if (decrypted && this.isValidSkypeToken(decrypted)) {
             return decrypted
           }
@@ -270,14 +409,14 @@ export class TeamsTokenExtractor {
     }
   }
 
-  private decryptCookie(encryptedValue: Buffer): string | null {
+  private decryptCookie(encryptedValue: Buffer, localStatePath?: string): string | null {
     if (!this.isEncryptedValue(encryptedValue)) {
       // Not encrypted, return as-is
       return encryptedValue.toString('utf8')
     }
 
     if (this.platform === 'win32') {
-      return this.decryptWindowsCookie(encryptedValue)
+      return this.decryptWindowsCookie(encryptedValue, localStatePath)
     } else if (this.platform === 'darwin') {
       return this.decryptMacCookie(encryptedValue)
     } else if (this.platform === 'linux') {
@@ -287,12 +426,12 @@ export class TeamsTokenExtractor {
     return null
   }
 
-  private decryptWindowsCookie(encryptedData: Buffer): string | null {
+  private decryptWindowsCookie(encryptedData: Buffer, localStatePath?: string): string | null {
     try {
-      const localStatePath = this.getLocalStatePath()
-      if (!existsSync(localStatePath)) return null
+      const statePath = localStatePath ?? this.getLocalStatePath()
+      if (!existsSync(statePath)) return null
 
-      const localState = JSON.parse(readFileSync(localStatePath, 'utf8'))
+      const localState = JSON.parse(readFileSync(statePath, 'utf8'))
       const encryptedKey = Buffer.from(localState.os_crypt.encrypted_key, 'base64')
 
       // Remove DPAPI prefix (5 bytes)
@@ -363,9 +502,10 @@ export class TeamsTokenExtractor {
       // Escape double quotes in service/account to prevent command injection
       const safeService = service.replace(/"/g, '\\"')
       const safeAccount = account.replace(/"/g, '\\"')
-      const result = execSync(`security find-generic-password -s "${safeService}" -a "${safeAccount}" -w 2>/dev/null`, {
-        encoding: 'utf8',
-      })
+      const result = execSync(
+        `security find-generic-password -s "${safeService}" -a "${safeAccount}" -w 2>/dev/null`,
+        { encoding: 'utf8' },
+      )
       return result.trim()
     } catch {
       return null
@@ -381,6 +521,16 @@ export class TeamsTokenExtractor {
       decipher.setAutoPadding(true)
 
       const decrypted = Buffer.concat([decipher.update(ciphertext), decipher.final()])
+
+      // Chromium v130+ prepends a 32-byte integrity hash before the actual cookie value.
+      // Detect by checking if the first bytes contain non-printable characters.
+      if (decrypted.length > 32) {
+        const hasNonPrintablePrefix = decrypted.subarray(0, 32).some((b) => b < 0x20 || b > 0x7e)
+        if (hasNonPrintablePrefix) {
+          return decrypted.subarray(32).toString('utf8')
+        }
+      }
+
       const decryptedStr = decrypted.toString('utf8')
 
       // Chromium v24+ prepends a 32-byte integrity hash before the actual value
