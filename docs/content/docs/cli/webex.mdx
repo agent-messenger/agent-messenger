@@ -1,0 +1,289 @@
+---
+title: Webex
+description: Complete reference for the agent-webex CLI.
+---
+
+> **Tip**: `agent-webex` is a shortcut for `agent-messenger webex`.
+
+## Quick Start
+
+```bash
+# 1. Log in (opens browser automatically, zero-config!)
+agent-webex auth login
+
+# 2. Get workspace snapshot
+agent-webex snapshot
+
+# 3. Send a message
+agent-webex message send <space-id> "Hello from AI agent!"
+```
+
+## Authentication
+
+### OAuth Device Grant (Zero-Config)
+
+agent-webex uses OAuth Device Grant flow with built-in Integration credentials. No tokens to copy, no developer portal setup needed.
+
+```bash
+agent-webex auth login
+```
+
+This command:
+
+- Requests a device code from Webex
+- Opens your browser to the Webex verification page
+- Displays a user code for you to enter
+- Polls automatically until you approve
+- Stores access and refresh tokens securely in `~/.config/agent-messenger/`
+- Auto-refreshes expired access tokens (14-day access, 90-day refresh)
+
+### How Login Works
+
+1. Run `agent-webex auth login`
+2. CLI requests a device code from Webex
+3. Browser opens to Webex verification page
+4. Enter the displayed code and sign in
+5. CLI automatically detects approval and stores tokens
+6. Access token auto-refreshes via refresh token
+
+### Token Types
+
+| Type | Lifetime | Best For |
+| --- | --- | --- |
+| OAuth Device Grant (default) | 14-day access, 90-day refresh (auto-refresh) | Interactive use, development |
+| Bot Token | Never expires | CI/CD, long-running automation |
+| Personal Access Token (PAT) | 12 hours | Quick testing |
+
+### Authentication Commands
+
+```bash
+# Log in (Device Grant flow, opens browser)
+agent-webex auth login
+
+# Log in with custom Integration credentials
+agent-webex auth login --client-id <id> --client-secret <secret>
+
+# Log in with a bot token (never expires)
+agent-webex auth login --token <bot-token>
+
+# Log in with a PAT (12-hour lifetime)
+agent-webex auth login --token <pat>
+
+# Check auth status
+agent-webex auth status
+
+# Log out (clear stored credentials)
+agent-webex auth logout
+```
+
+### Environment Variables
+
+Override the built-in Integration credentials with your own:
+
+| Variable | Description |
+| --- | --- |
+| `AGENT_WEBEX_CLIENT_ID` | Webex Integration client ID |
+| `AGENT_WEBEX_CLIENT_SECRET` | Webex Integration client secret |
+
+Both must be set together. When set, `auth login` (without `--token`) uses these instead of the built-in credentials.
+
+## Commands
+
+### Space Commands
+
+Webex organizes conversations into "spaces" (group spaces and direct messages).
+
+```bash
+# List spaces
+agent-webex space list
+agent-webex space list --type group
+agent-webex space list --type direct
+agent-webex space list --limit 20
+
+# Get space info
+agent-webex space info <space-id>
+```
+
+### Message Commands
+
+```bash
+# Send a message
+agent-webex message send <space-id> <text>
+agent-webex message send abc123 "Hello world"
+
+# Send a markdown message
+agent-webex message send <space-id> "**Bold** and _italic_" --markdown
+
+# Send a direct message by email
+agent-webex message dm <email> <text>
+agent-webex message dm alice@example.com "Hey, quick question"
+agent-webex message dm alice@example.com "**Build failed**" --markdown
+
+# List messages in a space
+agent-webex message list <space-id>
+agent-webex message list abc123 --limit 50
+
+# Get a specific message
+agent-webex message get <message-id>
+
+# Edit a message
+agent-webex message edit <message-id> <space-id> <text>
+agent-webex message edit msg123 abc123 "Updated text" --markdown
+
+# Delete a message
+agent-webex message delete <message-id>
+agent-webex message delete <message-id> --force
+```
+
+### Member Commands
+
+```bash
+# List members of a space
+agent-webex member list <space-id>
+agent-webex member list abc123 --limit 100
+```
+
+### Snapshot Command
+
+Get comprehensive workspace state for AI agents:
+
+```bash
+# Full snapshot (spaces, members, recent messages)
+agent-webex snapshot
+
+# Filtered snapshots
+agent-webex snapshot --spaces-only
+agent-webex snapshot --members-only
+
+# Limit messages per space
+agent-webex snapshot --limit 10
+```
+
+## Global Options
+
+All commands support these options:
+
+```bash
+--pretty      # Pretty-print JSON output (default is compact JSON)
+```
+
+## Key Differences: Webex vs Slack vs Discord vs Teams
+
+| Concept | Slack | Discord | Teams | Webex |
+| --- | --- | --- | --- | --- |
+| Server/Workspace | Workspace | Guild | Team | Organization |
+| Channel | Channel | Channel | Channel | Space |
+| Channel ID format | Alphanumeric (C01234567) | Numeric snowflake | UUID | Base64-encoded opaque ID |
+| Message ID format | Timestamp (1234567890.123456) | Numeric snowflake | UUID | Base64-encoded opaque ID |
+| Token lifetime | Long-lived | Long-lived | 60-90 minutes | 14 days (auto-refresh) |
+| API | Slack Web API | Discord API | Teams Messaging API | Webex REST API |
+| Auth method | Desktop app extraction | Desktop app extraction | Desktop app extraction | OAuth Device Grant |
+| Rate limits | Moderate | Moderate | Strict | ~600 req/min |
+
+## Troubleshooting
+
+### "Not authenticated"
+
+No credentials stored. Log in first:
+
+```bash
+agent-webex auth login
+```
+
+### Token Expired (401 Unauthorized)
+
+**If using Device Grant (default)**: Tokens auto-refresh. If you still get 401s, the refresh token may have expired (after 90 days). Re-run:
+
+```bash
+agent-webex auth login
+```
+
+**If using a PAT**: Generate a new one at https://developer.webex.com/docs/getting-started
+
+**If using a bot token**: Bot tokens don't expire. Double-check the full token was copied correctly.
+
+### "Device authorization timed out"
+
+You didn't approve the request in the browser before the code expired. Run `auth login` again:
+
+```bash
+agent-webex auth login
+```
+
+### "Device authorization failed"
+
+Possible causes:
+
+- Network connectivity issues
+- Custom client ID is invalid or revoked
+- Webex API is temporarily unavailable
+
+### Rate Limiting (429 Too Many Requests)
+
+Webex allows roughly 600 API calls per minute. Wait a few seconds and retry:
+
+```bash
+# Add delays between operations in scripts
+sleep 1
+```
+
+### Space or Message Not Found
+
+Webex uses opaque Base64-encoded IDs. You can't guess them. Always get IDs from `space list` or `snapshot` first:
+
+```bash
+agent-webex space list --pretty
+```
+
+### `agent-webex: command not found`
+
+The npm package is `agent-messenger`, not `agent-webex`:
+
+```bash
+npm install -g agent-messenger
+```
+
+## AI Agent Integration
+
+See [`skills/agent-webex/`](https://github.com/devxoul/agent-messenger/tree/main/skills/agent-webex) for:
+
+- Complete skill documentation
+- Common patterns and runnable templates
+
+### Example: AI Agent Workflow
+
+```bash
+#!/bin/bash
+# Example: Daily standup automation
+
+# 1. Check auth
+if ! agent-webex auth status | jq -e '.authenticated' > /dev/null 2>&1; then
+  echo "Not authenticated. Run 'agent-webex auth login' first."
+  exit 1
+fi
+
+# 2. Get workspace context
+agent-webex snapshot --limit 5 > /tmp/webex-context.json
+
+# 3. Send standup reminder
+agent-webex message send $STANDUP_SPACE "Good morning! Time for standup."
+```
+
+### Send and Track Pattern
+
+```bash
+#!/bin/bash
+# Send a message, then update it later
+
+SPACE_ID="Y2lzY29zcGFyazovL..."
+
+# Send initial status
+RESULT=$(agent-webex message send "$SPACE_ID" "Deploying v2.1.0...")
+MSG_ID=$(echo "$RESULT" | jq -r '.id')
+
+# ... do work ...
+sleep 5
+
+# Update the message with final status
+agent-webex message edit "$MSG_ID" "$SPACE_ID" "Deployed v2.1.0 successfully!"
+```

@@ -1,0 +1,260 @@
+---
+title: Webex
+description: TypeScript SDK reference for Cisco Webex — client, credential management, and types.
+---
+
+## Installation
+
+```bash
+npm install agent-messenger
+```
+
+```typescript
+import {
+  WebexClient,
+  WebexCredentialManager,
+  WebexError,
+} from 'agent-messenger/webex'
+```
+
+## WebexClient
+
+The main client for interacting with the Webex REST API programmatically. All API methods include automatic rate-limit handling with per-bucket tracking and exponential backoff on server errors.
+
+OAuth tokens auto-refresh via the stored refresh token. Bot tokens never expire. PATs expire in 12 hours.
+
+```typescript
+import { WebexClient } from 'agent-messenger/webex'
+
+const client = await new WebexClient().login({ token })
+```
+
+Or use automatic credential extraction — credentials are loaded from stored OAuth/bot tokens, no manual token needed:
+
+```typescript
+import { WebexClient } from 'agent-messenger/webex'
+
+const client = await new WebexClient().login()
+```
+
+### Authentication
+
+```typescript
+// Verify credentials and get identity
+const me = await client.testAuth()
+// → WebexPerson { id, displayName, emails, orgId, type }
+```
+
+### Spaces
+
+```typescript
+// List all spaces (default limit: 50)
+const spaces = await client.listSpaces()
+const grouped = await client.listSpaces({ type: 'group', max: 20 })
+// → WebexSpace[]
+
+// Get a specific space by ID
+const space = await client.getSpace(spaceId)
+// → WebexSpace { id, title, type, isLocked, lastActivity, created, creatorId }
+```
+
+### Messages
+
+```typescript
+// Send a message to a space
+const msg = await client.sendMessage(roomId, 'Hello world')
+// → WebexMessage { id, roomId, roomType, text, personId, personEmail, created }
+
+// Send a markdown message
+const msg = await client.sendMessage(roomId, '**Bold** and _italic_', { markdown: true })
+
+// Send a direct message by email
+const dm = await client.sendDirectMessage('alice@example.com', 'Hey!')
+const dm = await client.sendDirectMessage('alice@example.com', '**Important**', { markdown: true })
+
+// List messages in a space (default limit: 50)
+const messages = await client.listMessages(roomId)
+const limited = await client.listMessages(roomId, { max: 25 })
+// → WebexMessage[]
+
+// Get a single message by ID
+const message = await client.getMessage(messageId)
+// → WebexMessage
+
+// Edit a message
+const updated = await client.editMessage(messageId, roomId, 'Updated text')
+const updated = await client.editMessage(messageId, roomId, '**Updated**', { markdown: true })
+// → WebexMessage
+
+// Delete a message
+await client.deleteMessage(messageId)
+```
+
+### People
+
+```typescript
+// List people (search by email or display name)
+const people = await client.listPeople({ email: 'alice@example.com' })
+const people = await client.listPeople({ displayName: 'Alice', max: 10 })
+// → WebexPerson[]
+```
+
+### Memberships
+
+```typescript
+// List members of a space
+const members = await client.listMemberships(roomId)
+const limited = await client.listMemberships(roomId, { max: 100 })
+// → WebexMembership[]
+```
+
+## WebexCredentialManager
+
+Manages Webex credentials stored at `~/.config/agent-messenger/webex-credentials.json`. Files are written with `0o600` permissions. Supports OAuth Device Grant flow, bot tokens, and PATs.
+
+```typescript
+import { WebexCredentialManager } from 'agent-messenger/webex'
+
+const manager = new WebexCredentialManager()
+// Custom path: new WebexCredentialManager('/custom/config/dir')
+```
+
+```typescript
+// Load config from disk (returns null if file doesn't exist)
+const config = await manager.loadConfig()
+// → WebexConfig | null
+
+// Save config to disk (atomic write)
+await manager.saveConfig(config)
+
+// Get stored access token (auto-refreshes OAuth tokens if expired)
+const token = await manager.getToken()
+// → string | null
+
+// Refresh an OAuth token manually
+const refreshed = await manager.refreshToken(refreshToken, clientId, clientSecret)
+// → WebexConfig | null
+
+// Start OAuth Device Grant flow (request device code)
+const device = await manager.requestDeviceCode(clientId)
+// → { deviceCode, userCode, verificationUri, verificationUriComplete, expiresIn, interval }
+
+// Poll for device token approval
+const config = await manager.pollDeviceToken(deviceCode, interval, expiresIn, clientId, clientSecret)
+// → WebexConfig
+
+// Clear all stored credentials (deletes the file)
+await manager.clearCredentials()
+```
+
+## Types
+
+```typescript
+import type {
+  WebexSpace,
+  WebexMessage,
+  WebexPerson,
+  WebexMembership,
+  WebexConfig,
+} from 'agent-messenger/webex'
+```
+
+### Zod Schemas
+
+Runtime-validated schemas are also exported for parsing API responses:
+
+```typescript
+import {
+  WebexSpaceSchema,
+  WebexMessageSchema,
+  WebexPersonSchema,
+  WebexMembershipSchema,
+  WebexConfigSchema,
+} from 'agent-messenger/webex'
+```
+
+## Examples
+
+### Deploy Notifier
+
+Post a deployment message, then update it when done.
+
+```typescript
+import { WebexClient } from 'agent-messenger/webex'
+
+const client = await new WebexClient().login()
+
+// Post initial status
+const msg = await client.sendMessage(spaceId, 'Deploying v2.1.0 to production...')
+
+// Stream progress
+await client.sendMessage(spaceId, 'Building application...')
+await client.sendMessage(spaceId, 'Running tests (142 passed)...')
+await client.sendMessage(spaceId, 'Rolling out to 3 regions...')
+
+// Update original message with final status
+await client.editMessage(msg.id, spaceId, 'Deployed v2.1.0 to production')
+```
+
+### Space Monitor
+
+List spaces and pull recent messages from each one.
+
+```typescript
+import { WebexClient } from 'agent-messenger/webex'
+
+const client = await new WebexClient().login()
+
+const spaces = await client.listSpaces({ type: 'group', max: 10 })
+
+for (const space of spaces) {
+  const messages = await client.listMessages(space.id, { max: 5 })
+  console.log(`${space.title} (${messages.length} recent messages)`)
+
+  for (const msg of messages) {
+    console.log(`  [${msg.personEmail}] ${(msg.text ?? '').slice(0, 80)}`)
+  }
+}
+```
+
+### Workspace Summary
+
+Build a snapshot-style overview: spaces, members, and latest activity.
+
+```typescript
+import { WebexClient } from 'agent-messenger/webex'
+
+const client = await new WebexClient().login()
+
+const spaces = await client.listSpaces()
+console.log(`Total spaces: ${spaces.length}`)
+
+for (const space of spaces.slice(0, 5)) {
+  const members = await client.listMemberships(space.id)
+  const messages = await client.listMessages(space.id, { max: 1 })
+  const latest = messages[0]
+
+  console.log(`${space.title} (${members.length} members)`)
+  if (latest) {
+    console.log(`  Latest: "${(latest.text ?? '').slice(0, 60)}" — ${latest.personEmail}`)
+  }
+}
+```
+
+### Direct Message Pipeline
+
+Send a DM to multiple people by email.
+
+```typescript
+import { WebexClient } from 'agent-messenger/webex'
+
+const client = await new WebexClient().login()
+
+const recipients = ['alice@example.com', 'bob@example.com', 'carol@example.com']
+
+for (const email of recipients) {
+  await client.sendDirectMessage(email, 'Reminder: standup in 5 minutes')
+  // Respect rate limits
+  await new Promise((r) => setTimeout(r, 200))
+}
+```
