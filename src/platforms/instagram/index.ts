@@ -1,6 +1,7 @@
 export { InstagramClient } from './client'
 export { InstagramCredentialManager } from './credential-manager'
 export { InstagramListener, type InstagramListenerEventMap } from './listener'
+export { InstagramTokenExtractor, type ExtractedInstagramCookies } from './token-extractor'
 export {
   createAccountId,
   extractMediaUrl,
