@@ -16,12 +16,15 @@ metadata:
 
 # Agent Webex
 
-A TypeScript CLI tool that enables AI agents and humans to interact with Cisco Webex through a simple command interface. Uses OAuth Device Grant flow, zero configuration required.
+A TypeScript CLI tool that enables AI agents and humans to interact with Cisco Webex through a simple command interface. Supports browser token extraction (zero-config, sends as you) and OAuth Device Grant flow.
 
 ## Quick Start
 
 ```bash
-# Log in (opens browser automatically)
+# Extract token from browser (Chrome, Edge, Arc, Brave) — messages appear as you
+agent-webex auth extract
+
+# Or: Log in via OAuth Device Grant (opens browser, messages show "via agent-messenger")
 agent-webex auth login
 
 # Get workspace snapshot
@@ -36,9 +39,34 @@ agent-webex space list
 
 ## Authentication
 
-Webex uses OAuth Device Grant flow with built-in Integration credentials. No tokens to copy, no developer portal setup needed.
+Webex supports two authentication methods:
+
+1. **Browser token extraction** (recommended): Extracts your first-party token from a Chromium browser where you're logged into web.webex.com. Messages appear as you — no "via" label.
+2. **OAuth Device Grant**: Opens a browser for you to authorize. Messages show "via agent-messenger" label.
+
+### Browser Token Extraction (Recommended)
+
+`agent-webex auth extract` reads your Webex session token from Chrome, Edge, Arc, or Brave. You must be logged into web.webex.com in one of these browsers. No configuration needed.
+
+```bash
+# Extract token from browser — messages appear as you
+agent-webex auth extract
+
+# With debug output
+agent-webex auth extract --debug
+```
+
+**Supported browsers**: Chrome, Chrome Canary, Edge, Arc, Brave, Vivaldi, Chromium
+
+**How it works**: The Webex web client stores its authentication token in the browser's localStorage. This CLI reads it directly from the browser's LevelDB files — no browser automation, no password prompts. The token is stored locally in `~/.config/agent-messenger/`.
+
+**When to re-extract**: Browser tokens expire. When your token expires, re-run `agent-webex auth extract` or let auto-extraction handle it (the CLI attempts extraction automatically on each run).
+
+### OAuth Device Grant (Fallback)
 
 `agent-webex auth login` starts the Device Grant flow: it displays a verification URL and user code, then opens the browser. You enter the code at the verification page and approve access. The CLI polls for the token automatically. Access and refresh tokens are stored locally, and the access token auto-refreshes via the refresh token.
+
+Note: Messages sent via OAuth Device Grant show "via agent-messenger" because the token is associated with a third-party Webex Integration.
 
 Optionally, pass `--token <bot-token>` for bot token auth. Or pass `--client-id <id> --client-secret <secret>` to use your own Webex Integration credentials instead of the built-in ones.
 
@@ -61,22 +89,14 @@ agent-webex auth status
 agent-webex auth logout
 ```
 
-### How Login Works
-
-1. Run `agent-webex auth login`
-2. CLI requests a device code from Webex
-3. Browser opens to Webex verification page
-4. Enter the displayed code and sign in
-5. CLI automatically detects approval and stores tokens
-6. Access token auto-refreshes via refresh token
-
 ### Token Types
 
-- **OAuth Device Grant (default)**: Zero-config login. Access token auto-refreshes. Built-in Integration credentials used unless overridden.
+- **Extracted (browser)**: First-party token from web.webex.com. Messages appear as you. Requires re-extraction when expired.
+- **OAuth Device Grant**: Zero-config login. Access token auto-refreshes. Messages show "via agent-messenger".
 - **Bot Token**: Pass via `--token` flag. Never expires. Best for CI/CD.
 - **Custom Integration**: Pass `--client-id` + `--client-secret` or set env vars for your own Webex Integration.
 
-**IMPORTANT**: NEVER guide the user to open a web browser, use DevTools, or manually copy tokens from a browser's network inspector. Always use `agent-webex auth login` for interactive authentication.
+**IMPORTANT**: NEVER guide the user to open a web browser, use DevTools, or manually copy tokens from a browser's network inspector. Always use `agent-webex auth extract` or `agent-webex auth login` for authentication.
 
 For detailed token management, see [references/authentication.md](references/authentication.md).
 

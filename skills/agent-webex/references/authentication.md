@@ -2,17 +2,38 @@
 
 ## Overview
 
-agent-webex supports three authentication methods against the Webex REST API (`https://webexapis.com/v1`):
+agent-webex supports four authentication methods against the Webex REST API (`https://webexapis.com/v1`):
 
-1. **OAuth Device Grant** (default): Zero-config. Run `auth login`, approve in browser, done. Tokens refresh automatically.
-2. **Bot Token**: Pass via `auth login --token`. Never expires. Best for CI/CD.
-3. **Personal Access Token (PAT)**: Pass via `auth login --token`. Expires in 12 hours. For quick testing.
+1. **Browser Token Extraction** (recommended): Extracts your first-party token from a Chromium browser where you're logged into web.webex.com. Messages appear as you — no "via" label. Zero-config.
+2. **OAuth Device Grant**: Zero-config. Run `auth login`, approve in browser, done. Tokens refresh automatically. Messages show "via agent-messenger".
+3. **Bot Token**: Pass via `auth login --token`. Never expires. Best for CI/CD.
+4. **Personal Access Token (PAT)**: Pass via `auth login --token`. Expires in 12 hours. For quick testing.
 
 ## Token Types
 
-### OAuth Device Grant (default)
+### Browser Token Extraction (recommended)
 
-The primary authentication method. No credentials to copy, no developer portal setup required.
+The recommended authentication method. Extracts your first-party Webex session token from a Chromium-based browser where you're logged into web.webex.com. Because the token is first-party (not associated with a third-party Integration), messages appear as you — no "via agent-messenger" label.
+
+- **How it works**: Run `agent-webex auth extract`. The CLI scans Chromium browser profiles for Webex localStorage data (LevelDB files). It finds the `webex-storage` key containing `Credentials.@.supertoken` and extracts the access token. No browser automation, no password prompts.
+- **Supported browsers**: Chrome, Chrome Canary, Edge, Arc, Brave, Vivaldi, Chromium
+- **Token lifetime**: Depends on Webex session policy (typically hours to days). Re-extract when expired.
+- **Auto-extraction**: The CLI attempts browser extraction automatically when no valid token is stored, so you often don't need to run `auth extract` manually.
+- **Best for**: Interactive use, sending messages as yourself without the "via" label
+
+```bash
+# Extract token from browser
+agent-webex auth extract
+
+# With debug output
+agent-webex auth extract --debug
+```
+
+**Requirements**: You must be logged into web.webex.com in a supported Chromium browser. The browser does not need to be running — the CLI reads directly from on-disk LevelDB files.
+
+### OAuth Device Grant
+
+The fallback authentication method when browser extraction is unavailable. No credentials to copy, no developer portal setup required.
 
 - **How it works**: Run `agent-webex auth login`. The CLI requests a device code from Webex, opens your browser, and waits for you to approve. Once approved, access and refresh tokens are stored automatically.
 - **Access token lifetime**: 14 days
@@ -56,7 +77,10 @@ agent-webex auth login --token "YOUR_PAT_HERE"
 ## Logging In
 
 ```bash
-# Device Grant (default, zero-config)
+# Browser extraction (recommended — messages appear as you)
+agent-webex auth extract
+
+# Device Grant (fallback — messages show "via agent-messenger")
 agent-webex auth login
 
 # With custom Integration credentials
@@ -68,6 +92,8 @@ agent-webex auth login --token <bot-token>
 # PAT
 agent-webex auth login --token <pat>
 ```
+
+When using `auth extract`, the CLI reads your Webex session from the browser's LevelDB storage. No prompts, no browser automation.
 
 When using `--token`, the CLI validates the token against the Webex API before saving. If validation fails, you'll see an error and the token won't be stored.
 
@@ -118,6 +144,17 @@ This removes the stored credentials from disk.
 
 ### Format
 
+Extracted credentials (from `auth extract`):
+
+```json
+{
+  "accessToken": "...",
+  "refreshToken": "...",
+  "expiresAt": 1234567890,
+  "tokenType": "extracted"
+}
+```
+
 OAuth credentials (from Device Grant):
 
 ```json
@@ -154,6 +191,19 @@ Manual credentials (from `--token`):
 - PATs auto-expire in 12 hours, which limits exposure
 
 ## Token Lifecycle
+
+### Browser Token Extraction
+
+```
+auth extract -> Scan browser LevelDB -> Extract supertoken -> Access token (session-based)
+                                                                     |
+                                                               Token expires
+                                                                     |
+                                                               Re-run "auth extract"
+                                                               (or auto-extraction on next CLI run)
+```
+
+Browser-extracted tokens have no refresh mechanism — when they expire, re-extract from the browser (where your active session keeps them fresh). The CLI attempts auto-extraction on each run, so manual re-extraction is rarely needed.
 
 ### OAuth Device Grant
 
@@ -274,8 +324,9 @@ With a valid token, agent-webex has the same permissions as the token owner:
 
 ### Best Practices
 
-1. **Use Device Grant for interactive work**: Zero-config, auto-refreshing, scoped access
-2. **Use bot tokens for automation**: They don't expire and have scoped access
+1. **Use browser extraction for interactive work**: Zero-config, messages appear as you, no "via" label
+2. **Use Device Grant as fallback**: When browser extraction isn't available (no Chromium browser, headless server)
+3. **Use bot tokens for automation**: They don't expire and have scoped access
 3. **Protect credentials.json**: Never commit to version control
 4. **Rotate PATs regularly**: Don't reuse expired tokens. Generate fresh ones
 5. **Revoke compromised tokens**: Regenerate bot tokens at https://developer.webex.com/my-apps if compromised

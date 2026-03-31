@@ -40,9 +40,9 @@ One CLI for Slack, Discord, Teams, Webex, Telegram, WhatsApp, LINE, Instagram, K
 
 Every platform gates API access behind OAuth apps that need admin approval — days of waiting just to send a message. And even then, your agent is a **bot**, not you. Different name, different permissions, different context.
 
-Agent Messenger reads session tokens from your Slack, Discord, Teams, KakaoTalk, or Channel Talk desktop app — zero config. Telegram and WhatsApp authenticate with a one-time phone or pairing code. Either way, your agent operates **as you** — same name, same permissions, same context. Bot tokens are fully supported too for server-side and CI/CD use cases.
+Agent Messenger reads session tokens from your Slack, Discord, Teams, KakaoTalk, or Channel Talk desktop app — zero config. Webex tokens are extracted from your Chromium browser. Telegram and WhatsApp authenticate with a one-time phone or pairing code. Either way, your agent operates **as you** — same name, same permissions, same context. Bot tokens are fully supported too for server-side and CI/CD use cases.
 
-- **Auto-Extract Auth** — Reads tokens from Slack, Discord, Teams, KakaoTalk, and Channel Talk desktop apps. Telegram and WhatsApp authenticate with a one-time code — still under a minute
+- **Auto-Extract Auth** — Reads tokens from Slack, Discord, Teams, KakaoTalk, and Channel Talk desktop apps. Webex tokens extracted from Chromium browsers. Telegram and WhatsApp authenticate with a one-time code — still under a minute
 - **Act As Yourself** — Extracts your user session — not a bot token. Your agent sends messages, reacts, and searches as you. Need bot mode? Bot CLIs are included too
 - **One Interface** — Consistent command style across 7 platforms for supported actions (e.g. message send, message search, channel list, snapshot). Learn once
 - **Agent-Native Output** — JSON by default for LLM tool use. `--pretty` for human-readable. Structured output your agent can parse and act on
@@ -73,7 +73,7 @@ This installs:
 - `agent-discord` — Discord CLI
 - `agent-discordbot` — Discord Bot CLI (bot token, for server-side/CI/CD)
 - `agent-teams` — Microsoft Teams CLI
-- `agent-webex` — Cisco Webex CLI (OAuth Device Grant, zero-config)
+- `agent-webex` — Cisco Webex CLI (browser token extraction + OAuth Device Grant, zero-config)
 - `agent-telegram` — Telegram CLI (user account via TDLib)
 - `agent-whatsapp` — WhatsApp CLI (user account via Baileys, pairing code auth)
 - `agent-whatsappbot` — WhatsApp Bot CLI (Cloud API, for server-side/CI/CD)
@@ -258,7 +258,7 @@ See the [TUI docs](https://agent-messenger.dev/docs/tui) for keybindings, archit
 
 | Feature                    | Slack | Discord | Teams | Webex | Telegram | WhatsApp | LINE  | Instagram | KakaoTalk | Channel Talk (beta) |
 | -------------------------- | :---: | :-----: | :---: | :---: | :------: | :------: | :---: | :-------: | :-------: | :-----------------: |
-| Auto credential extraction |  ✅   |   ✅    |  ✅   |   —   |    —     |    —     |   —   |     —     |    ✅     |         ✅          |
+| Auto credential extraction |  ✅   |   ✅    |  ✅   |  ✅   |    —     |    —     |   —   |     —     |    ✅     |         ✅          |
 | Send & list messages       |  ✅   |   ✅    |  ✅   |  ✅   |    ✅     |    ✅     |  ✅   |    ✅     |    ✅     |         ✅          |
 | Direct messages            |  ✅   |   ✅    |  ✅   |  ✅   |    ✅     |    ✅     |  ✅   |    ✅     |    ✅     |         ✅          |
 | Search messages            |  ✅   |   ✅    |   —   |   —   |    —     |    ✅     |   —   |    ✅     |    —      |         ✅          |
@@ -291,7 +291,7 @@ See the [TUI docs](https://agent-messenger.dev/docs/tui) for keybindings, archit
 - **[Discord Guide](https://agent-messenger.dev/docs/cli/discord)** — Full command reference for Discord
 - **[Discord Bot Guide](https://agent-messenger.dev/docs/cli/discordbot)** — Bot token integration for server-side and CI/CD
 - **[Teams Guide](https://agent-messenger.dev/docs/cli/teams)** — Full command reference for Microsoft Teams
-- **[Webex Guide](skills/agent-webex/SKILL.md)** — OAuth Device Grant auth and Cisco Webex command reference
+- **[Webex Guide](skills/agent-webex/SKILL.md)** — Browser token extraction, OAuth Device Grant auth, and Cisco Webex command reference
 - **[Telegram Guide](https://agent-messenger.dev/docs/cli/telegram)** — TDLib setup and Telegram command reference
 - **[WhatsApp Guide](https://agent-messenger.dev/docs/cli/whatsapp)** — Baileys-based WhatsApp integration via pairing code
 - **[WhatsApp Bot Guide](https://agent-messenger.dev/docs/cli/whatsappbot)** — Cloud API integration for WhatsApp Business
