@@ -62,8 +62,8 @@ export class WebexAdapter implements PlatformAdapter {
     io.print('Starting Webex OAuth Device Grant flow...')
     const device = await credManager.requestDeviceCode(clientId)
 
-    io.print(`\nOpening browser for authorization...`)
-    io.print(`Code: ${device.userCode}`)
+    io.print(`\nOpen this URL in your browser:\n  ${device.verificationUriComplete}`)
+    io.print(`\nOr go to ${device.verificationUri} and enter code: ${device.userCode}`)
     openBrowser(device.verificationUriComplete)
     io.print('\nWaiting for authorization...')
 
