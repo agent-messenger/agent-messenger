@@ -4,211 +4,174 @@ import { WebexClient } from '../client'
 import { WebexCredentialManager } from '../credential-manager'
 import { loginAction, logoutAction, statusAction } from './auth'
 
-const mockPerson = {
-  id: 'person-123',
-  displayName: 'Test User',
-  emails: ['test@example.com'],
-  orgId: 'org-123',
-  type: 'person' as const,
-  created: '2024-01-01T00:00:00.000Z',
-}
+describe('auth commands', () => {
+  let consoleSpy: ReturnType<typeof spyOn>
+  let _consoleErrorSpy: ReturnType<typeof spyOn>
+  const mockPerson = {
+    id: 'person-1',
+    displayName: 'Test User',
+    emails: ['test@example.com'],
+    orgId: 'org-1',
+    type: 'person' as const,
+    created: '2024-01-01T00:00:00.000Z',
+  }
 
-let clientLoginSpy: ReturnType<typeof spyOn>
-let clientTestAuthSpy: ReturnType<typeof spyOn>
-let credManagerGetTokenSpy: ReturnType<typeof spyOn>
-let credManagerSetTokenSpy: ReturnType<typeof spyOn>
-let credManagerClearCredentialsSpy: ReturnType<typeof spyOn>
-let consoleLogSpy: ReturnType<typeof spyOn>
-let processExitSpy: ReturnType<typeof spyOn>
-
-beforeEach(() => {
-  clientLoginSpy = spyOn(WebexClient.prototype, 'login').mockResolvedValue(
-    new WebexClient() as InstanceType<typeof WebexClient>,
-  )
-
-  clientTestAuthSpy = spyOn(WebexClient.prototype, 'testAuth').mockResolvedValue(mockPerson)
-
-  credManagerGetTokenSpy = spyOn(WebexCredentialManager.prototype, 'getToken').mockResolvedValue(
-    'test-token-abc123',
-  )
-
-  credManagerSetTokenSpy = spyOn(WebexCredentialManager.prototype, 'setToken').mockResolvedValue(
-    undefined,
-  )
-
-  credManagerClearCredentialsSpy = spyOn(
-    WebexCredentialManager.prototype,
-    'clearCredentials',
-  ).mockResolvedValue(undefined)
-
-  consoleLogSpy = spyOn(console, 'log').mockImplementation(() => {})
-
-  processExitSpy = spyOn(process, 'exit').mockImplementation((_code?: number) => {
-    throw new Error(`process.exit(${_code})`)
-  })
-})
-
-afterEach(() => {
-  clientLoginSpy?.mockRestore()
-  clientTestAuthSpy?.mockRestore()
-  credManagerGetTokenSpy?.mockRestore()
-  credManagerSetTokenSpy?.mockRestore()
-  credManagerClearCredentialsSpy?.mockRestore()
-  consoleLogSpy?.mockRestore()
-  processExitSpy?.mockRestore()
-})
-
-describe('loginAction', () => {
-  test('successful login: validates token, saves, and outputs user info', async () => {
-    await loginAction({ token: 'test-token-abc123' })
-
-    expect(clientLoginSpy).toHaveBeenCalledWith({ token: 'test-token-abc123' })
-    expect(clientTestAuthSpy).toHaveBeenCalled()
-    expect(credManagerSetTokenSpy).toHaveBeenCalledWith('test-token-abc123')
-    expect(consoleLogSpy).toHaveBeenCalledWith(
-      JSON.stringify({
-        user: {
-          id: 'person-123',
-          displayName: 'Test User',
-          emails: ['test@example.com'],
-        },
-        authenticated: true,
-      }),
-    )
+  beforeEach(() => {
+    consoleSpy = spyOn(console, 'log').mockImplementation(() => {})
+    _consoleErrorSpy = spyOn(console, 'error').mockImplementation(() => {})
   })
 
-  test('successful login with pretty flag outputs formatted JSON', async () => {
-    await loginAction({ token: 'test-token-abc123', pretty: true })
-
-    expect(consoleLogSpy).toHaveBeenCalledWith(
-      JSON.stringify(
-        {
-          user: {
-            id: 'person-123',
-            displayName: 'Test User',
-            emails: ['test@example.com'],
-          },
-          authenticated: true,
-        },
-        null,
-        2,
-      ),
-    )
+  afterEach(() => {
+    mock.restore()
   })
 
-  test('failed validation: outputs error with hint and exits', async () => {
-    clientTestAuthSpy.mockRejectedValue(new Error('401 Unauthorized'))
+  describe('loginAction with --token', () => {
+    test('authenticates with provided token (bot token flow)', async () => {
+      spyOn(WebexClient.prototype, 'login').mockResolvedValue(new WebexClient())
+      spyOn(WebexClient.prototype, 'testAuth').mockResolvedValue(mockPerson)
+      spyOn(WebexCredentialManager.prototype, 'saveConfig').mockResolvedValue(undefined)
 
-    await expect(loginAction({ token: 'bad-token' })).rejects.toThrow('process.exit(1)')
+      await loginAction({ token: 'bot-token-123', pretty: false })
 
-    expect(credManagerSetTokenSpy).not.toHaveBeenCalled()
-    expect(consoleLogSpy).toHaveBeenCalledWith(
-      expect.stringContaining('Token validation failed'),
-    )
-    expect(consoleLogSpy).toHaveBeenCalledWith(expect.stringContaining('hint'))
+      expect(consoleSpy).toHaveBeenCalledTimes(1)
+      const output = JSON.parse(consoleSpy.mock.calls[0][0] as string)
+      expect(output.authenticated).toBe(true)
+      expect(output.user.displayName).toBe('Test User')
+    })
   })
 
-  test('failed validation with non-401 error outputs generic hint', async () => {
-    clientTestAuthSpy.mockRejectedValue(new Error('Network error'))
+  describe('loginAction with --client-id and --client-secret', () => {
+    test('uses provided credentials for Device Grant flow', async () => {
+      spyOn(WebexCredentialManager.prototype, 'requestDeviceCode').mockResolvedValue({
+        deviceCode: 'd',
+        userCode: 'u',
+        verificationUri: 'https://v',
+        verificationUriComplete: 'https://vc',
+        expiresIn: 300,
+        interval: 0.01,
+      })
+      spyOn(WebexCredentialManager.prototype, 'pollDeviceToken').mockResolvedValue({
+        accessToken: 'at',
+        refreshToken: 'rt',
+        expiresAt: Date.now() + 3600000,
+      })
+      spyOn(WebexCredentialManager.prototype, 'saveConfig').mockResolvedValue(undefined)
+      spyOn(WebexClient.prototype, 'login').mockResolvedValue(new WebexClient())
+      spyOn(WebexClient.prototype, 'testAuth').mockResolvedValue(mockPerson)
 
-    await expect(loginAction({ token: 'bad-token' })).rejects.toThrow('process.exit(1)')
+      await loginAction({ clientId: 'my-id', clientSecret: 'my-secret', pretty: false })
 
-    const output = JSON.parse(consoleLogSpy.mock.calls[0][0] as string) as {
-      error: string
-      hint: string
-    }
-    expect(output.hint).toContain('https://developer.webex.com')
-  })
-})
+      expect(WebexCredentialManager.prototype.requestDeviceCode).toHaveBeenCalledWith('my-id')
+      expect(WebexCredentialManager.prototype.pollDeviceToken).toHaveBeenCalledWith('d', 0.01, 300, 'my-id', 'my-secret')
+    })
 
-describe('statusAction', () => {
-  test('not authenticated: outputs error and exits', async () => {
-    credManagerGetTokenSpy.mockResolvedValue(null)
+    test('saves clientId and clientSecret in config', async () => {
+      spyOn(WebexCredentialManager.prototype, 'requestDeviceCode').mockResolvedValue({
+        deviceCode: 'd',
+        userCode: 'u',
+        verificationUri: 'https://v',
+        verificationUriComplete: 'https://vc',
+        expiresIn: 300,
+        interval: 0.01,
+      })
+      spyOn(WebexCredentialManager.prototype, 'pollDeviceToken').mockResolvedValue({
+        accessToken: 'at',
+        refreshToken: 'rt',
+        expiresAt: Date.now() + 3600000,
+      })
+      spyOn(WebexCredentialManager.prototype, 'saveConfig').mockResolvedValue(undefined)
+      spyOn(WebexClient.prototype, 'login').mockResolvedValue(new WebexClient())
+      spyOn(WebexClient.prototype, 'testAuth').mockResolvedValue(mockPerson)
 
-    await expect(statusAction({})).rejects.toThrow('process.exit(1)')
+      await loginAction({ clientId: 'my-id', clientSecret: 'my-secret', pretty: false })
 
-    expect(consoleLogSpy).toHaveBeenCalledWith(
-      expect.stringContaining('Not authenticated'),
-    )
-    expect(consoleLogSpy).toHaveBeenCalledWith(
-      expect.stringContaining('auth login --token <token>'),
-    )
-  })
-
-  test('authenticated: validates token and outputs user info', async () => {
-    await statusAction({})
-
-    expect(clientTestAuthSpy).toHaveBeenCalled()
-    expect(consoleLogSpy).toHaveBeenCalledWith(
-      JSON.stringify({
-        authenticated: true,
-        user: {
-          id: 'person-123',
-          displayName: 'Test User',
-          emails: ['test@example.com'],
-        },
-      }),
-    )
-  })
-
-  test('token invalid: outputs authenticated false with null user', async () => {
-    clientTestAuthSpy.mockRejectedValue(new Error('401 Unauthorized'))
-
-    await statusAction({})
-
-    expect(consoleLogSpy).toHaveBeenCalledWith(
-      JSON.stringify({ authenticated: false, user: null }),
-    )
+      const savedConfig = (WebexCredentialManager.prototype.saveConfig as ReturnType<typeof spyOn>).mock.calls[0][0] as { clientId: string; clientSecret: string }
+      expect(savedConfig.clientId).toBe('my-id')
+      expect(savedConfig.clientSecret).toBe('my-secret')
+    })
   })
 
-  test('authenticated with pretty flag outputs formatted JSON', async () => {
-    await statusAction({ pretty: true })
+  describe('statusAction', () => {
+    test('shows authenticated status when token is valid', async () => {
+      spyOn(WebexCredentialManager.prototype, 'loadConfig').mockResolvedValue(null)
+      spyOn(WebexCredentialManager.prototype, 'getToken').mockResolvedValue('valid-token')
+      spyOn(WebexClient.prototype, 'login').mockResolvedValue(new WebexClient())
+      spyOn(WebexClient.prototype, 'testAuth').mockResolvedValue(mockPerson)
 
-    expect(consoleLogSpy).toHaveBeenCalledWith(
-      JSON.stringify(
-        {
-          authenticated: true,
-          user: {
-            id: 'person-123',
-            displayName: 'Test User',
-            emails: ['test@example.com'],
-          },
-        },
-        null,
-        2,
-      ),
-    )
+      await statusAction({ pretty: false })
+
+      const output = JSON.parse(consoleSpy.mock.calls[0][0] as string)
+      expect(output.authenticated).toBe(true)
+      expect(output.user.displayName).toBe('Test User')
+    })
+
+    test('shows not authenticated when no token', async () => {
+      spyOn(WebexCredentialManager.prototype, 'loadConfig').mockResolvedValue(null)
+      spyOn(WebexCredentialManager.prototype, 'getToken').mockResolvedValue(null)
+      const exitSpy = spyOn(process, 'exit').mockImplementation(() => undefined as never)
+
+      await statusAction({ pretty: false })
+
+      const output = JSON.parse(consoleSpy.mock.calls[0][0] as string)
+      expect(output.error).toContain('Not authenticated')
+      expect(exitSpy).toHaveBeenCalledWith(1)
+    })
+
+    test('shows not authenticated when token validation fails', async () => {
+      spyOn(WebexCredentialManager.prototype, 'loadConfig').mockResolvedValue(null)
+      spyOn(WebexCredentialManager.prototype, 'getToken').mockResolvedValue('invalid-token')
+      spyOn(WebexClient.prototype, 'login').mockResolvedValue(new WebexClient())
+      spyOn(WebexClient.prototype, 'testAuth').mockRejectedValue(new Error('401 Unauthorized'))
+
+      await statusAction({ pretty: false })
+
+      const output = JSON.parse(consoleSpy.mock.calls[0][0] as string)
+      expect(output.authenticated).toBe(false)
+    })
+
+    test('loads config for stored client credentials', async () => {
+      spyOn(WebexCredentialManager.prototype, 'loadConfig').mockResolvedValue({
+        accessToken: 'at',
+        refreshToken: 'rt',
+        expiresAt: Date.now() + 3600000,
+        clientId: 'stored-id',
+        clientSecret: 'stored-secret',
+      })
+      spyOn(WebexCredentialManager.prototype, 'getToken').mockResolvedValue('valid-token')
+      spyOn(WebexClient.prototype, 'login').mockResolvedValue(new WebexClient())
+      spyOn(WebexClient.prototype, 'testAuth').mockResolvedValue(mockPerson)
+
+      await statusAction({ pretty: false })
+
+      expect(WebexCredentialManager.prototype.getToken).toHaveBeenCalledWith('stored-id', 'stored-secret')
+    })
   })
-})
 
-describe('logoutAction', () => {
-  test('has credentials: clears and outputs success', async () => {
-    await logoutAction({})
+  describe('logoutAction', () => {
+    test('clears credentials when authenticated', async () => {
+      spyOn(WebexCredentialManager.prototype, 'loadConfig').mockResolvedValue({
+        accessToken: 'token',
+        refreshToken: 'refresh',
+        expiresAt: Date.now() + 3600000,
+      })
+      const clearSpy = spyOn(WebexCredentialManager.prototype, 'clearCredentials').mockResolvedValue(undefined)
 
-    expect(credManagerClearCredentialsSpy).toHaveBeenCalled()
-    expect(consoleLogSpy).toHaveBeenCalledWith(
-      JSON.stringify({ removed: 'webex', success: true }),
-    )
-  })
+      await logoutAction({ pretty: false })
 
-  test('no credentials: outputs error and exits', async () => {
-    credManagerGetTokenSpy.mockResolvedValue(null)
+      expect(clearSpy).toHaveBeenCalled()
+      const output = JSON.parse(consoleSpy.mock.calls[0][0] as string)
+      expect(output.success).toBe(true)
+    })
 
-    await expect(logoutAction({})).rejects.toThrow('process.exit(1)')
+    test('shows error when not authenticated', async () => {
+      spyOn(WebexCredentialManager.prototype, 'loadConfig').mockResolvedValue(null)
+      const exitSpy = spyOn(process, 'exit').mockImplementation(() => undefined as never)
 
-    expect(credManagerClearCredentialsSpy).not.toHaveBeenCalled()
-    expect(consoleLogSpy).toHaveBeenCalledWith(
-      expect.stringContaining('Not authenticated'),
-    )
-  })
+      await logoutAction({ pretty: false })
 
-  test('no credentials: error message includes login hint', async () => {
-    credManagerGetTokenSpy.mockResolvedValue(null)
-
-    await expect(logoutAction({})).rejects.toThrow('process.exit(1)')
-
-    expect(consoleLogSpy).toHaveBeenCalledWith(
-      expect.stringContaining('auth login --token <token>'),
-    )
+      const output = JSON.parse(consoleSpy.mock.calls[0][0] as string)
+      expect(output.error).toContain('Not authenticated')
+      expect(exitSpy).toHaveBeenCalledWith(1)
+    })
   })
 })

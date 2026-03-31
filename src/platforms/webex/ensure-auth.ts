@@ -4,8 +4,10 @@ import { WebexCredentialManager } from './credential-manager'
 export async function ensureWebexAuth(): Promise<void> {
   try {
     const credManager = new WebexCredentialManager()
-    const token = await credManager.getToken()
+    const config = await credManager.loadConfig()
+    if (!config) return
 
+    const token = await credManager.getToken(config.clientId, config.clientSecret)
     if (!token) return
 
     const client = new WebexClient()

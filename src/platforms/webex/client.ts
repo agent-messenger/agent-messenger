@@ -28,7 +28,8 @@ export class WebexClient {
     const { ensureWebexAuth } = await import('./ensure-auth')
     await ensureWebexAuth()
     const credManager = new WebexCredentialManager()
-    const token = await credManager.getToken()
+    const config = await credManager.loadConfig()
+    const token = await credManager.getToken(config?.clientId, config?.clientSecret)
     if (!token) {
       throw new WebexError(
         'No Webex credentials found. Run "auth login" to authenticate.',

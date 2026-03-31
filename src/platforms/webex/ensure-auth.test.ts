@@ -4,11 +4,13 @@ import { WebexClient } from './client'
 import { WebexCredentialManager } from './credential-manager'
 import { ensureWebexAuth } from './ensure-auth'
 
+let loadConfigSpy: ReturnType<typeof spyOn>
 let getTokenSpy: ReturnType<typeof spyOn>
 let loginSpy: ReturnType<typeof spyOn>
 let testAuthSpy: ReturnType<typeof spyOn>
 
 beforeEach(() => {
+  loadConfigSpy = spyOn(WebexCredentialManager.prototype, 'loadConfig').mockResolvedValue(null)
   getTokenSpy = spyOn(WebexCredentialManager.prototype, 'getToken').mockResolvedValue(null)
   loginSpy = spyOn(WebexClient.prototype, 'login').mockResolvedValue({} as WebexClient)
   testAuthSpy = spyOn(WebexClient.prototype, 'testAuth').mockResolvedValue({
@@ -20,37 +22,52 @@ beforeEach(() => {
 })
 
 afterEach(() => {
+  loadConfigSpy?.mockRestore()
   getTokenSpy?.mockRestore()
   loginSpy?.mockRestore()
   testAuthSpy?.mockRestore()
 })
 
 describe('ensureWebexAuth', () => {
-  test('does nothing when no token stored', async () => {
+  test('does nothing when no config stored', async () => {
     // given
-    getTokenSpy.mockResolvedValue(null)
+    loadConfigSpy.mockResolvedValue(null)
 
     // when
     await ensureWebexAuth()
 
     // then
+    expect(getTokenSpy).not.toHaveBeenCalled()
     expect(testAuthSpy).not.toHaveBeenCalled()
   })
 
   test('validates token when stored', async () => {
     // given
+    loadConfigSpy.mockResolvedValue({
+      accessToken: 'test-webex-token',
+      refreshToken: 'refresh',
+      expiresAt: Date.now() + 3600000,
+      clientId: 'stored-id',
+      clientSecret: 'stored-secret',
+    })
     getTokenSpy.mockResolvedValue('test-webex-token')
 
     // when
     await ensureWebexAuth()
 
     // then
+    expect(getTokenSpy).toHaveBeenCalledWith('stored-id', 'stored-secret')
     expect(loginSpy).toHaveBeenCalledWith({ token: 'test-webex-token' })
     expect(testAuthSpy).toHaveBeenCalled()
   })
 
   test('does not throw when token validation fails', async () => {
     // given
+    loadConfigSpy.mockResolvedValue({
+      accessToken: 'invalid-token',
+      refreshToken: 'refresh',
+      expiresAt: Date.now() + 3600000,
+    })
     getTokenSpy.mockResolvedValue('invalid-token')
     testAuthSpy.mockRejectedValue(new Error('401 Unauthorized'))
 

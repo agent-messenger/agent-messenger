@@ -3,59 +3,120 @@ import { Command } from 'commander'
 import { handleError } from '@/shared/utils/error-handler'
 import { formatOutput } from '@/shared/utils/output'
 
+import { getWebexAppCredentials } from '../app-config'
 import { WebexClient } from '../client'
 import { WebexCredentialManager } from '../credential-manager'
 
-export async function loginAction(options: { token: string; pretty?: boolean }): Promise<void> {
-  try {
-    const client = await new WebexClient().login({ token: options.token })
-    const person = await client.testAuth()
+interface ResolvedCredentials {
+  clientId: string
+  clientSecret: string
+}
 
+async function openBrowser(url: string): Promise<void> {
+  const { exec } = await import('node:child_process')
+  const command =
+    process.platform === 'darwin'
+      ? `open "${url}"`
+      : process.platform === 'win32'
+        ? `start "" "${url}"`
+        : `xdg-open "${url}"`
+  exec(command)
+}
+
+async function resolveClientCredentials(options: {
+  clientId?: string
+  clientSecret?: string
+}): Promise<ResolvedCredentials> {
+  // 1. CLI flags
+  if (options.clientId || options.clientSecret) {
+    if (!options.clientId || !options.clientSecret) {
+      throw new Error('Both --client-id and --client-secret must be provided together.')
+    }
+    return { clientId: options.clientId, clientSecret: options.clientSecret }
+  }
+
+  // 2. Stored config from previous login
+  const credManager = new WebexCredentialManager()
+  const config = await credManager.loadConfig()
+  if (config?.clientId && config?.clientSecret) {
+    return { clientId: config.clientId, clientSecret: config.clientSecret }
+  }
+
+  // 3. Env vars → 4. Built-in defaults (always resolves)
+  const appCreds = getWebexAppCredentials()
+  return { clientId: appCreds.clientId, clientSecret: appCreds.clientSecret }
+}
+
+export async function loginAction(options: { token?: string; clientId?: string; clientSecret?: string; pretty?: boolean }): Promise<void> {
+  try {
     const credManager = new WebexCredentialManager()
-    await credManager.setToken(options.token)
+
+    if (options.token) {
+      const client = await new WebexClient().login({ token: options.token })
+      const person = await client.testAuth()
+      await credManager.saveConfig({
+        accessToken: options.token,
+        refreshToken: '',
+        expiresAt: Date.now() + 365 * 24 * 60 * 60 * 1000,
+      })
+      console.log(
+        formatOutput(
+          {
+            user: { id: person.id, displayName: person.displayName, emails: person.emails },
+            authenticated: true,
+          },
+          options.pretty,
+        ),
+      )
+      return
+    }
+
+    const { clientId, clientSecret } = await resolveClientCredentials(options)
+
+    const device = await credManager.requestDeviceCode(clientId)
+
+    console.error(`Open this URL and enter the code: ${device.verificationUri}`)
+    console.error(`Code: ${device.userCode}`)
+    console.error('')
+    await openBrowser(device.verificationUriComplete)
+    console.error('Waiting for authorization...')
+
+    const config = await credManager.pollDeviceToken(
+      device.deviceCode,
+      device.interval,
+      device.expiresIn,
+      clientId,
+      clientSecret,
+    )
+
+    await credManager.saveConfig({ ...config, clientId, clientSecret })
+
+    const client = await new WebexClient().login({ token: config.accessToken })
+    const person = await client.testAuth()
 
     console.log(
       formatOutput(
         {
-          user: {
-            id: person.id,
-            displayName: person.displayName,
-            emails: person.emails,
-          },
+          user: { id: person.id, displayName: person.displayName, emails: person.emails },
           authenticated: true,
         },
         options.pretty,
       ),
     )
   } catch (error) {
-    const errorMessage = (error as Error).message
-    const is401 = errorMessage.includes('401') || errorMessage.includes('Unauthorized')
-    console.log(
-      formatOutput(
-        {
-          error: `Token validation failed: ${errorMessage}`,
-          hint: is401
-            ? 'Token expired or invalid. Get a new token from https://developer.webex.com'
-            : 'Make sure your token is valid. Get one from https://developer.webex.com',
-        },
-        options.pretty,
-      ),
-    )
-    process.exit(1)
+    handleError(error as Error)
   }
 }
 
 export async function statusAction(options: { pretty?: boolean }): Promise<void> {
   try {
     const credManager = new WebexCredentialManager()
-    const token = await credManager.getToken()
+    const config = await credManager.loadConfig()
+    const token = await credManager.getToken(config?.clientId, config?.clientSecret)
 
     if (!token) {
       console.log(
-        formatOutput(
-          { error: 'Not authenticated. Run "auth login --token <token>" first.' },
-          options.pretty,
-        ),
+        formatOutput({ error: 'Not authenticated. Run "auth login" first.' }, options.pretty),
       )
       process.exit(1)
     }
@@ -63,30 +124,17 @@ export async function statusAction(options: { pretty?: boolean }): Promise<void>
     try {
       const client = await new WebexClient().login({ token })
       const person = await client.testAuth()
-
       console.log(
         formatOutput(
           {
             authenticated: true,
-            user: {
-              id: person.id,
-              displayName: person.displayName,
-              emails: person.emails,
-            },
+            user: { id: person.id, displayName: person.displayName, emails: person.emails },
           },
           options.pretty,
         ),
       )
     } catch {
-      console.log(
-        formatOutput(
-          {
-            authenticated: false,
-            user: null,
-          },
-          options.pretty,
-        ),
-      )
+      console.log(formatOutput({ authenticated: false, user: null }, options.pretty))
     }
   } catch (error) {
     handleError(error as Error)
@@ -96,20 +144,16 @@ export async function statusAction(options: { pretty?: boolean }): Promise<void>
 export async function logoutAction(options: { pretty?: boolean }): Promise<void> {
   try {
     const credManager = new WebexCredentialManager()
-    const token = await credManager.getToken()
+    const config = await credManager.loadConfig()
 
-    if (!token) {
+    if (!config) {
       console.log(
-        formatOutput(
-          { error: 'Not authenticated. Run "auth login --token <token>" first.' },
-          options.pretty,
-        ),
+        formatOutput({ error: 'Not authenticated. Run "auth login" first.' }, options.pretty),
       )
       process.exit(1)
     }
 
     await credManager.clearCredentials()
-
     console.log(formatOutput({ removed: 'webex', success: true }, options.pretty))
   } catch (error) {
     handleError(error as Error)
@@ -120,8 +164,10 @@ export const authCommand = new Command('auth')
   .description('Authentication commands')
   .addCommand(
     new Command('login')
-      .description('Login with a Webex access token')
-      .requiredOption('--token <token>', 'Webex personal access token or bot token')
+      .description('Login to Webex')
+      .option('--token <token>', 'Use a bot token or personal access token directly')
+      .option('--client-id <id>', 'Webex Integration client ID')
+      .option('--client-secret <secret>', 'Webex Integration client secret')
       .option('--pretty', 'Pretty print JSON output')
       .action(loginAction),
   )
