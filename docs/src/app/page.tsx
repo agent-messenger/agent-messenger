@@ -648,8 +648,8 @@ export default function Home() {
 
           {/* Subtitle */}
           <p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-zinc-600 dark:text-zinc-400">
-            One CLI for Slack, Discord, Teams, Telegram, WhatsApp, LINE, Instagram, KakaoTalk, and Channel Talk.
-            Credentials extracted from desktop apps or authenticated in seconds — no API keys, no OAuth, no admin approval.
+            One CLI for Slack, Discord, Teams, Webex, Telegram, WhatsApp, LINE, Instagram, KakaoTalk, and Channel Talk.
+            Credentials extracted from desktop apps or authenticated in seconds — no API keys, no admin approval.
           </p>
 
           {/* CTAs with glass treatment in dark mode */}
