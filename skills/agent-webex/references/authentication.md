@@ -31,6 +31,8 @@ agent-webex auth extract --debug
 
 **Requirements**: You must be logged into web.webex.com in a supported Chromium browser. The browser does not need to be running — the CLI reads directly from on-disk LevelDB files.
 
+**Limitations**: Direct messages (`message dm`) require an existing conversation with the recipient. The extracted token cannot create new 1:1 conversations — start one from the Webex app first, then use the CLI.
+
 ### OAuth Device Grant
 
 The fallback authentication method when browser extraction is unavailable. No credentials to copy, no developer portal setup required.
