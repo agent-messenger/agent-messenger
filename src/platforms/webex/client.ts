@@ -256,10 +256,31 @@ export class WebexClient {
     text: string,
     options?: { markdown?: boolean },
   ): Promise<WebexMessage> {
+    if (this.useInternalAPI) {
+      const roomId = await this.findDirectRoomByEmail(personEmail)
+      if (!roomId) {
+        throw new WebexError(`No existing direct conversation with ${personEmail}`, 'not_found')
+      }
+      return this.sendMessageInternal(roomId, text)
+    }
     const body = options?.markdown
       ? { toPersonEmail: personEmail, markdown: text }
       : { toPersonEmail: personEmail, text }
     return this.request<WebexMessage>('POST', '/messages', body)
+  }
+
+  private async findDirectRoomByEmail(email: string): Promise<string | null> {
+    const rooms = await this.request<{ items: WebexSpace[] }>('GET', `/rooms?type=direct&max=100`)
+    for (const room of rooms.items) {
+      const members = await this.request<{ items: WebexMembership[] }>(
+        'GET',
+        `/memberships?roomId=${room.id}&max=10`,
+      )
+      if (members.items.some((m) => m.personEmail === email)) {
+        return room.id
+      }
+    }
+    return null
   }
 
   async listMessages(roomId: string, options?: { max?: number }): Promise<WebexMessage[]> {
