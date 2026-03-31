@@ -16,7 +16,7 @@ metadata:
 
 # Agent Instagram
 
-An Instagram DM CLI for AI agents. Authenticates with username/password (supports 2FA), uses Instagram's private mobile API to read and send direct messages.
+An Instagram DM CLI for AI agents. Supports browser cookie extraction (zero-config, extracts from Chrome/Edge/Arc/Brave) and username/password authentication (with 2FA). Uses Instagram's private mobile API to read and send direct messages.
 
 Use one of these entrypoints:
 - Global install: `agent-instagram ...`
@@ -25,7 +25,8 @@ Use one of these entrypoints:
 ## Key Concepts
 
 - **Thread ID** = Instagram's identifier for a DM conversation. Numeric string returned by `chat list`.
-- **Username/password auth** = authenticates using Instagram credentials. Supports two-factor authentication via SMS or authenticator app.
+- **Browser cookie extraction** = recommended auth method. Extracts cookies from Chrome/Edge/Arc/Brave where you're logged into instagram.com. Zero-config.
+- **Username/password auth** = fallback method. Authenticates using Instagram credentials. Supports two-factor authentication via SMS or authenticator app.
 - **HTTP-based** = each command makes HTTP requests and returns. No persistent connection or background process.
 - **Multi-account** = multiple Instagram accounts can be stored. Use `auth list` and `auth use` to switch between them.
 - **DM-only** = this CLI focuses on Instagram Direct Messages. It does not manage posts, stories, or followers.
@@ -33,7 +34,10 @@ Use one of these entrypoints:
 ## Quick Start
 
 ```bash
-# Log in with Instagram credentials
+# Extract cookies from browser (recommended — zero-config)
+agent-instagram auth extract
+
+# Or: Log in with Instagram credentials (fallback)
 agent-instagram auth login --username myaccount --password "mypassword"
 
 # List DM conversations
@@ -45,7 +49,30 @@ agent-instagram message send <thread-id> "Hello from agent-instagram"
 
 ## Authentication Flow
 
-Instagram uses username/password authentication with optional two-factor verification. Sessions are persisted locally so you don't need to re-authenticate for every command.
+Instagram supports two authentication methods:
+
+1. **Browser cookie extraction** (recommended): Extracts your session cookies from a Chromium browser where you're logged into instagram.com. Zero-config, no password needed.
+2. **Username/password login**: Authenticates using Instagram credentials with optional two-factor verification.
+
+Sessions are persisted locally so you don't need to re-authenticate for every command. Browser extraction auto-runs when no session exists.
+
+### Browser Cookie Extraction (Recommended)
+
+`agent-instagram auth extract` reads your Instagram session cookies from Chrome, Edge, Arc, Brave, Vivaldi, or Chromium. You must be logged into instagram.com in one of these browsers.
+
+```bash
+# Extract cookies from browser — zero-config
+agent-instagram auth extract
+
+# With debug output
+agent-instagram auth extract --debug
+```
+
+**How it works**: The CLI reads Instagram cookies (`sessionid`, `csrftoken`, `ds_user_id`) directly from the browser's SQLite cookie database. No browser automation, no password prompts. The session is stored locally in `~/.config/agent-messenger/`.
+
+**When to re-extract**: Browser cookies expire. When your session expires, re-run `agent-instagram auth extract` or let auto-extraction handle it (the CLI attempts extraction automatically when no valid session exists).
+
+**Supported browsers**: Chrome, Chrome Canary, Edge, Arc, Brave, Vivaldi, Chromium
 
 ### Agent Behavior (MANDATORY)
 
@@ -59,11 +86,20 @@ agent-instagram auth list
 
 If accounts exist, use `agent-instagram auth use <account-id>` and retry the original command.
 
-**Step 2: If no accounts, ask for credentials**
+**Step 2: Try browser extraction first**
+
+```bash
+agent-instagram auth extract
+# -> {"authenticated":true,"account_id":"12345678","username":"myaccount"}
+```
+
+If extraction succeeds, proceed with the original command.
+
+**Step 3: If extraction fails, ask for credentials**
 
 Ask the user for their Instagram username and password. These are the ONLY things the user needs to provide.
 
-**Step 3: Start login**
+**Step 4: Start login**
 
 ```bash
 agent-instagram auth login --username myaccount --password "mypassword"
@@ -92,6 +128,8 @@ After successful auth, immediately execute whatever the user originally asked fo
 ### Common Auth Commands
 
 ```bash
+agent-instagram auth extract                 # Extract cookies from browser (recommended)
+agent-instagram auth extract --debug         # Extract with debug output
 agent-instagram auth status                  # Check current auth state
 agent-instagram auth status --account <id>   # Check specific account
 agent-instagram auth list                    # List all stored accounts
@@ -166,6 +204,10 @@ Never store auth credentials, passwords, session tokens, or any sensitive data. 
 ### Auth Commands
 
 ```bash
+# Extract cookies from browser (recommended — zero-config)
+agent-instagram auth extract
+agent-instagram auth extract --debug
+
 # Log in (interactive: prompts for username/password)
 agent-instagram auth login
 
@@ -334,8 +376,8 @@ All commands return consistent error format:
 
 Common errors:
 
-- `Not authenticated` - no account configured. Run `auth login`.
-- `Session expired or missing` - session is no longer valid. Run `auth login` again.
+- `Not authenticated` - no account configured. Run `auth extract` or `auth login`.
+- `Session expired or missing` - session is no longer valid. Run `auth extract` to re-extract from browser, or `auth login` to log in again.
 - `Login failed` - wrong username/password. Double-check credentials.
 - `Two-factor authentication failed` - wrong 2FA code. Get a new code and try `auth verify` again.
 - `Rate limited` - too many requests. Wait and retry.
