@@ -434,6 +434,16 @@ export class InstagramTokenExtractor {
       decipher.setAutoPadding(true)
 
       const decrypted = Buffer.concat([decipher.update(ciphertext), decipher.final()])
+
+      // Chromium v130+ prepends a 32-byte integrity hash before the actual cookie value.
+      // Detect by checking if the first bytes contain non-printable characters.
+      if (decrypted.length > 32) {
+        const hasNonPrintablePrefix = decrypted.subarray(0, 32).some((b) => b < 0x20 || b > 0x7e)
+        if (hasNonPrintablePrefix) {
+          return decrypted.subarray(32).toString('utf8')
+        }
+      }
+
       return decrypted.toString('utf8')
     } catch {
       return null
