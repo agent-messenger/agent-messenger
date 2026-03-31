@@ -3,6 +3,7 @@ import blessed from 'blessed'
 import { SlackAdapter } from './adapters/slack-adapter'
 import { DiscordAdapter } from './adapters/discord-adapter'
 import { TeamsAdapter } from './adapters/teams-adapter'
+import { WebexAdapter } from './adapters/webex-adapter'
 import { TelegramAdapter } from './adapters/telegram-adapter'
 import { WhatsAppAdapter } from './adapters/whatsapp-adapter'
 import { LineAdapter } from './adapters/line-adapter'
@@ -38,6 +39,7 @@ export async function createApp(): Promise<void> {
     { adapter: new SlackAdapter(), label: 'Slack', enabled: false, channels: null, workspaces: null, listening: false, lastChannelId: null },
     { adapter: new DiscordAdapter(), label: 'Discord', enabled: false, channels: null, workspaces: null, listening: false, lastChannelId: null },
     { adapter: new TeamsAdapter(), label: 'Teams', enabled: false, channels: null, workspaces: null, listening: false, lastChannelId: null },
+    { adapter: new WebexAdapter(), label: 'Webex', enabled: false, channels: null, workspaces: null, listening: false, lastChannelId: null },
     { adapter: new TelegramAdapter(), label: 'Telegram', enabled: false, channels: null, workspaces: null, listening: false, lastChannelId: null },
     { adapter: new WhatsAppAdapter(), label: 'WhatsApp', enabled: false, channels: null, workspaces: null, listening: false, lastChannelId: null },
     { adapter: new LineAdapter(), label: 'LINE', enabled: false, channels: null, workspaces: null, listening: false, lastChannelId: null },
