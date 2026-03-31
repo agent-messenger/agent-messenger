@@ -398,6 +398,7 @@ async function extractAction(options: { pretty?: boolean; debug?: boolean }): Pr
       if (user?.['username']) {
         username = user['username'] as string
       }
+      await (client as any).saveSession()
     } catch {}
 
     const now = new Date().toISOString()
