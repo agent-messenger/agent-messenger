@@ -179,38 +179,38 @@ export class WebexClient {
     text: string,
     options?: { markdown?: boolean },
   ): Promise<WebexMessage> {
-    if (this.tokenType === 'extracted' && this.deviceUrl) {
-      return this.sendMessageViaConversationAPI(roomId, text)
+    if (this.useInternalAPI) {
+      return this.sendMessageInternal(roomId, text)
     }
     const body = options?.markdown ? { roomId, markdown: text } : { roomId, text }
     return this.request<WebexMessage>('POST', '/messages', body)
   }
 
-  private async sendMessageViaConversationAPI(roomId: string, text: string): Promise<WebexMessage> {
-    const token = this.ensureAuth()
+  private get useInternalAPI(): boolean {
+    return this.tokenType === 'extracted' && this.deviceUrl !== null
+  }
 
-    const decodedRoomId = Buffer.from(roomId, 'base64').toString('utf8')
-    const convUuid = decodedRoomId.split('/').pop() ?? roomId
+  private get convBaseUrl(): string {
+    const match = this.deviceUrl?.match(/wdm(-[a-z0-9]+)\.wbx2\.com/)
+    return `https://conv${match?.[1] ?? ''}.wbx2.com/conversation/api/v1`
+  }
 
-    const clusterSuffixMatch = this.deviceUrl!.match(/wdm(-[a-z0-9]+)\.wbx2\.com/)
-    const clusterSuffix = clusterSuffixMatch?.[1] ?? ''
-    const convBaseUrl = `https://conv${clusterSuffix}.wbx2.com/conversation/api/v1`
-
-    const activity = {
-      verb: 'post',
-      object: { objectType: 'comment', displayName: text, content: text },
-      target: { id: convUuid, objectType: 'conversation' },
-      clientTempId: `tmp-${Date.now()}`,
+  private get internalHeaders(): Record<string, string> {
+    return {
+      Authorization: `Bearer ${this.ensureAuth()}`,
+      'Content-Type': 'application/json',
+      'cisco-device-url': this.deviceUrl!,
     }
+  }
 
-    const response = await fetch(`${convBaseUrl}/activities`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
-        'cisco-device-url': this.deviceUrl!,
-      },
-      body: JSON.stringify(activity),
+  private decodeConvUuid(roomId: string): string {
+    return Buffer.from(roomId, 'base64').toString('utf8').split('/').pop() ?? roomId
+  }
+
+  private async internalRequest<T>(path: string, init?: RequestInit): Promise<T> {
+    const response = await fetch(`${this.convBaseUrl}${path}`, {
+      ...init,
+      headers: { ...this.internalHeaders, ...init?.headers as Record<string, string> },
     })
 
     if (!response.ok) {
@@ -221,23 +221,34 @@ export class WebexClient {
       )
     }
 
-    const result = (await response.json()) as {
-      id: string
-      actor: { displayName: string; emailAddress: string; entryUUID?: string; id?: string }
-      object: { content?: string; displayName?: string }
-      target: { id: string }
-      published: string
-    }
+    if (response.status === 204) return undefined as T
+    return response.json() as Promise<T>
+  }
 
+  private activityToMessage(a: InternalActivity, roomId: string): WebexMessage {
     return {
-      id: result.id,
+      id: a.id,
       roomId,
       roomType: 'group' as const,
-      text: result.object.content ?? result.object.displayName,
-      personId: result.actor.entryUUID ?? result.actor.id ?? '',
-      personEmail: result.actor.emailAddress,
-      created: result.published,
+      text: a.object?.content ?? a.object?.displayName,
+      personId: a.actor?.entryUUID ?? a.actor?.id ?? '',
+      personEmail: a.actor?.emailAddress ?? '',
+      created: a.published,
     }
+  }
+
+  private async sendMessageInternal(roomId: string, text: string): Promise<WebexMessage> {
+    const convUuid = this.decodeConvUuid(roomId)
+    const result = await this.internalRequest<InternalActivity>('/activities', {
+      method: 'POST',
+      body: JSON.stringify({
+        verb: 'post',
+        object: { objectType: 'comment', displayName: text, content: text },
+        target: { id: convUuid, objectType: 'conversation' },
+        clientTempId: `tmp-${Date.now()}`,
+      }),
+    })
+    return this.activityToMessage(result, roomId)
   }
 
   async sendDirectMessage(
@@ -252,6 +263,16 @@ export class WebexClient {
   }
 
   async listMessages(roomId: string, options?: { max?: number }): Promise<WebexMessage[]> {
+    if (this.useInternalAPI) {
+      const convUuid = this.decodeConvUuid(roomId)
+      const max = options?.max ?? 50
+      const conv = await this.internalRequest<InternalConversation>(
+        `/conversations/${convUuid}?activitiesLimit=${max}&participantsLimit=0`,
+      )
+      return (conv.activities?.items ?? [])
+        .filter((a) => a.verb === 'post')
+        .map((a) => this.activityToMessage(a, roomId))
+    }
     const params = new URLSearchParams()
     params.set('roomId', roomId)
     params.set('max', String(options?.max ?? 50))
@@ -260,10 +281,28 @@ export class WebexClient {
   }
 
   async getMessage(messageId: string): Promise<WebexMessage> {
+    if (this.useInternalAPI) {
+      const activity = await this.internalRequest<InternalActivity>(`/activities/${messageId}`)
+      return this.activityToMessage(activity, '')
+    }
     return this.request<WebexMessage>('GET', `/messages/${messageId}`)
   }
 
   async deleteMessage(messageId: string): Promise<void> {
+    if (this.useInternalAPI) {
+      const activity = await this.internalRequest<InternalActivity>(`/activities/${messageId}`)
+      const convId = activity.target?.id
+      if (!convId) throw new WebexError('Cannot determine conversation for activity', 'internal_error')
+      await this.internalRequest<unknown>('/activities', {
+        method: 'POST',
+        body: JSON.stringify({
+          verb: 'delete',
+          object: { id: messageId, objectType: 'activity' },
+          target: { id: convId, objectType: 'conversation' },
+        }),
+      })
+      return
+    }
     return this.request<void>('DELETE', `/messages/${messageId}`)
   }
 
@@ -305,4 +344,18 @@ export class WebexClient {
     )
     return data.items
   }
+}
+
+interface InternalActivity {
+  id: string
+  verb: string
+  actor?: { displayName?: string; emailAddress?: string; entryUUID?: string; id?: string }
+  object?: { content?: string; displayName?: string; objectType?: string }
+  target?: { id: string }
+  published: string
+}
+
+interface InternalConversation {
+  id: string
+  activities?: { items: InternalActivity[] }
 }
