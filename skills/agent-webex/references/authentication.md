@@ -4,16 +4,16 @@
 
 agent-webex supports four authentication methods against the Webex REST API (`https://webexapis.com/v1`):
 
-1. **Browser Token Extraction** (recommended): Extracts your first-party token from a Chromium browser where you're logged into web.webex.com. Messages appear as you — no "via" label. Zero-config.
-2. **OAuth Device Grant**: Zero-config. Run `auth login`, approve in browser, done. Tokens refresh automatically. Messages show "via agent-messenger".
+1. **Browser Token Extraction**: Extracts your first-party token from a Chromium browser where you're logged into web.webex.com. Currently supports read operations (spaces, members, auth). Zero-config.
+2. **OAuth Device Grant** (recommended for messaging): Zero-config. Run `auth login`, approve in browser, done. Tokens refresh automatically. Supports all operations including sending messages (shows "via agent-messenger").
 3. **Bot Token**: Pass via `auth login --token`. Never expires. Best for CI/CD.
 4. **Personal Access Token (PAT)**: Pass via `auth login --token`. Expires in 12 hours. For quick testing.
 
 ## Token Types
 
-### Browser Token Extraction (recommended)
+### Browser Token Extraction
 
-The recommended authentication method. Extracts your first-party Webex session token from a Chromium-based browser where you're logged into web.webex.com. Because the token is first-party (not associated with a third-party Integration), messages appear as you — no "via agent-messenger" label.
+Extracts your first-party Webex session token from a Chromium-based browser where you're logged into web.webex.com. Currently supports read operations (authentication, listing spaces/members, snapshots). Sending messages via the REST API is not yet supported because the web client's token lacks `spark:messages_write` scope — the web client uses internal Cisco APIs for messaging instead.
 
 - **How it works**: Run `agent-webex auth extract`. The CLI scans Chromium browser profiles for Webex localStorage data (LevelDB files). It finds the `webex-storage` key containing `Credentials.@.supertoken` and extracts the access token. No browser automation, no password prompts.
 - **Supported browsers**: Chrome, Chrome Canary, Edge, Arc, Brave, Vivaldi, Chromium
