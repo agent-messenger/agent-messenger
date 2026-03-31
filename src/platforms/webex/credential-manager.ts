@@ -45,7 +45,7 @@ export class WebexCredentialManager {
     const config = await this.loadConfig()
     if (!config) return null
 
-    if (config.tokenType === 'manual') {
+    if (config.tokenType === 'manual' || config.tokenType === 'extracted') {
       return config.accessToken
     }
 

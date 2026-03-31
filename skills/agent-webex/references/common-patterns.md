@@ -8,14 +8,17 @@ This guide covers typical workflows for AI agents interacting with Cisco Webex u
 
 ## Auth Patterns
 
-### Pattern 1: Log In
+### Pattern 1: Authenticate
 
 **Use case**: First-time setup or token renewal
 
 ```bash
 #!/bin/bash
 
-# Default: Device Grant (zero-config, opens browser)
+# Recommended: Browser extraction (zero-config, sends as you, no "via" label)
+agent-webex auth extract
+
+# Fallback: Device Grant (zero-config, opens browser, shows "via agent-messenger")
 agent-webex auth login
 
 # With a bot token (never expires, for CI/CD)
@@ -25,7 +28,7 @@ agent-webex auth login --token "YOUR_BOT_TOKEN_HERE"
 agent-webex auth login --token "YOUR_PAT_HERE"
 ```
 
-**When to use**: Before any other command, if not already authenticated.
+**When to use**: Before any other command, if not already authenticated. Browser extraction is preferred — it auto-runs when no valid token is stored.
 
 ### Pattern 2: Check Auth Status
 

@@ -8,8 +8,8 @@ description: Complete reference for the agent-webex CLI.
 ## Quick Start
 
 ```bash
-# 1. Log in (opens browser automatically, zero-config!)
-agent-webex auth login
+# 1. Extract token from browser (recommended — messages appear as you)
+agent-webex auth extract
 
 # 2. Get workspace snapshot
 agent-webex snapshot
@@ -20,9 +20,26 @@ agent-webex message send <space-id> "Hello from AI agent!"
 
 ## Authentication
 
-### OAuth Device Grant (Zero-Config)
+### Browser Token Extraction (Recommended)
 
-agent-webex uses OAuth Device Grant flow with built-in Integration credentials. No tokens to copy, no developer portal setup needed.
+Extracts your first-party Webex session token from a Chromium browser where you're logged into web.webex.com. Messages appear as you — no "via agent-messenger" label. Zero-config.
+
+```bash
+agent-webex auth extract
+```
+
+This command:
+
+- Scans Chromium browser profiles for Webex localStorage data (LevelDB)
+- Extracts the first-party supertoken and device URL
+- Validates the token against the Webex API
+- Stores credentials in `~/.config/agent-messenger/`
+- Supported browsers: Chrome, Chrome Canary, Edge, Arc, Brave, Vivaldi, Chromium
+- Auto-extraction runs when no valid token is stored, so manual extraction is rarely needed
+
+### OAuth Device Grant (Fallback)
+
+Uses OAuth Device Grant flow with built-in Integration credentials. No tokens to copy, no developer portal setup needed. Messages show "via agent-messenger".
 
 ```bash
 agent-webex auth login
@@ -39,24 +56,26 @@ This command:
 
 ### How Login Works
 
-1. Run `agent-webex auth login`
-2. CLI requests a device code from Webex
-3. Browser opens to Webex verification page
-4. Enter the displayed code and sign in
-5. CLI automatically detects approval and stores tokens
-6. Access token auto-refreshes via refresh token
+1. Run `agent-webex auth extract` (recommended) or `agent-webex auth login` (fallback)
+2. For extraction: CLI reads your browser's Webex session — no prompts needed
+3. For Device Grant: Browser opens, enter the displayed code, CLI stores tokens
+4. Access tokens are refreshed automatically
 
 ### Token Types
 
 | Type | Lifetime | Best For |
 | --- | --- | --- |
-| OAuth Device Grant (default) | 14-day access, 90-day refresh (auto-refresh) | Interactive use, development |
+| Browser Extraction (recommended) | Session-based (re-extract when expired) | Interactive use, sending as yourself |
+| OAuth Device Grant | 14-day access, 90-day refresh (auto-refresh) | Fallback when no browser session |
 | Bot Token | Never expires | CI/CD, long-running automation |
 | Personal Access Token (PAT) | 12 hours | Quick testing |
 
 ### Authentication Commands
 
 ```bash
+# Extract token from browser (recommended)
+agent-webex auth extract
+
 # Log in (Device Grant flow, opens browser)
 agent-webex auth login
 

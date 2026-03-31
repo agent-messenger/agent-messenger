@@ -6,6 +6,7 @@ import { formatOutput } from '@/shared/utils/output'
 import { getWebexAppCredentials } from '../app-config'
 import { WebexClient } from '../client'
 import { WebexCredentialManager } from '../credential-manager'
+import { WebexTokenExtractor } from '../token-extractor'
 
 interface ResolvedCredentials {
   clientId: string
@@ -135,6 +136,60 @@ export async function statusAction(options: { pretty?: boolean }): Promise<void>
   }
 }
 
+export async function extractAction(options: { pretty?: boolean; debug?: boolean }): Promise<void> {
+  try {
+    const extractor = new WebexTokenExtractor(
+      undefined,
+      options.debug ? (msg) => console.error(`[debug] ${msg}`) : undefined,
+    )
+
+    if (options.debug) {
+      console.error('[debug] Searching browser profiles for Webex tokens...')
+    }
+
+    const extracted = await extractor.extract()
+
+    if (!extracted) {
+      console.log(
+        formatOutput(
+          {
+            error: 'No Webex token found in any browser. Make sure you are logged in to web.webex.com in Chrome, Edge, Arc, or Brave.',
+            hint: 'Run "auth login" for OAuth Device Grant flow, or --debug for more info.',
+          },
+          options.pretty,
+        ),
+      )
+      process.exit(1)
+      return
+    }
+
+    const client = await new WebexClient().login({ token: extracted.accessToken })
+    const person = await client.testAuth()
+
+    const credManager = new WebexCredentialManager()
+    await credManager.saveConfig({
+      accessToken: extracted.accessToken,
+      refreshToken: extracted.refreshToken ?? '',
+      expiresAt: extracted.expiresAt ?? 0,
+      tokenType: 'extracted',
+      deviceUrl: extracted.deviceUrl,
+    })
+
+    console.log(
+      formatOutput(
+        {
+          user: { id: person.id, displayName: person.displayName, emails: person.emails },
+          authenticated: true,
+          tokenType: 'extracted',
+        },
+        options.pretty,
+      ),
+    )
+  } catch (error) {
+    handleError(error as Error)
+  }
+}
+
 export async function logoutAction(options: { pretty?: boolean }): Promise<void> {
   try {
     const credManager = new WebexCredentialManager()
@@ -165,6 +220,13 @@ export const authCommand = new Command('auth')
       .option('--client-secret <secret>', 'Webex Integration client secret')
       .option('--pretty', 'Pretty print JSON output')
       .action(loginAction),
+  )
+  .addCommand(
+    new Command('extract')
+      .description('Extract Webex token from browser (Chrome, Edge, Arc, Brave)')
+      .option('--pretty', 'Pretty print JSON output')
+      .option('--debug', 'Show debug output')
+      .action(extractAction),
   )
   .addCommand(
     new Command('status')

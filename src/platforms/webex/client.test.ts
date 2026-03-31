@@ -388,6 +388,320 @@ describe('WebexClient', () => {
     })
   })
 
+  describe('internal conversation API', () => {
+    const TEST_DEVICE_URL = 'https://wdm-r.wbx2.com/wdm/api/v1/devices/test-device-id'
+    const CONV_BASE = 'https://conv-r.wbx2.com/conversation/api/v1'
+    const TEST_ROOM_ID = Buffer.from('ciscospark://urn:TEAM:us-west-2_r/ROOM/abc123-def456').toString('base64')
+    const TEST_CONV_UUID = 'abc123-def456'
+
+    const mockActivity = (text: string, overrides?: Partial<Record<string, unknown>>) => ({
+      id: 'activity-123',
+      verb: 'post',
+      actor: { displayName: 'Test User', emailAddress: 'test@example.com', entryUUID: 'user-uuid' },
+      object: { objectType: 'comment', content: text, displayName: text },
+      target: { id: TEST_CONV_UUID },
+      published: '2026-01-01T00:00:00.000Z',
+      ...overrides,
+    })
+
+    const mockConversation = (activities: ReturnType<typeof mockActivity>[]) => ({
+      id: TEST_CONV_UUID,
+      activities: { items: activities },
+    })
+
+    const createExtractedClient = async () => {
+      const client = await new WebexClient().login({ token: 'extracted-token' })
+      ;(client as any).deviceUrl = TEST_DEVICE_URL
+      ;(client as any).tokenType = 'extracted'
+      return client
+    }
+
+    describe('sendMessage', () => {
+      test('posts activity to /activities with POST method', async () => {
+        mockResponse(mockActivity('Hello world'))
+
+        const client = await createExtractedClient()
+        await client.sendMessage(TEST_ROOM_ID, 'Hello world')
+
+        expect(fetchCalls[0].url).toBe(`${CONV_BASE}/activities`)
+        expect(fetchCalls[0].options?.method).toBe('POST')
+      })
+
+      test('body has verb, object type, displayName, and content', async () => {
+        mockResponse(mockActivity('Hello world'))
+
+        const client = await createExtractedClient()
+        await client.sendMessage(TEST_ROOM_ID, 'Hello world')
+
+        const body = JSON.parse(fetchCalls[0].options?.body as string)
+        expect(body.verb).toBe('post')
+        expect(body.object.objectType).toBe('comment')
+        expect(body.object.displayName).toBe('Hello world')
+        expect(body.object.content).toBe('Hello world')
+      })
+
+      test('body has target with decoded conv UUID and conversation type', async () => {
+        mockResponse(mockActivity('Hello world'))
+
+        const client = await createExtractedClient()
+        await client.sendMessage(TEST_ROOM_ID, 'Hello world')
+
+        const body = JSON.parse(fetchCalls[0].options?.body as string)
+        expect(body.target.id).toBe(TEST_CONV_UUID)
+        expect(body.target.objectType).toBe('conversation')
+      })
+
+      test('body has clientTempId starting with tmp-', async () => {
+        mockResponse(mockActivity('Hello world'))
+
+        const client = await createExtractedClient()
+        await client.sendMessage(TEST_ROOM_ID, 'Hello world')
+
+        const body = JSON.parse(fetchCalls[0].options?.body as string)
+        expect(body.clientTempId).toStartWith('tmp-')
+      })
+
+      test('includes cisco-device-url header', async () => {
+        mockResponse(mockActivity('Hello world'))
+
+        const client = await createExtractedClient()
+        await client.sendMessage(TEST_ROOM_ID, 'Hello world')
+
+        expect(fetchCalls[0].options?.headers).toMatchObject({
+          'cisco-device-url': TEST_DEVICE_URL,
+        })
+      })
+
+      test('returns WebexMessage mapped from activity response', async () => {
+        mockResponse(mockActivity('Hello world'))
+
+        const client = await createExtractedClient()
+        const message = await client.sendMessage(TEST_ROOM_ID, 'Hello world')
+
+        expect(message.id).toBe('activity-123')
+        expect(message.text).toBe('Hello world')
+        expect(message.personEmail).toBe('test@example.com')
+        expect(message.created).toBe('2026-01-01T00:00:00.000Z')
+      })
+    })
+
+    describe('listMessages', () => {
+      test('calls GET on conversations endpoint with activitiesLimit and participantsLimit', async () => {
+        mockResponse(mockConversation([mockActivity('Hello')]))
+
+        const client = await createExtractedClient()
+        await client.listMessages(TEST_ROOM_ID)
+
+        expect(fetchCalls[0].url).toBe(
+          `${CONV_BASE}/conversations/${TEST_CONV_UUID}?activitiesLimit=50&participantsLimit=0`,
+        )
+      })
+
+      test('filters activities to only those with verb post', async () => {
+        mockResponse(
+          mockConversation([
+            mockActivity('Hello'),
+            { ...mockActivity('Deleted'), verb: 'delete' },
+            mockActivity('World'),
+          ]),
+        )
+
+        const client = await createExtractedClient()
+        const messages = await client.listMessages(TEST_ROOM_ID)
+
+        expect(messages).toHaveLength(2)
+        expect(messages[0].text).toBe('Hello')
+        expect(messages[1].text).toBe('World')
+      })
+
+      test('maps each activity to WebexMessage format', async () => {
+        mockResponse(mockConversation([mockActivity('Hello')]))
+
+        const client = await createExtractedClient()
+        const messages = await client.listMessages(TEST_ROOM_ID)
+
+        expect(messages[0].id).toBe('activity-123')
+        expect(messages[0].text).toBe('Hello')
+        expect(messages[0].personEmail).toBe('test@example.com')
+        expect(messages[0].created).toBe('2026-01-01T00:00:00.000Z')
+      })
+
+      test('passes custom max to activitiesLimit', async () => {
+        mockResponse(mockConversation([]))
+
+        const client = await createExtractedClient()
+        await client.listMessages(TEST_ROOM_ID, { max: 25 })
+
+        expect(fetchCalls[0].url).toContain('activitiesLimit=25')
+      })
+
+      test('includes cisco-device-url header', async () => {
+        mockResponse(mockConversation([]))
+
+        const client = await createExtractedClient()
+        await client.listMessages(TEST_ROOM_ID)
+
+        expect(fetchCalls[0].options?.headers).toMatchObject({
+          'cisco-device-url': TEST_DEVICE_URL,
+        })
+      })
+    })
+
+    describe('getMessage', () => {
+      test('calls GET on activities endpoint', async () => {
+        mockResponse(mockActivity('Hello'))
+
+        const client = await createExtractedClient()
+        await client.getMessage('activity-123')
+
+        expect(fetchCalls[0].url).toBe(`${CONV_BASE}/activities/activity-123`)
+      })
+
+      test('maps activity to WebexMessage format', async () => {
+        mockResponse(mockActivity('Hello'))
+
+        const client = await createExtractedClient()
+        const message = await client.getMessage('activity-123')
+
+        expect(message.id).toBe('activity-123')
+        expect(message.text).toBe('Hello')
+        expect(message.personEmail).toBe('test@example.com')
+      })
+    })
+
+    describe('deleteMessage', () => {
+      test('first GETs the activity then POSTs a delete activity', async () => {
+        mockResponse(mockActivity('Hello'))
+        mockResponse({})
+
+        const client = await createExtractedClient()
+        await client.deleteMessage('activity-123')
+
+        expect(fetchCalls[0].url).toBe(`${CONV_BASE}/activities/activity-123`)
+        expect(fetchCalls[1].url).toBe(`${CONV_BASE}/activities`)
+        expect(fetchCalls[1].options?.method).toBe('POST')
+      })
+
+      test('delete activity body has correct verb, object, and target', async () => {
+        mockResponse(mockActivity('Hello'))
+        mockResponse({})
+
+        const client = await createExtractedClient()
+        await client.deleteMessage('activity-123')
+
+        const body = JSON.parse(fetchCalls[1].options?.body as string)
+        expect(body.verb).toBe('delete')
+        expect(body.object.id).toBe('activity-123')
+        expect(body.object.objectType).toBe('activity')
+        expect(body.target.id).toBe(TEST_CONV_UUID)
+      })
+
+      test('throws WebexError when activity has no target', async () => {
+        mockResponse({ ...mockActivity('Hello'), target: undefined })
+
+        const client = await createExtractedClient()
+        await expect(client.deleteMessage('activity-123')).rejects.toThrow(WebexError)
+      })
+    })
+
+    describe('editMessage', () => {
+      test('posts activity with verb post and parent edit reference', async () => {
+        mockResponse(mockActivity('Edited text'))
+
+        const client = await createExtractedClient()
+        await client.editMessage('activity-123', TEST_ROOM_ID, 'Edited text')
+
+        const body = JSON.parse(fetchCalls[0].options?.body as string)
+        expect(body.verb).toBe('post')
+        expect(body.parent).toEqual({ id: 'activity-123', type: 'edit' })
+      })
+
+      test('body has object with comment type and new text', async () => {
+        mockResponse(mockActivity('Edited text'))
+
+        const client = await createExtractedClient()
+        await client.editMessage('activity-123', TEST_ROOM_ID, 'Edited text')
+
+        const body = JSON.parse(fetchCalls[0].options?.body as string)
+        expect(body.object.objectType).toBe('comment')
+        expect(body.object.displayName).toBe('Edited text')
+        expect(body.object.content).toBe('Edited text')
+      })
+
+      test('target has decoded conv UUID', async () => {
+        mockResponse(mockActivity('Edited text'))
+
+        const client = await createExtractedClient()
+        await client.editMessage('activity-123', TEST_ROOM_ID, 'Edited text')
+
+        const body = JSON.parse(fetchCalls[0].options?.body as string)
+        expect(body.target.id).toBe(TEST_CONV_UUID)
+      })
+    })
+
+    describe('sendDirectMessage', () => {
+      test('calls public rooms and memberships API to find room, then sends via internal API', async () => {
+        mockResponse({ items: [{ id: TEST_ROOM_ID, title: 'DM', type: 'direct' }] })
+        mockResponse({
+          items: [{ id: 'm1', roomId: TEST_ROOM_ID, personEmail: 'target@example.com', isModerator: false }],
+        })
+        mockResponse(mockActivity('Hello'))
+
+        const client = await createExtractedClient()
+        const message = await client.sendDirectMessage('target@example.com', 'Hello')
+
+        expect(fetchCalls[0].url).toContain('/rooms?type=direct&max=100')
+        expect(fetchCalls[1].url).toContain('/memberships?roomId=')
+        expect(fetchCalls[2].url).toBe(`${CONV_BASE}/activities`)
+        expect(message.id).toBe('activity-123')
+      })
+
+      test('throws WebexError when no existing direct conversation found', async () => {
+        mockResponse({ items: [{ id: 'room-x', title: 'DM', type: 'direct' }] })
+        mockResponse({
+          items: [{ id: 'm1', roomId: 'room-x', personEmail: 'other@example.com', isModerator: false }],
+        })
+
+        const client = await createExtractedClient()
+        await expect(client.sendDirectMessage('target@example.com', 'Hello')).rejects.toThrow(WebexError)
+      })
+    })
+
+    describe('error handling', () => {
+      test('throws WebexError when internal API returns non-OK response', async () => {
+        fetchResponses.push(
+          new Response(JSON.stringify({ message: 'Activity not found' }), {
+            status: 404,
+            headers: { 'Content-Type': 'application/json' },
+          }),
+        )
+
+        const client = await createExtractedClient()
+        await expect(client.getMessage('bad-activity')).rejects.toThrow(WebexError)
+      })
+
+      test('error message extracted from internal API response body', async () => {
+        fetchResponses.push(
+          new Response(JSON.stringify({ message: 'Activity not found' }), {
+            status: 404,
+            headers: { 'Content-Type': 'application/json' },
+          }),
+        )
+
+        const client = await createExtractedClient()
+        let error: WebexError | null = null
+        try {
+          await client.getMessage('bad-activity')
+        } catch (err) {
+          error = err as WebexError
+        }
+
+        expect(error).toBeInstanceOf(WebexError)
+        expect(error?.message).toBe('Activity not found')
+      })
+    })
+  })
+
   describe('error handling', () => {
     test('throws WebexError with parsed message from response body', async () => {
       mockResponse({ message: 'The requested resource could not be found.', trackingId: 'abc' }, 404)
