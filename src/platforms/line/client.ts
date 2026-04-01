@@ -2,34 +2,13 @@ import { mkdirSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
 
-type LinejsModule = typeof import('@evex/linejs')
-type LinejsStorageModule = typeof import('@evex/linejs/storage')
-type Client = Awaited<ReturnType<LinejsModule['loginWithQR']>>
-
-let cachedLinejs: LinejsModule | undefined
-let cachedLinejsStorage: LinejsStorageModule | undefined
-
-const INSTALL_HINT = '@evex/linejs is required for LINE support. Install it with: bun add @evex/linejs@npm:@jsr/evex__linejs'
-
-async function getLinejs(): Promise<LinejsModule> {
-  if (cachedLinejs) return cachedLinejs
-  try {
-    cachedLinejs = await import('@evex/linejs')
-    return cachedLinejs
-  } catch {
-    throw new Error(INSTALL_HINT)
-  }
-}
-
-async function getLinejsStorage(): Promise<LinejsStorageModule> {
-  if (cachedLinejsStorage) return cachedLinejsStorage
-  try {
-    cachedLinejsStorage = await import('@evex/linejs/storage')
-    return cachedLinejsStorage
-  } catch {
-    throw new Error(INSTALL_HINT)
-  }
-}
+import {
+  loginWithQR as linejsLoginWithQR,
+  loginWithPassword as linejsLoginWithPassword,
+  loginWithAuthToken as linejsLoginWithAuthToken,
+  type Client,
+} from '@evex/linejs'
+import { FileStorage } from '@evex/linejs/storage'
 
 import { LineCredentialManager } from './credential-manager'
 import type {
@@ -61,8 +40,7 @@ function getDefaultDevice(): LineDevice {
   return 'ANDROIDSECONDARY'
 }
 
-async function createStorage(accountId?: string) {
-  const { FileStorage } = await getLinejsStorage()
+function createStorage(accountId?: string): FileStorage {
   const dir = join(homedir(), '.config', 'agent-messenger', 'line-storage')
   mkdirSync(dir, { recursive: true })
   return new FileStorage(join(dir, `${accountId ?? 'default'}.json`))
@@ -82,11 +60,10 @@ export class LineClient {
     onPincode: (pin: string) => void
   }): Promise<LineLoginResult> {
     try {
-      const linejs = await getLinejs()
       const device: LineDevice = options.device ?? getDefaultDevice()
-      const storage = await createStorage()
+      const storage = createStorage()
 
-      const client = await linejs.loginWithQR(
+      const client = await linejsLoginWithQR(
         {
           onReceiveQRUrl: (url) => options.onQRUrl(url),
           onPincodeRequest: (pin) => options.onPincode(pin),
@@ -126,11 +103,10 @@ export class LineClient {
     onPincode: (pin: string) => void
   }): Promise<LineLoginResult> {
     try {
-      const linejs = await getLinejs()
       const device: LineDevice = options.device ?? getDefaultDevice()
-      const storage = await createStorage()
+      const storage = createStorage()
 
-      const client = await linejs.loginWithPassword(
+      const client = await linejsLoginWithPassword(
         {
           email: options.email,
           password: options.password,
@@ -178,11 +154,10 @@ export class LineClient {
         creds = account
       }
 
-      const linejs = await getLinejs()
       const device: LineDevice = creds.device ?? getDefaultDevice()
-      const storage = await createStorage()
+      const storage = createStorage()
 
-      this.client = await linejs.loginWithAuthToken(creds.auth_token, { device, storage })
+      this.client = await linejsLoginWithAuthToken(creds.auth_token, { device, storage })
       return this
     } catch (error) {
       throw wrapError(error, 'login_failed')

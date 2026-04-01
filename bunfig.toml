@@ -1,2 +1,5 @@
+[install.scopes]
+"@jsr" = "https://npm.jsr.io"
+
 [test]
 root = "./src"
