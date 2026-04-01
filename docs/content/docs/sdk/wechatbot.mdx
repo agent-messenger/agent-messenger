@@ -1,0 +1,282 @@
+---
+title: WeChat Bot
+description: TypeScript SDK reference for WeChat Bot — Official Account API client, credential management, and types.
+---
+
+## Installation
+
+```bash
+npm install agent-messenger
+```
+
+```typescript
+import {
+  WeChatBotClient,
+  WeChatBotCredentialManager,
+  WeChatBotError,
+} from 'agent-messenger/wechatbot'
+```
+
+## WeChatBotClient
+
+The main client for interacting with the WeChat Official Account API programmatically. Handles access token lifecycle (caching, auto-refresh on expiry), errcode-aware response parsing, and automatic retries on transient errors. All API calls use query-parameter token injection per WeChat convention.
+
+```typescript
+import { WeChatBotClient } from 'agent-messenger/wechatbot'
+
+const client = await new WeChatBotClient().login({ appId, appSecret })
+```
+
+Or use automatic credential extraction, where credentials are read from stored config:
+
+```typescript
+import { WeChatBotClient } from 'agent-messenger/wechatbot'
+
+const client = await new WeChatBotClient().login()
+```
+
+### Verification
+
+```typescript
+// Verify credentials by attempting to obtain an access token
+const valid = await client.verifyCredentials()
+// → boolean
+```
+
+### Customer Service Messages
+
+Customer service messages can be sent to users who have interacted with your Official Account within the last 48 hours.
+
+```typescript
+// Send a text message
+await client.sendTextMessage('oABCD1234', 'Hello from the bot!')
+
+// Send an image message (requires a media ID from WeChat's media upload API)
+await client.sendImageMessage('oABCD1234', 'MEDIA_ID_HERE')
+
+// Send a news/article message
+await client.sendNewsMessage('oABCD1234', [
+  {
+    title: 'Your Order Update',
+    description: 'Your order #12345 has been shipped',
+    url: 'https://example.com/orders/12345',
+    picurl: 'https://example.com/images/shipping.jpg',
+  },
+])
+```
+
+### Template Messages
+
+Template messages can be sent at any time, regardless of the 48-hour interaction window.
+
+```typescript
+// Send a template message
+const result = await client.sendTemplateMessage(
+  'oABCD1234',
+  'TM00001',
+  { order_id: { value: 'ORD-9876' }, customer_name: { value: 'Alice' } },
+  'https://example.com/order/9876', // optional click URL
+)
+console.log(`Message ID: ${result.msgid}`)
+// → { msgid: number }
+
+// List all private templates
+const templates = await client.listTemplates()
+// → WeChatBotTemplate[]
+
+// Delete a template
+await client.deleteTemplate('TM00001')
+```
+
+### Users
+
+```typescript
+// List followers (paginated)
+const followers = await client.getFollowers()
+console.log(`Total: ${followers.total}, This page: ${followers.count}`)
+// → { total: number, count: number, openids: string[], next_openid: string }
+
+// Get next page
+const nextPage = await client.getFollowers(followers.next_openid)
+
+// Get user info
+const user = await client.getUserInfo('oABCD1234', 'en')
+// → WeChatBotUserInfo
+```
+
+## WeChatBotCredentialManager
+
+Manages WeChat Bot credentials stored at `~/.config/agent-messenger/wechatbot-credentials.json`. Files are written with `0o600` permissions. The environment variables `E2E_WECHATBOT_APP_ID` and `E2E_WECHATBOT_APP_SECRET` take precedence when calling `getCredentials()` without an `accountId`.
+
+```typescript
+import { WeChatBotCredentialManager } from 'agent-messenger/wechatbot'
+
+const manager = new WeChatBotCredentialManager()
+// Custom path: new WeChatBotCredentialManager('/custom/config/dir')
+```
+
+```typescript
+// Load full config from disk (returns defaults if file doesn't exist)
+const config = await manager.load()
+// → WeChatBotConfig
+
+// Save full config to disk
+await manager.save(config)
+
+// Get credentials for an account (env vars take precedence)
+const creds = await manager.getCredentials()
+const specific = await manager.getCredentials(accountId)
+// → WeChatBotCredentials | null
+
+// Store credentials for an account
+await manager.setCredentials({
+  app_id: 'wx1234567890',
+  app_secret: '...',
+  account_name: 'wx1234567890',
+})
+
+// Remove an account's credentials
+const removed = await manager.removeAccount('wx1234567890')
+// → boolean
+
+// Set the current default account
+const ok = await manager.setCurrent('wx1234567890')
+// → boolean
+
+// List all saved accounts with current marker
+const all = await manager.listAll()
+// → Array<WeChatBotAccountEntry & { is_current: boolean }>
+
+// Clear all stored credentials
+await manager.clearCredentials()
+```
+
+## Types
+
+```typescript
+import type {
+  WeChatBotAccountEntry,
+  WeChatBotConfig,
+  WeChatBotCredentials,
+  WeChatBotNewsArticle,
+  WeChatBotTemplate,
+  WeChatBotUserInfo,
+} from 'agent-messenger/wechatbot'
+```
+
+## WeChatBotError
+
+Thrown on authentication failures, network errors, rate limits, and API errors. Includes a `code` string for programmatic handling.
+
+```typescript
+import { WeChatBotError } from 'agent-messenger/wechatbot'
+
+try {
+  await client.sendTextMessage('oABCD1234', 'Hello')
+} catch (error) {
+  if (error instanceof WeChatBotError) {
+    console.error(`${error.code}: ${error.message}`)
+    // e.g. "40001: Invalid credential"
+    // e.g. "45009: Reach max API daily quota limit"
+    // e.g. "40164: Invalid ip, not in whitelist"
+  }
+}
+```
+
+### Zod Schemas
+
+Runtime-validated schemas are also exported for parsing API responses:
+
+```typescript
+import {
+  WeChatBotAccountEntrySchema,
+  WeChatBotConfigSchema,
+  WeChatBotCredentialsSchema,
+  WeChatBotNewsArticleSchema,
+  WeChatBotTemplateSchema,
+  WeChatBotUserInfoSchema,
+} from 'agent-messenger/wechatbot'
+```
+
+## Examples
+
+### Send Template Notification
+
+Send a template message with dynamic data to a follower.
+
+```typescript
+import { WeChatBotClient } from 'agent-messenger/wechatbot'
+
+const client = await new WeChatBotClient().login({ appId, appSecret })
+
+const result = await client.sendTemplateMessage(
+  'oABCD1234',
+  'order_confirmation',
+  {
+    order_id: { value: 'ORD-5678' },
+    status: { value: 'Shipped' },
+    date: { value: 'March 30, 2026' },
+  },
+  'https://example.com/orders/5678',
+)
+console.log(`Sent template, msgid: ${result.msgid}`)
+```
+
+### Broadcast to All Followers
+
+Iterate through paginated follower list and send template messages.
+
+```typescript
+import { WeChatBotClient } from 'agent-messenger/wechatbot'
+
+const client = await new WeChatBotClient().login({ appId, appSecret })
+
+let nextOpenId: string | undefined
+do {
+  const page = await client.getFollowers(nextOpenId)
+  for (const openId of page.openids) {
+    await client.sendTemplateMessage(openId, 'weekly_update', {
+      content: { value: 'New features released this week!' },
+    })
+  }
+  nextOpenId = page.next_openid || undefined
+} while (nextOpenId)
+```
+
+### Multi-Account Management
+
+Set up and switch between multiple Official Account credentials.
+
+```typescript
+import { WeChatBotCredentialManager, WeChatBotClient } from 'agent-messenger/wechatbot'
+
+const manager = new WeChatBotCredentialManager()
+
+// Store credentials for two accounts
+await manager.setCredentials({
+  app_id: 'wx1111111111',
+  app_secret: 'secret1...',
+  account_name: 'wx1111111111',
+})
+
+await manager.setCredentials({
+  app_id: 'wx2222222222',
+  app_secret: 'secret2...',
+  account_name: 'wx2222222222',
+})
+
+// List all accounts
+const accounts = await manager.listAll()
+for (const acct of accounts) {
+  const marker = acct.is_current ? '(current)' : ''
+  console.log(`${acct.account_name} [${acct.app_id}] ${marker}`)
+}
+
+// Switch to a specific account
+await manager.setCurrent('wx1111111111')
+
+// Login picks up the current account automatically
+const client = await new WeChatBotClient().login()
+const valid = await client.verifyCredentials()
+console.log(`Credentials valid: ${valid}`)
+```
