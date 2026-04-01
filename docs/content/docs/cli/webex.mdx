@@ -31,11 +31,13 @@ agent-webex auth extract
 This command:
 
 - Scans Chromium browser profiles for Webex localStorage data (LevelDB)
-- Extracts the first-party supertoken and device URL
+- Extracts the first-party supertoken, device URL, and user ID
+- Extracts cached KMS encryption keys for end-to-end encrypted messaging
 - Validates the token against the Webex API
-- Stores credentials in `~/.config/agent-messenger/`
+- Stores credentials and encryption keys in `~/.config/agent-messenger/`
 - Supported browsers: Chrome, Chrome Canary, Edge, Arc, Brave, Vivaldi, Chromium
 - Auto-extraction runs when no valid token is stored, so manual extraction is rarely needed
+- Messages are encrypted client-side (JWE/AES-256-GCM) when encryption keys are available; falls back to plaintext otherwise. Re-run `auth extract` to refresh keys for new conversations.
 
 ### OAuth Device Grant (Fallback)
 
