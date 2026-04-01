@@ -13,7 +13,6 @@ import { info } from '@/shared/utils/stderr'
 import { LineClient } from '../client'
 import { LineCredentialManager } from '../credential-manager'
 import type { LineDevice } from '../types'
-import { LINE_NEXT_ACTIONS } from '../types'
 
 function isInteractiveSession(): boolean {
   return Boolean(process.stdin.isTTY && process.stdout.isTTY)
@@ -23,7 +22,7 @@ function getDefaultDevice(): LineDevice {
   return 'ANDROIDSECONDARY'
 }
 
-async function openQRInBrowser(url: string): Promise<void> {
+async function createQRHtmlFile(url: string): Promise<string> {
   const svgString = await QRCode.toString(url, { type: 'svg', margin: 2 })
   const html = `<!DOCTYPE html>
 <html><head><meta charset="utf-8"><title>LINE QR Login</title>
@@ -35,18 +34,20 @@ svg{width:280px;height:280px}</style></head>
 
   const htmlPath = join(tmpdir(), `line-qr-${Date.now()}.html`)
   writeFileSync(htmlPath, html)
+  setTimeout(() => { try { unlinkSync(htmlPath) } catch {} }, 300_000).unref()
+  return htmlPath
+}
 
+function openInBrowser(filePath: string): void {
   try {
     if (process.platform === 'darwin') {
-      execSync(`open "${htmlPath}"`, { stdio: 'ignore' })
+      execSync(`open "${filePath}"`, { stdio: 'ignore' })
     } else if (process.platform === 'win32') {
-      execSync(`start "" "${htmlPath}"`, { stdio: 'ignore' })
+      execSync(`start "" "${filePath}"`, { stdio: 'ignore' })
     } else {
-      execSync(`xdg-open "${htmlPath}"`, { stdio: 'ignore' })
+      execSync(`xdg-open "${filePath}"`, { stdio: 'ignore' })
     }
   } catch {}
-
-  setTimeout(() => { try { unlinkSync(htmlPath) } catch {} }, 30_000)
 }
 
 async function loginAction(options: {
@@ -94,21 +95,29 @@ async function loginAction(options: {
       })
       console.log(formatOutput(result, options.pretty))
     } else {
-      if (!interactive) {
-        console.log(formatOutput(LINE_NEXT_ACTIONS.run_interactive, options.pretty))
-        return
-      }
-
       const result = await client.loginWithQR({
         device,
         onQRUrl: async (url) => {
-          await openQRInBrowser(url).catch(() => {})
-          try {
-            const qrAscii = await QRCode.toString(url, { type: 'terminal', small: true })
-            info('\nScan this QR code with the LINE mobile app:\n')
-            info(qrAscii)
-          } catch {
-            info(`\nOpen the QR code in the browser window, or scan this URL:\n${url}\n`)
+          const htmlPath = await createQRHtmlFile(url).catch(() => null)
+          if (htmlPath) openInBrowser(htmlPath)
+
+          if (interactive) {
+            try {
+              const qrAscii = await QRCode.toString(url, { type: 'terminal', small: true })
+              info('\nScan this QR code with the LINE mobile app:\n')
+              info(qrAscii)
+            } catch {
+              info(`\nOpen the QR code in the browser window, or scan this URL:\n${url}\n`)
+            }
+          } else {
+            console.log(formatOutput({
+              next_action: 'scan_qr',
+              qr_url: url,
+              qr_html_path: htmlPath,
+              message: htmlPath
+                ? 'QR code opened in browser. Scan with LINE mobile app to complete login.'
+                : 'QR code generated. Open qr_url to scan with LINE mobile app.',
+            }, options.pretty))
           }
         },
         onPincode: (pin) => {

@@ -117,18 +117,14 @@ agent-line auth login
 
 Possible responses:
 
-- `{"authenticated": true, ...}` -> Success. Retry original command.
-- `{"next_action": "run_interactive", "message": "..."}` -> QR login requires an interactive terminal. **Tell the user** to run `agent-line auth login` in their own terminal and scan the QR code with the LINE mobile app. Then retry `auth status` to check completion.
-- `{"error": "not_connected", ...}` -> Network issue. Check connectivity and retry.
-- `{"error": "not_authenticated", ...}` -> Credentials expired. Re-run `auth login`.
+- `{"authenticated": true, ...}` → Success. Retry original command.
+- `{"next_action": "scan_qr", "qr_url": "...", "qr_html_path": "/tmp/line-qr-xxx.html", ...}` → QR code has been generated. The CLI attempts to open it in the user's browser automatically. If it didn't open, run `open <qr_html_path>` (macOS) to show the QR code. Tell the user to scan the QR code with the LINE mobile app. The command blocks until the user scans — once scanned, it outputs `{"authenticated": true, ...}`.
+- `{"error": "not_connected", ...}` → Network issue. Check connectivity and retry.
+- `{"error": "not_authenticated", ...}` → Credentials expired. Re-run `auth login`.
 
-**Important**: QR login renders a QR code in the terminal that must be scanned by the LINE mobile app. It only works in interactive terminals (TTY). When running as an AI agent, the CLI detects non-interactive mode and returns a `next_action` response instead of blocking.
+**Important**: QR login works in both interactive and non-interactive (agent) sessions. The CLI generates an HTML page with the QR code and opens it in the user's default browser. No TTY is required.
 
-**Step 3: If `next_action` was returned, ask the user to login manually**
-
-Tell the user: "Please run `agent-line auth login` in your terminal and scan the QR code with your LINE app." Then periodically check `agent-line auth status` until credentials appear.
-
-**Step 4: Retry the original command**
+**Step 3: Retry the original command**
 
 After successful auth, immediately execute whatever the user originally asked for.
 
