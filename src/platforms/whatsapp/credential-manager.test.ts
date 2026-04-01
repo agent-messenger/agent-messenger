@@ -198,6 +198,26 @@ describe('WhatsAppCredentialManager', () => {
 
       expect(result).toBe(false)
     })
+
+    test('deletes session directory even when account is not in config', async () => {
+      const manager = setup()
+
+      const paths = await manager.ensureAccountPaths('orphan-account')
+      expect(existsSync(paths.account_dir)).toBe(true)
+
+      const result = await manager.removeAccount('orphan-account')
+
+      expect(result).toBe(true)
+      expect(existsSync(paths.account_dir)).toBe(false)
+    })
+
+    test('returns false when neither config entry nor directory exists', async () => {
+      const manager = setup()
+
+      const result = await manager.removeAccount('ghost-account')
+
+      expect(result).toBe(false)
+    })
   })
 
   describe('clearCredentials', () => {

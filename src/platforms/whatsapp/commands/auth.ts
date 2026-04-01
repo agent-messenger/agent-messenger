@@ -138,29 +138,29 @@ async function logoutAction(options: { account?: string; pretty?: boolean }): Pr
     const manager = new WhatsAppCredentialManager()
     const account = await manager.getAccount(options.account)
 
-    if (!account) {
-      console.log(formatOutput({
-        error: options.account
-          ? `WhatsApp account "${options.account}" not found.`
-          : 'No WhatsApp account configured.',
-      }, options.pretty))
+    if (!account && !options.account) {
+      console.log(formatOutput({ error: 'No WhatsApp account configured.' }, options.pretty))
       process.exit(1)
     }
 
-    const paths = manager.getAccountPaths(account.account_id)
-    try {
-      const client = await new WhatsAppClient().login({ authDir: paths.auth_dir })
-      await client.connect()
-      if (client.getSocket()) {
-        await client.getSocket()!.logout('Logged out via agent-whatsapp CLI')
+    const accountId = account?.account_id ?? options.account!
+
+    if (account) {
+      const paths = manager.getAccountPaths(account.account_id)
+      try {
+        const client = await new WhatsAppClient().login({ authDir: paths.auth_dir })
+        await client.connect()
+        if (client.getSocket()) {
+          await client.getSocket()!.logout('Logged out via agent-whatsapp CLI')
+        }
+        await client.close()
+      } catch {
+        // Server-side deregister failed — proceed with local cleanup
       }
-      await client.close()
-    } catch {
-      // Server-side deregister failed — proceed with local cleanup
     }
 
-    await manager.removeAccount(account.account_id)
-    console.log(formatOutput({ success: true, account_id: account.account_id, logged_out: true }, options.pretty))
+    await manager.removeAccount(accountId)
+    console.log(formatOutput({ success: true, account_id: accountId, logged_out: true }, options.pretty))
     process.exit(0)
   } catch (error) {
     handleError(error as Error)

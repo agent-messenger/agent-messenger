@@ -91,19 +91,28 @@ export class WhatsAppCredentialManager {
     const config = await this.loadConfig()
     const account = config.accounts[accountId] ?? config.accounts[createAccountId(accountId)]
 
-    if (!account) {
-      return false
+    let removedFromConfig = false
+
+    if (account) {
+      delete config.accounts[account.account_id]
+
+      if (config.current === account.account_id) {
+        config.current = Object.keys(config.accounts)[0] ?? null
+      }
+
+      await this.saveConfig(config)
+      removedFromConfig = true
     }
 
-    delete config.accounts[account.account_id]
+    const resolvedId = account?.account_id ?? createAccountId(accountId)
+    const accountDir = this.getAccountPaths(resolvedId).account_dir
+    const dirExisted = existsSync(accountDir)
 
-    if (config.current === account.account_id) {
-      config.current = Object.keys(config.accounts)[0] ?? null
+    if (dirExisted) {
+      await rm(accountDir, { recursive: true, force: true })
     }
 
-    await this.saveConfig(config)
-    await rm(this.getAccountPaths(account.account_id).account_dir, { recursive: true, force: true })
-    return true
+    return removedFromConfig || dirExisted
   }
 
   async clearCredentials(): Promise<void> {
