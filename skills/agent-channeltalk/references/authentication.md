@@ -2,7 +2,7 @@
 
 ## Overview
 
-agent-channeltalk uses cookies extracted directly from the Channel Talk desktop application. This provides seamless, zero-config authentication without API keys or manual token management.
+agent-channeltalk uses cookies extracted from the Channel Talk desktop application, with automatic fallback to Chromium browser profiles (Chrome, Chrome Canary, Edge, Arc, Brave, Vivaldi, Chromium) when the desktop app isn't installed.
 
 ## Cookie Extraction
 
@@ -22,17 +22,19 @@ agent-channeltalk auth extract
 
 ### How It Works
 
-1. Locates the Channel Talk desktop app's SQLite cookie database on macOS
-2. Copies the database to a temp file (avoids locking the original)
-3. Reads `x-account` and `ch-session-1` cookies for `*.channel.io`
-4. Validates cookies against the Channel Talk API
-5. Discovers ALL workspaces you belong to
-6. Stores credentials in `~/.config/agent-messenger/channel-credentials.json`
-7. Sets the first workspace as the current active workspace
+1. Locates the Channel Talk desktop app's SQLite cookie database
+2. If the desktop app isn't found, scans Chromium browser profiles for Channel Talk cookies
+3. Copies the database to a temp file (avoids locking the original)
+4. Reads `x-account` and `ch-session-1` cookies for `*.channel.io`
+5. Decrypts encrypted cookies if needed (macOS Keychain, Linux peanuts, Windows DPAPI)
+6. Validates cookies against the Channel Talk API
+7. Discovers ALL workspaces you belong to
+8. Stores credentials in `~/.config/agent-messenger/channel-credentials.json`
+9. Sets the first workspace as the current active workspace
 
-### No Keychain Prompt
+### Keychain Prompt (Browser Extraction on macOS)
 
-Unlike Slack and Discord, Channel Talk stores cookies in a plaintext SQLite database. There's no OS-level encryption, so no Keychain password prompt is needed. Extraction is completely silent.
+When extracting from the desktop app, no Keychain prompt is needed (cookies are plaintext). When extracting from a Chromium browser, your Mac may prompt for Keychain access to decrypt the browser's cookies.
 
 ### What Gets Extracted
 
@@ -56,7 +58,7 @@ Unlike Slack and Discord, Channel Talk stores cookies in a plaintext SQLite data
 
 The tool checks the sandboxed path first, then falls back to the direct path.
 
-> **Note**: Only macOS is supported. Linux and Windows are not currently supported.
+> **Note**: Desktop app extraction supports macOS and Windows. Browser fallback extraction supports macOS, Linux, and Windows.
 
 ## Multi-Workspace Management
 
@@ -245,16 +247,17 @@ No credentials are configured and auto-extraction failed:
 
 ### Channel Talk desktop app not found
 
-The CLI only supports macOS. It looks for the cookie database in two locations:
+The CLI first checks for the desktop app, then falls back to Chromium browsers.
 
-1. **Mac App Store version**: `~/Library/Containers/com.zoyi.channel.desk.osx/Data/Library/Application Support/Channel Talk/Cookies`
-2. **Electron version**: `~/Library/Application Support/Channel Talk/Cookies`
+Desktop app paths:
+1. **macOS (Mac App Store)**: `~/Library/Containers/com.zoyi.channel.desk.osx/Data/Library/Application Support/Channel Talk/Cookies`
+2. **macOS (Electron)**: `~/Library/Application Support/Channel Talk/Cookies`
+3. **Windows**: `%APPDATA%/Channel Talk/Network/Cookies`
 
-If neither path exists:
+If neither the desktop app nor browser cookies are found:
 
-1. Install the Channel Talk desktop app from the Mac App Store or download it directly
-2. Log in to your account
-3. Run `agent-channeltalk auth extract`
+1. Log in to desk.channel.io in a Chromium browser (Chrome, Edge, Arc, Brave) — the CLI will extract from browser automatically
+2. Or install the Channel Talk desktop app, log in, and run `agent-channeltalk auth extract`
 
 ### Cookies expired or invalid
 

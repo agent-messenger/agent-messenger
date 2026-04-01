@@ -2,7 +2,7 @@
 
 ## Overview
 
-agent-discord uses Discord's user token extracted directly from the Discord desktop application. This provides seamless authentication without manual token management.
+agent-discord uses Discord's user token extracted from the Discord desktop application, with automatic fallback to Chromium browser profiles (Chrome, Chrome Canary, Edge, Arc, Brave, Vivaldi, Chromium) when the desktop app isn't installed.
 
 ## Token Extraction
 
@@ -22,10 +22,11 @@ This command:
 1. Detects your operating system (macOS, Linux, Windows)
 2. Locates the Discord desktop app data directory
 3. Reads the LevelDB storage containing session data
-4. Extracts user token
-5. Validates token against Discord API before saving
-6. Discovers ALL joined servers
-7. Stores credentials securely in `~/.config/agent-messenger/discord-credentials.json`
+4. If the desktop app isn't found, scans Chromium browser profiles for Discord tokens
+5. Extracts user token (handles encrypted tokens on all platforms)
+6. Validates token against Discord API before saving
+7. Discovers ALL joined servers
+8. Stores credentials securely in `~/.config/agent-messenger/discord-credentials.json`
 
 ### Platform-Specific Paths
 
@@ -209,9 +210,8 @@ This shows:
 
 **Solution**:
 
-1. Install Discord desktop app
-2. Log in to your account
-3. Run `agent-discord auth extract` again
+1. Log in to discord.com in a Chromium browser (Chrome, Edge, Arc, Brave) — the CLI will extract from browser automatically
+2. Or install the Discord desktop app, log in, and run `agent-discord auth extract` again
 
 ### "No Discord token found"
 

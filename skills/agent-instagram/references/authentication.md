@@ -2,9 +2,38 @@
 
 ## Overview
 
-agent-instagram uses username/password authentication against Instagram's private mobile API. The CLI logs in as a mobile client, so your existing app sessions are never affected. Each command makes HTTP requests on demand. No persistent connection or background process.
+agent-instagram supports two authentication methods: browser cookie extraction (recommended, zero-config) and username/password login (fallback). The CLI uses Instagram's private mobile API. Each command makes HTTP requests on demand. No persistent connection or background process.
 
-## Username/Password Login
+## Browser Cookie Extraction (Recommended)
+
+### How It Works
+
+1. Scans Chromium browser profiles (Chrome, Chrome Canary, Edge, Arc, Brave, Vivaldi, Chromium)
+2. Reads the SQLite cookie database for `.instagram.com` cookies
+3. Decrypts encrypted cookies using the browser's encryption key (macOS Keychain, Linux peanuts, Windows DPAPI)
+4. Extracts `sessionid`, `ds_user_id`, `csrftoken`, and optional cookies (`mid`, `ig_did`, `rur`)
+5. Validates the session against the Instagram API to resolve your username
+6. Stores credentials in `~/.config/agent-messenger/`
+
+### Usage
+
+```bash
+# Extract cookies from browser (recommended)
+agent-instagram auth extract
+
+# With debug output
+agent-instagram auth extract --debug
+```
+
+### Auto-Extraction
+
+When no valid session exists, the CLI automatically attempts browser extraction before prompting for credentials. This means most users never need to run `auth extract` manually.
+
+### Keychain Prompt (macOS)
+
+On macOS, your Mac may prompt for your password to access Keychain. This is required because Chromium browsers encrypt cookies using macOS Keychain. Your password is never stored or transmitted.
+
+## Username/Password Login (Fallback)
 
 ### How It Works
 
@@ -227,7 +256,10 @@ If commands start failing with auth errors:
 # Check if still authenticated
 agent-instagram auth status
 
-# Re-login if needed
+# Re-extract from browser (if logged in to instagram.com)
+agent-instagram auth extract
+
+# Or re-login with credentials
 agent-instagram auth login
 
 # Verify it worked
