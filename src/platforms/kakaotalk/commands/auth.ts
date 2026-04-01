@@ -4,6 +4,7 @@ import { Command } from 'commander'
 
 import { handleError } from '@/shared/utils/error-handler'
 import { formatOutput } from '@/shared/utils/output'
+import { info, error, debug } from '@/shared/utils/stderr'
 
 import { generateDeviceUuid, loginFlow } from '../auth/kakao-login'
 import { CredentialManager } from '../credential-manager'
@@ -231,15 +232,15 @@ async function loginAction(options: KakaoAuthOptions): Promise<void> {
         }
 
         if (email && interactive) {
-          console.error(`  Using cached credentials for ${email}`)
+          info(`  Using cached credentials for ${email}`)
         }
         if (isHashedPassword && !password) {
           const passwordPrompt = email ? `Password for ${email}` : 'Password'
           if (interactive) {
-            console.error(`  One-time setup: password is needed to register this device.`)
+            info(`  One-time setup: password is needed to register this device.`)
             password = await promptHidden(passwordPrompt)
           } else if (hasTTY()) {
-            console.error(`  One-time setup: password is needed to register this device.`)
+            info(`  One-time setup: password is needed to register this device.`)
             try { password = await promptHiddenTTY(passwordPrompt) } catch { /* /dev/tty open failed */ }
           }
           if (!password) {
@@ -262,7 +263,7 @@ async function loginAction(options: KakaoAuthOptions): Promise<void> {
         return
       }
       email = await promptText('KakaoTalk email')
-      if (!email) { console.error('Email is required.'); process.exit(1) }
+      if (!email) { error('Email is required.'); process.exit(1) }
     }
 
     if (!password) {
@@ -271,7 +272,7 @@ async function loginAction(options: KakaoAuthOptions): Promise<void> {
         return
       }
       password = await promptHidden('Password')
-      if (!password) { console.error('Password is required.'); process.exit(1) }
+      if (!password) { error('Password is required.'); process.exit(1) }
     }
 
     const existing = await credManager.getAccount()
@@ -280,14 +281,14 @@ async function loginAction(options: KakaoAuthOptions): Promise<void> {
 
     const onPasscodeDisplay = (code: string) => {
       if (interactive) {
-        console.error('')
-        console.error(`  Enter this code on your phone: ${code}`)
-        console.error('  Waiting for confirmation...')
-        console.error('')
+        info('')
+        info(`  Enter this code on your phone: ${code}`)
+        info('  Waiting for confirmation...')
+        info('')
       }
     }
 
-    const debugLog = options.debug ? (msg: string) => console.error(`[debug] ${msg}`) : undefined
+    const debugLog = options.debug ? (msg: string) => debug(`[debug] ${msg}`) : undefined
 
     const result = await loginFlow({
       email,
@@ -380,7 +381,7 @@ async function extractAction(options: {
     if (options.unsafelyShowSecrets) {
       options.debug = true
     }
-    const debugLog = options.debug ? (msg: string) => console.error(`[debug] ${msg}`) : undefined
+    const debugLog = options.debug ? (msg: string) => debug(`[debug] ${msg}`) : undefined
     const extractor = new KakaoTokenExtractor(undefined, debugLog)
 
     const token = await extractor.extract()
@@ -402,8 +403,8 @@ async function extractAction(options: {
       const display = options.unsafelyShowSecrets
         ? token.oauth_token
         : `${token.oauth_token.substring(0, 12)}...`
-      console.error(`[debug] oauth_token: ${display}`)
-      console.error(`[debug] user_id: ${token.user_id}`)
+      debug(`[debug] oauth_token: ${display}`)
+      debug(`[debug] user_id: ${token.user_id}`)
     }
 
     const credManager = new CredentialManager()

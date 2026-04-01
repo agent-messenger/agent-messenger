@@ -5,6 +5,7 @@ import { Writable } from 'node:stream'
 import { Command } from 'commander'
 import { handleError } from '@/shared/utils/error-handler'
 import { formatOutput } from '@/shared/utils/output'
+import { info, warn, error as stderrError, debug } from '@/shared/utils/stderr'
 import { InstagramClient, generateAndroidDeviceId, generateDeviceString } from '../client'
 import { InstagramCredentialManager } from '../credential-manager'
 import { InstagramTokenExtractor } from '../token-extractor'
@@ -91,7 +92,7 @@ async function loginAction(options: LoginOptions): Promise<void> {
         process.exit(1)
       }
       username = await promptText('Instagram username')
-      if (!username) { console.error('Username is required.'); process.exit(1) }
+      if (!username) { stderrError('Username is required.'); process.exit(1) }
     }
 
     if (!password) {
@@ -102,7 +103,7 @@ async function loginAction(options: LoginOptions): Promise<void> {
         process.exit(1)
       }
       password = await promptHidden('Password')
-      if (!password) { console.error('Password is required.'); process.exit(1) }
+      if (!password) { stderrError('Password is required.'); process.exit(1) }
     }
 
     const manager = new InstagramCredentialManager()
@@ -112,7 +113,7 @@ async function loginAction(options: LoginOptions): Promise<void> {
     const client = new InstagramClient(manager)
     client.setSessionPath(paths.session_path)
     if (options.debug) {
-      client.setDebugLog((msg) => console.error(`[debug] ${msg}`))
+      client.setDebugLog((msg) => debug(`[debug] ${msg}`))
     }
 
     const result = await client.authenticate(username, password)
@@ -121,9 +122,9 @@ async function loginAction(options: LoginOptions): Promise<void> {
       const twoFactorIdentifier = (result.twoFactorInfo?.['two_factor_identifier'] as string) ?? ''
 
       if (interactive) {
-        console.error('\n  Two-factor authentication required.')
+        info('\n  Two-factor authentication required.')
         const code = await promptText('Verification code')
-        if (!code) { console.error('Code is required.'); process.exit(1) }
+        if (!code) { stderrError('Code is required.'); process.exit(1) }
 
         const tfResult = await client.twoFactorLogin(username, code, twoFactorIdentifier)
         await saveAccountAndPrint(manager, accountId, username, tfResult.userId, options.pretty)
@@ -164,24 +165,24 @@ async function handleInteractiveChallenge(
   challengePath: string,
   pretty?: boolean,
 ): Promise<void> {
-  console.error('\n  Security challenge required by Instagram.')
-  console.error('  Choose verification method:')
-  console.error('  1. Email')
-  console.error('  2. SMS')
-  console.error('')
+  info('\n  Security challenge required by Instagram.')
+  info('  Choose verification method:')
+  info('  1. Email')
+  info('  2. SMS')
+  info('')
 
   const choice = await promptText('Method (1/2)')
   const method = choice === '2' ? 'sms' as const : 'email' as const
 
   const sendResult = await client.challengeSendCode(challengePath, method)
   if (sendResult.contactPoint) {
-    console.error(`\n  Code sent to: ${sendResult.contactPoint}`)
+    info(`\n  Code sent to: ${sendResult.contactPoint}`)
   } else {
-    console.error('\n  Verification code sent.')
+    info('\n  Verification code sent.')
   }
 
   const code = await promptText('Verification code')
-  if (!code) { console.error('Code is required.'); process.exit(1) }
+  if (!code) { stderrError('Code is required.'); process.exit(1) }
 
   const verifyResult = await client.challengeSubmitCode(challengePath, code)
   await saveAccountAndPrint(manager, accountId, username, verifyResult.userId, pretty)
@@ -329,11 +330,11 @@ async function extractAction(options: { pretty?: boolean; debug?: boolean }): Pr
   try {
     const extractor = new InstagramTokenExtractor(
       undefined,
-      options.debug ? (msg) => console.error(`[debug] ${msg}`) : undefined,
+      options.debug ? (msg) => debug(`[debug] ${msg}`) : undefined,
     )
 
     if (options.debug) {
-      console.error('[debug] Searching browser profiles for Instagram cookies...')
+      debug('[debug] Searching browser profiles for Instagram cookies...')
     }
 
     const results = await extractor.extract()
@@ -387,7 +388,7 @@ async function extractAction(options: { pretty?: boolean; debug?: boolean }): Pr
       const client = new InstagramClient(manager)
       client.setSessionPath(paths.session_path)
       if (options.debug) {
-        client.setDebugLog((msg) => console.error(`[debug] ${msg}`))
+        client.setDebugLog((msg) => debug(`[debug] ${msg}`))
       }
 
       await client.loadSession(paths.session_path)
@@ -402,9 +403,9 @@ async function extractAction(options: { pretty?: boolean; debug?: boolean }): Pr
         await (client as any).saveSession()
       } catch (err) {
         if (options.debug) {
-          console.error(`[debug] Session validation failed: ${err}`)
+          debug(`[debug] Session validation failed: ${err}`)
         }
-        console.error('Warning: Could not validate session. Cookies may be expired.')
+        warn('Warning: Could not validate session. Cookies may be expired.')
       }
 
       const now = new Date().toISOString()

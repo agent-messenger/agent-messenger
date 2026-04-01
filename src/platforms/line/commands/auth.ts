@@ -8,6 +8,7 @@ import QRCode from 'qrcode'
 
 import { handleError } from '@/shared/utils/error-handler'
 import { formatOutput } from '@/shared/utils/output'
+import { info } from '@/shared/utils/stderr'
 
 import { LineClient } from '../client'
 import { LineCredentialManager } from '../credential-manager'
@@ -85,9 +86,9 @@ async function loginAction(options: {
         email: options.email,
         password: options.password,
         device,
-        onPincode: (pin) => {
+          onPincode: (pin) => {
           if (interactive) {
-            console.error(`\nEnter this PIN in the LINE mobile app: ${pin}\n`)
+            info(`\nEnter this PIN in the LINE mobile app: ${pin}\n`)
           }
         },
       })
@@ -104,14 +105,14 @@ async function loginAction(options: {
           await openQRInBrowser(url).catch(() => {})
           try {
             const qrAscii = await QRCode.toString(url, { type: 'terminal', small: true })
-            console.error('\nScan this QR code with the LINE mobile app:\n')
-            console.error(qrAscii)
+            info('\nScan this QR code with the LINE mobile app:\n')
+            info(qrAscii)
           } catch {
-            console.error(`\nOpen the QR code in the browser window, or scan this URL:\n${url}\n`)
+            info(`\nOpen the QR code in the browser window, or scan this URL:\n${url}\n`)
           }
         },
         onPincode: (pin) => {
-          console.error(`\nEnter this PIN in the LINE mobile app: ${pin}\n`)
+          info(`\nEnter this PIN in the LINE mobile app: ${pin}\n`)
         },
       })
       console.log(formatOutput(result, options.pretty))

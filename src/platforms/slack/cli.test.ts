@@ -39,12 +39,13 @@ describe('CLI Framework', () => {
   describe('handleError utility', () => {
     test('logs error as JSON and exits', () => {
       const originalExit = process.exit
-      const originalError = console.error
+      const originalWrite = process.stderr.write
       let capturedOutput = ''
 
-      console.error = (msg: string) => {
-        capturedOutput = msg
-      }
+      process.stderr.write = ((chunk: string | Uint8Array) => {
+        capturedOutput += typeof chunk === 'string' ? chunk : new TextDecoder().decode(chunk)
+        return true
+      }) as typeof process.stderr.write
       process.exit = (() => {
         throw new Error('EXIT_CALLED')
       }) as never
@@ -58,7 +59,7 @@ describe('CLI Framework', () => {
         }
       }
 
-      console.error = originalError
+      process.stderr.write = originalWrite
       process.exit = originalExit
     })
   })

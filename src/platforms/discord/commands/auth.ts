@@ -2,6 +2,7 @@ import { Command } from 'commander'
 
 import { handleError } from '@/shared/utils/error-handler'
 import { formatOutput } from '@/shared/utils/output'
+import { debug } from '@/shared/utils/stderr'
 
 import { DiscordClient } from '../client'
 import { DiscordCredentialManager } from '../credential-manager'
@@ -29,7 +30,7 @@ export async function extractAction(options: { pretty?: boolean; debug?: boolean
     }
 
     if (options.debug) {
-      console.error(`[debug] Extracting Discord token...`)
+      debug(`[debug] Extracting Discord token...`)
     }
 
     const extracted = await extractor.extract()
@@ -49,32 +50,32 @@ export async function extractAction(options: { pretty?: boolean; debug?: boolean
 
     for (const { token } of extracted) {
       if (options.debug) {
-        console.error(`[debug] Token extracted: ${token.substring(0, 20)}...`)
+        debug(`[debug] Token extracted: ${token.substring(0, 20)}...`)
       }
 
       try {
         const client = await new DiscordClient().login({ token })
 
         if (options.debug) {
-          console.error(`[debug] Testing token validity...`)
+          debug(`[debug] Testing token validity...`)
         }
 
         const authInfo = await client.testAuth()
 
         if (options.debug) {
-          console.error(`[debug] ✓ Token valid for user: ${authInfo.username}`)
-          console.error(`[debug] Discovering servers...`)
+          debug(`[debug] ✓ Token valid for user: ${authInfo.username}`)
+          debug(`[debug] Discovering servers...`)
         }
 
         const servers = await client.listServers()
 
         if (options.debug) {
-          console.error(`[debug] ✓ Found ${servers.length} server(s)`)
+          debug(`[debug] ✓ Found ${servers.length} server(s)`)
         }
 
         if (servers.length === 0) {
           if (options.debug) {
-            console.error(`[debug] No servers found for this token, trying next...`)
+            debug(`[debug] No servers found for this token, trying next...`)
           }
           continue
         }
@@ -98,7 +99,7 @@ export async function extractAction(options: { pretty?: boolean; debug?: boolean
         await credManager.save(config)
 
       if (options.debug) {
-        console.error(`[debug] ✓ Credentials saved`)
+        debug(`[debug] ✓ Credentials saved`)
       }
 
       const output = {
@@ -110,7 +111,7 @@ export async function extractAction(options: { pretty?: boolean; debug?: boolean
       return
     } catch (error) {
       if (options.debug) {
-        console.error(`[debug] Token validation failed: ${(error as Error).message}, trying next...`)
+        debug(`[debug] Token validation failed: ${(error as Error).message}, trying next...`)
       }
       continue
     }

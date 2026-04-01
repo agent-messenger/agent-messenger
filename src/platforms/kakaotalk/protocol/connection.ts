@@ -1,6 +1,8 @@
 import { type Socket, connect as netConnect } from 'node:net'
 import { connect as tlsConnect } from 'node:tls'
 
+import { debug } from '@/shared/utils/stderr'
+
 import { LocoCrypto } from './crypto'
 import { decodePacket, encodePacket } from './packet'
 import type { LocoPacket } from './types'
@@ -114,7 +116,7 @@ export class LocoConnection {
         try {
           decrypted = this.crypto.decrypt(encryptedBody)
         } catch (err) {
-          console.error(`[loco] decrypt failed: ${(err as Error).message}`)
+          debug(`[loco] decrypt failed: ${(err as Error).message}`)
           continue
         }
 

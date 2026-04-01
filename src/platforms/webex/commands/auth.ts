@@ -2,6 +2,7 @@ import { Command } from 'commander'
 
 import { handleError } from '@/shared/utils/error-handler'
 import { formatOutput } from '@/shared/utils/output'
+import { info, debug } from '@/shared/utils/stderr'
 
 import { getWebexAppCredentials } from '../app-config'
 import { WebexClient } from '../client'
@@ -69,11 +70,11 @@ export async function loginAction(options: { token?: string; clientId?: string; 
 
     const device = await credManager.requestDeviceCode(clientId)
 
-    console.error(`Open this URL and enter the code: ${device.verificationUri}`)
-    console.error(`Code: ${device.userCode}`)
-    console.error('')
+    info(`Open this URL and enter the code: ${device.verificationUri}`)
+    info(`Code: ${device.userCode}`)
+    info('')
     await openBrowser(device.verificationUriComplete)
-    console.error('Waiting for authorization...')
+    info('Waiting for authorization...')
 
     const config = await credManager.pollDeviceToken(
       device.deviceCode,
@@ -140,11 +141,11 @@ export async function extractAction(options: { pretty?: boolean; debug?: boolean
   try {
     const extractor = new WebexTokenExtractor(
       undefined,
-      options.debug ? (msg) => console.error(`[debug] ${msg}`) : undefined,
+      options.debug ? (msg) => debug(`[debug] ${msg}`) : undefined,
     )
 
     if (options.debug) {
-      console.error('[debug] Searching browser profiles for Webex tokens...')
+      debug('[debug] Searching browser profiles for Webex tokens...')
     }
 
     const extracted = await extractor.extract()
