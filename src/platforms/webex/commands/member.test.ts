@@ -8,6 +8,8 @@ describe('member commands', () => {
   let consoleSpy: ReturnType<typeof spyOn>
   let consoleErrorSpy: ReturnType<typeof spyOn>
   let processExitSpy: ReturnType<typeof spyOn>
+  let stderrOutput: string
+  let origStderrWrite: typeof process.stderr.write
   const mockMembers = [
     {
       id: 'mem-1',
@@ -35,11 +37,18 @@ describe('member commands', () => {
     processExitSpy = spyOn(process, 'exit').mockImplementation((_code?: number) => {
       throw new Error(`process.exit(${_code})`)
     })
+    stderrOutput = ''
+    origStderrWrite = process.stderr.write
+    process.stderr.write = ((chunk: string | Uint8Array) => {
+      stderrOutput += typeof chunk === 'string' ? chunk : new TextDecoder().decode(chunk)
+      return true
+    }) as typeof process.stderr.write
     spyOn(WebexClient.prototype, 'login').mockResolvedValue(new WebexClient() as any)
     spyOn(WebexClient.prototype, 'listMemberships').mockResolvedValue(mockMembers)
   })
 
   afterEach(() => {
+    process.stderr.write = origStderrWrite
     mock.restore()
   })
 
@@ -90,7 +99,7 @@ describe('member commands', () => {
 
     await expect(listAction('room-1', {})).rejects.toThrow('process.exit(1)')
 
-    expect(consoleErrorSpy).toHaveBeenCalledWith(expect.stringContaining('No Webex credentials found'))
+    expect(stderrOutput).toContain('No Webex credentials found')
   })
 
   test('listAction handles API error', async () => {

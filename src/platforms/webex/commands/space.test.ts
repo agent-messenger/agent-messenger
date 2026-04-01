@@ -42,6 +42,8 @@ let clientGetSpaceSpy: ReturnType<typeof spyOn>
 let consoleLogSpy: ReturnType<typeof spyOn>
 let consoleErrorSpy: ReturnType<typeof spyOn>
 let processExitSpy: ReturnType<typeof spyOn>
+let stderrOutput: string
+let origStderrWrite: typeof process.stderr.write
 
 beforeEach(() => {
   clientLoginSpy = spyOn(WebexClient.prototype, 'login').mockResolvedValue(
@@ -58,9 +60,17 @@ beforeEach(() => {
   processExitSpy = spyOn(process, 'exit').mockImplementation((_code?: number) => {
     throw new Error(`process.exit(${_code})`)
   })
+
+  stderrOutput = ''
+  origStderrWrite = process.stderr.write
+  process.stderr.write = ((chunk: string | Uint8Array) => {
+    stderrOutput += typeof chunk === 'string' ? chunk : new TextDecoder().decode(chunk)
+    return true
+  }) as typeof process.stderr.write
 })
 
 afterEach(() => {
+  process.stderr.write = origStderrWrite
   clientLoginSpy?.mockRestore()
   clientListSpacesSpy?.mockRestore()
   clientGetSpaceSpy?.mockRestore()
@@ -139,7 +149,7 @@ describe('listAction', () => {
     await expect(listAction({})).rejects.toThrow('process.exit(1)')
 
     expect(clientListSpacesSpy).not.toHaveBeenCalled()
-    expect(consoleErrorSpy).toHaveBeenCalledWith(expect.stringContaining('No Webex credentials found'))
+    expect(stderrOutput).toContain('No Webex credentials found')
   })
 })
 
@@ -201,6 +211,6 @@ describe('infoAction', () => {
     await expect(infoAction('space-1', {})).rejects.toThrow('process.exit(1)')
 
     expect(clientGetSpaceSpy).not.toHaveBeenCalled()
-    expect(consoleErrorSpy).toHaveBeenCalledWith(expect.stringContaining('No Webex credentials found'))
+    expect(stderrOutput).toContain('No Webex credentials found')
   })
 })

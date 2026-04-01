@@ -97,8 +97,13 @@ test('send: with --markdown passes markdown option', async () => {
 
 test('send: not authenticated shows error', async () => {
   clientLoginSpy.mockRejectedValue(new WebexError('No Webex credentials found.', 'no_credentials'))
-  const errorSpy = mock((_msg: string) => {})
-  console.error = errorSpy
+
+  let stderrOutput = ''
+  const origWrite = process.stderr.write
+  process.stderr.write = ((chunk: string | Uint8Array) => {
+    stderrOutput += typeof chunk === 'string' ? chunk : new TextDecoder().decode(chunk)
+    return true
+  }) as typeof process.stderr.write
 
   const originalExit = process.exit
   process.exit = mock((_code?: number) => {
@@ -110,11 +115,10 @@ test('send: not authenticated shows error', async () => {
   } catch {
   } finally {
     process.exit = originalExit
+    process.stderr.write = origWrite
   }
 
-  expect(errorSpy).toHaveBeenCalled()
-  const output = errorSpy.mock.calls[0][0]
-  expect(output).toContain('No Webex credentials found')
+  expect(stderrOutput).toContain('No Webex credentials found')
 })
 
 test('dm: calls sendDirectMessage with email and text', async () => {

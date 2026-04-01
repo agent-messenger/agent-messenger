@@ -6,6 +6,8 @@ import { snapshotAction } from './snapshot'
 describe('snapshot command', () => {
   let consoleSpy: ReturnType<typeof spyOn>
   let consoleErrorSpy: ReturnType<typeof spyOn>
+  let stderrOutput: string
+  let origStderrWrite: typeof process.stderr.write
 
   const mockSpaces = [
     { id: 'space-1', title: 'General', type: 'group', isLocked: false, lastActivity: '2024-01-15T00:00:00.000Z', created: '2024-01-01T00:00:00.000Z', creatorId: 'person-1' },
@@ -22,13 +24,22 @@ describe('snapshot command', () => {
   beforeEach(() => {
     consoleSpy = spyOn(console, 'log').mockImplementation(() => {})
     consoleErrorSpy = spyOn(console, 'error').mockImplementation(() => {})
+    stderrOutput = ''
+    origStderrWrite = process.stderr.write
+    process.stderr.write = ((chunk: string | Uint8Array) => {
+      stderrOutput += typeof chunk === 'string' ? chunk : new TextDecoder().decode(chunk)
+      return true
+    }) as typeof process.stderr.write
     spyOn(WebexClient.prototype, 'login').mockResolvedValue(new WebexClient() as any)
     spyOn(WebexClient.prototype, 'listSpaces').mockResolvedValue(mockSpaces as any)
     spyOn(WebexClient.prototype, 'listMessages').mockResolvedValue(mockMessages as any)
     spyOn(WebexClient.prototype, 'listMemberships').mockResolvedValue(mockMembers as any)
   })
 
-  afterEach(() => { mock.restore() })
+  afterEach(() => {
+    process.stderr.write = origStderrWrite
+    mock.restore()
+  })
 
   test('full snapshot includes spaces, recent_messages, members', async () => {
     await snapshotAction({})
@@ -81,9 +92,7 @@ describe('snapshot command', () => {
       process.exit = originalExit
     }
 
-    expect(consoleErrorSpy).toHaveBeenCalled()
-    const output = consoleErrorSpy.mock.calls[0][0]
-    expect(output).toContain('No Webex credentials found')
+    expect(stderrOutput).toContain('No Webex credentials found')
   })
 
   test('passes limit option to listMessages', async () => {
