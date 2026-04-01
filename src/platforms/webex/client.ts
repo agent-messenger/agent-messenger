@@ -260,17 +260,15 @@ export class WebexClient {
     }
   }
 
-  private async sendMessageInternal(
-    roomId: string,
+  private async buildEncryptedObject(
+    convUuid: string,
     text: string,
     options?: { markdown?: boolean },
-  ): Promise<WebexMessage> {
-    const convUuid = this.decodeConvUuid(roomId)
-
-    let object: Record<string, string> = options?.markdown
-      ? { objectType: 'comment', displayName: text, content: text, markdown: text }
-      : { objectType: 'comment', displayName: text, content: text }
-    let encryptionKeyUrl: string | undefined
+  ): Promise<{ object: Record<string, string>; encryptionKeyUrl?: string }> {
+    const buildObject = (content: string): Record<string, string> =>
+      options?.markdown
+        ? { objectType: 'comment', displayName: content, content, markdown: content }
+        : { objectType: 'comment', displayName: content, content }
 
     if (this.encryption) {
       const conv = await this.internalRequest<InternalConversation>(
@@ -280,13 +278,21 @@ export class WebexClient {
       if (keyUri) {
         const encrypted = await this.encryption.encryptText(keyUri, text)
         if (encrypted) {
-          object = options?.markdown
-            ? { objectType: 'comment', displayName: encrypted, content: encrypted, markdown: encrypted }
-            : { objectType: 'comment', displayName: encrypted, content: encrypted }
-          encryptionKeyUrl = keyUri
+          return { object: buildObject(encrypted), encryptionKeyUrl: keyUri }
         }
       }
     }
+
+    return { object: buildObject(text) }
+  }
+
+  private async sendMessageInternal(
+    roomId: string,
+    text: string,
+    options?: { markdown?: boolean },
+  ): Promise<WebexMessage> {
+    const convUuid = this.decodeConvUuid(roomId)
+    const { object, encryptionKeyUrl } = await this.buildEncryptedObject(convUuid, text, options)
 
     const activity: Record<string, unknown> = {
       verb: 'post',
@@ -393,27 +399,7 @@ export class WebexClient {
   ): Promise<WebexMessage> {
     if (this.useInternalAPI) {
       const convUuid = this.decodeConvUuid(roomId)
-
-      let object: Record<string, string> = options?.markdown
-        ? { objectType: 'comment', displayName: text, content: text, markdown: text }
-        : { objectType: 'comment', displayName: text, content: text }
-      let encryptionKeyUrl: string | undefined
-
-      if (this.encryption) {
-        const conv = await this.internalRequest<InternalConversation>(
-          `/conversations/${convUuid}?activitiesLimit=0&participantsLimit=0`,
-        )
-        const keyUri = conv.defaultActivityEncryptionKeyUrl
-        if (keyUri) {
-          const encrypted = await this.encryption.encryptText(keyUri, text)
-          if (encrypted) {
-            object = options?.markdown
-              ? { objectType: 'comment', displayName: encrypted, content: encrypted, markdown: encrypted }
-              : { objectType: 'comment', displayName: encrypted, content: encrypted }
-            encryptionKeyUrl = keyUri
-          }
-        }
-      }
+      const { object, encryptionKeyUrl } = await this.buildEncryptedObject(convUuid, text, options)
 
       const activity: Record<string, unknown> = {
         verb: 'post',

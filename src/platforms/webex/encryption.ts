@@ -15,20 +15,28 @@ export class WebexEncryptionService {
     const raw = this.rawKeys.get(keyUri)
     if (!raw) return null
 
-    const parsed = JSON.parse(raw) as { jwk: object }
-    const joseKey = await jose.JWK.asKey(parsed.jwk)
-    this.keyCache.set(keyUri, joseKey)
-    return joseKey
+    try {
+      const parsed = JSON.parse(raw) as { jwk: object }
+      const joseKey = await jose.JWK.asKey(parsed.jwk)
+      this.keyCache.set(keyUri, joseKey)
+      return joseKey
+    } catch {
+      return null
+    }
   }
 
   async encryptText(keyUri: string, plaintext: string): Promise<string | null> {
     const key = await this.getKey(keyUri)
     if (!key) return null
 
-    return jose.JWE.createEncrypt(
-      { format: 'compact', contentAlg: 'A256GCM' },
-      { key, header: { alg: 'dir' }, reference: null },
-    ).final(plaintext, 'utf8')
+    try {
+      return await jose.JWE.createEncrypt(
+        { format: 'compact', contentAlg: 'A256GCM' },
+        { key, header: { alg: 'dir' }, reference: null },
+      ).final(plaintext, 'utf8')
+    } catch {
+      return null
+    }
   }
 
   async decryptText(keyUri: string, ciphertext: string): Promise<string | null> {
