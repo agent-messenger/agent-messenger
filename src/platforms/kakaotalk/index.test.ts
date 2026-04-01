@@ -12,6 +12,7 @@ import {
   KakaoTalkListener,
   KakaoTalkPushMemberEventSchema,
   KakaoTalkPushMessageEventSchema,
+  KakaoProfileSchema,
   KakaoTalkPushReadEventSchema,
 } from '@/platforms/kakaotalk/index'
 
@@ -65,4 +66,8 @@ test('KakaoTalkPushMemberEventSchema is exported from barrel', () => {
 
 test('KakaoTalkPushReadEventSchema is exported from barrel', () => {
   expect(typeof KakaoTalkPushReadEventSchema.parse).toBe('function')
+})
+
+test('KakaoProfileSchema is exported from barrel', () => {
+  expect(typeof KakaoProfileSchema.parse).toBe('function')
 })

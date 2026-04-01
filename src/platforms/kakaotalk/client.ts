@@ -2,9 +2,10 @@ import { Long } from 'bson'
 
 import { warn } from '@/shared/utils/stderr'
 
+import { APP_VERSION, LANG, OS } from './protocol/config'
 import { LocoSession } from './protocol/session'
 import type { ChatListResponse, LoginListResponse } from './protocol/types'
-import type { KakaoChat, KakaoMessage, KakaoSendResult } from './types'
+import type { KakaoChat, KakaoMessage, KakaoProfile, KakaoSendResult } from './types'
 
 export class KakaoTalkError extends Error {
   code: string
@@ -315,6 +316,48 @@ export class KakaoTalkClient {
         throw wrapError(error, 'send_message_failed')
       }
     })
+  }
+
+  async getProfile(): Promise<KakaoProfile> {
+    this.ensureAuth()
+    try {
+      const headers = {
+        Authorization: `${this.oauthToken}-${this.deviceUuid}`,
+        A: `${OS}/${APP_VERSION}/${LANG}`,
+        'User-Agent': `KT/${APP_VERSION} Md/macOS ${LANG}`,
+        Accept: '*/*',
+        'Accept-Language': LANG,
+      }
+
+      const [profileRes, settingsRes] = await Promise.all([
+        fetch('https://katalk.kakao.com/mac/profile3/me.json', { headers }),
+        fetch('https://katalk.kakao.com/mac/account/more_settings.json?since=0&lang=ko', { headers }),
+      ])
+
+      if (!profileRes.ok) {
+        throw new KakaoTalkError(`Profile request failed: ${profileRes.status}`, 'profile_request_failed')
+      }
+
+      const profileData = await profileRes.json() as Record<string, unknown>
+      const profile = profileData.profile as Record<string, unknown> | undefined
+
+      let accountDisplayId: string | null = null
+      if (settingsRes.ok) {
+        const settingsData = await settingsRes.json() as Record<string, unknown>
+        accountDisplayId = (settingsData.accountDisplayId as string) || null
+      }
+
+      return {
+        user_id: this.userId!,
+        nickname: (profile?.nickName as string) || '',
+        profile_image_url: (profile?.profileImageUrl as string) || null,
+        original_profile_image_url: (profile?.originalProfileImageUrl as string) || null,
+        status_message: (profile?.statusMessage as string) || null,
+        account_display_id: accountDisplayId,
+      }
+    } catch (error) {
+      throw wrapError(error, 'get_profile_failed')
+    }
   }
 
   close(): void {

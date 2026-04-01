@@ -125,6 +125,24 @@ export const KakaoSendResultSchema = z.object({
   sent_at: z.number(),
 })
 
+export interface KakaoProfile {
+  user_id: string
+  nickname: string
+  profile_image_url: string | null
+  original_profile_image_url: string | null
+  status_message: string | null
+  account_display_id: string | null
+}
+
+export const KakaoProfileSchema = z.object({
+  user_id: z.string(),
+  nickname: z.string(),
+  profile_image_url: z.string().nullable(),
+  original_profile_image_url: z.string().nullable(),
+  status_message: z.string().nullable(),
+  account_display_id: z.string().nullable(),
+})
+
 export const KakaoAccountCredentialsSchema = z.object({
   account_id: z.string(),
   oauth_token: z.string(),
