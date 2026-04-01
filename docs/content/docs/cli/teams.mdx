@@ -8,7 +8,7 @@ description: Complete reference for the agent-teams CLI.
 ## Quick Start
 
 ```bash
-# 1. Extract credentials from Teams desktop app (zero-config!)
+# 1. Extract credentials from Teams desktop app or browser (zero-config!)
 agent-teams auth extract
 
 # 2. Get team snapshot
@@ -22,7 +22,7 @@ agent-teams message send <channel-id> "Hello from AI agent!"
 
 ### Seamless Token Extraction
 
-agent-teams automatically extracts your Microsoft Teams credentials from the desktop app:
+agent-teams automatically extracts your Microsoft Teams credentials from the desktop app or Chromium browser:
 
 ```bash
 agent-teams auth extract
@@ -34,7 +34,7 @@ agent-teams auth extract --debug
 This command:
 
 - Auto-detects your platform (macOS/Linux/Windows)
-- Extracts Teams access token from the desktop app
+- Extracts Teams access token from the desktop app (with browser fallback)
 - Validates token against Teams API
 - Discovers ALL joined teams
 - Stores credentials securely in `~/.config/agent-messenger/`
@@ -241,7 +241,7 @@ All commands support these options:
 
 ```bash
 # Teams tokens expire in 60-90 minutes! To refresh:
-# 1. Open Microsoft Teams desktop app
+# 1. Open Microsoft Teams desktop app (or log in via browser)
 # 2. Send any message (this refreshes your session cookies)
 # 3. Re-extract:
 agent-teams auth extract
@@ -280,6 +280,8 @@ Ensure Teams desktop app is:
 1. Installed (not just web version)
 2. Currently running
 3. Signed in to your account
+
+Alternatively, log in via a Chromium browser (Chrome, Edge, Arc, Brave, etc.) — the CLI will fall back to browser extraction automatically.
 
 ```bash
 # Debug extraction

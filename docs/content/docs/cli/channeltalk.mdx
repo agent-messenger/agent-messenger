@@ -3,14 +3,14 @@ title: Channel Talk
 description: Complete reference for the agent-channeltalk CLI.
 ---
 
-> **Beta**: Channel Talk support is in beta. Some features may change. macOS and Windows only.
+> **Beta**: Channel Talk support is in beta. Some features may change.
 
 > **Tip**: `agent-channeltalk` is a shortcut for `agent-messenger channeltalk`.
 
 ## Quick Start
 
 ```bash
-# 1. Credentials are extracted automatically from Channel Talk desktop app
+# 1. Credentials are extracted automatically from Channel Talk desktop app or browser
 agent-channeltalk snapshot --pretty
 
 # 2. Send a message to a group
@@ -37,7 +37,7 @@ Channel Talk has different terminology from Slack or Discord:
 
 ### Zero-Config Credential Extraction
 
-agent-channeltalk automatically extracts cookies from the Channel Talk desktop app. No manual setup required, no API keys needed.
+agent-channeltalk automatically extracts cookies from the Channel Talk desktop app (or Chromium browser as fallback). No manual setup required, no API keys needed.
 
 ```bash
 # Usually automatic — just run any command
@@ -47,7 +47,7 @@ agent-channeltalk snapshot
 agent-channeltalk auth extract
 ```
 
-The CLI reads two cookies from the desktop app's SQLite database:
+The CLI reads two cookies from the desktop app's SQLite database (or Chromium browser cookies as fallback):
 
 - `x-account` (JWT) — your account identity
 - `ch-session-1` (JWT) — your session token
@@ -75,7 +75,7 @@ agent-channeltalk auth remove <workspace-id>
 ### Authentication Commands
 
 ```bash
-# Extract cookies from desktop app (usually automatic)
+# Extract cookies from desktop app or browser (usually automatic)
 agent-channeltalk auth extract
 
 # Check auth status
@@ -222,7 +222,7 @@ The CLI looks for the Channel Talk desktop app's cookie database in:
 **Windows:**
 1. `%APPDATA%\Channel Talk\Network\Cookies`
 
-If none exist, install the Channel Talk desktop app and log in.
+If none exist, either install the Channel Talk desktop app and log in, or log in via a Chromium browser (Chrome, Edge, Arc, Brave, etc.) — the CLI will fall back to browser extraction automatically.
 
 ### Cookies expired
 
@@ -246,7 +246,7 @@ npx -y agent-messenger channeltalk snapshot --pretty
 
 ## Limitations
 
-- macOS and Windows only (Channel Talk desktop app required)
+- Desktop app extraction: macOS and Windows only; browser fallback also supports Linux
 - No real-time events / WebSocket connection
 - No file upload support
 - No message editing or deletion

@@ -8,7 +8,7 @@ description: Complete reference for the agent-discord CLI.
 ## Quick Start
 
 ```bash
-# 1. Extract credentials from Discord desktop app (zero-config!)
+# 1. Extract credentials from Discord desktop app or browser (zero-config!)
 agent-discord auth extract
 
 # 2. Get server snapshot
@@ -22,7 +22,7 @@ agent-discord message send <channel-id> "Hello from AI agent!"
 
 ### Seamless Token Extraction
 
-agent-discord automatically extracts your Discord credentials from the desktop app:
+agent-discord automatically extracts your Discord credentials from the desktop app or Chromium browser:
 
 ```bash
 agent-discord auth extract
@@ -34,7 +34,7 @@ agent-discord auth extract --debug
 This command:
 
 - Auto-detects your platform (macOS/Linux/Windows)
-- Extracts Discord user token from the desktop app
+- Extracts Discord user token from the desktop app (with browser fallback)
 - Validates token against Discord API
 - Discovers ALL joined servers
 - Stores credentials securely in `~/.config/agent-messenger/`
