@@ -207,11 +207,22 @@ export class KakaoTalkClient {
 
         collectChats((loginResult.chatDatas ?? []) as ChatData[], allChats, seenChatIds)
 
-        if (options?.all || options?.search) {
+        // Paginate via LCHATLIST when explicitly requested (--all / --search) OR when
+        // the login snapshot is empty. New device registrations often return an empty
+        // chatDatas with eof=true because the server has no prior sync state for the
+        // device — LCHATLIST fetches the canonical chat list regardless of device history.
+        const snapshotEmpty = allChats.length === 0
+        if (options?.all || options?.search || snapshotEmpty) {
           let cursor: ChatListResponse = loginResult
           let pages = 0
 
-          while (!cursor.eof && pages < MAX_PAGES) {
+          while (pages < MAX_PAGES) {
+            // Trust eof only when the snapshot had data. When the snapshot was empty
+            // (new device), ignore eof for the first iteration so we always attempt
+            // at least one LCHATLIST call.
+            if (cursor.eof && !snapshotEmpty) break
+            if (cursor.eof && snapshotEmpty && pages > 0) break
+
             const lastTokenId = bsonToLong(cursor.lastTokenId)
             const lastChatId = bsonToLong(cursor.lastChatId)
 
