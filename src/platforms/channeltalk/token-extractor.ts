@@ -400,15 +400,19 @@ export class ChannelTokenExtractor {
       if (decrypted) return decrypted
     }
 
-    const password = this.getKeychainPassword()
-    if (!password) return null
+    for (const variant of this.getKeychainVariants()) {
+      const password = this.execSecurityCommand(variant.service, variant.account)
+      if (!password) continue
 
-    const key = pbkdf2Sync(password, 'saltysalt', 1003, 16, 'sha1')
-    const decrypted = this.decryptAESCBC(encryptedData, key)
-    if (decrypted) {
-      this.cachedKey = key
+      const key = pbkdf2Sync(password, 'saltysalt', 1003, 16, 'sha1')
+      const decrypted = this.decryptAESCBC(encryptedData, key)
+      if (decrypted) {
+        this.cachedKey = key
+        return decrypted
+      }
     }
-    return decrypted
+
+    return null
   }
 
   private decryptLinuxCookie(encryptedData: Buffer): string | null {
@@ -416,20 +420,18 @@ export class ChannelTokenExtractor {
     return this.decryptAESCBC(encryptedData, key)
   }
 
-  private getKeychainPassword(): string | null {
-    for (const variant of this.getKeychainVariants()) {
-      try {
-        const safeService = variant.service.replace(/"/g, '\\"')
-        const safeAccount = variant.account.replace(/"/g, '\\"')
-        const result = execSync(
-          `security find-generic-password -s "${safeService}" -a "${safeAccount}" -w 2>/dev/null`,
-          { encoding: 'utf8' },
-        )
-        const password = result.trim()
-        if (password) return password
-      } catch {}
+  private execSecurityCommand(service: string, account: string): string | null {
+    try {
+      const safeService = service.replace(/"/g, '\\"')
+      const safeAccount = account.replace(/"/g, '\\"')
+      const result = execSync(
+        `security find-generic-password -s "${safeService}" -a "${safeAccount}" -w 2>/dev/null`,
+        { encoding: 'utf8' },
+      )
+      return result.trim() || null
+    } catch {
+      return null
     }
-    return null
   }
 
   private decryptAESCBC(encryptedData: Buffer, key: Buffer): string | null {

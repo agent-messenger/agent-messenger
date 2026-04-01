@@ -1157,7 +1157,7 @@ export class TokenExtractor {
   }
 
   private decryptV11CookieLinux(encrypted: Buffer): string | null {
-    const appNames = ['Slack', 'slack']
+    const appNames = ['Slack', 'slack', 'Chrome', 'chrome', 'Chromium', 'chromium', 'Microsoft Edge', 'Brave', 'Vivaldi']
     for (const appName of appNames) {
       try {
         const keyringPassword = this.getLinuxKeyringPassword(appName)

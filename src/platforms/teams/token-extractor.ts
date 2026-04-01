@@ -468,16 +468,20 @@ export class TeamsTokenExtractor {
       if (decrypted) return decrypted
     }
 
-    const password = this.getKeychainPassword()
-    if (!password) return null
+    for (const variant of this.getKeychainVariants()) {
+      const password = this.execSecurityCommand(variant.service, variant.account)
+      if (!password) continue
 
-    const key = pbkdf2Sync(password, 'saltysalt', 1003, 16, 'sha1')
-    const decrypted = this.decryptAESCBC(encryptedData, key)
-    if (decrypted) {
-      this.cachedKey = key
-      this.keyCache.set('teams', key).catch(() => {})
+      const key = pbkdf2Sync(password, 'saltysalt', 1003, 16, 'sha1')
+      const decrypted = this.decryptAESCBC(encryptedData, key)
+      if (decrypted) {
+        this.cachedKey = key
+        this.keyCache.set('teams', key).catch(() => {})
+        return decrypted
+      }
     }
-    return decrypted
+
+    return null
   }
 
   private decryptLinuxCookie(encryptedData: Buffer): string | null {
@@ -487,13 +491,10 @@ export class TeamsTokenExtractor {
   }
 
   private getKeychainPassword(): string | null {
-    const variants = this.getKeychainVariants()
-
-    for (const variant of variants) {
+    for (const variant of this.getKeychainVariants()) {
       const password = this.execSecurityCommand(variant.service, variant.account)
       if (password) return password
     }
-
     return null
   }
 
