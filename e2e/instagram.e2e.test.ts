@@ -7,14 +7,7 @@ let instagramAvailable = false
 
 describe('Instagram E2E Tests', () => {
   beforeAll(async () => {
-    if (!INSTAGRAM_TEST_THREAD_ID) {
-      console.warn(
-        'Skipping Instagram E2E: set E2E_INSTAGRAM_THREAD_ID to run against a dedicated test thread.',
-      )
-      return
-    }
-    await validateInstagramEnvironment()
-    instagramAvailable = true
+    instagramAvailable = await validateInstagramEnvironment()
   })
 
   afterEach(async () => {

@@ -7,14 +7,7 @@ let whatsappAvailable = false
 
 describe('WhatsApp E2E Tests', () => {
   beforeAll(async () => {
-    if (!WHATSAPP_TEST_CHAT_ID) {
-      console.warn(
-        'Skipping WhatsApp E2E: set E2E_WHATSAPP_CHAT_ID to run against a dedicated test chat.',
-      )
-      return
-    }
-    await validateWhatsAppEnvironment()
-    whatsappAvailable = true
+    whatsappAvailable = await validateWhatsAppEnvironment()
   })
 
   afterEach(async () => {

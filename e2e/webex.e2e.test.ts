@@ -20,14 +20,7 @@ async function cleanupWebexMessages() {
 
 describe('Webex E2E Tests', () => {
   beforeAll(async () => {
-    if (!WEBEX_TEST_SPACE_ID) {
-      console.warn(
-        'Skipping Webex E2E: set E2E_WEBEX_SPACE_ID to run against a dedicated test space.',
-      )
-      return
-    }
-    await validateWebexEnvironment()
-    webexAvailable = true
+    webexAvailable = await validateWebexEnvironment()
   })
 
   afterEach(async () => {

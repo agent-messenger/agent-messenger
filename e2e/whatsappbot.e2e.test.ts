@@ -7,14 +7,7 @@ let whatsappbotAvailable = false
 
 describe('WhatsApp Bot E2E Tests', () => {
   beforeAll(async () => {
-    if (!WHATSAPPBOT_TEST_PHONE_NUMBER) {
-      console.warn(
-        'Skipping WhatsApp Bot E2E: set E2E_WHATSAPPBOT_PHONE_NUMBER to run against a dedicated test phone number.',
-      )
-      return
-    }
-    await validateWhatsAppBotEnvironment()
-    whatsappbotAvailable = true
+    whatsappbotAvailable = await validateWhatsAppBotEnvironment()
   })
 
   afterEach(async () => {

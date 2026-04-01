@@ -7,14 +7,7 @@ let telegramAvailable = false
 
 describe('Telegram E2E Tests', () => {
   beforeAll(async () => {
-    if (!TELEGRAM_TEST_CHAT_ID) {
-      console.warn(
-        'Skipping Telegram E2E: set E2E_TELEGRAM_CHAT_ID to run against a dedicated test chat.',
-      )
-      return
-    }
-    await validateTelegramEnvironment()
-    telegramAvailable = true
+    telegramAvailable = await validateTelegramEnvironment()
   })
 
   afterEach(async () => {

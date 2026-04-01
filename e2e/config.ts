@@ -114,14 +114,13 @@ export const TEAMS_TEST_TEAM_NAME = process.env.E2E_TEAMS_TEAM_NAME || 'Agent Me
 export const TEAMS_TEST_CHANNEL_ID = process.env.E2E_TEAMS_CHANNEL_ID || ''
 export const TEAMS_TEST_CHANNEL = 'e2e-test'
 
-export async function validateTeamsEnvironment() {
-  const { runCLI, parseJSON } = await import('./helpers')
-
+export async function validateTeamsEnvironment(): Promise<boolean> {
   if (!TEAMS_TEST_TEAM_ID || !TEAMS_TEST_CHANNEL_ID) {
-    throw new Error(
-      'Teams E2E environment not configured. Set E2E_TEAMS_TEAM_ID and E2E_TEAMS_CHANNEL_ID environment variables.',
-    )
+    console.warn('Skipping Teams E2E: set E2E_TEAMS_TEAM_ID and E2E_TEAMS_CHANNEL_ID to run against a dedicated test team.')
+    return false
   }
+
+  const { runCLI, parseJSON } = await import('./helpers')
 
   const result = await runCLI('teams', ['auth', 'status'])
   if (result.exitCode !== 0) {
@@ -144,6 +143,8 @@ export async function validateTeamsEnvironment() {
       )
     }
   }
+
+  return true
 }
 
 // ChannelBot Test Environment — requires E2E_CHANNELBOT_WORKSPACE_ID to opt-in.
@@ -153,9 +154,10 @@ export const CHANNELBOT_TEST_WORKSPACE_ID = process.env.E2E_CHANNELBOT_WORKSPACE
 export const CHANNELBOT_TEST_WORKSPACE_NAME = process.env.E2E_CHANNELBOT_WORKSPACE_NAME || ''
 export const E2E_GROUP_NAME = 'E2E'
 
-export async function validateChannelBotEnvironment(): Promise<{ groupId: string; groupName: string }> {
+export async function validateChannelBotEnvironment(): Promise<{ groupId: string; groupName: string } | null> {
   if (!CHANNELBOT_TEST_WORKSPACE_ID) {
-    throw new Error('ChannelBot E2E environment not configured. Set E2E_CHANNELBOT_WORKSPACE_ID.')
+    console.warn('Skipping ChannelBot E2E: set E2E_CHANNELBOT_WORKSPACE_ID to run against a dedicated test workspace.')
+    return null
   }
 
   const { runCLI, parseJSON } = await import('./helpers')
@@ -193,9 +195,10 @@ export async function validateChannelBotEnvironment(): Promise<{ groupId: string
 export const WEBEX_TEST_SPACE_ID = process.env.E2E_WEBEX_SPACE_ID || ''
 export const WEBEX_TEST_DM_EMAIL = process.env.E2E_WEBEX_DM_EMAIL || ''
 
-export async function validateWebexEnvironment() {
+export async function validateWebexEnvironment(): Promise<boolean> {
   if (!WEBEX_TEST_SPACE_ID) {
-    throw new Error('Webex E2E environment not configured. Set E2E_WEBEX_SPACE_ID.')
+    console.warn('Skipping Webex E2E: set E2E_WEBEX_SPACE_ID to run against a dedicated test space.')
+    return false
   }
 
   const { runCLI, parseJSON } = await import('./helpers')
@@ -209,14 +212,17 @@ export async function validateWebexEnvironment() {
   if (!data?.authenticated) {
     throw new Error('Webex not authenticated. Run: agent-webex auth login or agent-webex auth extract')
   }
+
+  return true
 }
 
 // Telegram Test Environment
 export const TELEGRAM_TEST_CHAT_ID = process.env.E2E_TELEGRAM_CHAT_ID || ''
 
-export async function validateTelegramEnvironment() {
+export async function validateTelegramEnvironment(): Promise<boolean> {
   if (!TELEGRAM_TEST_CHAT_ID) {
-    throw new Error('Telegram E2E environment not configured. Set E2E_TELEGRAM_CHAT_ID.')
+    console.warn('Skipping Telegram E2E: set E2E_TELEGRAM_CHAT_ID to run against a dedicated test chat.')
+    return false
   }
 
   const { runCLI } = await import('./helpers')
@@ -225,14 +231,17 @@ export async function validateTelegramEnvironment() {
   if (result.exitCode !== 0) {
     throw new Error('Telegram authentication failed. Run: agent-telegram auth login')
   }
+
+  return true
 }
 
 // WhatsApp Test Environment
 export const WHATSAPP_TEST_CHAT_ID = process.env.E2E_WHATSAPP_CHAT_ID || ''
 
-export async function validateWhatsAppEnvironment() {
+export async function validateWhatsAppEnvironment(): Promise<boolean> {
   if (!WHATSAPP_TEST_CHAT_ID) {
-    throw new Error('WhatsApp E2E environment not configured. Set E2E_WHATSAPP_CHAT_ID.')
+    console.warn('Skipping WhatsApp E2E: set E2E_WHATSAPP_CHAT_ID to run against a dedicated test chat.')
+    return false
   }
 
   const { runCLI, parseJSON } = await import('./helpers')
@@ -246,14 +255,17 @@ export async function validateWhatsAppEnvironment() {
   if (data && 'valid' in data && !data.valid) {
     throw new Error('WhatsApp credentials invalid. Run: agent-whatsapp auth login')
   }
+
+  return true
 }
 
 // WhatsApp Bot Test Environment
 export const WHATSAPPBOT_TEST_PHONE_NUMBER = process.env.E2E_WHATSAPPBOT_PHONE_NUMBER || ''
 
-export async function validateWhatsAppBotEnvironment() {
+export async function validateWhatsAppBotEnvironment(): Promise<boolean> {
   if (!WHATSAPPBOT_TEST_PHONE_NUMBER) {
-    throw new Error('WhatsApp Bot E2E environment not configured. Set E2E_WHATSAPPBOT_PHONE_NUMBER.')
+    console.warn('Skipping WhatsApp Bot E2E: set E2E_WHATSAPPBOT_PHONE_NUMBER to run against a dedicated test phone number.')
+    return false
   }
 
   const { runCLI, parseJSON } = await import('./helpers')
@@ -271,14 +283,17 @@ export async function validateWhatsAppBotEnvironment() {
       'WhatsApp Bot credentials invalid or expired. Run: agent-whatsappbot auth set <phone-number-id> <access-token>',
     )
   }
+
+  return true
 }
 
 // LINE Test Environment
 export const LINE_TEST_CHAT_ID = process.env.E2E_LINE_CHAT_ID || ''
 
-export async function validateLineEnvironment() {
+export async function validateLineEnvironment(): Promise<boolean> {
   if (!LINE_TEST_CHAT_ID) {
-    throw new Error('LINE E2E environment not configured. Set E2E_LINE_CHAT_ID.')
+    console.warn('Skipping LINE E2E: set E2E_LINE_CHAT_ID to run against a dedicated test chat.')
+    return false
   }
 
   const { runCLI } = await import('./helpers')
@@ -287,15 +302,18 @@ export async function validateLineEnvironment() {
   if (result.exitCode !== 0) {
     throw new Error('LINE authentication failed. Run: agent-line auth login')
   }
+
+  return true
 }
 
 // Instagram Test Environment
 export const INSTAGRAM_TEST_THREAD_ID = process.env.E2E_INSTAGRAM_THREAD_ID || ''
 export const INSTAGRAM_TEST_USERNAME = process.env.E2E_INSTAGRAM_USERNAME || ''
 
-export async function validateInstagramEnvironment() {
+export async function validateInstagramEnvironment(): Promise<boolean> {
   if (!INSTAGRAM_TEST_THREAD_ID) {
-    throw new Error('Instagram E2E environment not configured. Set E2E_INSTAGRAM_THREAD_ID.')
+    console.warn('Skipping Instagram E2E: set E2E_INSTAGRAM_THREAD_ID to run against a dedicated test thread.')
+    return false
   }
 
   const { runCLI, parseJSON } = await import('./helpers')
@@ -309,14 +327,17 @@ export async function validateInstagramEnvironment() {
   if (data && 'valid' in data && !data.valid) {
     throw new Error('Instagram credentials invalid. Run: agent-instagram auth login or agent-instagram auth extract')
   }
+
+  return true
 }
 
 // KakaoTalk Test Environment
 export const KAKAOTALK_TEST_CHAT_ID = process.env.E2E_KAKAOTALK_CHAT_ID || ''
 
-export async function validateKakaoTalkEnvironment() {
+export async function validateKakaoTalkEnvironment(): Promise<boolean> {
   if (!KAKAOTALK_TEST_CHAT_ID) {
-    throw new Error('KakaoTalk E2E environment not configured. Set E2E_KAKAOTALK_CHAT_ID.')
+    console.warn('Skipping KakaoTalk E2E: set E2E_KAKAOTALK_CHAT_ID to run against a dedicated test chat.')
+    return false
   }
 
   const { runCLI } = await import('./helpers')
@@ -325,6 +346,8 @@ export async function validateKakaoTalkEnvironment() {
   if (result.exitCode !== 0) {
     throw new Error('KakaoTalk authentication failed. Run: agent-kakaotalk auth login or agent-kakaotalk auth extract')
   }
+
+  return true
 }
 
 // Channel (user-auth) Test Environment — requires E2E_CHANNEL_WORKSPACE_ID to opt-in.
@@ -332,9 +355,10 @@ export async function validateKakaoTalkEnvironment() {
 export const CHANNEL_TEST_WORKSPACE_ID = process.env.E2E_CHANNEL_WORKSPACE_ID || ''
 export const CHANNEL_TEST_WORKSPACE_NAME = process.env.E2E_CHANNEL_WORKSPACE_NAME || ''
 
-export async function validateChannelEnvironment(): Promise<{ groupId: string; groupName: string }> {
+export async function validateChannelEnvironment(): Promise<{ groupId: string; groupName: string } | null> {
   if (!CHANNEL_TEST_WORKSPACE_ID) {
-    throw new Error('Channel E2E environment not configured. Set E2E_CHANNEL_WORKSPACE_ID.')
+    console.warn('Skipping Channel E2E: set E2E_CHANNEL_WORKSPACE_ID to run against a dedicated test workspace.')
+    return null
   }
 
   const { runCLI, parseJSON } = await import('./helpers')

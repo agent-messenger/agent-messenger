@@ -7,12 +7,7 @@ let lineAvailable = false
 
 describe('LINE E2E Tests', () => {
   beforeAll(async () => {
-    if (!LINE_TEST_CHAT_ID) {
-      console.warn('Skipping LINE E2E: set E2E_LINE_CHAT_ID to run against a dedicated test chat.')
-      return
-    }
-    await validateLineEnvironment()
-    lineAvailable = true
+    lineAvailable = await validateLineEnvironment()
   })
 
   afterEach(async () => {
