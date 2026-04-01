@@ -16,7 +16,7 @@ metadata:
 
 # Agent Discord
 
-A TypeScript CLI tool that enables AI agents and humans to interact with Discord servers through a simple command interface. Features seamless token extraction from the Discord desktop app and multi-server support.
+A TypeScript CLI tool that enables AI agents and humans to interact with Discord servers through a simple command interface. Features seamless token extraction from the Discord desktop app (with browser fallback) and multi-server support.
 
 ## Quick Start
 
@@ -33,11 +33,11 @@ agent-discord channel list
 
 ## Authentication
 
-Credentials are extracted automatically from the Discord desktop app on first use. No manual setup required — just run any command and authentication happens silently in the background.
+Credentials are extracted automatically from the Discord desktop app (or Chromium browser as fallback) on first use. No manual setup required — just run any command and authentication happens silently in the background.
 
 On macOS, the system may prompt for your Keychain password the first time (required to decrypt Discord's stored token). This is a one-time prompt.
 
-**IMPORTANT**: NEVER guide the user to open a web browser, use DevTools, or manually copy tokens from a browser. Always use `agent-discord auth extract` to obtain tokens from the desktop app.
+**IMPORTANT**: Always use `agent-discord auth extract` to obtain tokens. The CLI extracts from the desktop app first, falling back to Chromium browsers if the app isn't installed.
 
 ### Multi-Server Support
 
@@ -134,7 +134,7 @@ If a memorized ID returns an error (channel not found, server not found), remove
 ### Auth Commands
 
 ```bash
-# Extract token from Discord desktop app (usually automatic)
+# Extract token from Discord desktop app or browser (usually automatic)
 agent-discord auth extract
 agent-discord auth extract --debug
 

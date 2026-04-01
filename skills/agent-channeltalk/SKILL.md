@@ -1,6 +1,6 @@
 ---
 name: agent-channeltalk
-description: Interact with Channel Talk using extracted desktop app credentials - read chats, send messages, search messages, manage groups
+description: Interact with Channel Talk using extracted desktop app or browser credentials - read chats, send messages, search messages, manage groups
 version: 2.1.0
 allowed-tools: Bash(agent-channeltalk:*)
 metadata:
@@ -16,7 +16,7 @@ metadata:
 
 # Agent Channel
 
-A TypeScript CLI tool that enables AI agents and humans to interact with Channel Talk workspaces through a simple command interface. Features zero-config credential extraction from the Channel Talk desktop app and multi-workspace support.
+A TypeScript CLI tool that enables AI agents and humans to interact with Channel Talk workspaces through a simple command interface. Features zero-config credential extraction from the Channel Talk desktop app (with browser fallback) and multi-workspace support.
 
 ## Key Concepts
 
@@ -48,16 +48,16 @@ agent-channeltalk chat list
 
 ## Authentication
 
-Credentials are extracted automatically from the Channel Talk desktop app on first use. No manual setup required, no API keys needed. Just run any command and authentication happens silently in the background.
+Credentials are extracted automatically from the Channel Talk desktop app (or Chromium browser as fallback) on first use. No manual setup required, no API keys needed. Just run any command and authentication happens silently in the background.
 
-The Channel Talk desktop app stores auth cookies in a SQLite database. On macOS, cookies are plaintext and no Keychain prompt is needed. On Windows, cookies are DPAPI-encrypted and decrypted automatically. The CLI reads two cookies:
+The Channel Talk desktop app stores auth cookies in a SQLite database. On macOS, cookies are plaintext and no Keychain prompt is needed. On Windows, cookies are DPAPI-encrypted and decrypted automatically. When falling back to a Chromium browser on macOS, cookies require Keychain decryption. The CLI reads two cookies:
 
 - `x-account` (JWT) - your account identity
 - `ch-session-1` (JWT) - your session token
 
-These cookies expire after roughly 30 days. When they expire, the CLI automatically re-extracts fresh cookies from the desktop app on the next command.
+These cookies expire after roughly 30 days. When they expire, the CLI automatically re-extracts fresh cookies from the desktop app or browser on the next command.
 
-**IMPORTANT**: NEVER guide the user to open a web browser, use DevTools, or manually copy tokens. Always use `agent-channeltalk auth extract` to obtain credentials from the desktop app.
+**IMPORTANT**: Always use `agent-channeltalk auth extract` to obtain credentials. The CLI extracts from the desktop app first, falling back to Chromium browsers if the app isn't installed.
 
 ### Multi-Workspace Support
 
@@ -166,7 +166,7 @@ If a memorized ID returns an error (chat not found, group not found), remove it 
 ### Auth Commands
 
 ```bash
-# Extract cookies from Channel Talk desktop app (usually automatic)
+# Extract cookies from Channel Talk desktop app or browser (usually automatic)
 agent-channeltalk auth extract
 
 # Check auth status
