@@ -4,6 +4,7 @@ import { Command } from 'commander'
 
 import { handleError } from '../../../shared/utils/error-handler'
 import { formatOutput } from '../../../shared/utils/output'
+import { info, error as stderrError } from '@/shared/utils/stderr'
 import { getTelegramAppCredentials } from '../app-config'
 import { TelegramTdlibClient } from '../client'
 import { TelegramCredentialManager } from '../credential-manager'
@@ -126,8 +127,8 @@ async function fillMissingBootstrappingInputs(
   if (!resolved.apiId && !existing?.api_id) {
     if (shouldUseInteractivePrompts()) {
       try {
-        console.error('No API credentials found. Provisioning via my.telegram.org...')
-        console.error('A verification code will be sent to your Telegram account.\n')
+        info('No API credentials found. Provisioning via my.telegram.org...')
+        info('A verification code will be sent to your Telegram account.\n')
 
         const phone = resolved.phone || (await promptText('Phone number (e.g. +14155551234)'))
         if (!phone) {
@@ -148,10 +149,10 @@ async function fillMissingBootstrappingInputs(
 
         resolved.apiId = String(app.api_id)
         resolved.apiHash = app.api_hash
-        console.error(`\n✓ API credentials obtained (api_id: ${app.api_id})`)
+        info(`\n✓ API credentials obtained (api_id: ${app.api_id})`)
       } catch (error) {
-        console.error(`\nAuto-provisioning failed: ${error instanceof Error ? error.message : error}`)
-        console.error('Enter your API credentials manually (from https://my.telegram.org/apps):\n')
+        stderrError(`\nAuto-provisioning failed: ${error instanceof Error ? error.message : error}`)
+        info('Enter your API credentials manually (from https://my.telegram.org/apps):\n')
         resolved.apiId = await promptText('Telegram API ID')
         resolved.apiHash = await promptHidden('Telegram API hash')
       }

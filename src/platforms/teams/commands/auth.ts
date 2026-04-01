@@ -2,6 +2,7 @@ import { Command } from 'commander'
 
 import { handleError } from '@/shared/utils/error-handler'
 import { formatOutput } from '@/shared/utils/output'
+import { debug } from '@/shared/utils/stderr'
 
 import { TeamsClient } from '../client'
 import { TeamsCredentialManager } from '../credential-manager'
@@ -35,7 +36,7 @@ export async function extractAction(options: { pretty?: boolean; debug?: boolean
     }
 
     if (options.debug) {
-      console.error('[debug] Extracting Teams tokens from all accounts...')
+      debug('[debug] Extracting Teams tokens from all accounts...')
     }
 
     const extracted = await extractor.extract()
@@ -54,7 +55,7 @@ export async function extractAction(options: { pretty?: boolean; debug?: boolean
     }
 
     if (options.debug) {
-      console.error(`[debug] Found ${extracted.length} account(s)`)
+      debug(`[debug] Found ${extracted.length} account(s)`)
     }
 
     const credManager = new TeamsCredentialManager()
@@ -67,7 +68,7 @@ export async function extractAction(options: { pretty?: boolean; debug?: boolean
 
     for (const { token, accountType } of extracted) {
       if (options.debug) {
-        console.error(`[debug] Validating ${accountType} account token...`)
+        debug(`[debug] Validating ${accountType} account token...`)
       }
 
       try {
@@ -76,7 +77,7 @@ export async function extractAction(options: { pretty?: boolean; debug?: boolean
         const teams = await client.listTeams()
 
         if (options.debug) {
-          console.error(`[debug] ✓ ${accountType}: ${authInfo.displayName} (${teams.length} team(s))`)
+          debug(`[debug] ✓ ${accountType}: ${authInfo.displayName} (${teams.length} team(s))`)
         }
 
         const teamMap: Record<string, { team_id: string; team_name: string }> = {}
@@ -107,7 +108,7 @@ export async function extractAction(options: { pretty?: boolean; debug?: boolean
         const errorMessage = (error as Error).message
         const is401 = errorMessage.includes('401') || errorMessage.includes('Unauthorized')
         if (options.debug) {
-          console.error(`[debug] ✗ ${accountType}: ${errorMessage}`)
+          debug(`[debug] ✗ ${accountType}: ${errorMessage}`)
         }
         if (extracted.length === 1) {
           console.log(
@@ -139,7 +140,7 @@ export async function extractAction(options: { pretty?: boolean; debug?: boolean
     await credManager.saveConfig(config)
 
     if (options.debug) {
-      console.error('[debug] ✓ Credentials saved')
+      debug('[debug] ✓ Credentials saved')
     }
 
     console.log(
@@ -158,7 +159,7 @@ export async function extractAction(options: { pretty?: boolean; debug?: boolean
 
 async function extractManualToken(token: string, options: { pretty?: boolean; debug?: boolean }): Promise<void> {
   if (options.debug) {
-    console.error(`[debug] Using provided token: ${token.substring(0, 20)}...`)
+    debug(`[debug] Using provided token: ${token.substring(0, 20)}...`)
   }
 
   try {
@@ -202,7 +203,7 @@ async function extractManualToken(token: string, options: { pretty?: boolean; de
     await credManager.saveConfig(config)
 
     if (options.debug) {
-      console.error('[debug] ✓ Credentials saved')
+      debug('[debug] ✓ Credentials saved')
     }
 
     console.log(

@@ -1,5 +1,7 @@
 import { Long } from 'bson'
 
+import { warn } from '@/shared/utils/stderr'
+
 import { LocoSession } from './protocol/session'
 import type { ChatListResponse, LoginListResponse } from './protocol/types'
 import type { KakaoChat, KakaoMessage, KakaoSendResult } from './types'
@@ -279,7 +281,7 @@ export class KakaoTalkClient {
           cur = maxLog
         }
         if (!reachedEnd) {
-          console.error(`[agent-kakaotalk] Warning: message fetch capped at ${MAX_PAGES} pages. Results may be incomplete.`)
+          warn(`[agent-kakaotalk] Warning: message fetch capped at ${MAX_PAGES} pages. Results may be incomplete.`)
         }
 
         allMessages.sort((a, b) => (a.sendAt as number) - (b.sendAt as number))

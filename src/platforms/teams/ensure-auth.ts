@@ -1,3 +1,5 @@
+import { warn } from '@/shared/utils/stderr'
+
 import { TeamsClient } from './client'
 import { TeamsCredentialManager } from './credential-manager'
 import { TeamsTokenExtractor } from './token-extractor'
@@ -47,7 +49,7 @@ export async function ensureTeamsAuth(): Promise<void> {
           newConfig.current_account = accountType
         }
       } catch (error) {
-        console.error(`[agent-teams] Skipping ${accountType} account: ${(error as Error).message}`)
+        warn(`[agent-teams] Skipping ${accountType} account: ${(error as Error).message}`)
       }
     }
 

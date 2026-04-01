@@ -2,6 +2,7 @@ import { Command } from 'commander'
 
 import { handleError } from '@/shared/utils/error-handler'
 import { formatOutput } from '@/shared/utils/output'
+import { debug } from '@/shared/utils/stderr'
 
 import { SlackClient, SlackError } from '../client'
 import { CredentialManager } from '../credential-manager'
@@ -23,7 +24,7 @@ async function extractAction(options: {
     if (options.unsafelyShowSecrets) {
       options.debug = true
     }
-    const debugLog = options.debug ? (msg: string) => console.error(`[debug] ${msg}`) : undefined
+    const debugLog = options.debug ? (msg: string) => debug(`[debug] ${msg}`) : undefined
     const extractor = new TokenExtractor(undefined, undefined, undefined, debugLog)
 
     if (process.platform === 'darwin') {
@@ -44,15 +45,15 @@ async function extractAction(options: {
     }
 
     if (options.debug) {
-      console.error(`[debug] Slack directory: ${extractor.getSlackDir()}`)
+      debug(`[debug] Slack directory: ${extractor.getSlackDir()}`)
     }
 
     const workspaces = await extractor.extract()
 
     if (options.debug) {
-      console.error(`[debug] Found ${workspaces.length} workspace(s)`)
+      debug(`[debug] Found ${workspaces.length} workspace(s)`)
       for (const ws of workspaces) {
-        console.error(`[debug] - ${formatCredentialDebug(ws, options.unsafelyShowSecrets)}`)
+        debug(`[debug] - ${formatCredentialDebug(ws, options.unsafelyShowSecrets)}`)
       }
     }
 
@@ -77,7 +78,7 @@ async function extractAction(options: {
     const failureReasons: string[] = []
     for (const ws of workspaces) {
       if (options.debug) {
-        console.error(`[debug] Testing credentials for ${ws.workspace_id}...`)
+        debug(`[debug] Testing credentials for ${ws.workspace_id}...`)
       }
 
       try {
@@ -89,7 +90,7 @@ async function extractAction(options: {
         await credManager.setWorkspace(ws)
 
         if (options.debug) {
-          console.error(`[debug] ✓ Valid: ${authInfo.team} (${authInfo.user})`)
+          debug(`[debug] ✓ Valid: ${authInfo.team} (${authInfo.user})`)
         }
       } catch (error) {
         const code = error instanceof SlackError ? error.code : undefined
@@ -97,12 +98,12 @@ async function extractAction(options: {
           failureReasons.push(code)
         }
         if (options.debug) {
-          console.error(`[debug] ✗ Invalid: ${(error as Error).message}`)
+          debug(`[debug] ✗ Invalid: ${(error as Error).message}`)
         }
 
         if (options.debug) {
           const domain = workspaceDomains[ws.workspace_id]
-          console.error(
+          debug(
             `[debug] Attempting web token refresh for ${ws.workspace_id}${domain ? ` (${domain}.slack.com)` : ''}...`,
           )
         }
@@ -114,10 +115,10 @@ async function extractAction(options: {
           await credManager.setWorkspace(ws)
 
           if (options.debug) {
-            console.error(`[debug] ✓ Web refresh succeeded: ${refreshed.workspace_name}`)
+            debug(`[debug] ✓ Web refresh succeeded: ${refreshed.workspace_name}`)
           }
         } else if (options.debug) {
-          console.error('[debug] ✗ Web refresh failed')
+          debug('[debug] ✗ Web refresh failed')
         }
       }
     }
