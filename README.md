@@ -78,6 +78,7 @@ This installs:
 - `agent-whatsapp` — WhatsApp CLI (user account via Baileys, pairing code auth)
 - `agent-whatsappbot` — WhatsApp Bot CLI (Cloud API, for server-side/CI/CD)
 - `agent-line` — LINE CLI (QR code login, Thrift protocol)
+- `agent-wechat` — WeChat CLI (user account via wechat_chatter OneBot API, macOS + Windows)
 - `agent-wechatbot` — WeChat Bot CLI (Official Account API, for server-side/CI/CD)
 - `agent-instagram` — Instagram DM CLI (browser cookie extraction + username/password auth)
 - `agent-kakaotalk` — KakaoTalk CLI (sub-device login, LOCO protocol)
@@ -92,7 +93,7 @@ Agent Messenger includes [Agent Skills](https://agentskills.io/) that teach your
 
 SkillPad is a GUI app for Agent Skills. See [skillpad.dev](https://skillpad.dev/) for more details.
 
-[![Available on SkillPad](https://badge.skillpad.dev/agent-slack/dark.svg)](https://skillpad.dev/install/devxoul/agent-messenger/agent-slack) [![Available on SkillPad](https://badge.skillpad.dev/agent-slackbot/dark.svg)](https://skillpad.dev/install/devxoul/agent-messenger/agent-slackbot) [![Available on SkillPad](https://badge.skillpad.dev/agent-discord/dark.svg)](https://skillpad.dev/install/devxoul/agent-messenger/agent-discord) [![Available on SkillPad](https://badge.skillpad.dev/agent-discordbot/dark.svg)](https://skillpad.dev/install/devxoul/agent-messenger/agent-discordbot) [![Available on SkillPad](https://badge.skillpad.dev/agent-teams/dark.svg)](https://skillpad.dev/install/devxoul/agent-messenger/agent-teams) [![Available on SkillPad](https://badge.skillpad.dev/agent-webex/dark.svg)](https://skillpad.dev/install/devxoul/agent-messenger/agent-webex) [![Available on SkillPad](https://badge.skillpad.dev/agent-telegram/dark.svg)](https://skillpad.dev/install/devxoul/agent-messenger/agent-telegram) [![Available on SkillPad](https://badge.skillpad.dev/agent-whatsapp/dark.svg)](https://skillpad.dev/install/devxoul/agent-messenger/agent-whatsapp) [![Available on SkillPad](https://badge.skillpad.dev/agent-whatsappbot/dark.svg)](https://skillpad.dev/install/devxoul/agent-messenger/agent-whatsappbot) [![Available on SkillPad](https://badge.skillpad.dev/agent-line/dark.svg)](https://skillpad.dev/install/devxoul/agent-messenger/agent-line) [![Available on SkillPad](https://badge.skillpad.dev/agent-wechatbot/dark.svg)](https://skillpad.dev/install/devxoul/agent-messenger/agent-wechatbot) [![Available on SkillPad](https://badge.skillpad.dev/agent-instagram/dark.svg)](https://skillpad.dev/install/devxoul/agent-messenger/agent-instagram) [![Available on SkillPad](https://badge.skillpad.dev/agent-kakaotalk/dark.svg)](https://skillpad.dev/install/devxoul/agent-messenger/agent-kakaotalk) [![Available on SkillPad](https://badge.skillpad.dev/agent-channeltalk/dark.svg)](https://skillpad.dev/install/devxoul/agent-messenger/agent-channeltalk) [![Available on SkillPad](https://badge.skillpad.dev/agent-channeltalkbot/dark.svg)](https://skillpad.dev/install/devxoul/agent-messenger/agent-channeltalkbot)
+[![Available on SkillPad](https://badge.skillpad.dev/agent-slack/dark.svg)](https://skillpad.dev/install/devxoul/agent-messenger/agent-slack) [![Available on SkillPad](https://badge.skillpad.dev/agent-slackbot/dark.svg)](https://skillpad.dev/install/devxoul/agent-messenger/agent-slackbot) [![Available on SkillPad](https://badge.skillpad.dev/agent-discord/dark.svg)](https://skillpad.dev/install/devxoul/agent-messenger/agent-discord) [![Available on SkillPad](https://badge.skillpad.dev/agent-discordbot/dark.svg)](https://skillpad.dev/install/devxoul/agent-messenger/agent-discordbot) [![Available on SkillPad](https://badge.skillpad.dev/agent-teams/dark.svg)](https://skillpad.dev/install/devxoul/agent-messenger/agent-teams) [![Available on SkillPad](https://badge.skillpad.dev/agent-webex/dark.svg)](https://skillpad.dev/install/devxoul/agent-messenger/agent-webex) [![Available on SkillPad](https://badge.skillpad.dev/agent-telegram/dark.svg)](https://skillpad.dev/install/devxoul/agent-messenger/agent-telegram) [![Available on SkillPad](https://badge.skillpad.dev/agent-whatsapp/dark.svg)](https://skillpad.dev/install/devxoul/agent-messenger/agent-whatsapp) [![Available on SkillPad](https://badge.skillpad.dev/agent-whatsappbot/dark.svg)](https://skillpad.dev/install/devxoul/agent-messenger/agent-whatsappbot) [![Available on SkillPad](https://badge.skillpad.dev/agent-line/dark.svg)](https://skillpad.dev/install/devxoul/agent-messenger/agent-line) [![Available on SkillPad](https://badge.skillpad.dev/agent-wechat/dark.svg)](https://skillpad.dev/install/devxoul/agent-messenger/agent-wechat) [![Available on SkillPad](https://badge.skillpad.dev/agent-wechatbot/dark.svg)](https://skillpad.dev/install/devxoul/agent-messenger/agent-wechatbot) [![Available on SkillPad](https://badge.skillpad.dev/agent-instagram/dark.svg)](https://skillpad.dev/install/devxoul/agent-messenger/agent-instagram) [![Available on SkillPad](https://badge.skillpad.dev/agent-kakaotalk/dark.svg)](https://skillpad.dev/install/devxoul/agent-messenger/agent-kakaotalk) [![Available on SkillPad](https://badge.skillpad.dev/agent-channeltalk/dark.svg)](https://skillpad.dev/install/devxoul/agent-messenger/agent-channeltalk) [![Available on SkillPad](https://badge.skillpad.dev/agent-channeltalkbot/dark.svg)](https://skillpad.dev/install/devxoul/agent-messenger/agent-channeltalkbot)
 
 ### Skills CLI
 
@@ -186,6 +187,7 @@ const slack = await new SlackClient().login({ token: 'xoxc-...', cookie: 'xoxd-.
 | `agent-messenger/whatsapp` | `WhatsAppClient` |
 | `agent-messenger/whatsappbot` | `WhatsAppBotClient` |
 | `agent-messenger/line` | `LineClient` |
+| `agent-messenger/wechat` | `WeChatClient` |
 | `agent-messenger/wechatbot` | `WeChatBotClient` |
 | `agent-messenger/instagram` | `InstagramClient` |
 | `agent-messenger/kakaotalk` | `KakaoTalkClient` |
@@ -258,31 +260,31 @@ See the [TUI docs](https://agent-messenger.dev/docs/tui) for keybindings, archit
 
 ## Supported Platforms
 
-| Feature                    | Slack | Discord | Teams | Webex | Telegram | WhatsApp | LINE  | Instagram | KakaoTalk | Channel Talk (beta) |
-| -------------------------- | :---: | :-----: | :---: | :---: | :------: | :------: | :---: | :-------: | :-------: | :-----------------: |
-| Auto credential extraction |  ✅   |   ✅    |  ✅   |  ✅   |    —     |    —     |   —   |    ✅     |    ✅     |         ✅          |
-| Send & list messages       |  ✅   |   ✅    |  ✅   |  ✅   |    ✅     |    ✅     |  ✅   |    ✅     |    ✅     |         ✅          |
-| Direct messages            |  ✅   |   ✅    |  ✅   |  ✅   |    ✅     |    ✅     |  ✅   |    ✅     |    ✅     |         ✅          |
-| Search messages            |  ✅   |   ✅    |   —   |   —   |    —     |    ✅     |   —   |    ✅     |    —      |         ✅          |
-| Threads                    |  ✅   |   ✅    |   —   |   —   |    —     |    —     |   —   |     —     |    —      |         —           |
-| Channels & Users           |  ✅   |   ✅    |  ✅   |  ✅   | partial  |    —     |  ✅   |     —     |    —      |         ✅          |
-| Reactions                  |  ✅   |   ✅    |  ✅   |   —   |    —     |    ✅     |   —   |     —     |    —      |         —           |
-| File uploads               |  ✅   |   ✅    |  ✅   |   —   |    —     |    —     |   —   |     —     |    —      |         —           |
-| File downloads             |  ✅   |    —    |   —   |   —   |    —     |    —     |   —   |     —     |    —      |         —           |
-| Workspace snapshots        |  ✅   |   ✅    |  ✅   |  ✅   |    —     |    —     |   —   |     —     |    —      |         ✅          |
-| Multi-workspace / account  |  ✅   |   ✅    |  ✅   |   —   |    ✅     |    ✅     |  ✅   |    ✅     |    ✅     |         ✅          |
-| Activity feed              |  ✅   |    —    |   —   |   —   |    —     |    —     |   —   |     —     |    —      |         —           |
-| Drafts                     |  ✅   |    —    |   —   |   —   |    —     |    —     |   —   |     —     |    —      |         —           |
-| Saved items                |  ✅   |    —    |   —   |   —   |    —     |    —     |   —   |     —     |    —      |         —           |
-| Unread messages            |  ✅   |    —    |   —   |   —   |    —     |    —     |   —   |     —     |    —      |         —           |
-| Sidebar sections           |  ✅   |    —    |   —   |   —   |    —     |    —     |   —   |     —     |    —      |         —           |
-| Pins & bookmarks           |  ✅   |    —    |   —   |   —   |    —     |    —     |   —   |     —     |    —      |         —           |
-| Scheduled messages         |  ✅   |    —    |   —   |   —   |    —     |    —     |   —   |     —     |    —      |         —           |
-| Channel management         |  ✅   |    —    |   —   |   —   |    —     |    —     |   —   |     —     |    —      |         —           |
-| Reminders                  |  ✅   |    —    |   —   |   —   |    —     |    —     |   —   |     —     |    —      |         —           |
-| User groups                |  ✅   |    —    |   —   |   —   |    —     |    —     |   —   |     —     |    —      |         —           |
-| Real-time events (SDK)     |  ✅   |    ✅    |   —   |   —   |    —     |    —     |  ✅   |    ✅     |    ✅      |         —           |
-| Bot support                |  ✅   |   ✅    |   —   |   —   |    —     |    ✅     |   —   |     —     |    —      |         ✅          |
+| Feature                    | Slack | Discord | Teams | Webex | Telegram | WhatsApp | LINE  | Instagram | KakaoTalk | WeChat (macOS/Win) | Channel Talk (beta) |
+| -------------------------- | :---: | :-----: | :---: | :---: | :------: | :------: | :---: | :-------: | :-------: | :----------: | :-----------------: |
+| Auto credential extraction |  ✅   |   ✅    |  ✅   |  ✅   |    —     |    —     |   —   |    ✅     |    ✅     |      —       |         ✅          |
+| Send & list messages       |  ✅   |   ✅    |  ✅   |  ✅   |    ✅     |    ✅     |  ✅   |    ✅     |    ✅     |      ✅       |         ✅          |
+| Direct messages            |  ✅   |   ✅    |  ✅   |  ✅   |    ✅     |    ✅     |  ✅   |    ✅     |    ✅     |      ✅       |         ✅          |
+| Search messages            |  ✅   |   ✅    |   —   |   —   |    —     |    ✅     |   —   |    ✅     |    —      |      —       |         ✅          |
+| Threads                    |  ✅   |   ✅    |   —   |   —   |    —     |    —     |   —   |     —     |    —      |      —       |         —           |
+| Channels & Users           |  ✅   |   ✅    |  ✅   |  ✅   | partial  |    —     |  ✅   |     —     |    —      |      ✅       |         ✅          |
+| Reactions                  |  ✅   |   ✅    |  ✅   |   —   |    —     |    ✅     |   —   |     —     |    —      |      —       |         —           |
+| File uploads               |  ✅   |   ✅    |  ✅   |   —   |    —     |    —     |   —   |     —     |    —      |      —       |         —           |
+| File downloads             |  ✅   |    —    |   —   |   —   |    —     |    —     |   —   |     —     |    —      |      —       |         —           |
+| Workspace snapshots        |  ✅   |   ✅    |  ✅   |  ✅   |    —     |    —     |   —   |     —     |    —      |      —       |         ✅          |
+| Multi-workspace / account  |  ✅   |   ✅    |  ✅   |   —   |    ✅     |    ✅     |  ✅   |    ✅     |    ✅     |      ✅       |         ✅          |
+| Activity feed              |  ✅   |    —    |   —   |   —   |    —     |    —     |   —   |     —     |    —      |      —       |         —           |
+| Drafts                     |  ✅   |    —    |   —   |   —   |    —     |    —     |   —   |     —     |    —      |      —       |         —           |
+| Saved items                |  ✅   |    —    |   —   |   —   |    —     |    —     |   —   |     —     |    —      |      —       |         —           |
+| Unread messages            |  ✅   |    —    |   —   |   —   |    —     |    —     |   —   |     —     |    —      |      —       |         —           |
+| Sidebar sections           |  ✅   |    —    |   —   |   —   |    —     |    —     |   —   |     —     |    —      |      —       |         —           |
+| Pins & bookmarks           |  ✅   |    —    |   —   |   —   |    —     |    —     |   —   |     —     |    —      |      —       |         —           |
+| Scheduled messages         |  ✅   |    —    |   —   |   —   |    —     |    —     |   —   |     —     |    —      |      —       |         —           |
+| Channel management         |  ✅   |    —    |   —   |   —   |    —     |    —     |   —   |     —     |    —      |      —       |         —           |
+| Reminders                  |  ✅   |    —    |   —   |   —   |    —     |    —     |   —   |     —     |    —      |      —       |         —           |
+| User groups                |  ✅   |    —    |   —   |   —   |    —     |    —     |   —   |     —     |    —      |      —       |         —           |
+| Real-time events (SDK)     |  ✅   |    ✅    |   —   |   —   |    —     |    —     |  ✅   |    ✅     |    ✅      |      —       |         —           |
+| Bot support                |  ✅   |   ✅    |   —   |   —   |    —     |    ✅     |   —   |     —     |    —      |      —       |         ✅          |
 
 > ⚠️ **Teams tokens expire in 60-90 minutes.** Re-run `agent-teams auth extract` to refresh. See [Teams Guide](skills/agent-teams/SKILL.md) for details.
 
@@ -298,6 +300,7 @@ See the [TUI docs](https://agent-messenger.dev/docs/tui) for keybindings, archit
 - **[WhatsApp Guide](https://agent-messenger.dev/docs/cli/whatsapp)** — Baileys-based WhatsApp integration via pairing code
 - **[WhatsApp Bot Guide](https://agent-messenger.dev/docs/cli/whatsappbot)** — Cloud API integration for WhatsApp Business
 - **[LINE Guide](https://agent-messenger.dev/docs/cli/line)** — QR code login and Thrift protocol integration
+- **[WeChat Guide](skills/agent-wechat/SKILL.md)** — wechat_chatter + Frida Gadget setup, macOS/Windows, and WeChat user account command reference
 - **[WeChat Bot Guide](https://agent-messenger.dev/docs/cli/wechatbot)** — Official Account API integration for WeChat
 - **[Instagram Guide](https://agent-messenger.dev/docs/cli/instagram)** — Browser cookie extraction and Instagram DM integration
 - **[KakaoTalk Guide](https://agent-messenger.dev/docs/cli/kakaotalk)** — Sub-device login and LOCO protocol integration

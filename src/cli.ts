@@ -48,6 +48,10 @@ program.command('whatsappbot', 'Interact with WhatsApp using Cloud API credentia
   executableFile: join(__dirname, 'platforms', 'whatsappbot', `cli${ext}`),
 })
 
+program.command('wechat', 'Interact with WeChat via WeChat Ferry (Windows)', {
+  executableFile: join(__dirname, 'platforms', 'wechat', `cli${ext}`),
+})
+
 program.command('line', 'Interact with LINE', {
   executableFile: join(__dirname, 'platforms', 'line', `cli${ext}`),
 })

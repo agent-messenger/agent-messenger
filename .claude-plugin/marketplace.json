@@ -124,5 +124,18 @@
       "homepage": "https://github.com/devxoul/agent-messenger",
       "keywords": ["channel-talk", "channeltalkbot", "bot", "messaging", "ai-agent", "cli", "ci-cd"]
     }
+    ,{
+      "name": "agent-wechat",
+      "description": "Interact with WeChat via wechat_chatter OneBot API. Works on macOS and Windows. Send messages and receive real-time messages via WebSocket. Designed for personal WeChat account automation.",
+      "version": "2.3.0",
+      "author": {
+        "name": "devxoul",
+        "url": "https://github.com/devxoul"
+      },
+      "source": "./",
+      "category": "productivity",
+      "homepage": "https://github.com/devxoul/agent-messenger",
+      "keywords": ["wechat", "weixin", "messaging", "ai-agent", "cli", "communication", "macos", "onebot"]
+    }
   ]
 }

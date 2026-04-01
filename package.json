@@ -1,7 +1,7 @@
 {
   "name": "agent-messenger",
   "version": "2.3.0",
-  "description": "Multi-platform messaging CLI for AI agents (Slack, Discord, Teams, Webex, Telegram, WhatsApp, LINE, Instagram, KakaoTalk, Channel Talk)",
+  "description": "Multi-platform messaging CLI for AI agents (Slack, Discord, Teams, Webex, Telegram, WhatsApp, LINE, Instagram, KakaoTalk, WeChat, Channel Talk)",
   "repository": {
     "type": "git",
     "url": "https://github.com/devxoul/agent-messenger"
@@ -19,6 +19,7 @@
     "agent-whatsapp": "./src/platforms/whatsapp/cli.ts",
     "agent-whatsappbot": "./src/platforms/whatsappbot/cli.ts",
     "agent-line": "./src/platforms/line/cli.ts",
+    "agent-wechat": "./src/platforms/wechat/cli.ts",
     "agent-wechatbot": "./src/platforms/wechatbot/cli.ts",
     "agent-instagram": "./src/platforms/instagram/cli.ts",
     "agent-kakaotalk": "./src/platforms/kakaotalk/cli.ts",
@@ -58,6 +59,10 @@
     "./line": {
       "types": "./src/platforms/line/index.ts",
       "default": "./src/platforms/line/index.ts"
+    },
+    "./wechat": {
+      "types": "./src/platforms/wechat/index.ts",
+      "default": "./src/platforms/wechat/index.ts"
     },
     "./wechatbot": {
       "types": "./src/platforms/wechatbot/index.ts",
@@ -105,6 +110,9 @@
       ],
       "line": [
         "./src/platforms/line/index.ts"
+      ],
+      "wechat": [
+        "./src/platforms/wechat/index.ts"
       ],
       "wechatbot": [
         "./src/platforms/wechatbot/index.ts"
