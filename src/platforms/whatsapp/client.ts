@@ -25,10 +25,14 @@ import {
 
 const MAX_MESSAGES_PER_CHAT = 500
 
-function toTimestampMs(ts: number | { toNumber(): number } | null | undefined): number {
+function toTimestampMs(ts: unknown): number {
   if (ts == null) return 0
-  if (typeof ts === 'object') return ts.toNumber() * 1000
-  return ts * 1000
+  if (typeof ts === 'number') return ts * 1000
+  if (typeof ts === 'object' && ts !== null && 'toNumber' in ts && typeof (ts as Record<string, unknown>).toNumber === 'function') {
+    return (ts as { toNumber(): number }).toNumber() * 1000
+  }
+  const n = Number(ts)
+  return Number.isNaN(n) ? 0 : n * 1000
 }
 
 function resolveJid(input: string): string {
@@ -443,8 +447,8 @@ export class WhatsAppClient {
     const sorted = chats.sort((a, b) => {
       const aTime = a.conversationTimestamp
       const bTime = b.conversationTimestamp
-      const aMs = toTimestampMs(aTime as number | { toNumber(): number } | null | undefined)
-      const bMs = toTimestampMs(bTime as number | { toNumber(): number } | null | undefined)
+      const aMs = toTimestampMs(aTime)
+      const bMs = toTimestampMs(bTime)
       return bMs - aMs
     })
 
@@ -474,8 +478,8 @@ export class WhatsAppClient {
 
     const msgs = this.messages.get(resolvedJid) ?? []
     const sorted = [...msgs].sort((a, b) => {
-      const aMs = toTimestampMs(a.messageTimestamp as number | { toNumber(): number } | null | undefined)
-      const bMs = toTimestampMs(b.messageTimestamp as number | { toNumber(): number } | null | undefined)
+      const aMs = toTimestampMs(a.messageTimestamp)
+      const bMs = toTimestampMs(b.messageTimestamp)
       return aMs - bMs
     })
 
