@@ -384,6 +384,101 @@ describe('KakaoTalkClient', () => {
     })
   })
 
+  describe('getProfile', () => {
+    const mockFetch = mock(() => Promise.resolve(new Response()))
+
+    beforeEach(() => {
+      mockFetch.mockReset()
+      globalThis.fetch = mockFetch as unknown as typeof fetch
+    })
+
+    afterEach(() => {
+      mockFetch.mockReset()
+    })
+
+    function makeJsonResponse(data: unknown, status = 200): Response {
+      return new Response(JSON.stringify(data), {
+        status,
+        headers: { 'Content-Type': 'application/json' },
+      })
+    }
+
+    test('returns profile data on success', async () => {
+      mockFetch
+        .mockResolvedValueOnce(makeJsonResponse({
+          profile: {
+            nickName: 'Test User',
+            profileImageUrl: 'https://example.com/profile.jpg',
+            originalProfileImageUrl: 'https://example.com/original.jpg',
+            statusMessage: 'Hello world',
+          },
+        }))
+        .mockResolvedValueOnce(makeJsonResponse({ accountDisplayId: 'testuser123' }))
+
+      const client = await new KakaoTalkClient().login({ oauthToken: 'mytoken', userId: 'user42', deviceUuid: 'device1' })
+      const profile = await client.getProfile()
+
+      expect(profile.user_id).toBe('user42')
+      expect(profile.nickname).toBe('Test User')
+      expect(profile.profile_image_url).toBe('https://example.com/profile.jpg')
+      expect(profile.original_profile_image_url).toBe('https://example.com/original.jpg')
+      expect(profile.status_message).toBe('Hello world')
+      expect(profile.account_display_id).toBe('testuser123')
+
+      client.close()
+    })
+
+    test('throws not_authenticated when not logged in', async () => {
+      const client = new KakaoTalkClient()
+      try {
+        await client.getProfile()
+        expect.unreachable('should have thrown')
+      } catch (e) {
+        expect(e).toBeInstanceOf(KakaoTalkError)
+        expect((e as KakaoTalkError).code).toBe('not_authenticated')
+      }
+    })
+
+    test('throws profile_request_failed when profile HTTP request fails', async () => {
+      mockFetch
+        .mockResolvedValueOnce(makeJsonResponse({}, 401))
+        .mockResolvedValueOnce(makeJsonResponse({ accountDisplayId: null }))
+
+      const client = await new KakaoTalkClient().login({ oauthToken: 'mytoken', userId: 'user42', deviceUuid: 'device1' })
+      try {
+        await client.getProfile()
+        expect.unreachable('should have thrown')
+      } catch (e) {
+        expect(e).toBeInstanceOf(KakaoTalkError)
+        expect((e as KakaoTalkError).code).toBe('profile_request_failed')
+      }
+
+      client.close()
+    })
+
+    test('returns null account_display_id when more_settings request fails', async () => {
+      mockFetch
+        .mockResolvedValueOnce(makeJsonResponse({
+          profile: {
+            nickName: 'Test User',
+            profileImageUrl: null,
+            originalProfileImageUrl: null,
+            statusMessage: null,
+          },
+        }))
+        .mockResolvedValueOnce(makeJsonResponse({}, 500))
+
+      const client = await new KakaoTalkClient().login({ oauthToken: 'mytoken', userId: 'user42', deviceUuid: 'device1' })
+      const profile = await client.getProfile()
+
+      expect(profile.user_id).toBe('user42')
+      expect(profile.nickname).toBe('Test User')
+      expect(profile.account_display_id).toBeNull()
+
+      client.close()
+    })
+  })
+
   describe('session lifecycle', () => {
     test('lazy init: does not call login until first method call', async () => {
       const client = await new KakaoTalkClient().login({ oauthToken: 'token', userId: 'user1', deviceUuid: 'device1' })
