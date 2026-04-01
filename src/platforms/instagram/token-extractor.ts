@@ -195,7 +195,9 @@ export class InstagramTokenExtractor {
     return sessionid.length >= 20
   }
 
-  async extract(): Promise<ExtractedInstagramCookies | null> {
+  async extract(): Promise<ExtractedInstagramCookies[]> {
+    const results: ExtractedInstagramCookies[] = []
+    const seenUsers = new Set<string>()
     const cookiePaths = this.getBrowserCookiesPaths()
 
     for (const cookiePath of cookiePaths) {
@@ -203,14 +205,18 @@ export class InstagramTokenExtractor {
 
       this.debug(`Scanning: ${cookiePath}`)
       const cookies = await this.copyAndExtract(cookiePath)
-      if (cookies) {
+      if (cookies && !seenUsers.has(cookies.ds_user_id)) {
         this.debug(`Found Instagram cookies in: ${cookiePath}`)
-        return cookies
+        seenUsers.add(cookies.ds_user_id)
+        results.push(cookies)
       }
     }
 
-    this.debug('No Instagram cookies found in any browser profile')
-    return null
+    if (results.length === 0) {
+      this.debug('No Instagram cookies found in any browser profile')
+    }
+
+    return results
   }
 
   private async copyAndExtract(dbPath: string): Promise<ExtractedInstagramCookies | null> {

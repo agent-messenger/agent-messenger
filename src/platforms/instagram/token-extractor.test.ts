@@ -160,12 +160,12 @@ describe('InstagramTokenExtractor', () => {
   })
 
   describe('extract', () => {
-    test('returns null when no cookie paths exist', async () => {
+    test('returns empty array when no cookie paths exist', async () => {
       const linuxExtractor = new InstagramTokenExtractor('linux')
       const spy = spyOn(linuxExtractor as any, 'copyAndExtract').mockResolvedValue(null)
 
       const result = await linuxExtractor.extract()
-      expect(result).toBeNull()
+      expect(result).toEqual([])
 
       spy.mockRestore()
     })
@@ -189,7 +189,7 @@ describe('InstagramTokenExtractor', () => {
       const copyAndExtractSpy = spyOn(linuxExtractor as any, 'copyAndExtract').mockResolvedValue(mockCookies)
 
       const result = await linuxExtractor.extract()
-      expect(result).toEqual(mockCookies)
+      expect(result).toEqual([mockCookies])
 
       getBrowserCookiesPathsSpy.mockRestore()
       existsSyncSpy.mockRestore()
@@ -218,7 +218,7 @@ describe('InstagramTokenExtractor', () => {
 
       const result = await darwinExtractor.extract()
       expect(copyAndExtractSpy).toHaveBeenCalledTimes(2)
-      expect(result).toEqual(mockCookies)
+      expect(result).toEqual([mockCookies])
 
       getBrowserCookiesPathsSpy.mockRestore()
       existsSyncSpy.mockRestore()

@@ -22,7 +22,8 @@ export async function ensureInstagramAuth(): Promise<void> {
 
   try {
     const extractor = new InstagramTokenExtractor()
-    const cookies = await extractor.extract()
+    const results = await extractor.extract()
+    const cookies = results[0]
 
     if (cookies) {
       const session = {
