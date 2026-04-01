@@ -189,6 +189,144 @@ export async function validateChannelBotEnvironment(): Promise<{ groupId: string
   return { groupId: e2eGroup.id, groupName: e2eGroup.name }
 }
 
+// Webex Test Environment
+export const WEBEX_TEST_SPACE_ID = process.env.E2E_WEBEX_SPACE_ID || ''
+export const WEBEX_TEST_DM_EMAIL = process.env.E2E_WEBEX_DM_EMAIL || ''
+
+export async function validateWebexEnvironment() {
+  if (!WEBEX_TEST_SPACE_ID) {
+    throw new Error('Webex E2E environment not configured. Set E2E_WEBEX_SPACE_ID.')
+  }
+
+  const { runCLI, parseJSON } = await import('./helpers')
+
+  const result = await runCLI('webex', ['auth', 'status'])
+  if (result.exitCode !== 0) {
+    throw new Error('Webex authentication failed. Run: agent-webex auth login or agent-webex auth extract')
+  }
+
+  const data = parseJSON<{ authenticated: boolean }>(result.stdout)
+  if (!data?.authenticated) {
+    throw new Error('Webex not authenticated. Run: agent-webex auth login or agent-webex auth extract')
+  }
+}
+
+// Telegram Test Environment
+export const TELEGRAM_TEST_CHAT_ID = process.env.E2E_TELEGRAM_CHAT_ID || ''
+
+export async function validateTelegramEnvironment() {
+  if (!TELEGRAM_TEST_CHAT_ID) {
+    throw new Error('Telegram E2E environment not configured. Set E2E_TELEGRAM_CHAT_ID.')
+  }
+
+  const { runCLI } = await import('./helpers')
+
+  const result = await runCLI('telegram', ['auth', 'status'])
+  if (result.exitCode !== 0) {
+    throw new Error('Telegram authentication failed. Run: agent-telegram auth login')
+  }
+}
+
+// WhatsApp Test Environment
+export const WHATSAPP_TEST_CHAT_ID = process.env.E2E_WHATSAPP_CHAT_ID || ''
+
+export async function validateWhatsAppEnvironment() {
+  if (!WHATSAPP_TEST_CHAT_ID) {
+    throw new Error('WhatsApp E2E environment not configured. Set E2E_WHATSAPP_CHAT_ID.')
+  }
+
+  const { runCLI, parseJSON } = await import('./helpers')
+
+  const result = await runCLI('whatsapp', ['auth', 'status'])
+  if (result.exitCode !== 0) {
+    throw new Error('WhatsApp authentication failed. Run: agent-whatsapp auth login')
+  }
+
+  const data = parseJSON<{ valid?: boolean }>(result.stdout)
+  if (data && 'valid' in data && !data.valid) {
+    throw new Error('WhatsApp credentials invalid. Run: agent-whatsapp auth login')
+  }
+}
+
+// WhatsApp Bot Test Environment
+export const WHATSAPPBOT_TEST_PHONE_NUMBER = process.env.E2E_WHATSAPPBOT_PHONE_NUMBER || ''
+
+export async function validateWhatsAppBotEnvironment() {
+  if (!WHATSAPPBOT_TEST_PHONE_NUMBER) {
+    throw new Error('WhatsApp Bot E2E environment not configured. Set E2E_WHATSAPPBOT_PHONE_NUMBER.')
+  }
+
+  const { runCLI, parseJSON } = await import('./helpers')
+
+  const result = await runCLI('whatsappbot', ['auth', 'status'])
+  if (result.exitCode !== 0) {
+    throw new Error(
+      'WhatsApp Bot authentication failed. Run: agent-whatsappbot auth set <phone-number-id> <access-token>',
+    )
+  }
+
+  const data = parseJSON<{ valid: boolean }>(result.stdout)
+  if (!data?.valid) {
+    throw new Error(
+      'WhatsApp Bot credentials invalid or expired. Run: agent-whatsappbot auth set <phone-number-id> <access-token>',
+    )
+  }
+}
+
+// LINE Test Environment
+export const LINE_TEST_CHAT_ID = process.env.E2E_LINE_CHAT_ID || ''
+
+export async function validateLineEnvironment() {
+  if (!LINE_TEST_CHAT_ID) {
+    throw new Error('LINE E2E environment not configured. Set E2E_LINE_CHAT_ID.')
+  }
+
+  const { runCLI } = await import('./helpers')
+
+  const result = await runCLI('line', ['auth', 'status'])
+  if (result.exitCode !== 0) {
+    throw new Error('LINE authentication failed. Run: agent-line auth login')
+  }
+}
+
+// Instagram Test Environment
+export const INSTAGRAM_TEST_THREAD_ID = process.env.E2E_INSTAGRAM_THREAD_ID || ''
+export const INSTAGRAM_TEST_USERNAME = process.env.E2E_INSTAGRAM_USERNAME || ''
+
+export async function validateInstagramEnvironment() {
+  if (!INSTAGRAM_TEST_THREAD_ID) {
+    throw new Error('Instagram E2E environment not configured. Set E2E_INSTAGRAM_THREAD_ID.')
+  }
+
+  const { runCLI, parseJSON } = await import('./helpers')
+
+  const result = await runCLI('instagram', ['auth', 'status'])
+  if (result.exitCode !== 0) {
+    throw new Error('Instagram authentication failed. Run: agent-instagram auth login or agent-instagram auth extract')
+  }
+
+  const data = parseJSON<{ valid?: boolean }>(result.stdout)
+  if (data && 'valid' in data && !data.valid) {
+    throw new Error('Instagram credentials invalid. Run: agent-instagram auth login or agent-instagram auth extract')
+  }
+}
+
+// KakaoTalk Test Environment
+export const KAKAOTALK_TEST_CHAT_ID = process.env.E2E_KAKAOTALK_CHAT_ID || ''
+
+export async function validateKakaoTalkEnvironment() {
+  if (!KAKAOTALK_TEST_CHAT_ID) {
+    throw new Error('KakaoTalk E2E environment not configured. Set E2E_KAKAOTALK_CHAT_ID.')
+  }
+
+  const { runCLI } = await import('./helpers')
+
+  const result = await runCLI('kakaotalk', ['auth', 'status'])
+  if (result.exitCode !== 0) {
+    throw new Error('KakaoTalk authentication failed. Run: agent-kakaotalk auth login or agent-kakaotalk auth extract')
+  }
+}
+
 // Channel (user-auth) Test Environment — requires E2E_CHANNEL_WORKSPACE_ID to opt-in.
 // The E2E group is auto-discovered by name from the workspace's group list.
 export const CHANNEL_TEST_WORKSPACE_ID = process.env.E2E_CHANNEL_WORKSPACE_ID || ''
