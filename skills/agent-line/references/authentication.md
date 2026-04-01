@@ -33,16 +33,25 @@ The CLI opens the QR code in your default browser and prints an ASCII version in
 
 ### Non-Interactive Mode (AI Agents)
 
-QR code login requires a TTY. When running outside an interactive terminal, the CLI returns:
+QR code login works in both interactive and non-interactive sessions. In non-interactive mode (e.g., AI agent), the CLI:
+
+1. Generates an HTML page with the QR code
+2. Attempts to open it in the user's default browser
+3. Outputs the QR URL and HTML file path to stdout:
 
 ```json
 {
-  "next_action": "run_interactive",
-  "message": "QR code login requires an interactive terminal. Run agent-line auth login in a terminal with TTY support."
+  "next_action": "scan_qr",
+  "qr_url": "https://line.me/R/au/q/...",
+  "qr_html_path": "/tmp/line-qr-1234567890.html",
+  "message": "QR code opened in browser. Scan with LINE mobile app to complete login."
 }
 ```
 
-For non-interactive environments, use email/password or token login instead.
+4. Blocks until the user scans the QR code with the LINE mobile app
+5. Outputs the final authentication result
+
+If the browser did not open automatically, the agent can open the HTML file manually (e.g., `open <qr_html_path>` on macOS).
 
 ## Method 2: Email/Password Login
 
