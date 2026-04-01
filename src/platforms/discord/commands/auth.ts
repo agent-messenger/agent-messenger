@@ -116,12 +116,11 @@ export async function extractAction(options: { pretty?: boolean; debug?: boolean
     }
     }
 
-    // No valid token found after trying all extracted tokens
     console.log(
       formatOutput(
         {
-          error: 'Token validation failed for all extracted tokens.',
-          hint: 'Make sure your Discord token is valid and has not expired.',
+          error: 'No usable Discord token found. Tokens may be expired or have no servers.',
+          hint: 'Make sure Discord is logged in and you are a member of at least one server.',
         },
         options.pretty,
       ),
