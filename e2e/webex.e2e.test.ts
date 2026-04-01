@@ -168,9 +168,10 @@ describe('Webex E2E Tests', () => {
       const result = await runCLI('webex', ['snapshot', '--limit', '2'])
       expect(result.exitCode).toBe(0)
 
-      const data = parseJSON<{ spaces: unknown; members: unknown }>(result.stdout)
+      const data = parseJSON<{ spaces: unknown; members: unknown; recent_messages: unknown }>(result.stdout)
       expect(data?.spaces).toBeDefined()
       expect(data?.members).toBeDefined()
+      expect(data?.recent_messages).toBeDefined()
     }, 30000)
 
     test('snapshot --spaces-only returns only spaces', async () => {

@@ -68,8 +68,9 @@ describe('WhatsApp Bot E2E Tests', () => {
       if (!whatsappbotAvailable) return
 
       const listResult = await runCLI('whatsappbot', ['template', 'list', '--limit', '1'])
-      const listData = parseJSON<Array<{ name: string }>>(listResult.stdout)
+      expect(listResult.exitCode).toBe(0)
 
+      const listData = parseJSON<Array<{ name: string }>>(listResult.stdout)
       if (!Array.isArray(listData) || listData.length === 0) return
 
       await waitForRateLimit()
