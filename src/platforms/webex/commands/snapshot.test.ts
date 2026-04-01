@@ -1,34 +1,55 @@
-import { afterEach, beforeEach, describe, expect, spyOn, test } from 'bun:test'
-import { WebexClient } from '../client'
+import { afterAll, afterEach, beforeEach, describe, expect, mock, spyOn, test } from 'bun:test'
 import { WebexError } from '../types'
+
+const mockSpaces = [
+  { id: 'space-1', title: 'General', type: 'group', isLocked: false, lastActivity: '2024-01-15T00:00:00.000Z', created: '2024-01-01T00:00:00.000Z', creatorId: 'person-1' },
+]
+
+const mockMessages = [
+  { id: 'msg-1', roomId: 'space-1', roomType: 'group', text: 'Hello', personId: 'person-1', personEmail: 'alice@example.com', created: '2024-01-15T00:00:00.000Z' },
+]
+
+const mockMembers = [
+  { id: 'mem-1', roomId: 'space-1', personId: 'person-1', personEmail: 'alice@example.com', personDisplayName: 'Alice', isModerator: true, created: '2024-01-01T00:00:00.000Z' },
+]
+
+const mockListSpaces = mock(() => Promise.resolve(mockSpaces as any))
+const mockListMessages = mock(() => Promise.resolve(mockMessages as any))
+const mockListMemberships = mock(() => Promise.resolve(mockMembers as any))
+
+const mockClient = {
+  listSpaces: mockListSpaces,
+  listMessages: mockListMessages,
+  listMemberships: mockListMemberships,
+}
+
+const mockLogin = mock(() => Promise.resolve(mockClient))
+
+mock.module('../client', () => ({
+  WebexClient: class {
+    login = mockLogin
+  },
+}))
+
 import { snapshotAction } from './snapshot'
+
+afterAll(() => {
+  mock.restore()
+})
 
 describe('snapshot command', () => {
   let consoleSpy: ReturnType<typeof spyOn>
-  let consoleErrorSpy: ReturnType<typeof spyOn>
   let processExitSpy: ReturnType<typeof spyOn>
-  let clientLoginSpy: ReturnType<typeof spyOn>
-  let clientListSpacesSpy: ReturnType<typeof spyOn>
-  let clientListMessagesSpy: ReturnType<typeof spyOn>
-  let clientListMembershipsSpy: ReturnType<typeof spyOn>
   let stderrOutput: string
   let origStderrWrite: typeof process.stderr.write
 
-  const mockSpaces = [
-    { id: 'space-1', title: 'General', type: 'group', isLocked: false, lastActivity: '2024-01-15T00:00:00.000Z', created: '2024-01-01T00:00:00.000Z', creatorId: 'person-1' },
-  ]
-
-  const mockMessages = [
-    { id: 'msg-1', roomId: 'space-1', roomType: 'group', text: 'Hello', personId: 'person-1', personEmail: 'alice@example.com', created: '2024-01-15T00:00:00.000Z' },
-  ]
-
-  const mockMembers = [
-    { id: 'mem-1', roomId: 'space-1', personId: 'person-1', personEmail: 'alice@example.com', personDisplayName: 'Alice', isModerator: true, created: '2024-01-01T00:00:00.000Z' },
-  ]
-
   beforeEach(() => {
+    mockListSpaces.mockReset().mockImplementation(() => Promise.resolve(mockSpaces as any))
+    mockListMessages.mockReset().mockImplementation(() => Promise.resolve(mockMessages as any))
+    mockListMemberships.mockReset().mockImplementation(() => Promise.resolve(mockMembers as any))
+    mockLogin.mockReset().mockImplementation(() => Promise.resolve(mockClient))
+
     consoleSpy = spyOn(console, 'log').mockImplementation(() => {})
-    consoleErrorSpy = spyOn(console, 'error').mockImplementation(() => {})
     processExitSpy = spyOn(process, 'exit').mockImplementation((_code?: number) => {
       throw new Error(`process.exit(${_code})`)
     })
@@ -38,21 +59,12 @@ describe('snapshot command', () => {
       stderrOutput += typeof chunk === 'string' ? chunk : new TextDecoder().decode(chunk)
       return true
     }) as typeof process.stderr.write
-    clientLoginSpy = spyOn(WebexClient.prototype, 'login').mockResolvedValue(new WebexClient() as any)
-    clientListSpacesSpy = spyOn(WebexClient.prototype, 'listSpaces').mockResolvedValue(mockSpaces as any)
-    clientListMessagesSpy = spyOn(WebexClient.prototype, 'listMessages').mockResolvedValue(mockMessages as any)
-    clientListMembershipsSpy = spyOn(WebexClient.prototype, 'listMemberships').mockResolvedValue(mockMembers as any)
   })
 
   afterEach(() => {
     process.stderr.write = origStderrWrite
     consoleSpy.mockRestore()
-    consoleErrorSpy.mockRestore()
     processExitSpy.mockRestore()
-    clientLoginSpy.mockRestore()
-    clientListSpacesSpy.mockRestore()
-    clientListMessagesSpy.mockRestore()
-    clientListMembershipsSpy.mockRestore()
   })
 
   test('full snapshot includes spaces, recent_messages, members', async () => {
@@ -92,7 +104,7 @@ describe('snapshot command', () => {
   })
 
   test('not authenticated outputs error', async () => {
-    clientLoginSpy.mockImplementation(async () => {
+    mockLogin.mockImplementation(async () => {
       throw new WebexError('No Webex credentials found.', 'no_credentials')
     })
 
@@ -105,12 +117,8 @@ describe('snapshot command', () => {
   })
 
   test('passes limit option to listMessages', async () => {
-    const listMessagesSpy = spyOn(WebexClient.prototype, 'listMessages').mockResolvedValue(mockMessages as any)
-
     await snapshotAction({ limit: 5 })
 
-    expect(listMessagesSpy).toHaveBeenCalledWith('space-1', { max: 5 })
-
-    listMessagesSpy.mockRestore()
+    expect(mockListMessages).toHaveBeenCalledWith('space-1', { max: 5 })
   })
 })

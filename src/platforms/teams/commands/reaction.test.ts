@@ -4,26 +4,23 @@ import { TeamsClient } from '../client'
 import { TeamsCredentialManager } from '../credential-manager'
 import { addAction, removeAction } from './reaction'
 
-let clientAddReactionSpy: ReturnType<typeof spyOn>
-let clientRemoveReactionSpy: ReturnType<typeof spyOn>
-let credManagerLoadConfigSpy: ReturnType<typeof spyOn>
+let getTokenSpy: ReturnType<typeof spyOn>
+let loginSpy: ReturnType<typeof spyOn>
+let addReactionSpy: ReturnType<typeof spyOn>
+let removeReactionSpy: ReturnType<typeof spyOn>
 let consoleLogSpy: ReturnType<typeof spyOn>
 let processExitSpy: ReturnType<typeof spyOn>
 
 beforeEach(() => {
-  clientAddReactionSpy = spyOn(TeamsClient.prototype, 'addReaction').mockResolvedValue(undefined)
-  clientRemoveReactionSpy = spyOn(TeamsClient.prototype, 'removeReaction').mockResolvedValue(undefined)
-  credManagerLoadConfigSpy = spyOn(TeamsCredentialManager.prototype, 'loadConfig').mockResolvedValue({
-    current_account: 'work',
-    accounts: {
-      work: {
-        token: 'test-token',
-        account_type: 'work' as const,
-        current_team: null,
-        teams: {},
-      },
-    },
+  addReactionSpy = spyOn(TeamsClient.prototype, 'addReaction').mockImplementation(() => Promise.resolve(undefined))
+  removeReactionSpy = spyOn(TeamsClient.prototype, 'removeReaction').mockImplementation(() => Promise.resolve(undefined))
+  loginSpy = spyOn(TeamsClient.prototype, 'login').mockImplementation(async function (this: TeamsClient) {
+    return this
   })
+  getTokenSpy = spyOn(TeamsCredentialManager.prototype, 'getTokenWithExpiry').mockImplementation(() =>
+    Promise.resolve({ token: 'test-token', tokenExpiresAt: undefined }),
+  )
+
   consoleLogSpy = spyOn(console, 'log').mockImplementation(() => {})
   processExitSpy = spyOn(process, 'exit').mockImplementation((_code?: number) => {
     throw new Error(`process.exit(${_code})`)
@@ -31,9 +28,10 @@ beforeEach(() => {
 })
 
 afterEach(() => {
-  clientAddReactionSpy.mockRestore()
-  clientRemoveReactionSpy.mockRestore()
-  credManagerLoadConfigSpy.mockRestore()
+  addReactionSpy.mockRestore()
+  removeReactionSpy.mockRestore()
+  loginSpy.mockRestore()
+  getTokenSpy.mockRestore()
   consoleLogSpy.mockRestore()
   processExitSpy.mockRestore()
 })
@@ -67,7 +65,7 @@ test('remove: sends correct DELETE request with emoji', async () => {
 })
 
 test('add: handles missing token gracefully', async () => {
-  credManagerLoadConfigSpy.mockResolvedValue(null)
+  getTokenSpy.mockImplementation(() => Promise.resolve(null))
 
   try {
     await addAction('team123', 'ch123', 'msg123', 'like', { pretty: false })

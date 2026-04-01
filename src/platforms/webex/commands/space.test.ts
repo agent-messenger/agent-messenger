@@ -1,8 +1,6 @@
-import { afterEach, beforeEach, describe, expect, spyOn, test } from 'bun:test'
+import { afterAll, afterEach, beforeEach, describe, expect, mock, spyOn, test } from 'bun:test'
 
-import { WebexClient } from '../client'
 import { WebexError } from '../types'
-import { infoAction, listAction } from './space'
 
 const mockSpaces = [
   {
@@ -36,27 +34,35 @@ const mockSpace = {
   creatorId: 'person-1',
 }
 
-let clientLoginSpy: ReturnType<typeof spyOn>
-let clientListSpacesSpy: ReturnType<typeof spyOn>
-let clientGetSpaceSpy: ReturnType<typeof spyOn>
+const mockListSpaces = mock(() => Promise.resolve(mockSpaces))
+const mockGetSpace = mock(() => Promise.resolve(mockSpace))
+const mockLogin = mock(() => Promise.resolve({ listSpaces: mockListSpaces, getSpace: mockGetSpace }))
+
+mock.module('../client', () => ({
+  WebexClient: class {
+    login = mockLogin
+  },
+}))
+
+import { infoAction, listAction } from './space'
+
+afterAll(() => {
+  mock.restore()
+})
+
 let consoleLogSpy: ReturnType<typeof spyOn>
-let consoleErrorSpy: ReturnType<typeof spyOn>
 let processExitSpy: ReturnType<typeof spyOn>
 let stderrOutput: string
 let origStderrWrite: typeof process.stderr.write
 
 beforeEach(() => {
-  clientLoginSpy = spyOn(WebexClient.prototype, 'login').mockResolvedValue(
-    new WebexClient() as InstanceType<typeof WebexClient>,
+  mockListSpaces.mockReset().mockImplementation(() => Promise.resolve(mockSpaces))
+  mockGetSpace.mockReset().mockImplementation(() => Promise.resolve(mockSpace))
+  mockLogin.mockReset().mockImplementation(() =>
+    Promise.resolve({ listSpaces: mockListSpaces, getSpace: mockGetSpace }),
   )
 
-  clientListSpacesSpy = spyOn(WebexClient.prototype, 'listSpaces').mockResolvedValue(mockSpaces)
-
-  clientGetSpaceSpy = spyOn(WebexClient.prototype, 'getSpace').mockResolvedValue(mockSpace)
-
   consoleLogSpy = spyOn(console, 'log').mockImplementation(() => {})
-  consoleErrorSpy = spyOn(console, 'error').mockImplementation(() => {})
-
   processExitSpy = spyOn(process, 'exit').mockImplementation((_code?: number) => {
     throw new Error(`process.exit(${_code})`)
   })
@@ -71,11 +77,7 @@ beforeEach(() => {
 
 afterEach(() => {
   process.stderr.write = origStderrWrite
-  clientLoginSpy.mockRestore()
-  clientListSpacesSpy.mockRestore()
-  clientGetSpaceSpy.mockRestore()
   consoleLogSpy.mockRestore()
-  consoleErrorSpy.mockRestore()
   processExitSpy.mockRestore()
 })
 
@@ -83,7 +85,7 @@ describe('listAction', () => {
   test('calls listSpaces and outputs mapped array', async () => {
     await listAction({})
 
-    expect(clientListSpacesSpy).toHaveBeenCalled()
+    expect(mockListSpaces).toHaveBeenCalled()
     expect(consoleLogSpy).toHaveBeenCalledWith(
       JSON.stringify([
         {
@@ -107,13 +109,13 @@ describe('listAction', () => {
   test('passes type and limit options to listSpaces', async () => {
     await listAction({ type: 'group', limit: 10 })
 
-    expect(clientListSpacesSpy).toHaveBeenCalledWith({ type: 'group', max: 10 })
+    expect(mockListSpaces).toHaveBeenCalledWith({ type: 'group', max: 10 })
   })
 
   test('passes undefined type and limit when not provided', async () => {
     await listAction({})
 
-    expect(clientListSpacesSpy).toHaveBeenCalledWith({ type: undefined, max: undefined })
+    expect(mockListSpaces).toHaveBeenCalledWith({ type: undefined, max: undefined })
   })
 
   test('outputs pretty-printed JSON when pretty is true', async () => {
@@ -144,7 +146,7 @@ describe('listAction', () => {
   })
 
   test('not authenticated: outputs error and exits', async () => {
-    clientLoginSpy.mockImplementation(async () => {
+    mockLogin.mockImplementation(async () => {
       throw new WebexError('No Webex credentials found.', 'no_credentials')
     })
 
@@ -152,7 +154,7 @@ describe('listAction', () => {
       await listAction({})
     } catch {}
 
-    expect(clientListSpacesSpy).not.toHaveBeenCalled()
+    expect(mockListSpaces).not.toHaveBeenCalled()
     expect(processExitSpy).toHaveBeenCalledWith(1)
     expect(stderrOutput).toContain('No Webex credentials found')
   })
@@ -162,7 +164,7 @@ describe('infoAction', () => {
   test('calls getSpace with spaceId and outputs space details', async () => {
     await infoAction('space-1', {})
 
-    expect(clientGetSpaceSpy).toHaveBeenCalledWith('space-1')
+    expect(mockGetSpace).toHaveBeenCalledWith('space-1')
     expect(consoleLogSpy).toHaveBeenCalledWith(
       JSON.stringify({
         id: 'space-1',
@@ -178,8 +180,7 @@ describe('infoAction', () => {
   })
 
   test('outputs null for teamId when not present', async () => {
-    const spaceWithoutTeam = { ...mockSpace, teamId: undefined }
-    clientGetSpaceSpy.mockResolvedValue(spaceWithoutTeam)
+    mockGetSpace.mockImplementation(() => Promise.resolve({ ...mockSpace, teamId: undefined }))
 
     await infoAction('space-1', {})
 
@@ -211,7 +212,7 @@ describe('infoAction', () => {
   })
 
   test('not authenticated: outputs error and exits', async () => {
-    clientLoginSpy.mockImplementation(async () => {
+    mockLogin.mockImplementation(async () => {
       throw new WebexError('No Webex credentials found.', 'no_credentials')
     })
 
@@ -219,7 +220,7 @@ describe('infoAction', () => {
       await infoAction('space-1', {})
     } catch {}
 
-    expect(clientGetSpaceSpy).not.toHaveBeenCalled()
+    expect(mockGetSpace).not.toHaveBeenCalled()
     expect(processExitSpy).toHaveBeenCalledWith(1)
     expect(stderrOutput).toContain('No Webex credentials found')
   })
