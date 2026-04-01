@@ -57,6 +57,8 @@ export interface WebexConfig {
   clientSecret?: string
   tokenType?: 'oauth' | 'manual' | 'extracted'
   deviceUrl?: string
+  userId?: string
+  encryptionKeys?: Record<string, string>
 }
 
 export class WebexError extends Error {
@@ -126,4 +128,6 @@ export const WebexConfigSchema = z.object({
   clientSecret: z.string().optional(),
   tokenType: z.enum(['oauth', 'manual', 'extracted']).optional(),
   deviceUrl: z.string().optional(),
+  userId: z.string().optional(),
+  encryptionKeys: z.record(z.string(), z.string()).optional(),
 })

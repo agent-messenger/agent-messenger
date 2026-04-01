@@ -73,7 +73,7 @@ This installs:
 - `agent-discord` — Discord CLI
 - `agent-discordbot` — Discord Bot CLI (bot token, for server-side/CI/CD)
 - `agent-teams` — Microsoft Teams CLI
-- `agent-webex` — Cisco Webex CLI (browser token extraction + OAuth Device Grant, zero-config)
+- `agent-webex` — Cisco Webex CLI (browser token extraction with e2e encryption + OAuth Device Grant, zero-config)
 - `agent-telegram` — Telegram CLI (user account via TDLib)
 - `agent-whatsapp` — WhatsApp CLI (user account via Baileys, pairing code auth)
 - `agent-whatsappbot` — WhatsApp Bot CLI (Cloud API, for server-side/CI/CD)

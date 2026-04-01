@@ -17,6 +17,8 @@ export interface ExtractedWebexToken {
   refreshToken?: string
   expiresAt?: number
   deviceUrl?: string
+  userId?: string
+  encryptionKeys?: Map<string, string>
 }
 
 interface BrowserConfig {
@@ -72,6 +74,11 @@ const BROWSERS: BrowserConfig[] = [
 ]
 
 const WEBEX_STORAGE_KEY = '_https://web.webex.com\x00\x01webex-web-client-bounded'
+
+interface ScanResult {
+  token: ExtractedWebexToken | null
+  encryptionKeys: Map<string, string>
+}
 
 export class WebexTokenExtractor {
   private platform: NodeJS.Platform
@@ -169,11 +176,17 @@ export class WebexTokenExtractor {
     for (const leveldbDir of profileDirs) {
       this.debug(`Scanning: ${leveldbDir}`)
 
-      const token = await this.extractViaClassicLevelCopy(leveldbDir)
-        ?? this.extractFromRawFiles(leveldbDir)
+      const result = await this.scanViaClassicLevelCopy(leveldbDir)
+        ?? this.scanRawFiles(leveldbDir)
 
-      if (token) {
+      if (result?.token) {
         this.debug(`Found token in: ${leveldbDir}`)
+
+        const token = result.token
+        if (result.encryptionKeys.size > 0) {
+          token.encryptionKeys = result.encryptionKeys
+        }
+
         return token
       }
     }
@@ -182,7 +195,7 @@ export class WebexTokenExtractor {
     return null
   }
 
-  private async extractViaClassicLevelCopy(dbPath: string): Promise<ExtractedWebexToken | null> {
+  private async scanViaClassicLevelCopy(dbPath: string): Promise<ScanResult | null> {
     const tempDir = join(tmpdir(), `webex-leveldb-${Date.now()}-${Math.random().toString(36).slice(2)}`)
 
     try {
@@ -199,7 +212,7 @@ export class WebexTokenExtractor {
         } catch {}
       }
 
-      return await this.extractViaClassicLevel(tempDir)
+      return await this.copyAndScanLevelDB(tempDir)
     } catch {
       return null
     } finally {
@@ -209,8 +222,11 @@ export class WebexTokenExtractor {
     }
   }
 
-  private async extractViaClassicLevel(dbPath: string): Promise<ExtractedWebexToken | null> {
+  private async copyAndScanLevelDB(dbPath: string): Promise<ScanResult | null> {
     let db: ClassicLevel<string, Buffer> | null = null
+    let token: ExtractedWebexToken | null = null
+    const encryptionKeys = new Map<string, string>()
+
     try {
       db = new ClassicLevel(dbPath, { keyEncoding: 'utf8', valueEncoding: 'buffer' })
 
@@ -218,13 +234,21 @@ export class WebexTokenExtractor {
         if (!key.includes('web.webex.com')) continue
 
         const decoded = this.decodeLevelDBValue(value)
-        if (!decoded.includes('"supertoken"') && !decoded.includes('"Credentials"')) continue
 
-        const token = this.extractTokenFromString(decoded)
-        if (token) return token
+        if (!token && (decoded.includes('"supertoken"') || decoded.includes('"Credentials"'))) {
+          token = this.extractTokenFromString(decoded)
+        }
+
+        if (decoded.includes('"Encryption"') && decoded.includes('kms://')) {
+          const found = this.extractEncryptionKeysFromString(decoded)
+          for (const [uri, keyStr] of found) {
+            encryptionKeys.set(uri, keyStr)
+          }
+        }
       }
     } catch (e) {
       this.debug(`ClassicLevel failed: ${e instanceof Error ? e.message : String(e)}`)
+      return null
     } finally {
       if (db) {
         try {
@@ -232,22 +256,15 @@ export class WebexTokenExtractor {
         } catch {}
       }
     }
-    return null
+
+    if (!token) return null
+    return { token, encryptionKeys }
   }
 
-  private decodeLevelDBValue(buf: Buffer): string {
-    if (buf.length < 2) return buf.toString('utf8')
-    // Chromium localStorage: 0x00 prefix = UTF-16LE, 0x01 prefix = Latin1/UTF-8
-    if (buf[0] === 0x00 && (buf.length - 1) % 2 === 0) {
-      return buf.subarray(1).toString('utf16le')
-    }
-    if (buf[0] === 0x01) {
-      return buf.subarray(1).toString('utf8')
-    }
-    return buf.toString('utf8')
-  }
+  private scanRawFiles(leveldbDir: string): ScanResult | null {
+    let token: ExtractedWebexToken | null = null
+    const encryptionKeys = new Map<string, string>()
 
-  private extractFromRawFiles(leveldbDir: string): ExtractedWebexToken | null {
     try {
       const files = readdirSync(leveldbDir)
 
@@ -265,32 +282,48 @@ export class WebexTokenExtractor {
         })
 
       for (const file of sorted) {
-        const token = this.extractFromFile(join(leveldbDir, file))
-        if (token) return token
+        const filePath = join(leveldbDir, file)
+        try {
+          const stat = statSync(filePath)
+          if (stat.size > 50 * 1024 * 1024) continue
+
+          const buffer = readFileSync(filePath)
+          const candidates = [buffer.toString('utf8'), this.stripNullBytes(buffer)]
+
+          for (const content of candidates) {
+            if (!token && (content.includes('"supertoken"') || content.includes('"Credentials"'))) {
+              token = this.extractTokenFromString(content)
+            }
+
+            if (content.includes('"Encryption"') && content.includes('kms://')) {
+              const found = this.extractEncryptionKeysFromString(content)
+              for (const [uri, keyStr] of found) {
+                encryptionKeys.set(uri, keyStr)
+              }
+            }
+          }
+        } catch {
+          // Skip unreadable files
+        }
       }
     } catch {
       this.debug(`Failed to read directory: ${leveldbDir}`)
     }
 
-    return null
+    if (!token) return null
+    return { token, encryptionKeys }
   }
 
-  private extractFromFile(filePath: string): ExtractedWebexToken | null {
-    try {
-      const stat = statSync(filePath)
-      if (stat.size > 50 * 1024 * 1024) return null
-
-      const buffer = readFileSync(filePath)
-      return this.extractTokenFromBuffer(buffer)
-    } catch {
-      return null
+  private decodeLevelDBValue(buf: Buffer): string {
+    if (buf.length < 2) return buf.toString('utf8')
+    // Chromium localStorage: 0x00 prefix = UTF-16LE, 0x01 prefix = Latin1/UTF-8
+    if (buf[0] === 0x00 && (buf.length - 1) % 2 === 0) {
+      return buf.subarray(1).toString('utf16le')
     }
-  }
-
-  private extractTokenFromBuffer(buffer: Buffer): ExtractedWebexToken | null {
-    // Try UTF-8 first, then strip null bytes for Chromium's UTF-16LE localStorage encoding
-    return this.extractTokenFromString(buffer.toString('utf8'))
-      ?? this.extractTokenFromString(this.stripNullBytes(buffer))
+    if (buf[0] === 0x01) {
+      return buf.subarray(1).toString('utf8')
+    }
+    return buf.toString('utf8')
   }
 
   private stripNullBytes(buffer: Buffer): string {
@@ -385,9 +418,43 @@ export class WebexTokenExtractor {
         result.deviceUrl = deviceUrl
       }
 
+      const userId = data?.Device?.['@']?.userId ?? null
+      if (userId && typeof userId === 'string') {
+        result.userId = userId
+      }
+
       return result
     } catch {
       return null
     }
+  }
+
+  private extractEncryptionKeysFromString(content: string): Map<string, string> {
+    const keys = new Map<string, string>()
+
+    if (!content.includes('"Encryption"') || !content.includes('kms://')) {
+      return keys
+    }
+
+    // Values in the Encryption map are double-encoded: a kms:// URI key maps to a
+    // JSON string whose content is the serialized key object {"uri":..., "jwk":{...}}.
+    // Pattern: "kms://..." : "{\"uri\":...,\"jwk\":{...}}"
+    const kmsPattern = /"(kms:\/\/[^"]+)"\s*:\s*("(?:[^"\\]|\\.)*")/g
+    let match: RegExpExecArray | null
+
+    while ((match = kmsPattern.exec(content)) !== null) {
+      const uri = match[1]!
+      const rawValue = match[2]!
+      try {
+        const innerStr = JSON.parse(rawValue) as unknown
+        if (typeof innerStr !== 'string') continue
+        const keyObj = JSON.parse(innerStr) as Record<string, unknown>
+        if (keyObj?.jwk) {
+          keys.set(uri, innerStr)
+        }
+      } catch {}
+    }
+
+    return keys
   }
 }

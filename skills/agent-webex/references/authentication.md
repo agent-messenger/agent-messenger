@@ -4,7 +4,7 @@
 
 agent-webex supports four authentication methods against the Webex REST API (`https://webexapis.com/v1`):
 
-1. **Browser Token Extraction**: Extracts your first-party token from a Chromium browser where you're logged into web.webex.com. Currently supports read operations (spaces, members, auth). Zero-config.
+1. **Browser Token Extraction**: Extracts your first-party token and cached encryption keys from a Chromium browser where you're logged into web.webex.com. Supports all operations including encrypted messaging via the internal API. Zero-config.
 2. **OAuth Device Grant** (recommended for messaging): Zero-config. Run `auth login`, approve in browser, done. Tokens refresh automatically. Supports all operations including sending messages (shows "via agent-messenger").
 3. **Bot Token**: Pass via `auth login --token`. Never expires. Best for CI/CD.
 4. **Personal Access Token (PAT)**: Pass via `auth login --token`. Expires in 12 hours. For quick testing.
@@ -13,12 +13,13 @@ agent-webex supports four authentication methods against the Webex REST API (`ht
 
 ### Browser Token Extraction
 
-Extracts your first-party Webex session token from a Chromium-based browser where you're logged into web.webex.com. Currently supports read operations (authentication, listing spaces/members, snapshots). Sending messages via the REST API is not yet supported because the web client's token lacks `spark:messages_write` scope — the web client uses internal Cisco APIs for messaging instead.
+Extracts your first-party Webex session token from a Chromium-based browser where you're logged into web.webex.com. Supports full messaging with end-to-end encryption. The extracted token uses Webex's internal conversation API for sending messages. Encryption keys are also extracted from the browser's cached KMS key store, enabling client-side JWE encryption so messages appear as encrypted in the Webex client.
 
-- **How it works**: Run `agent-webex auth extract`. The CLI scans Chromium browser profiles for Webex localStorage data (LevelDB files). It finds the `webex-storage` key containing `Credentials.@.supertoken` and extracts the access token. No browser automation, no password prompts.
+- **How it works**: Run `agent-webex auth extract`. The CLI scans Chromium browser profiles for Webex localStorage data (LevelDB files). It finds the `webex-storage` key containing `Credentials.@.supertoken` and extracts the access token. It also extracts `userId` from the Device namespace and cached KMS encryption keys from the unbounded storage — these keys enable end-to-end encrypted messaging via the internal API. No browser automation, no password prompts.
 - **Supported browsers**: Chrome, Chrome Canary, Edge, Arc, Brave, Vivaldi, Chromium
 - **Token lifetime**: Depends on Webex session policy (typically hours to days). Re-extract when expired.
 - **Auto-extraction**: The CLI attempts browser extraction automatically when no valid token is stored, so you often don't need to run `auth extract` manually.
+- **End-to-end encryption**: When encryption keys are found in the browser's cache, messages are encrypted client-side (JWE with AES-256-GCM) before sending via the internal conversation API. This ensures messages appear as encrypted in the Webex client. If no keys are found (e.g., the conversation hasn't been opened in the browser), messages fall back to plaintext.
 - **Best for**: Interactive use, sending messages as yourself without the "via" label
 
 ```bash

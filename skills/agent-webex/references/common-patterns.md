@@ -28,7 +28,7 @@ agent-webex auth login --token "YOUR_BOT_TOKEN_HERE"
 agent-webex auth login --token "YOUR_PAT_HERE"
 ```
 
-**When to use**: Before any other command, if not already authenticated. Browser extraction is preferred — it auto-runs when no valid token is stored.
+**When to use**: Before any other command, if not already authenticated. Browser extraction is preferred — it auto-runs when no valid token is stored. It also extracts cached KMS encryption keys from the browser, enabling end-to-end encrypted messaging via the internal API.
 
 ### Pattern 2: Check Auth Status
 
