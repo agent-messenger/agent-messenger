@@ -1,0 +1,179 @@
+---
+title: WeChat Bot
+description: Complete reference for the agent-wechatbot CLI.
+---
+
+> **Tip**: `agent-wechatbot` is a shortcut for `agent-messenger wechatbot`.
+
+## Quick Start
+
+```bash
+# 1. Set your API credentials
+agent-wechatbot auth set your-app-id your-app-secret
+
+# 2. Verify authentication
+agent-wechatbot auth status
+
+# 3. List available templates
+agent-wechatbot template list --pretty
+
+# 4. Send a text message (recipient must have interacted within 48h)
+agent-wechatbot message send oXXXXXXXXXXXXXXX "Hello from the CLI!"
+```
+
+## Key Concepts
+
+WeChat Official Account API works differently from typical messaging APIs:
+
+| Concept                  | Description                                                                      |
+| ------------------------ | -------------------------------------------------------------------------------- |
+| **Send-only**            | Cannot list or read received messages. Inbound messages require webhooks.         |
+| **Customer service messages** | Free-form text, image, and news messages within 48h of user's last interaction. |
+| **Template messages**    | Pre-approved templates can be sent at any time. Created in the WeChat admin panel. |
+| **App ID + App Secret**  | Credentials from WeChat Official Account admin panel under Development settings.  |
+| **OpenID**               | Each follower has a unique OpenID scoped to your Official Account.                |
+| **IP Whitelist**         | Your server IP must be added to the account's whitelist or API calls fail (40164). |
+
+## Authentication
+
+### API Credential Setup
+
+agent-wechatbot uses App ID + App Secret pairs from the WeChat Official Account admin panel:
+
+```bash
+# Set credentials (validates against WeChat API before saving)
+agent-wechatbot auth set <app-id> <app-secret>
+
+# Check auth status
+agent-wechatbot auth status
+agent-wechatbot auth status --account <account-id>
+
+# Clear stored credentials
+agent-wechatbot auth clear
+```
+
+### How to Get API Credentials
+
+1. Log in to the [WeChat Official Account admin panel](https://mp.weixin.qq.com/)
+2. Navigate to **Development > Basic Configuration**
+3. Copy your **App ID** and **App Secret** (you may need to reset the secret if you don't have it saved)
+4. Add your server's IP to the **IP Whitelist**
+5. Run `agent-wechatbot auth set <app-id> <app-secret>`
+
+### Multi-Account Management
+
+```bash
+# List stored accounts
+agent-wechatbot auth list
+
+# Switch active account
+agent-wechatbot auth use <account-id>
+
+# Remove a stored account
+agent-wechatbot auth remove <account-id>
+```
+
+## Commands
+
+### Message Commands
+
+```bash
+# Send a text message (customer service, within 48h window)
+agent-wechatbot message send <open-id> <text>
+agent-wechatbot message send oABCD1234 "Your order has shipped!"
+
+# Send an image message (customer service, within 48h window)
+agent-wechatbot message send-image <open-id> <media-id>
+agent-wechatbot message send-image oABCD1234 MEDIA_ID_HERE
+
+# Send a news/article message (customer service, within 48h window)
+agent-wechatbot message send-news <open-id> \
+  --title "Title" --description "Desc" --url "https://..." --picurl "https://..."
+```
+
+### Template Commands
+
+```bash
+# List all private templates
+agent-wechatbot template list
+
+# Send a template message
+agent-wechatbot template send <open-id> <template-id>
+agent-wechatbot template send oABCD1234 TM00001 \
+  --data '{"order_id":{"value":"ORD-9876"},"customer_name":{"value":"Alice"}}' \
+  --url "https://example.com/order/9876"
+
+# Delete a template
+agent-wechatbot template delete <template-id>
+```
+
+### User Commands
+
+```bash
+# List followers (paginated)
+agent-wechatbot user list
+agent-wechatbot user list --next-openid oLAST_OPENID
+
+# Get user info by OpenID
+agent-wechatbot user get <open-id>
+agent-wechatbot user get oABCD1234 --lang en
+```
+
+## Global Options
+
+| Option           | Description                            |
+| ---------------- | -------------------------------------- |
+| `--pretty`       | Human-readable output instead of JSON  |
+| `--account <id>` | Use a specific account for this command |
+
+## Storage
+
+Credentials stored in `~/.config/agent-messenger/wechatbot-credentials.json` (0600 permissions).
+
+## Limitations
+
+- **Cannot list or read received messages** -- WeChat Official Account API delivers inbound messages via webhooks only. This CLI is send-only.
+- **Customer service messages require 48h window** -- Free-form text, image, and news messages only work within 48 hours of the user's last interaction.
+- **Template messages require pre-approval** -- Templates must be created and approved in the WeChat admin panel before use.
+- **IP whitelist required** -- Your server's IP must be added to the Official Account's whitelist (error 40164).
+- **Media IDs required for images** -- Images must be uploaded to WeChat's media platform first. The CLI accepts media IDs, not URLs.
+- **No group chat support** -- Official Account API communicates with individual followers only.
+- **No real-time events / WebSocket connection** -- Inbound messages require a separate webhook server.
+- **No message editing or deletion**
+- **No voice or video calls**
+- **Access tokens expire** -- Tokens are valid for 7200 seconds. The CLI handles automatic refresh.
+
+## Troubleshooting
+
+### `agent-wechatbot: command not found`
+
+**`agent-wechatbot` is NOT the npm package name.** The npm package is `agent-messenger`.
+
+```bash
+# If installed globally
+agent-wechatbot message send oABCD1234 "Hello"
+
+# If not installed, use npx
+npx -y agent-messenger wechatbot message send oABCD1234 "Hello"
+```
+
+### IP whitelist errors (40164)
+
+If you get error `40164`, your server's IP is not in the Official Account's whitelist. Add it in the admin panel under **Development > Basic Configuration > IP Whitelist**.
+
+### Token errors (40001, 42001)
+
+These indicate an expired or invalid access token. The CLI handles automatic token refresh, but if you see persistent errors:
+- Verify your App Secret hasn't been reset in the admin panel
+- Re-run `agent-wechatbot auth set <app-id> <app-secret>` with the current credentials
+
+### Rate limiting (45009)
+
+WeChat enforces API call frequency limits. If you hit error `45009`, wait before retrying. For bulk operations, add delays between requests.
+
+## AI Agent Integration
+
+See [`skills/agent-wechatbot/`](https://github.com/devxoul/agent-messenger/tree/main/skills/agent-wechatbot) for:
+
+- Complete skill documentation
+- Common patterns for AI agent workflows

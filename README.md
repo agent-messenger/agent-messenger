@@ -78,6 +78,7 @@ This installs:
 - `agent-whatsapp` — WhatsApp CLI (user account via Baileys, pairing code auth)
 - `agent-whatsappbot` — WhatsApp Bot CLI (Cloud API, for server-side/CI/CD)
 - `agent-line` — LINE CLI (QR code login, Thrift protocol)
+- `agent-wechatbot` — WeChat Bot CLI (Official Account API, for server-side/CI/CD)
 - `agent-instagram` — Instagram DM CLI (browser cookie extraction + username/password auth)
 - `agent-kakaotalk` — KakaoTalk CLI (sub-device login, LOCO protocol)
 - `agent-channeltalk` — Channel Talk CLI (beta, zero-config, extracted cookies)
@@ -91,7 +92,7 @@ Agent Messenger includes [Agent Skills](https://agentskills.io/) that teach your
 
 SkillPad is a GUI app for Agent Skills. See [skillpad.dev](https://skillpad.dev/) for more details.
 
-[![Available on SkillPad](https://badge.skillpad.dev/agent-slack/dark.svg)](https://skillpad.dev/install/devxoul/agent-messenger/agent-slack) [![Available on SkillPad](https://badge.skillpad.dev/agent-slackbot/dark.svg)](https://skillpad.dev/install/devxoul/agent-messenger/agent-slackbot) [![Available on SkillPad](https://badge.skillpad.dev/agent-discord/dark.svg)](https://skillpad.dev/install/devxoul/agent-messenger/agent-discord) [![Available on SkillPad](https://badge.skillpad.dev/agent-discordbot/dark.svg)](https://skillpad.dev/install/devxoul/agent-messenger/agent-discordbot) [![Available on SkillPad](https://badge.skillpad.dev/agent-teams/dark.svg)](https://skillpad.dev/install/devxoul/agent-messenger/agent-teams) [![Available on SkillPad](https://badge.skillpad.dev/agent-webex/dark.svg)](https://skillpad.dev/install/devxoul/agent-messenger/agent-webex) [![Available on SkillPad](https://badge.skillpad.dev/agent-telegram/dark.svg)](https://skillpad.dev/install/devxoul/agent-messenger/agent-telegram) [![Available on SkillPad](https://badge.skillpad.dev/agent-whatsapp/dark.svg)](https://skillpad.dev/install/devxoul/agent-messenger/agent-whatsapp) [![Available on SkillPad](https://badge.skillpad.dev/agent-whatsappbot/dark.svg)](https://skillpad.dev/install/devxoul/agent-messenger/agent-whatsappbot) [![Available on SkillPad](https://badge.skillpad.dev/agent-line/dark.svg)](https://skillpad.dev/install/devxoul/agent-messenger/agent-line) [![Available on SkillPad](https://badge.skillpad.dev/agent-instagram/dark.svg)](https://skillpad.dev/install/devxoul/agent-messenger/agent-instagram) [![Available on SkillPad](https://badge.skillpad.dev/agent-kakaotalk/dark.svg)](https://skillpad.dev/install/devxoul/agent-messenger/agent-kakaotalk) [![Available on SkillPad](https://badge.skillpad.dev/agent-channeltalk/dark.svg)](https://skillpad.dev/install/devxoul/agent-messenger/agent-channeltalk) [![Available on SkillPad](https://badge.skillpad.dev/agent-channeltalkbot/dark.svg)](https://skillpad.dev/install/devxoul/agent-messenger/agent-channeltalkbot)
+[![Available on SkillPad](https://badge.skillpad.dev/agent-slack/dark.svg)](https://skillpad.dev/install/devxoul/agent-messenger/agent-slack) [![Available on SkillPad](https://badge.skillpad.dev/agent-slackbot/dark.svg)](https://skillpad.dev/install/devxoul/agent-messenger/agent-slackbot) [![Available on SkillPad](https://badge.skillpad.dev/agent-discord/dark.svg)](https://skillpad.dev/install/devxoul/agent-messenger/agent-discord) [![Available on SkillPad](https://badge.skillpad.dev/agent-discordbot/dark.svg)](https://skillpad.dev/install/devxoul/agent-messenger/agent-discordbot) [![Available on SkillPad](https://badge.skillpad.dev/agent-teams/dark.svg)](https://skillpad.dev/install/devxoul/agent-messenger/agent-teams) [![Available on SkillPad](https://badge.skillpad.dev/agent-webex/dark.svg)](https://skillpad.dev/install/devxoul/agent-messenger/agent-webex) [![Available on SkillPad](https://badge.skillpad.dev/agent-telegram/dark.svg)](https://skillpad.dev/install/devxoul/agent-messenger/agent-telegram) [![Available on SkillPad](https://badge.skillpad.dev/agent-whatsapp/dark.svg)](https://skillpad.dev/install/devxoul/agent-messenger/agent-whatsapp) [![Available on SkillPad](https://badge.skillpad.dev/agent-whatsappbot/dark.svg)](https://skillpad.dev/install/devxoul/agent-messenger/agent-whatsappbot) [![Available on SkillPad](https://badge.skillpad.dev/agent-line/dark.svg)](https://skillpad.dev/install/devxoul/agent-messenger/agent-line) [![Available on SkillPad](https://badge.skillpad.dev/agent-wechatbot/dark.svg)](https://skillpad.dev/install/devxoul/agent-messenger/agent-wechatbot) [![Available on SkillPad](https://badge.skillpad.dev/agent-instagram/dark.svg)](https://skillpad.dev/install/devxoul/agent-messenger/agent-instagram) [![Available on SkillPad](https://badge.skillpad.dev/agent-kakaotalk/dark.svg)](https://skillpad.dev/install/devxoul/agent-messenger/agent-kakaotalk) [![Available on SkillPad](https://badge.skillpad.dev/agent-channeltalk/dark.svg)](https://skillpad.dev/install/devxoul/agent-messenger/agent-channeltalk) [![Available on SkillPad](https://badge.skillpad.dev/agent-channeltalkbot/dark.svg)](https://skillpad.dev/install/devxoul/agent-messenger/agent-channeltalkbot)
 
 ### Skills CLI
 
@@ -185,6 +186,7 @@ const slack = await new SlackClient().login({ token: 'xoxc-...', cookie: 'xoxd-.
 | `agent-messenger/whatsapp` | `WhatsAppClient` |
 | `agent-messenger/whatsappbot` | `WhatsAppBotClient` |
 | `agent-messenger/line` | `LineClient` |
+| `agent-messenger/wechatbot` | `WeChatBotClient` |
 | `agent-messenger/instagram` | `InstagramClient` |
 | `agent-messenger/kakaotalk` | `KakaoTalkClient` |
 | `agent-messenger/channeltalk` | `ChannelClient` |
@@ -296,6 +298,7 @@ See the [TUI docs](https://agent-messenger.dev/docs/tui) for keybindings, archit
 - **[WhatsApp Guide](https://agent-messenger.dev/docs/cli/whatsapp)** — Baileys-based WhatsApp integration via pairing code
 - **[WhatsApp Bot Guide](https://agent-messenger.dev/docs/cli/whatsappbot)** — Cloud API integration for WhatsApp Business
 - **[LINE Guide](https://agent-messenger.dev/docs/cli/line)** — QR code login and Thrift protocol integration
+- **[WeChat Bot Guide](https://agent-messenger.dev/docs/cli/wechatbot)** — Official Account API integration for WeChat
 - **[Instagram Guide](https://agent-messenger.dev/docs/cli/instagram)** — Browser cookie extraction and Instagram DM integration
 - **[KakaoTalk Guide](https://agent-messenger.dev/docs/cli/kakaotalk)** — Sub-device login and LOCO protocol integration
 - **[Channel Talk Guide](https://agent-messenger.dev/docs/cli/channeltalk)** — Full command reference for Channel Talk (beta, zero-config)
@@ -368,7 +371,7 @@ With Agent Messenger, your agent loads the skill it needs, uses the CLI, and mov
 
 OAuth requires creating an app and workspace admin approval—days of waiting just to send a message. Agent Messenger skips all of that. Your desktop apps already have valid session tokens; Agent Messenger extracts them directly so you can start messaging immediately. For platforms like Telegram, WhatsApp, and LINE, a one-time authentication flow gets you in fast.
 
-For server-side bots and CI/CD, bot tokens are fully supported via [`agent-slackbot`](skills/agent-slackbot/SKILL.md), [`agent-discordbot`](skills/agent-discordbot/SKILL.md), [`agent-whatsappbot`](skills/agent-whatsappbot/SKILL.md), and [`agent-channeltalkbot`](skills/agent-channeltalkbot/SKILL.md).
+For server-side bots and CI/CD, bot tokens are fully supported via [`agent-slackbot`](skills/agent-slackbot/SKILL.md), [`agent-discordbot`](skills/agent-discordbot/SKILL.md), [`agent-whatsappbot`](skills/agent-whatsappbot/SKILL.md), [`agent-wechatbot`](skills/agent-wechatbot/SKILL.md), and [`agent-channeltalkbot`](skills/agent-channeltalkbot/SKILL.md).
 
 Inspired by [agent-browser](https://github.com/vercel-labs/agent-browser) from Vercel Labs.
 
