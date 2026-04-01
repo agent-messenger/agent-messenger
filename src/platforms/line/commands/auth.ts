@@ -34,7 +34,7 @@ svg{width:280px;height:280px}</style></head>
 
   const htmlPath = join(tmpdir(), `line-qr-${Date.now()}.html`)
   writeFileSync(htmlPath, html)
-  setTimeout(() => { try { unlinkSync(htmlPath) } catch {} }, 300_000)
+  setTimeout(() => { try { unlinkSync(htmlPath) } catch {} }, 300_000).unref()
   return htmlPath
 }
 
@@ -114,7 +114,9 @@ async function loginAction(options: {
               next_action: 'scan_qr',
               qr_url: url,
               qr_html_path: htmlPath,
-              message: 'QR code opened in browser. Scan with LINE mobile app to complete login.',
+              message: htmlPath
+                ? 'QR code opened in browser. Scan with LINE mobile app to complete login.'
+                : 'QR code generated. Open qr_url to scan with LINE mobile app.',
             }, options.pretty))
           }
         },
