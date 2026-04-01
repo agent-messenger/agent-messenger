@@ -369,6 +369,17 @@ pnpm dlx --package agent-messenger agent-whatsapp chat list --pretty
 4. Enter the pairing code shown in the terminal
 5. If the code expires, run `auth login --phone <number>` again for a fresh code
 
+### Empty chat list after linking a new device
+
+WhatsApp companion devices receive their chat list from the primary phone — there's no server API to fetch it directly. On a freshly linked device, `chat list` may return only group chats (or nothing at all) for individual/DM conversations.
+
+- **Keep your phone online** with WhatsApp open during and after linking. The phone pushes history to the new device; if it's off or WhatsApp is killed, nothing arrives.
+- **Wait a few minutes** and run `chat list` again. History trickles in over time and is saved locally, so subsequent runs will show more chats.
+- **Groups always work** immediately — they're fetched from the server, not from history sync.
+- **Sending a message** to a known phone number will make that chat appear even if it wasn't in the initial sync.
+
+This is a WhatsApp protocol limitation, not a bug.
+
 ### Connection drops
 
 WhatsApp may disconnect linked devices that are inactive for extended periods. If commands start failing:
