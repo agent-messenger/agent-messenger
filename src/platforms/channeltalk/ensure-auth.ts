@@ -58,11 +58,11 @@ export async function ensureChannelAuth(): Promise<void> {
 
     const extractor = createTokenExtractor()
     const extracted = await extractor.extract()
-    if (!extracted) {
+    if (extracted.length === 0) {
       return
     }
 
-    const client = await createChannelClient(extracted.accountCookie, extracted.sessionCookie)
+    const client = await createChannelClient(extracted[0].accountCookie, extracted[0].sessionCookie)
     const account = await client.getAccount()
     const channels = await client.listChannels()
     if (channels.length === 0) {
@@ -76,8 +76,8 @@ export async function ensureChannelAuth(): Promise<void> {
       workspace_name: currentChannel.name,
       account_id: account.id,
       account_name: account.name,
-      account_cookie: extracted.accountCookie,
-      session_cookie: extracted.sessionCookie,
+      account_cookie: extracted[0].accountCookie,
+      session_cookie: extracted[0].sessionCookie,
     })
 
     for (const channel of otherChannels) {
@@ -86,8 +86,8 @@ export async function ensureChannelAuth(): Promise<void> {
         workspace_name: channel.name,
         account_id: account.id,
         account_name: account.name,
-        account_cookie: extracted.accountCookie,
-        session_cookie: extracted.sessionCookie,
+        account_cookie: extracted[0].accountCookie,
+        session_cookie: extracted[0].sessionCookie,
       })
     }
 

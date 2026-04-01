@@ -55,6 +55,38 @@ describe('DiscordTokenExtractor', () => {
     })
   })
 
+  describe('getBrowserLevelDBDirs', () => {
+    test('returns browser LevelDB paths on macOS', () => {
+      const darwinExtractor = new DiscordTokenExtractor('darwin')
+      const dirs = darwinExtractor.getBrowserLevelDBDirs()
+
+      const chromeBase = join(homedir(), 'Library', 'Application Support', 'Google', 'Chrome')
+      expect(dirs).toContain(join(chromeBase, 'Default', 'Local Storage', 'leveldb'))
+    })
+
+    test('returns browser LevelDB paths on Linux', () => {
+      const linuxExtractor = new DiscordTokenExtractor('linux')
+      const dirs = linuxExtractor.getBrowserLevelDBDirs()
+
+      const chromeBase = join(homedir(), '.config', 'google-chrome')
+      expect(dirs).toContain(join(chromeBase, 'Default', 'Local Storage', 'leveldb'))
+    })
+
+    test('returns browser LevelDB paths on Windows', () => {
+      const winExtractor = new DiscordTokenExtractor('win32')
+      const dirs = winExtractor.getBrowserLevelDBDirs()
+
+      const localAppData = process.env.LOCALAPPDATA || join(homedir(), 'AppData', 'Local')
+      const chromeBase = join(localAppData, 'Google', 'Chrome', 'User Data')
+      expect(dirs).toContain(join(chromeBase, 'Default', 'Local Storage', 'leveldb'))
+    })
+
+    test('returns empty array for unsupported platform', () => {
+      const unsupportedExtractor = new DiscordTokenExtractor('freebsd' as NodeJS.Platform)
+      expect(unsupportedExtractor.getBrowserLevelDBDirs()).toEqual([])
+    })
+  })
+
   describe('token patterns', () => {
     test('validates standard token format (base64.base64.base64)', () => {
       const validToken = 'XXXXXXXXXXXXXXXXXXXXXXXX.YYYYYY.ZZZZZZZZZZZZZZZZZZZZZZZZZ'
@@ -167,77 +199,217 @@ describe('DiscordTokenExtractor', () => {
   })
 
   describe('extract', () => {
-    test('returns null when no Discord directories exist on linux', async () => {
+    test('returns empty array when no Discord directories exist on linux', async () => {
       const linuxExtractor = new DiscordTokenExtractor('linux')
-      const extractFromLevelDBSpy = spyOn(linuxExtractor as any, 'extractFromLevelDB').mockResolvedValue(null)
+      const extractFromLevelDBSpy = spyOn(linuxExtractor as any, 'extractFromLevelDB').mockResolvedValue([])
+      const extractFromBrowserLevelDBSpy = spyOn(linuxExtractor as any, 'extractFromBrowserLevelDB').mockResolvedValue([])
 
       const result = await linuxExtractor.extract()
-      expect(result).toBeNull()
+      expect(result).toEqual([])
 
       extractFromLevelDBSpy.mockRestore()
+      extractFromBrowserLevelDBSpy.mockRestore()
     })
 
     test('extracts token from LevelDB when available', async () => {
       const mockToken = 'XXXXXXXXXXXXXXXXXXXXXXXX.YYYYYY.ZZZZZZZZZZZZZZZZZZZZZZZZZ'
 
       const linuxExtractor = new DiscordTokenExtractor('linux')
-      const extractFromLevelDBSpy = spyOn(linuxExtractor as any, 'extractFromLevelDB').mockResolvedValue({
-        token: mockToken,
-      })
+      const extractFromLevelDBSpy = spyOn(linuxExtractor as any, 'extractFromLevelDB').mockResolvedValue([
+        { token: mockToken },
+      ])
+      const extractFromBrowserLevelDBSpy = spyOn(linuxExtractor as any, 'extractFromBrowserLevelDB').mockResolvedValue([])
 
       const result = await linuxExtractor.extract()
 
-      expect(result).not.toBeNull()
-      expect(result?.token).toBe(mockToken)
+      expect(result).not.toEqual([])
+      expect(result[0]?.token).toBe(mockToken)
 
       extractFromLevelDBSpy.mockRestore()
+      extractFromBrowserLevelDBSpy.mockRestore()
     })
 
-    test('tries CDP on macOS when LevelDB extraction fails', async () => {
+    test('tries browser LevelDB when desktop LevelDB extraction fails', async () => {
+      const mockToken = 'XXXXXXXXXXXXXXXXXXXXXXXX.YYYYYY.browser_token_1234567890123'
+
+      const linuxExtractor = new DiscordTokenExtractor('linux')
+      const extractFromLevelDBSpy = spyOn(linuxExtractor as any, 'extractFromLevelDB').mockResolvedValue([])
+      const extractFromBrowserLevelDBSpy = spyOn(
+        linuxExtractor as any,
+        'extractFromBrowserLevelDB',
+      ).mockResolvedValue([{ token: mockToken }])
+
+      const result = await linuxExtractor.extract()
+
+      expect(extractFromLevelDBSpy).toHaveBeenCalled()
+      expect(extractFromBrowserLevelDBSpy).toHaveBeenCalled()
+      expect(result[0]?.token).toBe(mockToken)
+
+      extractFromLevelDBSpy.mockRestore()
+      extractFromBrowserLevelDBSpy.mockRestore()
+    })
+
+    test('tries CDP on macOS when both LevelDB extractions fail', async () => {
       const mockToken = 'XXXXXXXXXXXXXXXXXXXXXXXX.YYYYYY.cdp_token_12345678901234567'
 
       const darwinExtractor = new DiscordTokenExtractor('darwin', 0)
-      const extractFromLevelDBSpy = spyOn(darwinExtractor as any, 'extractFromLevelDB').mockResolvedValue(null)
+      const extractFromLevelDBSpy = spyOn(darwinExtractor as any, 'extractFromLevelDB').mockResolvedValue([])
+      const extractFromBrowserLevelDBSpy = spyOn(
+        darwinExtractor as any,
+        'extractFromBrowserLevelDB',
+      ).mockResolvedValue([])
       const tryExtractViaCDPSpy = spyOn(darwinExtractor as any, 'tryExtractViaCDP').mockResolvedValue(mockToken)
 
       const result = await darwinExtractor.extract()
 
-      expect(result).not.toBeNull()
-      expect(result?.token).toBe(mockToken)
+      expect(extractFromLevelDBSpy).toHaveBeenCalled()
+      expect(extractFromBrowserLevelDBSpy).toHaveBeenCalled()
+      expect(tryExtractViaCDPSpy).toHaveBeenCalled()
+      expect(result[0]?.token).toBe(mockToken)
 
       extractFromLevelDBSpy.mockRestore()
+      extractFromBrowserLevelDBSpy.mockRestore()
       tryExtractViaCDPSpy.mockRestore()
     })
 
-    test('returns first valid token found across variants', async () => {
+    test('browser LevelDB tried before CDP on macOS', async () => {
+      const callOrder: string[] = []
+
+      const darwinExtractor = new DiscordTokenExtractor('darwin', 0)
+      const extractFromLevelDBSpy = spyOn(darwinExtractor as any, 'extractFromLevelDB').mockImplementation(async () => {
+        callOrder.push('desktop')
+        return []
+      })
+      const extractFromBrowserLevelDBSpy = spyOn(
+        darwinExtractor as any,
+        'extractFromBrowserLevelDB',
+      ).mockImplementation(async () => {
+        callOrder.push('browser')
+        return []
+      })
+      const tryExtractViaCDPSpy = spyOn(darwinExtractor as any, 'tryExtractViaCDP').mockImplementation(async () => {
+        callOrder.push('cdp')
+        return null
+      })
+
+      await darwinExtractor.extract()
+
+      expect(callOrder).toEqual(['desktop', 'browser', 'cdp'])
+
+      extractFromLevelDBSpy.mockRestore()
+      extractFromBrowserLevelDBSpy.mockRestore()
+      tryExtractViaCDPSpy.mockRestore()
+    })
+
+    test('returns all valid tokens found across variants', async () => {
       const mockToken = 'XXXXXXXXXXXXXXXXXXXXXXXX.YYYYYY.first_token_found_1234567'
 
       const linuxExtractor = new DiscordTokenExtractor('linux')
-      const extractFromLevelDBSpy = spyOn(linuxExtractor as any, 'extractFromLevelDB').mockResolvedValue({
-        token: mockToken,
-      })
+      const extractFromLevelDBSpy = spyOn(linuxExtractor as any, 'extractFromLevelDB').mockResolvedValue([
+        { token: mockToken },
+      ])
+      const extractFromBrowserLevelDBSpy = spyOn(linuxExtractor as any, 'extractFromBrowserLevelDB').mockResolvedValue([])
 
       const result = await linuxExtractor.extract()
 
-      expect(result).not.toBeNull()
-      expect(typeof result?.token).toBe('string')
+      expect(result).not.toEqual([])
+      expect(typeof result[0]?.token).toBe('string')
 
       extractFromLevelDBSpy.mockRestore()
+      extractFromBrowserLevelDBSpy.mockRestore()
+    })
+
+    test('deduplicates the same token found in desktop and browser sources', async () => {
+      const mockToken = 'XXXXXXXXXXXXXXXXXXXXXXXX.YYYYYY.ZZZZZZZZZZZZZZZZZZZZZZZZZ'
+
+      const linuxExtractor = new DiscordTokenExtractor('linux')
+      const extractFromLevelDBSpy = spyOn(linuxExtractor as any, 'extractFromLevelDB').mockResolvedValue([
+        { token: mockToken },
+      ])
+      const extractFromBrowserLevelDBSpy = spyOn(linuxExtractor as any, 'extractFromBrowserLevelDB').mockResolvedValue([
+        { token: mockToken },
+      ])
+
+      const result = await linuxExtractor.extract()
+      expect(result).toHaveLength(1)
+      expect(result[0]?.token).toBe(mockToken)
+
+      extractFromLevelDBSpy.mockRestore()
+      extractFromBrowserLevelDBSpy.mockRestore()
+    })
+
+    test('collects multiple distinct tokens from browser profiles', async () => {
+      const token1 = 'XXXXXXXXXXXXXXXXXXXXXXXX.YYYYYY.browser_token_1234567890123'
+      const token2 = 'YYYYYYYYYYYYYYYYYYYYYYYY.ZZZZZZ.browser_token_2345678901234'
+
+      const linuxExtractor = new DiscordTokenExtractor('linux')
+      const extractFromLevelDBSpy = spyOn(linuxExtractor as any, 'extractFromLevelDB').mockResolvedValue([])
+      const extractFromBrowserLevelDBSpy = spyOn(linuxExtractor as any, 'extractFromBrowserLevelDB').mockResolvedValue([
+        { token: token1 },
+        { token: token2 },
+      ])
+
+      const result = await linuxExtractor.extract()
+      expect(result).toHaveLength(2)
+      expect(result.map((r) => r.token)).toContain(token1)
+      expect(result.map((r) => r.token)).toContain(token2)
+
+      extractFromLevelDBSpy.mockRestore()
+      extractFromBrowserLevelDBSpy.mockRestore()
+    })
+
+    test('does not call CDP when desktop LevelDB extraction returns results', async () => {
+      const mockToken = 'XXXXXXXXXXXXXXXXXXXXXXXX.YYYYYY.ZZZZZZZZZZZZZZZZZZZZZZZZZ'
+
+      const darwinExtractor = new DiscordTokenExtractor('darwin', 0)
+      const extractFromLevelDBSpy = spyOn(darwinExtractor as any, 'extractFromLevelDB').mockResolvedValue([
+        { token: mockToken },
+      ])
+      const extractFromBrowserLevelDBSpy = spyOn(darwinExtractor as any, 'extractFromBrowserLevelDB').mockResolvedValue([])
+      const tryExtractViaCDPSpy = spyOn(darwinExtractor as any, 'tryExtractViaCDP').mockResolvedValue(null)
+
+      await darwinExtractor.extract()
+      expect(tryExtractViaCDPSpy).not.toHaveBeenCalled()
+
+      extractFromLevelDBSpy.mockRestore()
+      extractFromBrowserLevelDBSpy.mockRestore()
+      tryExtractViaCDPSpy.mockRestore()
     })
   })
 
   describe('getKeychainVariants', () => {
-    test('returns keychain variants for macOS', () => {
+    test('includes Discord-specific keychain variants', () => {
       const macExtractor = new DiscordTokenExtractor('darwin')
+      const variants = macExtractor.getKeychainVariants()
 
-      expect(macExtractor.getKeychainVariants()).toEqual([
-        { service: 'discord Safe Storage', account: 'discord Key' },
-        { service: 'discordcanary Safe Storage', account: 'discordcanary Key' },
-        { service: 'discordptb Safe Storage', account: 'discordptb Key' },
-        { service: 'Discord Safe Storage', account: 'Discord' },
-        { service: 'Discord Canary Safe Storage', account: 'Discord Canary' },
-        { service: 'Discord PTB Safe Storage', account: 'Discord PTB' },
-      ])
+      expect(variants).toContainEqual({ service: 'discord Safe Storage', account: 'discord Key' })
+      expect(variants).toContainEqual({ service: 'discordcanary Safe Storage', account: 'discordcanary Key' })
+      expect(variants).toContainEqual({ service: 'discordptb Safe Storage', account: 'discordptb Key' })
+      expect(variants).toContainEqual({ service: 'Discord Safe Storage', account: 'Discord' })
+      expect(variants).toContainEqual({ service: 'Discord Canary Safe Storage', account: 'Discord Canary' })
+      expect(variants).toContainEqual({ service: 'Discord PTB Safe Storage', account: 'Discord PTB' })
+    })
+
+    test('includes browser keychain variants appended after Discord entries', () => {
+      const macExtractor = new DiscordTokenExtractor('darwin')
+      const variants = macExtractor.getKeychainVariants()
+
+      expect(variants).toContainEqual({ service: 'Chrome Safe Storage', account: 'Chrome' })
+      expect(variants).toContainEqual({ service: 'Chrome Canary Safe Storage', account: 'Chrome Canary' })
+      expect(variants).toContainEqual({ service: 'Microsoft Edge Safe Storage', account: 'Microsoft Edge' })
+      expect(variants).toContainEqual({ service: 'Arc Safe Storage', account: 'Arc' })
+      expect(variants).toContainEqual({ service: 'Brave Safe Storage', account: 'Brave' })
+      expect(variants).toContainEqual({ service: 'Vivaldi Safe Storage', account: 'Vivaldi' })
+      expect(variants).toContainEqual({ service: 'Chromium Safe Storage', account: 'Chromium' })
+    })
+
+    test('Discord entries come before browser entries', () => {
+      const macExtractor = new DiscordTokenExtractor('darwin')
+      const variants = macExtractor.getKeychainVariants()
+
+      const discordIdx = variants.findIndex((v) => v.service === 'discord Safe Storage')
+      const chromeIdx = variants.findIndex((v) => v.service === 'Chrome Safe Storage')
+      expect(discordIdx).toBeLessThan(chromeIdx)
     })
   })
 

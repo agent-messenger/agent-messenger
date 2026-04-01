@@ -16,7 +16,7 @@ metadata:
 
 # Agent Slack
 
-A TypeScript CLI tool that enables AI agents and humans to interact with Slack workspaces through a simple command interface. Features seamless token extraction from the Slack desktop app and multi-workspace support.
+A TypeScript CLI tool that enables AI agents and humans to interact with Slack workspaces through a simple command interface. Features seamless token extraction from the Slack desktop app (with browser fallback) and multi-workspace support.
 
 ## Quick Start
 
@@ -33,11 +33,11 @@ agent-slack channel list
 
 ## Authentication
 
-Credentials are extracted automatically from the Slack desktop app on first use. No manual setup required — just run any command and authentication happens silently in the background.
+Credentials are extracted automatically from the Slack desktop app (or Chromium browser as fallback) on first use. No manual setup required — just run any command and authentication happens silently in the background.
 
 On macOS, the system may prompt for your Keychain password the first time (required to decrypt Slack's stored token). This is a one-time prompt.
 
-**IMPORTANT**: NEVER guide the user to open a web browser, use DevTools, or manually copy tokens from a browser. Always use `agent-slack auth extract` to obtain tokens from the desktop app.
+**IMPORTANT**: Always use `agent-slack auth extract` to obtain tokens. The CLI extracts from the desktop app first, falling back to Chromium browsers if the app isn't installed.
 
 ### Multi-Workspace Support
 
@@ -137,7 +137,7 @@ If a memorized ID returns an error (channel not found, user not found), remove i
 ### Auth Commands
 
 ```bash
-# Extract tokens from Slack desktop app (usually automatic)
+# Extract tokens from Slack desktop app or browser (usually automatic)
 agent-slack auth extract
 agent-slack auth extract --debug
 

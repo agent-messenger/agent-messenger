@@ -24,7 +24,7 @@ const DEVICE_MANUFACTURER = 'samsung'
 const DEVICE_MODEL = 'SM-S911B'
 const DEVICE_CHIPSET = 'qcom'
 
-function generateDeviceString(): string {
+export function generateDeviceString(): string {
   return `${ANDROID_VERSION}/${ANDROID_RELEASE}; ${DEVICE_DPI}; ${DEVICE_RESOLUTION}; ${DEVICE_MANUFACTURER}; ${DEVICE_MODEL}; ${DEVICE_MODEL}; ${DEVICE_CHIPSET}; en_US; ${IG_VERSION_CODE}`
 }
 
@@ -32,7 +32,7 @@ function buildUserAgent(deviceString: string): string {
   return `Instagram ${IG_VERSION} Android (${deviceString})`
 }
 
-function generateAndroidDeviceId(): string {
+export function generateAndroidDeviceId(): string {
   return `android-${randomBytes(8).toString('hex')}`
 }
 

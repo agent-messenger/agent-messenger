@@ -2,7 +2,7 @@
 
 ## Overview
 
-agent-teams uses Microsoft Teams' user token extracted directly from the Teams desktop application. This provides seamless authentication without manual token management.
+agent-teams uses Microsoft Teams' user token extracted from the Teams desktop application, with automatic fallback to Chromium browser profiles (Chrome, Chrome Canary, Edge, Arc, Brave, Vivaldi, Chromium) when the desktop app isn't installed.
 
 ## TOKEN EXPIRY WARNING
 
@@ -56,10 +56,11 @@ This command:
 1. Detects your operating system (macOS, Linux, Windows)
 2. Locates the Teams desktop app data directory
 3. Reads the **Cookies SQLite database** containing session data
-4. Extracts `skypetoken_asm` cookie value
-5. Validates token against Teams API before saving
-6. Discovers ALL joined teams
-7. Stores credentials securely in `~/.config/agent-messenger/teams-credentials.json`
+4. If the desktop app isn't found, scans Chromium browser profiles for Teams cookies
+5. Extracts `skypetoken_asm` cookie value
+6. Validates token against Teams API before saving
+7. Discovers ALL joined teams
+8. Stores credentials securely in `~/.config/agent-messenger/teams-credentials.json`
 
 ### Platform-Specific Paths
 
@@ -280,9 +281,8 @@ This shows:
 
 **Solution**:
 
-1. Install Microsoft Teams desktop app
-2. Log in to your account
-3. Run `agent-teams auth extract` again
+1. Log in to teams.microsoft.com in a Chromium browser (Chrome, Edge, Arc, Brave) — the CLI will extract from browser automatically
+2. Or install the Microsoft Teams desktop app, log in, and run `agent-teams auth extract` again
 
 ### "No Teams token found"
 

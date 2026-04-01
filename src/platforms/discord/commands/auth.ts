@@ -34,7 +34,7 @@ export async function extractAction(options: { pretty?: boolean; debug?: boolean
 
     const extracted = await extractor.extract()
 
-    if (!extracted) {
+    if (extracted.length === 0) {
       console.log(
         formatOutput(
           {
@@ -47,59 +47,55 @@ export async function extractAction(options: { pretty?: boolean; debug?: boolean
       process.exit(1)
     }
 
-    if (options.debug) {
-      console.error(`[debug] Token extracted: ${extracted.token.substring(0, 20)}...`)
-    }
-
-    try {
-      const client = await new DiscordClient().login({ token: extracted.token })
-
+    for (const { token } of extracted) {
       if (options.debug) {
-        console.error(`[debug] Testing token validity...`)
+        console.error(`[debug] Token extracted: ${token.substring(0, 20)}...`)
       }
 
-      const authInfo = await client.testAuth()
+      try {
+        const client = await new DiscordClient().login({ token })
 
-      if (options.debug) {
-        console.error(`[debug] ✓ Token valid for user: ${authInfo.username}`)
-        console.error(`[debug] Discovering servers...`)
-      }
-
-      const servers = await client.listServers()
-
-      if (options.debug) {
-        console.error(`[debug] ✓ Found ${servers.length} server(s)`)
-      }
-
-      if (servers.length === 0) {
-        console.log(
-          formatOutput(
-            {
-              error: 'No servers found. Make sure you are a member of at least one Discord server.',
-            },
-            options.pretty,
-          ),
-        )
-        process.exit(1)
-      }
-
-      const credManager = new DiscordCredentialManager()
-      const serverMap: Record<string, { server_id: string; server_name: string }> = {}
-
-      for (const server of servers) {
-        serverMap[server.id] = {
-          server_id: server.id,
-          server_name: server.name,
+        if (options.debug) {
+          console.error(`[debug] Testing token validity...`)
         }
-      }
 
-      const config = {
-        token: extracted.token,
-        current_server: servers[0].id,
-        servers: serverMap,
-      }
+        const authInfo = await client.testAuth()
 
-      await credManager.save(config)
+        if (options.debug) {
+          console.error(`[debug] ✓ Token valid for user: ${authInfo.username}`)
+          console.error(`[debug] Discovering servers...`)
+        }
+
+        const servers = await client.listServers()
+
+        if (options.debug) {
+          console.error(`[debug] ✓ Found ${servers.length} server(s)`)
+        }
+
+        if (servers.length === 0) {
+          if (options.debug) {
+            console.error(`[debug] No servers found for this token, trying next...`)
+          }
+          continue
+        }
+
+        const credManager = new DiscordCredentialManager()
+        const serverMap: Record<string, { server_id: string; server_name: string }> = {}
+
+        for (const server of servers) {
+          serverMap[server.id] = {
+            server_id: server.id,
+            server_name: server.name,
+          }
+        }
+
+        const config = {
+          token,
+          current_server: servers[0].id,
+          servers: serverMap,
+        }
+
+        await credManager.save(config)
 
       if (options.debug) {
         console.error(`[debug] ✓ Credentials saved`)
@@ -111,18 +107,25 @@ export async function extractAction(options: { pretty?: boolean; debug?: boolean
       }
 
       console.log(formatOutput(output, options.pretty))
+      return
     } catch (error) {
-      console.log(
-        formatOutput(
-          {
-            error: `Token validation failed: ${(error as Error).message}`,
-            hint: 'Make sure your Discord token is valid and has not expired.',
-          },
-          options.pretty,
-        ),
-      )
-      process.exit(1)
+      if (options.debug) {
+        console.error(`[debug] Token validation failed: ${(error as Error).message}, trying next...`)
+      }
+      continue
     }
+    }
+
+    console.log(
+      formatOutput(
+        {
+          error: 'No usable Discord token found. Tokens may be expired or have no servers.',
+          hint: 'Make sure Discord is logged in and you are a member of at least one server.',
+        },
+        options.pretty,
+      ),
+    )
+    process.exit(1)
   } catch (error) {
     handleError(error as Error)
   }

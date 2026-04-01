@@ -82,45 +82,51 @@ export async function extractAction(options: ActionOptions = {}): Promise<Extrac
     const extractor = createTokenExtractor()
     const extracted = await extractor.extract()
 
-    if (!extracted) {
+    if (extracted.length === 0) {
       return {
         error: 'No credentials. Make sure Channel Talk desktop app is installed and logged in.',
       }
     }
 
-    const client = await createChannelClient(extracted.accountCookie, extracted.sessionCookie)
-    const account = await client.getAccount()
-    const channels = await client.listChannels()
+    for (const cookies of extracted) {
+      try {
+        const client = await createChannelClient(cookies.accountCookie, cookies.sessionCookie)
+        const account = await client.getAccount()
+        const channels = await client.listChannels()
 
-    if (channels.length === 0) {
-      return { error: 'No workspaces found for this account.' }
+        if (channels.length === 0) continue
+
+        const previousCurrent = await credManager.getCredentials()
+
+        for (const channel of channels) {
+          await credManager.setCredentials({
+            workspace_id: channel.id,
+            workspace_name: channel.name,
+            account_id: account.id,
+            account_name: account.name,
+            account_cookie: cookies.accountCookie,
+            session_cookie: cookies.sessionCookie,
+          })
+        }
+
+        const previousStillExists = previousCurrent && channels.some((ch) => ch.id === previousCurrent.workspace_id)
+        const currentId = previousStillExists ? previousCurrent.workspace_id : channels[0].id
+        await credManager.setCurrent(currentId)
+
+        return {
+          success: true,
+          workspaces: channels.map((ch) => ({
+            workspace_id: ch.id,
+            workspace_name: ch.name,
+          })),
+          current_workspace_id: currentId,
+        }
+      } catch {
+        continue
+      }
     }
 
-    const previousCurrent = await credManager.getCredentials()
-
-    for (const channel of channels) {
-      await credManager.setCredentials({
-        workspace_id: channel.id,
-        workspace_name: channel.name,
-        account_id: account.id,
-        account_name: account.name,
-        account_cookie: extracted.accountCookie,
-        session_cookie: extracted.sessionCookie,
-      })
-    }
-
-    const previousStillExists = previousCurrent && channels.some((ch) => ch.id === previousCurrent.workspace_id)
-    const currentId = previousStillExists ? previousCurrent.workspace_id : channels[0].id
-    await credManager.setCurrent(currentId)
-
-    return {
-      success: true,
-      workspaces: channels.map((ch) => ({
-        workspace_id: ch.id,
-        workspace_name: ch.name,
-      })),
-      current_workspace_id: currentId,
-    }
+    return { error: 'No valid credentials found. Make sure Channel Talk desktop app or browser is logged in.' }
   } catch (error: unknown) {
     return { error: (error as Error).message }
   }

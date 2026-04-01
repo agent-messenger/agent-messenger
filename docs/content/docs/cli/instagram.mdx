@@ -9,26 +9,45 @@ description: Complete reference for the agent-instagram CLI.
 
 Instagram integration uses a private mobile API (not the official Graph API). No new npm dependencies are required:
 
-- Authenticates with **username and password**, with support for 2FA and login challenges.
+- **Browser cookie extraction** (recommended): Extracts session cookies from Chromium browsers (Chrome, Chrome Canary, Edge, Arc, Brave, Vivaldi, Chromium). Zero-config.
+- **Username/password auth** (fallback): Authenticates with credentials, with support for 2FA and login challenges.
 - Each command makes HTTP requests on demand. No persistent connection or background process.
 - Multiple Instagram accounts can be linked simultaneously.
 
 ## Quick Start
 
 ```bash
-# Log in with your Instagram credentials
-agent-instagram auth login
+# 1. Extract cookies from browser (recommended — zero-config)
+agent-instagram auth extract
 
-# List DM threads
+# 2. List DM threads
 agent-instagram chat list
 
-# Send a message
+# 3. Send a message
 agent-instagram message send 12345678901 "Hello from agent-instagram"
 ```
 
 ## Authentication
 
-### Username/Password Login
+### Browser Cookie Extraction (Recommended)
+
+Extracts your Instagram session cookies from a Chromium browser where you're logged into instagram.com. Zero-config, no password needed.
+
+```bash
+agent-instagram auth extract
+```
+
+This command:
+
+- Scans Chromium browser profiles for Instagram cookies (SQLite cookie database)
+- Extracts `sessionid`, `csrftoken`, `ds_user_id`, and other session cookies
+- Decrypts encrypted cookies using the browser's encryption key
+- Validates the session against the Instagram API
+- Stores credentials in `~/.config/agent-messenger/`
+- Supported browsers: Chrome, Chrome Canary, Edge, Arc, Brave, Vivaldi, Chromium
+- Auto-extraction runs when no valid session is stored, so manual extraction is rarely needed
+
+### Username/Password Login (Fallback)
 
 The CLI authenticates as a mobile client using your Instagram username and password. Your existing app sessions are never affected.
 
@@ -74,6 +93,9 @@ agent-instagram auth login --username your_username --password your_password --d
 ### Account Management
 
 ```bash
+# Extract cookies from browser (recommended)
+agent-instagram auth extract
+
 # Check current auth state
 agent-instagram auth status
 agent-instagram auth status --account <id>

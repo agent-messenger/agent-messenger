@@ -16,7 +16,7 @@ metadata:
 
 # Agent Teams
 
-A TypeScript CLI tool that enables AI agents and humans to interact with Microsoft Teams through a simple command interface. Features seamless token extraction from the Teams desktop app and multi-team support.
+A TypeScript CLI tool that enables AI agents and humans to interact with Microsoft Teams through a simple command interface. Features seamless token extraction from the Teams desktop app (with browser fallback) and multi-team support.
 
 ## Quick Start
 
@@ -33,11 +33,11 @@ agent-teams channel list <team-id>
 
 ## Authentication
 
-Credentials are extracted automatically from the Teams desktop app on first use. No manual setup required — just run any command and authentication happens silently in the background.
+Credentials are extracted automatically from the Teams desktop app (or Chromium browser as fallback) on first use. No manual setup required — just run any command and authentication happens silently in the background.
 
 Teams tokens expire in 60-90 minutes. The CLI automatically re-extracts a fresh token when the current one expires, so you don't need to manage token lifecycle manually.
 
-**IMPORTANT**: NEVER guide the user to open a web browser, use DevTools, or manually copy tokens from a browser. Always use `agent-teams auth extract` to obtain tokens from the desktop app.
+**IMPORTANT**: Always use `agent-teams auth extract` to obtain tokens. The CLI extracts from the desktop app first, falling back to Chromium browsers if the app isn't installed.
 
 ### Multi-Team Support
 
@@ -145,7 +145,7 @@ If a memorized ID returns an error (channel not found, team not found), remove i
 ### Auth Commands
 
 ```bash
-# Extract token from Teams desktop app (usually automatic)
+# Extract token from Teams desktop app or browser (usually automatic)
 agent-teams auth extract
 agent-teams auth extract --debug
 
@@ -400,7 +400,7 @@ See the [Teams SDK documentation](https://agent-messenger.dev/docs/sdk/teams) fo
 - No webhook support
 - Plain text messages only (no adaptive cards in v1)
 - User tokens only (no app tokens)
-- **Token expires in 60-90 minutes** - auto-refreshed, but requires Teams desktop app to be logged in
+- **Token expires in 60-90 minutes** - auto-refreshed, but requires Teams desktop app or browser to be logged in
 
 ## Troubleshooting
 

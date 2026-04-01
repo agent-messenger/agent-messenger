@@ -14,9 +14,9 @@ let saveSpy: ReturnType<typeof spyOn>
 beforeEach(() => {
   getTokenSpy = spyOn(DiscordCredentialManager.prototype, 'getToken').mockResolvedValue(null)
 
-  extractSpy = spyOn(DiscordTokenExtractor.prototype, 'extract').mockResolvedValue({
+  extractSpy = spyOn(DiscordTokenExtractor.prototype, 'extract').mockResolvedValue([{
     token: 'test-token-123',
-  })
+  }])
 
   testAuthSpy = spyOn(DiscordClient.prototype, 'testAuth').mockResolvedValue({
     id: 'user-123',
@@ -90,7 +90,7 @@ describe('ensureDiscordAuth', () => {
 
   test('does not save when extraction returns null', async () => {
     // given
-    extractSpy.mockResolvedValue(null)
+    extractSpy.mockResolvedValue([])
 
     // when
     await ensureDiscordAuth()

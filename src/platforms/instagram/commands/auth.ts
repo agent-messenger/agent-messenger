@@ -1,10 +1,13 @@
+import { randomUUID } from 'node:crypto'
+import { mkdir, writeFile } from 'node:fs/promises'
 import { Writable } from 'node:stream'
 
 import { Command } from 'commander'
 import { handleError } from '@/shared/utils/error-handler'
 import { formatOutput } from '@/shared/utils/output'
-import { InstagramClient } from '../client'
+import { InstagramClient, generateAndroidDeviceId, generateDeviceString } from '../client'
 import { InstagramCredentialManager } from '../credential-manager'
+import { InstagramTokenExtractor } from '../token-extractor'
 import { createAccountId } from '../types'
 
 function isInteractive(): boolean {
@@ -322,6 +325,114 @@ async function useAction(accountId: string, options: { pretty?: boolean }): Prom
   }
 }
 
+async function extractAction(options: { pretty?: boolean; debug?: boolean }): Promise<void> {
+  try {
+    const extractor = new InstagramTokenExtractor(
+      undefined,
+      options.debug ? (msg) => console.error(`[debug] ${msg}`) : undefined,
+    )
+
+    if (options.debug) {
+      console.error('[debug] Searching browser profiles for Instagram cookies...')
+    }
+
+    const results = await extractor.extract()
+
+    if (results.length === 0) {
+      console.log(
+        formatOutput(
+          {
+            error: 'No Instagram cookies found in any browser. Make sure you are logged in to instagram.com in Chrome, Edge, Arc, or Brave.',
+            hint: 'Run "auth login --username <username>" to log in manually.',
+          },
+          options.pretty,
+        ),
+      )
+      process.exit(1)
+      return
+    }
+
+    const manager = new InstagramCredentialManager()
+
+    for (const extracted of results) {
+      const session = {
+        cookies: [
+          `sessionid=${extracted.sessionid}`,
+          `ds_user_id=${extracted.ds_user_id}`,
+          `csrftoken=${extracted.csrftoken}`,
+          extracted.mid ? `mid=${extracted.mid}` : null,
+          extracted.ig_did ? `ig_did=${extracted.ig_did}` : null,
+          extracted.rur ? `rur=${extracted.rur}` : null,
+        ]
+          .filter(Boolean)
+          .join('; '),
+        device: {
+          phone_id: randomUUID(),
+          uuid: randomUUID(),
+          android_device_id: generateAndroidDeviceId(),
+          advertising_id: randomUUID(),
+          client_session_id: randomUUID(),
+          device_string: generateDeviceString(),
+        },
+        user_id: extracted.ds_user_id,
+        mid: extracted.mid,
+      }
+
+      const accountId = createAccountId(extracted.ds_user_id)
+      const paths = await manager.ensureAccountPaths(accountId)
+
+      await mkdir(paths.account_dir, { recursive: true })
+      await writeFile(paths.session_path, JSON.stringify(session, null, 2), { mode: 0o600 })
+
+      const client = new InstagramClient(manager)
+      client.setSessionPath(paths.session_path)
+      if (options.debug) {
+        client.setDebugLog((msg) => console.error(`[debug] ${msg}`))
+      }
+
+      await client.loadSession(paths.session_path)
+
+      let username = extracted.ds_user_id
+      try {
+        const { data } = await (client as any).request('GET', '/accounts/current_user/?edit=true')
+        const user = data['user'] as Record<string, unknown> | undefined
+        if (user?.['username']) {
+          username = user['username'] as string
+        }
+        await (client as any).saveSession()
+      } catch (err) {
+        if (options.debug) {
+          console.error(`[debug] Session validation failed: ${err}`)
+        }
+        console.error('Warning: Could not validate session. Cookies may be expired.')
+      }
+
+      const now = new Date().toISOString()
+      await manager.setAccount({
+        account_id: accountId,
+        username,
+        pk: extracted.ds_user_id,
+        created_at: now,
+        updated_at: now,
+      })
+      await manager.setCurrent(accountId)
+
+      console.log(
+        formatOutput(
+          {
+            authenticated: true,
+            account_id: accountId,
+            username,
+          },
+          options.pretty,
+        ),
+      )
+    }
+  } catch (error) {
+    handleError(error as Error)
+  }
+}
+
 async function logoutAction(options: { account?: string; pretty?: boolean }): Promise<void> {
   try {
     const manager = new InstagramCredentialManager()
@@ -353,6 +464,13 @@ export const authCommand = new Command('auth')
       .option('--pretty', 'Pretty print JSON output')
       .option('--debug', 'Show raw API responses')
       .action(loginAction),
+  )
+  .addCommand(
+    new Command('extract')
+      .description('Extract Instagram cookies from browser (Chrome, Edge, Arc, Brave)')
+      .option('--pretty', 'Pretty print JSON output')
+      .option('--debug', 'Show debug output')
+      .action(extractAction),
   )
   .addCommand(
     new Command('verify')
