@@ -86,6 +86,7 @@ export class WhatsAppClient {
   private pendingResolve: (() => void) | null = null
   private pendingPromise: Promise<void> | null = null
   private authCompleteResolve: (() => void) | null = null
+  private authCompleteReject: ((err: Error) => void) | null = null
 
   private storePath: string | null = null
 
@@ -248,8 +249,9 @@ export class WhatsAppClient {
       this.pendingResolve = resolve
     })
 
-    const authCompletePromise = new Promise<void>((resolve) => {
+    const authCompletePromise = new Promise<void>((resolve, reject) => {
       this.authCompleteResolve = resolve
+      this.authCompleteReject = reject
     })
 
     const cleaned = phoneNumber.replace(/[^0-9]/g, '')
@@ -258,16 +260,24 @@ export class WhatsAppClient {
 
     return new Promise((outerResolve, outerReject) => {
       let codeReturned = false
-      let postPairingRetries = 0
-      const MAX_POST_PAIRING_RETRIES = 5
 
       const overallTimeout = setTimeout(() => {
-        outerReject(new WhatsAppError('Pairing timed out', 'pairing_timeout'))
+        const err = new WhatsAppError('Pairing timed out', 'pairing_timeout')
+        if (codeReturned) {
+          this.authCompleteReject?.(err)
+        } else {
+          outerReject(err)
+        }
       }, 120_000)
 
       const onError = (err: unknown): void => {
         clearTimeout(overallTimeout)
-        outerReject(err instanceof Error ? err : new WhatsAppError(String(err), 'pairing_error'))
+        const error = err instanceof Error ? err : new WhatsAppError(String(err), 'pairing_error')
+        if (codeReturned) {
+          this.authCompleteReject?.(error)
+        } else {
+          outerReject(error)
+        }
       }
 
       const attempt = async (): Promise<void> => {
@@ -294,20 +304,21 @@ export class WhatsAppClient {
 
             const statusCode = (lastDisconnect?.error as Boom)?.output?.statusCode
 
-            // 401 is normal for fresh credentials — always reconnect during pairing
             if (statusCode === DisconnectReason.forbidden) {
               clearTimeout(overallTimeout)
-              outerReject(new WhatsAppError('Account banned or restricted.', 'forbidden'))
+              const err = new WhatsAppError('Account banned or restricted.', 'forbidden')
+              if (codeReturned) {
+                this.authCompleteReject?.(err)
+              } else {
+                outerReject(err)
+              }
               return
             }
 
             if (codeReturned) {
-              postPairingRetries++
-              if (postPairingRetries > MAX_POST_PAIRING_RETRIES) {
-                clearTimeout(overallTimeout)
-                outerReject(new WhatsAppError('Post-pairing reconnection failed.', 'post_pairing_failed'))
-                return
-              }
+              // Post-pairing: rely on overallTimeout (120s) instead of retry cap.
+              // Baileys cycles the connection during pairing — keep reconnecting
+              // until the user enters the code and the connection opens.
               setTimeout(() => attempt().catch(onError), 2000)
               return
             }
