@@ -276,6 +276,47 @@ describe('ChannelTokenExtractor', () => {
       expect(result[0]?.sessionCookie).toBe('encrypted-session-jwt')
     })
 
+    test('deduplicates entries with the same accountCookie from desktop and browser', async () => {
+      const extractor = new ChannelTokenExtractor('darwin')
+
+      const desktopSpy = spyOn(extractor as any, 'extractFromDesktopApp').mockResolvedValue({
+        accountCookie: 'same-account-cookie',
+        sessionCookie: 'desktop-session',
+      })
+      const browserSpy = spyOn(extractor as any, 'extractAllFromBrowserPaths').mockResolvedValue([{
+        accountCookie: 'same-account-cookie',
+        sessionCookie: 'browser-session',
+      }])
+
+      const result = await extractor.extract()
+      expect(result).toHaveLength(1)
+      expect(result[0]?.accountCookie).toBe('same-account-cookie')
+
+      desktopSpy.mockRestore()
+      browserSpy.mockRestore()
+    })
+
+    test('returns multiple distinct accounts from desktop and browser sources', async () => {
+      const extractor = new ChannelTokenExtractor('darwin')
+
+      const desktopSpy = spyOn(extractor as any, 'extractFromDesktopApp').mockResolvedValue({
+        accountCookie: 'desktop-account-cookie',
+        sessionCookie: 'desktop-session',
+      })
+      const browserSpy = spyOn(extractor as any, 'extractAllFromBrowserPaths').mockResolvedValue([{
+        accountCookie: 'browser-account-cookie',
+        sessionCookie: 'browser-session',
+      }])
+
+      const result = await extractor.extract()
+      expect(result).toHaveLength(2)
+      expect(result.map((r) => r.accountCookie)).toContain('desktop-account-cookie')
+      expect(result.map((r) => r.accountCookie)).toContain('browser-account-cookie')
+
+      desktopSpy.mockRestore()
+      browserSpy.mockRestore()
+    })
+
     test('returns empty array when DPAPI decryption fails', async () => {
       // given
       const masterKey = randomBytes(32)
@@ -323,6 +364,55 @@ describe('ChannelTokenExtractor', () => {
     test('returns null on non-win32 platform', () => {
       const extractor = new ChannelTokenExtractor('darwin')
       expect(extractor.decryptDPAPI(Buffer.from('test'))).toBeNull()
+    })
+  })
+
+  describe('decryptBrowserCookie', () => {
+    test('decrypts v10-prefixed browser cookie using macOS keychain password (AES-128-CBC)', () => {
+      // given — AES-128-CBC encrypted cookie with macOS keychain-derived key
+      const { createCipheriv, pbkdf2Sync } = require('node:crypto')
+      const password = 'test-keychain-password'
+      const key = pbkdf2Sync(password, 'saltysalt', 1003, 16, 'sha1')
+      const iv = Buffer.alloc(16, 0x20)
+      const plainValue = 'test-channel-account-value'
+
+      const cipher = createCipheriv('aes-128-cbc', key, iv)
+      const ciphertext = Buffer.concat([cipher.update(plainValue, 'utf8'), cipher.final()])
+      const encrypted = Buffer.concat([Buffer.from('v10'), ciphertext])
+
+      const darwinExtractor = new ChannelTokenExtractor('darwin')
+      const execSecuritySpy = spyOn(darwinExtractor as any, 'execSecurityCommand').mockReturnValue(password)
+
+      // when
+      const result = (darwinExtractor as any).decryptBrowserCookie(encrypted, '/fake/path/Cookies')
+
+      // then
+      expect(result).toBe(plainValue)
+
+      execSecuritySpy.mockRestore()
+    })
+
+    test('decrypts v10-prefixed browser cookie using Linux peanuts key (AES-128-CBC)', () => {
+      // given — AES-128-CBC encrypted cookie with Linux Chromium peanuts key
+      const { createCipheriv, pbkdf2Sync } = require('node:crypto')
+      const key = pbkdf2Sync('peanuts', 'saltysalt', 1, 16, 'sha1')
+      const iv = Buffer.alloc(16, 0x20)
+      const plainValue = 'test-channel-account-linux'
+
+      const cipher = createCipheriv('aes-128-cbc', key, iv)
+      const ciphertext = Buffer.concat([cipher.update(plainValue, 'utf8'), cipher.final()])
+      const encrypted = Buffer.concat([Buffer.from('v10'), ciphertext])
+
+      const linuxExtractor = new ChannelTokenExtractor('linux')
+
+      // when
+      const result = (linuxExtractor as any).decryptBrowserCookie(
+        encrypted,
+        '/home/user/.config/google-chrome/Default/Cookies',
+      )
+
+      // then
+      expect(result).toBe(plainValue)
     })
   })
 })

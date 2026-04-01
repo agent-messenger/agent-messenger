@@ -224,6 +224,68 @@ describe('InstagramTokenExtractor', () => {
       existsSyncSpy.mockRestore()
       copyAndExtractSpy.mockRestore()
     })
+
+    test('returns multiple entries when different ds_user_id values found across profiles', async () => {
+      const mockCookies1 = {
+        sessionid: 'a'.repeat(25),
+        ds_user_id: '11111111',
+        csrftoken: 'token1',
+      }
+      const mockCookies2 = {
+        sessionid: 'b'.repeat(25),
+        ds_user_id: '22222222',
+        csrftoken: 'token2',
+      }
+
+      const linuxExtractor = new InstagramTokenExtractor('linux')
+      const getBrowserCookiesPathsSpy = spyOn(linuxExtractor, 'getBrowserCookiesPaths').mockReturnValue([
+        '/fake/profile1/Cookies',
+        '/fake/profile2/Cookies',
+      ])
+      const existsSyncSpy = spyOn(
+        await import('node:fs'),
+        'existsSync',
+      ).mockReturnValue(true)
+      const copyAndExtractSpy = spyOn(linuxExtractor as any, 'copyAndExtract')
+        .mockResolvedValueOnce(mockCookies1)
+        .mockResolvedValueOnce(mockCookies2)
+
+      const result = await linuxExtractor.extract()
+      expect(result).toHaveLength(2)
+      expect(result[0]?.ds_user_id).toBe('11111111')
+      expect(result[1]?.ds_user_id).toBe('22222222')
+
+      getBrowserCookiesPathsSpy.mockRestore()
+      existsSyncSpy.mockRestore()
+      copyAndExtractSpy.mockRestore()
+    })
+
+    test('deduplicates entries with the same ds_user_id across profiles', async () => {
+      const mockCookies = {
+        sessionid: 'a'.repeat(25),
+        ds_user_id: '12345678',
+        csrftoken: 'abc123',
+      }
+
+      const linuxExtractor = new InstagramTokenExtractor('linux')
+      const getBrowserCookiesPathsSpy = spyOn(linuxExtractor, 'getBrowserCookiesPaths').mockReturnValue([
+        '/fake/profile1/Cookies',
+        '/fake/profile2/Cookies',
+      ])
+      const existsSyncSpy = spyOn(
+        await import('node:fs'),
+        'existsSync',
+      ).mockReturnValue(true)
+      const copyAndExtractSpy = spyOn(linuxExtractor as any, 'copyAndExtract').mockResolvedValue(mockCookies)
+
+      const result = await linuxExtractor.extract()
+      expect(result).toHaveLength(1)
+      expect(result[0]?.ds_user_id).toBe('12345678')
+
+      getBrowserCookiesPathsSpy.mockRestore()
+      existsSyncSpy.mockRestore()
+      copyAndExtractSpy.mockRestore()
+    })
   })
 
   describe('copyAndExtract', () => {
@@ -277,6 +339,46 @@ describe('InstagramTokenExtractor', () => {
 
         const result = (extractor as any).decryptAESGCM(fakeEncrypted, key)
         expect(result).toBeNull()
+      })
+    })
+
+    describe('decryptAESCBC', () => {
+      test('strips 32-byte non-printable integrity hash prefix (Chromium v130+)', () => {
+        // given — AES-128-CBC encrypted buffer where decrypted result has a 32-byte non-printable prefix
+        const { createCipheriv, pbkdf2Sync } = require('node:crypto')
+        const key = pbkdf2Sync('peanuts', 'saltysalt', 1, 16, 'sha1')
+        const iv = Buffer.alloc(16, 0x20)
+        const actualValue = 'test-session-id-value-for-hash-stripping'
+        const prefix = Buffer.alloc(32, 0x01) // 32 bytes of non-printable (0x01 < 0x20)
+        const plaintext = Buffer.concat([prefix, Buffer.from(actualValue)])
+
+        const cipher = createCipheriv('aes-128-cbc', key, iv)
+        const ciphertext = Buffer.concat([cipher.update(plaintext), cipher.final()])
+        const encrypted = Buffer.concat([Buffer.from('v10'), ciphertext])
+
+        // when
+        const result = (extractor as any).decryptAESCBC(encrypted, key)
+
+        // then
+        expect(result).toBe(actualValue)
+      })
+
+      test('returns plaintext as-is when no non-printable prefix detected', () => {
+        // given — AES-128-CBC encrypted buffer without integrity hash prefix
+        const { createCipheriv, pbkdf2Sync } = require('node:crypto')
+        const key = pbkdf2Sync('peanuts', 'saltysalt', 1, 16, 'sha1')
+        const iv = Buffer.alloc(16, 0x20)
+        const plainValue = 'normal-cookie-value-no-prefix'
+
+        const cipher = createCipheriv('aes-128-cbc', key, iv)
+        const ciphertext = Buffer.concat([cipher.update(plainValue, 'utf8'), cipher.final()])
+        const encrypted = Buffer.concat([Buffer.from('v10'), ciphertext])
+
+        // when
+        const result = (extractor as any).decryptAESCBC(encrypted, key)
+
+        // then
+        expect(result).toBe(plainValue)
       })
     })
 
