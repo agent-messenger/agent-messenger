@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, expect, mock, spyOn, test } from 'bun:test'
+import { afterEach, beforeEach, expect, spyOn, test } from 'bun:test'
 
 import { WebexClient } from '../client'
 import { WebexError } from '../types'
@@ -11,8 +11,9 @@ let clientGetMessageSpy: ReturnType<typeof spyOn>
 let clientDeleteMessageSpy: ReturnType<typeof spyOn>
 let clientEditMessageSpy: ReturnType<typeof spyOn>
 let clientLoginSpy: ReturnType<typeof spyOn>
-const originalConsoleLog = console.log
-const originalConsoleError = console.error
+let consoleLogSpy: ReturnType<typeof spyOn>
+let consoleErrorSpy: ReturnType<typeof spyOn>
+let processExitSpy: ReturnType<typeof spyOn>
 
 const mockMessage = {
   id: 'msg_123',
@@ -35,6 +36,12 @@ const mockMessage2 = {
 }
 
 beforeEach(() => {
+  consoleLogSpy = spyOn(console, 'log').mockImplementation(() => {})
+  consoleErrorSpy = spyOn(console, 'error').mockImplementation(() => {})
+  processExitSpy = spyOn(process, 'exit').mockImplementation((_code?: number) => {
+    throw new Error(`process.exit(${_code})`)
+  })
+
   clientLoginSpy = spyOn(WebexClient.prototype, 'login').mockResolvedValue(new WebexClient() as any)
 
   clientSendMessageSpy = spyOn(WebexClient.prototype, 'sendMessage').mockResolvedValue(mockMessage)
@@ -59,44 +66,41 @@ beforeEach(() => {
 })
 
 afterEach(() => {
-  clientLoginSpy?.mockRestore()
-  clientSendMessageSpy?.mockRestore()
-  clientSendDirectMessageSpy?.mockRestore()
-  clientListMessagesSpy?.mockRestore()
-  clientGetMessageSpy?.mockRestore()
-  clientDeleteMessageSpy?.mockRestore()
-  clientEditMessageSpy?.mockRestore()
-  console.log = originalConsoleLog
-  console.error = originalConsoleError
+  consoleLogSpy.mockRestore()
+  consoleErrorSpy.mockRestore()
+  processExitSpy.mockRestore()
+  clientLoginSpy.mockRestore()
+  clientSendMessageSpy.mockRestore()
+  clientSendDirectMessageSpy.mockRestore()
+  clientListMessagesSpy.mockRestore()
+  clientGetMessageSpy.mockRestore()
+  clientDeleteMessageSpy.mockRestore()
+  clientEditMessageSpy.mockRestore()
 })
 
 test('send: calls sendMessage with correct args and outputs result', async () => {
-  const consoleSpy = mock((_msg: string) => {})
-  console.log = consoleSpy
-
   await sendAction('space_456', 'Hello world', { pretty: false })
 
   expect(clientSendMessageSpy).toHaveBeenCalledWith('space_456', 'Hello world', {
     markdown: undefined,
   })
-  expect(consoleSpy).toHaveBeenCalled()
-  const output = consoleSpy.mock.calls[0][0]
+  expect(consoleLogSpy).toHaveBeenCalled()
+  const output = consoleLogSpy.mock.calls[0][0]
   expect(output).toContain('msg_123')
   expect(output).toContain('space_456')
   expect(output).toContain('user@example.com')
 })
 
 test('send: with --markdown passes markdown option', async () => {
-  const consoleSpy = mock((_msg: string) => {})
-  console.log = consoleSpy
-
   await sendAction('space_456', '**bold**', { markdown: true, pretty: false })
 
   expect(clientSendMessageSpy).toHaveBeenCalledWith('space_456', '**bold**', { markdown: true })
 })
 
 test('send: not authenticated shows error', async () => {
-  clientLoginSpy.mockRejectedValue(new WebexError('No Webex credentials found.', 'no_credentials'))
+  clientLoginSpy.mockImplementation(async () => {
+    throw new WebexError('No Webex credentials found.', 'no_credentials')
+  })
 
   let stderrOutput = ''
   const origWrite = process.stderr.write
@@ -105,40 +109,29 @@ test('send: not authenticated shows error', async () => {
     return true
   }) as typeof process.stderr.write
 
-  const originalExit = process.exit
-  process.exit = mock((_code?: number) => {
-    throw new Error('process.exit called')
-  }) as never
-
   try {
     await sendAction('space_456', 'Hello', { pretty: false })
   } catch {
   } finally {
-    process.exit = originalExit
     process.stderr.write = origWrite
   }
 
+  expect(processExitSpy).toHaveBeenCalledWith(1)
   expect(stderrOutput).toContain('No Webex credentials found')
 })
 
 test('dm: calls sendDirectMessage with email and text', async () => {
-  const consoleSpy = mock((_msg: string) => {})
-  console.log = consoleSpy
-
   await dmAction('alice@example.com', 'Hello!', { pretty: false })
 
   expect(clientSendDirectMessageSpy).toHaveBeenCalledWith('alice@example.com', 'Hello!', {
     markdown: undefined,
   })
-  expect(consoleSpy).toHaveBeenCalled()
-  const output = consoleSpy.mock.calls[0][0]
+  expect(consoleLogSpy).toHaveBeenCalled()
+  const output = consoleLogSpy.mock.calls[0][0]
   expect(output).toContain('msg_123')
 })
 
 test('dm: with --markdown passes markdown option', async () => {
-  const consoleSpy = mock((_msg: string) => {})
-  console.log = consoleSpy
-
   await dmAction('alice@example.com', '**bold**', { markdown: true, pretty: false })
 
   expect(clientSendDirectMessageSpy).toHaveBeenCalledWith('alice@example.com', '**bold**', {
@@ -147,86 +140,60 @@ test('dm: with --markdown passes markdown option', async () => {
 })
 
 test('list: calls listMessages with limit and outputs array', async () => {
-  const consoleSpy = mock((_msg: string) => {})
-  console.log = consoleSpy
-
   await listAction('space_456', { limit: 50, pretty: false })
 
   expect(clientListMessagesSpy).toHaveBeenCalledWith('space_456', { max: 50 })
-  expect(consoleSpy).toHaveBeenCalled()
-  const output = consoleSpy.mock.calls[0][0]
+  expect(consoleLogSpy).toHaveBeenCalled()
+  const output = consoleLogSpy.mock.calls[0][0]
   expect(output).toContain('msg_123')
   expect(output).toContain('msg_124')
 })
 
 test('get: calls getMessage with correct id and outputs result', async () => {
-  const consoleSpy = mock((_msg: string) => {})
-  console.log = consoleSpy
-
   await getAction('msg_123', { pretty: false })
 
   expect(clientGetMessageSpy).toHaveBeenCalledWith('msg_123')
-  expect(consoleSpy).toHaveBeenCalled()
-  const output = consoleSpy.mock.calls[0][0]
+  expect(consoleLogSpy).toHaveBeenCalled()
+  const output = consoleLogSpy.mock.calls[0][0]
   expect(output).toContain('msg_123')
   expect(output).toContain('user@example.com')
 })
 
 test('delete: with --force calls deleteMessage and outputs deleted id', async () => {
-  const consoleSpy = mock((_msg: string) => {})
-  console.log = consoleSpy
-
   await deleteAction('msg_123', { force: true, pretty: false })
 
   expect(clientDeleteMessageSpy).toHaveBeenCalledWith('msg_123')
-  expect(consoleSpy).toHaveBeenCalled()
-  const output = consoleSpy.mock.calls[0][0]
+  expect(consoleLogSpy).toHaveBeenCalled()
+  const output = consoleLogSpy.mock.calls[0][0]
   expect(output).toContain('deleted')
   expect(output).toContain('msg_123')
 })
 
 test('delete: without --force shows warning and does not delete', async () => {
-  const consoleSpy = mock((_msg: string) => {})
-  console.log = consoleSpy
-
-  const originalExit = process.exit
-  process.exit = mock((_code?: number) => {
-    throw new Error('process.exit called')
-  }) as never
-
   try {
     await deleteAction('msg_123', { force: false, pretty: false })
-  } catch {
-  } finally {
-    process.exit = originalExit
-  }
+  } catch {}
 
   expect(clientDeleteMessageSpy).not.toHaveBeenCalled()
-  expect(consoleSpy).toHaveBeenCalled()
-  const output = consoleSpy.mock.calls[0][0]
+  expect(consoleLogSpy).toHaveBeenCalled()
+  const output = consoleLogSpy.mock.calls[0][0]
   expect(output).toContain('warning')
   expect(output).toContain('--force')
 })
 
 test('edit: calls editMessage with roomId in args and outputs result', async () => {
-  const consoleSpy = mock((_msg: string) => {})
-  console.log = consoleSpy
-
   await editAction('msg_123', 'space_456', 'Updated message', { pretty: false })
 
   expect(clientEditMessageSpy).toHaveBeenCalledWith('msg_123', 'space_456', 'Updated message', {
     markdown: undefined,
   })
-  expect(consoleSpy).toHaveBeenCalled()
-  const output = consoleSpy.mock.calls[0][0]
+  expect(consoleLogSpy).toHaveBeenCalled()
+  const output = consoleLogSpy.mock.calls[0][0]
   expect(output).toContain('msg_123')
   expect(output).toContain('Updated message')
 })
 
 test('edit: with --markdown passes markdown option', async () => {
-  const consoleSpy = mock((_msg: string) => {})
-  console.log = consoleSpy
-
   await editAction('msg_123', 'space_456', '**updated**', { markdown: true, pretty: false })
 
   expect(clientEditMessageSpy).toHaveBeenCalledWith('msg_123', 'space_456', '**updated**', {

@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, mock, spyOn, test } from 'bun:test'
+import { afterEach, beforeEach, describe, expect, spyOn, test } from 'bun:test'
 
 import { WebexClient } from '../client'
 import { WebexError } from '../types'
@@ -8,6 +8,8 @@ describe('member commands', () => {
   let consoleSpy: ReturnType<typeof spyOn>
   let consoleErrorSpy: ReturnType<typeof spyOn>
   let processExitSpy: ReturnType<typeof spyOn>
+  let clientLoginSpy: ReturnType<typeof spyOn>
+  let clientListMembershipsSpy: ReturnType<typeof spyOn>
   let stderrOutput: string
   let origStderrWrite: typeof process.stderr.write
   const mockMembers = [
@@ -43,13 +45,17 @@ describe('member commands', () => {
       stderrOutput += typeof chunk === 'string' ? chunk : new TextDecoder().decode(chunk)
       return true
     }) as typeof process.stderr.write
-    spyOn(WebexClient.prototype, 'login').mockResolvedValue(new WebexClient() as any)
-    spyOn(WebexClient.prototype, 'listMemberships').mockResolvedValue(mockMembers)
+    clientLoginSpy = spyOn(WebexClient.prototype, 'login').mockResolvedValue(new WebexClient() as any)
+    clientListMembershipsSpy = spyOn(WebexClient.prototype, 'listMemberships').mockResolvedValue(mockMembers)
   })
 
   afterEach(() => {
     process.stderr.write = origStderrWrite
-    mock.restore()
+    consoleSpy.mockRestore()
+    consoleErrorSpy.mockRestore()
+    processExitSpy.mockRestore()
+    clientLoginSpy.mockRestore()
+    clientListMembershipsSpy.mockRestore()
   })
 
   test('listAction calls listMemberships with spaceId and outputs mapped members', async () => {
@@ -80,6 +86,8 @@ describe('member commands', () => {
         },
       ]),
     )
+
+    listMembershipsSpy.mockRestore()
   })
 
   test('listAction passes limit option to listMemberships', async () => {
@@ -90,22 +98,31 @@ describe('member commands', () => {
     await listAction('room-1', { limit: 25 })
 
     expect(listMembershipsSpy).toHaveBeenCalledWith('room-1', { max: 25 })
+
+    listMembershipsSpy.mockRestore()
   })
 
   test('listAction handles not-authenticated case', async () => {
-    spyOn(WebexClient.prototype, 'login').mockRejectedValue(
-      new WebexError('No Webex credentials found.', 'no_credentials'),
-    )
+    clientLoginSpy.mockImplementation(async () => {
+      throw new WebexError('No Webex credentials found.', 'no_credentials')
+    })
 
-    await expect(listAction('room-1', {})).rejects.toThrow('process.exit(1)')
+    try {
+      await listAction('room-1', {})
+    } catch {}
 
+    expect(processExitSpy).toHaveBeenCalledWith(1)
     expect(stderrOutput).toContain('No Webex credentials found')
   })
 
   test('listAction handles API error', async () => {
-    spyOn(WebexClient.prototype, 'listMemberships').mockRejectedValue(new Error('API failure'))
+    clientListMembershipsSpy.mockImplementation(async () => {
+      throw new Error('API failure')
+    })
 
-    await expect(listAction('room-1', {})).rejects.toThrow('process.exit(1)')
+    try {
+      await listAction('room-1', {})
+    } catch {}
 
     expect(processExitSpy).toHaveBeenCalledWith(1)
   })

@@ -71,12 +71,12 @@ beforeEach(() => {
 
 afterEach(() => {
   process.stderr.write = origStderrWrite
-  clientLoginSpy?.mockRestore()
-  clientListSpacesSpy?.mockRestore()
-  clientGetSpaceSpy?.mockRestore()
-  consoleLogSpy?.mockRestore()
-  consoleErrorSpy?.mockRestore()
-  processExitSpy?.mockRestore()
+  clientLoginSpy.mockRestore()
+  clientListSpacesSpy.mockRestore()
+  clientGetSpaceSpy.mockRestore()
+  consoleLogSpy.mockRestore()
+  consoleErrorSpy.mockRestore()
+  processExitSpy.mockRestore()
 })
 
 describe('listAction', () => {
@@ -144,11 +144,16 @@ describe('listAction', () => {
   })
 
   test('not authenticated: outputs error and exits', async () => {
-    clientLoginSpy.mockRejectedValue(new WebexError('No Webex credentials found.', 'no_credentials'))
+    clientLoginSpy.mockImplementation(async () => {
+      throw new WebexError('No Webex credentials found.', 'no_credentials')
+    })
 
-    await expect(listAction({})).rejects.toThrow('process.exit(1)')
+    try {
+      await listAction({})
+    } catch {}
 
     expect(clientListSpacesSpy).not.toHaveBeenCalled()
+    expect(processExitSpy).toHaveBeenCalledWith(1)
     expect(stderrOutput).toContain('No Webex credentials found')
   })
 })
@@ -206,11 +211,16 @@ describe('infoAction', () => {
   })
 
   test('not authenticated: outputs error and exits', async () => {
-    clientLoginSpy.mockRejectedValue(new WebexError('No Webex credentials found.', 'no_credentials'))
+    clientLoginSpy.mockImplementation(async () => {
+      throw new WebexError('No Webex credentials found.', 'no_credentials')
+    })
 
-    await expect(infoAction('space-1', {})).rejects.toThrow('process.exit(1)')
+    try {
+      await infoAction('space-1', {})
+    } catch {}
 
     expect(clientGetSpaceSpy).not.toHaveBeenCalled()
+    expect(processExitSpy).toHaveBeenCalledWith(1)
     expect(stderrOutput).toContain('No Webex credentials found')
   })
 })

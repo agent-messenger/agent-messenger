@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, mock, spyOn, test } from 'bun:test'
+import { afterEach, beforeEach, describe, expect, spyOn, test } from 'bun:test'
 import { WebexClient } from '../client'
 import { WebexError } from '../types'
 import { snapshotAction } from './snapshot'
@@ -6,6 +6,11 @@ import { snapshotAction } from './snapshot'
 describe('snapshot command', () => {
   let consoleSpy: ReturnType<typeof spyOn>
   let consoleErrorSpy: ReturnType<typeof spyOn>
+  let processExitSpy: ReturnType<typeof spyOn>
+  let clientLoginSpy: ReturnType<typeof spyOn>
+  let clientListSpacesSpy: ReturnType<typeof spyOn>
+  let clientListMessagesSpy: ReturnType<typeof spyOn>
+  let clientListMembershipsSpy: ReturnType<typeof spyOn>
   let stderrOutput: string
   let origStderrWrite: typeof process.stderr.write
 
@@ -24,21 +29,30 @@ describe('snapshot command', () => {
   beforeEach(() => {
     consoleSpy = spyOn(console, 'log').mockImplementation(() => {})
     consoleErrorSpy = spyOn(console, 'error').mockImplementation(() => {})
+    processExitSpy = spyOn(process, 'exit').mockImplementation((_code?: number) => {
+      throw new Error(`process.exit(${_code})`)
+    })
     stderrOutput = ''
     origStderrWrite = process.stderr.write
     process.stderr.write = ((chunk: string | Uint8Array) => {
       stderrOutput += typeof chunk === 'string' ? chunk : new TextDecoder().decode(chunk)
       return true
     }) as typeof process.stderr.write
-    spyOn(WebexClient.prototype, 'login').mockResolvedValue(new WebexClient() as any)
-    spyOn(WebexClient.prototype, 'listSpaces').mockResolvedValue(mockSpaces as any)
-    spyOn(WebexClient.prototype, 'listMessages').mockResolvedValue(mockMessages as any)
-    spyOn(WebexClient.prototype, 'listMemberships').mockResolvedValue(mockMembers as any)
+    clientLoginSpy = spyOn(WebexClient.prototype, 'login').mockResolvedValue(new WebexClient() as any)
+    clientListSpacesSpy = spyOn(WebexClient.prototype, 'listSpaces').mockResolvedValue(mockSpaces as any)
+    clientListMessagesSpy = spyOn(WebexClient.prototype, 'listMessages').mockResolvedValue(mockMessages as any)
+    clientListMembershipsSpy = spyOn(WebexClient.prototype, 'listMemberships').mockResolvedValue(mockMembers as any)
   })
 
   afterEach(() => {
     process.stderr.write = origStderrWrite
-    mock.restore()
+    consoleSpy.mockRestore()
+    consoleErrorSpy.mockRestore()
+    processExitSpy.mockRestore()
+    clientLoginSpy.mockRestore()
+    clientListSpacesSpy.mockRestore()
+    clientListMessagesSpy.mockRestore()
+    clientListMembershipsSpy.mockRestore()
   })
 
   test('full snapshot includes spaces, recent_messages, members', async () => {
@@ -78,20 +92,15 @@ describe('snapshot command', () => {
   })
 
   test('not authenticated outputs error', async () => {
-    spyOn(WebexClient.prototype, 'login').mockRejectedValue(
-      new WebexError('No Webex credentials found.', 'no_credentials'),
-    )
-
-    const originalExit = process.exit
-    process.exit = mock((_code?: number) => { throw new Error('process.exit called') }) as never
+    clientLoginSpy.mockImplementation(async () => {
+      throw new WebexError('No Webex credentials found.', 'no_credentials')
+    })
 
     try {
       await snapshotAction({})
-    } catch {
-    } finally {
-      process.exit = originalExit
-    }
+    } catch {}
 
+    expect(processExitSpy).toHaveBeenCalledWith(1)
     expect(stderrOutput).toContain('No Webex credentials found')
   })
 
@@ -101,5 +110,7 @@ describe('snapshot command', () => {
     await snapshotAction({ limit: 5 })
 
     expect(listMessagesSpy).toHaveBeenCalledWith('space-1', { max: 5 })
+
+    listMessagesSpy.mockRestore()
   })
 })
