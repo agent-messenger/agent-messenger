@@ -20,14 +20,24 @@ Before running E2E tests, you need:
 
 ## Test Infrastructure
 
-| File                   | Description                                        |
-| ---------------------- | -------------------------------------------------- |
-| `config.ts`            | Hardcoded test workspace/server IDs and validation |
-| `helpers.ts`           | CLI runner, JSON parser, message cleanup utilities |
-| `slack.e2e.test.ts`    | Slack command tests                                |
-| `slackbot.e2e.test.ts` | SlackBot command tests                             |
-| `discord.e2e.test.ts`  | Discord command tests                              |
-| `teams.e2e.test.ts`    | Teams command tests                                |
+| File                      | Description                                        |
+| ------------------------- | -------------------------------------------------- |
+| `config.ts`               | Hardcoded test workspace/server IDs and validation |
+| `helpers.ts`              | CLI runner, JSON parser, message cleanup utilities |
+| `slack.e2e.test.ts`       | Slack command tests                                |
+| `slackbot.e2e.test.ts`    | SlackBot command tests                             |
+| `discord.e2e.test.ts`     | Discord command tests                              |
+| `discordbot.e2e.test.ts`  | DiscordBot command tests                           |
+| `teams.e2e.test.ts`       | Teams command tests                                |
+| `webex.e2e.test.ts`       | Webex command tests                                |
+| `telegram.e2e.test.ts`    | Telegram command tests                             |
+| `whatsapp.e2e.test.ts`    | WhatsApp command tests                             |
+| `whatsappbot.e2e.test.ts` | WhatsApp Bot command tests                         |
+| `line.e2e.test.ts`        | LINE command tests                                 |
+| `instagram.e2e.test.ts`   | Instagram command tests                            |
+| `kakaotalk.e2e.test.ts`   | KakaoTalk command tests                            |
+| `channeltalk.e2e.test.ts` | Channel Talk command tests                         |
+| `channeltalkbot.e2e.test.ts` | Channel Talk Bot command tests                  |
 
 ## Running E2E Tests Locally
 
@@ -210,6 +220,120 @@ When triggering manually, you can select which platform to test:
 | `snapshot`    | default, --channels-only, --users-only |
 
 > ⚠️ Teams tests require `E2E_TEAMS_TEAM_ID` and `E2E_TEAMS_CHANNEL_ID` environment variables. Teams tokens expire in 60-90 minutes.
+
+### DiscordBot Tests
+
+| Command Group | Tests                                            |
+| ------------- | ------------------------------------------------ |
+| `auth`        | status                                           |
+| `message`     | send, list, get, update, delete, thread, replies |
+| `channel`     | list, info                                       |
+| `user`        | list, info                                       |
+| `reaction`    | add, remove                                      |
+| `server`      | list, current                                    |
+
+### Webex Tests
+
+| Command Group | Tests                                        |
+| ------------- | -------------------------------------------- |
+| `auth`        | status                                       |
+| `message`     | send, list, get, delete, edit                |
+| `space`       | list, info                                   |
+| `member`      | list                                         |
+| `snapshot`    | default, --spaces-only, --members-only       |
+
+> ⚠️ Webex tests require `E2E_WEBEX_SPACE_ID`. Optionally set `E2E_WEBEX_DM_EMAIL` for DM tests.
+
+### Telegram Tests
+
+| Command Group | Tests                |
+| ------------- | -------------------- |
+| `auth`        | status, list         |
+| `chat`        | list, search, get    |
+| `message`     | send, list           |
+
+> ⚠️ Telegram tests require `E2E_TELEGRAM_CHAT_ID`.
+
+### WhatsApp Tests
+
+| Command Group | Tests                |
+| ------------- | -------------------- |
+| `auth`        | status, list         |
+| `chat`        | list, search         |
+| `message`     | send, list, react    |
+
+> ⚠️ WhatsApp tests require `E2E_WHATSAPP_CHAT_ID`.
+
+### WhatsApp Bot Tests
+
+| Command Group | Tests                |
+| ------------- | -------------------- |
+| `auth`        | status, list         |
+| `message`     | send                 |
+| `template`    | list, get            |
+
+> ⚠️ WhatsApp Bot tests require `E2E_WHATSAPPBOT_PHONE_NUMBER`.
+
+### LINE Tests
+
+| Command Group | Tests                |
+| ------------- | -------------------- |
+| `auth`        | status, list         |
+| `chat`        | list                 |
+| `friend`      | list                 |
+| `message`     | send, list           |
+| `profile`     | (top-level command)  |
+
+> ⚠️ LINE tests require `E2E_LINE_CHAT_ID`.
+
+### Instagram Tests
+
+| Command Group | Tests                                   |
+| ------------- | --------------------------------------- |
+| `auth`        | status, list                            |
+| `chat`        | list, search                            |
+| `message`     | send, list, send-to\*, search, search-users |
+
+\* `message send-to` requires `E2E_INSTAGRAM_USERNAME` to be set.
+
+> ⚠️ Instagram tests require `E2E_INSTAGRAM_THREAD_ID`. Optionally set `E2E_INSTAGRAM_USERNAME` for send-to tests.
+
+### KakaoTalk Tests
+
+| Command Group | Tests                |
+| ------------- | -------------------- |
+| `auth`        | status, list         |
+| `chat`        | list, list --search  |
+| `message`     | send, list           |
+
+> ⚠️ KakaoTalk tests require `E2E_KAKAOTALK_CHAT_ID`.
+
+### Channel Talk Tests
+
+| Command Group | Tests                             |
+| ------------- | --------------------------------- |
+| `auth`        | status, list                      |
+| `group`       | list, get, messages               |
+| `message`     | send, list, get                   |
+| `chat`        | list                              |
+| `manager`     | list                              |
+| `bot`         | list                              |
+| `snapshot`    | default                           |
+
+> ⚠️ Channel Talk tests require `E2E_CHANNEL_WORKSPACE_ID`.
+
+### Channel Talk Bot Tests
+
+| Command Group | Tests                             |
+| ------------- | --------------------------------- |
+| `auth`        | status                            |
+| `group`       | list, get (by id), get (by @name), messages |
+| `message`     | send, list, get                   |
+| `manager`     | list, get                         |
+| `bot`         | list                              |
+| `snapshot`    | default                           |
+
+> ⚠️ Channel Talk Bot tests require `E2E_CHANNELBOT_WORKSPACE_ID`.
 
 ## Troubleshooting
 

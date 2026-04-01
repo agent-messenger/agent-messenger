@@ -13,6 +13,13 @@ export async function runCLI(platform: string, args: string[]): Promise<CLIResul
     teams: 'agent-teams',
     channeltalkbot: 'agent-channeltalkbot',
     channeltalk: 'agent-channeltalk',
+    webex: 'agent-webex',
+    telegram: 'agent-telegram',
+    whatsapp: 'agent-whatsapp',
+    whatsappbot: 'agent-whatsappbot',
+    line: 'agent-line',
+    instagram: 'agent-instagram',
+    kakaotalk: 'agent-kakaotalk',
   }
   const command = commandMap[platform] || platform
 
