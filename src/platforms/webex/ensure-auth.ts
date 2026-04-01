@@ -31,6 +31,10 @@ export async function ensureWebexAuth(): Promise<void> {
       expiresAt: extracted.expiresAt ?? 0,
       tokenType: 'extracted',
       deviceUrl: extracted.deviceUrl,
+      userId: extracted.userId,
+      encryptionKeys: extracted.encryptionKeys
+        ? Object.fromEntries(extracted.encryptionKeys)
+        : undefined,
     })
   } catch {
     // Intentionally silent — best-effort preflight that should not block commands

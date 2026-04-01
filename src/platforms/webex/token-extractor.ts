@@ -17,6 +17,8 @@ export interface ExtractedWebexToken {
   refreshToken?: string
   expiresAt?: number
   deviceUrl?: string
+  userId?: string
+  encryptionKeys?: Map<string, string>
 }
 
 interface BrowserConfig {
@@ -174,6 +176,13 @@ export class WebexTokenExtractor {
 
       if (token) {
         this.debug(`Found token in: ${leveldbDir}`)
+
+        const encryptionKeys = await this.extractEncryptionKeysViaClassicLevelCopy(leveldbDir)
+          ?? this.extractEncryptionKeysFromRawFiles(leveldbDir)
+        if (encryptionKeys && encryptionKeys.size > 0) {
+          token.encryptionKeys = encryptionKeys
+        }
+
         return token
       }
     }
@@ -385,9 +394,153 @@ export class WebexTokenExtractor {
         result.deviceUrl = deviceUrl
       }
 
+      const userId = data?.Device?.['@']?.userId ?? null
+      if (userId && typeof userId === 'string') {
+        result.userId = userId
+      }
+
       return result
     } catch {
       return null
     }
+  }
+
+  private async extractEncryptionKeysViaClassicLevelCopy(
+    dbPath: string,
+  ): Promise<Map<string, string> | null> {
+    const tempDir = join(
+      tmpdir(),
+      `webex-leveldb-enc-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+    )
+
+    try {
+      mkdirSync(tempDir, { recursive: true })
+
+      const files = readdirSync(dbPath)
+      for (const file of files) {
+        if (file === 'LOCK') continue
+        const src = join(dbPath, file)
+        try {
+          if (statSync(src).isFile()) {
+            copyFileSync(src, join(tempDir, file))
+          }
+        } catch {}
+      }
+
+      return await this.extractEncryptionKeysViaClassicLevel(tempDir)
+    } catch {
+      return null
+    } finally {
+      try {
+        rmSync(tempDir, { recursive: true, force: true })
+      } catch {}
+    }
+  }
+
+  private async extractEncryptionKeysViaClassicLevel(
+    dbPath: string,
+  ): Promise<Map<string, string> | null> {
+    let db: ClassicLevel<string, Buffer> | null = null
+    const keys = new Map<string, string>()
+
+    try {
+      db = new ClassicLevel(dbPath, { keyEncoding: 'utf8', valueEncoding: 'buffer' })
+
+      for await (const [key, value] of db.iterator()) {
+        if (!key.includes('web.webex.com')) continue
+
+        const decoded = this.decodeLevelDBValue(value)
+        if (!decoded.includes('"Encryption"') || !decoded.includes('kms://')) continue
+
+        const found = this.extractEncryptionKeysFromString(decoded)
+        for (const [uri, keyStr] of found) {
+          keys.set(uri, keyStr)
+        }
+      }
+    } catch (e) {
+      this.debug(`ClassicLevel encryption keys failed: ${e instanceof Error ? e.message : String(e)}`)
+    } finally {
+      if (db) {
+        try {
+          await db.close()
+        } catch {}
+      }
+    }
+
+    return keys.size > 0 ? keys : null
+  }
+
+  private extractEncryptionKeysFromRawFiles(leveldbDir: string): Map<string, string> | null {
+    const keys = new Map<string, string>()
+
+    try {
+      const files = readdirSync(leveldbDir)
+      const sorted = [...files]
+        .filter((f) => f.endsWith('.log') || f.endsWith('.ldb'))
+        .sort((a, b) => {
+          const aIsLog = a.endsWith('.log') ? 0 : 1
+          const bIsLog = b.endsWith('.log') ? 0 : 1
+          if (aIsLog !== bIsLog) return aIsLog - bIsLog
+          try {
+            return statSync(join(leveldbDir, b)).mtimeMs - statSync(join(leveldbDir, a)).mtimeMs
+          } catch {
+            return 0
+          }
+        })
+
+      for (const file of sorted) {
+        const found = this.extractEncryptionKeysFromFile(join(leveldbDir, file))
+        for (const [uri, keyStr] of found) {
+          keys.set(uri, keyStr)
+        }
+      }
+    } catch {
+      this.debug(`Failed to read directory for encryption keys: ${leveldbDir}`)
+    }
+
+    return keys.size > 0 ? keys : null
+  }
+
+  private extractEncryptionKeysFromFile(filePath: string): Map<string, string> {
+    try {
+      const stat = statSync(filePath)
+      if (stat.size > 50 * 1024 * 1024) return new Map()
+
+      const buffer = readFileSync(filePath)
+      const fromUtf8 = this.extractEncryptionKeysFromString(buffer.toString('utf8'))
+      if (fromUtf8.size > 0) return fromUtf8
+      return this.extractEncryptionKeysFromString(this.stripNullBytes(buffer))
+    } catch {
+      return new Map()
+    }
+  }
+
+  private extractEncryptionKeysFromString(content: string): Map<string, string> {
+    const keys = new Map<string, string>()
+
+    if (!content.includes('"Encryption"') || !content.includes('kms://')) {
+      return keys
+    }
+
+    // Values in the Encryption map are double-encoded: a kms:// URI key maps to a
+    // JSON string whose content is the serialized key object {"uri":..., "jwk":{...}}.
+    // Pattern: "kms://..." : "{\"uri\":...,\"jwk\":{...}}"
+    const kmsPattern = /"(kms:\/\/[^"]+)"\s*:\s*("(?:[^"\\]|\\.)*")/g
+    let match: RegExpExecArray | null
+
+    while ((match = kmsPattern.exec(content)) !== null) {
+      const uri = match[1]!
+      const rawValue = match[2]!
+      try {
+        const innerStr = JSON.parse(rawValue) as unknown
+        if (typeof innerStr !== 'string') continue
+        const keyObj = JSON.parse(innerStr) as Record<string, unknown>
+        if (keyObj?.jwk) {
+          keys.set(uri, innerStr)
+        }
+      } catch {}
+    }
+
+    return keys
   }
 }

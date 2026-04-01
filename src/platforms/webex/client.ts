@@ -1,6 +1,7 @@
 import type { WebexMembership, WebexMessage, WebexPerson, WebexSpace } from './types'
 import { WebexError } from './types'
 import { WebexCredentialManager } from './credential-manager'
+import { WebexEncryptionService } from './encryption'
 
 const BASE_URL = 'https://webexapis.com/v1'
 const MAX_RETRIES = 3
@@ -17,6 +18,7 @@ export class WebexClient {
   private tokenType: string | null = null
   private buckets: Map<string, RateLimitBucket> = new Map()
   private globalRateLimitUntil: number = 0
+  private encryption: WebexEncryptionService | null = null
 
   async login(credentials?: { token: string }): Promise<this> {
     if (credentials) {
@@ -40,7 +42,16 @@ export class WebexClient {
     }
     this.deviceUrl = config?.deviceUrl ?? null
     this.tokenType = config?.tokenType ?? null
-    return this.login({ token })
+    await this.login({ token })
+
+    if (this.tokenType === 'extracted' && config?.encryptionKeys) {
+      const keysMap = new Map(Object.entries(config.encryptionKeys))
+      if (keysMap.size > 0) {
+        this.encryption = new WebexEncryptionService(keysMap)
+      }
+    }
+
+    return this
   }
 
   private ensureAuth(): string {
@@ -210,7 +221,7 @@ export class WebexClient {
   private async internalRequest<T>(path: string, init?: RequestInit): Promise<T> {
     const response = await fetch(`${this.convBaseUrl}${path}`, {
       ...init,
-      headers: { ...this.internalHeaders, ...init?.headers as Record<string, string> },
+      headers: { ...this.internalHeaders, ...(init?.headers as Record<string, string>) },
     })
 
     if (!response.ok) {
@@ -225,12 +236,24 @@ export class WebexClient {
     return response.json() as Promise<T>
   }
 
-  private activityToMessage(a: InternalActivity, roomId: string): WebexMessage {
+  private async activityToMessage(a: InternalActivity, roomId: string): Promise<WebexMessage> {
+    let text = a.object?.content ?? a.object?.displayName
+
+    if (this.encryption && text?.startsWith('eyJ')) {
+      const keyUrl = a.encryptionKeyUrl ?? a.object?.encryptionKeyUrl
+      if (keyUrl) {
+        const decrypted = await this.encryption.decryptText(keyUrl, text)
+        if (decrypted !== null) {
+          text = decrypted
+        }
+      }
+    }
+
     return {
       id: a.id,
       roomId,
       roomType: 'group' as const,
-      text: a.object?.content ?? a.object?.displayName,
+      text,
       personId: a.actor?.entryUUID ?? a.actor?.id ?? '',
       personEmail: a.actor?.emailAddress ?? '',
       created: a.published,
@@ -243,17 +266,42 @@ export class WebexClient {
     options?: { markdown?: boolean },
   ): Promise<WebexMessage> {
     const convUuid = this.decodeConvUuid(roomId)
-    const object = options?.markdown
+
+    let object: Record<string, string> = options?.markdown
       ? { objectType: 'comment', displayName: text, content: text, markdown: text }
       : { objectType: 'comment', displayName: text, content: text }
+    let encryptionKeyUrl: string | undefined
+
+    if (this.encryption) {
+      const conv = await this.internalRequest<InternalConversation>(
+        `/conversations/${convUuid}?activitiesLimit=0&participantsLimit=0`,
+      )
+      const keyUri = conv.defaultActivityEncryptionKeyUrl
+      if (keyUri) {
+        const encrypted = await this.encryption.encryptText(keyUri, text)
+        if (encrypted) {
+          object = options?.markdown
+            ? { objectType: 'comment', displayName: encrypted, content: encrypted, markdown: encrypted }
+            : { objectType: 'comment', displayName: encrypted, content: encrypted }
+          encryptionKeyUrl = keyUri
+        }
+      }
+    }
+
+    const activity: Record<string, unknown> = {
+      verb: 'post',
+      object,
+      target: { id: convUuid, objectType: 'conversation' },
+      clientTempId: `tmp-${Date.now()}`,
+    }
+
+    if (encryptionKeyUrl) {
+      activity['encryptionKeyUrl'] = encryptionKeyUrl
+    }
+
     const result = await this.internalRequest<InternalActivity>('/activities', {
       method: 'POST',
-      body: JSON.stringify({
-        verb: 'post',
-        object,
-        target: { id: convUuid, objectType: 'conversation' },
-        clientTempId: `tmp-${Date.now()}`,
-      }),
+      body: JSON.stringify(activity),
     })
     return this.activityToMessage(result, roomId)
   }
@@ -297,9 +345,8 @@ export class WebexClient {
       const conv = await this.internalRequest<InternalConversation>(
         `/conversations/${convUuid}?activitiesLimit=${max}&participantsLimit=0`,
       )
-      return (conv.activities?.items ?? [])
-        .filter((a) => a.verb === 'post')
-        .map((a) => this.activityToMessage(a, roomId))
+      const activities = (conv.activities?.items ?? []).filter((a) => a.verb === 'post')
+      return Promise.all(activities.map((a) => this.activityToMessage(a, roomId)))
     }
     const params = new URLSearchParams()
     params.set('roomId', roomId)
@@ -312,7 +359,9 @@ export class WebexClient {
     if (this.useInternalAPI) {
       const activity = await this.internalRequest<InternalActivity>(`/activities/${messageId}`)
       const convId = activity.target?.id ?? ''
-      const roomId = convId ? Buffer.from(`ciscospark://urn:TEAM:unknown/ROOM/${convId}`).toString('base64') : ''
+      const roomId = convId
+        ? Buffer.from(`ciscospark://urn:TEAM:unknown/ROOM/${convId}`).toString('base64')
+        : ''
       return this.activityToMessage(activity, roomId)
     }
     return this.request<WebexMessage>('GET', `/messages/${messageId}`)
@@ -344,15 +393,43 @@ export class WebexClient {
   ): Promise<WebexMessage> {
     if (this.useInternalAPI) {
       const convUuid = this.decodeConvUuid(roomId)
+
+      let object: Record<string, string> = options?.markdown
+        ? { objectType: 'comment', displayName: text, content: text, markdown: text }
+        : { objectType: 'comment', displayName: text, content: text }
+      let encryptionKeyUrl: string | undefined
+
+      if (this.encryption) {
+        const conv = await this.internalRequest<InternalConversation>(
+          `/conversations/${convUuid}?activitiesLimit=0&participantsLimit=0`,
+        )
+        const keyUri = conv.defaultActivityEncryptionKeyUrl
+        if (keyUri) {
+          const encrypted = await this.encryption.encryptText(keyUri, text)
+          if (encrypted) {
+            object = options?.markdown
+              ? { objectType: 'comment', displayName: encrypted, content: encrypted, markdown: encrypted }
+              : { objectType: 'comment', displayName: encrypted, content: encrypted }
+            encryptionKeyUrl = keyUri
+          }
+        }
+      }
+
+      const activity: Record<string, unknown> = {
+        verb: 'post',
+        object,
+        target: { id: convUuid, objectType: 'conversation' },
+        parent: { id: messageId, type: 'edit' },
+        clientTempId: `tmp-${Date.now()}`,
+      }
+
+      if (encryptionKeyUrl) {
+        activity['encryptionKeyUrl'] = encryptionKeyUrl
+      }
+
       const result = await this.internalRequest<InternalActivity>('/activities', {
         method: 'POST',
-        body: JSON.stringify({
-          verb: 'post',
-          object: { objectType: 'comment', displayName: text, content: text },
-          target: { id: convUuid, objectType: 'conversation' },
-          parent: { id: messageId, type: 'edit' },
-          clientTempId: `tmp-${Date.now()}`,
-        }),
+        body: JSON.stringify(activity),
       })
       return this.activityToMessage(result, roomId)
     }
@@ -394,12 +471,21 @@ interface InternalActivity {
   id: string
   verb: string
   actor?: { displayName?: string; emailAddress?: string; entryUUID?: string; id?: string }
-  object?: { content?: string; displayName?: string; objectType?: string }
-  target?: { id: string }
+  object?: {
+    content?: string
+    displayName?: string
+    objectType?: string
+    encryptionKeyUrl?: string
+  }
+  target?: { id: string; encryptionKeyUrl?: string }
   published: string
+  encryptionKeyUrl?: string
 }
 
 interface InternalConversation {
   id: string
   activities?: { items: InternalActivity[] }
+  defaultActivityEncryptionKeyUrl?: string
+  kmsResourceObjectUrl?: string
+  encryptionKeyUrl?: string
 }

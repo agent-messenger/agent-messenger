@@ -173,6 +173,10 @@ export async function extractAction(options: { pretty?: boolean; debug?: boolean
       expiresAt: extracted.expiresAt ?? 0,
       tokenType: 'extracted',
       deviceUrl: extracted.deviceUrl,
+      userId: extracted.userId,
+      encryptionKeys: extracted.encryptionKeys
+        ? Object.fromEntries(extracted.encryptionKeys)
+        : undefined,
     })
 
     console.log(
