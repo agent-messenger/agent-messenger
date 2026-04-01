@@ -146,6 +146,68 @@ describe('KakaoTalkClient', () => {
       client.close()
     })
 
+    test('falls back to LCHATLIST when login snapshot is empty (new device)', async () => {
+      // given — LOGINLIST returns empty chatDatas with eof:true (new device scenario)
+      const emptyLoginResult = {
+        chatDatas: [],
+        lastTokenId: makeLong(0),
+        lastChatId: makeLong(0),
+        eof: true,
+      }
+      mockLogin.mockResolvedValue(emptyLoginResult)
+
+      mockGetChatList.mockResolvedValueOnce({
+        body: {
+          chatDatas: [
+            {
+              c: 100,
+              t: 1,
+              k: ['Alice', 'Bob'],
+              a: 2,
+              n: 3,
+              o: 1700000000,
+              l: { authorId: 1, message: 'hi', sendAt: 1700000000 },
+              ll: makeLong(999),
+            },
+            {
+              c: 200,
+              t: 2,
+              k: ['Charlie'],
+              a: 1,
+              n: 0,
+              o: 1699999000,
+              l: null,
+              ll: makeLong(500),
+            },
+          ],
+          lastTokenId: makeLong(1),
+          lastChatId: makeLong(200),
+          eof: true,
+        },
+      })
+
+      // when — default chat list (no --all flag)
+      const client = await new KakaoTalkClient().login({ oauthToken: 'token', userId: 'user1', deviceUuid: 'device1' })
+      const chats = await client.getChats()
+
+      // then — fetched via LCHATLIST despite eof:true and no --all
+      expect(chats).toHaveLength(2)
+      expect(mockGetChatList).toHaveBeenCalledTimes(1)
+      expect(chats[0].display_name).toBe('Alice, Bob')
+      expect(chats[1].display_name).toBe('Charlie')
+
+      client.close()
+    })
+
+    test('does not call LCHATLIST when login snapshot has chats', async () => {
+      const client = await new KakaoTalkClient().login({ oauthToken: 'token', userId: 'user1', deviceUuid: 'device1' })
+      await client.getChats()
+
+      expect(mockGetChatList).not.toHaveBeenCalled()
+
+      client.close()
+    })
+
     test('paginates when all=true and not eof', async () => {
       const loginResult = {
         ...DEFAULT_LOGIN_RESULT,
