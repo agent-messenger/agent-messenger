@@ -46,6 +46,9 @@ agent-kakaotalk message send <chat-id> "Hello from AI agent!"
 
 # List messages in a chat
 agent-kakaotalk message list <chat-id>
+
+# Show your profile
+agent-kakaotalk profile
 ```
 
 ## Authentication
@@ -285,6 +288,23 @@ agent-kakaotalk auth status --account <account-id>
 agent-kakaotalk auth logout --account <account-id>
 ```
 
+### Profile Command
+
+```bash
+# Show your KakaoTalk profile
+agent-kakaotalk profile
+agent-kakaotalk profile --pretty
+agent-kakaotalk profile --account <account-id>
+```
+
+Output includes:
+- `user_id` — your KakaoTalk user ID
+- `nickname` — your display name
+- `profile_image_url` — profile image thumbnail URL
+- `original_profile_image_url` — original profile image URL
+- `status_message` — your status message
+- `account_display_id` — your KakaoTalk ID (may be null if not set)
+
 ### Chat Commands
 
 ```bash
@@ -468,6 +488,9 @@ const client = await new KakaoTalkClient().login({ oauthToken: account.oauth_tok
 
 ```typescript
 try {
+  // Get your profile
+  const profile = await client.getProfile()
+
   // List chats
   const chats = await client.getChats()
 
