@@ -16,7 +16,7 @@ metadata:
 
 # Agent Instagram
 
-An Instagram DM CLI for AI agents. Supports browser cookie extraction (zero-config, extracts from Chrome/Edge/Arc/Brave) and username/password authentication (with 2FA). Uses Instagram's private mobile API to read and send direct messages.
+An Instagram DM CLI for AI agents. Supports browser cookie extraction (zero-config, extracts from Chromium browsers) and username/password authentication (with 2FA). Uses Instagram's private mobile API to read and send direct messages.
 
 Use one of these entrypoints:
 - Global install: `agent-instagram ...`
@@ -25,7 +25,7 @@ Use one of these entrypoints:
 ## Key Concepts
 
 - **Thread ID** = Instagram's identifier for a DM conversation. Numeric string returned by `chat list`.
-- **Browser cookie extraction** = recommended auth method. Extracts cookies from Chrome/Edge/Arc/Brave where you're logged into instagram.com. Zero-config.
+- **Browser cookie extraction** = recommended auth method. Extracts cookies from Chromium browsers (Chrome, Chrome Canary, Edge, Arc, Brave, Vivaldi, Chromium) where you're logged into instagram.com. Zero-config.
 - **Username/password auth** = fallback method. Authenticates using Instagram credentials. Supports two-factor authentication via SMS or authenticator app.
 - **HTTP-based** = each command makes HTTP requests and returns. No persistent connection or background process.
 - **Multi-account** = multiple Instagram accounts can be stored. Use `auth list` and `auth use` to switch between them.
