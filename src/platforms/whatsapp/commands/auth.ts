@@ -1,3 +1,4 @@
+import { rm } from 'node:fs/promises'
 import { Command } from 'commander'
 import { handleError } from '@/shared/utils/error-handler'
 import { formatOutput } from '@/shared/utils/output'
@@ -19,6 +20,9 @@ async function loginAction(options: LoginOptions): Promise<void> {
   try {
     const manager = new WhatsAppCredentialManager()
     const accountId = createAccountId(options.phone)
+    // Clear stale session files so Baileys starts fresh for pairing
+    const existingPaths = manager.getAccountPaths(accountId)
+    await rm(existingPaths.auth_dir, { recursive: true, force: true })
     const paths = await manager.ensureAccountPaths(accountId)
     const client = await new WhatsAppClient().login({ authDir: paths.auth_dir })
 
