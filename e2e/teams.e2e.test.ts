@@ -3,6 +3,7 @@ import { describe, test, expect, beforeAll, afterEach } from 'bun:test'
 import { TEAMS_TEST_CHANNEL_ID, TEAMS_TEST_TEAM_ID, validateTeamsEnvironment } from './config'
 import { runCLI, parseJSON, generateTestId, waitForRateLimit } from './helpers'
 
+let teamsAvailable = false
 let testMessages: string[] = []
 
 async function createTeamsMessage(text: string): Promise<string> {
@@ -28,7 +29,7 @@ async function cleanupTeamsMessages(ids: string[]) {
 
 describe('Teams E2E Tests', () => {
   beforeAll(async () => {
-    await validateTeamsEnvironment()
+    teamsAvailable = await validateTeamsEnvironment()
   })
 
   afterEach(async () => {
@@ -41,6 +42,8 @@ describe('Teams E2E Tests', () => {
 
   describe('auth', () => {
     test('auth status returns authenticated team info', async () => {
+      if (!teamsAvailable) return
+
       const result = await runCLI('teams', ['auth', 'status'])
       expect(result.exitCode).toBe(0)
 
@@ -54,6 +57,8 @@ describe('Teams E2E Tests', () => {
 
   describe('team', () => {
     test('team list returns array', async () => {
+      if (!teamsAvailable) return
+
       const result = await runCLI('teams', ['team', 'list'])
       expect(result.exitCode).toBe(0)
 
@@ -62,6 +67,8 @@ describe('Teams E2E Tests', () => {
     })
 
     test('team current returns current team', async () => {
+      if (!teamsAvailable) return
+
       const result = await runCLI('teams', ['team', 'current'])
       expect(result.exitCode).toBe(0)
 
@@ -70,6 +77,8 @@ describe('Teams E2E Tests', () => {
     })
 
     test('team info returns team details', async () => {
+      if (!teamsAvailable) return
+
       const result = await runCLI('teams', ['team', 'info', TEAMS_TEST_TEAM_ID])
       expect(result.exitCode).toBe(0)
 
@@ -81,6 +90,8 @@ describe('Teams E2E Tests', () => {
 
   describe('message', () => {
     test('message send creates message', async () => {
+      if (!teamsAvailable) return
+
       const testId = generateTestId()
       const result = await runCLI('teams', [
         'message',
@@ -98,6 +109,8 @@ describe('Teams E2E Tests', () => {
     })
 
     test('message list returns messages array', async () => {
+      if (!teamsAvailable) return
+
       const result = await runCLI('teams', [
         'message',
         'list',
@@ -113,6 +126,8 @@ describe('Teams E2E Tests', () => {
     })
 
     test('message get retrieves specific message', async () => {
+      if (!teamsAvailable) return
+
       const testId = generateTestId()
       const id = await createTeamsMessage(`Get test ${testId}`)
       testMessages.push(id)
@@ -127,6 +142,8 @@ describe('Teams E2E Tests', () => {
     })
 
     test('message delete removes message', async () => {
+      if (!teamsAvailable) return
+
       const testId = generateTestId()
       const id = await createTeamsMessage(`Delete me ${testId}`)
 
@@ -144,6 +161,8 @@ describe('Teams E2E Tests', () => {
     })
 
     test('message command does not register update subcommand', async () => {
+      if (!teamsAvailable) return
+
       const result = await runCLI('teams', ['message', '--help'])
       expect(result.exitCode).toBe(0)
       expect(result.stdout).not.toContain('update')
@@ -152,6 +171,8 @@ describe('Teams E2E Tests', () => {
 
   describe('channel', () => {
     test('channel list returns channels array', async () => {
+      if (!teamsAvailable) return
+
       const result = await runCLI('teams', ['channel', 'list', TEAMS_TEST_TEAM_ID])
       expect(result.exitCode).toBe(0)
 
@@ -160,6 +181,8 @@ describe('Teams E2E Tests', () => {
     })
 
     test('channel info returns channel details', async () => {
+      if (!teamsAvailable) return
+
       const result = await runCLI('teams', ['channel', 'info', TEAMS_TEST_TEAM_ID, TEAMS_TEST_CHANNEL_ID])
       expect(result.exitCode).toBe(0)
 
@@ -168,6 +191,8 @@ describe('Teams E2E Tests', () => {
     })
 
     test('channel history returns messages', async () => {
+      if (!teamsAvailable) return
+
       const result = await runCLI('teams', [
         'channel',
         'history',
@@ -185,6 +210,8 @@ describe('Teams E2E Tests', () => {
 
   describe('user', () => {
     test('user list returns users array', async () => {
+      if (!teamsAvailable) return
+
       const result = await runCLI('teams', ['user', 'list', TEAMS_TEST_TEAM_ID])
       expect(result.exitCode).toBe(0)
 
@@ -193,6 +220,8 @@ describe('Teams E2E Tests', () => {
     })
 
     test('user me returns current user', async () => {
+      if (!teamsAvailable) return
+
       const result = await runCLI('teams', ['user', 'me'])
       expect(result.exitCode).toBe(0)
 
@@ -202,6 +231,8 @@ describe('Teams E2E Tests', () => {
     })
 
     test('user info returns user details', async () => {
+      if (!teamsAvailable) return
+
       const meResult = await runCLI('teams', ['user', 'me'])
       expect(meResult.exitCode).toBe(0)
 
@@ -220,6 +251,8 @@ describe('Teams E2E Tests', () => {
 
   describe('reaction', () => {
     test('reaction add/remove lifecycle', async () => {
+      if (!teamsAvailable) return
+
       const testId = generateTestId()
       const id = await createTeamsMessage(`Reaction test ${testId}`)
       testMessages.push(id)
@@ -256,6 +289,8 @@ describe('Teams E2E Tests', () => {
     }, 15000)
 
     test('reaction command does not register list subcommand', async () => {
+      if (!teamsAvailable) return
+
       const result = await runCLI('teams', ['reaction', '--help'])
       expect(result.exitCode).toBe(0)
       expect(result.stdout).not.toContain('list')
@@ -264,6 +299,8 @@ describe('Teams E2E Tests', () => {
 
   describe('file', () => {
     test('file list returns files array', async () => {
+      if (!teamsAvailable) return
+
       const result = await runCLI('teams', ['file', 'list', TEAMS_TEST_TEAM_ID, TEAMS_TEST_CHANNEL_ID])
       expect(result.exitCode).toBe(0)
 
@@ -272,6 +309,8 @@ describe('Teams E2E Tests', () => {
     })
 
     test('file upload uploads file and file info returns details', async () => {
+      if (!teamsAvailable) return
+
       const testId = generateTestId()
       const testFilePath = `/tmp/teams-e2e-${testId}.txt`
       await Bun.write(testFilePath, `Teams E2E test file ${testId}`)
@@ -310,6 +349,8 @@ describe('Teams E2E Tests', () => {
 
   describe('snapshot', () => {
     test('snapshot returns full team data', async () => {
+      if (!teamsAvailable) return
+
       const result = await runCLI('teams', ['snapshot', '--team-id', TEAMS_TEST_TEAM_ID, '--limit', '2'])
       expect(result.exitCode).toBe(0)
 
@@ -319,6 +360,8 @@ describe('Teams E2E Tests', () => {
     })
 
     test('snapshot --channels-only returns only channels', async () => {
+      if (!teamsAvailable) return
+
       const result = await runCLI('teams', ['snapshot', '--team-id', TEAMS_TEST_TEAM_ID, '--channels-only'])
       expect(result.exitCode).toBe(0)
 
@@ -327,6 +370,8 @@ describe('Teams E2E Tests', () => {
     })
 
     test('snapshot --users-only returns only users', async () => {
+      if (!teamsAvailable) return
+
       const result = await runCLI('teams', ['snapshot', '--team-id', TEAMS_TEST_TEAM_ID, '--users-only'])
       expect(result.exitCode).toBe(0)
 

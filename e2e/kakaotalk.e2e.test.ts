@@ -7,12 +7,7 @@ let kakaotalkAvailable = false
 
 describe('KakaoTalk E2E Tests', () => {
   beforeAll(async () => {
-    if (!KAKAOTALK_TEST_CHAT_ID) {
-      console.warn('Skipping KakaoTalk E2E: set E2E_KAKAOTALK_CHAT_ID to run against a dedicated test chat.')
-      return
-    }
-    await validateKakaoTalkEnvironment()
-    kakaotalkAvailable = true
+    kakaotalkAvailable = await validateKakaoTalkEnvironment()
   })
 
   afterEach(async () => {

@@ -11,14 +11,9 @@ let testGroupName = ''
 
 describe('Channel E2E Tests', () => {
   beforeAll(async () => {
-    if (!CHANNEL_TEST_WORKSPACE_ID) {
-      console.warn(
-        'Skipping Channel E2E: set E2E_CHANNEL_WORKSPACE_ID to run against a dedicated test workspace.',
-      )
-      return
-    }
-
     const group = await validateChannelEnvironment()
+    if (!group) return
+
     testGroupId = group.groupId
     testGroupName = group.groupName
 

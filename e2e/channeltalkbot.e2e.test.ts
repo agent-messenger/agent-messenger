@@ -13,13 +13,9 @@ let testGroupName = ''
 
 describe('ChannelBot E2E Tests', () => {
   beforeAll(async () => {
-    if (!CHANNELBOT_TEST_WORKSPACE_ID) {
-      console.warn(
-        'Skipping ChannelBot E2E: set E2E_CHANNELBOT_WORKSPACE_ID to run against a dedicated test workspace.',
-      )
-      return
-    }
     const group = await validateChannelBotEnvironment()
+    if (!group) return
+
     testGroupId = group.groupId
     testGroupName = group.groupName
     channelbotAvailable = true
