@@ -19,8 +19,8 @@ const mockListChannels = mock(() =>
     { id: 'ws-2', name: 'Workspace 2' },
   ]),
 )
-const mockExtract = mock<() => Promise<{ accountCookie: string; sessionCookie: string } | null>>(() =>
-  Promise.resolve({ accountCookie: 'fresh-account', sessionCookie: 'fresh-session' }),
+const mockExtract = mock(() =>
+  Promise.resolve([{ accountCookie: 'fresh-account', sessionCookie: 'fresh-session' }]),
 )
 
 import {
@@ -113,7 +113,7 @@ describe('channel auth commands', () => {
         { id: 'ws-2', name: 'Workspace 2' },
       ]),
     )
-    mockExtract.mockImplementation(() => Promise.resolve({ accountCookie: 'fresh-account', sessionCookie: 'fresh-session' }))
+    mockExtract.mockImplementation(() => Promise.resolve([{ accountCookie: 'fresh-account', sessionCookie: 'fresh-session' }]))
   })
 
   describe('extractAction', () => {
@@ -177,7 +177,7 @@ describe('channel auth commands', () => {
     })
 
     test('returns error when token extraction fails', async () => {
-      mockExtract.mockImplementation(() => Promise.resolve(null))
+      mockExtract.mockImplementation(() => Promise.resolve([]))
 
       const result = await extractAction()
 

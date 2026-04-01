@@ -82,13 +82,13 @@ export async function extractAction(options: ActionOptions = {}): Promise<Extrac
     const extractor = createTokenExtractor()
     const extracted = await extractor.extract()
 
-    if (!extracted) {
+    if (extracted.length === 0) {
       return {
         error: 'No credentials. Make sure Channel Talk desktop app is installed and logged in.',
       }
     }
 
-    const client = await createChannelClient(extracted.accountCookie, extracted.sessionCookie)
+    const client = await createChannelClient(extracted[0].accountCookie, extracted[0].sessionCookie)
     const account = await client.getAccount()
     const channels = await client.listChannels()
 
@@ -104,8 +104,8 @@ export async function extractAction(options: ActionOptions = {}): Promise<Extrac
         workspace_name: channel.name,
         account_id: account.id,
         account_name: account.name,
-        account_cookie: extracted.accountCookie,
-        session_cookie: extracted.sessionCookie,
+        account_cookie: extracted[0].accountCookie,
+        session_cookie: extracted[0].sessionCookie,
       })
     }
 

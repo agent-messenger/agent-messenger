@@ -208,11 +208,37 @@ export class ChannelTokenExtractor {
     ]
   }
 
-  async extract(): Promise<ExtractedChannelToken | null> {
-    const desktopResult = await this.extractFromDesktopApp()
-    if (desktopResult) return desktopResult
+  async extract(): Promise<ExtractedChannelToken[]> {
+    const results: ExtractedChannelToken[] = []
+    const seenAccounts = new Set<string>()
 
-    return this.extractFromBrowsers()
+    const desktopResult = await this.extractFromDesktopApp()
+    if (desktopResult && !seenAccounts.has(desktopResult.accountCookie)) {
+      seenAccounts.add(desktopResult.accountCookie)
+      results.push(desktopResult)
+    }
+
+    for (const browserResult of await this.extractAllFromBrowserPaths()) {
+      if (!seenAccounts.has(browserResult.accountCookie)) {
+        seenAccounts.add(browserResult.accountCookie)
+        results.push(browserResult)
+      }
+    }
+
+    return results
+  }
+
+  private async extractAllFromBrowserPaths(): Promise<ExtractedChannelToken[]> {
+    const results: ExtractedChannelToken[] = []
+    const cookiePaths = this.getBrowserCookiesPaths()
+
+    for (const cookiePath of cookiePaths) {
+      if (!existsSync(cookiePath)) continue
+      const result = await this.extractFromBrowserCookiePath(cookiePath)
+      if (result) results.push(result)
+    }
+
+    return results
   }
 
   private async extractFromDesktopApp(): Promise<ExtractedChannelToken | null> {

@@ -97,7 +97,7 @@ describe('ChannelTokenExtractor', () => {
   })
 
   describe('extract', () => {
-    test('returns null when desktop cookies path does not exist', async () => {
+    test('returns empty array when desktop cookies path does not exist', async () => {
       class MissingPathExtractor extends ChannelTokenExtractor {
         override getCookiesPath(): string | null {
           return null
@@ -106,42 +106,42 @@ describe('ChannelTokenExtractor', () => {
 
       const extractor = new MissingPathExtractor('darwin')
 
-      expect(await extractor.extract()).toBeNull()
+      expect(await extractor.extract()).toEqual([])
     })
 
-    test('tries desktop app before browser profiles', async () => {
+    test('tries desktop app before browser profiles and collects both', async () => {
       const extractor = new ChannelTokenExtractor('darwin')
 
       const desktopSpy = spyOn(extractor as any, 'extractFromDesktopApp').mockResolvedValue({
         accountCookie: 'desktop-account',
         sessionCookie: 'desktop-session',
       })
-      const browserSpy = spyOn(extractor as any, 'extractFromBrowsers').mockResolvedValue(null)
-
-      const result = await extractor.extract()
-
-      expect(desktopSpy).toHaveBeenCalled()
-      expect(browserSpy).not.toHaveBeenCalled()
-      expect(result?.accountCookie).toBe('desktop-account')
-
-      desktopSpy.mockRestore()
-      browserSpy.mockRestore()
-    })
-
-    test('falls back to browser profiles when desktop extraction returns null', async () => {
-      const extractor = new ChannelTokenExtractor('darwin')
-
-      const desktopSpy = spyOn(extractor as any, 'extractFromDesktopApp').mockResolvedValue(null)
-      const browserSpy = spyOn(extractor as any, 'extractFromBrowsers').mockResolvedValue({
-        accountCookie: 'browser-account',
-        sessionCookie: undefined,
-      })
+      const browserSpy = spyOn(extractor as any, 'extractAllFromBrowserPaths').mockResolvedValue([])
 
       const result = await extractor.extract()
 
       expect(desktopSpy).toHaveBeenCalled()
       expect(browserSpy).toHaveBeenCalled()
-      expect(result?.accountCookie).toBe('browser-account')
+      expect(result[0]?.accountCookie).toBe('desktop-account')
+
+      desktopSpy.mockRestore()
+      browserSpy.mockRestore()
+    })
+
+    test('includes browser profiles even when desktop extraction returns null', async () => {
+      const extractor = new ChannelTokenExtractor('darwin')
+
+      const desktopSpy = spyOn(extractor as any, 'extractFromDesktopApp').mockResolvedValue(null)
+      const browserSpy = spyOn(extractor as any, 'extractAllFromBrowserPaths').mockResolvedValue([{
+        accountCookie: 'browser-account',
+        sessionCookie: undefined,
+      }])
+
+      const result = await extractor.extract()
+
+      expect(desktopSpy).toHaveBeenCalled()
+      expect(browserSpy).toHaveBeenCalled()
+      expect(result[0]?.accountCookie).toBe('browser-account')
 
       desktopSpy.mockRestore()
       browserSpy.mockRestore()
@@ -169,10 +169,10 @@ describe('ChannelTokenExtractor', () => {
 
       const extractor = new TestExtractor(dbPath)
 
-      expect(await extractor.extract()).toEqual({
+      expect(await extractor.extract()).toEqual([{
         accountCookie: 'account-jwt',
         sessionCookie: 'session-jwt',
-      })
+      }])
     })
 
     test('returns token with undefined sessionCookie when only x-account is present', async () => {
@@ -196,12 +196,12 @@ describe('ChannelTokenExtractor', () => {
       const extractor = new TestExtractor(dbPath)
       const result = await extractor.extract()
 
-      expect(result).not.toBeNull()
-      expect(result?.accountCookie).toBe('account-jwt')
-      expect(result?.sessionCookie).toBeUndefined()
+      expect(result).not.toEqual([])
+      expect(result[0]?.accountCookie).toBe('account-jwt')
+      expect(result[0]?.sessionCookie).toBeUndefined()
     })
 
-    test('returns null when x-account is missing', async () => {
+    test('returns empty array when x-account is missing', async () => {
       const tempDir = mkdtempSync(join(tmpdir(), 'channel-cookie-db-'))
       tempDirs.push(tempDir)
       const dbPath = join(tempDir, 'Cookies')
@@ -221,7 +221,7 @@ describe('ChannelTokenExtractor', () => {
 
       const extractor = new TestExtractor(dbPath)
 
-      expect(await extractor.extract()).toBeNull()
+      expect(await extractor.extract()).toEqual([])
     })
 
     test('decrypts AES-256-GCM encrypted cookies using master key', async () => {
@@ -271,12 +271,12 @@ describe('ChannelTokenExtractor', () => {
       const result = await extractor.extract()
 
       // then
-      expect(result).not.toBeNull()
-      expect(result?.accountCookie).toBe('encrypted-account-jwt')
-      expect(result?.sessionCookie).toBe('encrypted-session-jwt')
+      expect(result).not.toEqual([])
+      expect(result[0]?.accountCookie).toBe('encrypted-account-jwt')
+      expect(result[0]?.sessionCookie).toBe('encrypted-session-jwt')
     })
 
-    test('returns null when DPAPI decryption fails', async () => {
+    test('returns empty array when DPAPI decryption fails', async () => {
       // given
       const masterKey = randomBytes(32)
       const encryptAccount = encryptAESGCM('account-jwt', masterKey)
@@ -315,7 +315,7 @@ describe('ChannelTokenExtractor', () => {
       const result = await extractor.extract()
 
       // then
-      expect(result).toBeNull()
+      expect(result).toEqual([])
     })
   })
 
