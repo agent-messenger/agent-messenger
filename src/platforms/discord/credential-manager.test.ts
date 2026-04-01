@@ -1,10 +1,11 @@
-import { afterAll, describe, expect, test } from 'bun:test'
+import { afterAll, afterEach, beforeEach, describe, expect, test } from 'bun:test'
 import { existsSync, rmSync } from 'node:fs'
 import { join } from 'node:path'
 
 import { DiscordCredentialManager } from './credential-manager'
 
 const testDirs: string[] = []
+let savedEnv: { token?: string; serverId?: string }
 
 function setup(): DiscordCredentialManager {
   const testConfigDir = join(
@@ -14,6 +15,22 @@ function setup(): DiscordCredentialManager {
   testDirs.push(testConfigDir)
   return new DiscordCredentialManager(testConfigDir)
 }
+
+beforeEach(() => {
+  savedEnv = {
+    token: process.env.E2E_DISCORD_TOKEN,
+    serverId: process.env.E2E_DISCORD_SERVER_ID,
+  }
+  delete process.env.E2E_DISCORD_TOKEN
+  delete process.env.E2E_DISCORD_SERVER_ID
+})
+
+afterEach(() => {
+  if (savedEnv.token !== undefined) process.env.E2E_DISCORD_TOKEN = savedEnv.token
+  else delete process.env.E2E_DISCORD_TOKEN
+  if (savedEnv.serverId !== undefined) process.env.E2E_DISCORD_SERVER_ID = savedEnv.serverId
+  else delete process.env.E2E_DISCORD_SERVER_ID
+})
 
 afterAll(() => {
   for (const dir of testDirs) {
