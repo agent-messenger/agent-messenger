@@ -129,7 +129,6 @@
     "postpublish": "git checkout package.json"
   },
   "dependencies": {
-    "@evex/linejs": "npm:@jsr/evex__linejs",
     "@hapi/boom": "^10.0.1",
     "@slack/web-api": "^6.9.0",
     "@whiskeysockets/baileys": "^7.0.0-rc.9",
@@ -144,6 +143,7 @@
     "zod": "^4.3.6"
   },
   "optionalDependencies": {
+    "@evex/linejs": "npm:@jsr/evex__linejs",
     "koffi": "^2.15.2",
     "prebuilt-tdlib": "0.1008062.2"
   },
