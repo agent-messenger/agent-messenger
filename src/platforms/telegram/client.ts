@@ -162,16 +162,37 @@ export class TelegramTdlibClient {
   async listChats(limit: number = 20): Promise<TelegramChatSummary[]> {
     await this.ensureReady()
 
-    try {
-      await this.call({
-        '@type': 'loadChats',
+    // loadChats may load fewer chats than requested per call. Loop until TDLib
+    // signals 404 ("chat list fully loaded") or we have enough cached entries.
+    for (;;) {
+      try {
+        await this.call({
+          '@type': 'loadChats',
+          chat_list: {
+            '@type': 'chatListMain',
+          },
+          limit,
+        })
+      } catch (error) {
+        // TDLib signals 404 when the entire chat list has been loaded.
+        if (error instanceof TelegramError && error.code === 404) {
+          break
+        }
+
+        break
+      }
+
+      const partial = (await this.call({
+        '@type': 'getChats',
         chat_list: {
           '@type': 'chatListMain',
         },
         limit,
-      })
-    } catch {
-      // Best-effort cache warmup only.
+      })) as TdChats
+
+      if ((partial.chat_ids ?? []).length >= limit) {
+        break
+      }
     }
 
     const response = (await this.call({
