@@ -1,9 +1,10 @@
-import { randomBytes, randomUUID } from 'node:crypto'
+import { randomUUID } from 'node:crypto'
 import { existsSync } from 'node:fs'
 import { mkdir, writeFile } from 'node:fs/promises'
 
 import { formatOutput } from '@/shared/utils/output'
 
+import { generateAndroidDeviceId, generateDeviceString } from './client'
 import { InstagramCredentialManager } from './credential-manager'
 import { InstagramTokenExtractor } from './token-extractor'
 import { createAccountId } from './types'
@@ -24,7 +25,6 @@ export async function ensureInstagramAuth(): Promise<void> {
     const cookies = await extractor.extract()
 
     if (cookies) {
-      const deviceString = `13.0/33; 480dpi; 1080x2340; samsung; SM-S911B; SM-S911B; qcom; en_US; 556927984`
       const session = {
         cookies: [
           `sessionid=${cookies.sessionid}`,
@@ -39,10 +39,10 @@ export async function ensureInstagramAuth(): Promise<void> {
         device: {
           phone_id: randomUUID(),
           uuid: randomUUID(),
-          android_device_id: `android-${randomBytes(8).toString('hex')}`,
+          android_device_id: generateAndroidDeviceId(),
           advertising_id: randomUUID(),
           client_session_id: randomUUID(),
-          device_string: deviceString,
+          device_string: generateDeviceString(),
         },
         user_id: cookies.ds_user_id,
         mid: cookies.mid,
