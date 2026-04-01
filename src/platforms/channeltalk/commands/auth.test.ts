@@ -192,7 +192,7 @@ describe('channel auth commands', () => {
       const result = await extractAction()
 
       expect(result).toEqual({
-        error: 'No workspaces found for this account.',
+        error: 'No valid credentials found. Make sure Channel Talk desktop app or browser is logged in.',
       })
     })
   })
