@@ -1,4 +1,6 @@
-export function handleError(error: Error): void {
-  console.error(JSON.stringify({ error: error.message }))
+import { error } from './stderr'
+
+export function handleError(err: Error): void {
+  error(JSON.stringify({ error: err.message }))
   process.exit(1)
 }
