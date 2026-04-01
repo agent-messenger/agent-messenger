@@ -1,11 +1,11 @@
-import { randomBytes, randomUUID } from 'node:crypto'
+import { randomUUID } from 'node:crypto'
 import { mkdir, writeFile } from 'node:fs/promises'
 import { Writable } from 'node:stream'
 
 import { Command } from 'commander'
 import { handleError } from '@/shared/utils/error-handler'
 import { formatOutput } from '@/shared/utils/output'
-import { InstagramClient } from '../client'
+import { InstagramClient, generateAndroidDeviceId, generateDeviceString } from '../client'
 import { InstagramCredentialManager } from '../credential-manager'
 import { InstagramTokenExtractor } from '../token-extractor'
 import { createAccountId } from '../types'
@@ -352,7 +352,6 @@ async function extractAction(options: { pretty?: boolean; debug?: boolean }): Pr
       return
     }
 
-    const deviceString = `13.0/33; 480dpi; 1080x2340; samsung; SM-S911B; SM-S911B; qcom; en_US; 556927984`
     const session = {
       cookies: [
         `sessionid=${extracted.sessionid}`,
@@ -367,10 +366,10 @@ async function extractAction(options: { pretty?: boolean; debug?: boolean }): Pr
       device: {
         phone_id: randomUUID(),
         uuid: randomUUID(),
-        android_device_id: `android-${randomBytes(8).toString('hex')}`,
+        android_device_id: generateAndroidDeviceId(),
         advertising_id: randomUUID(),
         client_session_id: randomUUID(),
-        device_string: deviceString,
+        device_string: generateDeviceString(),
       },
       user_id: extracted.ds_user_id,
       mid: extracted.mid,
@@ -399,7 +398,12 @@ async function extractAction(options: { pretty?: boolean; debug?: boolean }): Pr
         username = user['username'] as string
       }
       await (client as any).saveSession()
-    } catch {}
+    } catch (err) {
+      if (options.debug) {
+        console.error(`[debug] Session validation failed: ${err}`)
+      }
+      console.error('Warning: Could not validate session. Cookies may be expired.')
+    }
 
     const now = new Date().toISOString()
     await manager.setAccount({
