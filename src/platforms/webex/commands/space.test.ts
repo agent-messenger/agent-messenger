@@ -2,6 +2,14 @@ import { afterAll, afterEach, beforeEach, describe, expect, mock, spyOn, test } 
 
 import { WebexError } from '../types'
 
+const mockHandleError = mock((err: Error) => {
+  throw err
+})
+
+mock.module('@/shared/utils/error-handler', () => ({
+  handleError: mockHandleError,
+}))
+
 const mockSpaces = [
   {
     id: 'space-1',
@@ -51,9 +59,6 @@ afterAll(() => {
 })
 
 let consoleLogSpy: ReturnType<typeof spyOn>
-let processExitSpy: ReturnType<typeof spyOn>
-let stderrOutput: string
-let origStderrWrite: typeof process.stderr.write
 
 beforeEach(() => {
   mockListSpaces.mockReset().mockImplementation(() => Promise.resolve(mockSpaces))
@@ -61,24 +66,15 @@ beforeEach(() => {
   mockLogin.mockReset().mockImplementation(() =>
     Promise.resolve({ listSpaces: mockListSpaces, getSpace: mockGetSpace }),
   )
-
-  consoleLogSpy = spyOn(console, 'log').mockImplementation(() => {})
-  processExitSpy = spyOn(process, 'exit').mockImplementation((_code?: number) => {
-    throw new Error(`process.exit(${_code})`)
+  mockHandleError.mockReset().mockImplementation((err: Error) => {
+    throw err
   })
 
-  stderrOutput = ''
-  origStderrWrite = process.stderr.write
-  process.stderr.write = ((chunk: string | Uint8Array) => {
-    stderrOutput += typeof chunk === 'string' ? chunk : new TextDecoder().decode(chunk)
-    return true
-  }) as typeof process.stderr.write
+  consoleLogSpy = spyOn(console, 'log').mockImplementation(() => {})
 })
 
 afterEach(() => {
-  process.stderr.write = origStderrWrite
   consoleLogSpy.mockRestore()
-  processExitSpy.mockRestore()
 })
 
 describe('listAction', () => {
@@ -150,13 +146,10 @@ describe('listAction', () => {
       throw new WebexError('No Webex credentials found.', 'no_credentials')
     })
 
-    try {
-      await listAction({})
-    } catch {}
+    await expect(listAction({})).rejects.toThrow('No Webex credentials found.')
 
     expect(mockListSpaces).not.toHaveBeenCalled()
-    expect(processExitSpy).toHaveBeenCalledWith(1)
-    expect(stderrOutput).toContain('No Webex credentials found')
+    expect(mockHandleError).toHaveBeenCalledWith(expect.any(WebexError))
   })
 })
 
@@ -216,12 +209,9 @@ describe('infoAction', () => {
       throw new WebexError('No Webex credentials found.', 'no_credentials')
     })
 
-    try {
-      await infoAction('space-1', {})
-    } catch {}
+    await expect(infoAction('space-1', {})).rejects.toThrow('No Webex credentials found.')
 
     expect(mockGetSpace).not.toHaveBeenCalled()
-    expect(processExitSpy).toHaveBeenCalledWith(1)
-    expect(stderrOutput).toContain('No Webex credentials found')
+    expect(mockHandleError).toHaveBeenCalledWith(expect.any(WebexError))
   })
 })

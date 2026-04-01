@@ -2,6 +2,14 @@ import { afterAll, afterEach, beforeEach, expect, mock, spyOn, test } from 'bun:
 
 import { WebexError } from '../types'
 
+const mockHandleError = mock((err: Error) => {
+  throw err
+})
+
+mock.module('@/shared/utils/error-handler', () => ({
+  handleError: mockHandleError,
+}))
+
 const mockMessage = {
   id: 'msg_123',
   roomId: 'space_456',
@@ -53,7 +61,6 @@ afterAll(() => {
 })
 
 let consoleLogSpy: ReturnType<typeof spyOn>
-let processExitSpy: ReturnType<typeof spyOn>
 
 beforeEach(() => {
   mockSendMessage.mockReset().mockImplementation(() => Promise.resolve(mockMessage))
@@ -63,16 +70,15 @@ beforeEach(() => {
   mockDeleteMessage.mockReset().mockImplementation(() => Promise.resolve(undefined))
   mockEditMessage.mockReset().mockImplementation(() => Promise.resolve({ ...mockMessage, text: 'Updated message' }))
   mockLogin.mockReset().mockImplementation(() => Promise.resolve(mockClient))
+  mockHandleError.mockReset().mockImplementation((err: Error) => {
+    throw err
+  })
 
   consoleLogSpy = spyOn(console, 'log').mockImplementation(() => {})
-  processExitSpy = spyOn(process, 'exit').mockImplementation((_code?: number) => {
-    throw new Error(`process.exit(${_code})`)
-  })
 })
 
 afterEach(() => {
   consoleLogSpy.mockRestore()
-  processExitSpy.mockRestore()
 })
 
 test('send: calls sendMessage with correct args and outputs result', async () => {
@@ -99,22 +105,9 @@ test('send: not authenticated shows error', async () => {
     throw new WebexError('No Webex credentials found.', 'no_credentials')
   })
 
-  let stderrOutput = ''
-  const origWrite = process.stderr.write
-  process.stderr.write = ((chunk: string | Uint8Array) => {
-    stderrOutput += typeof chunk === 'string' ? chunk : new TextDecoder().decode(chunk)
-    return true
-  }) as typeof process.stderr.write
+  await expect(sendAction('space_456', 'Hello', { pretty: false })).rejects.toThrow('No Webex credentials found.')
 
-  try {
-    await sendAction('space_456', 'Hello', { pretty: false })
-  } catch {
-  } finally {
-    process.stderr.write = origWrite
-  }
-
-  expect(processExitSpy).toHaveBeenCalledWith(1)
-  expect(stderrOutput).toContain('No Webex credentials found')
+  expect(mockHandleError).toHaveBeenCalledWith(expect.any(WebexError))
 })
 
 test('dm: calls sendDirectMessage with email and text', async () => {

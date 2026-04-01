@@ -1,6 +1,14 @@
 import { afterAll, afterEach, beforeEach, describe, expect, mock, spyOn, test } from 'bun:test'
 import { WebexError } from '../types'
 
+const mockHandleError = mock((err: Error) => {
+  throw err
+})
+
+mock.module('@/shared/utils/error-handler', () => ({
+  handleError: mockHandleError,
+}))
+
 const mockSpaces = [
   { id: 'space-1', title: 'General', type: 'group', isLocked: false, lastActivity: '2024-01-15T00:00:00.000Z', created: '2024-01-01T00:00:00.000Z', creatorId: 'person-1' },
 ]
@@ -39,32 +47,21 @@ afterAll(() => {
 
 describe('snapshot command', () => {
   let consoleSpy: ReturnType<typeof spyOn>
-  let processExitSpy: ReturnType<typeof spyOn>
-  let stderrOutput: string
-  let origStderrWrite: typeof process.stderr.write
 
   beforeEach(() => {
     mockListSpaces.mockReset().mockImplementation(() => Promise.resolve(mockSpaces as any))
     mockListMessages.mockReset().mockImplementation(() => Promise.resolve(mockMessages as any))
     mockListMemberships.mockReset().mockImplementation(() => Promise.resolve(mockMembers as any))
     mockLogin.mockReset().mockImplementation(() => Promise.resolve(mockClient))
+    mockHandleError.mockReset().mockImplementation((err: Error) => {
+      throw err
+    })
 
     consoleSpy = spyOn(console, 'log').mockImplementation(() => {})
-    processExitSpy = spyOn(process, 'exit').mockImplementation((_code?: number) => {
-      throw new Error(`process.exit(${_code})`)
-    })
-    stderrOutput = ''
-    origStderrWrite = process.stderr.write
-    process.stderr.write = ((chunk: string | Uint8Array) => {
-      stderrOutput += typeof chunk === 'string' ? chunk : new TextDecoder().decode(chunk)
-      return true
-    }) as typeof process.stderr.write
   })
 
   afterEach(() => {
-    process.stderr.write = origStderrWrite
     consoleSpy.mockRestore()
-    processExitSpy.mockRestore()
   })
 
   test('full snapshot includes spaces, recent_messages, members', async () => {
@@ -108,12 +105,9 @@ describe('snapshot command', () => {
       throw new WebexError('No Webex credentials found.', 'no_credentials')
     })
 
-    try {
-      await snapshotAction({})
-    } catch {}
+    await expect(snapshotAction({})).rejects.toThrow('No Webex credentials found.')
 
-    expect(processExitSpy).toHaveBeenCalledWith(1)
-    expect(stderrOutput).toContain('No Webex credentials found')
+    expect(mockHandleError).toHaveBeenCalledWith(expect.any(WebexError))
   })
 
   test('passes limit option to listMessages', async () => {

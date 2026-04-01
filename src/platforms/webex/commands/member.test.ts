@@ -2,6 +2,14 @@ import { afterAll, afterEach, beforeEach, describe, expect, mock, spyOn, test } 
 
 import { WebexError } from '../types'
 
+const mockHandleError = mock((err: Error) => {
+  throw err
+})
+
+mock.module('@/shared/utils/error-handler', () => ({
+  handleError: mockHandleError,
+}))
+
 const mockMembers = [
   {
     id: 'mem-1',
@@ -40,32 +48,21 @@ afterAll(() => {
 
 describe('member commands', () => {
   let consoleSpy: ReturnType<typeof spyOn>
-  let processExitSpy: ReturnType<typeof spyOn>
-  let stderrOutput: string
-  let origStderrWrite: typeof process.stderr.write
 
   beforeEach(() => {
     mockListMemberships.mockReset().mockImplementation(() => Promise.resolve(mockMembers))
     mockLogin.mockReset().mockImplementation(() =>
       Promise.resolve({ listMemberships: mockListMemberships }),
     )
+    mockHandleError.mockReset().mockImplementation((err: Error) => {
+      throw err
+    })
 
     consoleSpy = spyOn(console, 'log').mockImplementation(() => {})
-    processExitSpy = spyOn(process, 'exit').mockImplementation((_code?: number) => {
-      throw new Error(`process.exit(${_code})`)
-    })
-    stderrOutput = ''
-    origStderrWrite = process.stderr.write
-    process.stderr.write = ((chunk: string | Uint8Array) => {
-      stderrOutput += typeof chunk === 'string' ? chunk : new TextDecoder().decode(chunk)
-      return true
-    }) as typeof process.stderr.write
   })
 
   afterEach(() => {
-    process.stderr.write = origStderrWrite
     consoleSpy.mockRestore()
-    processExitSpy.mockRestore()
   })
 
   test('listAction calls listMemberships with spaceId and outputs mapped members', async () => {
@@ -105,12 +102,9 @@ describe('member commands', () => {
       throw new WebexError('No Webex credentials found.', 'no_credentials')
     })
 
-    try {
-      await listAction('room-1', {})
-    } catch {}
+    await expect(listAction('room-1', {})).rejects.toThrow('No Webex credentials found.')
 
-    expect(processExitSpy).toHaveBeenCalledWith(1)
-    expect(stderrOutput).toContain('No Webex credentials found')
+    expect(mockHandleError).toHaveBeenCalledWith(expect.any(WebexError))
   })
 
   test('listAction handles API error', async () => {
@@ -118,10 +112,8 @@ describe('member commands', () => {
       throw new Error('API failure')
     })
 
-    try {
-      await listAction('room-1', {})
-    } catch {}
+    await expect(listAction('room-1', {})).rejects.toThrow('API failure')
 
-    expect(processExitSpy).toHaveBeenCalledWith(1)
+    expect(mockHandleError).toHaveBeenCalledWith(expect.any(Error))
   })
 })
