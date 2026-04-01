@@ -379,7 +379,7 @@ Use **agent-channeltalk** when you want zero-config access acting as yourself. U
 
 ## Limitations
 
-- macOS and Windows only (Channel Talk desktop app required)
+- Desktop app extraction: macOS and Windows. Browser fallback: macOS, Linux, and Windows.
 - No real-time events / WebSocket connection
 - No file upload support
 - No message editing or deletion

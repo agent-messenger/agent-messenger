@@ -2,7 +2,7 @@
 
 ## Overview
 
-agent-slack uses Slack's web client credentials (xoxc token + xoxd cookie) extracted directly from the Slack desktop application. This provides seamless authentication without manual token management.
+agent-slack uses Slack's web client credentials (xoxc token + xoxd cookie) extracted from the Slack desktop application, with automatic fallback to Chromium browser profiles (Chrome, Chrome Canary, Edge, Arc, Brave, Vivaldi, Chromium) when the desktop app isn't installed.
 
 ## Token Extraction
 
@@ -22,10 +22,11 @@ This command:
 1. Detects your operating system (macOS, Linux, Windows)
 2. Locates the Slack desktop app data directory (supports both direct download and App Store versions on macOS)
 3. Reads the LevelDB storage containing session data
-4. Decrypts cookies using macOS Keychain (for sandboxed App Store version)
-5. Validates tokens against Slack API before saving
-6. Extracts xoxc token and xoxd cookie for ALL logged-in workspaces
-7. Stores credentials securely in `~/.config/agent-messenger/slack-credentials.json`
+4. If the desktop app isn't found, scans Chromium browser profiles for Slack tokens in `localStorage.localConfig_v2` and `d` cookie
+5. Decrypts cookies using macOS Keychain, Linux keyring, or Windows DPAPI
+6. Validates tokens against Slack API before saving
+7. Extracts xoxc token and xoxd cookie for ALL logged-in workspaces
+8. Stores credentials securely in `~/.config/agent-messenger/slack-credentials.json`
 
 ### Platform-Specific Paths
 
@@ -237,9 +238,8 @@ This shows:
 
 **Solution**:
 
-1. Install Slack desktop app
-2. Log in to your workspace(s)
-3. Run `agent-slack auth extract` again
+1. Log in to your workspace at app.slack.com in a Chromium browser (Chrome, Edge, Arc, Brave) — the CLI will extract from browser automatically
+2. Or install the Slack desktop app, log in to your workspace(s), and run `agent-slack auth extract` again
 
 ### "No workspaces found"
 
