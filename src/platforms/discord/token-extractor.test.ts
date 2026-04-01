@@ -199,47 +199,51 @@ describe('DiscordTokenExtractor', () => {
   })
 
   describe('extract', () => {
-    test('returns null when no Discord directories exist on linux', async () => {
+    test('returns empty array when no Discord directories exist on linux', async () => {
       const linuxExtractor = new DiscordTokenExtractor('linux')
-      const extractFromLevelDBSpy = spyOn(linuxExtractor as any, 'extractFromLevelDB').mockResolvedValue(null)
+      const extractFromLevelDBSpy = spyOn(linuxExtractor as any, 'extractFromLevelDB').mockResolvedValue([])
+      const extractFromBrowserLevelDBSpy = spyOn(linuxExtractor as any, 'extractFromBrowserLevelDB').mockResolvedValue([])
 
       const result = await linuxExtractor.extract()
-      expect(result).toBeNull()
+      expect(result).toEqual([])
 
       extractFromLevelDBSpy.mockRestore()
+      extractFromBrowserLevelDBSpy.mockRestore()
     })
 
     test('extracts token from LevelDB when available', async () => {
       const mockToken = 'XXXXXXXXXXXXXXXXXXXXXXXX.YYYYYY.ZZZZZZZZZZZZZZZZZZZZZZZZZ'
 
       const linuxExtractor = new DiscordTokenExtractor('linux')
-      const extractFromLevelDBSpy = spyOn(linuxExtractor as any, 'extractFromLevelDB').mockResolvedValue({
-        token: mockToken,
-      })
+      const extractFromLevelDBSpy = spyOn(linuxExtractor as any, 'extractFromLevelDB').mockResolvedValue([
+        { token: mockToken },
+      ])
+      const extractFromBrowserLevelDBSpy = spyOn(linuxExtractor as any, 'extractFromBrowserLevelDB').mockResolvedValue([])
 
       const result = await linuxExtractor.extract()
 
-      expect(result).not.toBeNull()
-      expect(result?.token).toBe(mockToken)
+      expect(result).not.toEqual([])
+      expect(result[0]?.token).toBe(mockToken)
 
       extractFromLevelDBSpy.mockRestore()
+      extractFromBrowserLevelDBSpy.mockRestore()
     })
 
     test('tries browser LevelDB when desktop LevelDB extraction fails', async () => {
       const mockToken = 'XXXXXXXXXXXXXXXXXXXXXXXX.YYYYYY.browser_token_1234567890123'
 
       const linuxExtractor = new DiscordTokenExtractor('linux')
-      const extractFromLevelDBSpy = spyOn(linuxExtractor as any, 'extractFromLevelDB').mockResolvedValue(null)
+      const extractFromLevelDBSpy = spyOn(linuxExtractor as any, 'extractFromLevelDB').mockResolvedValue([])
       const extractFromBrowserLevelDBSpy = spyOn(
         linuxExtractor as any,
         'extractFromBrowserLevelDB',
-      ).mockResolvedValue({ token: mockToken })
+      ).mockResolvedValue([{ token: mockToken }])
 
       const result = await linuxExtractor.extract()
 
       expect(extractFromLevelDBSpy).toHaveBeenCalled()
       expect(extractFromBrowserLevelDBSpy).toHaveBeenCalled()
-      expect(result?.token).toBe(mockToken)
+      expect(result[0]?.token).toBe(mockToken)
 
       extractFromLevelDBSpy.mockRestore()
       extractFromBrowserLevelDBSpy.mockRestore()
@@ -249,11 +253,11 @@ describe('DiscordTokenExtractor', () => {
       const mockToken = 'XXXXXXXXXXXXXXXXXXXXXXXX.YYYYYY.cdp_token_12345678901234567'
 
       const darwinExtractor = new DiscordTokenExtractor('darwin', 0)
-      const extractFromLevelDBSpy = spyOn(darwinExtractor as any, 'extractFromLevelDB').mockResolvedValue(null)
+      const extractFromLevelDBSpy = spyOn(darwinExtractor as any, 'extractFromLevelDB').mockResolvedValue([])
       const extractFromBrowserLevelDBSpy = spyOn(
         darwinExtractor as any,
         'extractFromBrowserLevelDB',
-      ).mockResolvedValue(null)
+      ).mockResolvedValue([])
       const tryExtractViaCDPSpy = spyOn(darwinExtractor as any, 'tryExtractViaCDP').mockResolvedValue(mockToken)
 
       const result = await darwinExtractor.extract()
@@ -261,7 +265,7 @@ describe('DiscordTokenExtractor', () => {
       expect(extractFromLevelDBSpy).toHaveBeenCalled()
       expect(extractFromBrowserLevelDBSpy).toHaveBeenCalled()
       expect(tryExtractViaCDPSpy).toHaveBeenCalled()
-      expect(result?.token).toBe(mockToken)
+      expect(result[0]?.token).toBe(mockToken)
 
       extractFromLevelDBSpy.mockRestore()
       extractFromBrowserLevelDBSpy.mockRestore()
@@ -274,14 +278,14 @@ describe('DiscordTokenExtractor', () => {
       const darwinExtractor = new DiscordTokenExtractor('darwin', 0)
       const extractFromLevelDBSpy = spyOn(darwinExtractor as any, 'extractFromLevelDB').mockImplementation(async () => {
         callOrder.push('desktop')
-        return null
+        return []
       })
       const extractFromBrowserLevelDBSpy = spyOn(
         darwinExtractor as any,
         'extractFromBrowserLevelDB',
       ).mockImplementation(async () => {
         callOrder.push('browser')
-        return null
+        return []
       })
       const tryExtractViaCDPSpy = spyOn(darwinExtractor as any, 'tryExtractViaCDP').mockImplementation(async () => {
         callOrder.push('cdp')
@@ -297,20 +301,22 @@ describe('DiscordTokenExtractor', () => {
       tryExtractViaCDPSpy.mockRestore()
     })
 
-    test('returns first valid token found across variants', async () => {
+    test('returns all valid tokens found across variants', async () => {
       const mockToken = 'XXXXXXXXXXXXXXXXXXXXXXXX.YYYYYY.first_token_found_1234567'
 
       const linuxExtractor = new DiscordTokenExtractor('linux')
-      const extractFromLevelDBSpy = spyOn(linuxExtractor as any, 'extractFromLevelDB').mockResolvedValue({
-        token: mockToken,
-      })
+      const extractFromLevelDBSpy = spyOn(linuxExtractor as any, 'extractFromLevelDB').mockResolvedValue([
+        { token: mockToken },
+      ])
+      const extractFromBrowserLevelDBSpy = spyOn(linuxExtractor as any, 'extractFromBrowserLevelDB').mockResolvedValue([])
 
       const result = await linuxExtractor.extract()
 
-      expect(result).not.toBeNull()
-      expect(typeof result?.token).toBe('string')
+      expect(result).not.toEqual([])
+      expect(typeof result[0]?.token).toBe('string')
 
       extractFromLevelDBSpy.mockRestore()
+      extractFromBrowserLevelDBSpy.mockRestore()
     })
   })
 

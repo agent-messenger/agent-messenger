@@ -13,9 +13,9 @@ let credManagerClearTokenSpy: ReturnType<typeof spyOn>
 
 beforeEach(() => {
   // Spy on DiscordTokenExtractor.prototype.extract
-  extractorExtractSpy = spyOn(DiscordTokenExtractor.prototype, 'extract').mockResolvedValue({
+  extractorExtractSpy = spyOn(DiscordTokenExtractor.prototype, 'extract').mockResolvedValue([{
     token: 'test-token-123',
-  })
+  }])
 
   // Spy on DiscordClient.prototype methods
   clientTestAuthSpy = spyOn(DiscordClient.prototype, 'testAuth').mockResolvedValue({
@@ -53,7 +53,7 @@ test('extract: calls DiscordTokenExtractor', async () => {
   const extractor = new DiscordTokenExtractor()
   const result = await extractor.extract()
   expect(result).toBeDefined()
-  expect(result?.token).toBe('test-token-123')
+  expect(result[0]?.token).toBe('test-token-123')
 })
 
 test('extract: validates token with DiscordClient', async () => {

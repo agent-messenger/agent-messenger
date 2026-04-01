@@ -34,7 +34,7 @@ export async function extractAction(options: { pretty?: boolean; debug?: boolean
 
     const extracted = await extractor.extract()
 
-    if (!extracted) {
+    if (extracted.length === 0) {
       console.log(
         formatOutput(
           {
@@ -48,11 +48,11 @@ export async function extractAction(options: { pretty?: boolean; debug?: boolean
     }
 
     if (options.debug) {
-      console.error(`[debug] Token extracted: ${extracted.token.substring(0, 20)}...`)
+      console.error(`[debug] Token extracted: ${extracted[0].token.substring(0, 20)}...`)
     }
 
     try {
-      const client = await new DiscordClient().login({ token: extracted.token })
+      const client = await new DiscordClient().login({ token: extracted[0].token })
 
       if (options.debug) {
         console.error(`[debug] Testing token validity...`)
@@ -94,7 +94,7 @@ export async function extractAction(options: { pretty?: boolean; debug?: boolean
       }
 
       const config = {
-        token: extracted.token,
+        token: extracted[0].token,
         current_server: servers[0].id,
         servers: serverMap,
       }

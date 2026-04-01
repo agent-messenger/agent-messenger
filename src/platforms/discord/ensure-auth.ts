@@ -10,9 +10,9 @@ export async function ensureDiscordAuth(): Promise<void> {
 
     const extractor = new DiscordTokenExtractor()
     const extracted = await extractor.extract()
-    if (!extracted) return
+    if (extracted.length === 0) return
 
-    const client = await new DiscordClient().login({ token: extracted.token })
+    const client = await new DiscordClient().login({ token: extracted[0].token })
     const authInfo = await client.testAuth()
     if (!authInfo) return
 
@@ -23,7 +23,7 @@ export async function ensureDiscordAuth(): Promise<void> {
     }
 
     await credManager.save({
-      token: extracted.token,
+      token: extracted[0].token,
       current_server: servers[0]?.id ?? null,
       servers: serverMap,
     })

