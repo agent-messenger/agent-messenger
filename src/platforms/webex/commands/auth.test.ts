@@ -24,7 +24,7 @@ describe('auth commands', () => {
   })
 
   afterEach(() => {
-    mock.restore()
+    _consoleErrorSpy.mockRestore()
   })
 
   describe('loginAction with --token', () => {

@@ -16,7 +16,6 @@ describe('WebexCredentialManager', () => {
 
   afterEach(async () => {
     await rm(tempDir, { recursive: true, force: true })
-    mock.restore()
   })
 
   test('loadConfig returns null when no file exists', async () => {

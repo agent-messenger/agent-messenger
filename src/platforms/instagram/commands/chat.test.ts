@@ -1,4 +1,4 @@
-import { afterAll, afterEach, beforeEach, describe, expect, mock, spyOn, test } from 'bun:test'
+import { afterEach, beforeEach, describe, expect, mock, spyOn, test } from 'bun:test'
 
 const originalConsoleLog = console.log
 import type { Command } from 'commander'
@@ -33,10 +33,6 @@ function resetCommandState(cmd: Command): void {
     ;(sub as unknown as { _optionValues: Record<string, unknown>; _optionValueSources: Record<string, unknown> })._optionValueSources = {}
   }
 }
-
-afterAll(() => {
-  mock.restore()
-})
 
 describe('chat commands', () => {
   let consoleLogSpy: ReturnType<typeof mock>
