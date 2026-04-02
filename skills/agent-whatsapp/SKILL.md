@@ -16,7 +16,7 @@ metadata:
 
 # Agent WhatsApp
 
-A Baileys-backed WhatsApp CLI for AI agents. Links as a companion device via pairing code, so your phone stays connected. Each command connects on demand and disconnects when done.
+A Baileys-backed WhatsApp CLI for AI agents. Links as a companion device via QR code or pairing code, so your phone stays connected. Each command connects on demand and disconnects when done.
 
 Use one of these entrypoints:
 - Global install: `agent-whatsapp ...`
@@ -27,6 +27,7 @@ Use one of these entrypoints:
 Before diving in, a few things about WhatsApp's architecture:
 
 - **JID** (Jabber ID) = WhatsApp's address format. Individual: `1234567890@s.whatsapp.net`. Group: `123456789-123345@g.us`. You can pass plain phone numbers and the CLI resolves them to JIDs automatically.
+- **QR code auth** = links the CLI as a companion device by scanning a QR code displayed in the terminal or browser. Open WhatsApp > Linked Devices > Link a Device and scan the code.
 - **Pairing code auth** = links the CLI as a companion device using a numeric code displayed in your terminal. Enter it in WhatsApp on your phone under Linked Devices.
 - **Connect-on-demand** = the CLI opens a WebSocket connection for each command and disconnects afterward. There's no persistent background process.
 - **Multi-account** = multiple WhatsApp accounts can be linked. Use `auth list` and `auth use` to switch between them.
@@ -34,7 +35,10 @@ Before diving in, a few things about WhatsApp's architecture:
 ## Quick Start
 
 ```bash
-# Link as companion device (enter the pairing code on your phone)
+# Link as companion device via QR code (scan with your phone)
+agent-whatsapp auth login --qr
+
+# Or link via pairing code (enter the code on your phone)
 agent-whatsapp auth login --phone +1234567890
 
 # List chats
@@ -46,7 +50,10 @@ agent-whatsapp message send +1234567890 "Hello from agent-whatsapp"
 
 ## Authentication Flow
 
-WhatsApp uses pairing code authentication. The CLI registers as a companion (linked) device, so your phone session is never affected.
+WhatsApp supports two authentication methods. Both register the CLI as a companion (linked) device, so your phone session is never affected.
+
+- **QR code** (`--qr`): A QR code is displayed in the terminal and opened in the browser. Scan it with WhatsApp on your phone. No phone number needed.
+- **Pairing code** (`--phone`): A numeric code is displayed. Enter it in WhatsApp on your phone under Linked Devices > Link with phone number.
 
 ### Agent Behavior (MANDATORY)
 
@@ -60,28 +67,36 @@ agent-whatsapp auth list
 
 If accounts exist, use `agent-whatsapp auth use <account-id>` and retry the original command.
 
-**Step 2: If no accounts, ask for phone number**
+**Step 2: If no accounts, start QR login (preferred)**
 
-Ask the user for their WhatsApp phone number (international format, e.g. `+1234567890`). This is the ONLY thing the user needs to provide.
+```bash
+agent-whatsapp auth login --qr
+# -> QR code displayed in terminal + opened in browser
+# -> {"next_action":"scan_qr","qr_url":"...","message":"Scan with WhatsApp on your phone"}
+```
 
-**Step 3: Start login**
+Tell the user to scan the QR code with WhatsApp: Settings > Linked Devices > Link a Device > scan the QR code.
+
+**Alternative: Pairing code login**
+
+If QR scanning is not possible (e.g. headless environment), ask for the phone number and use pairing code:
 
 ```bash
 agent-whatsapp auth login --phone +1234567890
-# -> {"next_action":"enter_pairing_code","pairing_code":"A1B2-C3D4","message":"Enter this code in WhatsApp on your phone: Linked Devices > Link a Device."}
+# -> {"pairing_code":"A1B2-C3D4","message":"Enter this code in WhatsApp > Linked Devices > Link with phone number"}
 ```
 
-Tell the user the pairing code and ask them to enter it on their phone: open WhatsApp > Settings > Linked Devices > Link a Device > enter the code.
+Tell the user the pairing code and ask them to enter it on their phone.
 
-**Step 4: Wait for confirmation**
+**Step 3: Wait for confirmation**
 
-The CLI polls until the user confirms on their phone. Once confirmed:
+The CLI waits until the user confirms on their phone. Once confirmed:
 
 ```bash
 # -> {"authenticated":true,...}
 ```
 
-**Step 5: Retry the original command**
+**Step 4: Retry the original command**
 
 After successful auth, immediately execute whatever the user originally asked for.
 
@@ -169,6 +184,9 @@ If a memorized JID returns an error, remove it from `MEMORY.md`. Don't blindly t
 ### Auth Commands
 
 ```bash
+# Link as companion device via QR code (no phone number needed)
+agent-whatsapp auth login --qr
+
 # Link as companion device via pairing code
 agent-whatsapp auth login --phone +1234567890
 
@@ -325,7 +343,7 @@ All commands return consistent error format:
 
 Common errors:
 
-- `No WhatsApp account linked` - not authenticated. Run `auth login --phone <number>`.
+- `No WhatsApp account linked` - not authenticated. Run `auth login --qr` or `auth login --phone <number>`.
 - `Connection timeout` - WebSocket connection to WhatsApp failed. Retry the command.
 - `Invalid JID` - malformed phone number or JID. Use international format with `+` prefix.
 - `Not a group participant` - can't send to a group you're not a member of.
@@ -361,6 +379,14 @@ pnpm dlx --package agent-messenger agent-whatsapp chat list --pretty
 
 **NEVER run `npx agent-whatsapp`, `bunx agent-whatsapp`, or `pnpm dlx agent-whatsapp`** without `--package agent-messenger`. It will fail or install a wrong package since `agent-whatsapp` is not the npm package name.
 
+### QR code not scanning
+
+1. Make sure WhatsApp is open on your phone
+2. Go to Settings > Linked Devices > Link a Device
+3. Point your phone camera at the QR code in the terminal or browser
+4. If the QR code expires, run `auth login --qr` again for a fresh code
+5. If QR scanning fails, try pairing code: `auth login --phone <number>`
+
 ### Pairing code not working
 
 1. Make sure WhatsApp is open on your phone
@@ -389,5 +415,5 @@ WhatsApp may disconnect linked devices that are inactive for extended periods. I
 agent-whatsapp auth status
 
 # Re-link if needed
-agent-whatsapp auth login --phone +1234567890
+agent-whatsapp auth login --qr
 ```

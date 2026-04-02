@@ -1,6 +1,8 @@
 import { existsSync } from 'node:fs'
 import { readFile, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
+
+import { Boom } from '@hapi/boom'
 import makeWASocket, {
   DisconnectReason,
   fetchLatestBaileysVersion,
@@ -12,8 +14,8 @@ import makeWASocket, {
   type WAMessage,
   type WASocket,
 } from '@whiskeysockets/baileys'
-import { Boom } from '@hapi/boom'
 import pino from 'pino'
+
 import {
   extractMessageText,
   getMessageType,
@@ -28,7 +30,12 @@ const MAX_MESSAGES_PER_CHAT = 500
 function toTimestampMs(ts: unknown): number {
   if (ts == null) return 0
   if (typeof ts === 'number') return ts * 1000
-  if (typeof ts === 'object' && ts !== null && 'toNumber' in ts && typeof (ts as Record<string, unknown>).toNumber === 'function') {
+  if (
+    typeof ts === 'object' &&
+    ts !== null &&
+    'toNumber' in ts &&
+    typeof (ts as Record<string, unknown>).toNumber === 'function'
+  ) {
     return (ts as { toNumber(): number }).toNumber() * 1000
   }
   const n = Number(ts)
@@ -44,11 +51,7 @@ function resolveJid(input: string): string {
 function summarizeMessage(msg: WAMessage): WhatsAppMessageSummary {
   const jid = msg.key.remoteJid ?? ''
   const isGroup = jid.endsWith('@g.us')
-  const from = msg.key.fromMe
-    ? ''
-    : isGroup
-      ? (msg.key.participant ?? msg.participant ?? jid)
-      : jid
+  const from = msg.key.fromMe ? '' : isGroup ? (msg.key.participant ?? msg.participant ?? jid) : jid
 
   return {
     id: msg.key.id ?? '',
@@ -62,10 +65,7 @@ function summarizeMessage(msg: WAMessage): WhatsAppMessageSummary {
   }
 }
 
-function summarizeChat(
-  chat: Chat,
-  lastMessage?: WhatsAppMessageSummary,
-): WhatsAppChatSummary {
+function summarizeChat(chat: Chat, lastMessage?: WhatsAppMessageSummary): WhatsAppChatSummary {
   const id = chat.id ?? ''
   return {
     id,
@@ -106,7 +106,7 @@ export class WhatsAppClient {
     const account = await manager.getAccount()
     if (!account) {
       throw new WhatsAppError(
-        'No WhatsApp credentials found. Run "agent-whatsapp auth login --phone <phone-number>" first.',
+        'No WhatsApp credentials found. Run "agent-whatsapp auth login --qr" or "agent-whatsapp auth login --phone <phone-number>" first.',
         'no_credentials',
       )
     }
@@ -226,10 +226,12 @@ export class WhatsAppClient {
             retries++
             if (retries > MAX_RETRIES) {
               clearTimeout(timeout)
-              outerReject(new WhatsAppError(
-                `Connection failed after ${MAX_RETRIES} retries: ${lastDisconnect?.error?.message ?? 'unknown'}`,
-                'max_retries',
-              ))
+              outerReject(
+                new WhatsAppError(
+                  `Connection failed after ${MAX_RETRIES} retries: ${lastDisconnect?.error?.message ?? 'unknown'}`,
+                  'max_retries',
+                ),
+              )
               return
             }
 
@@ -326,10 +328,12 @@ export class WhatsAppClient {
             retries++
             if (retries > MAX_RETRIES) {
               clearTimeout(overallTimeout)
-              outerReject(new WhatsAppError(
-                `Connection failed after ${MAX_RETRIES} retries: ${lastDisconnect?.error?.message ?? 'unknown'}`,
-                'max_retries',
-              ))
+              outerReject(
+                new WhatsAppError(
+                  `Connection failed after ${MAX_RETRIES} retries: ${lastDisconnect?.error?.message ?? 'unknown'}`,
+                  'max_retries',
+                ),
+              )
               return
             }
 
@@ -362,8 +366,115 @@ export class WhatsAppClient {
     })
   }
 
+  async connectForQR(onQR: (qr: string) => void | Promise<void>): Promise<{ waitForAuth: () => Promise<void> }> {
+    this.ensureAuth()
+    this.pendingPromise = new Promise<void>((resolve) => {
+      this.pendingResolve = resolve
+    })
+
+    const authCompletePromise = new Promise<void>((resolve, reject) => {
+      this.authCompleteResolve = resolve
+      this.authCompleteReject = reject
+    })
+
+    const MAX_RETRIES = 5
+    let retries = 0
+
+    return new Promise((outerResolve, outerReject) => {
+      let qrEmitted = false
+
+      const overallTimeout = setTimeout(() => {
+        const err = new WhatsAppError('QR auth timed out', 'qr_timeout')
+        if (qrEmitted) {
+          this.authCompleteReject?.(err)
+        } else {
+          outerReject(err)
+        }
+      }, 120_000)
+
+      const onError = (err: unknown): void => {
+        clearTimeout(overallTimeout)
+        const error = err instanceof Error ? err : new WhatsAppError(String(err), 'qr_error')
+        if (qrEmitted) {
+          this.authCompleteReject?.(error)
+        } else {
+          outerReject(error)
+        }
+      }
+
+      const attempt = async (): Promise<void> => {
+        const { sock, saveCreds } = await this.createSocket()
+        this.setupBufferListeners(sock, saveCreds)
+
+        sock.ev.on('connection.update', async (update: Partial<ConnectionState>) => {
+          const { connection, lastDisconnect, qr } = update
+
+          if (qr) {
+            await onQR(qr)
+            if (!qrEmitted) {
+              qrEmitted = true
+              outerResolve({ waitForAuth: () => authCompletePromise })
+            }
+          }
+
+          if (connection === 'open') {
+            clearTimeout(overallTimeout)
+            this.authCompleteResolve?.()
+            if (!qrEmitted) {
+              qrEmitted = true
+              outerResolve({ waitForAuth: async () => {} })
+            }
+          }
+
+          if (connection === 'close') {
+            this.cleanupSocket(sock)
+
+            const statusCode = (lastDisconnect?.error as Boom)?.output?.statusCode
+
+            if (statusCode === DisconnectReason.forbidden) {
+              clearTimeout(overallTimeout)
+              const err = new WhatsAppError('Account banned or restricted.', 'forbidden')
+              if (qrEmitted) {
+                this.authCompleteReject?.(err)
+              } else {
+                outerReject(err)
+              }
+              return
+            }
+
+            if (qrEmitted) {
+              // Post-QR scan: keep reconnecting until auth completes
+              setTimeout(() => attempt().catch(onError), 2000)
+              return
+            }
+
+            retries++
+            if (retries > MAX_RETRIES) {
+              clearTimeout(overallTimeout)
+              outerReject(
+                new WhatsAppError(
+                  `Connection failed after ${MAX_RETRIES} retries: ${lastDisconnect?.error?.message ?? 'unknown'}`,
+                  'max_retries',
+                ),
+              )
+              return
+            }
+
+            setTimeout(() => attempt().catch(onError), 1000)
+          }
+        })
+      }
+
+      attempt().catch(onError)
+    })
+  }
+
   private cleanupSocket(sock: WASocket): void {
-    try { sock.end(undefined) } catch { /* already closed */ }
+    try {
+      sock.end(undefined)
+    } catch {
+      /* already closed */
+    }
   }
 
   private setupBufferListeners(sock: WASocket, saveCreds: () => Promise<void>): void {
@@ -475,9 +586,7 @@ export class WhatsAppClient {
   async searchChats(query: string, limit?: number): Promise<WhatsAppChatSummary[]> {
     const allChats = await this.listChats()
     const lower = query.toLowerCase()
-    const filtered = allChats.filter((c) =>
-      c.name.toLowerCase().includes(lower) || c.id.toLowerCase().includes(lower),
-    )
+    const filtered = allChats.filter((c) => c.name.toLowerCase().includes(lower) || c.id.toLowerCase().includes(lower))
     return limit ? filtered.slice(0, limit) : filtered
   }
 
