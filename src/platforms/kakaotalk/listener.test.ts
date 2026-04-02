@@ -45,7 +45,7 @@ mock.module('./protocol/session', () => ({ LocoSession: MockLocoSession }))
 
 function createMockClient(overrides: Record<string, unknown> = {}) {
   return {
-    getCredentials: mock(() => ({ oauthToken: 'token', userId: 'user1', deviceUuid: 'device1' })),
+    getCredentials: mock(() => ({ oauthToken: 'token', userId: 'user1', deviceUuid: 'device1', deviceType: 'tablet' as const })),
     ...overrides,
   } as any
 }
@@ -68,7 +68,7 @@ describe('KakaoTalkListener', () => {
       await listener.start()
 
       expect(mockLogin).toHaveBeenCalledTimes(1)
-      expect(mockLogin).toHaveBeenCalledWith('token', 'user1', 'device1')
+      expect(mockLogin).toHaveBeenCalledWith('token', 'user1', 'device1', undefined, 'tablet')
     })
 
     test('is idempotent', async () => {

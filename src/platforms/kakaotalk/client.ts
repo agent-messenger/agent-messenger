@@ -6,10 +6,10 @@ import { join } from 'node:path'
 
 import { warn } from '@/shared/utils/stderr'
 
-import { APP_VERSION, LANG, OS } from './protocol/config'
+import { LANG, getLocoDeviceConfig } from './protocol/config'
 import { LocoSession } from './protocol/session'
 import type { ChatListResponse, LoginListResponse, SyncState } from './protocol/types'
-import type { KakaoChat, KakaoMessage, KakaoProfile, KakaoSendResult } from './types'
+import type { KakaoChat, KakaoDeviceType, KakaoMessage, KakaoProfile, KakaoSendResult } from './types'
 
 export class KakaoTalkError extends Error {
   code: string
@@ -231,12 +231,13 @@ export class KakaoTalkClient {
   private oauthToken: string | null = null
   private userId: string | null = null
   private deviceUuid: string | null = null
+  private deviceType: KakaoDeviceType = 'tablet'
   private state: SessionState | null = null
   private initPromise: Promise<SessionState> | null = null
   private closed = false
 
   async login(
-    credentials?: { oauthToken: string; userId: string; deviceUuid?: string },
+    credentials?: { oauthToken: string; userId: string; deviceUuid?: string; deviceType?: KakaoDeviceType },
     accountId?: string,
   ): Promise<this> {
     if (credentials) {
@@ -245,19 +246,26 @@ export class KakaoTalkClient {
       this.oauthToken = credentials.oauthToken
       this.userId = credentials.userId
       this.deviceUuid = credentials.deviceUuid ?? `agent-messenger-${credentials.userId}`
+      this.deviceType = credentials.deviceType ?? 'tablet'
       return this
     }
     const { ensureKakaoAuth } = await import('./ensure-auth')
     const account = await ensureKakaoAuth(accountId)
-    return this.login({ oauthToken: account.oauth_token, userId: account.user_id, deviceUuid: account.device_uuid })
+    return this.login({
+      oauthToken: account.oauth_token,
+      userId: account.user_id,
+      deviceUuid: account.device_uuid,
+      deviceType: account.device_type,
+    })
   }
 
-  getCredentials(): { oauthToken: string; userId: string; deviceUuid: string } {
+  getCredentials(): { oauthToken: string; userId: string; deviceUuid: string; deviceType: KakaoDeviceType } {
     this.ensureAuth()
     return {
       oauthToken: this.oauthToken!,
       userId: this.userId!,
       deviceUuid: this.deviceUuid!,
+      deviceType: this.deviceType,
     }
   }
 
@@ -315,7 +323,7 @@ export class KakaoTalkClient {
     const session = new LocoSession()
     try {
       const syncState = await loadSyncState(this.deviceUuid!)
-      const loginResult = await session.login(this.oauthToken!, this.userId!, this.deviceUuid!, syncState)
+      const loginResult = await session.login(this.oauthToken!, this.userId!, this.deviceUuid!, syncState, this.deviceType)
 
       const newSyncState = mergeSyncState(syncState, loginResult)
       await saveSyncState(this.deviceUuid!, newSyncState)
@@ -500,17 +508,24 @@ export class KakaoTalkClient {
   async getProfile(): Promise<KakaoProfile> {
     this.ensureAuth()
     try {
+      const deviceConfig = getLocoDeviceConfig(this.deviceType)
+      const isMac = deviceConfig.os === 'mac'
+      const platform = isMac ? 'mac' : 'android'
+      const userAgent = isMac
+        ? `KT/${deviceConfig.appVersion} Md/macOS ${LANG}`
+        : `KT/${deviceConfig.appVersion} An/13 ${LANG}`
+
       const headers = {
         Authorization: `${this.oauthToken}-${this.deviceUuid}`,
-        A: `${OS}/${APP_VERSION}/${LANG}`,
-        'User-Agent': `KT/${APP_VERSION} Md/macOS ${LANG}`,
+        A: `${platform}/${deviceConfig.appVersion}/${LANG}`,
+        'User-Agent': userAgent,
         Accept: '*/*',
         'Accept-Language': LANG,
       }
 
       const [profileRes, settingsRes] = await Promise.all([
-        fetch('https://katalk.kakao.com/mac/profile3/me.json', { headers }),
-        fetch('https://katalk.kakao.com/mac/account/more_settings.json?since=0&lang=ko', { headers }),
+        fetch(`https://katalk.kakao.com/${platform}/profile3/me.json`, { headers }),
+        fetch(`https://katalk.kakao.com/${platform}/account/more_settings.json?since=0&lang=ko`, { headers }),
       ])
 
       if (!profileRes.ok) {
