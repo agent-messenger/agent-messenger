@@ -138,6 +138,8 @@
   },
   "dependencies": {
     "@evex/linejs": "https://npm.jsr.io/~/11/@jsr/evex__linejs/2.3.7.tgz",
+    "@jsr/evex__linejs-types": "https://npm.jsr.io/~/11/@jsr/evex__linejs-types/2.3.7.tgz",
+    "@jsr/evex__loose-types": "https://npm.jsr.io/~/11/@jsr/evex__loose-types/1.0.1.tgz",
     "@hapi/boom": "^10.0.1",
     "@slack/web-api": "^6.9.0",
     "@whiskeysockets/baileys": "^7.0.0-rc.9",
