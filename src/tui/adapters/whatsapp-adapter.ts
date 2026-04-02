@@ -1,5 +1,6 @@
 import { WhatsAppClient } from '@/platforms/whatsapp/client'
 import { WhatsAppCredentialManager } from '@/platforms/whatsapp/credential-manager'
+import { renderTerminalQR } from '@/shared/utils/qr'
 
 import type { AuthHint, AuthIO, PlatformAdapter, UnifiedChannel, UnifiedMessage, Workspace } from './types'
 
@@ -80,35 +81,38 @@ export class WhatsAppAdapter implements PlatformAdapter {
 
   getAuthHint(): AuthHint {
     return {
-      command: 'agent-whatsapp auth login',
-      description: 'Run the command below and link your WhatsApp account using the pairing code.',
+      command: 'agent-whatsapp auth login --qr',
+      description: 'Run the command below and scan the QR code with WhatsApp on your phone.',
     }
   }
 
   async authenticate(io: AuthIO): Promise<void> {
-    const { createAccountId } = await import('@/platforms/whatsapp/types')
-
-    const phone = await io.prompt('Phone number (e.g. +12025551234)')
-    if (!phone) throw new Error('Phone number is required')
-
-    io.print('Connecting...')
-    const accountId = createAccountId(phone)
+    io.print('Generating QR code...')
+    const accountId = 'qr-default'
+    const existingPaths = this.credManager.getAccountPaths(accountId)
+    const { rm } = await import('node:fs/promises')
+    await rm(existingPaths.auth_dir, { recursive: true, force: true })
     const paths = await this.credManager.ensureAccountPaths(accountId)
     const client = await new WhatsAppClient().login({ authDir: paths.auth_dir })
 
     let waitForAuth: () => Promise<void>
     try {
-      const result = await client.connectForPairing(phone)
+      const result = await client.connectForQR(async (qr) => {
+        io.print('Scan this QR code with WhatsApp on your phone:')
+        try {
+          const rendered = await renderTerminalQR(qr)
+          io.print(rendered)
+        } catch {
+          io.print(qr)
+        }
+      })
       waitForAuth = result.waitForAuth
-      const formatted = result.code.length === 8 ? `${result.code.slice(0, 4)}-${result.code.slice(4)}` : result.code
-      io.print(`Pairing code: ${formatted}`)
-      io.print('Enter this code in WhatsApp > Linked Devices > Link with phone number')
     } catch (err) {
       await client.close()
       throw err
     }
 
-    io.print('Waiting for confirmation...')
+    io.print('Waiting for QR code scan...')
     try {
       await waitForAuth()
     } catch (err) {
@@ -119,14 +123,13 @@ export class WhatsAppAdapter implements PlatformAdapter {
     const now = new Date().toISOString()
     await this.credManager.setAccount({
       account_id: accountId,
-      phone_number: phone,
       created_at: now,
       updated_at: now,
     })
     await this.credManager.setCurrent(accountId)
 
     this.client = client
-    this.currentAccount = { id: accountId, name: phone }
+    this.currentAccount = { id: accountId, name: accountId }
   }
 
   private ensureClient(): WhatsAppClient {

@@ -40,7 +40,7 @@ One CLI for Slack, Discord, Teams, Webex, Telegram, WhatsApp, LINE, Instagram, K
 
 Every platform gates API access behind OAuth apps that need admin approval — days of waiting just to send a message. And even then, your agent is a **bot**, not you. Different name, different permissions, different context.
 
-Agent Messenger reads session tokens from your Slack, Discord, Teams, KakaoTalk, or Channel Talk desktop app — zero config. If the desktop app isn't installed, it falls back to extracting from Chromium browsers. Webex and Instagram tokens are extracted directly from browsers. Telegram and WhatsApp authenticate with a one-time phone or pairing code. Either way, your agent operates **as you** — same name, same permissions, same context. Bot tokens are fully supported too for server-side and CI/CD use cases.
+Agent Messenger reads session tokens from your Slack, Discord, Teams, KakaoTalk, or Channel Talk desktop app — zero config. If the desktop app isn't installed, it falls back to extracting from Chromium browsers. Webex and Instagram tokens are extracted directly from browsers. Telegram authenticates with a one-time phone code, and WhatsApp with a QR code or pairing code. Either way, your agent operates **as you** — same name, same permissions, same context. Bot tokens are fully supported too for server-side and CI/CD use cases.
 
 - **Auto-Extract Auth** — Reads tokens from Slack, Discord, Teams, KakaoTalk, and Channel Talk desktop apps, with browser fallback. Webex and Instagram tokens extracted from Chromium browsers. Telegram and WhatsApp authenticate with a one-time code — still under a minute
 - **Act As Yourself** — Extracts your user session — not a bot token. Your agent sends messages, reacts, and searches as you. Need bot mode? Bot CLIs are included too
@@ -75,7 +75,7 @@ This installs:
 - `agent-teams` — Microsoft Teams CLI
 - `agent-webex` — Cisco Webex CLI (browser token extraction with e2e encryption + OAuth Device Grant, zero-config)
 - `agent-telegram` — Telegram CLI (user account via TDLib)
-- `agent-whatsapp` — WhatsApp CLI (user account via Baileys, pairing code auth)
+- `agent-whatsapp` — WhatsApp CLI (user account via Baileys, QR code or pairing code auth)
 - `agent-whatsappbot` — WhatsApp Bot CLI (Cloud API, for server-side/CI/CD)
 - `agent-line` — LINE CLI (QR code login, Thrift protocol)
 - `agent-wechatbot` — WeChat Bot CLI (Official Account API, for server-side/CI/CD)
@@ -295,7 +295,7 @@ See the [TUI docs](https://agent-messenger.dev/docs/tui) for keybindings, archit
 - **[Teams Guide](https://agent-messenger.dev/docs/cli/teams)** — Full command reference for Microsoft Teams
 - **[Webex Guide](skills/agent-webex/SKILL.md)** — Browser token extraction, OAuth Device Grant auth, and Cisco Webex command reference
 - **[Telegram Guide](https://agent-messenger.dev/docs/cli/telegram)** — TDLib setup and Telegram command reference
-- **[WhatsApp Guide](https://agent-messenger.dev/docs/cli/whatsapp)** — Baileys-based WhatsApp integration via pairing code
+- **[WhatsApp Guide](https://agent-messenger.dev/docs/cli/whatsapp)** — Baileys-based WhatsApp integration via QR code or pairing code
 - **[WhatsApp Bot Guide](https://agent-messenger.dev/docs/cli/whatsappbot)** — Cloud API integration for WhatsApp Business
 - **[LINE Guide](https://agent-messenger.dev/docs/cli/line)** — QR code login and Thrift protocol integration
 - **[WeChat Bot Guide](https://agent-messenger.dev/docs/cli/wechatbot)** — Official Account API integration for WeChat

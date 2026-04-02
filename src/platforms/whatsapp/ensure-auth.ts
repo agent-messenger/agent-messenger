@@ -9,7 +9,7 @@ export async function ensureWhatsAppAuth(): Promise<void> {
 
   if (!account) {
     console.log(formatOutput({
-      error: 'Not authenticated. Run "agent-whatsapp auth login --phone <phone-number>" first.',
+      error: 'Not authenticated. Run "agent-whatsapp auth login --qr" or "agent-whatsapp auth login --phone <phone-number>" first.',
     }))
     process.exit(1)
   }
@@ -19,7 +19,7 @@ export async function ensureWhatsAppAuth(): Promise<void> {
 
   if (!existsSync(credsPath)) {
     console.log(formatOutput({
-      error: 'Auth credentials missing. Run "agent-whatsapp auth login --phone <phone-number>" to re-authenticate.',
+      error: 'Auth credentials missing. Run "agent-whatsapp auth login --qr" or "agent-whatsapp auth login --phone <phone-number>" to re-authenticate.',
     }))
     process.exit(1)
   }

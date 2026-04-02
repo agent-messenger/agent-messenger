@@ -2,7 +2,37 @@
 
 ## Overview
 
-agent-whatsapp uses pairing code authentication via [Baileys](https://github.com/WhiskeySockets/Baileys). The CLI registers as a companion (linked) device, so your phone session is never affected. Each command connects on demand and disconnects when done.
+agent-whatsapp uses [Baileys](https://github.com/WhiskeySockets/Baileys) to authenticate via QR code or pairing code. The CLI registers as a companion (linked) device, so your phone session is never affected. Each command connects on demand and disconnects when done.
+
+## QR Code Login
+
+### How It Works
+
+1. The CLI generates a QR code and displays it in the terminal (and opens it in the browser)
+2. You scan the QR code with WhatsApp on your phone: Settings > Linked Devices > Link a Device
+3. Session credentials are stored locally for future commands
+
+### Starting Login
+
+```bash
+agent-whatsapp auth login --qr
+```
+
+In interactive mode, a QR code is rendered in the terminal and opened in the browser. In non-interactive mode, JSON output is emitted:
+
+```json
+{"next_action":"scan_qr","qr_url":"...","qr_html_path":"/tmp/whatsapp-qr-....html","message":"Scan with WhatsApp on your phone"}
+```
+
+After scanning:
+
+```json
+{"authenticated":true,"account_id":"qr-default"}
+```
+
+### QR Code Refresh
+
+Baileys emits a new QR code every ~20 seconds. The terminal QR updates automatically. The browser tab is only opened once. If the QR expires after ~2 minutes, run `auth login --qr` again.
 
 ## Pairing Code Login
 
@@ -10,8 +40,8 @@ agent-whatsapp uses pairing code authentication via [Baileys](https://github.com
 
 1. You provide your phone number in international format (e.g. `+1234567890`)
 2. The CLI generates a numeric pairing code and displays it
-3. You enter the code on your phone: WhatsApp > Settings > Linked Devices > Link a Device
-4. The CLI polls until you confirm on your phone
+3. You enter the code on your phone: WhatsApp > Settings > Linked Devices > Link with phone number
+4. The CLI waits until you confirm on your phone
 5. Session credentials are stored locally for future commands
 
 ### Starting Login
@@ -34,7 +64,7 @@ After confirmation on your phone:
 
 ### Login Failures
 
-If the pairing code expires (typically after 60 seconds), run `auth login` again for a fresh code. If your phone isn't connected to the internet, the pairing will time out.
+If the pairing code expires (typically after 60 seconds), run `auth login --phone <number>` again for a fresh code. If your phone isn't connected to the internet, the pairing will time out.
 
 ## Multi-Account Management
 
@@ -121,7 +151,7 @@ Output when not authenticated:
 
 ```json
 {
-  "error": "No WhatsApp account linked. Run: agent-whatsapp auth login --phone <number>"
+  "error": "No WhatsApp account configured. Run \"auth login --qr\" or \"auth login --phone <phone-number>\" first."
 }
 ```
 
@@ -163,7 +193,7 @@ If commands start failing with auth errors:
 agent-whatsapp auth status
 
 # Re-link if needed
-agent-whatsapp auth login --phone +1234567890
+agent-whatsapp auth login --qr
 
 # Verify it worked
 agent-whatsapp auth status
