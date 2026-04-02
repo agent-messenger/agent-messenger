@@ -151,7 +151,7 @@ Output when not authenticated:
 
 ```json
 {
-  "error": "Not authenticated. Run \"agent-whatsapp auth login --qr\" or \"agent-whatsapp auth login --phone <phone-number>\" first."
+  "error": "No WhatsApp account configured. Run \"auth login --qr\" or \"auth login --phone <phone-number>\" first."
 }
 ```
 

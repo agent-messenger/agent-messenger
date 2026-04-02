@@ -89,6 +89,9 @@ export class WhatsAppAdapter implements PlatformAdapter {
   async authenticate(io: AuthIO): Promise<void> {
     io.print('Generating QR code...')
     const accountId = 'qr-default'
+    const existingPaths = this.credManager.getAccountPaths(accountId)
+    const { rm } = await import('node:fs/promises')
+    await rm(existingPaths.auth_dir, { recursive: true, force: true })
     const paths = await this.credManager.ensureAccountPaths(accountId)
     const client = await new WhatsAppClient().login({ authDir: paths.auth_dir })
 
