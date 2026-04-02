@@ -19,9 +19,10 @@ export const BOOKING_PORT = 443
 export const CHECKIN_HOST = 'ticket-loco.kakao.com'
 export const CHECKIN_PORT = 995
 
-// Mac (PC slot) identity
-const MAC_APP_VERSION = '26.2.0'
-const MAC_OS = 'mac'
+// PC slot identity — platform-aware: 'win' on Windows, 'mac' on macOS
+const PC_APP_VERSION = '26.2.0'
+const PC_OS: string = process.platform === 'win32' ? 'win' : 'mac'
+export const PC_OS_NAME: string = process.platform === 'win32' ? 'Windows' : 'macOS'
 
 // Android (tablet slot) identity — must match the Android sub-device agent
 // used in auth/kakao-login.ts so the server sees a consistent tablet session.
@@ -47,5 +48,5 @@ export function getLocoDeviceConfig(deviceType: KakaoDeviceType): LocoDeviceConf
   if (deviceType === 'tablet') {
     return { os: ANDROID_OS, appVersion: ANDROID_APP_VERSION, useSub: true }
   }
-  return { os: MAC_OS, appVersion: MAC_APP_VERSION, useSub: false }
+  return { os: PC_OS, appVersion: PC_APP_VERSION, useSub: false }
 }
