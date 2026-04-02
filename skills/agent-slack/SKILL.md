@@ -155,7 +155,6 @@ agent-slack auth logout <workspace-id>
 # Show current authenticated user
 agent-slack whoami
 agent-slack whoami --pretty
-agent-slack whoami --workspace <workspace-id>
 ```
 
 Output includes the authenticated user's identity information.
