@@ -5,6 +5,7 @@ import { KakaoTalkClient, KakaoTalkError } from './client'
 // Mock LocoSession at module level
 const mockLogin = mock(() => Promise.resolve({}))
 const mockGetChatList = mock(() => Promise.resolve({}))
+const mockGetChatInfo = mock(() => Promise.resolve({}))
 const mockSyncMessages = mock(() => Promise.resolve({}))
 const mockSendMessage = mock(() => Promise.resolve({}))
 const mockClose = mock(() => {})
@@ -14,6 +15,7 @@ mock.module('./protocol/session', () => ({
   LocoSession: class MockLocoSession {
     login = mockLogin
     getChatList = mockGetChatList
+    getChatInfo = mockGetChatInfo
     syncMessages = mockSyncMessages
     sendMessage = mockSendMessage
     close = mockClose
@@ -28,6 +30,7 @@ function makeLong(n: number): { low: number; high: number } {
 function resetAllMocks() {
   mockLogin.mockReset()
   mockGetChatList.mockReset()
+  mockGetChatInfo.mockReset()
   mockSyncMessages.mockReset()
   mockSendMessage.mockReset()
   mockClose.mockReset()
@@ -67,6 +70,7 @@ describe('KakaoTalkClient', () => {
   beforeEach(() => {
     resetAllMocks()
     mockLogin.mockResolvedValue(DEFAULT_LOGIN_RESULT)
+    mockGetChatInfo.mockResolvedValue({ body: { l: makeLong(99999) } })
   })
 
   afterEach(() => {

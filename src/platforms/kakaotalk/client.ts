@@ -1,10 +1,14 @@
 import { Long } from 'bson'
+import { existsSync } from 'node:fs'
+import { chmod, mkdir, readFile, writeFile } from 'node:fs/promises'
+import { homedir } from 'node:os'
+import { join } from 'node:path'
 
 import { warn } from '@/shared/utils/stderr'
 
 import { APP_VERSION, LANG, OS } from './protocol/config'
 import { LocoSession } from './protocol/session'
-import type { ChatListResponse, LoginListResponse } from './protocol/types'
+import type { ChatListResponse, LoginListResponse, SyncState } from './protocol/types'
 import type { KakaoChat, KakaoMessage, KakaoProfile, KakaoSendResult } from './types'
 
 export class KakaoTalkError extends Error {
@@ -91,6 +95,45 @@ function wrapError(error: unknown, code: string): KakaoTalkError {
 }
 
 const MAX_PAGES = 50
+
+const CONFIG_DIR = join(homedir(), '.config', 'agent-messenger')
+
+function syncStatePath(deviceUuid: string): string {
+  return join(CONFIG_DIR, `kakaotalk-sync-state-${deviceUuid}.json`)
+}
+
+async function loadSyncState(deviceUuid: string): Promise<SyncState | undefined> {
+  const path = syncStatePath(deviceUuid)
+  if (!existsSync(path)) return undefined
+  const content = await readFile(path, 'utf-8')
+  return JSON.parse(content) as SyncState
+}
+
+async function saveSyncState(deviceUuid: string, state: SyncState): Promise<void> {
+  await mkdir(CONFIG_DIR, { recursive: true })
+  const path = syncStatePath(deviceUuid)
+  await writeFile(path, JSON.stringify(state, null, 2))
+  await chmod(path, 0o600)
+}
+
+function toLongLike(v: unknown): { low: number; high: number } {
+  if (typeof v === 'number') return { low: v, high: 0 }
+  if (v && typeof v === 'object' && 'low' in v && 'high' in v) {
+    const { low, high } = v as { low: number; high: number }
+    return { low, high }
+  }
+  return { low: 0, high: 0 }
+}
+
+function buildSyncState(loginResult: LoginListResponse, previousRevision: number): SyncState {
+  const chatDatas = (loginResult.chatDatas ?? []) as Array<Record<string, unknown>>
+  return {
+    revision: previousRevision + 1,
+    chatIds: chatDatas.map((chat) => toLongLike(chat.c)),
+    maxIds: chatDatas.map((chat) => toLongLike(chat.ll)),
+    lastTokenId: toLongLike(loginResult.lastTokenId),
+  }
+}
 
 export class KakaoTalkClient {
   private oauthToken: string | null = null
@@ -179,7 +222,11 @@ export class KakaoTalkClient {
   private async connect(): Promise<SessionState> {
     const session = new LocoSession()
     try {
-      const loginResult = await session.login(this.oauthToken!, this.userId!, this.deviceUuid!)
+      const syncState = await loadSyncState(this.deviceUuid!)
+      const loginResult = await session.login(this.oauthToken!, this.userId!, this.deviceUuid!, syncState)
+
+      const newSyncState = buildSyncState(loginResult, syncState?.revision ?? 0)
+      await saveSyncState(this.deviceUuid!, newSyncState)
 
       session.onClose(() => {
         if (this.state?.session === session) {
@@ -253,17 +300,18 @@ export class KakaoTalkClient {
   }
 
   async getMessages(chatId: string, options?: { count?: number; from?: string }): Promise<KakaoMessage[]> {
-    return this.executeWithReconnect(async ({ session, loginResult }) => {
+    return this.executeWithReconnect(async ({ session }) => {
       try {
-        const rawChats = (loginResult.chatDatas ?? []) as ChatData[]
-        const chat = rawChats.find((c) => String(c.c) === chatId)
-        const lastLogId = chat?.ll as { high: number; low: number } | undefined
-        const maxLogId = lastLogId ? new Long(lastLogId.low, lastLogId.high) : undefined
-
         const count = options?.count ?? 20
         const cursor = options?.from ? parseLong(options.from) : undefined
 
         const cid = parseLong(chatId)
+
+        // Fetch fresh lastLogId via CHATONROOM (not the stale login-time snapshot)
+        const chatInfo = await session.getChatInfo(cid)
+        const chatBody = chatInfo.body as Record<string, unknown>
+        const maxLogId = bsonToLong(chatBody.l)
+
         const startCursor = cursor ?? Long.fromNumber(0)
         const allMessages: Array<Record<string, unknown>> = []
         const seenLogIds = new Set<string>()
