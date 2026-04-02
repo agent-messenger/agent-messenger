@@ -6,7 +6,7 @@ import { join } from 'node:path'
 
 import { warn } from '@/shared/utils/stderr'
 
-import { LANG, getLocoDeviceConfig } from './protocol/config'
+import { LANG, PC_OS_NAME, getLocoDeviceConfig } from './protocol/config'
 import { LocoSession } from './protocol/session'
 import type { ChatListResponse, LoginListResponse, SyncState } from './protocol/types'
 import type { KakaoChat, KakaoDeviceType, KakaoMessage, KakaoProfile, KakaoSendResult } from './types'
@@ -509,23 +509,23 @@ export class KakaoTalkClient {
     this.ensureAuth()
     try {
       const deviceConfig = getLocoDeviceConfig(this.deviceType)
-      const isMac = deviceConfig.os === 'mac'
-      const platform = isMac ? 'mac' : 'android'
-      const userAgent = isMac
-        ? `KT/${deviceConfig.appVersion} Md/macOS ${LANG}`
+      const isPC = deviceConfig.os !== 'android'
+      const apiPrefix = isPC ? 'mac' : 'android'
+      const userAgent = isPC
+        ? `KT/${deviceConfig.appVersion} Md/${PC_OS_NAME} ${LANG}`
         : `KT/${deviceConfig.appVersion} An/13 ${LANG}`
 
       const headers = {
         Authorization: `${this.oauthToken}-${this.deviceUuid}`,
-        A: `${platform}/${deviceConfig.appVersion}/${LANG}`,
+        A: `${deviceConfig.os}/${deviceConfig.appVersion}/${LANG}`,
         'User-Agent': userAgent,
         Accept: '*/*',
         'Accept-Language': LANG,
       }
 
       const [profileRes, settingsRes] = await Promise.all([
-        fetch(`https://katalk.kakao.com/${platform}/profile3/me.json`, { headers }),
-        fetch(`https://katalk.kakao.com/${platform}/account/more_settings.json?since=0&lang=ko`, { headers }),
+        fetch(`https://katalk.kakao.com/${apiPrefix}/profile3/me.json`, { headers }),
+        fetch(`https://katalk.kakao.com/${apiPrefix}/account/more_settings.json?since=0&lang=ko`, { headers }),
       ])
 
       if (!profileRes.ok) {

@@ -23,7 +23,9 @@ function isInteractiveSession(): boolean {
 function hasTTY(): boolean {
   try {
     const { openSync, closeSync } = require('node:fs') as typeof import('node:fs')
-    const fd = openSync('/dev/tty', 'r')
+    // CONIN$ is the Windows console input device; /dev/tty is the Unix equivalent
+    const ttyDevice = process.platform === 'win32' ? 'CONIN$' : '/dev/tty'
+    const fd = openSync(ttyDevice, 'r')
     closeSync(fd)
     return true
   } catch { return false }
@@ -178,6 +180,20 @@ async function promptHidden(message: string): Promise<string | undefined> {
 }
 
 async function promptHiddenTTY(message: string): Promise<string | undefined> {
+  if (process.platform === 'win32') {
+    const { execSync } = require('node:child_process') as typeof import('node:child_process')
+    try {
+      const escapedMessage = message.replace(/'/g, "''")
+      const ps = `$p = Read-Host '${escapedMessage}' -AsSecureString; [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($p))`
+      const result = execSync(`powershell -NoProfile -Command "${ps}"`, {
+        encoding: 'utf-8',
+        timeout: 120_000,
+        stdio: ['inherit', 'pipe', 'inherit'],
+      })
+      return result.trim() || undefined
+    } catch { return undefined }
+  }
+
   const { createReadStream } = await import('node:fs')
   const { createInterface } = await import('node:readline/promises')
   const ttyIn = createReadStream('/dev/tty')

@@ -565,7 +565,7 @@ If `auth extract` fails:
 
 ### Password prompt on fresh install
 
-On fresh installs, the macOS desktop app hashes the password before caching, so the CLI cannot extract it automatically. The CLI will prompt for the password once to register the device. After registration, the password is never needed again.
+On fresh installs, the desktop app (macOS or Windows) may hash or omit the password from its cache, so the CLI cannot extract it automatically. The CLI will prompt for the password once to register the device — via a native dialog on macOS (AppKit) and Windows (PowerShell WinForms), or via a TTY prompt if a terminal is available. After registration, the password is never needed again.
 
 When the CLI returns `{"next_action": "run_interactive", ...}`, use a tmux session to let the user type their password securely. See "Handling `run_interactive`" above for the exact steps.
 
