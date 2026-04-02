@@ -4,7 +4,7 @@ import type { Command as CommandType } from 'commander'
 import { Command } from 'commander'
 
 import pkg from '../../../package.json' with { type: 'json' }
-import { authCommand, chatCommand, messageCommand } from './commands/index'
+import { authCommand, chatCommand, messageCommand, whoamiCommand } from './commands/index'
 import { ensureInstagramAuth } from './ensure-auth'
 
 function isAuthCommand(command: CommandType): boolean {
@@ -31,6 +31,7 @@ program.hook('preAction', async (_thisCommand, actionCommand) => {
 program.addCommand(authCommand)
 program.addCommand(chatCommand)
 program.addCommand(messageCommand)
+program.addCommand(whoamiCommand)
 
 program.parse(process.argv)
 
