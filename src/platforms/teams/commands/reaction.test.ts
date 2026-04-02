@@ -4,20 +4,16 @@ import { TeamsClient } from '../client'
 import { TeamsCredentialManager } from '../credential-manager'
 import { addAction, removeAction } from './reaction'
 
-let getTokenSpy: ReturnType<typeof spyOn>
-let loginSpy: ReturnType<typeof spyOn>
 let addReactionSpy: ReturnType<typeof spyOn>
 let removeReactionSpy: ReturnType<typeof spyOn>
+let getTokenWithExpirySpy: ReturnType<typeof spyOn>
 let consoleLogSpy: ReturnType<typeof spyOn>
 let processExitSpy: ReturnType<typeof spyOn>
 
 beforeEach(() => {
-  addReactionSpy = spyOn(TeamsClient.prototype, 'addReaction').mockImplementation(() => Promise.resolve(undefined))
-  removeReactionSpy = spyOn(TeamsClient.prototype, 'removeReaction').mockImplementation(() => Promise.resolve(undefined))
-  loginSpy = spyOn(TeamsClient.prototype, 'login').mockImplementation(async function (this: TeamsClient) {
-    return this
-  })
-  getTokenSpy = spyOn(TeamsCredentialManager.prototype, 'getTokenWithExpiry').mockImplementation(() =>
+  addReactionSpy = spyOn(TeamsClient.prototype, 'addReaction').mockResolvedValue(undefined)
+  removeReactionSpy = spyOn(TeamsClient.prototype, 'removeReaction').mockResolvedValue(undefined)
+  getTokenWithExpirySpy = spyOn(TeamsCredentialManager.prototype, 'getTokenWithExpiry').mockImplementation(() =>
     Promise.resolve({ token: 'test-token', tokenExpiresAt: undefined }),
   )
 
@@ -30,8 +26,7 @@ beforeEach(() => {
 afterEach(() => {
   addReactionSpy.mockRestore()
   removeReactionSpy.mockRestore()
-  loginSpy.mockRestore()
-  getTokenSpy.mockRestore()
+  getTokenWithExpirySpy.mockRestore()
   consoleLogSpy.mockRestore()
   processExitSpy.mockRestore()
 })
@@ -65,7 +60,7 @@ test('remove: sends correct DELETE request with emoji', async () => {
 })
 
 test('add: handles missing token gracefully', async () => {
-  getTokenSpy.mockImplementation(() => Promise.resolve(null))
+  getTokenWithExpirySpy.mockImplementation(() => Promise.resolve(null))
 
   try {
     await addAction('team123', 'ch123', 'msg123', 'like', { pretty: false })
