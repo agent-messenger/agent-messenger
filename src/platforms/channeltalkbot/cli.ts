@@ -11,6 +11,7 @@ import {
   managerCommand,
   messageCommand,
   snapshotCommand,
+  whoamiCommand,
 } from './commands/index'
 
 const program = new Command()
@@ -24,6 +25,7 @@ program
   .option('--bot <name>', 'Bot name to use for sending messages')
 
 program.addCommand(authCommand)
+program.addCommand(whoamiCommand)
 program.addCommand(messageCommand)
 program.addCommand(chatCommand)
 program.addCommand(groupCommand)
