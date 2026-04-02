@@ -1,14 +1,8 @@
-import { afterEach, beforeEach, expect, mock, spyOn, test } from 'bun:test'
+import { afterEach, beforeEach, expect, spyOn, test } from 'bun:test'
 
+import * as clientModule from '../client'
 import { WebexError } from '../types'
-
-const mockHandleError = mock((err: Error) => {
-  throw err
-})
-
-mock.module('@/shared/utils/error-handler', () => ({
-  handleError: mockHandleError,
-}))
+import { whoamiCommand } from './whoami'
 
 const mockUser = {
   id: 'person-123',
@@ -23,31 +17,27 @@ const mockUser = {
   created: '2024-01-01T00:00:00.000Z',
 }
 
-const mockTestAuth = mock(() => Promise.resolve(mockUser))
-const mockLogin = mock(() => Promise.resolve({ testAuth: mockTestAuth }))
+const makeFakeClient = () => ({
+  login: async function (this: unknown) { return this },
+  testAuth: async () => mockUser,
+})
 
-mock.module('../client', () => ({
-  WebexClient: class {
-    login = mockLogin
-  },
-}))
-
-import { whoamiCommand } from './whoami'
-
+let webexClientSpy: ReturnType<typeof spyOn>
 let consoleLogSpy: ReturnType<typeof spyOn>
+let processExitSpy: ReturnType<typeof spyOn>
 
 beforeEach(() => {
-  mockTestAuth.mockReset().mockImplementation(() => Promise.resolve(mockUser))
-  mockLogin.mockReset().mockImplementation(() => Promise.resolve({ testAuth: mockTestAuth }))
-  mockHandleError.mockReset().mockImplementation((err: Error) => {
-    throw err
-  })
-
+  webexClientSpy = spyOn(clientModule, 'WebexClient').mockImplementation(
+    makeFakeClient as unknown as typeof clientModule.WebexClient,
+  )
   consoleLogSpy = spyOn(console, 'log').mockImplementation(() => {})
+  processExitSpy = spyOn(process, 'exit').mockImplementation((_code?: number) => undefined as never)
 })
 
 afterEach(() => {
-  consoleLogSpy.mockRestore()
+  webexClientSpy?.mockRestore()
+  consoleLogSpy?.mockRestore()
+  processExitSpy?.mockRestore()
 })
 
 test('whoami command is defined with correct name and description', () => {
@@ -68,7 +58,6 @@ test('whoami calls testAuth and outputs user fields', async () => {
   await whoamiCommand.parseAsync([], { from: 'user' })
 
   // then: outputs all expected fields
-  expect(mockTestAuth).toHaveBeenCalled()
   expect(consoleLogSpy).toHaveBeenCalledWith(
     JSON.stringify({
       id: 'person-123',
@@ -109,13 +98,16 @@ test('whoami outputs pretty-printed JSON when --pretty flag is passed', async ()
   )
 })
 
-test('whoami surfaces error when not authenticated', async () => {
+test('whoami exits with code 1 when not authenticated', async () => {
   // given: no credentials
-  mockLogin.mockImplementation(async () => {
-    throw new WebexError('No Webex credentials found.', 'no_credentials')
-  })
+  webexClientSpy.mockImplementation(() => ({
+    login: async () => { throw new WebexError('No Webex credentials found.', 'no_credentials') },
+    testAuth: async () => mockUser,
+  }) as unknown as clientModule.WebexClient)
 
-  // when/then: error is thrown and handleError is called
-  await expect(whoamiCommand.parseAsync([], { from: 'user' })).rejects.toThrow('No Webex credentials found.')
-  expect(mockHandleError).toHaveBeenCalledWith(expect.any(WebexError))
+  // when: running whoami
+  await whoamiCommand.parseAsync([], { from: 'user' })
+
+  // then: process exits with code 1
+  expect(processExitSpy).toHaveBeenCalledWith(1)
 })

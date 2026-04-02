@@ -1,78 +1,58 @@
-import { afterEach, beforeEach, describe, expect, mock, test } from 'bun:test'
+import { afterEach, beforeEach, describe, expect, spyOn, test } from 'bun:test'
 
-mock.module('@/shared/utils/error-handler', () => ({
-  handleError: (err: Error) => { throw err },
-}))
-
-const mockGetProfile = mock(() =>
-  Promise.resolve({
-    id: '12025551234:1@s.whatsapp.net',
-    name: 'Test User',
-    phone_number: '12025551234',
-  }),
-)
-
-const mockClient = {
-  getProfile: mockGetProfile,
-}
-
-mock.module('./shared', () => ({
-  withWhatsAppClient: async (
-    _options: unknown,
-    fn: (client: typeof mockClient) => Promise<unknown>,
-  ) => {
-    return fn(mockClient)
-  },
-}))
-
+import type { WhatsAppClient } from '../client'
+import * as sharedModule from './shared'
 import { whoamiAction } from './whoami'
 
+let mockProfileData: { id: string; name: string | null; phone_number: string | null } = {
+  id: '12025551234:1@s.whatsapp.net',
+  name: 'Test User',
+  phone_number: '12025551234',
+}
+
+let withWhatsAppClientSpy: ReturnType<typeof spyOn>
+let consoleLogSpy: ReturnType<typeof spyOn>
+
 describe('whoami command', () => {
-  let logs: string[]
-  let originalConsoleLog: typeof console.log
-
   beforeEach(() => {
-    mockGetProfile.mockReset()
-    mockGetProfile.mockImplementation(() =>
-      Promise.resolve({
-        id: '12025551234:1@s.whatsapp.net',
-        name: 'Test User',
-        phone_number: '12025551234',
-      }),
-    )
+    mockProfileData = {
+      id: '12025551234:1@s.whatsapp.net',
+      name: 'Test User',
+      phone_number: '12025551234',
+    }
 
-    logs = []
-    originalConsoleLog = console.log
-    console.log = (...args: unknown[]) => { logs.push(String(args[0])) }
+    withWhatsAppClientSpy = spyOn(sharedModule, 'withWhatsAppClient').mockImplementation(
+      async (_opts, fn) => fn({ getProfile: () => Promise.resolve(mockProfileData) } as unknown as WhatsAppClient),
+    )
+    consoleLogSpy = spyOn(console, 'log').mockImplementation(() => {})
   })
 
   afterEach(() => {
-    console.log = originalConsoleLog
+    withWhatsAppClientSpy?.mockRestore()
+    consoleLogSpy?.mockRestore()
   })
 
   test('outputs profile information', async () => {
     await whoamiAction({})
 
-    expect(logs).toHaveLength(1)
-    const output = JSON.parse(logs[0])
+    expect(consoleLogSpy).toHaveBeenCalledTimes(1)
+    const output = JSON.parse(consoleLogSpy.mock.calls[0][0] as string)
     expect(output.id).toBe('12025551234:1@s.whatsapp.net')
     expect(output.name).toBe('Test User')
     expect(output.phone_number).toBe('12025551234')
   })
 
   test('outputs profile with null name', async () => {
-    mockGetProfile.mockImplementation(() =>
-      Promise.resolve({
-        id: '12025551234@s.whatsapp.net',
-        name: null,
-        phone_number: '12025551234',
-      }),
-    )
+    mockProfileData = {
+      id: '12025551234@s.whatsapp.net',
+      name: null,
+      phone_number: '12025551234',
+    }
 
     await whoamiAction({})
 
-    expect(logs).toHaveLength(1)
-    const output = JSON.parse(logs[0])
+    expect(consoleLogSpy).toHaveBeenCalledTimes(1)
+    const output = JSON.parse(consoleLogSpy.mock.calls[0][0] as string)
     expect(output.id).toBe('12025551234@s.whatsapp.net')
     expect(output.name).toBeNull()
   })

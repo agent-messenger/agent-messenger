@@ -1,74 +1,53 @@
-import { afterEach, beforeEach, describe, expect, mock, test } from 'bun:test'
+import { afterEach, beforeEach, describe, expect, spyOn, test } from 'bun:test'
 
-mock.module('@/shared/utils/error-handler', () => ({
-  handleError: (err: Error) => { throw err },
-}))
-
-const mockGetAuthStatus = mock(() =>
-  Promise.resolve({
-    account_id: 'plus-12025551234',
-    phone_number: '+12025551234',
-    authorization_state: 'authorizationStateReady',
-    authenticated: true,
-    user: {
-      id: 123456,
-      first_name: 'Test',
-      last_name: 'User',
-      username: 'testuser',
-      phone_number: '12025551234',
-      type: 'user' as const,
-    },
-  }),
-)
-
-mock.module('./shared', () => ({
-  withTelegramClient: async (
-    options: unknown,
-    fn: (client: { getAuthStatus: typeof mockGetAuthStatus }) => Promise<unknown>,
-  ) => {
-    return fn({ getAuthStatus: mockGetAuthStatus })
-  },
-}))
-
+import { TelegramTdlibClient } from '../client'
+import type { TelegramAccount } from '../types'
+import { TelegramCredentialManager } from '../credential-manager'
+import * as sharedModule from './shared'
 import { whoamiAction } from './whoami'
 
+const mockAuthStatus = {
+  account_id: 'plus-12025551234',
+  phone_number: '+12025551234',
+  authorization_state: 'authorizationStateReady',
+  authenticated: true,
+  user: {
+    id: 123456,
+    first_name: 'Test',
+    last_name: 'User',
+    username: 'testuser',
+    phone_number: '12025551234',
+    type: 'user' as const,
+  },
+}
+
+let withTelegramClientSpy: ReturnType<typeof spyOn>
+let getAuthStatusSpy: ReturnType<typeof spyOn>
+let consoleLogSpy: ReturnType<typeof spyOn>
+
 describe('whoami command', () => {
-  let logs: string[]
-  let originalConsoleLog: typeof console.log
-
   beforeEach(() => {
-    mockGetAuthStatus.mockReset()
-    mockGetAuthStatus.mockImplementation(() =>
-      Promise.resolve({
-        account_id: 'plus-12025551234',
-        phone_number: '+12025551234',
-        authorization_state: 'authorizationStateReady',
-        authenticated: true,
-        user: {
-          id: 123456,
-          first_name: 'Test',
-          last_name: 'User',
-          username: 'testuser',
-          phone_number: '12025551234',
-          type: 'user' as const,
-        },
-      }),
+    getAuthStatusSpy = spyOn(TelegramTdlibClient.prototype, 'getAuthStatus').mockResolvedValue(mockAuthStatus)
+    withTelegramClientSpy = spyOn(sharedModule, 'withTelegramClient').mockImplementation(
+      async (_opts, fn) => {
+        const fakeClient = Object.create(TelegramTdlibClient.prototype) as TelegramTdlibClient
+        return fn(fakeClient, {} as TelegramAccount, new TelegramCredentialManager())
+      },
     )
-
-    logs = []
-    originalConsoleLog = console.log
-    console.log = (...args: unknown[]) => { logs.push(String(args[0])) }
+    consoleLogSpy = spyOn(console, 'log').mockImplementation(() => {})
   })
 
   afterEach(() => {
-    console.log = originalConsoleLog
+    getAuthStatusSpy?.mockRestore()
+    withTelegramClientSpy?.mockRestore()
+    consoleLogSpy?.mockRestore()
   })
 
   test('outputs account info with user when authenticated', async () => {
     await whoamiAction({})
 
-    expect(logs).toHaveLength(1)
-    const output = JSON.parse(logs[0])
+    expect(consoleLogSpy).toHaveBeenCalledTimes(1)
+    const output = JSON.parse(consoleLogSpy.mock.calls[0][0] as string)
     expect(output.account_id).toBe('plus-12025551234')
     expect(output.phone_number).toBe('+12025551234')
     expect(output.authenticated).toBe(true)
@@ -78,19 +57,17 @@ describe('whoami command', () => {
   })
 
   test('omits user field when not present', async () => {
-    mockGetAuthStatus.mockImplementation(() =>
-      Promise.resolve({
-        account_id: 'plus-12025551234',
-        phone_number: '+12025551234',
-        authorization_state: 'authorizationStateWaitCode',
-        authenticated: false,
-      }),
-    )
+    getAuthStatusSpy.mockResolvedValue({
+      account_id: 'plus-12025551234',
+      phone_number: '+12025551234',
+      authorization_state: 'authorizationStateWaitCode',
+      authenticated: false,
+    })
 
     await whoamiAction({})
 
-    expect(logs).toHaveLength(1)
-    const output = JSON.parse(logs[0])
+    expect(consoleLogSpy).toHaveBeenCalledTimes(1)
+    const output = JSON.parse(consoleLogSpy.mock.calls[0][0] as string)
     expect(output.account_id).toBe('plus-12025551234')
     expect(output.authenticated).toBe(false)
     expect(output.user).toBeUndefined()
