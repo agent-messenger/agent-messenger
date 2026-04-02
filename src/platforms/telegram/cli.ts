@@ -2,7 +2,7 @@
 
 import { Command } from 'commander'
 import pkg from '../../../package.json' with { type: 'json' }
-import { authCommand, chatCommand, messageCommand } from './commands'
+import { authCommand, chatCommand, messageCommand, whoamiCommand } from './commands'
 
 const program = new Command()
 
@@ -14,6 +14,7 @@ program
 program.addCommand(authCommand)
 program.addCommand(chatCommand)
 program.addCommand(messageCommand)
+program.addCommand(whoamiCommand)
 
 await program.parseAsync(process.argv)
 
