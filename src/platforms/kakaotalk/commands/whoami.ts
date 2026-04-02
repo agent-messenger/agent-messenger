@@ -5,7 +5,7 @@ import { formatOutput } from '@/shared/utils/output'
 
 import { withKakaoClient } from './shared'
 
-async function profileAction(options: { account?: string; pretty?: boolean }): Promise<void> {
+async function whoamiAction(options: { account?: string; pretty?: boolean }): Promise<void> {
   try {
     const profile = await withKakaoClient(options, (client) => client.getProfile())
     console.log(formatOutput(profile, options.pretty))
@@ -14,8 +14,8 @@ async function profileAction(options: { account?: string; pretty?: boolean }): P
   }
 }
 
-export const profileCommand = new Command('profile')
-  .description('Show your KakaoTalk profile')
+export const whoamiCommand = new Command('whoami')
+  .description('Show current authenticated user')
   .option('--account <id>', 'Use a specific KakaoTalk account')
   .option('--pretty', 'Pretty print JSON output')
-  .action(profileAction)
+  .action(whoamiAction)

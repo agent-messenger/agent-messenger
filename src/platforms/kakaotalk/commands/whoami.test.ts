@@ -13,6 +13,15 @@ const mockGetProfile = mock(() =>
     user_id: 'user-1',
     nickname: 'Test User',
     profile_image_url: 'https://example.com/avatar.jpg',
+    original_profile_image_url: 'https://example.com/avatar_orig.jpg',
+    background_image_url: 'https://example.com/bg.jpg',
+    original_background_image_url: 'https://example.com/bg_orig.jpg',
+    fullname: 'Real Name',
+    status_message: 'Hello!',
+    account_display_id: 'testuser',
+    account_email: 'test@example.com',
+    pstn_number: '+821012345678',
+    email_verified: true,
   }),
 )
 
@@ -24,9 +33,9 @@ mock.module('./shared', () => ({
   withKakaoClient: mockWithKakaoClient,
 }))
 
-import { profileCommand } from './profile'
+import { whoamiCommand } from './whoami'
 
-describe('profile command', () => {
+describe('whoami command', () => {
   let consoleLogSpy: ReturnType<typeof mock>
 
   beforeEach(() => {
@@ -43,6 +52,15 @@ describe('profile command', () => {
         user_id: 'user-1',
         nickname: 'Test User',
         profile_image_url: 'https://example.com/avatar.jpg',
+        original_profile_image_url: 'https://example.com/avatar_orig.jpg',
+        background_image_url: 'https://example.com/bg.jpg',
+        original_background_image_url: 'https://example.com/bg_orig.jpg',
+        fullname: 'Real Name',
+        status_message: 'Hello!',
+        account_display_id: 'testuser',
+        account_email: 'test@example.com',
+        pstn_number: '+821012345678',
+        email_verified: true,
       }),
     )
 
@@ -55,7 +73,7 @@ describe('profile command', () => {
   })
 
   test('outputs profile information', async () => {
-    await profileCommand.parseAsync([], { from: 'user' })
+    await whoamiCommand.parseAsync([], { from: 'user' })
 
     expect(mockGetProfile).toHaveBeenCalled()
     const output = JSON.parse(consoleLogSpy.mock.calls[0][0])
@@ -64,8 +82,22 @@ describe('profile command', () => {
     expect(output.profile_image_url).toBe('https://example.com/avatar.jpg')
   })
 
+  test('outputs enriched profile fields', async () => {
+    await whoamiCommand.parseAsync([], { from: 'user' })
+
+    const output = JSON.parse(consoleLogSpy.mock.calls[0][0])
+    expect(output.background_image_url).toBe('https://example.com/bg.jpg')
+    expect(output.original_background_image_url).toBe('https://example.com/bg_orig.jpg')
+    expect(output.fullname).toBe('Real Name')
+    expect(output.status_message).toBe('Hello!')
+    expect(output.account_display_id).toBe('testuser')
+    expect(output.account_email).toBe('test@example.com')
+    expect(output.pstn_number).toBe('+821012345678')
+    expect(output.email_verified).toBe(true)
+  })
+
   test('passes account option to withKakaoClient', async () => {
-    await profileCommand.parseAsync(['--account', 'my-account'], { from: 'user' })
+    await whoamiCommand.parseAsync(['--account', 'my-account'], { from: 'user' })
 
     expect(mockWithKakaoClient).toHaveBeenCalledWith(
       expect.objectContaining({ account: 'my-account' }),
@@ -74,7 +106,7 @@ describe('profile command', () => {
   })
 
   test('outputs profile with pretty flag', async () => {
-    await profileCommand.parseAsync(['--pretty'], { from: 'user' })
+    await whoamiCommand.parseAsync(['--pretty'], { from: 'user' })
 
     expect(mockGetProfile).toHaveBeenCalled()
     const rawOutput = consoleLogSpy.mock.calls[0][0]

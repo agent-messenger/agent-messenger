@@ -353,9 +353,15 @@ export class KakaoTalkClient {
       const profile = profileData.profile as Record<string, unknown> | undefined
 
       let accountDisplayId: string | null = null
+      let accountEmail: string | null = null
+      let pstnNumber: string | null = null
+      let emailVerified: boolean | null = null
       if (settingsRes.ok) {
         const settingsData = await settingsRes.json() as Record<string, unknown>
         accountDisplayId = (settingsData.accountDisplayId as string) || null
+        accountEmail = (settingsData.accountEmail as string) || null
+        pstnNumber = (settingsData.pstnNumber as string) || null
+        emailVerified = typeof settingsData.emailVerified === 'boolean' ? settingsData.emailVerified : null
       }
 
       return {
@@ -363,8 +369,14 @@ export class KakaoTalkClient {
         nickname: (profile?.nickName as string) || '',
         profile_image_url: (profile?.profileImageUrl as string) || null,
         original_profile_image_url: (profile?.originalProfileImageUrl as string) || null,
+        background_image_url: (profile?.backgroundImageUrl as string) || null,
+        original_background_image_url: (profile?.originalBackgroundImageUrl as string) || null,
+        fullname: (profile?.fullname as string) || null,
         status_message: (profile?.statusMessage as string) || null,
         account_display_id: accountDisplayId,
+        account_email: accountEmail,
+        pstn_number: pstnNumber,
+        email_verified: emailVerified,
       }
     } catch (error) {
       throw wrapError(error, 'get_profile_failed')
