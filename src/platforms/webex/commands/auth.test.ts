@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, mock, spyOn, test } from 'bun:test'
+import { afterEach, beforeEach, describe, expect, spyOn, test } from 'bun:test'
 import * as childProcess from 'node:child_process'
 
 import { WebexClient } from '../client'
@@ -7,7 +7,9 @@ import { loginAction, logoutAction, statusAction } from './auth'
 
 describe('auth commands', () => {
   let consoleSpy: ReturnType<typeof spyOn>
-  let _consoleErrorSpy: ReturnType<typeof spyOn>
+  let consoleErrorSpy: ReturnType<typeof spyOn>
+  let execSpy: ReturnType<typeof spyOn>
+  const protoSpies: ReturnType<typeof spyOn>[] = []
   const mockPerson = {
     id: 'person-1',
     displayName: 'Test User',
@@ -17,21 +19,31 @@ describe('auth commands', () => {
     created: '2024-01-01T00:00:00.000Z',
   }
 
+  function protoSpy<T extends object>(target: T, method: keyof T) {
+    const s = spyOn(target, method as any)
+    protoSpies.push(s)
+    return s
+  }
+
   beforeEach(() => {
     consoleSpy = spyOn(console, 'log').mockImplementation(() => {})
-    _consoleErrorSpy = spyOn(console, 'error').mockImplementation(() => {})
-    spyOn(childProcess, 'exec').mockImplementation((() => {}) as any)
+    consoleErrorSpy = spyOn(console, 'error').mockImplementation(() => {})
+    execSpy = spyOn(childProcess, 'exec').mockImplementation((() => {}) as any)
   })
 
   afterEach(() => {
-    _consoleErrorSpy.mockRestore()
+    consoleSpy.mockRestore()
+    consoleErrorSpy.mockRestore()
+    execSpy.mockRestore()
+    for (const s of protoSpies) s.mockRestore()
+    protoSpies.length = 0
   })
 
   describe('loginAction with --token', () => {
     test('authenticates with provided token (bot token flow)', async () => {
-      spyOn(WebexClient.prototype, 'login').mockResolvedValue(new WebexClient())
-      spyOn(WebexClient.prototype, 'testAuth').mockResolvedValue(mockPerson)
-      spyOn(WebexCredentialManager.prototype, 'saveConfig').mockResolvedValue(undefined)
+      protoSpy(WebexClient.prototype, 'login').mockResolvedValue(new WebexClient())
+      protoSpy(WebexClient.prototype, 'testAuth').mockResolvedValue(mockPerson)
+      protoSpy(WebexCredentialManager.prototype, 'saveConfig').mockResolvedValue(undefined)
 
       await loginAction({ token: 'bot-token-123', pretty: false })
 
@@ -43,9 +55,9 @@ describe('auth commands', () => {
     })
 
     test('saves tokenType as manual with expiresAt 0', async () => {
-      spyOn(WebexClient.prototype, 'login').mockResolvedValue(new WebexClient())
-      spyOn(WebexClient.prototype, 'testAuth').mockResolvedValue(mockPerson)
-      const saveSpy = spyOn(WebexCredentialManager.prototype, 'saveConfig').mockResolvedValue(undefined)
+      protoSpy(WebexClient.prototype, 'login').mockResolvedValue(new WebexClient())
+      protoSpy(WebexClient.prototype, 'testAuth').mockResolvedValue(mockPerson)
+      const saveSpy = protoSpy(WebexCredentialManager.prototype, 'saveConfig').mockResolvedValue(undefined)
 
       await loginAction({ token: 'bot-token-123', pretty: false })
 
@@ -58,7 +70,7 @@ describe('auth commands', () => {
 
   describe('loginAction with --client-id and --client-secret', () => {
     test('uses provided credentials for Device Grant flow', async () => {
-      spyOn(WebexCredentialManager.prototype, 'requestDeviceCode').mockResolvedValue({
+      protoSpy(WebexCredentialManager.prototype, 'requestDeviceCode').mockResolvedValue({
         deviceCode: 'd',
         userCode: 'u',
         verificationUri: 'https://v',
@@ -66,14 +78,14 @@ describe('auth commands', () => {
         expiresIn: 300,
         interval: 0.01,
       })
-      spyOn(WebexCredentialManager.prototype, 'pollDeviceToken').mockResolvedValue({
+      protoSpy(WebexCredentialManager.prototype, 'pollDeviceToken').mockResolvedValue({
         accessToken: 'at',
         refreshToken: 'rt',
         expiresAt: Date.now() + 3600000,
       })
-      spyOn(WebexCredentialManager.prototype, 'saveConfig').mockResolvedValue(undefined)
-      spyOn(WebexClient.prototype, 'login').mockResolvedValue(new WebexClient())
-      spyOn(WebexClient.prototype, 'testAuth').mockResolvedValue(mockPerson)
+      protoSpy(WebexCredentialManager.prototype, 'saveConfig').mockResolvedValue(undefined)
+      protoSpy(WebexClient.prototype, 'login').mockResolvedValue(new WebexClient())
+      protoSpy(WebexClient.prototype, 'testAuth').mockResolvedValue(mockPerson)
 
       await loginAction({ clientId: 'my-id', clientSecret: 'my-secret', pretty: false })
 
@@ -82,7 +94,7 @@ describe('auth commands', () => {
     })
 
     test('saves tokenType as oauth in config', async () => {
-      spyOn(WebexCredentialManager.prototype, 'requestDeviceCode').mockResolvedValue({
+      protoSpy(WebexCredentialManager.prototype, 'requestDeviceCode').mockResolvedValue({
         deviceCode: 'd',
         userCode: 'u',
         verificationUri: 'https://v',
@@ -90,14 +102,14 @@ describe('auth commands', () => {
         expiresIn: 300,
         interval: 0.01,
       })
-      spyOn(WebexCredentialManager.prototype, 'pollDeviceToken').mockResolvedValue({
+      protoSpy(WebexCredentialManager.prototype, 'pollDeviceToken').mockResolvedValue({
         accessToken: 'at',
         refreshToken: 'rt',
         expiresAt: Date.now() + 3600000,
       })
-      const saveSpy = spyOn(WebexCredentialManager.prototype, 'saveConfig').mockResolvedValue(undefined)
-      spyOn(WebexClient.prototype, 'login').mockResolvedValue(new WebexClient())
-      spyOn(WebexClient.prototype, 'testAuth').mockResolvedValue(mockPerson)
+      const saveSpy = protoSpy(WebexCredentialManager.prototype, 'saveConfig').mockResolvedValue(undefined)
+      protoSpy(WebexClient.prototype, 'login').mockResolvedValue(new WebexClient())
+      protoSpy(WebexClient.prototype, 'testAuth').mockResolvedValue(mockPerson)
 
       await loginAction({ clientId: 'my-id', clientSecret: 'my-secret', pretty: false })
 
@@ -106,7 +118,7 @@ describe('auth commands', () => {
     })
 
     test('saves clientId and clientSecret in config', async () => {
-      spyOn(WebexCredentialManager.prototype, 'requestDeviceCode').mockResolvedValue({
+      protoSpy(WebexCredentialManager.prototype, 'requestDeviceCode').mockResolvedValue({
         deviceCode: 'd',
         userCode: 'u',
         verificationUri: 'https://v',
@@ -114,18 +126,18 @@ describe('auth commands', () => {
         expiresIn: 300,
         interval: 0.01,
       })
-      spyOn(WebexCredentialManager.prototype, 'pollDeviceToken').mockResolvedValue({
+      protoSpy(WebexCredentialManager.prototype, 'pollDeviceToken').mockResolvedValue({
         accessToken: 'at',
         refreshToken: 'rt',
         expiresAt: Date.now() + 3600000,
       })
-      spyOn(WebexCredentialManager.prototype, 'saveConfig').mockResolvedValue(undefined)
-      spyOn(WebexClient.prototype, 'login').mockResolvedValue(new WebexClient())
-      spyOn(WebexClient.prototype, 'testAuth').mockResolvedValue(mockPerson)
+      const saveSpy = protoSpy(WebexCredentialManager.prototype, 'saveConfig').mockResolvedValue(undefined)
+      protoSpy(WebexClient.prototype, 'login').mockResolvedValue(new WebexClient())
+      protoSpy(WebexClient.prototype, 'testAuth').mockResolvedValue(mockPerson)
 
       await loginAction({ clientId: 'my-id', clientSecret: 'my-secret', pretty: false })
 
-      const savedConfig = (WebexCredentialManager.prototype.saveConfig as ReturnType<typeof spyOn>).mock.calls[0][0] as { clientId: string; clientSecret: string }
+      const savedConfig = saveSpy.mock.calls[0][0] as { clientId: string; clientSecret: string }
       expect(savedConfig.clientId).toBe('my-id')
       expect(savedConfig.clientSecret).toBe('my-secret')
     })
@@ -133,10 +145,10 @@ describe('auth commands', () => {
 
   describe('statusAction', () => {
     test('shows authenticated status when token is valid', async () => {
-      spyOn(WebexCredentialManager.prototype, 'loadConfig').mockResolvedValue(null)
-      spyOn(WebexCredentialManager.prototype, 'getToken').mockResolvedValue('valid-token')
-      spyOn(WebexClient.prototype, 'login').mockResolvedValue(new WebexClient())
-      spyOn(WebexClient.prototype, 'testAuth').mockResolvedValue(mockPerson)
+      protoSpy(WebexCredentialManager.prototype, 'loadConfig').mockResolvedValue(null)
+      protoSpy(WebexCredentialManager.prototype, 'getToken').mockResolvedValue('valid-token')
+      protoSpy(WebexClient.prototype, 'login').mockResolvedValue(new WebexClient())
+      protoSpy(WebexClient.prototype, 'testAuth').mockResolvedValue(mockPerson)
 
       await statusAction({ pretty: false })
 
@@ -147,9 +159,9 @@ describe('auth commands', () => {
     })
 
     test('shows not authenticated when no token', async () => {
-      spyOn(WebexCredentialManager.prototype, 'loadConfig').mockResolvedValue(null)
-      spyOn(WebexCredentialManager.prototype, 'getToken').mockResolvedValue(null)
-      const exitSpy = spyOn(process, 'exit').mockImplementation(() => undefined as never)
+      protoSpy(WebexCredentialManager.prototype, 'loadConfig').mockResolvedValue(null)
+      protoSpy(WebexCredentialManager.prototype, 'getToken').mockResolvedValue(null)
+      const exitSpy = protoSpy(process, 'exit').mockImplementation(() => undefined as never)
 
       await statusAction({ pretty: false })
 
@@ -160,10 +172,10 @@ describe('auth commands', () => {
     })
 
     test('shows not authenticated when token validation fails', async () => {
-      spyOn(WebexCredentialManager.prototype, 'loadConfig').mockResolvedValue(null)
-      spyOn(WebexCredentialManager.prototype, 'getToken').mockResolvedValue('invalid-token')
-      spyOn(WebexClient.prototype, 'login').mockResolvedValue(new WebexClient())
-      spyOn(WebexClient.prototype, 'testAuth').mockRejectedValue(new Error('401 Unauthorized'))
+      protoSpy(WebexCredentialManager.prototype, 'loadConfig').mockResolvedValue(null)
+      protoSpy(WebexCredentialManager.prototype, 'getToken').mockResolvedValue('invalid-token')
+      protoSpy(WebexClient.prototype, 'login').mockResolvedValue(new WebexClient())
+      protoSpy(WebexClient.prototype, 'testAuth').mockRejectedValue(new Error('401 Unauthorized'))
 
       await statusAction({ pretty: false })
 
@@ -173,16 +185,16 @@ describe('auth commands', () => {
     })
 
     test('loads config for stored client credentials', async () => {
-      spyOn(WebexCredentialManager.prototype, 'loadConfig').mockResolvedValue({
+      protoSpy(WebexCredentialManager.prototype, 'loadConfig').mockResolvedValue({
         accessToken: 'at',
         refreshToken: 'rt',
         expiresAt: Date.now() + 3600000,
         clientId: 'stored-id',
         clientSecret: 'stored-secret',
       })
-      spyOn(WebexCredentialManager.prototype, 'getToken').mockResolvedValue('valid-token')
-      spyOn(WebexClient.prototype, 'login').mockResolvedValue(new WebexClient())
-      spyOn(WebexClient.prototype, 'testAuth').mockResolvedValue(mockPerson)
+      protoSpy(WebexCredentialManager.prototype, 'getToken').mockResolvedValue('valid-token')
+      protoSpy(WebexClient.prototype, 'login').mockResolvedValue(new WebexClient())
+      protoSpy(WebexClient.prototype, 'testAuth').mockResolvedValue(mockPerson)
 
       await statusAction({ pretty: false })
 
@@ -192,12 +204,12 @@ describe('auth commands', () => {
 
   describe('logoutAction', () => {
     test('clears credentials when authenticated', async () => {
-      spyOn(WebexCredentialManager.prototype, 'loadConfig').mockResolvedValue({
+      protoSpy(WebexCredentialManager.prototype, 'loadConfig').mockResolvedValue({
         accessToken: 'token',
         refreshToken: 'refresh',
         expiresAt: Date.now() + 3600000,
       })
-      const clearSpy = spyOn(WebexCredentialManager.prototype, 'clearCredentials').mockResolvedValue(undefined)
+      const clearSpy = protoSpy(WebexCredentialManager.prototype, 'clearCredentials').mockResolvedValue(undefined)
 
       await logoutAction({ pretty: false })
 
@@ -208,8 +220,8 @@ describe('auth commands', () => {
     })
 
     test('shows error when not authenticated', async () => {
-      spyOn(WebexCredentialManager.prototype, 'loadConfig').mockResolvedValue(null)
-      const exitSpy = spyOn(process, 'exit').mockImplementation(() => undefined as never)
+      protoSpy(WebexCredentialManager.prototype, 'loadConfig').mockResolvedValue(null)
+      const exitSpy = protoSpy(process, 'exit').mockImplementation(() => undefined as never)
 
       await logoutAction({ pretty: false })
 
