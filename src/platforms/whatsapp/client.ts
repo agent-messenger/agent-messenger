@@ -410,7 +410,12 @@ export class WhatsAppClient {
           const { connection, lastDisconnect, qr } = update
 
           if (qr) {
-            await onQR(qr)
+            try {
+              await onQR(qr)
+            } catch (err) {
+              onError(err)
+              return
+            }
             if (!qrEmitted) {
               qrEmitted = true
               outerResolve({ waitForAuth: () => authCompletePromise })

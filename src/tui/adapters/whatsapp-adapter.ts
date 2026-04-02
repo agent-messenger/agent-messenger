@@ -1,5 +1,6 @@
 import { WhatsAppClient } from '@/platforms/whatsapp/client'
 import { WhatsAppCredentialManager } from '@/platforms/whatsapp/credential-manager'
+import { renderTerminalQR } from '@/shared/utils/qr'
 
 import type { AuthHint, AuthIO, PlatformAdapter, UnifiedChannel, UnifiedMessage, Workspace } from './types'
 
@@ -87,15 +88,20 @@ export class WhatsAppAdapter implements PlatformAdapter {
 
   async authenticate(io: AuthIO): Promise<void> {
     io.print('Generating QR code...')
-    const accountId = `qr-${Date.now()}`
+    const accountId = 'qr-default'
     const paths = await this.credManager.ensureAccountPaths(accountId)
     const client = await new WhatsAppClient().login({ authDir: paths.auth_dir })
 
     let waitForAuth: () => Promise<void>
     try {
-      const result = await client.connectForQR((qr) => {
+      const result = await client.connectForQR(async (qr) => {
         io.print('Scan this QR code with WhatsApp on your phone:')
-        io.print(qr)
+        try {
+          const rendered = await renderTerminalQR(qr)
+          io.print(rendered)
+        } catch {
+          io.print(qr)
+        }
       })
       waitForAuth = result.waitForAuth
     } catch (err) {

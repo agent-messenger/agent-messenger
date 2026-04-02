@@ -57,12 +57,14 @@ export async function displayQR(
   data: string,
   options: QRDisplayOptions & {
     interactive: boolean
+    openBrowser?: boolean
     formatOutput: (obj: Record<string, unknown>, pretty?: boolean) => string
     pretty?: boolean
   },
 ): Promise<void> {
+  const shouldOpenBrowser = options.openBrowser ?? options.interactive
   const htmlPath = await createQRHtmlFile(data, options)
-  if (htmlPath) openInBrowser(htmlPath)
+  if (htmlPath && shouldOpenBrowser) openInBrowser(htmlPath)
 
   if (options.interactive) {
     try {

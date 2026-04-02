@@ -90,12 +90,15 @@ async function loginWithPairingCode(options: LoginOptions & { phone: string }): 
 
 async function loginWithQR(options: LoginOptions): Promise<void> {
   const manager = new WhatsAppCredentialManager()
-  const accountId = `qr-${Date.now()}`
+  const accountId = 'qr-default'
+  const existingPaths = manager.getAccountPaths(accountId)
+  await rm(existingPaths.auth_dir, { recursive: true, force: true })
   const paths = await manager.ensureAccountPaths(accountId)
   const client = await new WhatsAppClient().login({ authDir: paths.auth_dir })
   const interactive = isInteractiveSession()
 
   let waitForAuth: () => Promise<void>
+  let browserOpened = false
 
   try {
     const result = await client.connectForQR(async (qr) => {
@@ -104,9 +107,11 @@ async function loginWithQR(options: LoginOptions): Promise<void> {
         brandColor: '#25D366',
         scanInstruction: 'Scan with WhatsApp on your phone',
         interactive,
+        openBrowser: interactive && !browserOpened,
         formatOutput,
         pretty: options.pretty,
       })
+      browserOpened = true
     })
     waitForAuth = result.waitForAuth
   } catch (err) {
@@ -172,7 +177,7 @@ async function statusAction(options: StatusOptions): Promise<void> {
           {
             error: options.account
               ? `WhatsApp account "${options.account}" not found.`
-              : 'No WhatsApp account configured. Run "auth login --phone <phone-number>" first.',
+              : 'No WhatsApp account configured. Run "auth login --qr" or "auth login --phone <phone-number>" first.',
           },
           options.pretty,
         ),

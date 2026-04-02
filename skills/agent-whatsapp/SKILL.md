@@ -337,7 +337,7 @@ All commands return consistent error format:
 
 ```json
 {
-  "error": "No WhatsApp account linked. Run: agent-whatsapp auth login --phone <number>"
+  "error": "No WhatsApp account linked. Run: agent-whatsapp auth login --qr"
 }
 ```
 

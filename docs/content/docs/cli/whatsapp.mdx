@@ -9,14 +9,17 @@ description: Complete reference for the agent-whatsapp CLI.
 
 WhatsApp integration uses [Baileys](https://github.com/WhiskeySockets/Baileys), a reverse-engineered WhatsApp Web API:
 
-- Links as a **companion device** via pairing code, so your phone stays connected.
+- Links as a **companion device** via QR code or pairing code, so your phone stays connected.
 - Each command opens a WebSocket connection on demand and disconnects when done. No persistent background process.
 - Multiple WhatsApp accounts can be linked simultaneously.
 
 ## Quick Start
 
 ```bash
-# Link as companion device (enter the pairing code on your phone)
+# Link as companion device via QR code (scan with your phone)
+agent-whatsapp auth login --qr
+
+# Or link via pairing code (enter the code on your phone)
 agent-whatsapp auth login --phone +1234567890
 
 # List chats
@@ -28,16 +31,23 @@ agent-whatsapp message send +1234567890 "Hello from agent-whatsapp"
 
 ## Authentication
 
-### Pairing Code Login
+The CLI supports two authentication methods. Both register as a companion (linked) device, so your phone session is never affected.
 
-The CLI registers as a companion (linked) device using a numeric pairing code. Your phone session is never affected.
+### QR Code Login
 
 ```bash
-# Start login (displays a pairing code)
+agent-whatsapp auth login --qr
+```
+
+A QR code is displayed in the terminal and opened in the browser. Scan it with WhatsApp on your phone: Settings > Linked Devices > Link a Device.
+
+### Pairing Code Login
+
+```bash
 agent-whatsapp auth login --phone +1234567890
 ```
 
-The CLI outputs a pairing code. Enter it on your phone: WhatsApp > Settings > Linked Devices > Link a Device.
+A numeric pairing code is displayed. Enter it on your phone: WhatsApp > Settings > Linked Devices > Link with phone number.
 
 ### Account Management
 
@@ -135,6 +145,14 @@ npx -y --package agent-messenger agent-whatsapp chat list --pretty
 
 **NEVER run `npx agent-whatsapp`** without `--package agent-messenger`. It will fail or install a wrong package.
 
+### QR code not scanning
+
+1. Make sure WhatsApp is open on your phone
+2. Go to Settings > Linked Devices > Link a Device
+3. Point your phone camera at the QR code in the terminal or browser
+4. If the QR code expires, run `auth login --qr` again for a fresh code
+5. If QR scanning fails, try pairing code: `auth login --phone <number>`
+
 ### Pairing code not working
 
 1. Make sure WhatsApp is open on your phone
@@ -152,7 +170,7 @@ WhatsApp may disconnect linked devices that are inactive for extended periods. I
 agent-whatsapp auth status
 
 # Re-link if needed
-agent-whatsapp auth login --phone +1234567890
+agent-whatsapp auth login --qr
 ```
 
 ## AI Agent Integration

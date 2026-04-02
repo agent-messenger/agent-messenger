@@ -40,8 +40,8 @@ export async function withWhatsAppClient<T>(
       formatOutput(
         {
           error: options.account
-            ? `WhatsApp account "${options.account}" not found. Run "agent-whatsapp auth login --phone <phone-number>" first.`
-            : 'Not authenticated. Run "agent-whatsapp auth login --phone <phone-number>" first.',
+            ? `WhatsApp account "${options.account}" not found. Run "agent-whatsapp auth login --qr" or "agent-whatsapp auth login --phone <phone-number>" first.`
+            : 'Not authenticated. Run "agent-whatsapp auth login --qr" or "agent-whatsapp auth login --phone <phone-number>" first.',
         },
         options.pretty,
       ),
