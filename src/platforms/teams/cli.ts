@@ -13,6 +13,7 @@ import {
   snapshotCommand,
   teamCommand,
   userCommand,
+  whoamiCommand,
 } from './commands'
 import { TeamsCredentialManager } from './credential-manager'
 import { ensureTeamsAuth } from './ensure-auth'
@@ -53,6 +54,7 @@ program.addCommand(messageCommand)
 program.addCommand(reactionCommand)
 program.addCommand(snapshotCommand)
 program.addCommand(userCommand)
+program.addCommand(whoamiCommand)
 
 program.parse(process.argv)
 
