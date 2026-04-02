@@ -72,7 +72,7 @@ export class KakaoTalkListener {
     if (!this.running) return
 
     try {
-      const { oauthToken, userId, deviceUuid } = this.client.getCredentials()
+      const { oauthToken, userId, deviceUuid, deviceType } = this.client.getCredentials()
       if (!this.running) return
 
       this.userId = userId
@@ -88,7 +88,7 @@ export class KakaoTalkListener {
         }
       })
 
-      await session.login(oauthToken, userId, deviceUuid)
+      await session.login(oauthToken, userId, deviceUuid, undefined, deviceType)
 
       if (!this.running) {
         session.close()

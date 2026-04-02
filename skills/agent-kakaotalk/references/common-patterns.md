@@ -391,6 +391,19 @@ try {
 }
 ```
 
+When passing credentials manually, include `deviceType` to control which session slot the LOCO connection uses:
+
+```typescript
+const client = await new KakaoTalkClient().login({
+  oauthToken: 'token',
+  userId: '1234567890',
+  deviceUuid: 'uuid',
+  deviceType: 'tablet', // 'tablet' (default, safe) or 'pc' (kicks desktop app)
+})
+```
+
+The `deviceType` determines the LOCO protocol identity: `'tablet'` sends `os: 'android'` (tablet sub-device slot), while `'pc'` sends `os: 'mac'` (PC slot, conflicts with the desktop app). When using auto-login (`.login()` with no arguments), `deviceType` is read from stored credentials automatically.
+
 ### Auto-Reconnect
 
 `getChats`, `getMessages`, and `sendMessage` automatically reconnect once when the LOCO session dies (e.g. the KakaoTalk desktop app reclaims the session or the network drops). The reconnect is transparent — callers don't need to handle session-drop errors.
