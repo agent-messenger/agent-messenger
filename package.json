@@ -4,7 +4,7 @@
   "description": "Multi-platform messaging CLI for AI agents (Slack, Discord, Teams, Webex, Telegram, WhatsApp, LINE, Instagram, KakaoTalk, Channel Talk)",
   "repository": {
     "type": "git",
-    "url": "https://github.com/devxoul/agent-messenger"
+    "url": "https://github.com/agent-messenger/agent-messenger"
   },
   "bin": {
     "agent-messenger": "./src/cli.ts",
