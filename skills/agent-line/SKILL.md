@@ -237,12 +237,12 @@ agent-line auth logout <account-id>
 agent-line auth logout --pretty
 ```
 
-### Profile Command
+### Whoami Command
 
 ```bash
-# Show your LINE profile
-agent-line profile
-agent-line profile --pretty
+# Show current authenticated user
+agent-line whoami
+agent-line whoami --pretty
 ```
 
 Output includes:

@@ -149,6 +149,17 @@ agent-slack auth logout
 agent-slack auth logout <workspace-id>
 ```
 
+### Whoami Command
+
+```bash
+# Show current authenticated user
+agent-slack whoami
+agent-slack whoami --pretty
+agent-slack whoami --workspace <workspace-id>
+```
+
+Output includes the authenticated user's identity information.
+
 ### Message Commands
 
 ```bash

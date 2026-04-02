@@ -242,6 +242,17 @@ agent-instagram auth logout
 agent-instagram auth logout --account <id>
 ```
 
+### Whoami Command
+
+```bash
+# Show current authenticated user
+agent-instagram whoami
+agent-instagram whoami --pretty
+agent-instagram whoami --account <account-id>
+```
+
+Output includes the authenticated user's identity information.
+
 ### Chat Commands
 
 ```bash

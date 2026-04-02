@@ -188,6 +188,16 @@ agent-webex auth status
 agent-webex auth logout
 ```
 
+### Whoami Command
+
+```bash
+# Show current authenticated user
+agent-webex whoami
+agent-webex whoami --pretty
+```
+
+Output includes the authenticated user's identity information.
+
 ### Space Commands
 
 ```bash

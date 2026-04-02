@@ -174,6 +174,15 @@ agent-wechatbot auth remove <account-id>
 agent-wechatbot auth clear
 ```
 
+### Whoami Command
+
+```bash
+# Show current authenticated bot
+agent-wechatbot whoami
+agent-wechatbot whoami --pretty
+agent-wechatbot whoami --account <account-id>
+```
+
 ### Message Commands
 
 ```bash

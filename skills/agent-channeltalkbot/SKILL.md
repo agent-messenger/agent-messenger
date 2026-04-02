@@ -184,6 +184,15 @@ agent-channeltalkbot auth remove <workspace-id>
 agent-channeltalkbot auth bot <name>
 ```
 
+### Whoami Command
+
+```bash
+# Show current authenticated bot
+agent-channeltalkbot whoami
+agent-channeltalkbot whoami --pretty
+agent-channeltalkbot whoami --workspace <workspace-id>
+```
+
 ### Message Commands
 
 ```bash

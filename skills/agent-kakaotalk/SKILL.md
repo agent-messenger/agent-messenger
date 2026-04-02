@@ -47,8 +47,8 @@ agent-kakaotalk message send <chat-id> "Hello from AI agent!"
 # List messages in a chat
 agent-kakaotalk message list <chat-id>
 
-# Show your profile
-agent-kakaotalk profile
+# Show your identity
+agent-kakaotalk whoami
 ```
 
 ## Authentication
@@ -288,13 +288,13 @@ agent-kakaotalk auth status --account <account-id>
 agent-kakaotalk auth logout --account <account-id>
 ```
 
-### Profile Command
+### Whoami Command
 
 ```bash
-# Show your KakaoTalk profile
-agent-kakaotalk profile
-agent-kakaotalk profile --pretty
-agent-kakaotalk profile --account <account-id>
+# Show current authenticated user
+agent-kakaotalk whoami
+agent-kakaotalk whoami --pretty
+agent-kakaotalk whoami --account <account-id>
 ```
 
 Output includes:
@@ -304,6 +304,12 @@ Output includes:
 - `original_profile_image_url` — original profile image URL
 - `status_message` — your status message
 - `account_display_id` — your KakaoTalk ID (may be null if not set)
+- `background_image_url` — background image URL
+- `original_background_image_url` — original background image URL
+- `fullname` — real name (may be null)
+- `account_email` — account email (may be null)
+- `pstn_number` — phone number (may be null)
+- `email_verified` — whether email is verified (may be null)
 
 ### Chat Commands
 

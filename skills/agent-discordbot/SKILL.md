@@ -158,6 +158,15 @@ agent-discordbot auth use <bot-id>
 agent-discordbot auth remove <bot-id>
 ```
 
+### Whoami Command
+
+```bash
+# Show current authenticated bot
+agent-discordbot whoami
+agent-discordbot whoami --pretty
+agent-discordbot whoami --bot <bot-id>
+```
+
 ### Server Commands
 
 ```bash

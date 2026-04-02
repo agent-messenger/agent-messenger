@@ -145,6 +145,16 @@ agent-discord auth status
 agent-discord auth logout
 ```
 
+### Whoami Command
+
+```bash
+# Show current authenticated user
+agent-discord whoami
+agent-discord whoami --pretty
+```
+
+Output includes the authenticated user's identity information.
+
 ### Message Commands
 
 ```bash

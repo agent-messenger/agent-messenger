@@ -103,6 +103,11 @@ agent-telegram auth logout    # Logout
 ## Common Commands
 
 ```bash
+# Show current authenticated user
+agent-telegram whoami
+agent-telegram whoami --pretty
+agent-telegram whoami --account <account-id>
+
 # Search chats by title or username
 agent-telegram chat search "project"
 
