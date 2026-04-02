@@ -25,6 +25,15 @@ export interface ChatListResponse {
   [key: string]: unknown
 }
 
+export interface SyncState {
+  version: 2
+  revision: number
+  chatIds: Array<{ low: number; high: number }>
+  maxIds: Array<{ low: number; high: number }>
+  lastTokenId: { low: number; high: number }
+  lbk: number
+}
+
 // LOGINLIST uses short BSON field names: c=chatId, t=type, a=activeMembers, etc.
 export interface LoginListResponse extends ChatListResponse {
   userId: number

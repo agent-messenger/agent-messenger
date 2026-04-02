@@ -14,7 +14,7 @@ import {
   PROTOCOL_VERSION,
 } from './config'
 import { LocoConnection } from './connection'
-import type { BookingResponse, CheckinResponse, LoginListResponse, LocoPacket } from './types'
+import type { BookingResponse, CheckinResponse, LoginListResponse, LocoPacket, SyncState } from './types'
 
 export class LocoSession {
   private connection: LocoConnection | null = null
@@ -22,7 +22,7 @@ export class LocoSession {
   private pushHandler: ((packet: LocoPacket) => void) | null = null
   private closeHandler: (() => void) | null = null
 
-  async login(oauthToken: string, userId: string, deviceUuid: string): Promise<LoginListResponse> {
+  async login(oauthToken: string, userId: string, deviceUuid: string, syncState?: SyncState): Promise<LoginListResponse> {
     const { host, port } = await this.bookAndCheckin(userId)
 
     this.connection = new LocoConnection()
@@ -35,6 +35,13 @@ export class LocoSession {
       this.connection.onClose(this.closeHandler)
     }
 
+    const chatIds = syncState?.chatIds.map((id) => new Long(id.low, id.high)) ?? []
+    const maxIds = syncState?.maxIds.map((id) => new Long(id.low, id.high)) ?? []
+    const lastTokenId = syncState
+      ? new Long(syncState.lastTokenId.low, syncState.lastTokenId.high)
+      : Long.fromNumber(0)
+    const lbk = syncState?.lbk ?? 0
+
     const response = await this.connection.sendPacket('LOGINLIST', {
       appVer: APP_VERSION,
       prtVer: PROTOCOL_VERSION,
@@ -45,11 +52,11 @@ export class LocoSession {
       oauthToken,
       ntype: 0,
       MCCMNC: MCCMNC,
-      revision: 0,
-      chatIds: [],
-      maxIds: [],
-      lastTokenId: Long.fromNumber(0),
-      lbk: Long.fromNumber(0),
+      revision: syncState?.revision ?? 0,
+      chatIds,
+      maxIds,
+      lastTokenId,
+      lbk,
       rp: new Binary(Buffer.from([0x00, 0x00, 0xff, 0xff, 0x00, 0x00])),
       bg: false,
     })
@@ -115,6 +122,19 @@ export class LocoSession {
       cnt: count,
       max: maxLogId ?? Long.fromNumber(0),
     })
+  }
+
+  async getChatLogs(chatIds: Long[], sinces: Long[]): Promise<LocoPacket> {
+    if (!this.connection) throw new Error('Not connected')
+    return this.connection.sendPacket('MCHATLOGS', {
+      chatIds,
+      sinces,
+    })
+  }
+
+  async getChatInfo(chatId: Long): Promise<LocoPacket> {
+    if (!this.connection) throw new Error('Not connected')
+    return this.connection.sendPacket('CHATONROOM', { chatId })
   }
 
   async getChatList(lastTokenId?: Long, lastChatId?: Long): Promise<LocoPacket> {

@@ -1,10 +1,14 @@
 import { Long } from 'bson'
+import { existsSync } from 'node:fs'
+import { chmod, mkdir, readFile, writeFile } from 'node:fs/promises'
+import { homedir } from 'node:os'
+import { join } from 'node:path'
 
 import { warn } from '@/shared/utils/stderr'
 
 import { APP_VERSION, LANG, OS } from './protocol/config'
 import { LocoSession } from './protocol/session'
-import type { ChatListResponse, LoginListResponse } from './protocol/types'
+import type { ChatListResponse, LoginListResponse, SyncState } from './protocol/types'
 import type { KakaoChat, KakaoMessage, KakaoProfile, KakaoSendResult } from './types'
 
 export class KakaoTalkError extends Error {
@@ -74,6 +78,14 @@ function matchesSearch(chat: ChatData, term: string): boolean {
   return names.some((n) => n.toLowerCase().includes(lower))
 }
 
+function findMaxLogId(logs: Array<Record<string, unknown>>, field: string): Long | null {
+  return logs.reduce<Long | null>((max, log) => {
+    const current = bsonToLong(log[field])
+    if (!current) return max
+    return !max || current.greaterThan(max) ? current : max
+  }, null)
+}
+
 function collectChats(chatDatas: ChatData[], into: ChatData[], seen: Set<string>): void {
   for (const chat of chatDatas) {
     const id = String(chat.c)
@@ -91,6 +103,129 @@ function wrapError(error: unknown, code: string): KakaoTalkError {
 }
 
 const MAX_PAGES = 50
+
+const CONFIG_DIR = join(homedir(), '.config', 'agent-messenger')
+
+function syncStatePath(deviceUuid: string): string {
+  return join(CONFIG_DIR, `kakaotalk-sync-state-${deviceUuid}.json`)
+}
+
+async function loadSyncState(deviceUuid: string): Promise<SyncState | undefined> {
+  const path = syncStatePath(deviceUuid)
+  if (!existsSync(path)) return undefined
+  const content = await readFile(path, 'utf-8')
+  const parsed = JSON.parse(content) as Partial<SyncState>
+
+  if (
+    parsed.version !== 2 ||
+    typeof parsed.revision !== 'number' ||
+    !Array.isArray(parsed.chatIds) ||
+    !Array.isArray(parsed.maxIds) ||
+    parsed.chatIds.length !== parsed.maxIds.length ||
+    !parsed.lastTokenId ||
+    typeof parsed.lbk !== 'number'
+  ) {
+    return undefined
+  }
+
+  return parsed as SyncState
+}
+
+async function saveSyncState(deviceUuid: string, state: SyncState): Promise<void> {
+  await mkdir(CONFIG_DIR, { recursive: true })
+  const path = syncStatePath(deviceUuid)
+  await writeFile(path, JSON.stringify(state, null, 2))
+  await chmod(path, 0o600)
+}
+
+function toLongLike(v: unknown): { low: number; high: number } {
+  if (v && typeof v === 'object' && 'low' in v && 'high' in v) {
+    const { low, high } = v as { low: number; high: number }
+    return { low, high }
+  }
+  if (typeof v === 'number') {
+    const big = BigInt(v)
+    return { low: Number(big & 0xffffffffn), high: Number((big >> 32n) & 0xffffffffn) }
+  }
+  return { low: 0, high: 0 }
+}
+
+function buildSyncState(loginResult: LoginListResponse, previousRevision: number): SyncState {
+  const chatDatas = (loginResult.chatDatas ?? []) as Array<Record<string, unknown>>
+  return {
+    version: 2,
+    revision: typeof loginResult.revision === 'number' ? loginResult.revision : previousRevision,
+    chatIds: chatDatas.map((chat) => toLongLike(chat.c)),
+    maxIds: chatDatas.map((chat) => toLongLike(chat.ll)),
+    lastTokenId: toLongLike(loginResult.lastTokenId),
+    lbk: typeof loginResult.lbk === 'number' ? loginResult.lbk : 0,
+  }
+}
+
+function deleteFromSyncState(state: SyncState, chatId: string): void {
+  const index = state.chatIds.findIndex((entry) => longToString(entry) === chatId)
+  if (index === -1) return
+
+  state.chatIds.splice(index, 1)
+  state.maxIds.splice(index, 1)
+}
+
+function upsertSyncState(state: SyncState, chatId: unknown, maxId: unknown): void {
+  const chatIdString = longToString(chatId)
+  const nextChatId = toLongLike(chatId)
+  const nextMaxId = toLongLike(maxId)
+  const index = state.chatIds.findIndex((entry) => longToString(entry) === chatIdString)
+
+  if (index === -1) {
+    state.chatIds.push(nextChatId)
+    state.maxIds.push(nextMaxId)
+    return
+  }
+
+  state.chatIds[index] = nextChatId
+  state.maxIds[index] = nextMaxId
+}
+
+function mergeSyncState(previous: SyncState | undefined, loginResult: LoginListResponse): SyncState {
+  const next = previous
+    ? {
+        version: 2 as const,
+        revision: previous.revision,
+        chatIds: [...previous.chatIds],
+        maxIds: [...previous.maxIds],
+        lastTokenId: previous.lastTokenId,
+        lbk: previous.lbk,
+      }
+    : buildSyncState(loginResult, 0)
+
+  next.revision = typeof loginResult.revision === 'number' ? loginResult.revision : next.revision
+  next.lastTokenId = toLongLike(loginResult.lastTokenId)
+  next.lbk = typeof loginResult.lbk === 'number' ? loginResult.lbk : next.lbk
+
+  const delChatIds = Array.isArray(loginResult.delChatIds) ? loginResult.delChatIds : []
+  for (const chatId of delChatIds) {
+    deleteFromSyncState(next, longToString(chatId))
+  }
+
+  const chatDatas = Array.isArray(loginResult.chatDatas) ? loginResult.chatDatas : []
+  for (const chat of chatDatas) {
+    upsertSyncState(next, chat.c, chat.ll)
+  }
+
+  return next
+}
+
+function formatMessages(logs: Array<Record<string, unknown>>, count: number): KakaoMessage[] {
+  logs.sort((a, b) => (a.sendAt as number) - (b.sendAt as number))
+
+  return logs.slice(-count).map((log) => ({
+    log_id: longToString(log.logId),
+    type: log.type as number,
+    author_id: log.authorId as number,
+    message: log.message as string,
+    sent_at: log.sendAt as number,
+  }))
+}
 
 export class KakaoTalkClient {
   private oauthToken: string | null = null
@@ -179,7 +314,11 @@ export class KakaoTalkClient {
   private async connect(): Promise<SessionState> {
     const session = new LocoSession()
     try {
-      const loginResult = await session.login(this.oauthToken!, this.userId!, this.deviceUuid!)
+      const syncState = await loadSyncState(this.deviceUuid!)
+      const loginResult = await session.login(this.oauthToken!, this.userId!, this.deviceUuid!, syncState)
+
+      const newSyncState = mergeSyncState(syncState, loginResult)
+      await saveSyncState(this.deviceUuid!, newSyncState)
 
       session.onClose(() => {
         if (this.state?.session === session) {
@@ -253,21 +392,62 @@ export class KakaoTalkClient {
   }
 
   async getMessages(chatId: string, options?: { count?: number; from?: string }): Promise<KakaoMessage[]> {
-    return this.executeWithReconnect(async ({ session, loginResult }) => {
+    return this.executeWithReconnect(async ({ session }) => {
       try {
-        const rawChats = (loginResult.chatDatas ?? []) as ChatData[]
-        const chat = rawChats.find((c) => String(c.c) === chatId)
-        const lastLogId = chat?.ll as { high: number; low: number } | undefined
-        const maxLogId = lastLogId ? new Long(lastLogId.low, lastLogId.high) : undefined
-
         const count = options?.count ?? 20
         const cursor = options?.from ? parseLong(options.from) : undefined
 
         const cid = parseLong(chatId)
-        const startCursor = cursor ?? Long.fromNumber(0)
+
         const allMessages: Array<Record<string, unknown>> = []
         const seenLogIds = new Set<string>()
-        let cur = startCursor
+        let cur = cursor ?? Long.fromNumber(0)
+
+        try {
+          for (let page = 0; page < MAX_PAGES; page++) {
+            const response = await session.getChatLogs([cid], [cur])
+            const responseStatus = response.body.status
+            if (typeof responseStatus === 'number' && responseStatus !== 0) {
+              throw new Error(`MCHATLOGS failed: ${responseStatus}`)
+            }
+
+            const batch = ((response.body.chatLogs ?? []) as Array<Record<string, unknown>>).filter(
+              (log) => longToString(log.chatId) === chatId,
+            )
+            if (batch.length === 0) {
+              return formatMessages(allMessages, count)
+            }
+
+            for (const log of batch) {
+              const lid = longToString(log.logId)
+              if (!seenLogIds.has(lid)) {
+                seenLogIds.add(lid)
+                allMessages.push(log)
+              }
+            }
+
+            const maxLog = findMaxLogId(batch, 'logId')
+            if (!maxLog || maxLog.equals(cur) || response.body.eof) {
+              return formatMessages(allMessages, count)
+            }
+
+            cur = maxLog
+          }
+        } catch {
+          allMessages.length = 0
+          seenLogIds.clear()
+          cur = cursor ?? Long.fromNumber(0)
+        }
+
+        if (allMessages.length > 0) {
+          warn(`[agent-kakaotalk] Warning: message fetch capped at ${MAX_PAGES} pages. Results may be incomplete.`)
+          return formatMessages(allMessages, count)
+        }
+
+        // Fetch fresh lastLogId via CHATONROOM (not the stale login-time snapshot)
+        const chatInfo = await session.getChatInfo(cid)
+        const chatBody = chatInfo.body as Record<string, unknown>
+        const maxLogId = bsonToLong(chatBody.l)
 
         let reachedEnd = false
         for (let page = 0; page < MAX_PAGES; page++) {
@@ -283,11 +463,7 @@ export class KakaoTalkClient {
             }
           }
 
-          const maxLog = batch.reduce<Long | null>((max, l) => {
-            const lid = l.logId as { high: number; low: number }
-            const long = new Long(lid.low, lid.high)
-            return !max || long.greaterThan(max) ? long : max
-          }, null)
+          const maxLog = findMaxLogId(batch, 'logId')
 
           if (!maxLog || maxLog.equals(cur) || response.body.isOK) { reachedEnd = true; break }
           cur = maxLog
@@ -296,15 +472,7 @@ export class KakaoTalkClient {
           warn(`[agent-kakaotalk] Warning: message fetch capped at ${MAX_PAGES} pages. Results may be incomplete.`)
         }
 
-        allMessages.sort((a, b) => (a.sendAt as number) - (b.sendAt as number))
-
-        return allMessages.slice(-count).map((log) => ({
-          log_id: longToString(log.logId),
-          type: log.type as number,
-          author_id: log.authorId as number,
-          message: log.message as string,
-          sent_at: log.sendAt as number,
-        }))
+        return formatMessages(allMessages, count)
       } catch (error) {
         throw wrapError(error, 'get_messages_failed')
       }

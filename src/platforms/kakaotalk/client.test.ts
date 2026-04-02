@@ -5,6 +5,8 @@ import { KakaoTalkClient, KakaoTalkError } from './client'
 // Mock LocoSession at module level
 const mockLogin = mock(() => Promise.resolve({}))
 const mockGetChatList = mock(() => Promise.resolve({}))
+const mockGetChatLogs = mock(() => Promise.resolve({}))
+const mockGetChatInfo = mock(() => Promise.resolve({}))
 const mockSyncMessages = mock(() => Promise.resolve({}))
 const mockSendMessage = mock(() => Promise.resolve({}))
 const mockClose = mock(() => {})
@@ -14,6 +16,8 @@ mock.module('./protocol/session', () => ({
   LocoSession: class MockLocoSession {
     login = mockLogin
     getChatList = mockGetChatList
+    getChatLogs = mockGetChatLogs
+    getChatInfo = mockGetChatInfo
     syncMessages = mockSyncMessages
     sendMessage = mockSendMessage
     close = mockClose
@@ -28,6 +32,8 @@ function makeLong(n: number): { low: number; high: number } {
 function resetAllMocks() {
   mockLogin.mockReset()
   mockGetChatList.mockReset()
+  mockGetChatLogs.mockReset()
+  mockGetChatInfo.mockReset()
   mockSyncMessages.mockReset()
   mockSendMessage.mockReset()
   mockClose.mockReset()
@@ -67,6 +73,8 @@ describe('KakaoTalkClient', () => {
   beforeEach(() => {
     resetAllMocks()
     mockLogin.mockResolvedValue(DEFAULT_LOGIN_RESULT)
+    mockGetChatLogs.mockResolvedValue({ body: { status: 0, chatLogs: [], eof: true } })
+    mockGetChatInfo.mockResolvedValue({ body: { l: makeLong(99999) } })
   })
 
   afterEach(() => {
@@ -316,13 +324,14 @@ describe('KakaoTalkClient', () => {
 
   describe('getMessages', () => {
     test('returns formatted messages', async () => {
-      mockSyncMessages.mockResolvedValueOnce({
+      mockGetChatLogs.mockResolvedValueOnce({
         body: {
+          status: 0,
           chatLogs: [
-            { logId: makeLong(10), type: 1, authorId: 42, message: 'hello', sendAt: 1700000001 },
-            { logId: makeLong(11), type: 1, authorId: 43, message: 'world', sendAt: 1700000002 },
+            { logId: makeLong(10), chatId: 100, type: 1, authorId: 42, message: 'hello', sendAt: 1700000001 },
+            { logId: makeLong(11), chatId: 100, type: 1, authorId: 43, message: 'world', sendAt: 1700000002 },
           ],
-          isOK: true,
+          eof: true,
         },
       })
 
@@ -351,14 +360,15 @@ describe('KakaoTalkClient', () => {
     test('respects count option', async () => {
       const logs = Array.from({ length: 50 }, (_, i) => ({
         logId: makeLong(i + 1),
+        chatId: 100,
         type: 1,
         authorId: 1,
         message: `msg-${i}`,
         sendAt: 1700000000 + i,
       }))
 
-      mockSyncMessages.mockResolvedValueOnce({
-        body: { chatLogs: logs, isOK: true },
+      mockGetChatLogs.mockResolvedValueOnce({
+        body: { status: 0, chatLogs: logs, eof: true },
       })
 
       const client = await new KakaoTalkClient().login({ oauthToken: 'token', userId: 'user1', deviceUuid: 'device1' })
@@ -373,13 +383,14 @@ describe('KakaoTalkClient', () => {
     })
 
     test('sorts messages by sent_at ascending', async () => {
-      mockSyncMessages.mockResolvedValueOnce({
+      mockGetChatLogs.mockResolvedValueOnce({
         body: {
+          status: 0,
           chatLogs: [
-            { logId: makeLong(2), type: 1, authorId: 1, message: 'second', sendAt: 200 },
-            { logId: makeLong(1), type: 1, authorId: 1, message: 'first', sendAt: 100 },
+            { logId: makeLong(2), chatId: 100, type: 1, authorId: 1, message: 'second', sendAt: 200 },
+            { logId: makeLong(1), chatId: 100, type: 1, authorId: 1, message: 'first', sendAt: 100 },
           ],
-          isOK: true,
+          eof: true,
         },
       })
 
@@ -556,8 +567,8 @@ describe('KakaoTalkClient', () => {
     })
 
     test('reuses session across multiple calls', async () => {
-      mockSyncMessages.mockResolvedValue({
-        body: { chatLogs: [], isOK: true },
+      mockGetChatLogs.mockResolvedValue({
+        body: { status: 0, chatLogs: [], eof: true },
       })
 
       const client = await new KakaoTalkClient().login({ oauthToken: 'token', userId: 'user1', deviceUuid: 'device1' })
@@ -574,8 +585,8 @@ describe('KakaoTalkClient', () => {
       mockLogin.mockImplementation(
         () => new Promise((resolve) => setTimeout(() => resolve(DEFAULT_LOGIN_RESULT), 50)),
       )
-      mockSyncMessages.mockResolvedValue({
-        body: { chatLogs: [], isOK: true },
+      mockGetChatLogs.mockResolvedValue({
+        body: { status: 0, chatLogs: [], eof: true },
       })
 
       const client = await new KakaoTalkClient().login({ oauthToken: 'token', userId: 'user1', deviceUuid: 'device1' })
