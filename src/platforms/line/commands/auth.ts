@@ -1,13 +1,8 @@
-import { execSync } from 'node:child_process'
-import { writeFileSync, unlinkSync } from 'node:fs'
-import { tmpdir } from 'node:os'
-import { join } from 'node:path'
-
 import { Command } from 'commander'
-import QRCode from 'qrcode'
 
 import { handleError } from '@/shared/utils/error-handler'
 import { formatOutput } from '@/shared/utils/output'
+import { displayQR } from '@/shared/utils/qr'
 import { info } from '@/shared/utils/stderr'
 
 import { LineClient } from '../client'
@@ -20,34 +15,6 @@ function isInteractiveSession(): boolean {
 
 function getDefaultDevice(): LineDevice {
   return 'ANDROIDSECONDARY'
-}
-
-async function createQRHtmlFile(url: string): Promise<string> {
-  const svgString = await QRCode.toString(url, { type: 'svg', margin: 2 })
-  const html = `<!DOCTYPE html>
-<html><head><meta charset="utf-8"><title>LINE QR Login</title>
-<style>body{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;margin:0;font-family:-apple-system,system-ui,sans-serif;background:#06C755}
-.card{background:#fff;border-radius:16px;padding:40px;text-align:center;box-shadow:0 4px 24px rgba(0,0,0,.15)}
-h1{margin:0 0 8px;font-size:22px;color:#111}p{margin:0 0 24px;color:#666;font-size:14px}
-svg{width:280px;height:280px}</style></head>
-<body><div class="card"><h1>LINE Login</h1><p>Scan with the LINE mobile app</p>${svgString}</div></body></html>`
-
-  const htmlPath = join(tmpdir(), `line-qr-${Date.now()}.html`)
-  writeFileSync(htmlPath, html)
-  setTimeout(() => { try { unlinkSync(htmlPath) } catch {} }, 300_000).unref()
-  return htmlPath
-}
-
-function openInBrowser(filePath: string): void {
-  try {
-    if (process.platform === 'darwin') {
-      execSync(`open "${filePath}"`, { stdio: 'ignore' })
-    } else if (process.platform === 'win32') {
-      execSync(`start "" "${filePath}"`, { stdio: 'ignore' })
-    } else {
-      execSync(`xdg-open "${filePath}"`, { stdio: 'ignore' })
-    }
-  } catch {}
 }
 
 async function loginAction(options: {
@@ -76,18 +43,23 @@ async function loginAction(options: {
       const profile = await client.getProfile()
       const credentials = { ...tempCredentials, account_id: profile.mid, display_name: profile.display_name }
       await credManager.setAccount(credentials)
-      console.log(formatOutput({
-        authenticated: true,
-        account_id: profile.mid,
-        display_name: profile.display_name,
-        device,
-      }, options.pretty))
+      console.log(
+        formatOutput(
+          {
+            authenticated: true,
+            account_id: profile.mid,
+            display_name: profile.display_name,
+            device,
+          },
+          options.pretty,
+        ),
+      )
     } else if (options.email && options.password) {
       const result = await client.loginWithEmail({
         email: options.email,
         password: options.password,
         device,
-          onPincode: (pin) => {
+        onPincode: (pin) => {
           if (interactive) {
             info(`\nEnter this PIN in the LINE mobile app: ${pin}\n`)
           }
@@ -98,27 +70,14 @@ async function loginAction(options: {
       const result = await client.loginWithQR({
         device,
         onQRUrl: async (url) => {
-          const htmlPath = await createQRHtmlFile(url).catch(() => null)
-          if (htmlPath) openInBrowser(htmlPath)
-
-          if (interactive) {
-            try {
-              const qrAscii = await QRCode.toString(url, { type: 'terminal', small: true })
-              info('\nScan this QR code with the LINE mobile app:\n')
-              info(qrAscii)
-            } catch {
-              info(`\nOpen the QR code in the browser window, or scan this URL:\n${url}\n`)
-            }
-          } else {
-            console.log(formatOutput({
-              next_action: 'scan_qr',
-              qr_url: url,
-              qr_html_path: htmlPath,
-              message: htmlPath
-                ? 'QR code opened in browser. Scan with LINE mobile app to complete login.'
-                : 'QR code generated. Open qr_url to scan with LINE mobile app.',
-            }, options.pretty))
-          }
+          await displayQR(url, {
+            platform: 'LINE',
+            brandColor: '#06C755',
+            scanInstruction: 'Scan with the LINE mobile app',
+            interactive,
+            formatOutput,
+            pretty: options.pretty,
+          })
         },
         onPincode: (pin) => {
           info(`\nEnter this PIN in the LINE mobile app: ${pin}\n`)
@@ -141,13 +100,18 @@ async function statusAction(options: { pretty?: boolean; account?: string }): Pr
       return
     }
 
-    console.log(formatOutput({
-      account_id: account.account_id,
-      device: account.device,
-      display_name: account.display_name,
-      created_at: account.created_at,
-      updated_at: account.updated_at,
-    }, options.pretty))
+    console.log(
+      formatOutput(
+        {
+          account_id: account.account_id,
+          device: account.device,
+          display_name: account.display_name,
+          created_at: account.created_at,
+          updated_at: account.updated_at,
+        },
+        options.pretty,
+      ),
+    )
   } catch (error) {
     handleError(error as Error)
   }
@@ -196,7 +160,10 @@ export const authCommand = new Command('auth')
       .option('--email <email>', 'Email address for email/password login')
       .option('--password <password>', 'Password for email login')
       .option('--token <token>', 'Login with existing auth token directly')
-      .option('--device <type>', 'Device type (default: ANDROIDSECONDARY). Secondary device that coexists with LINE desktop. Use DESKTOPMAC/DESKTOPWIN to replace desktop session.')
+      .option(
+        '--device <type>',
+        'Device type (default: ANDROIDSECONDARY). Secondary device that coexists with LINE desktop. Use DESKTOPMAC/DESKTOPWIN to replace desktop session.',
+      )
       .option('--pretty', 'Pretty print JSON output')
       .action(loginAction),
   )
