@@ -40,6 +40,7 @@ export class LocoSession {
     const lastTokenId = syncState
       ? new Long(syncState.lastTokenId.low, syncState.lastTokenId.high)
       : Long.fromNumber(0)
+    const lbk = syncState?.lbk ?? 0
 
     const response = await this.connection.sendPacket('LOGINLIST', {
       appVer: APP_VERSION,
@@ -55,7 +56,7 @@ export class LocoSession {
       chatIds,
       maxIds,
       lastTokenId,
-      lbk: Long.fromNumber(0),
+      lbk,
       rp: new Binary(Buffer.from([0x00, 0x00, 0xff, 0xff, 0x00, 0x00])),
       bg: false,
     })
@@ -120,6 +121,14 @@ export class LocoSession {
       cur: cursor ?? Long.fromNumber(0),
       cnt: count,
       max: maxLogId ?? Long.fromNumber(0),
+    })
+  }
+
+  async getChatLogs(chatIds: Long[], sinces: Long[]): Promise<LocoPacket> {
+    if (!this.connection) throw new Error('Not connected')
+    return this.connection.sendPacket('MCHATLOGS', {
+      chatIds,
+      sinces,
     })
   }
 
