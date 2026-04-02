@@ -34,6 +34,7 @@ export class KakaoCredentialManager {
 
   async save(config: KakaoConfig): Promise<void> {
     await mkdir(this.configDir, { recursive: true })
+    // TODO: Windows does not honor mode 0o600 — consider platform-specific credential storage
     await writeFile(this.credentialsPath, JSON.stringify(config, null, 2))
     await chmod(this.credentialsPath, 0o600)
   }
