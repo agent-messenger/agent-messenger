@@ -1,4 +1,4 @@
-import { afterAll, beforeEach, describe, expect, mock, test } from 'bun:test'
+import { afterEach, beforeEach, describe, expect, mock, test } from 'bun:test'
 
 mock.module('@/shared/utils/error-handler', () => ({
   handleError: (err: Error) => { throw err },
@@ -28,10 +28,6 @@ mock.module('./shared', () => ({
 
 import { whoamiAction } from './whoami'
 
-afterAll(() => {
-  mock.restore()
-})
-
 describe('whoami command', () => {
   let logs: string[]
   let originalConsoleLog: typeof console.log
@@ -52,7 +48,7 @@ describe('whoami command', () => {
     console.log = (...args: unknown[]) => { logs.push(String(args[0])) }
   })
 
-  afterAll(() => {
+  afterEach(() => {
     console.log = originalConsoleLog
   })
 

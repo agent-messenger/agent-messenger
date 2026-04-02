@@ -1,4 +1,4 @@
-import { afterAll, afterEach, beforeEach, expect, mock, spyOn, test } from 'bun:test'
+import { afterEach, beforeEach, expect, mock, spyOn, test } from 'bun:test'
 
 import { WebexError } from '../types'
 
@@ -33,10 +33,6 @@ mock.module('../client', () => ({
 }))
 
 import { whoamiCommand } from './whoami'
-
-afterAll(() => {
-  mock.restore()
-})
 
 let consoleLogSpy: ReturnType<typeof spyOn>
 
