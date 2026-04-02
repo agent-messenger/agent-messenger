@@ -57,3 +57,35 @@ jobs:
           node dist/src/cli.js discord --help
           node dist/src/cli.js discordbot --help
           node dist/src/cli.js teams --help
+
+  npm-install:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Build
+        run: bun run build
+
+      - name: Pack
+        run: npm pack
+
+      - name: Verify npm install works
+        run: |
+          mkdir /tmp/test-install
+          cp agent-messenger-*.tgz /tmp/test-install/
+          cd /tmp/test-install
+          npm init -y
+          npm install ./agent-messenger-*.tgz
+          npx agent-messenger --help
