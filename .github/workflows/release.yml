@@ -87,15 +87,3 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
 
-      - name: Publish to ClawHub
-        run: |
-          npx clawdhub@latest login --token "$CLAWHUB_TOKEN" --no-browser
-          for skill_dir in skills/*/; do
-            slug=$(basename "$skill_dir")
-            npx clawdhub@latest publish "$skill_dir" \
-              --slug "$slug" \
-              --version "${{ inputs.version }}" \
-              --tags latest
-          done
-        env:
-          CLAWHUB_TOKEN: ${{ secrets.CLAWHUB_TOKEN }}
