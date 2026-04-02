@@ -1,7 +1,7 @@
 ---
 name: agent-wechatbot
 description: Interact with WeChat Official Account using API credentials - send messages, manage templates, list followers
-version: 2.4.0
+version: 2.5.0
 allowed-tools: Bash(agent-wechatbot:*)
 metadata:
   openclaw:
