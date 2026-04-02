@@ -543,7 +543,7 @@ const HOW_IT_WORKS = [
   {
     step: 3,
     title: 'Teach Your Agent',
-    code: 'npx skills add devxoul/agent-messenger',
+    code: 'npx skills add agent-messenger/agent-messenger',
     description: 'Install Agent Skills via Skills CLI, Claude Code, OpenCode, or SkillPad — your agent learns every command and starts messaging on its own.',
   },
 ]
@@ -617,7 +617,7 @@ export default function Home() {
             docs
           </Link>
           <a
-            href="https://github.com/devxoul/agent-messenger"
+            href="https://github.com/agent-messenger/agent-messenger"
             target="_blank"
             rel="noopener noreferrer"
             className="rounded-lg px-3 py-2 font-mono text-xs text-zinc-500 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
@@ -661,7 +661,7 @@ export default function Home() {
               Get Started
             </Link>
             <a
-              href="https://github.com/devxoul/agent-messenger"
+              href="https://github.com/agent-messenger/agent-messenger"
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center justify-center rounded-xl border border-zinc-300 px-6 py-3 text-sm font-medium text-zinc-700 transition-all duration-300 hover:bg-zinc-50 dark:border-white/[0.06] dark:text-zinc-300 dark:hover:border-white/15 dark:hover:bg-white/[0.05]"
@@ -1002,7 +1002,7 @@ export default function Home() {
                 Read the Docs
               </Link>
               <a
-                href="https://github.com/devxoul/agent-messenger"
+                href="https://github.com/agent-messenger/agent-messenger"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center justify-center rounded-xl border border-zinc-300 px-6 py-3 text-sm font-medium text-zinc-700 transition-all duration-300 hover:bg-white dark:border-white/[0.06] dark:text-zinc-300 dark:hover:border-white/15 dark:hover:bg-white/[0.05]"
@@ -1024,7 +1024,7 @@ export default function Home() {
               docs
             </Link>
             <a
-              href="https://github.com/devxoul/agent-messenger"
+              href="https://github.com/agent-messenger/agent-messenger"
               target="_blank"
               rel="noopener noreferrer"
               className="transition-colors duration-300 hover:text-zinc-700 dark:hover:text-zinc-300"

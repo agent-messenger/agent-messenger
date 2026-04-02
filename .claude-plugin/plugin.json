@@ -3,8 +3,8 @@
   "version": "2.3.0",
   "description": "Messaging platform interaction skills for AI agents. Interact with Slack, Discord, Microsoft Teams, Webex, Telegram, WhatsApp, LINE, Instagram, KakaoTalk, and Channel Talk - send messages, read channels, manage reactions, upload files, and more through simple CLI interfaces.",
   "author": {
-    "name": "devxoul",
-    "url": "https://github.com/devxoul"
+    "name": "agent-messenger",
+    "url": "https://github.com/agent-messenger"
   },
   "license": "MIT",
   "keywords": [
@@ -26,8 +26,8 @@
     "communication",
     "productivity"
   ],
-  "homepage": "https://github.com/devxoul/agent-messenger",
-  "repository": "https://github.com/devxoul/agent-messenger",
+  "homepage": "https://github.com/agent-messenger/agent-messenger",
+  "repository": "https://github.com/agent-messenger/agent-messenger",
   "skills": [
     "./skills/agent-slack",
     "./skills/agent-slackbot",

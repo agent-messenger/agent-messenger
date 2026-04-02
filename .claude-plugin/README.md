@@ -6,7 +6,7 @@ Messaging platform interaction skills for AI agents and Claude Code. Supports Sl
 
 ```bash
 # Add the marketplace
-claude plugin marketplace add devxoul/agent-messenger
+claude plugin marketplace add agent-messenger/agent-messenger
 
 # Install the plugin
 claude plugin install agent-messenger
@@ -15,7 +15,7 @@ claude plugin install agent-messenger
 Or within Claude Code:
 
 ```
-/plugin marketplace add devxoul/agent-messenger
+/plugin marketplace add agent-messenger/agent-messenger
 /plugin install agent-messenger
 ```
 
@@ -242,17 +242,17 @@ agent-discord file upload <channel-id> ./report.pdf
 
 ## More Information
 
-- [GitHub Repository](https://github.com/devxoul/agent-messenger)
-- [Slack Skill Documentation](https://github.com/devxoul/agent-messenger/blob/main/skills/agent-slack/SKILL.md)
-- [Slack Bot Skill Documentation](https://github.com/devxoul/agent-messenger/blob/main/skills/agent-slackbot/SKILL.md)
-- [Discord Skill Documentation](https://github.com/devxoul/agent-messenger/blob/main/skills/agent-discord/SKILL.md)
-- [Discord Bot Skill Documentation](https://github.com/devxoul/agent-messenger/blob/main/skills/agent-discordbot/SKILL.md)
-- [Teams Skill Documentation](https://github.com/devxoul/agent-messenger/blob/main/skills/agent-teams/SKILL.md)
-- [Telegram Skill Documentation](https://github.com/devxoul/agent-messenger/blob/main/skills/agent-telegram/SKILL.md)
-- [WhatsApp Skill Documentation](https://github.com/devxoul/agent-messenger/blob/main/skills/agent-whatsapp/SKILL.md)
-- [WhatsApp Bot Skill Documentation](https://github.com/devxoul/agent-messenger/blob/main/skills/agent-whatsappbot/SKILL.md)
-- [LINE Skill Documentation](https://github.com/devxoul/agent-messenger/blob/main/skills/agent-line/SKILL.md)
-- [Instagram Skill Documentation](https://github.com/devxoul/agent-messenger/blob/main/skills/agent-instagram/SKILL.md)
-- [KakaoTalk Skill Documentation](https://github.com/devxoul/agent-messenger/blob/main/skills/agent-kakaotalk/SKILL.md)
-- [Channel Talk Skill Documentation](https://github.com/devxoul/agent-messenger/blob/main/skills/agent-channeltalk/SKILL.md)
-- [Channel Talk Bot Skill Documentation](https://github.com/devxoul/agent-messenger/blob/main/skills/agent-channeltalkbot/SKILL.md)
+- [GitHub Repository](https://github.com/agent-messenger/agent-messenger)
+- [Slack Skill Documentation](https://github.com/agent-messenger/agent-messenger/blob/main/skills/agent-slack/SKILL.md)
+- [Slack Bot Skill Documentation](https://github.com/agent-messenger/agent-messenger/blob/main/skills/agent-slackbot/SKILL.md)
+- [Discord Skill Documentation](https://github.com/agent-messenger/agent-messenger/blob/main/skills/agent-discord/SKILL.md)
+- [Discord Bot Skill Documentation](https://github.com/agent-messenger/agent-messenger/blob/main/skills/agent-discordbot/SKILL.md)
+- [Teams Skill Documentation](https://github.com/agent-messenger/agent-messenger/blob/main/skills/agent-teams/SKILL.md)
+- [Telegram Skill Documentation](https://github.com/agent-messenger/agent-messenger/blob/main/skills/agent-telegram/SKILL.md)
+- [WhatsApp Skill Documentation](https://github.com/agent-messenger/agent-messenger/blob/main/skills/agent-whatsapp/SKILL.md)
+- [WhatsApp Bot Skill Documentation](https://github.com/agent-messenger/agent-messenger/blob/main/skills/agent-whatsappbot/SKILL.md)
+- [LINE Skill Documentation](https://github.com/agent-messenger/agent-messenger/blob/main/skills/agent-line/SKILL.md)
+- [Instagram Skill Documentation](https://github.com/agent-messenger/agent-messenger/blob/main/skills/agent-instagram/SKILL.md)
+- [KakaoTalk Skill Documentation](https://github.com/agent-messenger/agent-messenger/blob/main/skills/agent-kakaotalk/SKILL.md)
+- [Channel Talk Skill Documentation](https://github.com/agent-messenger/agent-messenger/blob/main/skills/agent-channeltalk/SKILL.md)
+- [Channel Talk Bot Skill Documentation](https://github.com/agent-messenger/agent-messenger/blob/main/skills/agent-channeltalkbot/SKILL.md)

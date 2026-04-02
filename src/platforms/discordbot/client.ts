@@ -49,7 +49,7 @@ export class DiscordBotClient {
   private getHeaders(): Record<string, string> {
     return {
       Authorization: `Bot ${this.ensureAuth()}`,
-      'User-Agent': 'DiscordBot (https://github.com/devxoul/agent-messenger, 1.0)',
+      'User-Agent': 'DiscordBot (https://github.com/agent-messenger/agent-messenger, 1.0)',
       'Content-Type': 'application/json',
     }
   }
@@ -186,7 +186,7 @@ export class DiscordBotClient {
 
       const headers: Record<string, string> = {
         Authorization: `Bot ${this.ensureAuth()}`,
-        'User-Agent': 'DiscordBot (https://github.com/devxoul/agent-messenger, 1.0)',
+        'User-Agent': 'DiscordBot (https://github.com/agent-messenger/agent-messenger, 1.0)',
       }
 
       let response: Response

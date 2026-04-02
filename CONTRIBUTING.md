@@ -4,7 +4,7 @@
 
 ```bash
 # Clone the repository
-git clone https://github.com/devxoul/agent-messenger.git
+git clone https://github.com/agent-messenger/agent-messenger.git
 cd agent-messenger
 
 # Install dependencies
