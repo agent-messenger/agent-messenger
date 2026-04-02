@@ -410,6 +410,19 @@ export class InstagramClient {
     return this.userId
   }
 
+  async getProfile(): Promise<{ user_id: string; username: string; full_name: string | null; profile_pic_url: string | null }> {
+    if (!this.userId) {
+      throw new InstagramError('Not authenticated. Call login() first.', 'not_authenticated')
+    }
+    const account = await this.credentialManager.getAccount()
+    return {
+      user_id: this.userId,
+      username: account?.username ?? '',
+      full_name: account?.full_name ?? null,
+      profile_pic_url: account?.profile_pic_url ?? null,
+    }
+  }
+
   private async preLoginFlow(): Promise<{ keyId: string; publicKey: string } | null> {
     const url = `${IG_BASE_URL}/qe/sync/`
     const headers = this.buildHeaders()

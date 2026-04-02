@@ -205,6 +205,17 @@ agent-whatsapp auth logout
 agent-whatsapp auth logout --account <id>
 ```
 
+### Whoami Command
+
+```bash
+# Show current authenticated user
+agent-whatsapp whoami
+agent-whatsapp whoami --pretty
+agent-whatsapp whoami --account <account-id>
+```
+
+Output includes the authenticated user's identity information.
+
 ### Chat Commands
 
 ```bash

@@ -169,6 +169,15 @@ agent-whatsappbot auth remove <account-id>
 agent-whatsappbot auth clear
 ```
 
+### Whoami Command
+
+```bash
+# Show current authenticated bot
+agent-whatsappbot whoami
+agent-whatsappbot whoami --pretty
+agent-whatsappbot whoami --account <account-id>
+```
+
 ### Message Commands
 
 ```bash

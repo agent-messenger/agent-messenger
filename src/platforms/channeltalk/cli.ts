@@ -12,6 +12,7 @@ import {
   createManagerCommand,
   createMessageCommand,
   createSnapshotCommand,
+  createWhoamiCommand,
 } from './commands'
 import { ensureChannelAuth } from './ensure-auth'
 
@@ -45,6 +46,7 @@ program.addCommand(createGroupCommand())
 program.addCommand(createManagerCommand())
 program.addCommand(createBotCommand())
 program.addCommand(createSnapshotCommand())
+program.addCommand(createWhoamiCommand())
 
 program.parseAsync(process.argv)
 

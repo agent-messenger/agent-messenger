@@ -83,7 +83,7 @@ export async function deleteAction(
       console.log(
         formatOutput({ warning: 'Use --force to confirm deletion', messageId }, options.pretty),
       )
-      process.exit(0)
+      return process.exit(0)
     }
 
     const client = await new WebexClient().login()

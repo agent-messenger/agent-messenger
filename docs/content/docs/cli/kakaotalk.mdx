@@ -192,6 +192,30 @@ agent-kakaotalk message list 9876543210 -n 200
 agent-kakaotalk message list 9876543210 --from 123456789
 ```
 
+### Whoami Command
+
+```bash
+# Show current authenticated user
+agent-kakaotalk whoami
+agent-kakaotalk whoami --pretty
+agent-kakaotalk whoami --account <account-id>
+```
+
+Output includes:
+
+- `user_id` — your KakaoTalk user ID
+- `nickname` — your display name
+- `profile_image_url` — profile image thumbnail URL
+- `original_profile_image_url` — original profile image URL
+- `status_message` — your status message
+- `account_display_id` — your KakaoTalk ID (may be null if not set)
+- `background_image_url` — background image URL
+- `original_background_image_url` — original background image URL
+- `fullname` — real name (may be null)
+- `account_email` — account email (may be null)
+- `pstn_number` — phone number (may be null)
+- `email_verified` — whether email is verified (may be null)
+
 ## Global Options
 
 | Option      | Description                                                 |

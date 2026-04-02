@@ -165,6 +165,15 @@ If a memorized ID returns an error (channel not found, user not found), remove i
 
 ## Commands
 
+### Whoami Command
+
+```bash
+# Show current authenticated bot
+agent-slackbot whoami
+agent-slackbot whoami --pretty
+agent-slackbot whoami --bot <bot-id>
+```
+
 ### Message Commands
 
 ```bash

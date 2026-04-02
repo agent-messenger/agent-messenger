@@ -629,6 +629,24 @@ export class WhatsAppClient {
     return summarizeMessage(result)
   }
 
+  async getProfile(): Promise<{ id: string; name: string | null; phone_number: string | null }> {
+    this.ensureAuth()
+    if (!this.sock) {
+      throw new WhatsAppError('Not connected. Call connect() first.', 'not_connected')
+    }
+    const user = this.sock.user
+    if (!user) {
+      throw new WhatsAppError('Not connected. Call connect() first.', 'not_connected')
+    }
+    const jid = user.id ?? ''
+    const phone = jid.includes(':') ? jid.split(':')[0] : jid.split('@')[0]
+    return {
+      id: jid,
+      name: user.name ?? null,
+      phone_number: phone || null,
+    }
+  }
+
   getSocket(): WASocket | null {
     return this.sock
   }

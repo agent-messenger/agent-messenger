@@ -13,6 +13,7 @@ import {
   snapshotCommand,
   threadCommand,
   userCommand,
+  whoamiCommand,
 } from './commands/index'
 
 const program = new Command()
@@ -25,6 +26,7 @@ program
   .option('--server <id>', 'Server ID to use')
 
 program.addCommand(authCommand)
+program.addCommand(whoamiCommand)
 program.addCommand(serverCommand)
 program.addCommand(messageCommand)
 program.addCommand(channelCommand)

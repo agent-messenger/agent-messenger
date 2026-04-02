@@ -1,4 +1,4 @@
-import { afterAll, afterEach, beforeEach, describe, expect, mock, spyOn, test } from 'bun:test'
+import { afterEach, beforeEach, describe, expect, mock, spyOn, test } from 'bun:test'
 import { WebexError } from '../types'
 
 const mockHandleError = mock((err: Error) => {
@@ -40,10 +40,6 @@ mock.module('../client', () => ({
 }))
 
 import { snapshotAction } from './snapshot'
-
-afterAll(() => {
-  mock.restore()
-})
 
 describe('snapshot command', () => {
   let consoleSpy: ReturnType<typeof spyOn>

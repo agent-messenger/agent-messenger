@@ -161,6 +161,16 @@ agent-teams auth switch-account work
 agent-teams auth switch-account personal
 ```
 
+### Whoami Command
+
+```bash
+# Show current authenticated user
+agent-teams whoami
+agent-teams whoami --pretty
+```
+
+Output includes the authenticated user's identity information.
+
 ### Message Commands
 
 ```bash

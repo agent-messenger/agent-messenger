@@ -130,8 +130,14 @@ export interface KakaoProfile {
   nickname: string
   profile_image_url: string | null
   original_profile_image_url: string | null
+  background_image_url?: string | null
+  original_background_image_url?: string | null
+  fullname?: string | null
   status_message: string | null
   account_display_id: string | null
+  account_email?: string | null
+  pstn_number?: string | null
+  email_verified?: boolean | null
 }
 
 export const KakaoProfileSchema = z.object({
@@ -139,8 +145,14 @@ export const KakaoProfileSchema = z.object({
   nickname: z.string(),
   profile_image_url: z.string().nullable(),
   original_profile_image_url: z.string().nullable(),
+  background_image_url: z.string().nullable().optional(),
+  original_background_image_url: z.string().nullable().optional(),
+  fullname: z.string().nullable().optional(),
   status_message: z.string().nullable(),
   account_display_id: z.string().nullable(),
+  account_email: z.string().nullable().optional(),
+  pstn_number: z.string().nullable().optional(),
+  email_verified: z.boolean().nullable().optional(),
 })
 
 export const KakaoAccountCredentialsSchema = z.object({

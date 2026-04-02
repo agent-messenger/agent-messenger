@@ -3,7 +3,7 @@ import { afterEach, beforeEach, expect, mock, spyOn, test } from 'bun:test'
 const originalConsoleLog = console.log
 
 import { LineClient } from '../client'
-import { profileCommand } from './profile'
+import { whoamiCommand } from './whoami'
 
 let loginSpy: ReturnType<typeof spyOn>
 let getProfileSpy: ReturnType<typeof spyOn>
@@ -33,9 +33,9 @@ afterEach(() => {
   console.log = originalConsoleLog
 })
 
-test('profile: fetches and outputs profile', async () => {
+test('whoami: fetches and outputs profile', async () => {
   // when
-  await profileCommand.parseAsync(['node', 'profile'])
+  await whoamiCommand.parseAsync(['node', 'whoami'])
 
   // then
   expect(loginSpy).toHaveBeenCalledTimes(1)
@@ -46,9 +46,9 @@ test('profile: fetches and outputs profile', async () => {
   expect(output.display_name).toBe('Test User')
 })
 
-test('profile: outputs profile with all fields', async () => {
+test('whoami: outputs profile with all fields', async () => {
   // when
-  await profileCommand.parseAsync(['node', 'profile'])
+  await whoamiCommand.parseAsync(['node', 'whoami'])
 
   // then
   const output = JSON.parse(consoleLogSpy.mock.calls[0][0])
@@ -58,26 +58,26 @@ test('profile: outputs profile with all fields', async () => {
   expect(output.status_message).toBeDefined()
 })
 
-test('profile: closes client after fetching profile', async () => {
+test('whoami: closes client after fetching profile', async () => {
   // when
-  await profileCommand.parseAsync(['node', 'profile'])
+  await whoamiCommand.parseAsync(['node', 'whoami'])
 
   // then
   expect(closeSpy).toHaveBeenCalledTimes(1)
 })
 
-test('profile: outputs profile with picture_url', async () => {
+test('whoami: outputs profile with picture_url', async () => {
   // when
-  await profileCommand.parseAsync(['node', 'profile'])
+  await whoamiCommand.parseAsync(['node', 'whoami'])
 
   // then
   const output = JSON.parse(consoleLogSpy.mock.calls[0][0])
   expect(output.picture_url).toBe('https://example.com/pic.jpg')
 })
 
-test('profile: outputs profile with status_message', async () => {
+test('whoami: outputs profile with status_message', async () => {
   // when
-  await profileCommand.parseAsync(['node', 'profile'])
+  await whoamiCommand.parseAsync(['node', 'whoami'])
 
   // then
   const output = JSON.parse(consoleLogSpy.mock.calls[0][0])

@@ -186,6 +186,17 @@ agent-channeltalk auth use <workspace-id>
 agent-channeltalk auth remove <workspace-id>
 ```
 
+### Whoami Command
+
+```bash
+# Show current authenticated user
+agent-channeltalk whoami
+agent-channeltalk whoami --pretty
+agent-channeltalk whoami --workspace <workspace-id>
+```
+
+Output includes the authenticated user's identity information.
+
 ### Message Commands
 
 ```bash

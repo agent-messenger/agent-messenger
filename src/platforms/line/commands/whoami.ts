@@ -5,7 +5,7 @@ import { formatOutput } from '@/shared/utils/output'
 
 import { LineClient } from '../client'
 
-async function profileAction(options: { pretty?: boolean }): Promise<void> {
+async function whoamiAction(options: { pretty?: boolean }): Promise<void> {
   let client: LineClient | undefined
   try {
     client = await new LineClient().login()
@@ -18,7 +18,7 @@ async function profileAction(options: { pretty?: boolean }): Promise<void> {
   }
 }
 
-export const profileCommand = new Command('profile')
-  .description('Show your LINE profile')
+export const whoamiCommand = new Command('whoami')
+  .description('Show current authenticated user')
   .option('--pretty', 'Pretty print JSON output')
-  .action(profileAction)
+  .action(whoamiAction)

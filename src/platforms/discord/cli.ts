@@ -20,6 +20,7 @@ import {
   snapshotCommand,
   threadCommand,
   userCommand,
+  whoamiCommand,
 } from './commands'
 import { ensureDiscordAuth } from './ensure-auth'
 
@@ -60,6 +61,7 @@ program.addCommand(reactionCommand)
 program.addCommand(snapshotCommand)
 program.addCommand(threadCommand)
 program.addCommand(userCommand)
+program.addCommand(whoamiCommand)
 
 program.parse(process.argv)
 
