@@ -439,8 +439,8 @@ export class KakaoTalkClient {
           cur = cursor ?? Long.fromNumber(0)
         }
 
-        warn(`[agent-kakaotalk] Warning: message fetch capped at ${MAX_PAGES} pages. Results may be incomplete.`)
         if (allMessages.length > 0) {
+          warn(`[agent-kakaotalk] Warning: message fetch capped at ${MAX_PAGES} pages. Results may be incomplete.`)
           return formatMessages(allMessages, count)
         }
 
