@@ -1,7 +1,8 @@
 import { Binary, Long } from 'bson'
 
+import type { KakaoDeviceType } from '../types'
+
 import {
-  APP_VERSION,
   BOOKING_HOST,
   BOOKING_PORT,
   CHECKIN_HOST,
@@ -12,6 +13,7 @@ import {
   MCCMNC,
   PING_INTERVAL_MS,
   PROTOCOL_VERSION,
+  getLocoDeviceConfig,
 } from './config'
 import { LocoConnection } from './connection'
 import type { BookingResponse, CheckinResponse, LoginListResponse, LocoPacket, SyncState } from './types'
@@ -21,9 +23,13 @@ export class LocoSession {
   private pingTimer: ReturnType<typeof setInterval> | null = null
   private pushHandler: ((packet: LocoPacket) => void) | null = null
   private closeHandler: (() => void) | null = null
+  private deviceType: KakaoDeviceType = 'tablet'
 
-  async login(oauthToken: string, userId: string, deviceUuid: string, syncState?: SyncState): Promise<LoginListResponse> {
-    const { host, port } = await this.bookAndCheckin(userId)
+  async login(oauthToken: string, userId: string, deviceUuid: string, syncState?: SyncState, deviceType?: KakaoDeviceType): Promise<LoginListResponse> {
+    this.deviceType = deviceType ?? 'tablet'
+    const deviceConfig = getLocoDeviceConfig(this.deviceType)
+
+    const { host, port } = await this.bookAndCheckin(userId, deviceConfig)
 
     this.connection = new LocoConnection()
     await this.connection.connectSecure(host, port)
@@ -43,9 +49,9 @@ export class LocoSession {
     const lbk = syncState?.lbk ?? 0
 
     const response = await this.connection.sendPacket('LOGINLIST', {
-      appVer: APP_VERSION,
+      appVer: deviceConfig.appVersion,
       prtVer: PROTOCOL_VERSION,
-      os: 'mac',
+      os: deviceConfig.os,
       lang: LANG,
       dtype: DTYPE,
       duuid: deviceUuid,
@@ -65,12 +71,12 @@ export class LocoSession {
     return response.body as unknown as LoginListResponse
   }
 
-  private async bookAndCheckin(userId: string): Promise<{ host: string; port: number }> {
+  private async bookAndCheckin(userId: string, deviceConfig: { os: string; appVersion: string; useSub: boolean }): Promise<{ host: string; port: number }> {
     const bookingConn = new LocoConnection()
     await bookingConn.connectTls(BOOKING_HOST, BOOKING_PORT)
 
     const bookingResponse = await bookingConn.sendPacket('GETCONF', {
-      os: 'mac',
+      os: deviceConfig.os,
       model: '',
     })
     bookingConn.close()
@@ -86,13 +92,13 @@ export class LocoSession {
 
     const checkinResponse = await checkinConn.sendPacket('CHECKIN', {
       userId: Number(userId),
-      os: 'mac',
+      os: deviceConfig.os,
       ntype: 0,
-      appVer: APP_VERSION,
+      appVer: deviceConfig.appVersion,
       MCCMNC: MCCMNC,
       lang: LANG,
       countryISO: COUNTRY_ISO,
-      useSub: true,
+      useSub: deviceConfig.useSub,
     })
     checkinConn.close()
 

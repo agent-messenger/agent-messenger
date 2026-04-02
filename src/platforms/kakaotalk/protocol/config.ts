@@ -1,6 +1,8 @@
 // Protocol constants for KakaoTalk LOCO.
 // See protocol/NOTICE.md for attribution of protocol knowledge.
 
+import type { KakaoDeviceType } from '../types'
+
 // LOCO RSA public key (PKCS#1 DER, base64). RSA-2048, e=3.
 // Source: openkakao (MIT) — extracted from KakaoTalk macOS binary.
 export const LOCO_RSA_PUBLIC_KEY_DER_B64 =
@@ -17,8 +19,16 @@ export const BOOKING_PORT = 443
 export const CHECKIN_HOST = 'ticket-loco.kakao.com'
 export const CHECKIN_PORT = 995
 
-export const APP_VERSION = '26.2.0'
-export const OS = 'mac'
+// Mac (PC slot) identity
+const MAC_APP_VERSION = '26.2.0'
+const MAC_OS = 'mac'
+
+// Android (tablet slot) identity — must match the Android sub-device agent
+// used in auth/kakao-login.ts so the server sees a consistent tablet session.
+const ANDROID_APP_VERSION = '25.9.2'
+const ANDROID_OS = 'android'
+
+// dtype: 2 = sub-device, 1 = main device (ref: node-kakao config.ts)
 export const DTYPE = 2
 export const MCCMNC = '99999'
 export const LANG = 'ko'
@@ -26,3 +36,16 @@ export const COUNTRY_ISO = 'KR'
 export const PROTOCOL_VERSION = '1'
 
 export const PING_INTERVAL_MS = 300_000
+
+export interface LocoDeviceConfig {
+  os: string
+  appVersion: string
+  useSub: boolean
+}
+
+export function getLocoDeviceConfig(deviceType: KakaoDeviceType): LocoDeviceConfig {
+  if (deviceType === 'tablet') {
+    return { os: ANDROID_OS, appVersion: ANDROID_APP_VERSION, useSub: true }
+  }
+  return { os: MAC_OS, appVersion: MAC_APP_VERSION, useSub: false }
+}
