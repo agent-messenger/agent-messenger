@@ -57,15 +57,6 @@ On first login, KakaoTalk requires device verification:
 3. Enter the code on your phone when prompted
 4. The CLI polls until you confirm — login completes automatically
 
-### Method 2: Extract from Desktop App
-
-Extracts OAuth tokens directly from the KakaoTalk desktop app's cache. This **kicks the desktop session** because it reuses the desktop's credentials.
-
-```bash
-agent-kakaotalk auth extract
-agent-kakaotalk auth extract --debug
-```
-
 ### Device Slots
 
 KakaoTalk allows these simultaneous sessions:
@@ -105,7 +96,7 @@ agent-kakaotalk auth logout --account <account-id>
 
 ## Multi-Account
 
-KakaoTalk supports multiple accounts. Each login or extraction stores credentials separately, keyed by user ID.
+KakaoTalk supports multiple accounts. Each login stores credentials separately, keyed by user ID.
 
 ```bash
 # List all stored accounts
@@ -226,13 +217,8 @@ Output includes:
 ## Storage
 
 - Credentials stored in `~/.config/agent-messenger/kakaotalk-credentials.json` (0600 permissions)
-- macOS extraction reads from `~/Library/Containers/com.kakao.KakaoTalkMac/Data/Library/Caches/Cache.db`
-- Windows extraction reads from the registry and `%LocalAppData%\Kakao\login_list.dat`
 
 ## Limitations
-
-- `auth extract` requires macOS or Windows (reads from the KakaoTalk desktop app)
-- `auth login` works on any platform (email + password, no desktop app needed)
 - No file upload or download
 - No channel/chat room creation or management
 - No friend list management
@@ -260,14 +246,6 @@ npx -y --package agent-messenger agent-kakaotalk chat list --pretty
 
 **NEVER run `npx agent-kakaotalk`** without `--package agent-messenger`. It will fail or install a wrong package.
 
-### No credentials found
-
-If `auth extract` fails:
-
-1. Make sure the KakaoTalk desktop app is installed and you're logged in
-2. Run `agent-kakaotalk auth extract --debug` for detailed diagnostics
-3. If extraction still fails, use `agent-kakaotalk auth login` instead (recommended)
-
 ### Device slot occupied
 
 If login fails because the tablet slot is occupied:
@@ -287,20 +265,6 @@ If the passcode expires before you confirm on your phone:
 1. Run `agent-kakaotalk auth login` again — a new passcode will be generated
 2. Confirm the code on your phone within the time limit
 3. The CLI automatically completes login after confirmation
-
-### Cache.db not found (macOS)
-
-The CLI looks for KakaoTalk's cache at:
-
-```
-~/Library/Containers/com.kakao.KakaoTalkMac/Data/Library/Caches/Cache.db
-```
-
-If this file doesn't exist:
-
-1. Install KakaoTalk from the Mac App Store
-2. Log in and send at least one message (to populate the cache)
-3. Run `agent-kakaotalk auth extract` again
 
 ## AI Agent Integration
 

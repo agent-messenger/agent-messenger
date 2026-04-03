@@ -32,11 +32,8 @@ Before diving in, a few things about KakaoTalk's architecture:
 ## Quick Start
 
 ```bash
-# Login (recommended — registers as sub-device, desktop app stays running)
+# Login (registers as sub-device, desktop app stays running)
 agent-kakaotalk auth login
-
-# Or extract credentials from desktop app (kicks desktop session)
-agent-kakaotalk auth extract
 
 # List chat rooms
 agent-kakaotalk chat list
@@ -52,10 +49,6 @@ agent-kakaotalk whoami
 ```
 
 ## Authentication
-
-KakaoTalk offers two authentication methods:
-
-### Method 1: Login (Recommended)
 
 Registers the CLI as a sub-device (tablet slot by default). Your desktop app keeps running.
 
@@ -77,18 +70,7 @@ agent-kakaotalk auth login --email user@example.com --password mypass
 3. The CLI polls until you confirm on your phone
 4. Login completes automatically after confirmation
 
-**IMPORTANT**: NEVER guide the user to open a web browser, use DevTools, or manually copy tokens. Always use `agent-kakaotalk auth login` or `agent-kakaotalk auth extract`.
-
-### Method 2: Extract from Desktop App
-
-Extracts OAuth tokens directly from the KakaoTalk desktop app's cache. This **kicks the desktop session** because it reuses the desktop's credentials.
-
-```bash
-agent-kakaotalk auth extract
-agent-kakaotalk auth extract --debug
-```
-
-On macOS, reads from `~/Library/Containers/com.kakao.KakaoTalkMac/Data/Library/Caches/Cache.db`. On Windows, reads from the registry and `%LocalAppData%\Kakao\login_list.dat`.
+**IMPORTANT**: NEVER guide the user to open a web browser, use DevTools, or manually copy tokens. Always use `agent-kakaotalk auth login`.
 
 ### Agent Behavior (MANDATORY)
 
@@ -102,21 +84,13 @@ agent-kakaotalk auth status
 
 If authenticated → retry the original command.
 
-**Step 2: Try credential extraction first**
-
-```bash
-agent-kakaotalk auth extract
-```
-
-If extraction succeeds → retry the original command. Extraction is silent and requires no user input.
-
-**Step 3: If extraction fails, use login flow**
+**Step 2: Login (registers as sub-device — desktop app stays running)**
 
 ```bash
 agent-kakaotalk auth login
 ```
 
-The CLI will auto-extract the email from the desktop app. On fresh installs, the CLI may prompt for the KakaoTalk password once (one-time device registration). After registration, the password is never needed again.
+The CLI auto-extracts the email (and password if available) from the desktop app. On fresh installs, the CLI may prompt for the KakaoTalk password once (one-time device registration). After registration, the password is never needed again.
 
 Possible responses:
 
@@ -134,7 +108,7 @@ agent-kakaotalk auth login --password-file /tmp/.kakao-pw
 
 The `--password-file` flag reads the password from the file and **deletes the file immediately after reading**. The password never appears in chat, shell history, or process list.
 
-**Step 4: Retry the original command**
+**Step 3: Retry the original command**
 After successful auth, immediately execute whatever the user originally asked for.
 
 ### Device Slots
@@ -261,11 +235,6 @@ agent-kakaotalk auth login
 agent-kakaotalk auth login --email <email> --password <password>
 agent-kakaotalk auth login --device-type pc --force
 agent-kakaotalk auth login --debug
-
-# Extract credentials from KakaoTalk desktop app
-agent-kakaotalk auth extract
-agent-kakaotalk auth extract --debug
-agent-kakaotalk auth extract --unsafely-show-secrets
 
 # Check auth status
 agent-kakaotalk auth status
@@ -434,7 +403,7 @@ All commands return consistent error format:
 
 Common errors:
 
-- `No KakaoTalk credentials found` — not authenticated. Run `auth login` or `auth extract`.
+- `No KakaoTalk credentials found` — not authenticated. Run `auth login`.
 - `bad_credentials` — wrong email or password. Cached credentials from the desktop app may be stale. Ask the user to provide credentials manually with `--email` and `--password`.
 - `login_failed` — device slot conflict or unknown login error. Run with `--debug` for the full server response.
 - `passcode_request_failed` — failed to request device verification code.
@@ -555,14 +524,6 @@ pnpm dlx --package agent-messenger agent-kakaotalk chat list --pretty
 
 **NEVER run `npx agent-kakaotalk`, `bunx agent-kakaotalk`, or `pnpm dlx agent-kakaotalk`** without `--package agent-messenger`. It will fail or install a wrong package since `agent-kakaotalk` is not the npm package name.
 
-### No credentials found
-
-If `auth extract` fails:
-
-1. Make sure the KakaoTalk desktop app is installed and you're logged in
-2. Run `agent-kakaotalk auth extract --debug` for detailed diagnostics
-3. If extraction still fails, use `agent-kakaotalk auth login` instead (recommended)
-
 ### Password prompt on fresh install
 
 On fresh installs, the desktop app (macOS or Windows) may hash or omit the password from its cache, so the CLI cannot extract it automatically. The CLI will prompt for the password once to register the device — via a native dialog on macOS (AppKit) and Windows (PowerShell WinForms), or via a TTY prompt if a terminal is available. After registration, the password is never needed again.
@@ -596,19 +557,6 @@ If the passcode expires before you confirm on your phone:
 1. Run `agent-kakaotalk auth login` again — a new passcode will be generated
 2. Confirm the code on your phone within the time limit
 3. The CLI automatically completes login after confirmation
-
-### Cache.db not found (macOS)
-
-The CLI looks for KakaoTalk's cache at:
-
-```
-~/Library/Containers/com.kakao.KakaoTalkMac/Data/Library/Caches/Cache.db
-```
-
-If this file doesn't exist:
-1. Install KakaoTalk from the Mac App Store
-2. Log in and send at least one message (to populate the cache)
-3. Run `agent-kakaotalk auth extract` again
 
 ## References
 
