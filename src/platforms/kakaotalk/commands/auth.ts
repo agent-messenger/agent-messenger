@@ -6,7 +6,7 @@ import { handleError } from '@/shared/utils/error-handler'
 import { formatOutput } from '@/shared/utils/output'
 import { info, error, debug } from '@/shared/utils/stderr'
 
-import { generateDeviceUuid, loginFlow } from '../auth/kakao-login'
+import { loginFlow } from '../auth/kakao-login'
 import { CredentialManager } from '../credential-manager'
 import { KakaoTokenExtractor } from '../token-extractor'
 import {
@@ -293,7 +293,10 @@ async function loginAction(options: KakaoAuthOptions): Promise<void> {
 
     const existing = await credManager.getAccount()
     const pendingState = await credManager.loadPendingLogin()
-    const savedDeviceUuid = pendingState?.device_uuid ?? existing?.device_uuid
+    // Never reuse a device_uuid from 'auth extract' — it's the desktop's UUID
+    // and sending it to the Android login endpoint can invalidate the desktop session.
+    const existingUuid = existing?.auth_method === 'extract' ? undefined : existing?.device_uuid
+    const savedDeviceUuid = pendingState?.device_uuid ?? existingUuid
 
     const onPasscodeDisplay = (code: string) => {
       if (interactive) {
@@ -371,6 +374,7 @@ async function handleLoginResult(
       refresh_token: result.credentials.refresh_token,
       device_uuid: result.credentials.device_uuid,
       device_type: result.credentials.device_type,
+      auth_method: 'login',
       created_at: now,
       updated_at: now,
     })
@@ -385,67 +389,6 @@ async function handleLoginResult(
   } else {
     console.log(formatOutput(result, options.pretty))
     if (result.error) process.exit(1)
-  }
-}
-
-async function extractAction(options: {
-  pretty?: boolean
-  debug?: boolean
-  unsafelyShowSecrets?: boolean
-}): Promise<void> {
-  try {
-    if (options.unsafelyShowSecrets) {
-      options.debug = true
-    }
-    const debugLog = options.debug ? (msg: string) => debug(`[debug] ${msg}`) : undefined
-    const extractor = new KakaoTokenExtractor(undefined, debugLog)
-
-    const token = await extractor.extract()
-
-    if (!token) {
-      console.log(
-        formatOutput(
-          {
-            error: 'No credentials found. Make sure KakaoTalk desktop app is installed and logged in.',
-            hint: options.debug ? undefined : 'Run with --debug for more info.',
-          },
-          options.pretty,
-        ),
-      )
-      process.exit(1)
-    }
-
-    if (options.debug) {
-      const display = options.unsafelyShowSecrets
-        ? token.oauth_token
-        : `${token.oauth_token.substring(0, 12)}...`
-      debug(`[debug] oauth_token: ${display}`)
-      debug(`[debug] user_id: ${token.user_id}`)
-    }
-
-    const credManager = new CredentialManager()
-    const accountId = token.user_id || 'default'
-    const now = new Date().toISOString()
-
-    await credManager.setAccount({
-      account_id: accountId,
-      oauth_token: token.oauth_token,
-      user_id: token.user_id,
-      refresh_token: token.refresh_token,
-      device_uuid: token.device_uuid ?? generateDeviceUuid(),
-      device_type: 'tablet',
-      created_at: now,
-      updated_at: now,
-    })
-
-    const config = await credManager.load()
-    if (!config.current_account) {
-      await credManager.setCurrentAccount(accountId)
-    }
-
-    console.log(formatOutput({ account_id: accountId, user_id: token.user_id, extracted: true }, options.pretty))
-  } catch (error) {
-    handleError(error as Error)
   }
 }
 
@@ -499,7 +442,7 @@ async function statusAction(options: { account?: string; pretty?: boolean }): Pr
     const account = await credManager.getAccount(options.account)
 
     if (!account) {
-      console.log(formatOutput({ error: 'No account configured. Run "auth login" or "auth extract" first.' }, options.pretty))
+      console.log(formatOutput({ error: 'No account configured. Run "auth login" first.' }, options.pretty))
       process.exit(1)
     }
 
@@ -548,14 +491,6 @@ export const authCommand = new Command('auth')
       .option('--pretty', 'Pretty print JSON output')
       .option('--debug', 'Show debug output')
       .action(loginAction),
-  )
-  .addCommand(
-    new Command('extract')
-      .description('Extract credentials from KakaoTalk desktop app (kicks desktop session)')
-      .option('--pretty', 'Pretty print JSON output')
-      .option('--debug', 'Show debug output for troubleshooting')
-      .option('--unsafely-show-secrets', 'Show full token values in debug output')
-      .action(extractAction),
   )
   .addCommand(
     new Command('list')

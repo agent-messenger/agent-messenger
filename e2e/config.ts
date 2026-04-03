@@ -344,7 +344,7 @@ export async function validateKakaoTalkEnvironment(): Promise<boolean> {
 
   const result = await runCLI('kakaotalk', ['auth', 'status'])
   if (result.exitCode !== 0) {
-    throw new Error('KakaoTalk authentication failed. Run: agent-kakaotalk auth login or agent-kakaotalk auth extract')
+    throw new Error('KakaoTalk authentication failed. Run: agent-kakaotalk auth login')
   }
 
   return true
