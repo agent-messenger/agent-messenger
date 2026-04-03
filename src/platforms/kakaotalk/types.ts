@@ -11,6 +11,8 @@ export interface ExtractedKakaoToken {
   login_form_body?: string
 }
 
+export type KakaoAuthMethod = 'login' | 'extract'
+
 export interface KakaoAccountCredentials {
   account_id: string
   oauth_token: string
@@ -18,6 +20,7 @@ export interface KakaoAccountCredentials {
   refresh_token?: string
   device_uuid: string
   device_type: KakaoDeviceType
+  auth_method?: KakaoAuthMethod
   created_at: string
   updated_at: string
 }
@@ -162,6 +165,7 @@ export const KakaoAccountCredentialsSchema = z.object({
   refresh_token: z.string().optional(),
   device_uuid: z.string(),
   device_type: z.enum(['pc', 'tablet']),
+  auth_method: z.enum(['login', 'extract']).optional(),
   created_at: z.string(),
   updated_at: z.string(),
 })
