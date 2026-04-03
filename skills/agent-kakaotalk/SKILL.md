@@ -16,7 +16,7 @@ metadata:
 
 # Agent KakaoTalk
 
-A TypeScript CLI tool that enables AI agents and humans to interact with KakaoTalk through a simple command interface. Features credential extraction from the KakaoTalk desktop app and sub-device login that keeps your desktop app running.
+A TypeScript CLI tool that enables AI agents and humans to interact with KakaoTalk through a simple command interface. Features sub-device login that keeps your desktop app running.
 
 ## Key Concepts
 
@@ -131,7 +131,7 @@ agent-kakaotalk auth login --device-type tablet --force
 
 ## Multi-Account
 
-KakaoTalk supports multiple accounts. Each login or extraction stores credentials separately, keyed by user ID.
+KakaoTalk supports multiple accounts. Each login stores credentials separately, keyed by user ID.
 
 ### Listing Accounts
 
@@ -488,7 +488,7 @@ See the [KakaoTalk SDK documentation](https://agent-messenger.dev/docs/sdk/kakao
 
 ## Limitations
 
-- macOS and Windows only (desktop app required for credential extraction)
+- macOS and Windows only (desktop app needed for auto-extracting email/password during login)
 - No Linux support (KakaoTalk desktop not available on Linux)
 - No file upload or download
 - No channel/chat room creation or management

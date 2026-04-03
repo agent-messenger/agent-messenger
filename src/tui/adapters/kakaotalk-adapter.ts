@@ -86,7 +86,7 @@ export class KakaoTalkAdapter implements PlatformAdapter {
 
     const existing = await this.credManager.getAccount()
     const pendingState = await this.credManager.loadPendingLogin()
-    const existingUuid = existing?.auth_method === 'extract' ? undefined : existing?.device_uuid
+    const existingUuid = existing?.auth_method === 'login' ? existing?.device_uuid : undefined
     const savedDeviceUuid = pendingState?.device_uuid ?? existingUuid ?? generateDeviceUuid()
 
     let email: string | undefined
@@ -140,6 +140,7 @@ export class KakaoTalkAdapter implements PlatformAdapter {
       refresh_token: result.credentials.refresh_token,
       device_uuid: result.credentials.device_uuid,
       device_type: result.credentials.device_type,
+      auth_method: 'login',
       created_at: now,
       updated_at: now,
     })

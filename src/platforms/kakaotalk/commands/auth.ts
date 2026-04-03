@@ -293,9 +293,7 @@ async function loginAction(options: KakaoAuthOptions): Promise<void> {
 
     const existing = await credManager.getAccount()
     const pendingState = await credManager.loadPendingLogin()
-    // Never reuse a device_uuid from 'auth extract' — it's the desktop's UUID
-    // and sending it to the Android login endpoint can invalidate the desktop session.
-    const existingUuid = existing?.auth_method === 'extract' ? undefined : existing?.device_uuid
+    const existingUuid = existing?.auth_method === 'login' ? existing?.device_uuid : undefined
     const savedDeviceUuid = pendingState?.device_uuid ?? existingUuid
 
     const onPasscodeDisplay = (code: string) => {
