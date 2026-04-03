@@ -2,12 +2,9 @@
 
 ## Overview
 
-agent-kakaotalk supports two authentication methods:
+agent-kakaotalk authenticates by registering the CLI as a sub-device (tablet or PC slot) using KakaoTalk's Android sub-device API. Your desktop app and phone keep running.
 
-1. **Login** (recommended) — registers the CLI as a sub-device (tablet or PC slot). Your desktop app and phone keep running.
-2. **Extract** — reads OAuth tokens from the KakaoTalk desktop app's local cache. This reuses the desktop's credentials, which kicks the desktop session.
-
-## Method 1: Login Flow
+## Login Flow
 
 ### How It Works
 
@@ -107,65 +104,6 @@ Each device is identified by a UUID. The CLI generates one on first login and re
 
 The UUID is stored in the credentials file alongside the OAuth token.
 
-## Method 2: Extract from Desktop App
-
-### How It Works
-
-The KakaoTalk desktop app (macOS) caches HTTP requests in a SQLite database (`Cache.db`). These cached requests contain:
-
-- `Authorization` header with the OAuth token
-- Login form body with email, password, and device UUID
-- Refresh token from token renewal requests
-
-The CLI reads this cache and stores the extracted credentials.
-
-### macOS
-
-```bash
-agent-kakaotalk auth extract
-```
-
-Cache location:
-```
-~/Library/Containers/com.kakao.KakaoTalkMac/Data/Library/Caches/Cache.db
-```
-
-The CLI:
-1. Copies `Cache.db` (and WAL/SHM journals) to a temp directory
-2. Queries for requests to `talk-pilsner.kakao.com` (messaging API)
-3. Parses binary plist blobs for the OAuth token
-4. Extracts device UUID and refresh token from `login.json` / `renew_token.json` cached requests
-5. Stores extracted credentials
-
-### Windows
-
-```bash
-agent-kakaotalk auth extract
-```
-
-The CLI reads from:
-- Registry: `HKCU\Software\Kakao\KakaoTalk\DeviceInfo` (device UUID)
-- File: `%LocalAppData%\Kakao\login_list.dat` (login credentials)
-
-### Troubleshooting Extraction
-
-Use `--debug` for detailed logs:
-
-```bash
-agent-kakaotalk auth extract --debug
-```
-
-This shows:
-- Which cache path was found
-- How many cached requests were discovered
-- Which tokens were successfully extracted
-
-Use `--unsafely-show-secrets` to see full token values (debug mode only):
-
-```bash
-agent-kakaotalk auth extract --unsafely-show-secrets
-```
-
 ## Credential Storage
 
 ### Location
@@ -237,13 +175,13 @@ Output when not authenticated:
 
 ```json
 {
-  "error": "No account configured. Run \"auth login\" or \"auth extract\" first."
+  "error": "No account configured. Run \"auth login\" first."
 }
 ```
 
 ## Multi-Account
 
-KakaoTalk supports multiple accounts. Each login or extraction stores credentials separately, keyed by user ID.
+KakaoTalk supports multiple accounts. Each login stores credentials separately, keyed by user ID.
 
 ### Listing Accounts
 
@@ -315,9 +253,6 @@ If commands start failing with auth errors:
 ```bash
 # Try login again (reuses saved device UUID to skip passcode)
 agent-kakaotalk auth login
-
-# Or re-extract from desktop app
-agent-kakaotalk auth extract
 
 # Verify it worked
 agent-kakaotalk auth status
