@@ -76,7 +76,7 @@ VALID=$(echo "$AUTH_STATUS" | jq -r '.valid // false')
 
 if [ "$VALID" != "true" ]; then
   echo -e "${RED}Not authenticated!${NC}"
-  echo "Make sure Channel Talk desktop app is installed and you're logged in."
+  echo "Make sure Channel Talk is logged in via the desktop app or a supported Chromium browser."
   echo "Then run: agent-channeltalk auth extract"
   exit 1
 fi

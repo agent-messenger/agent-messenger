@@ -433,13 +433,13 @@ The CLI looks for the Channel Talk desktop app's cookie database in these locati
 **Windows:**
 1. `%APPDATA%\Channel Talk\Network\Cookies`
 
-If none exist, install the Channel Talk desktop app and log in.
+If none exist, log in to Channel Talk in a supported Chromium browser (Chrome, Edge, Arc, Brave) or install the desktop app and log in.
 
 ### Cookies expired
 
 Cookies expire after roughly 30 days. The CLI automatically re-extracts on the next command. If auto-extraction fails:
 
-1. Open the Channel Talk desktop app
+1. Open the Channel Talk desktop app or desk.channel.io in a supported Chromium browser
 2. Make sure you're logged in
 3. Run `agent-channeltalk auth extract`
 

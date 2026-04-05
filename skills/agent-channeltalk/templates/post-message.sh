@@ -64,7 +64,7 @@ send_message() {
     case "$ERROR" in
       *"No credentials"*)
         echo ""
-        echo "Make sure Channel Talk desktop app is installed and you're logged in."
+        echo "Make sure Channel Talk is logged in via the desktop app or a supported Chromium browser."
         echo "Then run: agent-channeltalk auth extract"
         return 1
         ;;
@@ -109,7 +109,7 @@ VALID=$(echo "$AUTH_STATUS" | jq -r '.valid // false' 2>/dev/null) || VALID="fal
 if [ "$VALID" != "true" ]; then
   echo -e "${RED}Not authenticated!${NC}"
   echo ""
-  echo "Make sure Channel Talk desktop app is installed and you're logged in."
+  echo "Make sure Channel Talk is logged in via the desktop app or a supported Chromium browser."
   echo "Then run: agent-channeltalk auth extract"
   exit 1
 fi
