@@ -121,7 +121,7 @@ export async function extractAction(options: { pretty?: boolean; debug?: boolean
       formatOutput(
         {
           error: 'No usable Discord token found. Tokens may be expired or have no servers.',
-          hint: 'Make sure Discord is logged in in the desktop app or a supported Chromium browser, and that you are a member of at least one server.',
+          hint: 'Make sure Discord is logged in to the desktop app or a supported Chromium browser, and that you are a member of at least one server.',
         },
         options.pretty,
       ),
@@ -185,7 +185,7 @@ export async function statusAction(options: { pretty?: boolean }): Promise<void>
 }
 
 export function getNoDiscordTokenFoundMessage(): string {
-  return 'No Discord token found. Make sure Discord is logged in in the desktop app or a supported Chromium browser.'
+  return 'No Discord token found. Make sure Discord is logged in to the desktop app or a supported Chromium browser.'
 }
 
 export const authCommand = new Command('auth')
