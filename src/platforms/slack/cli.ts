@@ -40,7 +40,7 @@ const program = new Command()
 
 program
   .name('agent-slack')
-  .description('CLI tool for Slack communication with token extraction from Slack desktop app')
+  .description('CLI tool for Slack communication with token extraction from the desktop app or a supported Chromium browser')
   .version(pkg.version)
   .option('--workspace <id>', 'Use specific workspace')
 
