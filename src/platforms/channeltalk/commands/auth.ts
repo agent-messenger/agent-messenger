@@ -133,11 +133,11 @@ export async function extractAction(options: ActionOptions = {}): Promise<Extrac
 }
 
 export function getNoChannelTalkCredentialsMessage(): string {
-  return 'No credentials. Make sure Channel Talk is logged in in the desktop app or a supported Chromium browser.'
+  return 'No credentials. Make sure Channel Talk is logged in to the desktop app or a supported Chromium browser.'
 }
 
 export function getNoValidChannelTalkCredentialsMessage(): string {
-  return 'No valid credentials found. Make sure Channel Talk is logged in in the desktop app or a supported Chromium browser.'
+  return 'No valid credentials found. Make sure Channel Talk is logged in to the desktop app or a supported Chromium browser.'
 }
 
 export async function statusAction(options: ActionOptions = {}): Promise<StatusResult> {
