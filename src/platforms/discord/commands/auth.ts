@@ -39,7 +39,7 @@ export async function extractAction(options: { pretty?: boolean; debug?: boolean
       console.log(
         formatOutput(
           {
-            error: 'No Discord token found. Make sure Discord desktop app is installed and logged in.',
+            error: getNoDiscordTokenFoundMessage(),
             hint: options.debug ? undefined : 'Run with --debug for more info.',
           },
           options.pretty,
@@ -121,7 +121,7 @@ export async function extractAction(options: { pretty?: boolean; debug?: boolean
       formatOutput(
         {
           error: 'No usable Discord token found. Tokens may be expired or have no servers.',
-          hint: 'Make sure Discord is logged in and you are a member of at least one server.',
+          hint: 'Make sure Discord is logged in in the desktop app or a supported Chromium browser, and that you are a member of at least one server.',
         },
         options.pretty,
       ),
@@ -184,11 +184,15 @@ export async function statusAction(options: { pretty?: boolean }): Promise<void>
   }
 }
 
+export function getNoDiscordTokenFoundMessage(): string {
+  return 'No Discord token found. Make sure Discord is logged in in the desktop app or a supported Chromium browser.'
+}
+
 export const authCommand = new Command('auth')
   .description('Authentication commands')
   .addCommand(
     new Command('extract')
-      .description('Extract token from Discord desktop app')
+      .description('Extract token from Discord desktop app or a supported Chromium browser')
       .option('--pretty', 'Pretty print JSON output')
       .option('--debug', 'Show debug output for troubleshooting')
       .action(extractAction),

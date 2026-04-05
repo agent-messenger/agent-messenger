@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, expect, spyOn, test } from 'bun:test'
 
+import { getNoDiscordTokenFoundMessage } from './auth'
 import { DiscordClient } from '../client'
 import { DiscordCredentialManager } from '../credential-manager'
 import { DiscordTokenExtractor } from '../token-extractor'
@@ -81,4 +82,8 @@ test('status: returns auth state', async () => {
   const config = await credManager.load()
   expect(config.token).toBeNull()
   expect(config.current_server).toBeNull()
+})
+
+test('no-token message mentions desktop app and browser fallback', () => {
+  expect(getNoDiscordTokenFoundMessage()).toContain('desktop app or a supported Chromium browser')
 })
