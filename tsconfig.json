@@ -8,7 +8,13 @@
     "rootDir": ".",
     "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"]
+      "@/*": ["src/*"],
+      "@evex/linejs-types": ["src/vendor/linejs-types/_dist/line_types.d.ts"],
+      "jsr:@evex/linejs-types@^2.3.7": ["src/vendor/linejs-types/_dist/line_types.d.ts"],
+      "@jsr/evex__linejs-types": ["src/vendor/linejs-types/_dist/line_types.d.ts"],
+      "@jsr/evex__linejs-types/thrift": ["src/vendor/linejs-types/_dist/thrift.d.ts"],
+      "jsr:@evex/loose-types@^1.0.1": ["src/vendor/loose-types/_dist/mod.d.ts"],
+      "@jsr/evex__loose-types": ["src/vendor/loose-types/_dist/mod.d.ts"]
     },
     "declaration": true,
     "declarationMap": true,

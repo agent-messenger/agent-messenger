@@ -1,4 +1,4 @@
-import { readFileSync, writeFileSync } from 'node:fs'
+import { cpSync, readFileSync, writeFileSync } from 'node:fs'
 
 const cliFiles = [
   'dist/src/cli.js',
@@ -18,3 +18,7 @@ for (const file of cliFiles) {
 }
 
 console.log(`Updated shebang in ${cliFiles.length} CLI files`)
+
+cpSync('src/vendor', 'dist/src/vendor', { recursive: true })
+
+console.log('Copied vendored LINE runtime into dist/src/vendor')

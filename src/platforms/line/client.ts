@@ -7,8 +7,8 @@ import {
   loginWithPassword as linejsLoginWithPassword,
   loginWithAuthToken as linejsLoginWithAuthToken,
   type Client,
-} from '@evex/linejs'
-import { FileStorage } from '@evex/linejs/storage'
+} from '@/vendor/linejs/client/mod.js'
+import { FileStorage } from '@/vendor/linejs/base/storage/mod.js'
 
 import { LineCredentialManager } from './credential-manager'
 import type {

@@ -86,9 +86,18 @@ jobs:
 
       - name: Verify npm install works
         run: |
-          mkdir /tmp/test-install
-          cp agent-messenger-*.tgz /tmp/test-install/
-          cd /tmp/test-install
+          mkdir /tmp/test-npm
+          cp agent-messenger-*.tgz /tmp/test-npm/
+          cd /tmp/test-npm
           npm init -y
           npm install ./agent-messenger-*.tgz
           npx agent-messenger --help
+
+      - name: Verify bun install works
+        run: |
+          mkdir /tmp/test-bun
+          cp agent-messenger-*.tgz /tmp/test-bun/
+          cd /tmp/test-bun
+          echo '{}' > package.json
+          bun add ./agent-messenger-*.tgz
+          bunx agent-messenger --help
