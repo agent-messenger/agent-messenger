@@ -117,7 +117,7 @@ export async function extractAction(options: { pretty?: boolean; debug?: boolean
                 error: `Token validation failed: ${errorMessage}`,
                 hint: is401
                   ? 'Token expired. Open Microsoft Teams in the desktop app or a supported Chromium browser, send a message to refresh your session, then run "auth extract" again.'
-                  : 'Make sure Microsoft Teams is running and you are logged in in the desktop app or a supported Chromium browser.',
+                  : 'Make sure Microsoft Teams is running and you are logged in via the desktop app or a supported Chromium browser.',
               },
               options.pretty,
             ),
@@ -132,7 +132,7 @@ export async function extractAction(options: { pretty?: boolean; debug?: boolean
         formatOutput(
           {
             error:
-              'All extracted tokens failed validation. Make sure Microsoft Teams is running and you are logged in in the desktop app or a supported Chromium browser.',
+              'All extracted tokens failed validation. Make sure Microsoft Teams is running and you are logged in via the desktop app or a supported Chromium browser.',
           },
           options.pretty,
         ),
@@ -233,7 +233,7 @@ async function extractManualToken(token: string, options: { pretty?: boolean; de
           error: `Token validation failed: ${errorMessage}`,
           hint: is401
             ? 'Token expired. Open Microsoft Teams in the desktop app or a supported Chromium browser, send a message to refresh your session, then run "auth extract" again.'
-            : 'Make sure Microsoft Teams is running and you are logged in in the desktop app or a supported Chromium browser.',
+            : 'Make sure Microsoft Teams is running and you are logged in via the desktop app or a supported Chromium browser.',
         },
         options.pretty,
       ),
@@ -243,7 +243,7 @@ async function extractManualToken(token: string, options: { pretty?: boolean; de
 }
 
 export function getNoTeamsTokenFoundMessage(): string {
-  return 'No Teams token found. Make sure Microsoft Teams is logged in in the desktop app or a supported Chromium browser.'
+  return 'No Teams token found. Make sure you are logged in to Microsoft Teams via the desktop app or a supported Chromium browser.'
 }
 
 export async function logoutAction(options: { pretty?: boolean }): Promise<void> {
