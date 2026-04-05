@@ -44,7 +44,7 @@ export class ChannelClient {
     const creds = await new ChannelCredentialManager().getCredentials()
     if (!creds) {
       throw new ChannelError(
-        'No Channel Talk credentials found. Make sure Channel Talk desktop app is installed and logged in.',
+        'No Channel Talk credentials found. Make sure Channel Talk is logged in in the desktop app or a supported Chromium browser.',
         'no_credentials',
       )
     }
