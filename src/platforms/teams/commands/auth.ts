@@ -45,7 +45,7 @@ export async function extractAction(options: { pretty?: boolean; debug?: boolean
       console.log(
         formatOutput(
           {
-            error: 'No Teams token found. Make sure Microsoft Teams desktop app is installed and logged in.',
+            error: getNoTeamsTokenFoundMessage(),
             hint: 'Run with --token <token> to manually provide a token, or --debug for more info.',
           },
           options.pretty,
@@ -116,8 +116,8 @@ export async function extractAction(options: { pretty?: boolean; debug?: boolean
               {
                 error: `Token validation failed: ${errorMessage}`,
                 hint: is401
-                  ? 'Token expired. Open Microsoft Teams, send a message to refresh your session, then run "auth extract" again.'
-                  : 'Make sure Microsoft Teams desktop app is running and you are logged in.',
+                  ? 'Token expired. Open Microsoft Teams in the desktop app or a supported Chromium browser, send a message to refresh your session, then run "auth extract" again.'
+                  : 'Make sure Microsoft Teams is running and you are logged in in the desktop app or a supported Chromium browser.',
               },
               options.pretty,
             ),
@@ -130,7 +130,10 @@ export async function extractAction(options: { pretty?: boolean; debug?: boolean
     if (Object.keys(config.accounts).length === 0) {
       console.log(
         formatOutput(
-          { error: 'All extracted tokens failed validation. Make sure Microsoft Teams is running and logged in.' },
+          {
+            error:
+              'All extracted tokens failed validation. Make sure Microsoft Teams is running and you are logged in in the desktop app or a supported Chromium browser.',
+          },
           options.pretty,
         ),
       )
@@ -229,14 +232,18 @@ async function extractManualToken(token: string, options: { pretty?: boolean; de
         {
           error: `Token validation failed: ${errorMessage}`,
           hint: is401
-            ? 'Token expired. Open Microsoft Teams, send a message to refresh your session, then run "auth extract" again.'
-            : 'Make sure Microsoft Teams desktop app is running and you are logged in.',
+            ? 'Token expired. Open Microsoft Teams in the desktop app or a supported Chromium browser, send a message to refresh your session, then run "auth extract" again.'
+            : 'Make sure Microsoft Teams is running and you are logged in in the desktop app or a supported Chromium browser.',
         },
         options.pretty,
       ),
     )
     process.exit(1)
   }
+}
+
+export function getNoTeamsTokenFoundMessage(): string {
+  return 'No Teams token found. Make sure Microsoft Teams is logged in in the desktop app or a supported Chromium browser.'
 }
 
 export async function logoutAction(options: { pretty?: boolean }): Promise<void> {
@@ -361,7 +368,7 @@ export const authCommand = new Command('auth')
   .description('Authentication commands')
   .addCommand(
     new Command('extract')
-      .description('Extract token from Microsoft Teams desktop app')
+      .description('Extract token from Microsoft Teams desktop app or a supported Chromium browser')
       .option('--pretty', 'Pretty print JSON output')
       .option('--debug', 'Show debug output for troubleshooting')
       .option('--token <token>', 'Manually provide a token (bypasses auto-extraction)')
