@@ -29,7 +29,7 @@ const program = new Command()
 
 program
   .name('agent-channeltalk')
-  .description('CLI tool for Channel Talk using extracted desktop app credentials')
+  .description('CLI tool for Channel Talk using extracted desktop app or supported Chromium browser credentials')
   .version(pkg.version)
   .option('--pretty', 'Pretty-print JSON output')
   .option('--workspace <id>', 'Workspace ID to use')

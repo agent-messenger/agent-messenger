@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, expect, spyOn, test } from 'bun:test'
 
+import { getNoTeamsTokenFoundMessage } from './auth'
 import { TeamsClient } from '../client'
 import { TeamsCredentialManager } from '../credential-manager'
 import { TeamsTokenExtractor } from '../token-extractor'
@@ -88,4 +89,8 @@ test('status: checks token expiry', async () => {
   const credManager = new TeamsCredentialManager()
   const isExpired = await credManager.isTokenExpired()
   expect(isExpired).toBe(false)
+})
+
+test('no-token message mentions desktop app and browser fallback', () => {
+  expect(getNoTeamsTokenFoundMessage()).toContain('desktop app or a supported Chromium browser')
 })

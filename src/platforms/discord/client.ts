@@ -59,7 +59,7 @@ export class DiscordClient {
     const token = await credManager.getToken()
     if (!token) {
       throw new DiscordError(
-        'No Discord credentials found. Make sure Discord desktop app is installed and logged in.',
+        'No Discord credentials found. Make sure Discord is logged in to the desktop app or a supported Chromium browser.',
         'no_credentials',
       )
     }

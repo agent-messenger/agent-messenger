@@ -62,7 +62,7 @@ export class SlackClient {
     const workspace = await credManager.getWorkspace()
     if (!workspace) {
       throw new SlackError(
-        'No workspace credentials found. Make sure Slack desktop app is installed and logged in.',
+        'No workspace credentials found. Make sure Slack is logged in in the desktop app or a supported Chromium browser.',
         'no_credentials',
       )
     }

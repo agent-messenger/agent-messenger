@@ -61,7 +61,7 @@ async function extractAction(options: {
       console.log(
         formatOutput(
           {
-            error: 'No workspaces found. Make sure Slack desktop app is installed and logged in.',
+            error: getNoWorkspacesFoundMessage(),
             hint: options.debug ? undefined : 'Run with --debug for more info.',
           },
           options.pretty,
@@ -227,19 +227,23 @@ async function statusAction(options: { pretty?: boolean }): Promise<void> {
 
 export function getExtractionErrorMessage(failureReasons: string[]): string {
   if (failureReasons.includes('missing_cookie')) {
-    return 'Cookie extraction failed. Make sure the Slack desktop app is installed and grant Keychain access when prompted.'
+    return 'Cookie extraction failed. Grant Keychain access when prompted, and make sure you are signed into Slack in the desktop app or a supported Chromium browser.'
   }
   if (failureReasons.includes('invalid_auth')) {
-    return 'Slack session has expired. Sign into the Slack desktop app, wait a few seconds, then re-run this command.'
+    return 'Slack session has expired. Sign into Slack in the desktop app or a supported Chromium browser, wait a few seconds, then re-run this command.'
   }
-  return 'Extracted tokens are invalid. Make sure you are logged into the Slack desktop app.'
+  return 'Extracted tokens are invalid. Make sure you are logged into Slack in the desktop app or a supported Chromium browser.'
+}
+
+export function getNoWorkspacesFoundMessage(): string {
+  return 'No workspaces found. Make sure you are logged into Slack in the desktop app or a supported Chromium browser.'
 }
 
 export const authCommand = new Command('auth')
   .description('Authentication commands')
   .addCommand(
     new Command('extract')
-      .description('Extract tokens from Slack desktop app')
+      .description('Extract tokens from Slack desktop app or a supported Chromium browser')
       .option('--pretty', 'Pretty print JSON output')
       .option('--debug', 'Show debug output for troubleshooting')
       .option('--unsafely-show-secrets', 'Show full token and cookie values in debug output')

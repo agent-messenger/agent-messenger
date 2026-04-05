@@ -3,7 +3,11 @@ import { mkdirSync, rmSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
 
-import { formatCredentialDebug, getExtractionErrorMessage } from '@/platforms/slack/commands/auth'
+import {
+  formatCredentialDebug,
+  getExtractionErrorMessage,
+  getNoWorkspacesFoundMessage,
+} from '@/platforms/slack/commands/auth'
 import { CredentialManager } from '@/platforms/slack/credential-manager'
 import { type ExtractedWorkspace, TokenExtractor } from '@/platforms/slack/token-extractor'
 
@@ -402,23 +406,44 @@ describe('formatCredentialDebug', () => {
 
 describe('getExtractionErrorMessage', () => {
   test('returns cookie failure message for missing_cookie', () => {
-    expect(getExtractionErrorMessage(['missing_cookie'])).toContain('Cookie extraction failed')
+    const message = getExtractionErrorMessage(['missing_cookie'])
+
+    expect(message).toContain('Cookie extraction failed')
+    expect(message).toContain('desktop app or a supported Chromium browser')
   })
 
   test('returns session expired message for invalid_auth', () => {
-    expect(getExtractionErrorMessage(['invalid_auth'])).toContain('session has expired')
+    const message = getExtractionErrorMessage(['invalid_auth'])
+
+    expect(message).toContain('session has expired')
+    expect(message).toContain('desktop app or a supported Chromium browser')
   })
 
   test('prioritizes missing_cookie over invalid_auth', () => {
-    expect(getExtractionErrorMessage(['invalid_auth', 'missing_cookie'])).toContain('Cookie extraction failed')
+    const message = getExtractionErrorMessage(['invalid_auth', 'missing_cookie'])
+
+    expect(message).toContain('Cookie extraction failed')
+    expect(message).toContain('desktop app or a supported Chromium browser')
   })
 
   test('returns generic message for unknown error codes', () => {
-    expect(getExtractionErrorMessage(['unknown_error'])).toContain('Extracted tokens are invalid')
+    const message = getExtractionErrorMessage(['unknown_error'])
+
+    expect(message).toContain('Extracted tokens are invalid')
+    expect(message).toContain('desktop app or a supported Chromium browser')
   })
 
   test('returns generic message for empty failure list', () => {
-    expect(getExtractionErrorMessage([])).toContain('Extracted tokens are invalid')
+    const message = getExtractionErrorMessage([])
+
+    expect(message).toContain('Extracted tokens are invalid')
+    expect(message).toContain('desktop app or a supported Chromium browser')
+  })
+})
+
+describe('getNoWorkspacesFoundMessage', () => {
+  test('mentions desktop app and browser fallback', () => {
+    expect(getNoWorkspacesFoundMessage()).toContain('desktop app or a supported Chromium browser')
   })
 })
 

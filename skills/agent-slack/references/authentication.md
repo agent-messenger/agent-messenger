@@ -243,11 +243,11 @@ This shows:
 
 ### "No workspaces found"
 
-**Cause**: Not logged into any workspaces in Slack desktop app
+**Cause**: Not logged into any workspaces in the Slack desktop app or a supported Chromium browser
 
 **Solution**:
 
-1. Open Slack desktop app
+1. Open Slack desktop app or sign in at app.slack.com in a supported Chromium browser (Chrome, Edge, Arc, Brave)
 2. Sign in to at least one workspace
 3. Run `agent-slack auth extract` again
 
@@ -281,7 +281,7 @@ agent-slack auth status
 
 **Solution**:
 
-1. Open Slack desktop app
+1. Open Slack desktop app or app.slack.com in a supported Chromium browser
 2. Make sure you're logged in (send a message to verify)
 3. Run `agent-slack auth extract --debug` to see details
 4. If issues persist, try logging out and back into Slack

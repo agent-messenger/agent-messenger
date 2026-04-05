@@ -84,7 +84,7 @@ export async function extractAction(options: ActionOptions = {}): Promise<Extrac
 
     if (extracted.length === 0) {
       return {
-        error: 'No credentials. Make sure Channel Talk desktop app is installed and logged in.',
+        error: getNoChannelTalkCredentialsMessage(),
       }
     }
 
@@ -126,10 +126,18 @@ export async function extractAction(options: ActionOptions = {}): Promise<Extrac
       }
     }
 
-    return { error: 'No valid credentials found. Make sure Channel Talk desktop app or browser is logged in.' }
+    return { error: getNoValidChannelTalkCredentialsMessage() }
   } catch (error: unknown) {
     return { error: (error as Error).message }
   }
+}
+
+export function getNoChannelTalkCredentialsMessage(): string {
+  return 'No credentials. Make sure Channel Talk is logged in to the desktop app or a supported Chromium browser.'
+}
+
+export function getNoValidChannelTalkCredentialsMessage(): string {
+  return 'No valid credentials found. Make sure Channel Talk is logged in to the desktop app or a supported Chromium browser.'
 }
 
 export async function statusAction(options: ActionOptions = {}): Promise<StatusResult> {
@@ -246,7 +254,7 @@ export function createAuthCommand(): Command {
     .description('Authentication commands')
     .addCommand(
       new Command('extract')
-        .description('Extract cookies from Channel Talk desktop app')
+        .description('Extract cookies from Channel Talk desktop app or a supported Chromium browser')
         .option('--pretty', 'Pretty print JSON output')
         .action(async (opts: { pretty?: boolean }) => {
           cliOutput(await extractAction(opts), opts.pretty)

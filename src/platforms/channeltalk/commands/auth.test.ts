@@ -26,6 +26,8 @@ const mockExtract = mock(() =>
 import {
   clearAction,
   extractAction,
+  getNoChannelTalkCredentialsMessage,
+  getNoValidChannelTalkCredentialsMessage,
   listAction,
   removeAction,
   resetChannelAuthCommandDependenciesForTesting,
@@ -182,7 +184,7 @@ describe('channel auth commands', () => {
       const result = await extractAction()
 
       expect(result).toEqual({
-        error: 'No credentials. Make sure Channel Talk desktop app is installed and logged in.',
+        error: getNoChannelTalkCredentialsMessage(),
       })
     })
 
@@ -192,7 +194,7 @@ describe('channel auth commands', () => {
       const result = await extractAction()
 
       expect(result).toEqual({
-        error: 'No valid credentials found. Make sure Channel Talk desktop app or browser is logged in.',
+        error: getNoValidChannelTalkCredentialsMessage(),
       })
     })
   })

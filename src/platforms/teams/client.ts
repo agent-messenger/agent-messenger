@@ -39,7 +39,7 @@ export class TeamsClient {
     const creds = await credManager.getTokenWithExpiry()
     if (!creds) {
       throw new TeamsError(
-        'No Teams credentials found. Make sure Microsoft Teams desktop app is installed and logged in.',
+        'No Teams credentials found. Make sure Microsoft Teams is logged in via the desktop app or a supported Chromium browser.',
         'no_credentials',
       )
     }

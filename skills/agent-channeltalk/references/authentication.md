@@ -240,8 +240,8 @@ agent-channeltalk auth remove <workspace-id>
 
 No credentials are configured and auto-extraction failed:
 
-1. Make sure the Channel Talk desktop app is installed
-2. Open the app and log in
+1. Make sure you're logged in to Channel Talk in the desktop app or desk.channel.io in a supported Chromium browser
+2. If needed, install the Channel Talk desktop app or sign in in Chrome, Edge, Arc, or Brave
 3. Run `agent-channeltalk auth extract`
 4. Verify with `agent-channeltalk auth status`
 
@@ -263,7 +263,7 @@ If neither the desktop app nor browser cookies are found:
 
 If commands fail with authentication errors:
 
-1. Open the Channel Talk desktop app (make sure you're logged in)
+1. Open the Channel Talk desktop app or desk.channel.io in a supported Chromium browser (make sure you're logged in)
 2. Run `agent-channeltalk auth extract` to get fresh cookies
 3. Verify with `agent-channeltalk auth status`
 
