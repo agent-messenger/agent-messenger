@@ -1,0 +1,1 @@
+{"version":3,"file":"parser.d.ts","sources":["../../../../base/thrift/rename/parser.ts"],"names":[],"mappings":"AACA,cAAc,YAAY,mCAAmC;AAkC7D,OAAO,cAAM;EACZ,KAAK,OAAO,MAAM,EAAE,OAAO,MAAM,EAAE,MAAM,IAAI,GAAG,IAAS;EAkCzD,cAAc,YAAY,MAAM,EAAE,QAAQ,GAAG,GAAG,GAAG;EA2DnD,YAAY,MAAM,YAAY,EAAE,SAAS,OAAO,GAAG;AAMpD"}

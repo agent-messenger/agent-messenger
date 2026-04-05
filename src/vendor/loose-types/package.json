@@ -1,0 +1,14 @@
+{
+  "name": "@jsr/evex__loose-types",
+  "version": "1.0.1",
+  "homepage": "https://jsr.io/@evex/loose-types",
+  "type": "module",
+  "dependencies": {},
+  "exports": {
+    ".": {
+      "types": "./_dist/mod.d.ts",
+      "default": "./mod.js"
+    }
+  },
+  "_jsr_revision": 11
+}

@@ -1,0 +1,7 @@
+{
+    "name": "@evex/loose-types",
+    "version": "1.0.1",
+    "exports": {
+        ".": "./mod.ts"
+    }
+}

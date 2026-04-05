@@ -1,0 +1,35 @@
+{
+  "name": "@jsr/evex__linejs",
+  "version": "2.3.7",
+  "homepage": "https://jsr.io/@evex/linejs",
+  "type": "module",
+  "dependencies": {
+    "@jsr/evex__linejs-types": "^2.3.7",
+    "@jsr/evex__loose-types": "^1.0.1",
+    "crypto-js": "^4.2.0",
+    "curve25519-js": "^0.0.4",
+    "node-bignumber": "^1.2.2",
+    "node-int64": "^0.4.0",
+    "thrift": "^0.20.0",
+    "tweetnacl": "^1.0.3"
+  },
+  "exports": {
+    ".": {
+      "types": "./_dist/client/mod.d.ts",
+      "default": "./client/mod.js"
+    },
+    "./base": {
+      "types": "./_dist/base/mod.d.ts",
+      "default": "./base/mod.js"
+    },
+    "./storage": {
+      "types": "./_dist/base/storage/mod.d.ts",
+      "default": "./base/storage/mod.js"
+    },
+    "./thrift": {
+      "types": "./_dist/base/thrift/mod.d.ts",
+      "default": "./base/thrift/mod.js"
+    }
+  },
+  "_jsr_revision": 11
+}

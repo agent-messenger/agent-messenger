@@ -1,0 +1,1 @@
+{"version":3,"file":"read.d.ts","sources":["../../../../base/thrift/readwrite/read.ts"],"names":[],"mappings":"AACA,2BAA2B;AAC3B,YAAY,qBAAiC;AAE7C,SAAS,MAAM,QAAQ,cAAc;AACrC,cAAc,YAAY,wBAAwB;AAoHlD,OAAO,iBAAS,WACf,MAAM,aAAa,MAAM,EACzB,kBAAiB,OAAO,0BAA0B,OAAO,eACjC,GACtB;AAIH,OAAO,iBAAS,iBACf,MAAM,aAAa,MAAM,EACzB,kBAAiB,OAAO,0BAA0B,OAAO,eACjC,GACtB,GAAG"}

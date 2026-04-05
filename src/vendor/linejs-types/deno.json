@@ -1,0 +1,12 @@
+{
+	"name": "@evex/linejs-types",
+	"version": "2.3.7",
+	"license": "MIT",
+	"exports": {
+		".": "./line_types.ts",
+		"./thrift": "./thrift.ts"
+	},
+	"imports": {
+		"@evex/loose-types": "jsr:@evex/loose-types@^1.0.1"
+	}
+}

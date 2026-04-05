@@ -1,0 +1,67 @@
+export function isV3Support(device) {
+  return [
+    "DESKTOPWIN",
+    "DESKTOPMAC",
+    "IOS",
+    "ANDROID",
+    "ANDROIDSECONDARY"
+  ].includes(device);
+}
+export function getDeviceDetails(device, version) {
+  let appVersion;
+  let systemName;
+  let systemVersion;
+  systemVersion = "12.1.4";
+  switch(device){
+    case "DESKTOPWIN":
+      appVersion = version || "9.2.0.3403";
+      systemName = "WINDOWS";
+      systemVersion = "10.0.0-NT-x64";
+      break;
+    case "DESKTOPMAC":
+      appVersion = version || "9.2.0.3402";
+      systemName = "MAC";
+      break;
+    /*
+		case "CHROMEOS":
+			appVersion = appVersion = deviceMap[device]||"3.0.3";
+			systemName = "Chrome_OS";
+			systemVersion = "1";
+			break;
+		*/ case "ANDROID":
+      appVersion = version || "13.4.1";
+      systemName = "Android OS";
+      systemVersion = "13";
+      break;
+    case "ANDROIDSECONDARY":
+      appVersion = version || "15.21.3";
+      systemName = "Android OS";
+      systemVersion = "14";
+      break;
+    case "IOS":
+      appVersion = version || "15.19.0";
+      systemName = "iOS";
+      break;
+    case "IOSIPAD":
+      appVersion = version || "15.19.0";
+      systemName = "iOS";
+      break;
+    case "WATCHOS":
+      appVersion = version || "15.19.0";
+      systemName = "Watch OS";
+      break;
+    case "WEAROS":
+      appVersion = version || "13.4.1";
+      systemName = "Wear OS";
+      break;
+    default:
+      return null;
+  }
+  return {
+    device,
+    appVersion,
+    systemName,
+    systemVersion
+  };
+}
+//# sourceMappingURL=devices.js.map
