@@ -323,9 +323,9 @@ echo "Found: $(echo "$MATCH" | jq -r '.personDisplayName') ($(echo "$MATCH" | jq
 
 ## Snapshot Patterns
 
-### Pattern 19: Full Workspace Snapshot
+### Pattern 19: Workspace Snapshot
 
-**Use case**: Get complete workspace state for AI context
+**Use case**: Get spaces overview for AI context
 
 ```bash
 #!/bin/bash
@@ -339,36 +339,7 @@ echo "Total spaces: $SPACE_COUNT"
 echo "$SNAPSHOT" | jq -r '.spaces[] | "  \(.title) (\(.type))"'
 ```
 
-### Pattern 20: Spaces-Only Snapshot
-
-**Use case**: Quick overview without messages or members
-
-```bash
-#!/bin/bash
-
-agent-webex snapshot --spaces-only
-```
-
-### Pattern 21: Members-Only Snapshot
-
-**Use case**: Get member lists across all spaces
-
-```bash
-#!/bin/bash
-
-agent-webex snapshot --members-only
-```
-
-### Pattern 22: Snapshot with Message Limit
-
-**Use case**: Control how many messages per space
-
-```bash
-#!/bin/bash
-
-# Get snapshot with last 5 messages per space
-agent-webex snapshot --limit 5
-```
+**When to use**: Quick workspace overview to discover space IDs and titles. Use `message list <space-id>` or `member list <space-id>` for details.
 
 ## Pipeline Patterns
 
