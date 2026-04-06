@@ -116,7 +116,7 @@ At the **start of every task**, read `~/.config/agent-messenger/MEMORY.md` using
 After discovering useful information, update `~/.config/agent-messenger/MEMORY.md` using the `Write` tool. Write triggers include:
 
 - After discovering space IDs and titles (from `space list`, `snapshot`, etc.)
-- After discovering member IDs and names (from `member list`, `snapshot`, etc.)
+- After discovering member IDs and names (from `member list`, etc.)
 - After the user gives you an alias or preference ("call this the standup space", "my main space is X")
 - After discovering space structure (group vs direct spaces)
 
@@ -247,25 +247,17 @@ agent-webex member list <space-id> --limit 100
 
 ### Snapshot Command
 
-Get comprehensive workspace state for AI agents:
+Get workspace spaces overview for AI agents:
 
 ```bash
-# Full snapshot
 agent-webex snapshot
-
-# Filtered snapshots
-agent-webex snapshot --spaces-only
-agent-webex snapshot --members-only
-
-# Limit messages per space
-agent-webex snapshot --limit 10
 ```
 
 Returns JSON with:
 
-- Spaces (id, title, type, created)
-- Recent messages (id, text, personEmail, created)
-- Members (id, personDisplayName, personEmail)
+- Spaces (id, title, type, lastActivity) — only spaces you're a member of
+
+For messages or members, use `message list <space-id>` or `member list <space-id>`.
 
 ## Output Format
 

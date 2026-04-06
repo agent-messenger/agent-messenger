@@ -176,21 +176,13 @@ agent-webex member list abc123 --limit 100
 
 ### Snapshot Command
 
-Get comprehensive workspace state for AI agents:
+Get workspace spaces overview for AI agents:
 
 ```bash
-# Full snapshot (spaces, members, recent messages)
 agent-webex snapshot
-
-# Filtered snapshots
-agent-webex snapshot --spaces-only
-agent-webex snapshot --members-only
-
-# Limit messages per space
-agent-webex snapshot --limit 10
 ```
 
-> **Note**: `--members-only` fetches members from the first 10 spaces only (to avoid excessive API calls). Use `member list <space-id>` for specific spaces.
+Returns only the spaces you're a member of, with id, title, type, and lastActivity. Use `message list <space-id>` or `member list <space-id>` for details.
 
 ## Global Options
 
@@ -296,7 +288,7 @@ if ! agent-webex auth status | jq -e '.authenticated' > /dev/null 2>&1; then
 fi
 
 # 2. Get workspace context
-agent-webex snapshot --limit 5 > /tmp/webex-context.json
+agent-webex snapshot > /tmp/webex-context.json
 
 # 3. Send standup reminder
 agent-webex message send $STANDUP_SPACE "Good morning! Time for standup."
