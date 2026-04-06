@@ -438,6 +438,16 @@ export class WebexClient {
     return data.items
   }
 
+  async listMyMemberships(options?: { max?: number }): Promise<WebexMembership[]> {
+    const params = new URLSearchParams()
+    params.set('max', String(options?.max ?? 100))
+    const data = await this.request<{ items: WebexMembership[] }>(
+      'GET',
+      `/memberships?${params}`,
+    )
+    return data.items
+  }
+
   async listMemberships(
     roomId: string,
     options?: { max?: number },
