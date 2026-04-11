@@ -96,7 +96,7 @@ export function markdownToHtml(markdown: string): string {
 
   flushParagraph()
 
-  return restorePlaceholders(output.join(''), blocks)
+  return restorePlaceholders(output.join('<br/><br/>'), blocks)
 }
 
 export function stripMarkdown(markdown: string): string {
@@ -126,6 +126,9 @@ function processInline(markdown: string): string {
   })
 
   text = text.replace(/\[([^\]]+)\]\(([^)\n]+)\)/g, (_, label: string, url: string) => {
+    if (!isSafeUrl(url)) {
+      return processInline(label)
+    }
     return createInlinePlaceholder(
       placeholders,
       `<a href="${escapeHtml(url)}">${processInline(label)}</a>`,
@@ -175,6 +178,17 @@ function restorePlaceholders(text: string, values: string[]): string {
   return restored
 }
 
+const SAFE_URL_PATTERN = /^(https?:|mailto:|\/|#)/i
+
+function isSafeUrl(url: string): boolean {
+  return SAFE_URL_PATTERN.test(url.trim())
+}
+
 function escapeHtml(value: string): string {
-  return value.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;')
+  return value
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;')
 }

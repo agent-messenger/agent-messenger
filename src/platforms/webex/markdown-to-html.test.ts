@@ -47,6 +47,26 @@ describe('markdownToHtml', () => {
     )
   })
 
+  test('strips unsafe javascript: URLs to plain text', () => {
+    expect(markdownToHtml('[click](javascript:void)')).toBe('click')
+  })
+
+  test('strips unsafe data: URLs to plain text', () => {
+    expect(markdownToHtml('[x](data:text/html,payload)')).toBe('x')
+  })
+
+  test('allows mailto: links', () => {
+    expect(markdownToHtml('[email](mailto:a@b.com)')).toBe(
+      '<a href="mailto:a@b.com">email</a>',
+    )
+  })
+
+  test('escapes quotes in URLs to prevent attribute breakout', () => {
+    expect(markdownToHtml('[x](https://a.com?q="test")')).toBe(
+      '<a href="https://a.com?q=&quot;test&quot;">x</a>',
+    )
+  })
+
   test('converts unordered lists', () => {
     expect(markdownToHtml('- one\n- two')).toBe('<ul><li>one</li><li>two</li></ul>')
   })
@@ -60,11 +80,11 @@ describe('markdownToHtml', () => {
   })
 
   test('converts headings', () => {
-    expect(markdownToHtml('# one\n###### six')).toBe('<h1>one</h1><h6>six</h6>')
+    expect(markdownToHtml('# one\n###### six')).toBe('<h1>one</h1><br/><br/><h6>six</h6>')
   })
 
   test('converts horizontal rules', () => {
-    expect(markdownToHtml('before\n---\nafter')).toBe('before<hr>after')
+    expect(markdownToHtml('before\n---\nafter')).toBe('before<br/><br/><hr><br/><br/>after')
   })
 
   test('converts paragraph newlines to br', () => {
@@ -81,13 +101,13 @@ describe('markdownToHtml', () => {
     expect(markdownToHtml('5 < 7 & 8 > 3')).toBe('5 &lt; 7 &amp; 8 &gt; 3')
   })
 
-  test('renders multiple paragraphs without extra br between blocks', () => {
-    expect(markdownToHtml('first\n\nsecond')).toBe('firstsecond')
+  test('separates multiple paragraphs with br', () => {
+    expect(markdownToHtml('first\n\nsecond')).toBe('first<br/><br/>second')
   })
 
   test('renders mixed content', () => {
     expect(markdownToHtml('Hello **team**\n\n- one\n- two\n\n```js\nconst x = 1\n```')).toBe(
-      'Hello <strong>team</strong><ul><li>one</li><li>two</li></ul><pre><code class="language-js">const x = 1</code></pre>',
+      'Hello <strong>team</strong><br/><br/><ul><li>one</li><li>two</li></ul><br/><br/><pre><code class="language-js">const x = 1</code></pre>',
     )
   })
 
