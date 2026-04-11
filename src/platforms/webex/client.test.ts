@@ -483,6 +483,29 @@ describe('WebexClient', () => {
         expect(message.personEmail).toBe('test@example.com')
         expect(message.created).toBe('2026-01-01T00:00:00.000Z')
       })
+
+      test('markdown option converts content to HTML and strips displayName', async () => {
+        mockResponse(mockActivity('bold text'))
+
+        const client = await createExtractedClient()
+        await client.sendMessage(TEST_ROOM_ID, '**bold text**', { markdown: true })
+
+        const body = JSON.parse(fetchCalls[0].options?.body as string)
+        expect(body.object.displayName).toBe('bold text')
+        expect(body.object.content).toBe('<strong>bold text</strong>')
+        expect(body.object.markdown).toBeUndefined()
+      })
+
+      test('markdown option does not affect plain text messages', async () => {
+        mockResponse(mockActivity('Hello world'))
+
+        const client = await createExtractedClient()
+        await client.sendMessage(TEST_ROOM_ID, 'Hello world')
+
+        const body = JSON.parse(fetchCalls[0].options?.body as string)
+        expect(body.object.displayName).toBe('Hello world')
+        expect(body.object.content).toBe('Hello world')
+      })
     })
 
     describe('listMessages', () => {
@@ -636,6 +659,18 @@ describe('WebexClient', () => {
 
         const body = JSON.parse(fetchCalls[0].options?.body as string)
         expect(body.target.id).toBe(TEST_CONV_UUID)
+      })
+
+      test('markdown option converts content to HTML and strips displayName', async () => {
+        mockResponse(mockActivity('italic text'))
+
+        const client = await createExtractedClient()
+        await client.editMessage('activity-123', TEST_ROOM_ID, '_italic text_', { markdown: true })
+
+        const body = JSON.parse(fetchCalls[0].options?.body as string)
+        expect(body.object.displayName).toBe('italic text')
+        expect(body.object.content).toBe('<em>italic text</em>')
+        expect(body.object.markdown).toBeUndefined()
       })
     })
 
