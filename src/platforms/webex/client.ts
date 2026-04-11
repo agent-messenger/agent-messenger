@@ -2,6 +2,7 @@ import type { WebexMembership, WebexMessage, WebexPerson, WebexSpace } from './t
 import { WebexError } from './types'
 import { WebexCredentialManager } from './credential-manager'
 import { WebexEncryptionService } from './encryption'
+import { markdownToHtml, stripMarkdown } from './markdown-to-html'
 
 const BASE_URL = 'https://webexapis.com/v1'
 const MAX_RETRIES = 3
@@ -237,7 +238,7 @@ export class WebexClient {
   }
 
   private async activityToMessage(a: InternalActivity, roomId: string): Promise<WebexMessage> {
-    let text = a.object?.content ?? a.object?.displayName
+    let text = a.object?.displayName ?? a.object?.content
 
     if (this.encryption && text?.startsWith('eyJ')) {
       const keyUrl = a.encryptionKeyUrl ?? a.object?.encryptionKeyUrl
@@ -265,10 +266,8 @@ export class WebexClient {
     text: string,
     options?: { markdown?: boolean },
   ): Promise<{ object: Record<string, string>; encryptionKeyUrl?: string }> {
-    const buildObject = (content: string): Record<string, string> =>
-      options?.markdown
-        ? { objectType: 'comment', displayName: content, content, markdown: content }
-        : { objectType: 'comment', displayName: content, content }
+    const displayName = options?.markdown ? stripMarkdown(text) : text
+    const content = options?.markdown ? markdownToHtml(text) : text
 
     if (this.encryption) {
       const conv = await this.internalRequest<InternalConversation>(
@@ -276,14 +275,22 @@ export class WebexClient {
       )
       const keyUri = conv.defaultActivityEncryptionKeyUrl
       if (keyUri) {
-        const encrypted = await this.encryption.encryptText(keyUri, text)
-        if (encrypted) {
-          return { object: buildObject(encrypted), encryptionKeyUrl: keyUri }
+        const encryptedDisplayName = await this.encryption.encryptText(keyUri, displayName)
+        const encryptedContent = await this.encryption.encryptText(keyUri, content)
+        if (encryptedDisplayName && encryptedContent) {
+          return {
+            object: {
+              objectType: 'comment',
+              displayName: encryptedDisplayName,
+              content: encryptedContent,
+            },
+            encryptionKeyUrl: keyUri,
+          }
         }
       }
     }
 
-    return { object: buildObject(text) }
+    return { object: { objectType: 'comment', displayName, content } }
   }
 
   private async sendMessageInternal(
