@@ -1,7 +1,7 @@
 ---
 name: agent-discord
 description: Interact with Discord servers - send messages, read channels, manage reactions
-version: 2.6.3
+version: 2.7.0
 allowed-tools: Bash(agent-discord:*)
 metadata:
   openclaw:
