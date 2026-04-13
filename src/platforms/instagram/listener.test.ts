@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, spyOn, test } from 'bun:test'
+import { afterEach, describe, expect, spyOn, test } from 'bun:test'
 
 import { InstagramListener } from '@/platforms/instagram/listener'
 import type { InstagramChatSummary } from '@/platforms/instagram/types'

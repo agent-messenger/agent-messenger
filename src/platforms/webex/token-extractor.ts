@@ -65,8 +65,6 @@ const BROWSERS: BrowserConfig[] = [
   },
 ]
 
-const WEBEX_STORAGE_KEY = '_https://web.webex.com\x00\x01webex-web-client-bounded'
-
 interface ScanResult {
   token: ExtractedWebexToken | null
   encryptionKeys: Map<string, string>

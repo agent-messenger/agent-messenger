@@ -21,6 +21,7 @@ class MockLocoSession {
   close = mockSessionClose
 
   constructor() {
+    // oxlint-disable-next-line typescript-eslint/no-this-alias
     mockSessionInstance = this
   }
 

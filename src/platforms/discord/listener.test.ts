@@ -22,6 +22,7 @@ class MockWs {
   sent: string[] = []
 
   constructor(_url: string, _options?: any) {
+    // oxlint-disable-next-line typescript-eslint/no-this-alias
     mockWsInstance = this
   }
 

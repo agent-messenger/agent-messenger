@@ -30,9 +30,6 @@ function hasTTY(): boolean {
 
 async function promptPasswordGUI(email?: string): Promise<string | undefined> {
   const { execSync } = require('node:child_process') as typeof import('node:child_process')
-  const label = email
-    ? `agent-messenger wants to log in to KakaoTalk as ${email}.\\n\\nEnter your password:`
-    : 'agent-messenger wants to log in to KakaoTalk.\\n\\nEnter your password:'
 
   if (process.platform === 'darwin') {
     try {
@@ -40,7 +37,6 @@ async function promptPasswordGUI(email?: string): Promise<string | undefined> {
       const { tmpdir } = require('node:os') as typeof import('node:os')
       const { join } = require('node:path') as typeof import('node:path')
       const scriptPath = join(tmpdir(), `kakao-pw-${Date.now()}.swift`)
-      const infoText = email ? `Enter password for ${email}` : 'Enter your KakaoTalk password'
       const escapedEmail = (email ?? '').replace(/\\/g, '\\\\').replace(/"/g, '\\"')
       writeFileSync(
         scriptPath,
