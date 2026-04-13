@@ -132,6 +132,7 @@
     "lint": "oxlint",
     "lint:fix": "oxlint --fix",
     "format": "oxfmt --write .",
+    "format:check": "oxfmt --check .",
     "dev": "bun --hot ./dist/cli.js",
     "prepublishOnly": "bun run build && bun scripts/prepublish.ts",
     "postpublish": "git checkout package.json"
