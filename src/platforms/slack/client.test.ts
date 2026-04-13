@@ -1283,6 +1283,8 @@ describe('SlackClient extended methods', () => {
         archive: mock_fn(() => Promise.resolve({ ok: true })),
         setTopic: mock_fn(() => Promise.resolve({ ok: true, topic: 'new-topic' })),
         setPurpose: mock_fn(() => Promise.resolve({ ok: true, purpose: 'new-purpose' })),
+        open: mock_fn(() => Promise.resolve({ ok: true, channel: { id: 'D001' }, already_open: false })),
+        mark: mock_fn(() => Promise.resolve({ ok: true })),
         invite: mock_fn(() =>
           Promise.resolve({
             ok: true,
@@ -1297,6 +1299,11 @@ describe('SlackClient extended methods', () => {
         ),
         leave: mock_fn(() => Promise.resolve({ ok: true })),
         list: mock_fn(() => Promise.resolve({ ok: true, channels: [] })),
+      },
+      subscriptions: {
+        thread: {
+          getView: mock_fn(() => Promise.resolve({ ok: true, view: {} })),
+        },
       },
       chat: {
         scheduleMessage: mock_fn(() => Promise.resolve({ ok: true, scheduled_message_id: 'SM001' })),
@@ -1544,6 +1551,300 @@ describe('SlackClient extended methods', () => {
   function mock_fn(impl: (...args: any[]) => any) {
     return mock(impl)
   }
+
+  describe('mid-surface methods', () => {
+    test('lists DMs and respects includeArchived option', async () => {
+      const { client, mock } = await makeClient()
+      mock.conversations.list.mockResolvedValueOnce({
+        ok: true,
+        channels: [
+          { id: 'D001', user: 'U001', is_mpim: false },
+          { id: 'G001', name: 'project-room', is_mpim: true },
+        ],
+      })
+
+      const dms = await client.listDMs({ includeArchived: true })
+
+      expect(dms).toEqual([
+        { id: 'D001', user: 'U001', is_mpim: false },
+        { id: 'G001', user: 'project-room', is_mpim: true },
+      ])
+      expect(mock.conversations.list).toHaveBeenCalledWith({
+        cursor: undefined,
+        limit: 200,
+        types: 'im,mpim',
+        exclude_archived: false,
+      })
+    })
+
+    test('maps unread counts and totals', async () => {
+      const { client, mock } = await makeClient()
+      mock.apiCall.mockImplementation((method: string) => {
+        if (method === 'client.counts') {
+          return Promise.resolve({
+            ok: true,
+            channels: [
+              { id: 'C001', name: 'general', unread_count: 3, mention_count: 1 },
+              { id: 'C002', name: 'random', unread_count: 2, mention_count: 0 },
+            ],
+          })
+        }
+        return Promise.resolve({ ok: true })
+      })
+
+      const counts = await client.getUnreadCounts()
+
+      expect(counts.channels).toEqual([
+        { id: 'C001', name: 'general', unread_count: 3, mention_count: 1 },
+        { id: 'C002', name: 'random', unread_count: 2, mention_count: 0 },
+      ])
+      expect(counts.total_unread).toBe(5)
+      expect(counts.total_mentions).toBe(1)
+    })
+
+    test('maps thread view from subscriptions API', async () => {
+      const { client, mock } = await makeClient()
+      mock.subscriptions.thread.getView.mockResolvedValue({
+        ok: true,
+        view: {
+          channel_id: 'C001',
+          thread_ts: '123.456',
+          unread_count: 4,
+          last_read: '123.455',
+          subscribed: true,
+        },
+      })
+
+      const view = await client.getThreadView('C001', '123.456')
+
+      expect(view).toEqual({
+        channel_id: 'C001',
+        thread_ts: '123.456',
+        unread_count: 4,
+        last_read: '123.455',
+        subscribed: true,
+      })
+      expect(mock.subscriptions.thread.getView).toHaveBeenCalledWith({
+        channel: 'C001',
+        thread_ts: '123.456',
+      })
+    })
+
+    test('marks a channel as read', async () => {
+      const { client, mock } = await makeClient()
+
+      await client.markRead('C001', '123.456')
+
+      expect(mock.conversations.mark).toHaveBeenCalledWith({ channel: 'C001', ts: '123.456' })
+    })
+
+    test('maps activity feed and passes custom options', async () => {
+      const { client, mock } = await makeClient()
+      mock.apiCall.mockImplementation((method: string, args?: Record<string, unknown>) => {
+        if (method === 'activity.feed') {
+          expect(args).toEqual({
+            types: 'thread_reply',
+            mode: 'unreads',
+            limit: 10,
+          })
+          return Promise.resolve({
+            ok: true,
+            items: [
+              {
+                id: 'A001',
+                type: 'thread_reply',
+                channel: 'C001',
+                ts: '123.456',
+                text: 'Reply',
+                user: 'U001',
+                created: 1700000000,
+              },
+            ],
+          })
+        }
+        return Promise.resolve({ ok: true })
+      })
+
+      const items = await client.getActivityFeed({ types: 'thread_reply', mode: 'unreads', limit: 10 })
+
+      expect(items).toEqual([
+        {
+          id: 'A001',
+          type: 'thread_reply',
+          channel: 'C001',
+          ts: '123.456',
+          text: 'Reply',
+          user: 'U001',
+          created: 1700000000,
+        },
+      ])
+    })
+
+    test('maps saved items with pagination metadata', async () => {
+      const { client, mock } = await makeClient()
+      mock.apiCall.mockImplementation((method: string) => {
+        if (method === 'saved.list') {
+          return Promise.resolve({
+            ok: true,
+            items: [
+              {
+                type: 'message',
+                message: {
+                  ts: '123.456',
+                  text: 'Saved message',
+                  user: 'U001',
+                  username: 'alice',
+                  type: 'message',
+                  thread_ts: '123.400',
+                  reply_count: 2,
+                  replies: [{ user: 'U002', ts: '123.401' }],
+                  edited: { user: 'U003', ts: '123.500' },
+                },
+                channel: { id: 'C001', name: 'general' },
+                date_created: 1700000000,
+              },
+            ],
+            has_more: true,
+            response_metadata: { next_cursor: 'cursor123' },
+          })
+        }
+        return Promise.resolve({ ok: true })
+      })
+
+      const saved = await client.getSavedItems('cursor0')
+
+      expect(saved).toEqual({
+        items: [
+          {
+            type: 'message',
+            message: {
+              ts: '123.456',
+              text: 'Saved message',
+              user: 'U001',
+              username: 'alice',
+              type: 'message',
+              thread_ts: '123.400',
+              reply_count: 2,
+              replies: [{ user: 'U002', ts: '123.401' }],
+              edited: { user: 'U003', ts: '123.500' },
+            },
+            channel: { id: 'C001', name: 'general' },
+            date_created: 1700000000,
+          },
+        ],
+        has_more: true,
+        next_cursor: 'cursor123',
+      })
+    })
+
+    test('maps channel sections', async () => {
+      const { client, mock } = await makeClient()
+      mock.apiCall.mockImplementation((method: string) => {
+        if (method === 'users.channelSections.list') {
+          return Promise.resolve({
+            ok: true,
+            channel_sections: [
+              {
+                id: 'S001',
+                name: 'Focus',
+                channel_ids: ['C001', 'C002'],
+                date_created: 100,
+                date_updated: 200,
+              },
+            ],
+          })
+        }
+        return Promise.resolve({ ok: true })
+      })
+
+      const sections = await client.getChannelSections()
+
+      expect(sections).toEqual([
+        {
+          id: 'S001',
+          name: 'Focus',
+          channel_ids: ['C001', 'C002'],
+          date_created: 100,
+          date_updated: 200,
+        },
+      ])
+    })
+
+    test('opens a conversation and returns open status', async () => {
+      const { client, mock } = await makeClient()
+      mock.conversations.open.mockResolvedValue({
+        ok: true,
+        channel: { id: 'D001' },
+        already_open: true,
+      })
+
+      const result = await client.openConversation('U001,U002')
+
+      expect(result).toEqual({ channel_id: 'D001', already_open: true })
+      expect(mock.conversations.open).toHaveBeenCalledWith({ users: 'U001,U002' })
+    })
+
+    test('maps drafts and next cursor', async () => {
+      const { client, mock } = await makeClient()
+      mock.apiCall.mockImplementation((method: string) => {
+        if (method === 'drafts.list') {
+          return Promise.resolve({
+            ok: true,
+            drafts: [
+              {
+                id: 'DR001',
+                channel_id: 'C001',
+                message: { text: 'Draft text' },
+                date_created: 100,
+                date_updated: 200,
+              },
+            ],
+            response_metadata: { next_cursor: 'cursor456' },
+          })
+        }
+        return Promise.resolve({ ok: true })
+      })
+
+      const drafts = await client.getDrafts('cursor0')
+
+      expect(drafts).toEqual({
+        drafts: [
+          {
+            id: 'DR001',
+            channel_id: 'C001',
+            message: { text: 'Draft text' },
+            date_created: 100,
+            date_updated: 200,
+          },
+        ],
+        next_cursor: 'cursor456',
+      })
+    })
+
+    test('returns RTM connection info with stored cookie', async () => {
+      const { client, mock } = await makeClient()
+      mock.apiCall.mockImplementation((method: string) => {
+        if (method === 'rtm.connect') {
+          return Promise.resolve({
+            ok: true,
+            url: 'wss://example.slack-msgs.com',
+            self: { id: 'U001' },
+            team: { id: 'T001' },
+          })
+        }
+        return Promise.resolve({ ok: true })
+      })
+
+      const connection = await client.rtmConnect()
+
+      expect(connection).toEqual({
+        url: 'wss://example.slack-msgs.com',
+        cookie: 'xoxd-cookie',
+        self: { id: 'U001' },
+        team: { id: 'T001' },
+      })
+    })
+  })
 
   describe('pinMessage', () => {
     test('calls pins.add with correct args', async () => {
