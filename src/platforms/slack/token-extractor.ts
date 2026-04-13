@@ -7,60 +7,15 @@ import { join } from 'node:path'
 
 import { ClassicLevel } from 'classic-level'
 
+import {
+  CHROMIUM_BROWSERS,
+  ChromiumCookieDecryptor,
+  ChromiumCookieReader,
+  discoverBrowserProfileDirs,
+  getBrowserBasePath,
+} from '@/shared/chromium'
 import { DerivedKeyCache } from '@/shared/utils/derived-key-cache'
 import { lookupLinuxKeyringPassword } from '@/shared/utils/linux-keyring'
-
-interface BrowserConfig {
-  name: string
-  darwin: string
-  linux: string
-  win32: string
-}
-
-const BROWSERS: BrowserConfig[] = [
-  {
-    name: 'Chrome',
-    darwin: join('Google', 'Chrome'),
-    linux: 'google-chrome',
-    win32: join('Google', 'Chrome', 'User Data'),
-  },
-  {
-    name: 'Chrome Canary',
-    darwin: join('Google', 'Chrome Canary'),
-    linux: 'google-chrome-unstable',
-    win32: join('Google', 'Chrome SxS', 'User Data'),
-  },
-  {
-    name: 'Edge',
-    darwin: 'Microsoft Edge',
-    linux: 'microsoft-edge',
-    win32: join('Microsoft', 'Edge', 'User Data'),
-  },
-  {
-    name: 'Arc',
-    darwin: join('Arc', 'User Data'),
-    linux: '',
-    win32: join('Arc', 'User Data'),
-  },
-  {
-    name: 'Brave',
-    darwin: join('BraveSoftware', 'Brave-Browser'),
-    linux: join('BraveSoftware', 'Brave-Browser'),
-    win32: join('BraveSoftware', 'Brave-Browser', 'User Data'),
-  },
-  {
-    name: 'Vivaldi',
-    darwin: 'Vivaldi',
-    linux: 'vivaldi',
-    win32: join('Vivaldi', 'User Data'),
-  },
-  {
-    name: 'Chromium',
-    darwin: 'Chromium',
-    linux: 'chromium',
-    win32: join('Chromium', 'User Data'),
-  },
-]
 
 const require = createRequire(import.meta.url)
 
@@ -106,6 +61,8 @@ export class TokenExtractor {
   private slackDir: string
   private keyCache: DerivedKeyCache
   private debugLog: ((message: string) => void) | null
+  private browserDecryptor: ChromiumCookieDecryptor
+  private browserCookieReader: ChromiumCookieReader
 
   constructor(
     platform?: NodeJS.Platform,
@@ -122,6 +79,8 @@ export class TokenExtractor {
     this.slackDir = slackDir ?? this.getSlackDir()
     this.keyCache = keyCache ?? new DerivedKeyCache()
     this.debugLog = debugLog ?? null
+    this.browserDecryptor = new ChromiumCookieDecryptor({ platform: this.platform })
+    this.browserCookieReader = new ChromiumCookieReader()
   }
 
   private debug(message: string): void {
@@ -267,11 +226,11 @@ export class TokenExtractor {
     const results: ExtractedWorkspace[] = []
     const seenTokens = new Set<string>()
 
-    for (const browser of BROWSERS) {
-      const browserBase = this.getBrowserBasePath(browser)
+    for (const browser of CHROMIUM_BROWSERS) {
+      const browserBase = getBrowserBasePath(browser, this.platform)
       if (!browserBase) continue
 
-      const profileDirs = this.discoverBrowserProfileDirs(browserBase)
+      const profileDirs = discoverBrowserProfileDirs(browserBase)
       for (const profileDir of profileDirs) {
         const leveldbDir = join(profileDir, 'Local Storage', 'leveldb')
         if (!existsSync(leveldbDir)) continue
@@ -303,54 +262,8 @@ export class TokenExtractor {
     return results
   }
 
-  private getBrowserBasePath(browser: BrowserConfig): string | null {
-    let relative: string
-
-    switch (this.platform) {
-      case 'darwin':
-        relative = browser.darwin
-        if (!relative) return null
-        return join(homedir(), 'Library', 'Application Support', relative)
-      case 'linux':
-        relative = browser.linux
-        if (!relative) return null
-        return join(homedir(), '.config', relative)
-      case 'win32':
-        relative = browser.win32
-        if (!relative) return null
-        return join(
-          process.env.LOCALAPPDATA || join(homedir(), 'AppData', 'Local'),
-          relative,
-        )
-      default:
-        return null
-    }
-  }
-
-  private discoverBrowserProfileDirs(browserBase: string): string[] {
-    const dirs: string[] = []
-
-    dirs.push(join(browserBase, 'Default'))
-
-    if (!existsSync(browserBase)) return dirs
-
-    try {
-      const entries = readdirSync(browserBase, { withFileTypes: true })
-      for (const entry of entries) {
-        if (!entry.isDirectory()) continue
-        if (!/^Profile \d+$/i.test(entry.name)) continue
-        dirs.push(join(browserBase, entry.name))
-      }
-    } catch {}
-
-    return dirs
-  }
-
   private async extractCookieFromBrowserProfile(profileDir: string, browserBase: string): Promise<string> {
-    const cookiePaths = [
-      join(profileDir, 'Cookies'),
-      join(profileDir, 'Network', 'Cookies'),
-    ]
+    const cookiePaths = [join(profileDir, 'Cookies'), join(profileDir, 'Network', 'Cookies')]
 
     for (const cookiePath of cookiePaths) {
       if (!existsSync(cookiePath)) continue
@@ -363,166 +276,35 @@ export class TokenExtractor {
   }
 
   private async extractCookieFromBrowserSQLite(cookiesPath: string, browserBase: string): Promise<string> {
-    const tempDbPath = join(tmpdir(), `slack-browser-cookies-${Date.now()}-${Math.random().toString(36).slice(2)}.db`)
+    const sql = `SELECT value, encrypted_value
+         FROM cookies
+         WHERE name = 'd' AND host_key LIKE '%slack.com%'
+         ORDER BY last_access_utc DESC
+         LIMIT 1`
 
-    try {
-      copyFileSync(cookiesPath, tempDbPath)
-    } catch {
-      return ''
+    type CookieRow = {
+      value?: string
+      encrypted_value?: Uint8Array | Buffer
     }
 
-    try {
-      const sql = `SELECT value, encrypted_value
-           FROM cookies
-           WHERE name = 'd' AND host_key LIKE '%slack.com%'
-           ORDER BY last_access_utc DESC
-           LIMIT 1`
+    const row = await this.browserCookieReader.queryFirst<CookieRow>(cookiesPath, sql)
+    if (!row) return ''
 
-      type CookieRow = {
-        value?: string
-        encrypted_value?: Uint8Array | Buffer
-      } | null
+    if (row.value?.startsWith('xoxd-')) return row.value
 
-      let row: CookieRow
-      if (typeof globalThis.Bun !== 'undefined') {
-        const { Database } = require('bun:sqlite')
-        const db = new Database(tempDbPath, { readonly: true })
-        row = db.query(sql).get() as CookieRow
-        db.close()
-      } else {
-        const Database = require('better-sqlite3')
-        const db = new Database(tempDbPath, { readonly: true })
-        row = db.prepare(sql).get() as CookieRow
-        db.close()
-      }
-
-      if (!row) return ''
-
-      if (row.value?.startsWith('xoxd-')) return row.value
-
-      if (row.encrypted_value && row.encrypted_value.length > 0) {
-        return this.decryptBrowserCookieForSlack(Buffer.from(row.encrypted_value), browserBase) ?? ''
-      }
-
-      return ''
-    } catch {
-      return ''
-    } finally {
-      try {
-        rmSync(tempDbPath, { force: true })
-      } catch {}
-    }
-  }
-
-  private decryptBrowserCookieForSlack(encrypted: Buffer, browserBase: string): string | null {
-    const str = encrypted.toString('utf8')
-    if (str.startsWith('xoxd-')) return str
-
-    const prefix = encrypted.length > 3 ? encrypted.subarray(0, 3).toString() : ''
-
-    if (prefix === 'v10') {
-      if (this.platform === 'win32') {
-        return this.decryptBrowserV10CookieWindows(encrypted, browserBase)
-      }
-      if (this.platform === 'linux') {
-        return this.decryptV10CookieLinux(encrypted)
-      }
-      return this.decryptBrowserV10CookieMac(encrypted)
-    }
-
-    if (prefix === 'v11') {
-      if (this.platform === 'linux') {
-        return this.decryptV11CookieLinux(encrypted)
-      }
-      if (this.platform === 'darwin') {
-        return this.decryptBrowserV10CookieMac(encrypted)
-      }
-    }
-
-    if (this.platform === 'win32' && encrypted.length > 0) {
-      const decrypted = this.decryptDPAPI(encrypted)
-      if (decrypted) {
-        const text = decrypted.toString('utf8')
-        const match = text.match(/xoxd-[A-Za-z0-9%]+/)
-        return match ? match[0] : null
-      }
-    }
-
-    return null
-  }
-
-  private decryptBrowserV10CookieMac(encrypted: Buffer): string | null {
-    const keychainVariants = [
-      { service: 'Chrome Safe Storage', account: 'Chrome' },
-      { service: 'Chrome Canary Safe Storage', account: 'Chrome Canary' },
-      { service: 'Microsoft Edge Safe Storage', account: 'Microsoft Edge' },
-      { service: 'Arc Safe Storage', account: 'Arc' },
-      { service: 'Brave Safe Storage', account: 'Brave' },
-      { service: 'Vivaldi Safe Storage', account: 'Vivaldi' },
-      { service: 'Chromium Safe Storage', account: 'Chromium' },
-    ]
-
-    for (const variant of keychainVariants) {
-      try {
-        const password = execSync(
-          `security find-generic-password -s "${variant.service}" -a "${variant.account}" -w 2>/dev/null`,
-          { encoding: 'utf8' },
-        ).trim()
-
-        const key = pbkdf2Sync(password, 'saltysalt', 1003, 16, 'sha1')
-        const result = this.decryptLinuxCookieWithKey(encrypted, key)
-        if (result) return result
-      } catch {}
-    }
-
-    return null
-  }
-
-  private decryptBrowserV10CookieWindows(encrypted: Buffer, browserBase: string): string | null {
-    try {
-      const masterKey = this.getBrowserWindowsMasterKey(browserBase)
-      if (!masterKey) {
-        const decrypted = this.decryptDPAPI(encrypted.subarray(3))
-        if (!decrypted) return null
-        const text = decrypted.toString('utf8')
-        const match = text.match(/xoxd-[A-Za-z0-9%]+/)
-        return match ? match[0] : null
-      }
-
-      const nonce = encrypted.subarray(3, 3 + 12)
-      const ciphertextWithTag = encrypted.subarray(3 + 12)
-      const tag = ciphertextWithTag.subarray(ciphertextWithTag.length - 16)
-      const ciphertext = ciphertextWithTag.subarray(0, ciphertextWithTag.length - 16)
-
-      const decipher = createDecipheriv('aes-256-gcm', masterKey, nonce)
-      decipher.setAuthTag(tag)
-      const decrypted = Buffer.concat([decipher.update(ciphertext), decipher.final()]).toString('utf8')
-
-      const match = decrypted.match(/xoxd-[A-Za-z0-9%]+/)
-      return match ? match[0] : null
-    } catch {
-      return null
-    }
-  }
-
-  private getBrowserWindowsMasterKey(browserBase: string): Buffer | null {
-    try {
+    if (row.encrypted_value && row.encrypted_value.length > 0) {
       const localStatePath = join(browserBase, 'Local State')
-      if (!existsSync(localStatePath)) return null
-
-      const localState = JSON.parse(readFileSync(localStatePath, 'utf8')) as {
-        os_crypt?: { encrypted_key?: string }
+      const decrypted = this.browserDecryptor.decryptCookie(
+        Buffer.from(row.encrypted_value),
+        existsSync(localStatePath) ? localStatePath : undefined,
+      )
+      if (decrypted) {
+        const match = decrypted.match(/xoxd-[A-Za-z0-9%]+/)
+        return match ? match[0] : ''
       }
-      const encryptedKeyB64 = localState?.os_crypt?.encrypted_key
-      if (!encryptedKeyB64) return null
-
-      const encryptedKey = Buffer.from(encryptedKeyB64, 'base64')
-      if (encryptedKey.subarray(0, 5).toString() !== 'DPAPI') return null
-
-      return this.decryptDPAPI(encryptedKey.subarray(5))
-    } catch {
-      return null
     }
+
+    return ''
   }
 
   private async extractTokensFromLevelDB(): Promise<TokenInfo[]> {
@@ -1157,7 +939,17 @@ export class TokenExtractor {
   }
 
   private decryptV11CookieLinux(encrypted: Buffer): string | null {
-    const appNames = ['Slack', 'slack', 'Chrome', 'chrome', 'Chromium', 'chromium', 'Microsoft Edge', 'Brave', 'Vivaldi']
+    const appNames = [
+      'Slack',
+      'slack',
+      'Chrome',
+      'chrome',
+      'Chromium',
+      'chromium',
+      'Microsoft Edge',
+      'Brave',
+      'Vivaldi',
+    ]
     for (const appName of appNames) {
       try {
         const keyringPassword = this.getLinuxKeyringPassword(appName)
