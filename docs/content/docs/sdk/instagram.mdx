@@ -147,12 +147,12 @@ await listener.start()
 
 ### Events
 
-| Event | Payload | Description |
-|-------|---------|-------------|
-| `message` | `InstagramMessageSummary` | New message received |
-| `connected` | `{ userId: string }` | Initial poll completed, listener active |
-| `disconnected` | — | Listener stopped |
-| `error` | `Error` | Network or API error |
+| Event          | Payload                   | Description                             |
+| -------------- | ------------------------- | --------------------------------------- |
+| `message`      | `InstagramMessageSummary` | New message received                    |
+| `connected`    | `{ userId: string }`      | Initial poll completed, listener active |
+| `disconnected` | —                         | Listener stopped                        |
+| `error`        | `Error`                   | Network or API error                    |
 
 The listener seeds its seen-message set on startup, so it only emits `message` events for messages that arrive after `start()`.
 
@@ -227,8 +227,8 @@ import type {
 
 ```typescript
 interface InstagramChatSummary {
-  id: string             // Thread ID
-  name: string           // Thread title or participant names
+  id: string // Thread ID
+  name: string // Thread title or participant names
   type: 'private' | 'group'
   is_group: boolean
   participant_count: number
@@ -237,13 +237,13 @@ interface InstagramChatSummary {
 }
 
 interface InstagramMessageSummary {
-  id: string             // Message item ID
+  id: string // Message item ID
   thread_id: string
-  from: string           // User pk (numeric ID)
+  from: string // User pk (numeric ID)
   from_name?: string
-  timestamp: string      // ISO 8601
+  timestamp: string // ISO 8601
   is_outgoing: boolean
-  type: string           // 'text', 'media', 'reel_share', 'link', 'like', etc.
+  type: string // 'text', 'media', 'reel_share', 'link', 'like', etc.
   text?: string
   media_url?: string
 }
@@ -253,10 +253,10 @@ interface InstagramMessageSummary {
 
 ```typescript
 import {
-  createAccountId,      // Normalize a username to an account ID
-  getMessageType,       // Extract message type from API item
-  extractMessageText,   // Extract text from any message type
-  extractMediaUrl,      // Extract media URL from any message type
+  createAccountId, // Normalize a username to an account ID
+  getMessageType, // Extract message type from API item
+  extractMessageText, // Extract text from any message type
+  extractMediaUrl, // Extract media URL from any message type
 } from 'agent-messenger/instagram'
 ```
 
@@ -272,7 +272,7 @@ import { InstagramClient } from 'agent-messenger/instagram'
 const client = await new InstagramClient().login()
 
 const chats = await client.listChats(50)
-const unread = chats.filter(c => c.unread_count > 0)
+const unread = chats.filter((c) => c.unread_count > 0)
 
 console.log(`${unread.length} threads with unread messages:`)
 for (const chat of unread) {
@@ -294,7 +294,7 @@ const client = await new InstagramClient().login()
 
 // Find the user
 const users = await client.searchUsers('alice_smith')
-const alice = users.find(u => u.username === 'alice_smith')
+const alice = users.find((u) => u.username === 'alice_smith')
 
 if (alice) {
   const msg = await client.sendMessageToUser(alice.pk, 'Hey! Wanted to follow up on our chat.')

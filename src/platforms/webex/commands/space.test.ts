@@ -59,9 +59,9 @@ let consoleLogSpy: ReturnType<typeof spyOn>
 beforeEach(() => {
   mockListSpaces.mockReset().mockImplementation(() => Promise.resolve(mockSpaces))
   mockGetSpace.mockReset().mockImplementation(() => Promise.resolve(mockSpace))
-  mockLogin.mockReset().mockImplementation(() =>
-    Promise.resolve({ listSpaces: mockListSpaces, getSpace: mockGetSpace }),
-  )
+  mockLogin
+    .mockReset()
+    .mockImplementation(() => Promise.resolve({ listSpaces: mockListSpaces, getSpace: mockGetSpace }))
   mockHandleError.mockReset().mockImplementation((err: Error) => {
     throw err
   })

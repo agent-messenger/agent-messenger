@@ -3,7 +3,9 @@ import { afterEach, beforeEach, describe, expect, mock, spyOn, test } from 'bun:
 const originalConsoleLog = console.log
 
 mock.module('@/shared/utils/error-handler', () => ({
-  handleError: (err: Error) => { throw err },
+  handleError: (err: Error) => {
+    throw err
+  },
 }))
 
 const mockGetAccount = mock(() =>
@@ -15,9 +17,7 @@ const mockGetAccount = mock(() =>
     updated_at: '2024-01-01T00:00:00.000Z',
   }),
 )
-const mockEnsureAccountPaths = mock(() =>
-  Promise.resolve({ account_dir: '/tmp/test', auth_dir: '/tmp/test/auth' }),
-)
+const mockEnsureAccountPaths = mock(() => Promise.resolve({ account_dir: '/tmp/test', auth_dir: '/tmp/test/auth' }))
 
 mock.module('../credential-manager', () => ({
   WhatsAppCredentialManager: class {
@@ -54,7 +54,9 @@ const mockClose = mock(() => Promise.resolve())
 
 mock.module('../client', () => ({
   WhatsAppClient: class {
-    login = mock(function (this: unknown) { return Promise.resolve(this) })
+    login = mock(function (this: unknown) {
+      return Promise.resolve(this)
+    })
     connect = mockConnect
     close = mockClose
     getMessages = mockGetMessages
@@ -114,7 +116,8 @@ describe('message commands', () => {
     mockConnect.mockImplementation(() => Promise.resolve())
     mockClose.mockImplementation(() => Promise.resolve())
 
-    consoleLogSpy = mock((..._args: unknown[]) => {}); console.log = consoleLogSpy
+    consoleLogSpy = mock((..._args: unknown[]) => {})
+    console.log = consoleLogSpy
     processExitSpy = spyOn(process, 'exit').mockImplementation((_code?: number) => {
       throw new Error(`process.exit(${_code})`)
     })
@@ -128,9 +131,9 @@ describe('message commands', () => {
 
   describe('list', () => {
     test('fetches messages for a chat', async () => {
-      await expect(
-        messageCommand.parseAsync(['list', '12025551234@s.whatsapp.net'], { from: 'user' }),
-      ).rejects.toThrow('process.exit(0)')
+      await expect(messageCommand.parseAsync(['list', '12025551234@s.whatsapp.net'], { from: 'user' })).rejects.toThrow(
+        'process.exit(0)',
+      )
 
       expect(mockGetMessages).toHaveBeenCalledWith('12025551234@s.whatsapp.net', 25)
       const output = JSON.parse(consoleLogSpy.mock.calls[0][0])
@@ -158,9 +161,9 @@ describe('message commands', () => {
     test('exits with error when no account configured', async () => {
       mockGetAccount.mockImplementation(() => Promise.resolve(null))
 
-      await expect(
-        messageCommand.parseAsync(['list', '12025551234@s.whatsapp.net'], { from: 'user' }),
-      ).rejects.toThrow('process.exit(1)')
+      await expect(messageCommand.parseAsync(['list', '12025551234@s.whatsapp.net'], { from: 'user' })).rejects.toThrow(
+        'process.exit(1)',
+      )
 
       expect(processExitSpy).toHaveBeenCalledWith(1)
     })
@@ -192,10 +195,7 @@ describe('message commands', () => {
   describe('react', () => {
     test('sends a reaction to a message', async () => {
       await expect(
-        messageCommand.parseAsync(
-          ['react', '12025551234@s.whatsapp.net', 'msg-1', '👍'],
-          { from: 'user' },
-        ),
+        messageCommand.parseAsync(['react', '12025551234@s.whatsapp.net', 'msg-1', '👍'], { from: 'user' }),
       ).rejects.toThrow('process.exit(0)')
 
       expect(mockSendReaction).toHaveBeenCalledWith('12025551234@s.whatsapp.net', 'msg-1', '👍', undefined)
@@ -208,10 +208,9 @@ describe('message commands', () => {
 
     test('passes --from-me flag to sendReaction', async () => {
       await expect(
-        messageCommand.parseAsync(
-          ['react', '12025551234@s.whatsapp.net', 'msg-1', '❤️', '--from-me'],
-          { from: 'user' },
-        ),
+        messageCommand.parseAsync(['react', '12025551234@s.whatsapp.net', 'msg-1', '❤️', '--from-me'], {
+          from: 'user',
+        }),
       ).rejects.toThrow('process.exit(0)')
 
       expect(mockSendReaction).toHaveBeenCalledWith('12025551234@s.whatsapp.net', 'msg-1', '❤️', true)
@@ -219,10 +218,9 @@ describe('message commands', () => {
 
     test('passes account option to credential manager', async () => {
       await expect(
-        messageCommand.parseAsync(
-          ['react', '12025551234@s.whatsapp.net', 'msg-1', '👍', '--account', 'my-account'],
-          { from: 'user' },
-        ),
+        messageCommand.parseAsync(['react', '12025551234@s.whatsapp.net', 'msg-1', '👍', '--account', 'my-account'], {
+          from: 'user',
+        }),
       ).rejects.toThrow('process.exit(0)')
 
       expect(mockGetAccount).toHaveBeenCalledWith('my-account')

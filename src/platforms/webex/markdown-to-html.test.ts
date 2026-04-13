@@ -30,15 +30,11 @@ describe('markdownToHtml', () => {
   })
 
   test('converts code blocks without language', () => {
-    expect(markdownToHtml('```\nconst x = 1 & 2\n```')).toBe(
-      '<pre><code>const x = 1 &amp; 2</code></pre>',
-    )
+    expect(markdownToHtml('```\nconst x = 1 & 2\n```')).toBe('<pre><code>const x = 1 &amp; 2</code></pre>')
   })
 
   test('does not process markdown inside code blocks', () => {
-    expect(markdownToHtml('```\n**bold** _italic_\n```')).toBe(
-      '<pre><code>**bold** _italic_</code></pre>',
-    )
+    expect(markdownToHtml('```\n**bold** _italic_\n```')).toBe('<pre><code>**bold** _italic_</code></pre>')
   })
 
   test('converts links', () => {
@@ -56,15 +52,11 @@ describe('markdownToHtml', () => {
   })
 
   test('allows mailto: links', () => {
-    expect(markdownToHtml('[email](mailto:a@b.com)')).toBe(
-      '<a href="mailto:a@b.com">email</a>',
-    )
+    expect(markdownToHtml('[email](mailto:a@b.com)')).toBe('<a href="mailto:a@b.com">email</a>')
   })
 
   test('escapes quotes in URLs to prevent attribute breakout', () => {
-    expect(markdownToHtml('[x](https://a.com?q="test")')).toBe(
-      '<a href="https://a.com?q=&quot;test&quot;">x</a>',
-    )
+    expect(markdownToHtml('[x](https://a.com?q="test")')).toBe('<a href="https://a.com?q=&quot;test&quot;">x</a>')
   })
 
   test('converts unordered lists', () => {
@@ -92,9 +84,7 @@ describe('markdownToHtml', () => {
   })
 
   test('supports nested formatting', () => {
-    expect(markdownToHtml('**bold _and italic_**')).toBe(
-      '<strong>bold <em>and italic</em></strong>',
-    )
+    expect(markdownToHtml('**bold _and italic_**')).toBe('<strong>bold <em>and italic</em></strong>')
   })
 
   test('escapes html special characters in text', () => {
@@ -134,9 +124,7 @@ describe('stripMarkdown', () => {
   })
 
   test('strips block markdown syntax', () => {
-    expect(stripMarkdown('# Title\n> quote\n- item\n1. first\n---')).toBe(
-      'Title\nquote\nitem\nfirst\n',
-    )
+    expect(stripMarkdown('# Title\n> quote\n- item\n1. first\n---')).toBe('Title\nquote\nitem\nfirst\n')
   })
 
   test('keeps code block content', () => {

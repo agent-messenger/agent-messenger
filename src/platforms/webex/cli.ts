@@ -18,10 +18,7 @@ function isAuthCommand(command: CommandType): boolean {
 
 const program = new Command()
 
-program
-  .name('agent-webex')
-  .description('CLI tool for Cisco Webex communication')
-  .version(pkg.version)
+program.name('agent-webex').description('CLI tool for Cisco Webex communication').version(pkg.version)
 
 program.hook('preAction', async (_thisCommand, actionCommand) => {
   if (isAuthCommand(actionCommand)) return

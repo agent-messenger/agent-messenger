@@ -7,9 +7,7 @@ const mockListMessages = mock(() =>
   ]),
 )
 
-const mockSendMessage = mock(() =>
-  Promise.resolve({ id: 3, text: 'Sent message', sender_id: 'user-1', date: 3000 }),
-)
+const mockSendMessage = mock(() => Promise.resolve({ id: 3, text: 'Sent message', sender_id: 'user-1', date: 3000 }))
 
 const mockClient = {
   listMessages: mockListMessages,
@@ -17,8 +15,7 @@ const mockClient = {
 }
 
 mock.module('./shared', () => ({
-  withTelegramClient: async (_opts: unknown, fn: (client: typeof mockClient) => Promise<unknown>) =>
-    fn(mockClient),
+  withTelegramClient: async (_opts: unknown, fn: (client: typeof mockClient) => Promise<unknown>) => fn(mockClient),
 }))
 
 import { messageCommand } from './message'

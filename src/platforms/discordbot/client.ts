@@ -31,10 +31,7 @@ export class DiscordBotClient {
     const credManager = new DiscordBotCredentialManager()
     const creds = await credManager.getCredentials()
     if (!creds?.token) {
-      throw new DiscordBotError(
-        'No Discord bot credentials found. Run "auth set <token>" first.',
-        'no_credentials',
-      )
+      throw new DiscordBotError('No Discord bot credentials found. Run "auth set <token>" first.', 'no_credentials')
     }
     return this.login({ token: creds.token })
   }

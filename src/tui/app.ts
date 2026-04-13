@@ -1,19 +1,19 @@
 import blessed from 'blessed'
 
-import { SlackAdapter } from './adapters/slack-adapter'
+import { ChannelTalkAdapter } from './adapters/channeltalk-adapter'
 import { DiscordAdapter } from './adapters/discord-adapter'
-import { TeamsAdapter } from './adapters/teams-adapter'
-import { WebexAdapter } from './adapters/webex-adapter'
-import { TelegramAdapter } from './adapters/telegram-adapter'
-import { WhatsAppAdapter } from './adapters/whatsapp-adapter'
-import { LineAdapter } from './adapters/line-adapter'
 import { InstagramAdapter } from './adapters/instagram-adapter'
 import { KakaoTalkAdapter } from './adapters/kakaotalk-adapter'
-import { ChannelTalkAdapter } from './adapters/channeltalk-adapter'
+import { LineAdapter } from './adapters/line-adapter'
+import { SlackAdapter } from './adapters/slack-adapter'
+import { TeamsAdapter } from './adapters/teams-adapter'
+import { TelegramAdapter } from './adapters/telegram-adapter'
 import type { AuthIO, PlatformAdapter, UnifiedChannel, UnifiedMessage, Workspace } from './adapters/types'
+import { WebexAdapter } from './adapters/webex-adapter'
+import { WhatsAppAdapter } from './adapters/whatsapp-adapter'
+import { formatTimestamp } from './utils'
 import { ChannelPicker } from './views/channel-picker'
 import { WorkspacePicker } from './views/workspace-picker'
-import { formatTimestamp } from './utils'
 
 type AppMode = 'selection' | 'read' | 'write' | 'auth'
 type NavLevel = 'platform' | 'workspace' | 'channel'
@@ -34,18 +34,97 @@ export async function createApp(): Promise<void> {
   let activePlatformIndex = -1
   let activeChannelId: string | null = null
 
-
   const platformStates: PlatformState[] = [
-    { adapter: new SlackAdapter(), label: 'Slack', enabled: false, channels: null, workspaces: null, listening: false, lastChannelId: null },
-    { adapter: new DiscordAdapter(), label: 'Discord', enabled: false, channels: null, workspaces: null, listening: false, lastChannelId: null },
-    { adapter: new TeamsAdapter(), label: 'Teams', enabled: false, channels: null, workspaces: null, listening: false, lastChannelId: null },
-    { adapter: new WebexAdapter(), label: 'Webex', enabled: false, channels: null, workspaces: null, listening: false, lastChannelId: null },
-    { adapter: new TelegramAdapter(), label: 'Telegram', enabled: false, channels: null, workspaces: null, listening: false, lastChannelId: null },
-    { adapter: new WhatsAppAdapter(), label: 'WhatsApp', enabled: false, channels: null, workspaces: null, listening: false, lastChannelId: null },
-    { adapter: new LineAdapter(), label: 'LINE', enabled: false, channels: null, workspaces: null, listening: false, lastChannelId: null },
-    { adapter: new InstagramAdapter(), label: 'Instagram', enabled: false, channels: null, workspaces: null, listening: false, lastChannelId: null },
-    { adapter: new KakaoTalkAdapter(), label: 'KakaoTalk', enabled: false, channels: null, workspaces: null, listening: false, lastChannelId: null },
-    { adapter: new ChannelTalkAdapter(), label: 'Channel Talk', enabled: false, channels: null, workspaces: null, listening: false, lastChannelId: null },
+    {
+      adapter: new SlackAdapter(),
+      label: 'Slack',
+      enabled: false,
+      channels: null,
+      workspaces: null,
+      listening: false,
+      lastChannelId: null,
+    },
+    {
+      adapter: new DiscordAdapter(),
+      label: 'Discord',
+      enabled: false,
+      channels: null,
+      workspaces: null,
+      listening: false,
+      lastChannelId: null,
+    },
+    {
+      adapter: new TeamsAdapter(),
+      label: 'Teams',
+      enabled: false,
+      channels: null,
+      workspaces: null,
+      listening: false,
+      lastChannelId: null,
+    },
+    {
+      adapter: new WebexAdapter(),
+      label: 'Webex',
+      enabled: false,
+      channels: null,
+      workspaces: null,
+      listening: false,
+      lastChannelId: null,
+    },
+    {
+      adapter: new TelegramAdapter(),
+      label: 'Telegram',
+      enabled: false,
+      channels: null,
+      workspaces: null,
+      listening: false,
+      lastChannelId: null,
+    },
+    {
+      adapter: new WhatsAppAdapter(),
+      label: 'WhatsApp',
+      enabled: false,
+      channels: null,
+      workspaces: null,
+      listening: false,
+      lastChannelId: null,
+    },
+    {
+      adapter: new LineAdapter(),
+      label: 'LINE',
+      enabled: false,
+      channels: null,
+      workspaces: null,
+      listening: false,
+      lastChannelId: null,
+    },
+    {
+      adapter: new InstagramAdapter(),
+      label: 'Instagram',
+      enabled: false,
+      channels: null,
+      workspaces: null,
+      listening: false,
+      lastChannelId: null,
+    },
+    {
+      adapter: new KakaoTalkAdapter(),
+      label: 'KakaoTalk',
+      enabled: false,
+      channels: null,
+      workspaces: null,
+      listening: false,
+      lastChannelId: null,
+    },
+    {
+      adapter: new ChannelTalkAdapter(),
+      label: 'Channel Talk',
+      enabled: false,
+      channels: null,
+      workspaces: null,
+      listening: false,
+      lastChannelId: null,
+    },
   ]
 
   const screen = blessed.screen({
@@ -222,9 +301,7 @@ export async function createApp(): Promise<void> {
       hints.push('{gray-fg}Ctrl+C{/}: Quit')
       statusBar.setContent(' ' + hints.join('  '))
     } else if (mode === 'auth') {
-      statusBar.setContent(
-        ' {gray-fg}Enter{/}: Submit  {gray-fg}Esc{/}: Cancel  {gray-fg}Ctrl+C{/}: Quit',
-      )
+      statusBar.setContent(' {gray-fg}Enter{/}: Submit  {gray-fg}Esc{/}: Cancel  {gray-fg}Ctrl+C{/}: Quit')
     } else if (mode === 'read') {
       statusBar.setContent(
         ' {gray-fg}Enter{/}: Write  {gray-fg}Esc{/}: Selection  {gray-fg}Ctrl+K{/}: Channel  {gray-fg}Ctrl+W{/}: Workspace  {gray-fg}Ctrl+C{/}: Quit',
@@ -353,9 +430,15 @@ export async function createApp(): Promise<void> {
 
     if (level) {
       switch (level) {
-        case 'platform': showPlatformLevel(); break
-        case 'workspace': showWorkspaceLevel(); break
-        case 'channel': showChannelLevel(); break
+        case 'platform':
+          showPlatformLevel()
+          break
+        case 'workspace':
+          showWorkspaceLevel()
+          break
+        case 'channel':
+          showChannelLevel()
+          break
       }
     } else {
       if (activePlatformIndex >= 0) {
@@ -543,23 +626,29 @@ export async function createApp(): Promise<void> {
     if (mode === 'selection' || mode === 'auth' || channelPicker.isActive() || workspacePicker.isActive()) return
     const p = activePlatform()
     if (!p?.adapter.getWorkspaces) return
-    p.adapter.getWorkspaces().then((workspaces) => {
-      if (workspaces.length <= 1) return
-      workspacePicker.open(workspaces, (workspace) => {
-        if (!p.adapter.switchWorkspace) return
-        p.adapter.switchWorkspace(workspace.id).then(() => {
-          p.channels = null
-          p.workspaces = null
-          renderHeader()
-          if (activeChannelId) {
-            activeChannelId = null
-            messageLog.setContent('')
-            messageLog.setLabel(' Messages ')
-          }
-          enterSelectionMode('channel')
-        }).catch(() => {})
+    p.adapter
+      .getWorkspaces()
+      .then((workspaces) => {
+        if (workspaces.length <= 1) return
+        workspacePicker.open(workspaces, (workspace) => {
+          if (!p.adapter.switchWorkspace) return
+          p.adapter
+            .switchWorkspace(workspace.id)
+            .then(() => {
+              p.channels = null
+              p.workspaces = null
+              renderHeader()
+              if (activeChannelId) {
+                activeChannelId = null
+                messageLog.setContent('')
+                messageLog.setLabel(' Messages ')
+              }
+              enterSelectionMode('channel')
+            })
+            .catch(() => {})
+        })
       })
-    }).catch(() => {})
+      .catch(() => {})
   })
 
   inputBox.on('keypress', (_ch: string, key: blessed.Widgets.Events.IKeyEventArg) => {
@@ -615,26 +704,29 @@ export async function createApp(): Promise<void> {
         const p = activePlatform()
         inputBox.clearValue()
         screen.render()
-        p?.adapter.sendMessage(activeChannelId, text).then(() => {
-          if (!p?.listening) {
+        p?.adapter
+          .sendMessage(activeChannelId, text)
+          .then(() => {
+            if (!p?.listening) {
+              appendMessage({
+                id: Date.now().toString(),
+                channelId: activeChannelId!,
+                author: 'you',
+                content: text,
+                timestamp: (Date.now() / 1000).toString(),
+              })
+            }
+          })
+          .catch((err: unknown) => {
+            const detail = err instanceof Error ? err.message : String(err)
             appendMessage({
-              id: Date.now().toString(),
+              id: 'err',
               channelId: activeChannelId!,
-              author: 'you',
-              content: text,
+              author: 'system',
+              content: `{red-fg}Send failed: ${detail}{/red-fg}`,
               timestamp: (Date.now() / 1000).toString(),
             })
-          }
-        }).catch((err: unknown) => {
-          const detail = err instanceof Error ? err.message : String(err)
-          appendMessage({
-            id: 'err',
-            channelId: activeChannelId!,
-            author: 'system',
-            content: `{red-fg}Send failed: ${detail}{/red-fg}`,
-            timestamp: (Date.now() / 1000).toString(),
           })
-        })
       }
       return
     }
@@ -662,9 +754,7 @@ export async function createApp(): Promise<void> {
     return true
   }
   process.stderr.write = () => true
-  const results = await Promise.allSettled(
-    platformStates.map((p) => p.adapter.login()),
-  )
+  const results = await Promise.allSettled(platformStates.map((p) => p.adapter.login()))
   process.stdout.write = origStdoutWrite
   process.stderr.write = origStderrWrite
   screen.alloc()

@@ -5,11 +5,7 @@ import { formatOutput } from '@/shared/utils/output'
 
 import { WebexClient } from '../client'
 
-export async function listAction(options: {
-  type?: string
-  limit?: number
-  pretty?: boolean
-}): Promise<void> {
+export async function listAction(options: { type?: string; limit?: number; pretty?: boolean }): Promise<void> {
   try {
     const client = await new WebexClient().login()
     const spaces = await client.listSpaces({ type: options.type, max: options.limit })
@@ -26,10 +22,7 @@ export async function listAction(options: {
   }
 }
 
-export async function infoAction(
-  spaceId: string,
-  options: { pretty?: boolean },
-): Promise<void> {
+export async function infoAction(spaceId: string, options: { pretty?: boolean }): Promise<void> {
   try {
     const client = await new WebexClient().login()
     const space = await client.getSpace(spaceId)

@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, mock, spyOn, test } from 'bun:test'
+
 import { WebexError } from '../types'
 
 const mockHandleError = mock((err: Error) => {
@@ -10,12 +11,36 @@ mock.module('@/shared/utils/error-handler', () => ({
 }))
 
 const mockSpaces = [
-  { id: 'space-1', title: 'General', type: 'group', isLocked: false, lastActivity: '2024-01-15T00:00:00.000Z', created: '2024-01-01T00:00:00.000Z', creatorId: 'person-1' },
-  { id: 'space-2', title: 'Random', type: 'group', isLocked: false, lastActivity: '2024-01-14T00:00:00.000Z', created: '2024-01-01T00:00:00.000Z', creatorId: 'person-1' },
+  {
+    id: 'space-1',
+    title: 'General',
+    type: 'group',
+    isLocked: false,
+    lastActivity: '2024-01-15T00:00:00.000Z',
+    created: '2024-01-01T00:00:00.000Z',
+    creatorId: 'person-1',
+  },
+  {
+    id: 'space-2',
+    title: 'Random',
+    type: 'group',
+    isLocked: false,
+    lastActivity: '2024-01-14T00:00:00.000Z',
+    created: '2024-01-01T00:00:00.000Z',
+    creatorId: 'person-1',
+  },
 ]
 
 const mockMyMemberships = [
-  { id: 'mem-1', roomId: 'space-1', personId: 'person-1', personEmail: 'alice@example.com', personDisplayName: 'Alice', isModerator: true, created: '2024-01-01T00:00:00.000Z' },
+  {
+    id: 'mem-1',
+    roomId: 'space-1',
+    personId: 'person-1',
+    personEmail: 'alice@example.com',
+    personDisplayName: 'Alice',
+    isModerator: true,
+    created: '2024-01-01T00:00:00.000Z',
+  },
 ]
 
 const mockListSpaces = mock(() => Promise.resolve(mockSpaces as any))

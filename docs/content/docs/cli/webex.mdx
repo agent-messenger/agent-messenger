@@ -65,12 +65,12 @@ This command:
 
 ### Token Types
 
-| Type | Lifetime | Best For |
-| --- | --- | --- |
-| Browser Extraction (recommended) | Session-based (re-extract when expired) | Interactive use, sending as yourself |
-| OAuth Device Grant | 14-day access, 90-day refresh (auto-refresh) | Fallback when no browser session |
-| Bot Token | Never expires | CI/CD, long-running automation |
-| Personal Access Token (PAT) | 12 hours | Quick testing |
+| Type                             | Lifetime                                     | Best For                             |
+| -------------------------------- | -------------------------------------------- | ------------------------------------ |
+| Browser Extraction (recommended) | Session-based (re-extract when expired)      | Interactive use, sending as yourself |
+| OAuth Device Grant               | 14-day access, 90-day refresh (auto-refresh) | Fallback when no browser session     |
+| Bot Token                        | Never expires                                | CI/CD, long-running automation       |
+| Personal Access Token (PAT)      | 12 hours                                     | Quick testing                        |
 
 ### Authentication Commands
 
@@ -101,9 +101,9 @@ agent-webex auth logout
 
 Override the built-in Integration credentials with your own:
 
-| Variable | Description |
-| --- | --- |
-| `AGENT_WEBEX_CLIENT_ID` | Webex Integration client ID |
+| Variable                    | Description                     |
+| --------------------------- | ------------------------------- |
+| `AGENT_WEBEX_CLIENT_ID`     | Webex Integration client ID     |
 | `AGENT_WEBEX_CLIENT_SECRET` | Webex Integration client secret |
 
 Both must be set together. When set, `auth login` (without `--token`) uses these instead of the built-in credentials.
@@ -194,16 +194,16 @@ All commands support these options:
 
 ## Key Differences: Webex vs Slack vs Discord vs Teams
 
-| Concept | Slack | Discord | Teams | Webex |
-| --- | --- | --- | --- | --- |
-| Server/Workspace | Workspace | Guild | Team | Organization |
-| Channel | Channel | Channel | Channel | Space |
-| Channel ID format | Alphanumeric (C01234567) | Numeric snowflake | UUID | Base64-encoded opaque ID |
-| Message ID format | Timestamp (1234567890.123456) | Numeric snowflake | UUID | Base64-encoded opaque ID |
-| Token lifetime | Long-lived | Long-lived | 60-90 minutes | 14 days (auto-refresh) |
-| API | Slack Web API | Discord API | Teams Messaging API | Webex REST API |
-| Auth method | Desktop app extraction | Desktop app extraction | Desktop app extraction | OAuth Device Grant |
-| Rate limits | Moderate | Moderate | Strict | ~600 req/min |
+| Concept           | Slack                         | Discord                | Teams                  | Webex                    |
+| ----------------- | ----------------------------- | ---------------------- | ---------------------- | ------------------------ |
+| Server/Workspace  | Workspace                     | Guild                  | Team                   | Organization             |
+| Channel           | Channel                       | Channel                | Channel                | Space                    |
+| Channel ID format | Alphanumeric (C01234567)      | Numeric snowflake      | UUID                   | Base64-encoded opaque ID |
+| Message ID format | Timestamp (1234567890.123456) | Numeric snowflake      | UUID                   | Base64-encoded opaque ID |
+| Token lifetime    | Long-lived                    | Long-lived             | 60-90 minutes          | 14 days (auto-refresh)   |
+| API               | Slack Web API                 | Discord API            | Teams Messaging API    | Webex REST API           |
+| Auth method       | Desktop app extraction        | Desktop app extraction | Desktop app extraction | OAuth Device Grant       |
+| Rate limits       | Moderate                      | Moderate               | Strict                 | ~600 req/min             |
 
 ## Troubleshooting
 

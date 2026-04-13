@@ -141,7 +141,11 @@ async function buildGroupsSnapshot(client: Awaited<ReturnType<typeof getClient>>
   )
 }
 
-async function buildUserChatsSnapshot(client: Awaited<ReturnType<typeof getClient>>, workspaceId: string, limit: number) {
+async function buildUserChatsSnapshot(
+  client: Awaited<ReturnType<typeof getClient>>,
+  workspaceId: string,
+  limit: number,
+) {
   const [openedChats, snoozedChats, closedChats] = await Promise.all([
     client.listUserChats(workspaceId, { state: 'opened', limit: 100 }),
     client.listUserChats(workspaceId, { state: 'snoozed', limit: 100 }),

@@ -41,7 +41,9 @@ const mockListUsers = mock((_guildId: string) =>
 
 mock.module('../client', () => ({
   DiscordBotClient: class MockDiscordBotClient {
-    async login(_credentials?: any) { return this }
+    async login(_credentials?: any) {
+      return this
+    }
     listChannels = mockListChannels
     getMessages = mockGetMessages
     listUsers = mockListUsers

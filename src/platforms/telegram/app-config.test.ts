@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, test } from 'bun:test'
+
 import { getTelegramAppCredentials } from './app-config'
 
 const ENV_KEYS = [

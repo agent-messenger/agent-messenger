@@ -6,11 +6,7 @@ import { formatOutput } from '@/shared/utils/output'
 import { SlackClient } from '../client'
 import { CredentialManager } from '../credential-manager'
 
-async function addAction(
-  text: string,
-  time: string,
-  options: { user?: string; pretty?: boolean },
-): Promise<void> {
+async function addAction(text: string, time: string, options: { user?: string; pretty?: boolean }): Promise<void> {
   try {
     const credManager = new CredentialManager()
     const ws = await credManager.getWorkspace()
@@ -22,7 +18,12 @@ async function addAction(
 
     const timeValue = Number(time)
     if (!Number.isInteger(timeValue) || timeValue <= 0) {
-      console.log(formatOutput({ error: 'Invalid time value. Use a Unix timestamp in seconds (e.g. 1700000000).' }, options.pretty))
+      console.log(
+        formatOutput(
+          { error: 'Invalid time value. Use a Unix timestamp in seconds (e.g. 1700000000).' },
+          options.pretty,
+        ),
+      )
       process.exit(1)
     }
 

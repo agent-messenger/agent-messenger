@@ -478,17 +478,23 @@ describe('KakaoTalkClient', () => {
 
     test('returns profile data on success', async () => {
       mockFetch
-        .mockResolvedValueOnce(makeJsonResponse({
-          profile: {
-            nickName: 'Test User',
-            profileImageUrl: 'https://example.com/profile.jpg',
-            originalProfileImageUrl: 'https://example.com/original.jpg',
-            statusMessage: 'Hello world',
-          },
-        }))
+        .mockResolvedValueOnce(
+          makeJsonResponse({
+            profile: {
+              nickName: 'Test User',
+              profileImageUrl: 'https://example.com/profile.jpg',
+              originalProfileImageUrl: 'https://example.com/original.jpg',
+              statusMessage: 'Hello world',
+            },
+          }),
+        )
         .mockResolvedValueOnce(makeJsonResponse({ accountDisplayId: 'testuser123' }))
 
-      const client = await new KakaoTalkClient().login({ oauthToken: 'mytoken', userId: 'user42', deviceUuid: 'device1' })
+      const client = await new KakaoTalkClient().login({
+        oauthToken: 'mytoken',
+        userId: 'user42',
+        deviceUuid: 'device1',
+      })
       const profile = await client.getProfile()
 
       expect(profile.user_id).toBe('user42')
@@ -517,7 +523,11 @@ describe('KakaoTalkClient', () => {
         .mockResolvedValueOnce(makeJsonResponse({}, 401))
         .mockResolvedValueOnce(makeJsonResponse({ accountDisplayId: null }))
 
-      const client = await new KakaoTalkClient().login({ oauthToken: 'mytoken', userId: 'user42', deviceUuid: 'device1' })
+      const client = await new KakaoTalkClient().login({
+        oauthToken: 'mytoken',
+        userId: 'user42',
+        deviceUuid: 'device1',
+      })
       try {
         await client.getProfile()
         expect.unreachable('should have thrown')
@@ -531,17 +541,23 @@ describe('KakaoTalkClient', () => {
 
     test('returns null account_display_id when more_settings request fails', async () => {
       mockFetch
-        .mockResolvedValueOnce(makeJsonResponse({
-          profile: {
-            nickName: 'Test User',
-            profileImageUrl: null,
-            originalProfileImageUrl: null,
-            statusMessage: null,
-          },
-        }))
+        .mockResolvedValueOnce(
+          makeJsonResponse({
+            profile: {
+              nickName: 'Test User',
+              profileImageUrl: null,
+              originalProfileImageUrl: null,
+              statusMessage: null,
+            },
+          }),
+        )
         .mockResolvedValueOnce(makeJsonResponse({}, 500))
 
-      const client = await new KakaoTalkClient().login({ oauthToken: 'mytoken', userId: 'user42', deviceUuid: 'device1' })
+      const client = await new KakaoTalkClient().login({
+        oauthToken: 'mytoken',
+        userId: 'user42',
+        deviceUuid: 'device1',
+      })
       const profile = await client.getProfile()
 
       expect(profile.user_id).toBe('user42')
@@ -582,9 +598,7 @@ describe('KakaoTalkClient', () => {
 
     test('concurrent calls share a single login', async () => {
       // Make login take some time
-      mockLogin.mockImplementation(
-        () => new Promise((resolve) => setTimeout(() => resolve(DEFAULT_LOGIN_RESULT), 50)),
-      )
+      mockLogin.mockImplementation(() => new Promise((resolve) => setTimeout(() => resolve(DEFAULT_LOGIN_RESULT), 50)))
       mockGetChatLogs.mockResolvedValue({
         body: { status: 0, chatLogs: [], eof: true },
       })
@@ -598,9 +612,7 @@ describe('KakaoTalkClient', () => {
     })
 
     test('retries login after failure', async () => {
-      mockLogin
-        .mockRejectedValueOnce(new Error('Connection refused'))
-        .mockResolvedValueOnce(DEFAULT_LOGIN_RESULT)
+      mockLogin.mockRejectedValueOnce(new Error('Connection refused')).mockResolvedValueOnce(DEFAULT_LOGIN_RESULT)
 
       const client = await new KakaoTalkClient().login({ oauthToken: 'token', userId: 'user1', deviceUuid: 'device1' })
 

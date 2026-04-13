@@ -64,7 +64,12 @@ export class KakaoTalkAdapter implements PlatformAdapter {
     if (!creds) throw new Error(`Account ${accountId} not found`)
 
     const client = new KakaoTalkClient()
-    await client.login({ oauthToken: creds.oauth_token, userId: creds.user_id, deviceUuid: creds.device_uuid, deviceType: creds.device_type })
+    await client.login({
+      oauthToken: creds.oauth_token,
+      userId: creds.user_id,
+      deviceUuid: creds.device_uuid,
+      deviceType: creds.device_type,
+    })
     this.client = client
     this.currentAccount = { id: creds.account_id, name: creds.account_id }
   }

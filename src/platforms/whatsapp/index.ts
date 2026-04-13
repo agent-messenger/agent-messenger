@@ -12,5 +12,3 @@ export {
   type WhatsAppConfig,
   type WhatsAppMessageSummary,
 } from './types'
-
-

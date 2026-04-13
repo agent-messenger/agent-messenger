@@ -1,6 +1,8 @@
 import { Command } from 'commander'
+
 import { handleError } from '@/shared/utils/error-handler'
 import { formatOutput } from '@/shared/utils/output'
+
 import { WebexClient } from '../client'
 
 export async function whoamiAction(options: { pretty?: boolean }): Promise<void> {

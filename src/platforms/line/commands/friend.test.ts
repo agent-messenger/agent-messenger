@@ -31,7 +31,8 @@ beforeEach(() => {
   ])
 
   closeSpy = spyOn(LineClient.prototype, 'close').mockImplementation(() => {})
-  consoleLogSpy = mock((..._args: unknown[]) => {}); console.log = consoleLogSpy
+  consoleLogSpy = mock((..._args: unknown[]) => {})
+  console.log = consoleLogSpy
 })
 
 afterEach(() => {

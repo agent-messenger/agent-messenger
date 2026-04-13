@@ -14,5 +14,3 @@ export {
   WhatsAppBotCredentialsSchema,
   WhatsAppBotError,
 } from './types'
-
-

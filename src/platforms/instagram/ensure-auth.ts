@@ -68,8 +68,11 @@ export async function ensureInstagramAuth(): Promise<void> {
     }
   } catch {}
 
-  console.log(formatOutput({
-    error: 'Not authenticated. Run "agent-instagram auth extract" to extract from browser, or "agent-instagram auth login --username <username>" to log in.',
-  }))
+  console.log(
+    formatOutput({
+      error:
+        'Not authenticated. Run "agent-instagram auth extract" to extract from browser, or "agent-instagram auth login --username <username>" to log in.',
+    }),
+  )
   process.exit(1)
 }

@@ -65,8 +65,7 @@ export const KAKAO_NEXT_ACTIONS: Record<string, { next_action: string; message: 
   },
   choose_device: {
     next_action: 'choose_device',
-    message:
-      'Tablet slot occupied. Provide --device-type pc or --device-type tablet with --force to replace.',
+    message: 'Tablet slot occupied. Provide --device-type pc or --device-type tablet with --force to replace.',
   },
 }
 
@@ -105,11 +104,13 @@ export const KakaoChatSchema = z.object({
   display_name: z.string().nullable(),
   active_members: z.number(),
   unread_count: z.number(),
-  last_message: z.object({
-    author_id: z.number(),
-    message: z.string(),
-    sent_at: z.number(),
-  }).nullable(),
+  last_message: z
+    .object({
+      author_id: z.number(),
+      message: z.string(),
+      sent_at: z.number(),
+    })
+    .nullable(),
 })
 
 export const KakaoMessageSchema = z.object({

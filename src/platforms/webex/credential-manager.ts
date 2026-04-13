@@ -95,7 +95,10 @@ export class WebexCredentialManager {
     }
   }
 
-  async requestDeviceCode(clientId: string, scopes?: string): Promise<{
+  async requestDeviceCode(
+    clientId: string,
+    scopes?: string,
+  ): Promise<{
     deviceCode: string
     userCode: string
     verificationUri: string
@@ -136,7 +139,13 @@ export class WebexCredentialManager {
     }
   }
 
-  async pollDeviceToken(deviceCode: string, interval: number, expiresIn: number, clientId: string, clientSecret?: string): Promise<WebexConfig> {
+  async pollDeviceToken(
+    deviceCode: string,
+    interval: number,
+    expiresIn: number,
+    clientId: string,
+    clientSecret?: string,
+  ): Promise<WebexConfig> {
     const basicAuth = btoa(`${clientId}:${clientSecret ?? ''}`)
     const deadline = Date.now() + expiresIn * 1000
 

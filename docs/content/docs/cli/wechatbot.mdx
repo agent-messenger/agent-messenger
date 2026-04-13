@@ -25,14 +25,14 @@ agent-wechatbot message send oXXXXXXXXXXXXXXX "Hello from the CLI!"
 
 WeChat Official Account API works differently from typical messaging APIs:
 
-| Concept                  | Description                                                                      |
-| ------------------------ | -------------------------------------------------------------------------------- |
-| **Send-only**            | Cannot list or read received messages. Inbound messages require webhooks.         |
-| **Customer service messages** | Free-form text, image, and news messages within 48h of user's last interaction. |
-| **Template messages**    | Pre-approved templates can be sent at any time. Created in the WeChat admin panel. |
-| **App ID + App Secret**  | Credentials from WeChat Official Account admin panel under Development settings.  |
-| **OpenID**               | Each follower has a unique OpenID scoped to your Official Account.                |
-| **IP Whitelist**         | Your server IP must be added to the account's whitelist or API calls fail (40164). |
+| Concept                       | Description                                                                        |
+| ----------------------------- | ---------------------------------------------------------------------------------- |
+| **Send-only**                 | Cannot list or read received messages. Inbound messages require webhooks.          |
+| **Customer service messages** | Free-form text, image, and news messages within 48h of user's last interaction.    |
+| **Template messages**         | Pre-approved templates can be sent at any time. Created in the WeChat admin panel. |
+| **App ID + App Secret**       | Credentials from WeChat Official Account admin panel under Development settings.   |
+| **OpenID**                    | Each follower has a unique OpenID scoped to your Official Account.                 |
+| **IP Whitelist**              | Your server IP must be added to the account's whitelist or API calls fail (40164). |
 
 ## Authentication
 
@@ -130,9 +130,9 @@ agent-wechatbot user get oABCD1234 --lang en
 
 ## Global Options
 
-| Option           | Description                            |
-| ---------------- | -------------------------------------- |
-| `--pretty`       | Human-readable output instead of JSON  |
+| Option           | Description                             |
+| ---------------- | --------------------------------------- |
+| `--pretty`       | Human-readable output instead of JSON   |
 | `--account <id>` | Use a specific account for this command |
 
 ## Storage
@@ -173,6 +173,7 @@ If you get error `40164`, your server's IP is not in the Official Account's whit
 ### Token errors (40001, 42001)
 
 These indicate an expired or invalid access token. The CLI handles automatic token refresh, but if you see persistent errors:
+
 - Verify your App Secret hasn't been reset in the admin panel
 - Re-run `agent-wechatbot auth set <app-id> <app-secret>` with the current credentials
 

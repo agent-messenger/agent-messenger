@@ -10,19 +10,21 @@ describe('Pin Commands', () => {
     mockClient = {
       pinMessage: mock(async () => {}),
       unpinMessage: mock(async () => {}),
-      listPins: mock(async (): Promise<SlackPin[]> => [
-        {
-          channel: 'C001',
-          message: {
-            ts: '1234567890.123456',
-            text: 'Pinned message',
-            user: 'U001',
-            type: 'message',
+      listPins: mock(
+        async (): Promise<SlackPin[]> => [
+          {
+            channel: 'C001',
+            message: {
+              ts: '1234567890.123456',
+              text: 'Pinned message',
+              user: 'U001',
+              type: 'message',
+            },
+            date_created: 1234567890,
+            created_by: 'U001',
           },
-          date_created: 1234567890,
-          created_by: 'U001',
-        },
-      ]),
+        ],
+      ),
     }
   })
 

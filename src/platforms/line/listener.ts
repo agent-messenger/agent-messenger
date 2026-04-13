@@ -72,7 +72,7 @@ export class LineListener {
         try {
           const toType = msg.raw.toType
           const isGroupOrRoom = toType === 'GROUP' || toType === 'ROOM' || toType === 0 || toType === 1
-          const chatId = isGroupOrRoom ? msg.to.id : (msg.isMyMessage ? msg.to.id : msg.from.id)
+          const chatId = isGroupOrRoom ? msg.to.id : msg.isMyMessage ? msg.to.id : msg.from.id
 
           const event: LinePushMessageEvent = {
             type: 'message',

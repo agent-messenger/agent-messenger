@@ -1,8 +1,8 @@
 import { exec } from 'node:child_process'
 
+import { getWebexAppCredentials } from '@/platforms/webex/app-config'
 import { WebexClient } from '@/platforms/webex/client'
 import { WebexCredentialManager } from '@/platforms/webex/credential-manager'
-import { getWebexAppCredentials } from '@/platforms/webex/app-config'
 
 import type { AuthHint, AuthIO, PlatformAdapter, UnifiedChannel, UnifiedMessage } from './types'
 

@@ -1,8 +1,8 @@
-import type { WebexMembership, WebexMessage, WebexPerson, WebexSpace } from './types'
-import { WebexError } from './types'
 import { WebexCredentialManager } from './credential-manager'
 import { WebexEncryptionService } from './encryption'
 import { markdownToHtml, stripMarkdown } from './markdown-to-html'
+import type { WebexMembership, WebexMessage, WebexPerson, WebexSpace } from './types'
+import { WebexError } from './types'
 
 const BASE_URL = 'https://webexapis.com/v1'
 const MAX_RETRIES = 3
@@ -36,10 +36,7 @@ export class WebexClient {
     const config = await credManager.loadConfig()
     const token = await credManager.getToken(config?.clientId, config?.clientSecret)
     if (!token) {
-      throw new WebexError(
-        'No Webex credentials found. Run "auth login" to authenticate.',
-        'no_credentials',
-      )
+      throw new WebexError('No Webex credentials found. Run "auth login" to authenticate.', 'no_credentials')
     }
     this.deviceUrl = config?.deviceUrl ?? null
     this.tokenType = config?.tokenType ?? null
@@ -63,10 +60,7 @@ export class WebexClient {
   }
 
   private getBucketKey(method: string, path: string): string {
-    const normalized = path.replace(
-      /\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}(?=\/|$)/gi,
-      '/{id}',
-    )
+    const normalized = path.replace(/\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}(?=\/|$)/gi, '/{id}')
     return `${method}:${normalized}`
   }
 
@@ -152,10 +146,7 @@ export class WebexClient {
           errors?: Array<{ description: string }>
           trackingId?: string
         } | null
-        const message =
-          errorBody?.message ??
-          errorBody?.errors?.[0]?.description ??
-          `HTTP ${response.status}`
+        const message = errorBody?.message ?? errorBody?.errors?.[0]?.description ?? `HTTP ${response.status}`
         throw new WebexError(message, `http_${response.status}`)
       }
 
@@ -186,11 +177,7 @@ export class WebexClient {
     return this.request<WebexSpace>('GET', `/rooms/${spaceId}`)
   }
 
-  async sendMessage(
-    roomId: string,
-    text: string,
-    options?: { markdown?: boolean },
-  ): Promise<WebexMessage> {
+  async sendMessage(roomId: string, text: string, options?: { markdown?: boolean }): Promise<WebexMessage> {
     if (this.useInternalAPI) {
       return this.sendMessageInternal(roomId, text, options)
     }
@@ -227,10 +214,7 @@ export class WebexClient {
 
     if (!response.ok) {
       const errorBody = (await response.json().catch(() => null)) as { message?: string } | null
-      throw new WebexError(
-        errorBody?.message ?? `HTTP ${response.status}`,
-        `http_${response.status}`,
-      )
+      throw new WebexError(errorBody?.message ?? `HTTP ${response.status}`, `http_${response.status}`)
     }
 
     if (response.status === 204) return undefined as T
@@ -319,11 +303,7 @@ export class WebexClient {
     return this.activityToMessage(result, roomId)
   }
 
-  async sendDirectMessage(
-    personEmail: string,
-    text: string,
-    options?: { markdown?: boolean },
-  ): Promise<WebexMessage> {
+  async sendDirectMessage(personEmail: string, text: string, options?: { markdown?: boolean }): Promise<WebexMessage> {
     if (this.useInternalAPI) {
       const roomId = await this.findDirectRoomByEmail(personEmail)
       if (!roomId) {
@@ -340,10 +320,7 @@ export class WebexClient {
   private async findDirectRoomByEmail(email: string): Promise<string | null> {
     const rooms = await this.request<{ items: WebexSpace[] }>('GET', `/rooms?type=direct&max=100`)
     for (const room of rooms.items) {
-      const members = await this.request<{ items: WebexMembership[] }>(
-        'GET',
-        `/memberships?roomId=${room.id}&max=10`,
-      )
+      const members = await this.request<{ items: WebexMembership[] }>('GET', `/memberships?roomId=${room.id}&max=10`)
       if (members.items.some((m) => m.personEmail === email)) {
         return room.id
       }
@@ -372,9 +349,7 @@ export class WebexClient {
     if (this.useInternalAPI) {
       const activity = await this.internalRequest<InternalActivity>(`/activities/${messageId}`)
       const convId = activity.target?.id ?? ''
-      const roomId = convId
-        ? Buffer.from(`ciscospark://urn:TEAM:unknown/ROOM/${convId}`).toString('base64')
-        : ''
+      const roomId = convId ? Buffer.from(`ciscospark://urn:TEAM:unknown/ROOM/${convId}`).toString('base64') : ''
       return this.activityToMessage(activity, roomId)
     }
     return this.request<WebexMessage>('GET', `/messages/${messageId}`)
@@ -430,11 +405,7 @@ export class WebexClient {
     return this.request<WebexMessage>('PUT', `/messages/${messageId}`, body)
   }
 
-  async listPeople(options?: {
-    email?: string
-    displayName?: string
-    max?: number
-  }): Promise<WebexPerson[]> {
+  async listPeople(options?: { email?: string; displayName?: string; max?: number }): Promise<WebexPerson[]> {
     const params = new URLSearchParams()
     if (options?.email) params.set('email', options.email)
     if (options?.displayName) params.set('displayName', options.displayName)
@@ -448,24 +419,15 @@ export class WebexClient {
   async listMyMemberships(options?: { max?: number }): Promise<WebexMembership[]> {
     const params = new URLSearchParams()
     params.set('max', String(options?.max ?? 100))
-    const data = await this.request<{ items: WebexMembership[] }>(
-      'GET',
-      `/memberships?${params}`,
-    )
+    const data = await this.request<{ items: WebexMembership[] }>('GET', `/memberships?${params}`)
     return data.items
   }
 
-  async listMemberships(
-    roomId: string,
-    options?: { max?: number },
-  ): Promise<WebexMembership[]> {
+  async listMemberships(roomId: string, options?: { max?: number }): Promise<WebexMembership[]> {
     const params = new URLSearchParams()
     params.set('roomId', roomId)
     if (options?.max) params.set('max', String(options.max))
-    const data = await this.request<{ items: WebexMembership[] }>(
-      'GET',
-      `/memberships?${params}`,
-    )
+    const data = await this.request<{ items: WebexMembership[] }>('GET', `/memberships?${params}`)
     return data.items
   }
 }

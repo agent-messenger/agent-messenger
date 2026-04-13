@@ -174,7 +174,12 @@ describe('message commands', () => {
 
       expect(result.messaging_product).toBe('whatsapp')
       expect(result.messages?.[0].id).toBe('wamid.doc123')
-      expect(mockSendDocumentMessage).toHaveBeenCalledWith('+1234567890', 'https://example.com/doc.pdf', undefined, undefined)
+      expect(mockSendDocumentMessage).toHaveBeenCalledWith(
+        '+1234567890',
+        'https://example.com/doc.pdf',
+        undefined,
+        undefined,
+      )
     })
 
     test('passes filename and caption when provided', async () => {
@@ -183,7 +188,12 @@ describe('message commands', () => {
         caption: 'Monthly report',
       })
 
-      expect(mockSendDocumentMessage).toHaveBeenCalledWith('+1234567890', 'https://example.com/doc.pdf', 'report.pdf', 'Monthly report')
+      expect(mockSendDocumentMessage).toHaveBeenCalledWith(
+        '+1234567890',
+        'https://example.com/doc.pdf',
+        'report.pdf',
+        'Monthly report',
+      )
       expect(result.error).toBeUndefined()
     })
 

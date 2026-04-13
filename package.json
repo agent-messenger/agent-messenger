@@ -7,23 +7,66 @@
     "url": "https://github.com/agent-messenger/agent-messenger"
   },
   "bin": {
-    "agent-messenger": "./src/cli.ts",
-    "amsg": "./src/cli.ts",
-    "agent-slack": "./src/platforms/slack/cli.ts",
-    "agent-slackbot": "./src/platforms/slackbot/cli.ts",
+    "agent-channeltalk": "./src/platforms/channeltalk/cli.ts",
+    "agent-channeltalkbot": "./src/platforms/channeltalkbot/cli.ts",
     "agent-discord": "./src/platforms/discord/cli.ts",
     "agent-discordbot": "./src/platforms/discordbot/cli.ts",
-    "agent-teams": "./src/platforms/teams/cli.ts",
-    "agent-webex": "./src/platforms/webex/cli.ts",
-    "agent-telegram": "./src/platforms/telegram/cli.ts",
-    "agent-whatsapp": "./src/platforms/whatsapp/cli.ts",
-    "agent-whatsappbot": "./src/platforms/whatsappbot/cli.ts",
-    "agent-line": "./src/platforms/line/cli.ts",
-    "agent-wechatbot": "./src/platforms/wechatbot/cli.ts",
     "agent-instagram": "./src/platforms/instagram/cli.ts",
     "agent-kakaotalk": "./src/platforms/kakaotalk/cli.ts",
-    "agent-channeltalk": "./src/platforms/channeltalk/cli.ts",
-    "agent-channeltalkbot": "./src/platforms/channeltalkbot/cli.ts"
+    "agent-line": "./src/platforms/line/cli.ts",
+    "agent-messenger": "./src/cli.ts",
+    "agent-slack": "./src/platforms/slack/cli.ts",
+    "agent-slackbot": "./src/platforms/slackbot/cli.ts",
+    "agent-teams": "./src/platforms/teams/cli.ts",
+    "agent-telegram": "./src/platforms/telegram/cli.ts",
+    "agent-webex": "./src/platforms/webex/cli.ts",
+    "agent-wechatbot": "./src/platforms/wechatbot/cli.ts",
+    "agent-whatsapp": "./src/platforms/whatsapp/cli.ts",
+    "agent-whatsappbot": "./src/platforms/whatsappbot/cli.ts",
+    "amsg": "./src/cli.ts"
+  },
+  "type": "module",
+  "main": "dist/cli.js",
+  "module": "dist/cli.js",
+  "typesVersions": {
+    "*": {
+      "slack": [
+        "./src/platforms/slack/index.ts"
+      ],
+      "discord": [
+        "./src/platforms/discord/index.ts"
+      ],
+      "teams": [
+        "./src/platforms/teams/index.ts"
+      ],
+      "webex": [
+        "./src/platforms/webex/index.ts"
+      ],
+      "whatsapp": [
+        "./src/platforms/whatsapp/index.ts"
+      ],
+      "whatsappbot": [
+        "./src/platforms/whatsappbot/index.ts"
+      ],
+      "line": [
+        "./src/platforms/line/index.ts"
+      ],
+      "wechatbot": [
+        "./src/platforms/wechatbot/index.ts"
+      ],
+      "instagram": [
+        "./src/platforms/instagram/index.ts"
+      ],
+      "kakaotalk": [
+        "./src/platforms/kakaotalk/index.ts"
+      ],
+      "channeltalk": [
+        "./src/platforms/channeltalk/index.ts"
+      ],
+      "channeltalkbot": [
+        "./src/platforms/channeltalkbot/index.ts"
+      ]
+    }
   },
   "exports": {
     "./package.json": "./package.json",
@@ -80,49 +123,6 @@
       "default": "./src/platforms/channeltalkbot/index.ts"
     }
   },
-  "type": "module",
-  "main": "dist/cli.js",
-  "module": "dist/cli.js",
-  "typesVersions": {
-    "*": {
-      "slack": [
-        "./src/platforms/slack/index.ts"
-      ],
-      "discord": [
-        "./src/platforms/discord/index.ts"
-      ],
-      "teams": [
-        "./src/platforms/teams/index.ts"
-      ],
-      "webex": [
-        "./src/platforms/webex/index.ts"
-      ],
-      "whatsapp": [
-        "./src/platforms/whatsapp/index.ts"
-      ],
-      "whatsappbot": [
-        "./src/platforms/whatsappbot/index.ts"
-      ],
-      "line": [
-        "./src/platforms/line/index.ts"
-      ],
-      "wechatbot": [
-        "./src/platforms/wechatbot/index.ts"
-      ],
-      "instagram": [
-        "./src/platforms/instagram/index.ts"
-      ],
-      "kakaotalk": [
-        "./src/platforms/kakaotalk/index.ts"
-      ],
-      "channeltalk": [
-        "./src/platforms/channeltalk/index.ts"
-      ],
-      "channeltalkbot": [
-        "./src/platforms/channeltalkbot/index.ts"
-      ]
-    }
-  },
   "scripts": {
     "build": "tsc && tsc-alias --resolve-full-paths",
     "postbuild": "bun scripts/postbuild.ts",
@@ -152,10 +152,6 @@
     "ws": "^8.19.0",
     "zod": "^4.3.6"
   },
-  "optionalDependencies": {
-    "koffi": "^2.15.2",
-    "prebuilt-tdlib": "0.1008062.2"
-  },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.8",
     "@types/blessed": "^0.1.27",
@@ -170,6 +166,10 @@
     "tsc-alias": "^1.8.16",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3"
+  },
+  "optionalDependencies": {
+    "koffi": "^2.15.2",
+    "prebuilt-tdlib": "0.1008062.2"
   },
   "trustedDependencies": [
     "@whiskeysockets/baileys",

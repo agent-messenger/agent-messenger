@@ -173,10 +173,7 @@ async function usersAction(channel: string, options: { includeBots?: boolean; pr
   }
 }
 
-async function createAction(
-  name: string,
-  options: { private?: boolean; pretty?: boolean },
-): Promise<void> {
+async function createAction(name: string, options: { private?: boolean; pretty?: boolean }): Promise<void> {
   try {
     const credManager = new CredentialManager()
     const workspace = await credManager.getWorkspace()

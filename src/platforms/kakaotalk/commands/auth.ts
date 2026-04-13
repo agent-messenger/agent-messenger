@@ -9,12 +9,7 @@ import { info, error, debug } from '@/shared/utils/stderr'
 import { loginFlow } from '../auth/kakao-login'
 import { CredentialManager } from '../credential-manager'
 import { KakaoTokenExtractor } from '../token-extractor'
-import {
-  KAKAO_NEXT_ACTIONS,
-  type KakaoAuthOptions,
-  type KakaoDeviceType,
-  type KakaoLoginResult,
-} from '../types'
+import { KAKAO_NEXT_ACTIONS, type KakaoAuthOptions, type KakaoDeviceType, type KakaoLoginResult } from '../types'
 
 function isInteractiveSession(): boolean {
   return Boolean(process.stdin.isTTY && process.stdout.isTTY)
@@ -28,7 +23,9 @@ function hasTTY(): boolean {
     const fd = openSync(ttyDevice, 'r')
     closeSync(fd)
     return true
-  } catch { return false }
+  } catch {
+    return false
+  }
 }
 
 async function promptPasswordGUI(email?: string): Promise<string | undefined> {
@@ -45,7 +42,9 @@ async function promptPasswordGUI(email?: string): Promise<string | undefined> {
       const scriptPath = join(tmpdir(), `kakao-pw-${Date.now()}.swift`)
       const infoText = email ? `Enter password for ${email}` : 'Enter your KakaoTalk password'
       const escapedEmail = (email ?? '').replace(/\\/g, '\\\\').replace(/"/g, '\\"')
-      writeFileSync(scriptPath, `
+      writeFileSync(
+        scriptPath,
+        `
 import AppKit
 let app = NSApplication.shared
 app.setActivationPolicy(.accessory)
@@ -88,14 +87,23 @@ if response == .alertFirstButtonReturn {
 } else {
   exit(1)
 }
-`)
+`,
+      )
       try {
-        const result = execSync(`swift ${scriptPath}`, { encoding: 'utf-8', timeout: 120_000, stdio: ['pipe', 'pipe', 'pipe'] })
+        const result = execSync(`swift ${scriptPath}`, {
+          encoding: 'utf-8',
+          timeout: 120_000,
+          stdio: ['pipe', 'pipe', 'pipe'],
+        })
         return result.trim() || undefined
       } finally {
-        try { unlinkSync(scriptPath) } catch {}
+        try {
+          unlinkSync(scriptPath)
+        } catch {}
       }
-    } catch { return undefined }
+    } catch {
+      return undefined
+    }
   }
 
   if (process.platform === 'win32') {
@@ -118,7 +126,9 @@ if response == .alertFirstButtonReturn {
       ].join(' ')
       const result = execSync(`powershell -Command "${ps}"`, { encoding: 'utf-8', timeout: 120_000 })
       return result.trim() || undefined
-    } catch { return undefined }
+    } catch {
+      return undefined
+    }
   }
 
   if (process.platform === 'linux') {
@@ -129,14 +139,18 @@ if response == .alertFirstButtonReturn {
         { encoding: 'utf-8', timeout: 120_000 },
       )
       return result.trim() || undefined
-    } catch { /* zenity not available or cancelled */ }
+    } catch {
+      /* zenity not available or cancelled */
+    }
     try {
       const result = execSync(
         `kdialog --password "agent-messenger · KakaoTalk\\n${escapedEmail}" --title "KakaoTalk Login" 2>/dev/null`,
         { encoding: 'utf-8', timeout: 120_000 },
       )
       return result.trim() || undefined
-    } catch { /* kdialog not available or cancelled */ }
+    } catch {
+      /* kdialog not available or cancelled */
+    }
   }
 
   return undefined
@@ -191,7 +205,9 @@ async function promptHiddenTTY(message: string): Promise<string | undefined> {
         stdio: ['inherit', 'pipe', 'inherit'],
       })
       return result.trim() || undefined
-    } catch { return undefined }
+    } catch {
+      return undefined
+    }
   }
 
   const { createReadStream } = await import('node:fs')
@@ -257,16 +273,26 @@ async function loginAction(options: KakaoAuthOptions): Promise<void> {
             password = await promptHidden(passwordPrompt)
           } else if (hasTTY()) {
             info(`  One-time setup: password is needed to register this device.`)
-            try { password = await promptHiddenTTY(passwordPrompt) } catch { /* /dev/tty open failed */ }
+            try {
+              password = await promptHiddenTTY(passwordPrompt)
+            } catch {
+              /* /dev/tty open failed */
+            }
           }
           if (!password) {
             password = await promptPasswordGUI(email)
           }
           if (!password) {
-            console.log(formatOutput({
-              next_action: 'run_interactive',
-              message: 'One-time device registration required. Run `agent-kakaotalk auth login` in a terminal so the user can enter their password securely.',
-            }, options.pretty))
+            console.log(
+              formatOutput(
+                {
+                  next_action: 'run_interactive',
+                  message:
+                    'One-time device registration required. Run `agent-kakaotalk auth login` in a terminal so the user can enter their password securely.',
+                },
+                options.pretty,
+              ),
+            )
             return
           }
         }
@@ -279,7 +305,10 @@ async function loginAction(options: KakaoAuthOptions): Promise<void> {
         return
       }
       email = await promptText('KakaoTalk email')
-      if (!email) { error('Email is required.'); process.exit(1) }
+      if (!email) {
+        error('Email is required.')
+        process.exit(1)
+      }
     }
 
     if (!password) {
@@ -288,7 +317,10 @@ async function loginAction(options: KakaoAuthOptions): Promise<void> {
         return
       }
       password = await promptHidden('Password')
-      if (!password) { error('Password is required.'); process.exit(1) }
+      if (!password) {
+        error('Password is required.')
+        process.exit(1)
+      }
     }
 
     const existing = await credManager.getAccount()
@@ -319,10 +351,15 @@ async function loginAction(options: KakaoAuthOptions): Promise<void> {
 
     if (result.next_action === 'choose_device') {
       if (!interactive) {
-        console.log(formatOutput({
-          ...KAKAO_NEXT_ACTIONS.choose_device,
-          warning: result.warning,
-        }, options.pretty))
+        console.log(
+          formatOutput(
+            {
+              ...KAKAO_NEXT_ACTIONS.choose_device,
+              warning: result.warning,
+            },
+            options.pretty,
+          ),
+        )
         return
       }
 
@@ -336,7 +373,10 @@ async function loginAction(options: KakaoAuthOptions): Promise<void> {
       console.log('')
 
       const choice = await promptText('Choice (1/2/3)')
-      if (choice !== '1' && choice !== '2') { console.log('Cancelled.'); return }
+      if (choice !== '1' && choice !== '2') {
+        console.log('Cancelled.')
+        return
+      }
 
       const chosenType: KakaoDeviceType = choice === '1' ? 'pc' : 'tablet'
       const forceResult = await loginFlow({
@@ -359,7 +399,15 @@ async function loginAction(options: KakaoAuthOptions): Promise<void> {
 }
 
 async function handleLoginResult(
-  result: KakaoLoginResult & { credentials?: { access_token: string; refresh_token: string; user_id: string; device_uuid: string; device_type: KakaoDeviceType } },
+  result: KakaoLoginResult & {
+    credentials?: {
+      access_token: string
+      refresh_token: string
+      user_id: string
+      device_uuid: string
+      device_type: KakaoDeviceType
+    }
+  },
   credManager: CredentialManager,
   options: KakaoAuthOptions,
 ): Promise<void> {
@@ -379,11 +427,16 @@ async function handleLoginResult(
     await credManager.setCurrentAccount(result.credentials.user_id || 'default')
     await credManager.clearPendingLogin()
 
-    console.log(formatOutput({
-      authenticated: true,
-      account_id: result.credentials.user_id,
-      device_type: result.credentials.device_type,
-    }, options.pretty))
+    console.log(
+      formatOutput(
+        {
+          authenticated: true,
+          account_id: result.credentials.user_id,
+          device_type: result.credentials.device_type,
+        },
+        options.pretty,
+      ),
+    )
   } else {
     console.log(formatOutput(result, options.pretty))
     if (result.error) process.exit(1)
@@ -444,15 +497,20 @@ async function statusAction(options: { account?: string; pretty?: boolean }): Pr
       process.exit(1)
     }
 
-    console.log(formatOutput({
-      account_id: account.account_id,
-      user_id: account.user_id,
-      device_type: account.device_type,
-      has_refresh_token: !!account.refresh_token,
-      has_device_uuid: !!account.device_uuid,
-      created_at: account.created_at,
-      updated_at: account.updated_at,
-    }, options.pretty))
+    console.log(
+      formatOutput(
+        {
+          account_id: account.account_id,
+          user_id: account.user_id,
+          device_type: account.device_type,
+          has_refresh_token: !!account.refresh_token,
+          has_device_uuid: !!account.device_uuid,
+          created_at: account.created_at,
+          updated_at: account.updated_at,
+        },
+        options.pretty,
+      ),
+    )
   } catch (error) {
     handleError(error as Error)
   }

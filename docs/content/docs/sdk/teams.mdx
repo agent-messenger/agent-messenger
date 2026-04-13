@@ -10,11 +10,7 @@ npm install agent-messenger
 ```
 
 ```typescript
-import {
-  TeamsClient,
-  TeamsCredentialManager,
-  TeamsError,
-} from 'agent-messenger/teams'
+import { TeamsClient, TeamsCredentialManager, TeamsError } from 'agent-messenger/teams'
 ```
 
 ## TeamsClient
@@ -306,9 +302,7 @@ for (const channel of channels.slice(0, 5)) {
   const messages = await client.getMessages(teamId, channel.id, 1)
   const latest = messages[0]
   if (latest) {
-    console.log(
-      `#${channel.name}: "${latest.content.slice(0, 60)}" — ${latest.author.displayName}`,
-    )
+    console.log(`#${channel.name}: "${latest.content.slice(0, 60)}" — ${latest.author.displayName}`)
   } else {
     console.log(`#${channel.name}: (no messages)`)
   }

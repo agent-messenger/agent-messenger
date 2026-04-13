@@ -2,12 +2,8 @@ import { existsSync } from 'node:fs'
 import { mkdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
-import {
-  createAccountId,
-  type WhatsAppAccount,
-  type WhatsAppAccountPaths,
-  type WhatsAppConfig,
-} from './types'
+
+import { createAccountId, type WhatsAppAccount, type WhatsAppAccountPaths, type WhatsAppConfig } from './types'
 
 export class WhatsAppCredentialManager {
   private configDir: string

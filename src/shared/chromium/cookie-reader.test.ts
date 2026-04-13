@@ -1,5 +1,5 @@
-import { afterEach, describe, expect, test } from 'bun:test'
 import { Database } from 'bun:sqlite'
+import { afterEach, describe, expect, test } from 'bun:test'
 import { existsSync, mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -78,11 +78,9 @@ describe('ChromiumCookieReader', () => {
       const reader = new ChromiumCookieReader()
 
       // when
-      const result = await reader.queryAll<{ name: string }>(
-        dbPath,
-        'SELECT name FROM cookies WHERE name = ?',
-        ['missing'],
-      )
+      const result = await reader.queryAll<{ name: string }>(dbPath, 'SELECT name FROM cookies WHERE name = ?', [
+        'missing',
+      ])
 
       // then
       expect(result).toEqual([])
@@ -181,11 +179,9 @@ describe('ChromiumCookieReader', () => {
       const reader = new ChromiumCookieReader()
 
       // when
-      const result = await reader.queryFirst<{ name: string }>(
-        dbPath,
-        'SELECT name FROM cookies WHERE name = ?',
-        ['missing'],
-      )
+      const result = await reader.queryFirst<{ name: string }>(dbPath, 'SELECT name FROM cookies WHERE name = ?', [
+        'missing',
+      ])
 
       // then
       expect(result).toBeNull()

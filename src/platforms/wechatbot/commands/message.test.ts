@@ -24,10 +24,7 @@ const { sendAction, sendNewsAction } = await import('@/platforms/wechatbot/comma
 const testDirs: string[] = []
 
 function makeCredManager(): WeChatBotCredentialManager {
-  const dir = join(
-    import.meta.dir,
-    `.test-message-config-${Date.now()}-${Math.random().toString(36).slice(2)}`,
-  )
+  const dir = join(import.meta.dir, `.test-message-config-${Date.now()}-${Math.random().toString(36).slice(2)}`)
   testDirs.push(dir)
   const manager = new WeChatBotCredentialManager(dir)
   return manager

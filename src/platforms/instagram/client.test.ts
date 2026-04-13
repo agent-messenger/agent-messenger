@@ -104,8 +104,7 @@ describe('InstagramClient', () => {
       const mockManager = {
         getAccount: () =>
           Promise.resolve({ account_id: 'testuser', username: 'testuser', created_at: '', updated_at: '' }),
-        ensureAccountPaths: () =>
-          Promise.resolve({ account_dir: testDir, session_path: sessionPath }),
+        ensureAccountPaths: () => Promise.resolve({ account_dir: testDir, session_path: sessionPath }),
       } as any
 
       const client = new InstagramClient(mockManager)
@@ -124,9 +123,7 @@ describe('InstagramClient', () => {
           headers: {},
         }),
       )
-      fetchResponses.push(
-        jsonResponse({ status: 'ok', logged_in_user: { pk: '99' } }),
-      )
+      fetchResponses.push(jsonResponse({ status: 'ok', logged_in_user: { pk: '99' } }))
 
       const client = new InstagramClient()
       const before = Math.floor(Date.now() / 1000)
@@ -155,9 +152,7 @@ describe('InstagramClient', () => {
           }),
         }),
       )
-      fetchResponses.push(
-        jsonResponse({ status: 'ok', logged_in_user: { pk: '99' } }),
-      )
+      fetchResponses.push(jsonResponse({ status: 'ok', logged_in_user: { pk: '99' } }))
 
       const client = new InstagramClient()
       const before = Math.floor(Date.now() / 1000)

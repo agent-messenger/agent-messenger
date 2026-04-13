@@ -10,11 +10,7 @@ npm install agent-messenger
 ```
 
 ```typescript
-import {
-  ChannelBotClient,
-  ChannelBotCredentialManager,
-  ChannelBotError,
-} from 'agent-messenger/channeltalkbot'
+import { ChannelBotClient, ChannelBotCredentialManager, ChannelBotError } from 'agent-messenger/channeltalkbot'
 ```
 
 ## ChannelBotClient
@@ -123,8 +119,8 @@ const file = await client.getGroupFileUrl(groupId, fileKey)
 // → { url: string }
 
 // Resolve a group by ID or @name (auto-detects format)
-const resolved = await client.resolveGroup('@engineering')  // by name
-const byId = await client.resolveGroup('abc123')            // by ID
+const resolved = await client.resolveGroup('@engineering') // by name
+const byId = await client.resolveGroup('abc123') // by ID
 // → ChannelBotGroup
 ```
 
@@ -296,7 +292,7 @@ for (const chat of chats) {
 
   if (lastMsg?.plainText?.includes('hours')) {
     const reply = ChannelBotClient.wrapTextInBlocks(
-      'Our support hours are Mon–Fri 9am–6pm KST. We\'ll get back to you shortly!'
+      "Our support hours are Mon–Fri 9am–6pm KST. We'll get back to you shortly!",
     )
     await client.sendUserChatMessage(chat.id, reply, 'Support Bot')
     await client.closeUserChat(chat.id, 'Support Bot')
@@ -317,9 +313,7 @@ const client = await new ChannelBotClient().login({ accessKey, accessSecret })
 const group = await client.resolveGroup('@engineering')
 
 // Send deployment notification
-const blocks = ChannelBotClient.wrapTextInBlocks(
-  'Deployment v2.1.0 complete — all services healthy'
-)
+const blocks = ChannelBotClient.wrapTextInBlocks('Deployment v2.1.0 complete — all services healthy')
 await client.sendGroupMessage(group.id, blocks, 'Deploy Bot')
 
 // Verify delivery
@@ -388,7 +382,7 @@ for (const chat of openChats.slice(0, 5)) {
 
   // Send acknowledgment
   const reply = ChannelBotClient.wrapTextInBlocks(
-    'Your request has been received. A team member will follow up shortly.'
+    'Your request has been received. A team member will follow up shortly.',
   )
   await client.sendUserChatMessage(chat.id, reply, 'Support Bot')
 }

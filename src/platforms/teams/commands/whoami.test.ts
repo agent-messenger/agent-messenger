@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, expect, spyOn, test } from 'bun:test'
 
 import { TeamsClient } from '@/platforms/teams/client'
-import { TeamsCredentialManager } from '@/platforms/teams/credential-manager'
 import { whoamiAction, whoamiCommand } from '@/platforms/teams/commands/whoami'
+import { TeamsCredentialManager } from '@/platforms/teams/credential-manager'
 
 let credManagerSpy: ReturnType<typeof spyOn>
 let clientTestAuthSpy: ReturnType<typeof spyOn>
@@ -76,8 +76,6 @@ test('whoami exits with error when not authenticated', async () => {
 
   await whoamiAction({})
 
-  expect(consoleLogSpy).toHaveBeenCalledWith(
-    JSON.stringify({ error: 'Not authenticated. Run "auth extract" first.' }),
-  )
+  expect(consoleLogSpy).toHaveBeenCalledWith(JSON.stringify({ error: 'Not authenticated. Run "auth extract" first.' }))
   expect(processExitSpy).toHaveBeenCalledWith(1)
 })

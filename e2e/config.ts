@@ -116,7 +116,9 @@ export const TEAMS_TEST_CHANNEL = 'e2e-test'
 
 export async function validateTeamsEnvironment(): Promise<boolean> {
   if (!TEAMS_TEST_TEAM_ID || !TEAMS_TEST_CHANNEL_ID) {
-    console.warn('Skipping Teams E2E: set E2E_TEAMS_TEAM_ID and E2E_TEAMS_CHANNEL_ID to run against a dedicated test team.')
+    console.warn(
+      'Skipping Teams E2E: set E2E_TEAMS_TEAM_ID and E2E_TEAMS_CHANNEL_ID to run against a dedicated test team.',
+    )
     return false
   }
 
@@ -264,7 +266,9 @@ export const WHATSAPPBOT_TEST_PHONE_NUMBER = process.env.E2E_WHATSAPPBOT_PHONE_N
 
 export async function validateWhatsAppBotEnvironment(): Promise<boolean> {
   if (!WHATSAPPBOT_TEST_PHONE_NUMBER) {
-    console.warn('Skipping WhatsApp Bot E2E: set E2E_WHATSAPPBOT_PHONE_NUMBER to run against a dedicated test phone number.')
+    console.warn(
+      'Skipping WhatsApp Bot E2E: set E2E_WHATSAPPBOT_PHONE_NUMBER to run against a dedicated test phone number.',
+    )
     return false
   }
 

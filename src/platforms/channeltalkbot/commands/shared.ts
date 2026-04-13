@@ -15,7 +15,9 @@ export async function getClient(options: WorkspaceOption): Promise<ChannelBotCli
   const creds = await credManager.getCredentials(options.workspace)
 
   if (!creds) {
-    console.log(formatOutput({ error: 'No credentials. Run "auth set <access-key> <access-secret>" first.' }, options.pretty))
+    console.log(
+      formatOutput({ error: 'No credentials. Run "auth set <access-key> <access-secret>" first.' }, options.pretty),
+    )
     process.exit(1)
   }
 
@@ -29,7 +31,9 @@ export async function getCurrentWorkspace(options: WorkspaceOption): Promise<str
   const creds = await credManager.getCredentials()
 
   if (!creds) {
-    console.log(formatOutput({ error: 'No workspace set. Run "auth set <access-key> <access-secret>" first.' }, options.pretty))
+    console.log(
+      formatOutput({ error: 'No workspace set. Run "auth set <access-key> <access-secret>" first.' }, options.pretty),
+    )
     process.exit(1)
   }
 

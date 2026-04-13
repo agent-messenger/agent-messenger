@@ -3,7 +3,9 @@ import { afterEach, beforeEach, describe, expect, mock, spyOn, test } from 'bun:
 const originalConsoleLog = console.log
 
 mock.module('@/shared/utils/error-handler', () => ({
-  handleError: (err: Error) => { throw err },
+  handleError: (err: Error) => {
+    throw err
+  },
 }))
 
 const mockGetAccount = mock(() =>
@@ -15,9 +17,7 @@ const mockGetAccount = mock(() =>
     updated_at: '2024-01-01T00:00:00.000Z',
   }),
 )
-const mockEnsureAccountPaths = mock(() =>
-  Promise.resolve({ account_dir: '/tmp/test', auth_dir: '/tmp/test/auth' }),
-)
+const mockEnsureAccountPaths = mock(() => Promise.resolve({ account_dir: '/tmp/test', auth_dir: '/tmp/test/auth' }))
 
 mock.module('../credential-manager', () => ({
   WhatsAppCredentialManager: class {
@@ -55,7 +55,9 @@ const mockClose = mock(() => Promise.resolve())
 
 mock.module('../client', () => ({
   WhatsAppClient: class {
-    login = mock(function (this: unknown) { return Promise.resolve(this) })
+    login = mock(function (this: unknown) {
+      return Promise.resolve(this)
+    })
     connect = mockConnect
     close = mockClose
     listChats = mockListChats
@@ -114,7 +116,8 @@ describe('chat commands', () => {
     mockConnect.mockImplementation(() => Promise.resolve())
     mockClose.mockImplementation(() => Promise.resolve())
 
-    consoleLogSpy = mock((..._args: unknown[]) => {}); console.log = consoleLogSpy
+    consoleLogSpy = mock((..._args: unknown[]) => {})
+    console.log = consoleLogSpy
     processExitSpy = spyOn(process, 'exit').mockImplementation((_code?: number) => {
       throw new Error(`process.exit(${_code})`)
     })
@@ -128,9 +131,7 @@ describe('chat commands', () => {
 
   describe('list', () => {
     test('lists chats with default limit', async () => {
-      await expect(
-        chatCommand.parseAsync(['list'], { from: 'user' }),
-      ).rejects.toThrow('process.exit(0)')
+      await expect(chatCommand.parseAsync(['list'], { from: 'user' })).rejects.toThrow('process.exit(0)')
 
       expect(mockListChats).toHaveBeenCalledWith(20)
       const output = JSON.parse(consoleLogSpy.mock.calls[0][0])
@@ -140,17 +141,17 @@ describe('chat commands', () => {
     })
 
     test('respects --limit option', async () => {
-      await expect(
-        chatCommand.parseAsync(['list', '--limit', '5'], { from: 'user' }),
-      ).rejects.toThrow('process.exit(0)')
+      await expect(chatCommand.parseAsync(['list', '--limit', '5'], { from: 'user' })).rejects.toThrow(
+        'process.exit(0)',
+      )
 
       expect(mockListChats).toHaveBeenCalledWith(5)
     })
 
     test('passes account option to credential manager', async () => {
-      await expect(
-        chatCommand.parseAsync(['list', '--account', 'my-account'], { from: 'user' }),
-      ).rejects.toThrow('process.exit(0)')
+      await expect(chatCommand.parseAsync(['list', '--account', 'my-account'], { from: 'user' })).rejects.toThrow(
+        'process.exit(0)',
+      )
 
       expect(mockGetAccount).toHaveBeenCalledWith('my-account')
     })
@@ -158,9 +159,7 @@ describe('chat commands', () => {
     test('exits with error when no account configured', async () => {
       mockGetAccount.mockImplementation(() => Promise.resolve(null))
 
-      await expect(
-        chatCommand.parseAsync(['list'], { from: 'user' }),
-      ).rejects.toThrow('process.exit(1)')
+      await expect(chatCommand.parseAsync(['list'], { from: 'user' })).rejects.toThrow('process.exit(1)')
 
       expect(processExitSpy).toHaveBeenCalledWith(1)
     })
@@ -168,9 +167,7 @@ describe('chat commands', () => {
 
   describe('search', () => {
     test('searches chats by query', async () => {
-      await expect(
-        chatCommand.parseAsync(['search', 'Bob'], { from: 'user' }),
-      ).rejects.toThrow('process.exit(0)')
+      await expect(chatCommand.parseAsync(['search', 'Bob'], { from: 'user' })).rejects.toThrow('process.exit(0)')
 
       expect(mockSearchChats).toHaveBeenCalledWith('Bob', 20)
       const output = JSON.parse(consoleLogSpy.mock.calls[0][0])
@@ -180,9 +177,9 @@ describe('chat commands', () => {
     })
 
     test('respects --limit option', async () => {
-      await expect(
-        chatCommand.parseAsync(['search', 'Alice', '--limit', '3'], { from: 'user' }),
-      ).rejects.toThrow('process.exit(0)')
+      await expect(chatCommand.parseAsync(['search', 'Alice', '--limit', '3'], { from: 'user' })).rejects.toThrow(
+        'process.exit(0)',
+      )
 
       expect(mockSearchChats).toHaveBeenCalledWith('Alice', 3)
     })

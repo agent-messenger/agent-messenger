@@ -1,4 +1,17 @@
 {
   "title": "TypeScript SDK",
-  "pages": ["slack", "discord", "teams", "webex", "whatsapp", "whatsappbot", "line", "wechatbot", "instagram", "kakaotalk", "channeltalk", "channeltalkbot"]
+  "pages": [
+    "slack",
+    "discord",
+    "teams",
+    "webex",
+    "whatsapp",
+    "whatsappbot",
+    "line",
+    "wechatbot",
+    "instagram",
+    "kakaotalk",
+    "channeltalk",
+    "channeltalkbot"
+  ]
 }

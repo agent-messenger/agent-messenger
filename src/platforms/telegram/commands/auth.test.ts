@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
+
 import { getNonInteractiveLoginMessage, promptNextLoginInput } from './auth'
 
 describe('promptNextLoginInput non-interactive', () => {

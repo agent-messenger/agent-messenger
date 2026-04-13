@@ -44,4 +44,3 @@ export {
   ExtractedChannelTokenSchema,
   MessageBlockSchema,
 } from './types'
-

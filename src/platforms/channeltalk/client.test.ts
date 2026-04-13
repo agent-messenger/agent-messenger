@@ -48,11 +48,14 @@ describe('ChannelClient', () => {
 
   const getHeaders = (callIndex = 0) => fetchCalls[callIndex]?.options?.headers as Record<string, string>
 
-  const getJsonBody = (callIndex = 0) => JSON.parse(String(fetchCalls[callIndex]?.options?.body)) as Record<string, unknown>
+  const getJsonBody = (callIndex = 0) =>
+    JSON.parse(String(fetchCalls[callIndex]?.options?.body)) as Record<string, unknown>
 
   test('login() requires account cookie', async () => {
     await expect(new ChannelClient().login({ accountCookie: '' })).rejects.toThrow(ChannelError)
-    await expect(new ChannelClient().login({ accountCookie: '', sessionCookie: 'session-cookie' })).rejects.toThrow(ChannelError)
+    await expect(new ChannelClient().login({ accountCookie: '', sessionCookie: 'session-cookie' })).rejects.toThrow(
+      ChannelError,
+    )
     const client = await new ChannelClient().login({ accountCookie: 'account-cookie' })
     expect(client).toBeInstanceOf(ChannelClient)
     const client2 = await new ChannelClient().login({ accountCookie: 'account-cookie', sessionCookie: '' })
@@ -60,7 +63,17 @@ describe('ChannelClient', () => {
   })
 
   test('successful GET request returns unwrapped JSON', async () => {
-    mockResponse({ account: { id: 'acc-1', name: 'Desk Owner', email: 'owner@example.com', emailVerified: true, language: 'en', country: 'KR', createdAt: 1 } })
+    mockResponse({
+      account: {
+        id: 'acc-1',
+        name: 'Desk Owner',
+        email: 'owner@example.com',
+        emailVerified: true,
+        language: 'en',
+        country: 'KR',
+        createdAt: 1,
+      },
+    })
 
     const client = await new ChannelClient().login({ accountCookie: 'account-cookie', sessionCookie: 'session-cookie' })
     const account = await client.getAccount()
@@ -70,7 +83,17 @@ describe('ChannelClient', () => {
   })
 
   test('cookie auth headers are set on every request', async () => {
-    mockResponse({ account: { id: 'acc-1', name: 'Desk Owner', email: 'owner@example.com', emailVerified: true, language: 'en', country: 'KR', createdAt: 1 } })
+    mockResponse({
+      account: {
+        id: 'acc-1',
+        name: 'Desk Owner',
+        email: 'owner@example.com',
+        emailVerified: true,
+        language: 'en',
+        country: 'KR',
+        createdAt: 1,
+      },
+    })
     mockResponse({ channel: { id: 'ch-1', name: 'Support' } })
 
     const client = await new ChannelClient().login({ accountCookie: 'account-cookie', sessionCookie: 'session-cookie' })
@@ -87,7 +110,17 @@ describe('ChannelClient', () => {
 
   test('429 response triggers retry with Retry-After wait', async () => {
     mockResponse({ errors: [{ message: 'Rate limited' }] }, 429, { 'Retry-After': '0.05' })
-    mockResponse({ account: { id: 'acc-1', name: 'Desk Owner', email: 'owner@example.com', emailVerified: true, language: 'en', country: 'KR', createdAt: 1 } })
+    mockResponse({
+      account: {
+        id: 'acc-1',
+        name: 'Desk Owner',
+        email: 'owner@example.com',
+        emailVerified: true,
+        language: 'en',
+        country: 'KR',
+        createdAt: 1,
+      },
+    })
 
     const client = await new ChannelClient().login({ accountCookie: 'account-cookie', sessionCookie: 'session-cookie' })
     const start = Date.now()
@@ -102,7 +135,17 @@ describe('ChannelClient', () => {
   test('500 response triggers retry with exponential backoff for GET requests', async () => {
     mockResponse({ errors: [{ message: 'Server error' }] }, 500)
     mockResponse({ errors: [{ message: 'Server error' }] }, 500)
-    mockResponse({ account: { id: 'acc-1', name: 'Desk Owner', email: 'owner@example.com', emailVerified: true, language: 'en', country: 'KR', createdAt: 1 } })
+    mockResponse({
+      account: {
+        id: 'acc-1',
+        name: 'Desk Owner',
+        email: 'owner@example.com',
+        emailVerified: true,
+        language: 'en',
+        country: 'KR',
+        createdAt: 1,
+      },
+    })
 
     const client = await new ChannelClient().login({ accountCookie: 'account-cookie', sessionCookie: 'session-cookie' })
     const start = Date.now()
@@ -147,24 +190,26 @@ describe('ChannelClient', () => {
     mockResponse(null, 204)
 
     const client = await new ChannelClient().login({ accountCookie: 'account-cookie', sessionCookie: 'session-cookie' })
-    const result = await (client as unknown as { request: <T>(method: string, path: string) => Promise<T> }).request<void>('GET', '/desk/account')
+    const result = await (
+      client as unknown as { request: <T>(method: string, path: string) => Promise<T> }
+    ).request<void>('GET', '/desk/account')
 
     expect(result).toBeUndefined()
   })
 
   test('wrapTextInBlocks returns a single text block and extractText joins block and plain text', () => {
-    expect(ChannelClient.wrapTextInBlocks('Hello world')).toEqual([
-      { type: 'text', value: 'Hello world' },
-    ])
+    expect(ChannelClient.wrapTextInBlocks('Hello world')).toEqual([{ type: 'text', value: 'Hello world' }])
 
-    expect(ChannelClient.extractText({
-      id: 'msg-1',
-      blocks: [
-        { type: 'text', value: 'hello' },
-        { type: 'text', value: 'world' },
-      ],
-      plainText: 'fallback',
-    })).toBe('hello\nworld\nfallback')
+    expect(
+      ChannelClient.extractText({
+        id: 'msg-1',
+        blocks: [
+          { type: 'text', value: 'hello' },
+          { type: 'text', value: 'world' },
+        ],
+        plainText: 'fallback',
+      }),
+    ).toBe('hello\nworld\nfallback')
   })
 
   test('listChannels includes query params', async () => {
@@ -220,7 +265,9 @@ describe('ChannelClient', () => {
     expect(fetchCalls[1].url).toBe('https://desk-api.channel.io/desk/channels/ch-1/groups/grp-1')
 
     const messagesUrl = new URL(fetchCalls[2].url)
-    expect(messagesUrl.origin + messagesUrl.pathname).toBe('https://desk-api.channel.io/desk/channels/ch-1/groups/grp-1/messages')
+    expect(messagesUrl.origin + messagesUrl.pathname).toBe(
+      'https://desk-api.channel.io/desk/channels/ch-1/groups/grp-1/messages',
+    )
     expect(messagesUrl.searchParams.get('sortOrder')).toBe('desc')
     expect(messagesUrl.searchParams.get('limit')).toBe('100')
     expect(messagesUrl.searchParams.get('since')).toBe('cursor-1')
@@ -251,7 +298,9 @@ describe('ChannelClient', () => {
     await client.sendDirectChatMessage('ch-1', 'dm-1', blocks, 'req-234')
 
     expect(fetchCalls[0].url).toBe('https://desk-api.channel.io/desk/channels/ch-1/direct-chats?limit=200')
-    expect(fetchCalls[1].url).toBe('https://desk-api.channel.io/desk/channels/ch-1/direct-chats/dm-1/messages?sortOrder=asc&limit=50')
+    expect(fetchCalls[1].url).toBe(
+      'https://desk-api.channel.io/desk/channels/ch-1/direct-chats/dm-1/messages?sortOrder=asc&limit=50',
+    )
     expect(fetchCalls[2].url).toBe('https://desk-api.channel.io/desk/channels/ch-1/direct-chats/dm-1/messages')
     expect(getJsonBody(2)).toEqual({ blocks, requestId: 'req-234' })
   })
@@ -270,9 +319,13 @@ describe('ChannelClient', () => {
     await client.getUserChatMessages('ch-1', 'uc-1', { sortOrder: 'desc', limit: 25 })
     await client.sendUserChatMessage('ch-1', 'uc-1', blocks, 'req-345')
 
-    expect(fetchCalls[0].url).toBe('https://desk-api.channel.io/desk/channels/ch-1/user-chats/assigned/me?state=opened&limit=25')
+    expect(fetchCalls[0].url).toBe(
+      'https://desk-api.channel.io/desk/channels/ch-1/user-chats/assigned/me?state=opened&limit=25',
+    )
     expect(fetchCalls[1].url).toBe('https://desk-api.channel.io/desk/channels/ch-1/user-chats/uc-1')
-    expect(fetchCalls[2].url).toBe('https://desk-api.channel.io/desk/channels/ch-1/user-chats/uc-1/messages?sortOrder=desc&limit=25')
+    expect(fetchCalls[2].url).toBe(
+      'https://desk-api.channel.io/desk/channels/ch-1/user-chats/uc-1/messages?sortOrder=desc&limit=25',
+    )
     expect(fetchCalls[3].url).toBe('https://desk-api.channel.io/desk/channels/ch-1/user-chats/uc-1/messages')
     expect(getJsonBody(3)).toEqual({ blocks, requestId: 'req-345' })
   })
@@ -291,7 +344,9 @@ describe('ChannelClient', () => {
     mockResponse({ type: 'server_error', errors: [{ message: 'Server error' }] }, 500)
 
     const client = await new ChannelClient().login({ accountCookie: 'account-cookie', sessionCookie: 'session-cookie' })
-    await expect(client.sendGroupMessage('ch-1', 'grp-1', ChannelClient.wrapTextInBlocks('hello'), 'req-123')).rejects.toThrow(ChannelError)
+    await expect(
+      client.sendGroupMessage('ch-1', 'grp-1', ChannelClient.wrapTextInBlocks('hello'), 'req-123'),
+    ).rejects.toThrow(ChannelError)
     expect(fetchCalls).toHaveLength(1)
   })
 
@@ -311,11 +366,35 @@ describe('ChannelClient', () => {
   })
 
   test('rate limit headers delay the next request when remaining is zero', async () => {
-    mockResponse({ account: { id: 'acc-1', name: 'Desk Owner', email: 'owner@example.com', emailVerified: true, language: 'en', country: 'KR', createdAt: 1 } }, 200, {
-      'x-ratelimit-remaining': '0',
-      'x-ratelimit-reset': String(Date.now() + 50),
+    mockResponse(
+      {
+        account: {
+          id: 'acc-1',
+          name: 'Desk Owner',
+          email: 'owner@example.com',
+          emailVerified: true,
+          language: 'en',
+          country: 'KR',
+          createdAt: 1,
+        },
+      },
+      200,
+      {
+        'x-ratelimit-remaining': '0',
+        'x-ratelimit-reset': String(Date.now() + 50),
+      },
+    )
+    mockResponse({
+      account: {
+        id: 'acc-2',
+        name: 'Desk Owner',
+        email: 'owner@example.com',
+        emailVerified: true,
+        language: 'en',
+        country: 'KR',
+        createdAt: 2,
+      },
     })
-    mockResponse({ account: { id: 'acc-2', name: 'Desk Owner', email: 'owner@example.com', emailVerified: true, language: 'en', country: 'KR', createdAt: 2 } })
 
     const client = await new ChannelClient().login({ accountCookie: 'account-cookie', sessionCookie: 'session-cookie' })
     await client.getAccount()
@@ -339,7 +418,15 @@ describe('ChannelClient', () => {
 
   test('searchTeamChatMessages builds correct URL with query and limit', async () => {
     const searchResponse = {
-      hits: [{ index: 'messages-2026-03', score: 'NaN', source: { id: 'msg-1' }, highlight: {}, searchAfter: [1000, 'msg-1'] }],
+      hits: [
+        {
+          index: 'messages-2026-03',
+          score: 'NaN',
+          source: { id: 'msg-1' },
+          highlight: {},
+          searchAfter: [1000, 'msg-1'],
+        },
+      ],
       bots: [],
       sessions: [],
       groups: [],

@@ -10,12 +10,7 @@ npm install agent-messenger
 ```
 
 ```typescript
-import {
-  SlackClient,
-  SlackListener,
-  SlackError,
-  SlackCredentialManager,
-} from 'agent-messenger/slack'
+import { SlackClient, SlackListener, SlackError, SlackCredentialManager } from 'agent-messenger/slack'
 ```
 
 ## SlackClient
@@ -81,8 +76,8 @@ const url = await client.getPermalink(channel, ts)
 
 // Search messages across workspace
 const results = await client.searchMessages('keyword', {
-  sort: 'timestamp',   // 'score' | 'timestamp'
-  sortDir: 'desc',     // 'asc' | 'desc'
+  sort: 'timestamp', // 'score' | 'timestamp'
+  sortDir: 'desc', // 'asc' | 'desc'
   count: 20,
 })
 // → SlackSearchResult[]
@@ -122,7 +117,7 @@ const channel = await client.getChannel(channelId)
 
 // Resolve channel name to ID (passes IDs through unchanged)
 const id = await client.resolveChannel('general')
-const id = await client.resolveChannel('C0ABC123')  // returned as-is
+const id = await client.resolveChannel('C0ABC123') // returned as-is
 
 // Open a DM (or group DM) — returns existing channel if already open
 const dm = await client.openConversation('U0ABC123')
@@ -384,25 +379,26 @@ listener.on('slack_event', (event) => {
 
 listener.on('error', (err) => console.error(err))
 
-await listener.start()  // connects via RTM WebSocket
+await listener.start() // connects via RTM WebSocket
 // listener.stop()      // clean shutdown
 ```
 
 ### Available Events
 
-| Event | Description |
-|-------|-------------|
-| `message` | New message, edit, delete, thread reply |
-| `reaction_added` / `reaction_removed` | Reaction changes |
-| `member_joined_channel` / `member_left_channel` | Member changes |
-| `user_typing` | Typing indicator |
-| `presence_change` | User active/away status |
-| `channel_created` / `channel_deleted` / `channel_rename` / `channel_archive` / `channel_unarchive` | Channel lifecycle |
-| `slack_event` | Catch-all for every RTM event |
-| `connected` / `disconnected` | Connection lifecycle |
-| `error` | Connection or API error |
+| Event                                                                                              | Description                             |
+| -------------------------------------------------------------------------------------------------- | --------------------------------------- |
+| `message`                                                                                          | New message, edit, delete, thread reply |
+| `reaction_added` / `reaction_removed`                                                              | Reaction changes                        |
+| `member_joined_channel` / `member_left_channel`                                                    | Member changes                          |
+| `user_typing`                                                                                      | Typing indicator                        |
+| `presence_change`                                                                                  | User active/away status                 |
+| `channel_created` / `channel_deleted` / `channel_rename` / `channel_archive` / `channel_unarchive` | Channel lifecycle                       |
+| `slack_event`                                                                                      | Catch-all for every RTM event           |
+| `connected` / `disconnected`                                                                       | Connection lifecycle                    |
+| `error`                                                                                            | Connection or API error                 |
 
 Features:
+
 - No channel subscription needed — receives all workspace events
 - Auto-reconnect with exponential backoff
 - Ping/pong keepalive
@@ -514,13 +510,16 @@ await client.addBookmark(channel.id, 'Figma Designs', 'https://figma.com/file/ab
 })
 
 // Pin welcome message
-const welcome = await client.sendMessage(channel.id, [
-  'Welcome to *Project Alpha*! 🎉',
-  '',
-  '📋 *Resources* — check the bookmarks above',
-  '🧵 *Discussions* — use threads to keep things organized',
-  '📌 *Decisions* — pin important messages',
-].join('\n'))
+const welcome = await client.sendMessage(
+  channel.id,
+  [
+    'Welcome to *Project Alpha*! 🎉',
+    '',
+    '📋 *Resources* — check the bookmarks above',
+    '🧵 *Discussions* — use threads to keep things organized',
+    '📌 *Decisions* — pin important messages',
+  ].join('\n'),
+)
 await client.pinMessage(channel.id, welcome.ts)
 ```
 
@@ -549,11 +548,7 @@ listener.on('message', async (event) => {
 
 listener.on('reaction_added', async (event) => {
   if (event.reaction === 'ticket' && event.user !== auth.user_id) {
-    await client.sendMessage(
-      event.item.channel,
-      `Ticket created for <@${event.user}>'s message.`,
-      event.item.ts,
-    )
+    await client.sendMessage(event.item.channel, `Ticket created for <@${event.user}>'s message.`, event.item.ts)
   }
 })
 
@@ -626,11 +621,7 @@ for (const result of results) {
   await client.addReaction(result.channel.id, result.ts, 'eyes')
 
   // Reply in thread
-  await client.sendMessage(
-    result.channel.id,
-    'Flagged for review — will follow up shortly.',
-    result.ts,
-  )
+  await client.sendMessage(result.channel.id, 'Flagged for review — will follow up shortly.', result.ts)
 
   // Schedule a follow-up reminder
   const inOneHour = Math.floor(Date.now() / 1000) + 3600
@@ -663,9 +654,12 @@ for (const file of files.slice(0, 5)) {
   // Re-upload to archive
   const uploaded = await client.uploadFile([target], buffer, file.name)
 
-  await client.sendMessage(target, [
-    `📎 Archived *${file.name}* from <#${source}>`,
-    `Original uploader: <@${file.user}> · ${(file.size / 1024).toFixed(0)} KB`,
-  ].join('\n'))
+  await client.sendMessage(
+    target,
+    [
+      `📎 Archived *${file.name}* from <#${source}>`,
+      `Original uploader: <@${file.user}> · ${(file.size / 1024).toFixed(0)} KB`,
+    ].join('\n'),
+  )
 }
 ```

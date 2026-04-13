@@ -1,6 +1,8 @@
 import { existsSync } from 'node:fs'
 import { join } from 'node:path'
+
 import { formatOutput } from '@/shared/utils/output'
+
 import { WhatsAppCredentialManager } from './credential-manager'
 
 export async function ensureWhatsAppAuth(): Promise<void> {
@@ -8,9 +10,12 @@ export async function ensureWhatsAppAuth(): Promise<void> {
   const account = await manager.getAccount()
 
   if (!account) {
-    console.log(formatOutput({
-      error: 'Not authenticated. Run "agent-whatsapp auth login --qr" or "agent-whatsapp auth login --phone <phone-number>" first.',
-    }))
+    console.log(
+      formatOutput({
+        error:
+          'Not authenticated. Run "agent-whatsapp auth login --qr" or "agent-whatsapp auth login --phone <phone-number>" first.',
+      }),
+    )
     process.exit(1)
   }
 
@@ -18,9 +23,12 @@ export async function ensureWhatsAppAuth(): Promise<void> {
   const credsPath = join(paths.auth_dir, 'creds.json')
 
   if (!existsSync(credsPath)) {
-    console.log(formatOutput({
-      error: 'Auth credentials missing. Run "agent-whatsapp auth login --qr" or "agent-whatsapp auth login --phone <phone-number>" to re-authenticate.',
-    }))
+    console.log(
+      formatOutput({
+        error:
+          'Auth credentials missing. Run "agent-whatsapp auth login --qr" or "agent-whatsapp auth login --phone <phone-number>" to re-authenticate.',
+      }),
+    )
     process.exit(1)
   }
 }

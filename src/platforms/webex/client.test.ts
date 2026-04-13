@@ -155,9 +155,7 @@ describe('WebexClient', () => {
       const client = await new WebexClient().login({ token: 'test-token' })
       await client.sendMessage('room1', '**bold**', { markdown: true })
 
-      expect(fetchCalls[0].options?.body).toBe(
-        JSON.stringify({ roomId: 'room1', markdown: '**bold**' }),
-      )
+      expect(fetchCalls[0].options?.body).toBe(JSON.stringify({ roomId: 'room1', markdown: '**bold**' }))
     })
   })
 
@@ -168,9 +166,7 @@ describe('WebexClient', () => {
       const client = await new WebexClient().login({ token: 'test-token' })
       await client.sendDirectMessage('user@example.com', 'Hello')
 
-      expect(fetchCalls[0].options?.body).toBe(
-        JSON.stringify({ toPersonEmail: 'user@example.com', text: 'Hello' }),
-      )
+      expect(fetchCalls[0].options?.body).toBe(JSON.stringify({ toPersonEmail: 'user@example.com', text: 'Hello' }))
     })
 
     test('sends markdown direct message when option set', async () => {
@@ -246,9 +242,7 @@ describe('WebexClient', () => {
 
       expect(fetchCalls[0].url).toBe('https://webexapis.com/v1/messages/msg1')
       expect(fetchCalls[0].options?.method).toBe('PUT')
-      expect(fetchCalls[0].options?.body).toBe(
-        JSON.stringify({ roomId: 'room1', text: 'Edited text' }),
-      )
+      expect(fetchCalls[0].options?.body).toBe(JSON.stringify({ roomId: 'room1', text: 'Edited text' }))
     })
 
     test('sends markdown when option set', async () => {
@@ -257,9 +251,7 @@ describe('WebexClient', () => {
       const client = await new WebexClient().login({ token: 'test-token' })
       await client.editMessage('msg1', 'room1', '**edited**', { markdown: true })
 
-      expect(fetchCalls[0].options?.body).toBe(
-        JSON.stringify({ roomId: 'room1', markdown: '**edited**' }),
-      )
+      expect(fetchCalls[0].options?.body).toBe(JSON.stringify({ roomId: 'room1', markdown: '**edited**' }))
     })
   })
 

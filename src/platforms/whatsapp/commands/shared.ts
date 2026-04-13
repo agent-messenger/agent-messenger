@@ -1,4 +1,5 @@
 import { formatOutput } from '@/shared/utils/output'
+
 import { WhatsAppClient } from '../client'
 import { WhatsAppCredentialManager } from '../credential-manager'
 import { WhatsAppError } from '../types'
@@ -8,11 +9,7 @@ export interface AccountOption {
   pretty?: boolean
 }
 
-export function parseLimitOption(
-  rawLimit: string | undefined,
-  defaultValue: number,
-  maxValue = 100,
-): number {
+export function parseLimitOption(rawLimit: string | undefined, defaultValue: number, maxValue = 100): number {
   const trimmed = (rawLimit ?? `${defaultValue}`).trim()
 
   if (!/^\d+$/.test(trimmed)) {

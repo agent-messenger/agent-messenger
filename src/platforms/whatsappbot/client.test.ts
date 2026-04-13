@@ -51,13 +51,21 @@ describe('WhatsAppBotClient', () => {
 
   describe('login', () => {
     test('throws on empty phoneNumberId', async () => {
-      await expect(new WhatsAppBotClient().login({ phoneNumberId: '', accessToken: 'access-token' })).rejects.toThrow(WhatsAppBotError)
-      await expect(new WhatsAppBotClient().login({ phoneNumberId: '', accessToken: 'access-token' })).rejects.toThrow('Phone number ID is required')
+      await expect(new WhatsAppBotClient().login({ phoneNumberId: '', accessToken: 'access-token' })).rejects.toThrow(
+        WhatsAppBotError,
+      )
+      await expect(new WhatsAppBotClient().login({ phoneNumberId: '', accessToken: 'access-token' })).rejects.toThrow(
+        'Phone number ID is required',
+      )
     })
 
     test('throws on empty accessToken', async () => {
-      await expect(new WhatsAppBotClient().login({ phoneNumberId: 'phone-123', accessToken: '' })).rejects.toThrow(WhatsAppBotError)
-      await expect(new WhatsAppBotClient().login({ phoneNumberId: 'phone-123', accessToken: '' })).rejects.toThrow('Access token is required')
+      await expect(new WhatsAppBotClient().login({ phoneNumberId: 'phone-123', accessToken: '' })).rejects.toThrow(
+        WhatsAppBotError,
+      )
+      await expect(new WhatsAppBotClient().login({ phoneNumberId: 'phone-123', accessToken: '' })).rejects.toThrow(
+        'Access token is required',
+      )
     })
 
     test('accepts valid phoneNumberId and accessToken', async () => {
@@ -275,9 +283,7 @@ describe('WhatsAppBotClient', () => {
   describe('getTemplate', () => {
     test('sends GET with name filter and returns first match', async () => {
       mockResponse({
-        data: [
-          { name: 'hello_world', status: 'APPROVED', category: 'UTILITY', language: 'en_US', components: [] },
-        ],
+        data: [{ name: 'hello_world', status: 'APPROVED', category: 'UTILITY', language: 'en_US', components: [] }],
       })
 
       const client = await new WhatsAppBotClient().login({ phoneNumberId: 'phone-123', accessToken: 'my-token' })

@@ -3,9 +3,11 @@ import { mkdir, writeFile } from 'node:fs/promises'
 import { Writable } from 'node:stream'
 
 import { Command } from 'commander'
+
 import { handleError } from '@/shared/utils/error-handler'
 import { formatOutput } from '@/shared/utils/output'
 import { info, warn, error as stderrError, debug } from '@/shared/utils/stderr'
+
 import { InstagramClient, generateAndroidDeviceId, generateDeviceString } from '../client'
 import { InstagramCredentialManager } from '../credential-manager'
 import { InstagramTokenExtractor } from '../token-extractor'
@@ -65,11 +67,16 @@ async function saveAccountAndPrint(
   })
   await manager.setCurrent(accountId)
 
-  console.log(formatOutput({
-    authenticated: true,
-    account_id: accountId,
-    username,
-  }, pretty))
+  console.log(
+    formatOutput(
+      {
+        authenticated: true,
+        account_id: accountId,
+        username,
+      },
+      pretty,
+    ),
+  )
 }
 
 interface LoginOptions {
@@ -86,24 +93,40 @@ async function loginAction(options: LoginOptions): Promise<void> {
 
     if (!username) {
       if (!interactive) {
-        console.log(formatOutput({
-          error: 'Username required. Use --username <username> --password <password>.',
-        }, options.pretty))
+        console.log(
+          formatOutput(
+            {
+              error: 'Username required. Use --username <username> --password <password>.',
+            },
+            options.pretty,
+          ),
+        )
         process.exit(1)
       }
       username = await promptText('Instagram username')
-      if (!username) { stderrError('Username is required.'); process.exit(1) }
+      if (!username) {
+        stderrError('Username is required.')
+        process.exit(1)
+      }
     }
 
     if (!password) {
       if (!interactive) {
-        console.log(formatOutput({
-          error: 'Password required. Use --username <username> --password <password>.',
-        }, options.pretty))
+        console.log(
+          formatOutput(
+            {
+              error: 'Password required. Use --username <username> --password <password>.',
+            },
+            options.pretty,
+          ),
+        )
         process.exit(1)
       }
       password = await promptHidden('Password')
-      if (!password) { stderrError('Password is required.'); process.exit(1) }
+      if (!password) {
+        stderrError('Password is required.')
+        process.exit(1)
+      }
     }
 
     const manager = new InstagramCredentialManager()
@@ -124,16 +147,25 @@ async function loginAction(options: LoginOptions): Promise<void> {
       if (interactive) {
         info('\n  Two-factor authentication required.')
         const code = await promptText('Verification code')
-        if (!code) { stderrError('Code is required.'); process.exit(1) }
+        if (!code) {
+          stderrError('Code is required.')
+          process.exit(1)
+        }
 
         const tfResult = await client.twoFactorLogin(username, code, twoFactorIdentifier)
         await saveAccountAndPrint(manager, accountId, username, tfResult.userId, options.pretty)
       } else {
-        console.log(formatOutput({
-          two_factor_required: true,
-          two_factor_identifier: twoFactorIdentifier,
-          message: 'Run "agent-instagram auth verify --username <username> --code <code> --identifier <identifier>"',
-        }, options.pretty))
+        console.log(
+          formatOutput(
+            {
+              two_factor_required: true,
+              two_factor_identifier: twoFactorIdentifier,
+              message:
+                'Run "agent-instagram auth verify --username <username> --code <code> --identifier <identifier>"',
+            },
+            options.pretty,
+          ),
+        )
       }
       return
     }
@@ -142,11 +174,17 @@ async function loginAction(options: LoginOptions): Promise<void> {
       if (interactive) {
         await handleInteractiveChallenge(client, manager, accountId, username, result.challengePath!, options.pretty)
       } else {
-        console.log(formatOutput({
-          challenge_required: true,
-          challenge_path: result.challengePath,
-          message: 'Run "agent-instagram auth challenge --username <username> --method email" then "agent-instagram auth challenge --username <username> --code <code>"',
-        }, options.pretty))
+        console.log(
+          formatOutput(
+            {
+              challenge_required: true,
+              challenge_path: result.challengePath,
+              message:
+                'Run "agent-instagram auth challenge --username <username> --method email" then "agent-instagram auth challenge --username <username> --code <code>"',
+            },
+            options.pretty,
+          ),
+        )
       }
       return
     }
@@ -172,7 +210,7 @@ async function handleInteractiveChallenge(
   info('')
 
   const choice = await promptText('Method (1/2)')
-  const method = choice === '2' ? 'sms' as const : 'email' as const
+  const method = choice === '2' ? ('sms' as const) : ('email' as const)
 
   const sendResult = await client.challengeSendCode(challengePath, method)
   if (sendResult.contactPoint) {
@@ -182,7 +220,10 @@ async function handleInteractiveChallenge(
   }
 
   const code = await promptText('Verification code')
-  if (!code) { stderrError('Code is required.'); process.exit(1) }
+  if (!code) {
+    stderrError('Code is required.')
+    process.exit(1)
+  }
 
   const verifyResult = await client.challengeSubmitCode(challengePath, code)
   await saveAccountAndPrint(manager, accountId, username, verifyResult.userId, pretty)
@@ -204,11 +245,7 @@ async function verifyAction(options: VerifyOptions): Promise<void> {
     const client = new InstagramClient(manager)
     client.setSessionPath(paths.session_path)
 
-    const result = await client.twoFactorLogin(
-      options.username,
-      options.code,
-      options.identifier,
-    )
+    const result = await client.twoFactorLogin(options.username, options.code, options.identifier)
 
     await saveAccountAndPrint(manager, accountId, options.username, result.userId, options.pretty)
   } catch (error) {
@@ -235,9 +272,14 @@ async function challengeAction(options: ChallengeOptions): Promise<void> {
 
     const challengePath = client.getChallengePath()
     if (!challengePath) {
-      console.log(formatOutput({
-        error: 'No pending challenge found. Run "agent-instagram auth login" first.',
-      }, options.pretty))
+      console.log(
+        formatOutput(
+          {
+            error: 'No pending challenge found. Run "agent-instagram auth login" first.',
+          },
+          options.pretty,
+        ),
+      )
       process.exit(1)
     }
 
@@ -248,12 +290,17 @@ async function challengeAction(options: ChallengeOptions): Promise<void> {
       const method = (options.method === 'sms' ? 'sms' : 'email') as 'email' | 'sms'
       const result = await client.challengeSendCode(challengePath, method)
 
-      console.log(formatOutput({
-        code_sent: true,
-        contact_point: result.contactPoint,
-        step_name: result.stepName,
-        message: `Verification code sent. Run "agent-instagram auth challenge --username ${options.username} --code <code>" to complete.`,
-      }, options.pretty))
+      console.log(
+        formatOutput(
+          {
+            code_sent: true,
+            contact_point: result.contactPoint,
+            step_name: result.stepName,
+            message: `Verification code sent. Run "agent-instagram auth challenge --username ${options.username} --code <code>" to complete.`,
+          },
+          options.pretty,
+        ),
+      )
     }
   } catch (error) {
     handleError(error as Error)
@@ -266,22 +313,32 @@ async function statusAction(options: { account?: string; pretty?: boolean }): Pr
     const account = await manager.getAccount(options.account)
 
     if (!account) {
-      console.log(formatOutput({
-        error: options.account
-          ? `Instagram account "${options.account}" not found.`
-          : 'No Instagram account configured. Run "auth login" first.',
-      }, options.pretty))
+      console.log(
+        formatOutput(
+          {
+            error: options.account
+              ? `Instagram account "${options.account}" not found.`
+              : 'No Instagram account configured. Run "auth login" first.',
+          },
+          options.pretty,
+        ),
+      )
       process.exit(1)
     }
 
-    console.log(formatOutput({
-      account_id: account.account_id,
-      username: account.username,
-      full_name: account.full_name,
-      pk: account.pk,
-      created_at: account.created_at,
-      updated_at: account.updated_at,
-    }, options.pretty))
+    console.log(
+      formatOutput(
+        {
+          account_id: account.account_id,
+          username: account.username,
+          full_name: account.full_name,
+          pk: account.pk,
+          created_at: account.created_at,
+          updated_at: account.updated_at,
+        },
+        options.pretty,
+      ),
+    )
   } catch (error) {
     handleError(error as Error)
   }
@@ -292,18 +349,20 @@ async function listAction(options: { pretty?: boolean }): Promise<void> {
     const manager = new InstagramCredentialManager()
     const accounts = await manager.listAccounts()
 
-    console.log(formatOutput(
-      accounts.map((account) => ({
-        account_id: account.account_id,
-        username: account.username,
-        full_name: account.full_name,
-        pk: account.pk,
-        created_at: account.created_at,
-        updated_at: account.updated_at,
-        is_current: account.is_current,
-      })),
-      options.pretty,
-    ))
+    console.log(
+      formatOutput(
+        accounts.map((account) => ({
+          account_id: account.account_id,
+          username: account.username,
+          full_name: account.full_name,
+          pk: account.pk,
+          created_at: account.created_at,
+          updated_at: account.updated_at,
+          is_current: account.is_current,
+        })),
+        options.pretty,
+      ),
+    )
   } catch (error) {
     handleError(error as Error)
   }
@@ -343,7 +402,8 @@ async function extractAction(options: { pretty?: boolean; debug?: boolean }): Pr
       console.log(
         formatOutput(
           {
-            error: 'No Instagram cookies found in any browser. Make sure you are logged in to instagram.com in Chrome, Edge, Arc, or Brave.',
+            error:
+              'No Instagram cookies found in any browser. Make sure you are logged in to instagram.com in Chrome, Edge, Arc, or Brave.',
             hint: 'Run "auth login --username <username>" to log in manually.',
           },
           options.pretty,
@@ -440,11 +500,16 @@ async function logoutAction(options: { account?: string; pretty?: boolean }): Pr
     const account = await manager.getAccount(options.account)
 
     if (!account) {
-      console.log(formatOutput({
-        error: options.account
-          ? `Instagram account "${options.account}" not found.`
-          : 'No Instagram account configured.',
-      }, options.pretty))
+      console.log(
+        formatOutput(
+          {
+            error: options.account
+              ? `Instagram account "${options.account}" not found.`
+              : 'No Instagram account configured.',
+          },
+          options.pretty,
+        ),
+      )
       process.exit(1)
     }
 

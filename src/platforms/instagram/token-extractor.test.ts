@@ -182,10 +182,7 @@ describe('InstagramTokenExtractor', () => {
       const getBrowserCookiesPathsSpy = spyOn(linuxExtractor, 'getBrowserCookiesPaths').mockReturnValue([
         '/fake/path/Cookies',
       ])
-      const existsSyncSpy = spyOn(
-        await import('node:fs'),
-        'existsSync',
-      ).mockReturnValue(true)
+      const existsSyncSpy = spyOn(await import('node:fs'), 'existsSync').mockReturnValue(true)
       const copyAndExtractSpy = spyOn(linuxExtractor as any, 'copyAndExtract').mockResolvedValue(mockCookies)
 
       const result = await linuxExtractor.extract()
@@ -208,10 +205,7 @@ describe('InstagramTokenExtractor', () => {
         '/fake/path1/Cookies',
         '/fake/path2/Cookies',
       ])
-      const existsSyncSpy = spyOn(
-        await import('node:fs'),
-        'existsSync',
-      ).mockReturnValue(true)
+      const existsSyncSpy = spyOn(await import('node:fs'), 'existsSync').mockReturnValue(true)
       const copyAndExtractSpy = spyOn(darwinExtractor as any, 'copyAndExtract')
         .mockResolvedValueOnce(null)
         .mockResolvedValueOnce(mockCookies)
@@ -242,10 +236,7 @@ describe('InstagramTokenExtractor', () => {
         '/fake/profile1/Cookies',
         '/fake/profile2/Cookies',
       ])
-      const existsSyncSpy = spyOn(
-        await import('node:fs'),
-        'existsSync',
-      ).mockReturnValue(true)
+      const existsSyncSpy = spyOn(await import('node:fs'), 'existsSync').mockReturnValue(true)
       const copyAndExtractSpy = spyOn(linuxExtractor as any, 'copyAndExtract')
         .mockResolvedValueOnce(mockCookies1)
         .mockResolvedValueOnce(mockCookies2)
@@ -272,10 +263,7 @@ describe('InstagramTokenExtractor', () => {
         '/fake/profile1/Cookies',
         '/fake/profile2/Cookies',
       ])
-      const existsSyncSpy = spyOn(
-        await import('node:fs'),
-        'existsSync',
-      ).mockReturnValue(true)
+      const existsSyncSpy = spyOn(await import('node:fs'), 'existsSync').mockReturnValue(true)
       const copyAndExtractSpy = spyOn(linuxExtractor as any, 'copyAndExtract').mockResolvedValue(mockCookies)
 
       const result = await linuxExtractor.extract()

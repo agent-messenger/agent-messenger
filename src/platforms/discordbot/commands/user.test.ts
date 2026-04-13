@@ -28,7 +28,9 @@ const mockGetUser = mock((userId: string) => {
 
 mock.module('../client', () => ({
   DiscordBotClient: class MockDiscordBotClient {
-    async login(_credentials?: any) { return this }
+    async login(_credentials?: any) {
+      return this
+    }
     listUsers = mockListUsers
     getUser = mockGetUser
   },

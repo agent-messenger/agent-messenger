@@ -38,10 +38,7 @@ const { listAction } = await import('@/platforms/wechatbot/commands/user')
 const testDirs: string[] = []
 
 function makeCredManager(): WeChatBotCredentialManager {
-  const dir = join(
-    import.meta.dir,
-    `.test-user-config-${Date.now()}-${Math.random().toString(36).slice(2)}`,
-  )
+  const dir = join(import.meta.dir, `.test-user-config-${Date.now()}-${Math.random().toString(36).slice(2)}`)
   testDirs.push(dir)
   return new WeChatBotCredentialManager(dir)
 }
@@ -88,9 +85,7 @@ describe('listAction (user)', () => {
   })
 
   test('passes nextOpenid option to client', async () => {
-    const getFollowersMock = mock(() =>
-      Promise.resolve({ total: 1, count: 1, openids: ['openid-3'], next_openid: '' }),
-    )
+    const getFollowersMock = mock(() => Promise.resolve({ total: 1, count: 1, openids: ['openid-3'], next_openid: '' }))
     mock.module('../client', () => ({
       WeChatBotClient: class MockWeChatBotClient {
         async login() {

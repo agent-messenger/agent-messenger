@@ -63,7 +63,10 @@ export async function statusAction(options: ActionOptions): Promise<ActionResult
     let accountName: string | undefined
 
     try {
-      const client = await new WhatsAppBotClient().login({ phoneNumberId: creds.phone_number_id, accessToken: creds.access_token })
+      const client = await new WhatsAppBotClient().login({
+        phoneNumberId: creds.phone_number_id,
+        accessToken: creds.access_token,
+      })
       const result = await client.verifyToken()
       valid = true
       phoneNumberId = creds.phone_number_id

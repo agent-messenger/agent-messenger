@@ -66,7 +66,10 @@ export async function statusAction(options: ActionOptions): Promise<ActionResult
     let workspaceName: string | undefined
 
     try {
-      const client = await new ChannelBotClient().login({ accessKey: creds.access_key, accessSecret: creds.access_secret })
+      const client = await new ChannelBotClient().login({
+        accessKey: creds.access_key,
+        accessSecret: creds.access_secret,
+      })
       const channel = await client.getChannel()
       valid = true
       workspaceId = channel.id

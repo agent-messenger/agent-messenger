@@ -2,11 +2,9 @@ import { afterEach, beforeEach, describe, expect, mock, test } from 'bun:test'
 
 const originalConsoleLog = console.log
 
-const mockWithKakaoClient = mock(
-  async (_options: unknown, fn: (client: unknown) => Promise<unknown>) => {
-    return fn(mockClient)
-  },
-)
+const mockWithKakaoClient = mock(async (_options: unknown, fn: (client: unknown) => Promise<unknown>) => {
+  return fn(mockClient)
+})
 
 const mockGetChats = mock(() =>
   Promise.resolve([
@@ -32,11 +30,9 @@ describe('chat commands', () => {
     mockWithKakaoClient.mockReset()
     mockGetChats.mockReset()
 
-    mockWithKakaoClient.mockImplementation(
-      async (_options: unknown, fn: (client: unknown) => Promise<unknown>) => {
-        return fn(mockClient)
-      },
-    )
+    mockWithKakaoClient.mockImplementation(async (_options: unknown, fn: (client: unknown) => Promise<unknown>) => {
+      return fn(mockClient)
+    })
     mockGetChats.mockImplementation(() =>
       Promise.resolve([
         { chat_id: 'chat-1', name: 'General', type: 'group', member_count: 5 },
@@ -44,7 +40,8 @@ describe('chat commands', () => {
       ]),
     )
 
-    consoleLogSpy = mock((..._args: unknown[]) => {}); console.log = consoleLogSpy
+    consoleLogSpy = mock((..._args: unknown[]) => {})
+    console.log = consoleLogSpy
   })
 
   afterEach(() => {

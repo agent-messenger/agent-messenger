@@ -18,10 +18,7 @@ function isAuthCommand(command: CommandType): boolean {
 
 const program = new Command()
 
-program
-  .name('agent-instagram')
-  .description('CLI tool for Instagram DMs via private mobile API')
-  .version(pkg.version)
+program.name('agent-instagram').description('CLI tool for Instagram DMs via private mobile API').version(pkg.version)
 
 program.hook('preAction', async (_thisCommand, actionCommand) => {
   if (isAuthCommand(actionCommand)) return

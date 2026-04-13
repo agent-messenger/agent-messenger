@@ -10,10 +10,7 @@ npm install agent-messenger
 ```
 
 ```typescript
-import {
-  KakaoTalkClient,
-  KakaoCredentialManager,
-} from 'agent-messenger/kakaotalk'
+import { KakaoTalkClient, KakaoCredentialManager } from 'agent-messenger/kakaotalk'
 ```
 
 ## KakaoTalkClient
@@ -119,16 +116,16 @@ await listener.start()
 
 ### Events
 
-| Event | Payload | Description |
-|-------|---------|-------------|
-| `message` | `KakaoTalkPushMessageEvent` | New message received |
-| `member_joined` | `KakaoTalkPushMemberEvent` | Member joined a chat |
-| `member_left` | `KakaoTalkPushMemberEvent` | Member left a chat |
-| `read` | `KakaoTalkPushReadEvent` | Read receipt (unread count decreased) |
-| `kakaotalk_event` | `KakaoTalkPushGenericEvent` | Catch-all for all push events |
-| `connected` | `{ userId: string }` | Connected to LOCO server |
-| `disconnected` | — | Disconnected (will auto-reconnect) |
-| `error` | `Error` | Connection or protocol error |
+| Event             | Payload                     | Description                           |
+| ----------------- | --------------------------- | ------------------------------------- |
+| `message`         | `KakaoTalkPushMessageEvent` | New message received                  |
+| `member_joined`   | `KakaoTalkPushMemberEvent`  | Member joined a chat                  |
+| `member_left`     | `KakaoTalkPushMemberEvent`  | Member left a chat                    |
+| `read`            | `KakaoTalkPushReadEvent`    | Read receipt (unread count decreased) |
+| `kakaotalk_event` | `KakaoTalkPushGenericEvent` | Catch-all for all push events         |
+| `connected`       | `{ userId: string }`        | Connected to LOCO server              |
+| `disconnected`    | —                           | Disconnected (will auto-reconnect)    |
+| `error`           | `Error`                     | Connection or protocol error          |
 
 ### Reconnection
 
@@ -211,11 +208,15 @@ const manager = new KakaoCredentialManager()
 const account = await manager.getAccount()
 if (!account) throw new Error('Not authenticated')
 
-const client = await new KakaoTalkClient().login({ oauthToken: account.oauth_token, userId: account.user_id, deviceUuid: account.device_uuid })
+const client = await new KakaoTalkClient().login({
+  oauthToken: account.oauth_token,
+  userId: account.user_id,
+  deviceUuid: account.device_uuid,
+})
 
 try {
   const chats = await client.getChats({ all: true })
-  const unread = chats.filter(c => c.unread_count > 0)
+  const unread = chats.filter((c) => c.unread_count > 0)
   console.log(`${unread.length} chats with unread messages:`)
   for (const chat of unread) {
     console.log(`  ${chat.display_name} — ${chat.unread_count} unread`)
@@ -236,7 +237,11 @@ const manager = new KakaoCredentialManager()
 const account = await manager.getAccount()
 if (!account) throw new Error('Not authenticated')
 
-const client = await new KakaoTalkClient().login({ oauthToken: account.oauth_token, userId: account.user_id, deviceUuid: account.device_uuid })
+const client = await new KakaoTalkClient().login({
+  oauthToken: account.oauth_token,
+  userId: account.user_id,
+  deviceUuid: account.device_uuid,
+})
 
 try {
   const chats = await client.getChats({ search: 'Team' })
@@ -262,7 +267,11 @@ const manager = new KakaoCredentialManager()
 const account = await manager.getAccount()
 if (!account) throw new Error('Not authenticated')
 
-const client = await new KakaoTalkClient().login({ oauthToken: account.oauth_token, userId: account.user_id, deviceUuid: account.device_uuid })
+const client = await new KakaoTalkClient().login({
+  oauthToken: account.oauth_token,
+  userId: account.user_id,
+  deviceUuid: account.device_uuid,
+})
 const chatId = '9876543210'
 
 let lastLogId: string | undefined

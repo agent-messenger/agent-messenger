@@ -1,4 +1,5 @@
 import { mkdir } from 'node:fs/promises'
+
 import pkg from '../../../package.json' with { type: 'json' }
 import { findFuzzyChats, mergeChats, normalizeChatSearchText } from './chat-utils'
 import { TdjsonBinding } from './tdlib'
@@ -90,7 +91,9 @@ export class TelegramTdlibClient {
         application_version: `agent-messenger/${pkg.version}`,
       })
 
-      state = (await this.waitForAuthorizationStateChange('authorizationStateWaitTdlibParameters')) as TdAuthorizationState
+      state = (await this.waitForAuthorizationStateChange(
+        'authorizationStateWaitTdlibParameters',
+      )) as TdAuthorizationState
     }
 
     return state
@@ -431,7 +434,9 @@ export class TelegramTdlibClient {
       }
 
       const chats = await this.searchChats(reference, 20)
-      const exactMatch = chats.find((chat) => normalizeChatSearchText(chat.title) === normalizeChatSearchText(reference))
+      const exactMatch = chats.find(
+        (chat) => normalizeChatSearchText(chat.title) === normalizeChatSearchText(reference),
+      )
 
       if (exactMatch) {
         return this.call({
@@ -490,7 +495,9 @@ export class TelegramTdlibClient {
       const pending = this.pendingMessages.get(update.old_message_id)
       if (pending) {
         this.pendingMessages.delete(update.old_message_id)
-        pending.reject(new TelegramError(update.error_message ?? 'Message send failed', update.error_code ?? 'send_failed'))
+        pending.reject(
+          new TelegramError(update.error_message ?? 'Message send failed', update.error_code ?? 'send_failed'),
+        )
       }
       return event
     }
@@ -527,7 +534,10 @@ export class TelegramTdlibClient {
       this.handleEvent(event)
     }
 
-    throw new TelegramError(`Timed out waiting for authorization state change from ${previousType ?? 'unknown state'}.`, 'timeout')
+    throw new TelegramError(
+      `Timed out waiting for authorization state change from ${previousType ?? 'unknown state'}.`,
+      'timeout',
+    )
   }
 
   private async waitForAuthorizationState(targetType: string, timeoutMs: number = 15000): Promise<any> {

@@ -1,3 +1,4 @@
+import { ChannelCredentialManager } from './credential-manager'
 import type {
   Channel,
   ChannelAccount,
@@ -11,7 +12,6 @@ import type {
   MessageBlock,
 } from './types'
 import { ChannelError } from './types'
-import { ChannelCredentialManager } from './credential-manager'
 
 const BASE_URL = 'https://desk-api.channel.io'
 const MAX_RETRIES = 3
@@ -99,11 +99,21 @@ export class ChannelClient {
   }
 
   async getManagerRole(channelId: string): Promise<{ permissions: unknown[] }> {
-    return this.request<{ permissions: unknown[] }>('GET', `/desk/channels/${channelId}/managers/me/role`, undefined, 'role')
+    return this.request<{ permissions: unknown[] }>(
+      'GET',
+      `/desk/channels/${channelId}/managers/me/role`,
+      undefined,
+      'role',
+    )
   }
 
   async listGroups(channelId: string, params?: { limit?: number }): Promise<ChannelGroup[]> {
-    return this.request<ChannelGroup[]>('GET', this.buildPath(`/desk/channels/${channelId}/groups`, params), undefined, 'groups')
+    return this.request<ChannelGroup[]>(
+      'GET',
+      this.buildPath(`/desk/channels/${channelId}/groups`, params),
+      undefined,
+      'groups',
+    )
   }
 
   async getGroup(channelId: string, groupId: string): Promise<ChannelGroup> {
@@ -183,7 +193,12 @@ export class ChannelClient {
   }
 
   async getUserChat(channelId: string, chatId: string): Promise<ChannelUserChat> {
-    return this.request<ChannelUserChat>('GET', `/desk/channels/${channelId}/user-chats/${chatId}`, undefined, 'userChat')
+    return this.request<ChannelUserChat>(
+      'GET',
+      `/desk/channels/${channelId}/user-chats/${chatId}`,
+      undefined,
+      'userChat',
+    )
   }
 
   async getUserChatMessages(
@@ -214,7 +229,12 @@ export class ChannelClient {
   }
 
   async listBots(channelId: string, params?: { limit?: number }): Promise<ChannelBot[]> {
-    return this.request<ChannelBot[]>('GET', this.buildPath(`/desk/channels/${channelId}/bots`, params), undefined, 'bots')
+    return this.request<ChannelBot[]>(
+      'GET',
+      this.buildPath(`/desk/channels/${channelId}/bots`, params),
+      undefined,
+      'bots',
+    )
   }
 
   async searchTeamChatMessages(
@@ -344,7 +364,7 @@ export class ChannelClient {
   }
 
   private async createHttpError(response: Response): Promise<ChannelError> {
-    const errorBody = await response.json().catch(() => ({})) as ChannelApiErrorResponse
+    const errorBody = (await response.json().catch(() => ({}))) as ChannelApiErrorResponse
     const message = errorBody.errors?.[0]?.message || `HTTP ${response.status}`
     const code = errorBody.type || `http_${response.status}`
     return new ChannelError(message, code)

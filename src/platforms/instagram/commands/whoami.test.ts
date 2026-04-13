@@ -16,12 +16,10 @@ describe('whoami command', () => {
       full_name: 'Test User',
       profile_pic_url: 'https://example.com/pic.jpg',
     })
-    withInstagramClientSpy = spyOn(sharedModule, 'withInstagramClient').mockImplementation(
-      async (_opts, fn) => {
-        const fakeClient = Object.create(InstagramClient.prototype) as InstagramClient
-        return fn(fakeClient)
-      },
-    )
+    withInstagramClientSpy = spyOn(sharedModule, 'withInstagramClient').mockImplementation(async (_opts, fn) => {
+      const fakeClient = Object.create(InstagramClient.prototype) as InstagramClient
+      return fn(fakeClient)
+    })
     consoleLogSpy = spyOn(console, 'log').mockImplementation(() => {})
   })
 

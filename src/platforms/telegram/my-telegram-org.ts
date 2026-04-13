@@ -187,8 +187,12 @@ function isCreateApplicationPage(html: string): boolean {
 }
 
 function extractAppCredentials(html: string): { api_id: number; api_hash: string } {
-  const apiIdMatch = html.match(/<span class="form-control input-xlarge uneditable-input"[^>]*><strong>(\d+)<\/strong><\/span>/)
-  const apiHashMatch = html.match(/<span class="form-control input-xlarge uneditable-input"[^>]*>([a-f0-9]{32})<\/span>/)
+  const apiIdMatch = html.match(
+    /<span class="form-control input-xlarge uneditable-input"[^>]*><strong>(\d+)<\/strong><\/span>/,
+  )
+  const apiHashMatch = html.match(
+    /<span class="form-control input-xlarge uneditable-input"[^>]*>([a-f0-9]{32})<\/span>/,
+  )
 
   if (!apiIdMatch?.[1] || !apiHashMatch?.[1]) {
     throw new TelegramError('Failed to parse my.telegram.org response', 'parse_error')

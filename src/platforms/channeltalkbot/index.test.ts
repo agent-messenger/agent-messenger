@@ -72,5 +72,3 @@ test('ChannelBotWorkspaceEntrySchema is exported from barrel', () => {
 test('MessageBlockSchema is exported from barrel', () => {
   expect(typeof MessageBlockSchema.parse).toBe('function')
 })
-
-

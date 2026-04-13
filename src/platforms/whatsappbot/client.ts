@@ -101,7 +101,12 @@ export class WhatsAppBotClient {
   }
 
   async listTemplates(params?: { limit?: number }): Promise<WhatsAppBotTemplate[]> {
-    return this.request<WhatsAppBotTemplate[]>('GET', this.buildPath(`/${this.phoneNumberId}/message_templates`, params), undefined, 'data')
+    return this.request<WhatsAppBotTemplate[]>(
+      'GET',
+      this.buildPath(`/${this.phoneNumberId}/message_templates`, params),
+      undefined,
+      'data',
+    )
   }
 
   async getTemplate(templateName: string): Promise<WhatsAppBotTemplate> {
@@ -136,7 +141,16 @@ export class WhatsAppBotClient {
     const usageHeader = response.headers.get('x-business-use-case-usage')
     if (usageHeader) {
       try {
-        const usage = JSON.parse(usageHeader) as Record<string, Array<{ call_count: number; total_cputime: number; total_time: number; type: string; estimated_time_to_regain_access: number }>>
+        const usage = JSON.parse(usageHeader) as Record<
+          string,
+          Array<{
+            call_count: number
+            total_cputime: number
+            total_time: number
+            type: string
+            estimated_time_to_regain_access: number
+          }>
+        >
         for (const entries of Object.values(usage)) {
           for (const entry of entries) {
             if (entry.call_count >= 100) {
@@ -199,7 +213,7 @@ export class WhatsAppBotClient {
           continue
         }
 
-        const errorBody = await response.json().catch(() => ({})) as {
+        const errorBody = (await response.json().catch(() => ({}))) as {
           error?: { message?: string; code?: number }
         }
         const msg = errorBody.error?.message || `HTTP ${response.status}`
@@ -208,7 +222,7 @@ export class WhatsAppBotClient {
       }
 
       if (!response.ok) {
-        const errorBody = await response.json().catch(() => ({})) as {
+        const errorBody = (await response.json().catch(() => ({}))) as {
           error?: { message?: string; code?: number }
         }
         const msg = errorBody.error?.message || `HTTP ${response.status}`

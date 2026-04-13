@@ -1,6 +1,8 @@
 import { Command } from 'commander'
+
 import { handleError } from '@/shared/utils/error-handler'
 import { formatOutput } from '@/shared/utils/output'
+
 import { parseLimitOption, withWhatsAppClient } from './shared'
 
 async function listAction(
@@ -17,11 +19,7 @@ async function listAction(
   }
 }
 
-async function sendAction(
-  chat: string,
-  text: string,
-  options: { account?: string; pretty?: boolean },
-): Promise<void> {
+async function sendAction(chat: string, text: string, options: { account?: string; pretty?: boolean }): Promise<void> {
   try {
     const message = await withWhatsAppClient(options, (client) => client.sendMessage(chat, text))
     console.log(formatOutput(message, options.pretty))

@@ -62,7 +62,12 @@ export class WeChatBotClient {
       throw new WeChatBotError(`Network error fetching access token: ${msg}`, 'network_error')
     }
 
-    const data = (await response.json()) as { access_token?: string; expires_in?: number; errcode?: number; errmsg?: string }
+    const data = (await response.json()) as {
+      access_token?: string
+      expires_in?: number
+      errcode?: number
+      errmsg?: string
+    }
 
     if (data.errcode) {
       throw new WeChatBotError(data.errmsg ?? `Error ${data.errcode}`, String(data.errcode))

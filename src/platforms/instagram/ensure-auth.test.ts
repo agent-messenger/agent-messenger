@@ -26,10 +26,7 @@ const validPaths = {
 beforeEach(() => {
   getAccountSpy = spyOn(InstagramCredentialManager.prototype, 'getAccount').mockResolvedValue(null)
 
-  getAccountPathsSpy = spyOn(
-    InstagramCredentialManager.prototype,
-    'getAccountPaths',
-  ).mockReturnValue(validPaths)
+  getAccountPathsSpy = spyOn(InstagramCredentialManager.prototype, 'getAccountPaths').mockReturnValue(validPaths)
 
   existsSyncSpy = spyOn(fs, 'existsSync').mockReturnValue(false)
 

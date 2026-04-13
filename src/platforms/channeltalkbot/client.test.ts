@@ -141,9 +141,7 @@ describe('ChannelBotClient', () => {
   })
 
   test('wrapTextInBlocks returns a single text block with value', () => {
-    expect(ChannelBotClient.wrapTextInBlocks('Hello world')).toEqual([
-      { type: 'text', value: 'Hello world' },
-    ])
+    expect(ChannelBotClient.wrapTextInBlocks('Hello world')).toEqual([{ type: 'text', value: 'Hello world' }])
   })
 
   test('sendUserChatMessage includes botName in query string', async () => {

@@ -10,10 +10,7 @@ npm install agent-messenger
 ```
 
 ```typescript
-import {
-  WhatsAppClient,
-  WhatsAppCredentialManager,
-} from 'agent-messenger/whatsapp'
+import { WhatsAppClient, WhatsAppCredentialManager } from 'agent-messenger/whatsapp'
 ```
 
 ## WhatsAppClient
@@ -195,22 +192,16 @@ import type {
 ## Exported Utilities
 
 ```typescript
-import {
-  createAccountId,
-  extractMessageText,
-  getMessageType,
-  jidToType,
-  WhatsAppError,
-} from 'agent-messenger/whatsapp'
+import { createAccountId, extractMessageText, getMessageType, jidToType, WhatsAppError } from 'agent-messenger/whatsapp'
 ```
 
-| Export | Description |
-|--------|-------------|
-| `createAccountId(input)` | Normalizes a phone number or string into a safe account ID |
-| `extractMessageText(message)` | Pulls the text content from a Baileys `proto.IMessage` |
-| `getMessageType(message)` | Returns the message type (`text`, `image`, `video`, etc.) from a Baileys `proto.IMessage` |
-| `jidToType(jid)` | Maps a JID to its chat type: `individual`, `group`, `broadcast`, or `status` |
-| `WhatsAppError` | Error class with a `code` property for programmatic error handling |
+| Export                        | Description                                                                               |
+| ----------------------------- | ----------------------------------------------------------------------------------------- |
+| `createAccountId(input)`      | Normalizes a phone number or string into a safe account ID                                |
+| `extractMessageText(message)` | Pulls the text content from a Baileys `proto.IMessage`                                    |
+| `getMessageType(message)`     | Returns the message type (`text`, `image`, `video`, etc.) from a Baileys `proto.IMessage` |
+| `jidToType(jid)`              | Maps a JID to its chat type: `individual`, `group`, `broadcast`, or `status`              |
+| `WhatsAppError`               | Error class with a `code` property for programmatic error handling                        |
 
 ## Examples
 
@@ -226,7 +217,7 @@ await client.connect()
 
 try {
   const chats = await client.listChats()
-  const unread = chats.filter(c => c.unread_count > 0)
+  const unread = chats.filter((c) => c.unread_count > 0)
   console.log(`${unread.length} chats with unread messages:`)
   for (const chat of unread) {
     console.log(`  ${chat.name} (${chat.type}) — ${chat.unread_count} unread`)

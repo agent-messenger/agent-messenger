@@ -1,3 +1,5 @@
+import { ChannelBotCredentialManager } from './credential-manager'
+import { wrapTextInBlocks } from './message-utils'
 import type {
   ChannelBotBot,
   ChannelBotChannel,
@@ -9,8 +11,6 @@ import type {
   MessageBlock,
 } from './types'
 import { ChannelBotError as ChannelBotErrorClass } from './types'
-import { wrapTextInBlocks } from './message-utils'
-import { ChannelBotCredentialManager } from './credential-manager'
 
 const BASE_URL = 'https://api.channel.io/open/v5'
 const MAX_RETRIES = 3
@@ -82,7 +82,12 @@ export class ChannelBotClient {
       limit?: number
     },
   ): Promise<ChannelBotMessage[]> {
-    return this.request<ChannelBotMessage[]>('GET', this.buildPath(`/user-chats/${chatId}/messages`, params), undefined, 'messages')
+    return this.request<ChannelBotMessage[]>(
+      'GET',
+      this.buildPath(`/user-chats/${chatId}/messages`, params),
+      undefined,
+      'messages',
+    )
   }
 
   async sendUserChatMessage(chatId: string, blocks: MessageBlock[], botName?: string): Promise<ChannelBotMessage> {
@@ -95,7 +100,12 @@ export class ChannelBotClient {
   }
 
   async closeUserChat(chatId: string, botName: string): Promise<ChannelBotUserChat> {
-    return this.request<ChannelBotUserChat>('PATCH', this.buildPath(`/user-chats/${chatId}/close`, { botName }), undefined, 'userChat')
+    return this.request<ChannelBotUserChat>(
+      'PATCH',
+      this.buildPath(`/user-chats/${chatId}/close`, { botName }),
+      undefined,
+      'userChat',
+    )
   }
 
   async deleteUserChat(chatId: string): Promise<void> {
@@ -129,7 +139,12 @@ export class ChannelBotClient {
       limit?: number
     },
   ): Promise<ChannelBotMessage[]> {
-    return this.request<ChannelBotMessage[]>('GET', this.buildPath(`/groups/${groupId}/messages`, params), undefined, 'messages')
+    return this.request<ChannelBotMessage[]>(
+      'GET',
+      this.buildPath(`/groups/${groupId}/messages`, params),
+      undefined,
+      'messages',
+    )
   }
 
   async sendGroupMessage(groupId: string, blocks: MessageBlock[], botName?: string): Promise<ChannelBotMessage> {
@@ -165,10 +180,15 @@ export class ChannelBotClient {
   }
 
   async createBot(name: string, options?: { color?: string; avatarUrl?: string }): Promise<ChannelBotBot> {
-    return this.request<ChannelBotBot>('POST', '/bots', {
-      name,
-      ...options,
-    }, 'bot')
+    return this.request<ChannelBotBot>(
+      'POST',
+      '/bots',
+      {
+        name,
+        ...options,
+      },
+      'bot',
+    )
   }
 
   async deleteBot(botId: string): Promise<void> {
@@ -265,19 +285,25 @@ export class ChannelBotClient {
           continue
         }
 
-        const errorBody = await response.json().catch(() => ({})) as {
+        const errorBody = (await response.json().catch(() => ({}))) as {
           message?: string
           code?: string
         }
-        throw new ChannelBotErrorClass(errorBody.message || `HTTP ${response.status}`, errorBody.code || `http_${response.status}`)
+        throw new ChannelBotErrorClass(
+          errorBody.message || `HTTP ${response.status}`,
+          errorBody.code || `http_${response.status}`,
+        )
       }
 
       if (!response.ok) {
-        const errorBody = await response.json().catch(() => ({})) as {
+        const errorBody = (await response.json().catch(() => ({}))) as {
           message?: string
           code?: string
         }
-        throw new ChannelBotErrorClass(errorBody.message || `HTTP ${response.status}`, errorBody.code || `http_${response.status}`)
+        throw new ChannelBotErrorClass(
+          errorBody.message || `HTTP ${response.status}`,
+          errorBody.code || `http_${response.status}`,
+        )
       }
 
       if (response.status === 204) {

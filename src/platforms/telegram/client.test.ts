@@ -1,4 +1,5 @@
 import { describe, expect, mock, test } from 'bun:test'
+
 import { TelegramTdlibClient } from './client'
 import type { TelegramAccount, TelegramAccountPaths } from './types'
 
@@ -62,14 +63,20 @@ describe('listChats', () => {
           events.push({ '@type': 'ok', '@extra': request['@extra'] })
         } else {
           // given — third call returns 404 (all chats loaded)
-          events.push({ '@type': 'error', code: 404, message: 'Chat list has been loaded completely', '@extra': request['@extra'] })
+          events.push({
+            '@type': 'error',
+            code: 404,
+            message: 'Chat list has been loaded completely',
+            '@extra': request['@extra'],
+          })
         }
         return
       }
 
       if (request['@type'] === 'getChats') {
         // when — after first two loadChats calls, return partial; after 404, return all
-        const returnCount = loadChatsCallCount >= 3 ? allChatIds.length : Math.min(loadChatsCallCount * 2, allChatIds.length)
+        const returnCount =
+          loadChatsCallCount >= 3 ? allChatIds.length : Math.min(loadChatsCallCount * 2, allChatIds.length)
         events.push({
           '@type': 'chats',
           total_count: returnCount,
@@ -81,7 +88,13 @@ describe('listChats', () => {
 
       if (request['@type'] === 'getChat') {
         const chatId = request.chat_id
-        const typeNames = ['chatTypePrivate', 'chatTypePrivate', 'chatTypeBasicGroup', 'chatTypeSupergroup', 'chatTypeSupergroup']
+        const typeNames = [
+          'chatTypePrivate',
+          'chatTypePrivate',
+          'chatTypeBasicGroup',
+          'chatTypeSupergroup',
+          'chatTypeSupergroup',
+        ]
         const idx = allChatIds.indexOf(chatId)
         events.push({
           '@type': 'chat',

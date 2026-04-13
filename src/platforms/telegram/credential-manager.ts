@@ -2,6 +2,7 @@ import { existsSync } from 'node:fs'
 import { mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
+
 import {
   createAccountId,
   type TelegramAccount,
@@ -87,14 +88,22 @@ export class TelegramCredentialManager {
     const oldPaths = this.getAccountPaths(normalizedOldAccountId)
     const newPaths = this.getAccountPaths(account.account_id)
 
-    if (normalizedOldAccountId !== account.account_id && existsSync(oldPaths.account_dir) && existsSync(newPaths.account_dir)) {
+    if (
+      normalizedOldAccountId !== account.account_id &&
+      existsSync(oldPaths.account_dir) &&
+      existsSync(newPaths.account_dir)
+    ) {
       throw new TelegramError(
         `Can't migrate Telegram account data from "${normalizedOldAccountId}" to "${account.account_id}" because the target TDLib directory already exists: ${newPaths.account_dir}`,
         'account_migration_conflict',
       )
     }
 
-    if (normalizedOldAccountId !== account.account_id && existsSync(oldPaths.account_dir) && !existsSync(newPaths.account_dir)) {
+    if (
+      normalizedOldAccountId !== account.account_id &&
+      existsSync(oldPaths.account_dir) &&
+      !existsSync(newPaths.account_dir)
+    ) {
       await mkdir(this.tdlibRootDir, { recursive: true })
       await rename(oldPaths.account_dir, newPaths.account_dir)
     }

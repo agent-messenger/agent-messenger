@@ -9,14 +9,14 @@ description: Complete reference for the agent-line CLI.
 
 Before diving in, a few things about LINE's architecture:
 
-| Term                       | Description                                                                                         |
-| -------------------------- | --------------------------------------------------------------------------------------------------- |
-| **MID**                    | LINE's unique identifier for users, chats, and rooms. Prefixed with `u` (user), `c` (group chat), or `r` (room). |
-| **QR code login**          | The primary authentication method. Scan a QR code with the LINE mobile app to authorize the CLI.    |
-| **ANDROIDSECONDARY**       | The default device type. Registers as a secondary Android device so your phone and desktop sessions stay active. |
-| **E2EE (Letter Sealing)**  | LINE's end-to-end encryption. The CLI attempts E2EE first and falls back to plaintext if keys aren't available. |
-| **Device types**           | Controls which device slot the CLI occupies. Secondary devices coexist with your other sessions.    |
-| **PIN verification**       | During login, LINE may display a PIN that you confirm on your phone to authorize the new device.    |
+| Term                      | Description                                                                                                      |
+| ------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| **MID**                   | LINE's unique identifier for users, chats, and rooms. Prefixed with `u` (user), `c` (group chat), or `r` (room). |
+| **QR code login**         | The primary authentication method. Scan a QR code with the LINE mobile app to authorize the CLI.                 |
+| **ANDROIDSECONDARY**      | The default device type. Registers as a secondary Android device so your phone and desktop sessions stay active. |
+| **E2EE (Letter Sealing)** | LINE's end-to-end encryption. The CLI attempts E2EE first and falls back to plaintext if keys aren't available.  |
+| **Device types**          | Controls which device slot the CLI occupies. Secondary devices coexist with your other sessions.                 |
+| **PIN verification**      | During login, LINE may display a PIN that you confirm on your phone to authorize the new device.                 |
 
 ## Quick Start
 
@@ -76,12 +76,12 @@ agent-line auth login --token <auth-token>
 
 LINE allows multiple simultaneous sessions depending on the device type:
 
-| Device             | Default? | Side Effect                                    |
-| ------------------ | -------- | ---------------------------------------------- |
-| ANDROIDSECONDARY   | Yes      | Secondary device, coexists with all sessions   |
-| IOSIPAD            | No       | Secondary device, coexists with all sessions   |
-| DESKTOPMAC         | No       | Replaces existing macOS desktop session        |
-| DESKTOPWIN         | No       | Replaces existing Windows desktop session      |
+| Device           | Default? | Side Effect                                  |
+| ---------------- | -------- | -------------------------------------------- |
+| ANDROIDSECONDARY | Yes      | Secondary device, coexists with all sessions |
+| IOSIPAD          | No       | Secondary device, coexists with all sessions |
+| DESKTOPMAC       | No       | Replaces existing macOS desktop session      |
+| DESKTOPWIN       | No       | Replaces existing Windows desktop session    |
 
 ```bash
 # Default: ANDROIDSECONDARY (safe for most users)

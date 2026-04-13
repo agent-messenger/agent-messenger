@@ -50,7 +50,10 @@ type ChannelCredentialManagerLike = Pick<
 >
 type ChannelTokenExtractorLike = Pick<ChannelTokenExtractor, 'extract'>
 
-let createChannelClient: (accountCookie: string, sessionCookie?: string) => ChannelClientLike | Promise<ChannelClientLike> = async (
+let createChannelClient: (
+  accountCookie: string,
+  sessionCookie?: string,
+) => ChannelClientLike | Promise<ChannelClientLike> = async (
   accountCookie: string,
   sessionCookie?: string,
 ): Promise<ChannelClientLike> => new ChannelClient().login({ accountCookie, sessionCookie })
@@ -60,7 +63,10 @@ let createCredentialManager = (): ChannelCredentialManagerLike => new ChannelCre
 let createTokenExtractor = (): ChannelTokenExtractorLike => new ChannelTokenExtractor()
 
 export function setChannelAuthCommandDependenciesForTesting(dependencies: {
-  createChannelClient?: (accountCookie: string, sessionCookie?: string) => ChannelClientLike | Promise<ChannelClientLike>
+  createChannelClient?: (
+    accountCookie: string,
+    sessionCookie?: string,
+  ) => ChannelClientLike | Promise<ChannelClientLike>
   createCredentialManager?: () => ChannelCredentialManagerLike
   createTokenExtractor?: () => ChannelTokenExtractorLike
 }): void {
@@ -154,7 +160,9 @@ export async function statusAction(options: ActionOptions = {}): Promise<StatusR
       }
     }
 
-    const storedWorkspace = (await credManager.listAll()).find((workspace) => workspace.workspace_id === creds.workspace_id)
+    const storedWorkspace = (await credManager.listAll()).find(
+      (workspace) => workspace.workspace_id === creds.workspace_id,
+    )
 
     try {
       const client = await createChannelClient(creds.account_cookie, creds.session_cookie ?? undefined)
@@ -205,7 +213,10 @@ export async function listAction(options: ActionOptions = {}): Promise<Workspace
   }
 }
 
-export async function useAction(workspaceId: string, options: ActionOptions = {}): Promise<SuccessResult | ErrorResult> {
+export async function useAction(
+  workspaceId: string,
+  options: ActionOptions = {},
+): Promise<SuccessResult | ErrorResult> {
   try {
     const credManager = options._credManager ?? createCredentialManager()
     const found = await credManager.setCurrent(workspaceId)
@@ -223,7 +234,10 @@ export async function useAction(workspaceId: string, options: ActionOptions = {}
   }
 }
 
-export async function removeAction(workspaceId: string, options: ActionOptions = {}): Promise<SuccessResult | ErrorResult> {
+export async function removeAction(
+  workspaceId: string,
+  options: ActionOptions = {},
+): Promise<SuccessResult | ErrorResult> {
   try {
     const credManager = options._credManager ?? createCredentialManager()
     const removed = await credManager.removeWorkspace(workspaceId)

@@ -29,10 +29,7 @@ export async function sendAction(
   }
 }
 
-export async function listAction(
-  spaceId: string,
-  options: { limit?: number; pretty?: boolean },
-): Promise<void> {
+export async function listAction(spaceId: string, options: { limit?: number; pretty?: boolean }): Promise<void> {
   try {
     const client = await new WebexClient().login()
     const limit = options.limit ?? 50
@@ -52,10 +49,7 @@ export async function listAction(
   }
 }
 
-export async function getAction(
-  messageId: string,
-  options: { pretty?: boolean },
-): Promise<void> {
+export async function getAction(messageId: string, options: { pretty?: boolean }): Promise<void> {
   try {
     const client = await new WebexClient().login()
     const message = await client.getMessage(messageId)
@@ -74,15 +68,10 @@ export async function getAction(
   }
 }
 
-export async function deleteAction(
-  messageId: string,
-  options: { force?: boolean; pretty?: boolean },
-): Promise<void> {
+export async function deleteAction(messageId: string, options: { force?: boolean; pretty?: boolean }): Promise<void> {
   try {
     if (!options.force) {
-      console.log(
-        formatOutput({ warning: 'Use --force to confirm deletion', messageId }, options.pretty),
-      )
+      console.log(formatOutput({ warning: 'Use --force to confirm deletion', messageId }, options.pretty))
       return process.exit(0)
     }
 

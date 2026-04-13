@@ -4,12 +4,24 @@ import { mkdir } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-const mockGetChannel = mock(() => Promise.resolve({ id: 'ch1', name: 'Test Workspace', homepageUrl: 'https://example.com' }))
+const mockGetChannel = mock(() =>
+  Promise.resolve({ id: 'ch1', name: 'Test Workspace', homepageUrl: 'https://example.com' }),
+)
 const mockListGroups = mock(() => Promise.resolve([{ id: 'grp1', channelId: 'ch1', name: 'Team Alpha' }]))
-const mockGetGroupMessages = mock(() => Promise.resolve([{ id: 'msg1', chatId: 'grp1', personType: 'manager' as const, plainText: 'Hello', createdAt: 1234567890 }]))
-const mockListUserChats = mock(() => Promise.resolve([{ id: 'chat1', channelId: 'ch1', state: 'opened' as const, userId: 'user1' }]))
-const mockGetUserChatMessages = mock(() => Promise.resolve([{ id: 'msg2', chatId: 'chat1', plainText: 'Hi', createdAt: 1234567890 }]))
-const mockListManagers = mock(() => Promise.resolve([{ id: 'mgr1', channelId: 'ch1', name: 'Alice', description: 'Lead' }]))
+const mockGetGroupMessages = mock(() =>
+  Promise.resolve([
+    { id: 'msg1', chatId: 'grp1', personType: 'manager' as const, plainText: 'Hello', createdAt: 1234567890 },
+  ]),
+)
+const mockListUserChats = mock(() =>
+  Promise.resolve([{ id: 'chat1', channelId: 'ch1', state: 'opened' as const, userId: 'user1' }]),
+)
+const mockGetUserChatMessages = mock(() =>
+  Promise.resolve([{ id: 'msg2', chatId: 'chat1', plainText: 'Hi', createdAt: 1234567890 }]),
+)
+const mockListManagers = mock(() =>
+  Promise.resolve([{ id: 'mgr1', channelId: 'ch1', name: 'Alice', description: 'Lead' }]),
+)
 const mockListBots = mock(() => Promise.resolve([{ id: 'bot1', channelId: 'ch1', name: 'Support Bot' }]))
 
 mock.module('../client', () => ({

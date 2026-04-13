@@ -24,14 +24,14 @@ agent-channeltalk chat list
 
 Channel Talk has different terminology from Slack or Discord:
 
-| Channel Talk Term | Equivalent In          | Description                          |
-| ----------------- | ---------------------- | ------------------------------------ |
-| **Channel**       | Workspace (Slack)      | Your entire workspace                |
-| **UserChat**      | DM with a customer     | 1:1 conversations with end users     |
-| **Group**         | Channel (Slack)        | Team inbox channels                  |
-| **DirectChat**    | DM (Slack)             | Direct messages between managers     |
-| **Manager**       | Member/Agent           | Human agents on your team            |
-| **Bot**           | Bot                    | Automated agents in the workspace    |
+| Channel Talk Term | Equivalent In      | Description                       |
+| ----------------- | ------------------ | --------------------------------- |
+| **Channel**       | Workspace (Slack)  | Your entire workspace             |
+| **UserChat**      | DM with a customer | 1:1 conversations with end users  |
+| **Group**         | Channel (Slack)    | Team inbox channels               |
+| **DirectChat**    | DM (Slack)         | Direct messages between managers  |
+| **Manager**       | Member/Agent       | Human agents on your team         |
+| **Bot**           | Bot                | Automated agents in the workspace |
 
 ## Authentication
 
@@ -203,20 +203,20 @@ All commands support these options:
 
 ## Feature Comparison: agent-channeltalk vs agent-channeltalkbot
 
-| Feature                    | agent-channeltalk (user) | agent-channeltalkbot (bot) |
-| -------------------------- | :----------------------: | :------------------------: |
-| Auth method                |   Auto-extract cookies   |      API key + secret      |
-| Setup required             |    None (zero-config)    |      Manual key setup      |
-| Acts as                    |      You (manager)       |        Bot identity        |
-| Send messages              |            ✅            |             ✅             |
-| List messages              |            ✅            |             ✅             |
-| Close/delete chats         |            —             |             ✅             |
-| Create/delete bots         |            —             |             ✅             |
-| Set default bot            |            —             |             ✅             |
-| Group @name references     |            —             |             ✅             |
-| Direct chat support        |            ✅            |             —              |
-| Multi-workspace            |            ✅            |             ✅             |
-| CI/CD friendly             |            —             |             ✅             |
+| Feature                | agent-channeltalk (user) | agent-channeltalkbot (bot) |
+| ---------------------- | :----------------------: | :------------------------: |
+| Auth method            |   Auto-extract cookies   |      API key + secret      |
+| Setup required         |    None (zero-config)    |      Manual key setup      |
+| Acts as                |      You (manager)       |        Bot identity        |
+| Send messages          |            ✅            |             ✅             |
+| List messages          |            ✅            |             ✅             |
+| Close/delete chats     |            —             |             ✅             |
+| Create/delete bots     |            —             |             ✅             |
+| Set default bot        |            —             |             ✅             |
+| Group @name references |            —             |             ✅             |
+| Direct chat support    |            ✅            |             —              |
+| Multi-workspace        |            ✅            |             ✅             |
+| CI/CD friendly         |            —             |             ✅             |
 
 Use **agent-channeltalk** when you want zero-config access acting as yourself. Use **[agent-channeltalkbot](/docs/cli/channeltalkbot)** for server-side automation, CI/CD pipelines, or when you need bot-specific features like closing chats.
 
@@ -227,10 +227,12 @@ Use **agent-channeltalk** when you want zero-config access acting as yourself. U
 The CLI looks for the Channel Talk desktop app's cookie database in:
 
 **macOS:**
+
 1. `~/Library/Containers/com.zoyi.channel.desk.osx/Data/Library/Application Support/Channel Talk/Cookies` (Mac App Store)
 2. `~/Library/Application Support/Channel Talk/Cookies` (Electron version)
 
 **Windows:**
+
 1. `%APPDATA%\Channel Talk\Network\Cookies`
 
 If none exist, either install the Channel Talk desktop app and log in, or log in via a Chromium browser (Chrome, Edge, Arc, Brave, etc.) — the CLI will fall back to browser extraction automatically.

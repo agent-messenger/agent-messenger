@@ -115,12 +115,12 @@ describe('message commands', () => {
   describe('sendAction', () => {
     test('sends to userchat and wraps text in blocks', async () => {
       const manager = new ChannelBotCredentialManager(tempDir)
-        const result = await sendAction('chat1', 'Hello world', { type: 'userchat', _credManager: manager })
+      const result = await sendAction('chat1', 'Hello world', { type: 'userchat', _credManager: manager })
 
-        expect(result.error).toBeUndefined()
-        expect(result.id).toBe('msg1')
-        expect(capturedSendUserChatArgs[1]).toEqual([{ type: 'text', value: 'Hello world' }])
-      })
+      expect(result.error).toBeUndefined()
+      expect(result.id).toBe('msg1')
+      expect(capturedSendUserChatArgs[1]).toEqual([{ type: 'text', value: 'Hello world' }])
+    })
 
     test('sends to group when type=group', async () => {
       const manager = new ChannelBotCredentialManager(tempDir)
@@ -167,7 +167,13 @@ describe('message commands', () => {
 
     test('passes pagination params', async () => {
       const manager = new ChannelBotCredentialManager(tempDir)
-      await listAction('chat1', { type: 'userchat', limit: '10', sort: 'asc', since: 'cursor123', _credManager: manager })
+      await listAction('chat1', {
+        type: 'userchat',
+        limit: '10',
+        sort: 'asc',
+        since: 'cursor123',
+        _credManager: manager,
+      })
 
       expect(capturedGetUserChatMsgArgs[0]).toBe('chat1')
       expect(capturedGetUserChatMsgArgs[1]).toMatchObject({ limit: 10, sortOrder: 'asc', since: 'cursor123' })

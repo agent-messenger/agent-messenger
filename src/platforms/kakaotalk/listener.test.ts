@@ -45,7 +45,12 @@ mock.module('./protocol/session', () => ({ LocoSession: MockLocoSession }))
 
 function createMockClient(overrides: Record<string, unknown> = {}) {
   return {
-    getCredentials: mock(() => ({ oauthToken: 'token', userId: 'user1', deviceUuid: 'device1', deviceType: 'tablet' as const })),
+    getCredentials: mock(() => ({
+      oauthToken: 'token',
+      userId: 'user1',
+      deviceUuid: 'device1',
+      deviceType: 'tablet' as const,
+    })),
     ...overrides,
   } as any
 }

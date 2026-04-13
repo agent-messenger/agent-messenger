@@ -21,8 +21,8 @@ describe('whoami command', () => {
       phone_number: '12025551234',
     }
 
-    withWhatsAppClientSpy = spyOn(sharedModule, 'withWhatsAppClient').mockImplementation(
-      async (_opts, fn) => fn({ getProfile: () => Promise.resolve(mockProfileData) } as unknown as WhatsAppClient),
+    withWhatsAppClientSpy = spyOn(sharedModule, 'withWhatsAppClient').mockImplementation(async (_opts, fn) =>
+      fn({ getProfile: () => Promise.resolve(mockProfileData) } as unknown as WhatsAppClient),
     )
     consoleLogSpy = spyOn(console, 'log').mockImplementation(() => {})
   })

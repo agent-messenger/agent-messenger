@@ -357,7 +357,10 @@ describe('ChromiumCookieDecryptor', () => {
 
     test('handles non-printable bytes that would be mangled by UTF-8 conversion (the v130+ fix)', () => {
       // given
-      const binaryPrefix = Buffer.from([...Array.from({ length: 16 }, (_, i) => i), ...Array.from({ length: 16 }, (_, i) => 0x80 + i)])
+      const binaryPrefix = Buffer.from([
+        ...Array.from({ length: 16 }, (_, i) => i),
+        ...Array.from({ length: 16 }, (_, i) => 0x80 + i),
+      ])
       const value = Buffer.from('v130-cookie-value')
 
       // when

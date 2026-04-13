@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'bun:test'
+
 import { findFuzzyChats, normalizeChatSearchText } from './chat-utils'
 import { createAccountId, simplifyChat, simplifyMessage, summarizeAuthorizationState } from './types'
 

@@ -53,7 +53,7 @@ describe('ChannelBotCredentialManager', () => {
       const config = {
         current: { workspace_id: 'ch_abc123' },
         workspaces: {
-          'ch_abc123': {
+          ch_abc123: {
             workspace_id: 'ch_abc123',
             workspace_name: 'Test Workspace',
             access_key: 'test-key',

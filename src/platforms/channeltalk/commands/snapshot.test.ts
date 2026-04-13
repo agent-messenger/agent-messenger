@@ -2,9 +2,20 @@ import { beforeEach, describe, expect, mock, test } from 'bun:test'
 
 const mockGetChannel = mock(() => Promise.resolve({ id: 'ws-1', name: 'Workspace One' }))
 const mockListManagers = mock(() =>
-  Promise.resolve([{ id: 'mgr-1', channelId: 'ws-1', accountId: 'acct-1', name: 'Alice', email: 'alice@example.com', roleId: 'role-1' }]),
+  Promise.resolve([
+    {
+      id: 'mgr-1',
+      channelId: 'ws-1',
+      accountId: 'acct-1',
+      name: 'Alice',
+      email: 'alice@example.com',
+      roleId: 'role-1',
+    },
+  ]),
 )
-const mockListBots = mock(() => Promise.resolve([{ id: 'bot-1', channelId: 'ws-1', name: 'Support Bot', avatarUrl: 'https://example.com/bot.png' }]))
+const mockListBots = mock(() =>
+  Promise.resolve([{ id: 'bot-1', channelId: 'ws-1', name: 'Support Bot', avatarUrl: 'https://example.com/bot.png' }]),
+)
 const mockListGroups = mock(() =>
   Promise.resolve([
     { id: 'grp-1', channelId: 'ws-1', name: 'Support' },
@@ -34,9 +45,13 @@ const mockListUserChats = mock((_: string, params?: { state?: string; limit?: nu
         { id: 'chat-2', channelId: 'ws-1', state: 'opened', assigneeId: 'mgr-2', createdAt: 110, updatedAt: 210 },
       ])
     case 'snoozed':
-      return Promise.resolve([{ id: 'chat-3', channelId: 'ws-1', state: 'snoozed', assigneeId: 'mgr-1', createdAt: 120, updatedAt: 220 }])
+      return Promise.resolve([
+        { id: 'chat-3', channelId: 'ws-1', state: 'snoozed', assigneeId: 'mgr-1', createdAt: 120, updatedAt: 220 },
+      ])
     case 'closed':
-      return Promise.resolve([{ id: 'chat-4', channelId: 'ws-1', state: 'closed', assigneeId: 'mgr-2', createdAt: 130, updatedAt: 230 }])
+      return Promise.resolve([
+        { id: 'chat-4', channelId: 'ws-1', state: 'closed', assigneeId: 'mgr-2', createdAt: 130, updatedAt: 230 },
+      ])
     default:
       return Promise.resolve([])
   }

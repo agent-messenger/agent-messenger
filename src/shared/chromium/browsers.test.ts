@@ -33,9 +33,7 @@ describe('browsers', () => {
     test('includes major supported browsers', () => {
       const browserNames = CHROMIUM_BROWSERS.map((browser) => browser.name)
 
-      expect(browserNames).toEqual(
-        expect.arrayContaining(['Chrome', 'Edge', 'Arc', 'Brave', 'Vivaldi', 'Chromium']),
-      )
+      expect(browserNames).toEqual(expect.arrayContaining(['Chrome', 'Edge', 'Arc', 'Brave', 'Vivaldi', 'Chromium']))
     })
 
     test('Arc has empty linux path', () => {
@@ -58,9 +56,7 @@ describe('browsers', () => {
     test('includes known safe storage services', () => {
       const services = BROWSER_KEYCHAIN_VARIANTS.map((variant) => variant.service)
 
-      expect(services).toEqual(
-        expect.arrayContaining(['Chrome Safe Storage', 'Microsoft Edge Safe Storage']),
-      )
+      expect(services).toEqual(expect.arrayContaining(['Chrome Safe Storage', 'Microsoft Edge Safe Storage']))
     })
   })
 

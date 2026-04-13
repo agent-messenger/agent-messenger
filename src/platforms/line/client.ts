@@ -2,13 +2,13 @@ import { mkdirSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
 
+import { FileStorage } from '@/vendor/linejs/base/storage/mod.js'
 import {
   loginWithQR as linejsLoginWithQR,
   loginWithPassword as linejsLoginWithPassword,
   loginWithAuthToken as linejsLoginWithAuthToken,
   type Client,
 } from '@/vendor/linejs/client/mod.js'
-import { FileStorage } from '@/vendor/linejs/base/storage/mod.js'
 
 import { LineCredentialManager } from './credential-manager'
 import type {
@@ -146,10 +146,7 @@ export class LineClient {
       if (!creds) {
         const account = await this.credManager.getAccount()
         if (!account) {
-          throw new LineError(
-            'not_authenticated',
-            'No account found. Call loginWithQR() or loginWithEmail() first.',
-          )
+          throw new LineError('not_authenticated', 'No account found. Call loginWithQR() or loginWithEmail() first.')
         }
         creds = account
       }
@@ -171,9 +168,7 @@ export class LineClient {
         mid: profile.mid,
         display_name: profile.displayName,
         status_message: profile.statusMessage || undefined,
-        picture_url: profile.picturePath
-          ? `https://profile.line-scdn.net${profile.picturePath}`
-          : undefined,
+        picture_url: profile.picturePath ? `https://profile.line-scdn.net${profile.picturePath}` : undefined,
       }
     } catch (error) {
       throw wrapError(error, 'get_profile_failed')
@@ -191,9 +186,7 @@ export class LineClient {
         mid: contact.mid,
         display_name: contact.displayName,
         status_message: contact.statusMessage || undefined,
-        picture_url: contact.picturePath
-          ? `https://profile.line-scdn.net${contact.picturePath}`
-          : undefined,
+        picture_url: contact.picturePath ? `https://profile.line-scdn.net${contact.picturePath}` : undefined,
       }))
     } catch (error) {
       throw wrapError(error, 'get_friends_failed')
@@ -232,14 +225,13 @@ export class LineClient {
       }
 
       const messageBoxes = boxes?.messageBoxes ?? []
-      const userMids = messageBoxes
-        .filter((box) => box.midType === 'USER' && !seen.has(box.id))
-        .map((box) => box.id)
-      const groupMids = messageBoxes
-        .filter((box) => box.midType !== 'USER' && !seen.has(box.id))
-        .map((box) => box.id)
+      const userMids = messageBoxes.filter((box) => box.midType === 'USER' && !seen.has(box.id)).map((box) => box.id)
+      const groupMids = messageBoxes.filter((box) => box.midType !== 'USER' && !seen.has(box.id)).map((box) => box.id)
 
-      const nameMap = new Map<string, { name: string; type: 'user' | 'group' | 'room' | 'square'; memberCount?: number }>()
+      const nameMap = new Map<
+        string,
+        { name: string; type: 'user' | 'group' | 'room' | 'square'; memberCount?: number }
+      >()
 
       if (userMids.length > 0) {
         try {
@@ -270,7 +262,7 @@ export class LineClient {
         const info = nameMap.get(box.id)
         results.push({
           chat_id: box.id,
-          type: info?.type ?? (box.midType === 'USER' ? 'user' as const : 'group' as const),
+          type: info?.type ?? (box.midType === 'USER' ? ('user' as const) : ('group' as const)),
           display_name: info?.name ?? box.id,
           member_count: info?.memberCount,
         })
@@ -315,7 +307,7 @@ export class LineClient {
   async sendMessage(chatId: string, text: string): Promise<LineSendResult> {
     try {
       const client = this.ensureClient()
-      let sent;
+      let sent
 
       try {
         sent = await client.base.talk.sendMessage({ to: chatId, text, e2ee: true })

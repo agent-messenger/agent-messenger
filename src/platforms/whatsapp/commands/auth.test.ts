@@ -3,7 +3,9 @@ import { afterEach, beforeEach, describe, expect, mock, spyOn, test } from 'bun:
 const originalConsoleLog = console.log
 
 mock.module('@/shared/utils/error-handler', () => ({
-  handleError: (err: Error) => { throw err },
+  handleError: (err: Error) => {
+    throw err
+  },
 }))
 
 const mockGetAccount = mock(() => Promise.resolve(null))
@@ -27,7 +29,9 @@ mock.module('../credential-manager', () => ({
 const mockConnect = mock(() => Promise.resolve())
 const mockClose = mock(() => Promise.resolve())
 const mockGetSocket = mock(() => null)
-const mockLogin = mock(function (this: unknown) { return Promise.resolve(this) })
+const mockLogin = mock(function (this: unknown) {
+  return Promise.resolve(this)
+})
 
 mock.module('../client', () => ({
   WhatsAppClient: class {
@@ -63,9 +67,12 @@ describe('auth commands', () => {
     mockConnect.mockImplementation(() => Promise.resolve())
     mockClose.mockImplementation(() => Promise.resolve())
     mockGetSocket.mockImplementation(() => null)
-    mockLogin.mockImplementation(function (this: unknown) { return Promise.resolve(this) })
+    mockLogin.mockImplementation(function (this: unknown) {
+      return Promise.resolve(this)
+    })
 
-    consoleLogSpy = mock((..._args: unknown[]) => {}); console.log = consoleLogSpy
+    consoleLogSpy = mock((..._args: unknown[]) => {})
+    console.log = consoleLogSpy
     processExitSpy = spyOn(process, 'exit').mockImplementation((_code?: number) => {
       throw new Error(`process.exit(${_code})`)
     })
@@ -146,9 +153,7 @@ describe('auth commands', () => {
     test('outputs error and exits when account not found', async () => {
       mockSetCurrent.mockImplementation(() => Promise.resolve(false))
 
-      await expect(
-        authCommand.parseAsync(['use', 'nonexistent'], { from: 'user' }),
-      ).rejects.toThrow('process.exit(1)')
+      await expect(authCommand.parseAsync(['use', 'nonexistent'], { from: 'user' })).rejects.toThrow('process.exit(1)')
 
       expect(processExitSpy).toHaveBeenCalledWith(1)
       const output = JSON.parse(consoleLogSpy.mock.calls[0][0])
@@ -180,9 +185,7 @@ describe('auth commands', () => {
     test('outputs error and exits when no account configured', async () => {
       mockGetAccount.mockImplementation(() => Promise.resolve(null))
 
-      await expect(
-        authCommand.parseAsync(['status'], { from: 'user' }),
-      ).rejects.toThrow('process.exit(1)')
+      await expect(authCommand.parseAsync(['status'], { from: 'user' })).rejects.toThrow('process.exit(1)')
 
       expect(processExitSpy).toHaveBeenCalledWith(1)
       const output = JSON.parse(consoleLogSpy.mock.calls[0][0])
@@ -214,9 +217,9 @@ describe('auth commands', () => {
     test('outputs error for specific missing account', async () => {
       mockGetAccount.mockImplementation(() => Promise.resolve(null))
 
-      await expect(
-        authCommand.parseAsync(['status', '--account', 'missing-id'], { from: 'user' }),
-      ).rejects.toThrow('process.exit(1)')
+      await expect(authCommand.parseAsync(['status', '--account', 'missing-id'], { from: 'user' })).rejects.toThrow(
+        'process.exit(1)',
+      )
 
       expect(processExitSpy).toHaveBeenCalledWith(1)
       const output = JSON.parse(consoleLogSpy.mock.calls[0][0])
@@ -238,9 +241,7 @@ describe('auth commands', () => {
       )
       mockRemoveAccount.mockImplementation(() => Promise.resolve(true))
 
-      await expect(
-        authCommand.parseAsync(['logout'], { from: 'user' }),
-      ).rejects.toThrow('process.exit(0)')
+      await expect(authCommand.parseAsync(['logout'], { from: 'user' })).rejects.toThrow('process.exit(0)')
 
       expect(mockRemoveAccount).toHaveBeenCalledWith('plus-12025551234')
       const output = JSON.parse(consoleLogSpy.mock.calls[0][0])
@@ -252,9 +253,7 @@ describe('auth commands', () => {
     test('outputs error and exits when no account configured', async () => {
       mockGetAccount.mockImplementation(() => Promise.resolve(null))
 
-      await expect(
-        authCommand.parseAsync(['logout'], { from: 'user' }),
-      ).rejects.toThrow('process.exit(1)')
+      await expect(authCommand.parseAsync(['logout'], { from: 'user' })).rejects.toThrow('process.exit(1)')
 
       expect(processExitSpy).toHaveBeenCalledWith(1)
       const output = JSON.parse(consoleLogSpy.mock.calls[0][0])
@@ -274,9 +273,7 @@ describe('auth commands', () => {
       mockConnect.mockImplementation(() => Promise.reject(new Error('Connection failed')))
       mockRemoveAccount.mockImplementation(() => Promise.resolve(true))
 
-      await expect(
-        authCommand.parseAsync(['logout'], { from: 'user' }),
-      ).rejects.toThrow('process.exit(0)')
+      await expect(authCommand.parseAsync(['logout'], { from: 'user' })).rejects.toThrow('process.exit(0)')
 
       expect(mockRemoveAccount).toHaveBeenCalledWith('plus-12025551234')
       const output = JSON.parse(consoleLogSpy.mock.calls[0][0])

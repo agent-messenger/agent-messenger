@@ -29,7 +29,11 @@ export async function sendAction(to: string, text: string, options: MessageOptio
   }
 }
 
-export async function sendTemplateAction(to: string, templateName: string, options: MessageOptions): Promise<MessageResult> {
+export async function sendTemplateAction(
+  to: string,
+  templateName: string,
+  options: MessageOptions,
+): Promise<MessageResult> {
   try {
     const client = await getClient(options)
     const languageCode = options.language ?? 'en_US'
@@ -48,7 +52,12 @@ export async function sendTemplateAction(to: string, templateName: string, optio
   }
 }
 
-export async function sendReactionAction(to: string, messageId: string, emoji: string, options: MessageOptions): Promise<MessageResult> {
+export async function sendReactionAction(
+  to: string,
+  messageId: string,
+  emoji: string,
+  options: MessageOptions,
+): Promise<MessageResult> {
   try {
     const client = await getClient(options)
     const response = await client.sendReaction(to, messageId, emoji)
@@ -68,7 +77,11 @@ export async function sendImageAction(to: string, imageUrl: string, options: Mes
   }
 }
 
-export async function sendDocumentAction(to: string, documentUrl: string, options: MessageOptions): Promise<MessageResult> {
+export async function sendDocumentAction(
+  to: string,
+  documentUrl: string,
+  options: MessageOptions,
+): Promise<MessageResult> {
   try {
     const client = await getClient(options)
     const response = await client.sendDocumentMessage(to, documentUrl, options.filename, options.caption)

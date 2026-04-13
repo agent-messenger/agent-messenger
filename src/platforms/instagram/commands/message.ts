@@ -1,6 +1,8 @@
 import { Command } from 'commander'
+
 import { handleError } from '@/shared/utils/error-handler'
 import { formatOutput } from '@/shared/utils/output'
+
 import { parseLimitOption, withInstagramClient } from './shared'
 
 async function listAction(
@@ -72,10 +74,7 @@ async function searchAction(
   }
 }
 
-async function searchUsersAction(
-  query: string,
-  options: { account?: string; pretty?: boolean },
-): Promise<void> {
+async function searchUsersAction(query: string, options: { account?: string; pretty?: boolean }): Promise<void> {
   try {
     const users = await withInstagramClient(options, (client) => client.searchUsers(query))
     console.log(formatOutput(users, options.pretty))

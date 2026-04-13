@@ -1,7 +1,7 @@
 import blessed from 'blessed'
 
-import { fuzzyMatch } from '../utils'
 import type { Workspace } from '../adapters/types'
+import { fuzzyMatch } from '../utils'
 
 export class WorkspacePicker {
   private screen: blessed.Widgets.Screen

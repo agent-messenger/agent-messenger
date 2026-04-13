@@ -10,11 +10,7 @@ npm install agent-messenger
 ```
 
 ```typescript
-import {
-  ChannelClient,
-  ChannelCredentialManager,
-  ChannelError,
-} from 'agent-messenger/channeltalk'
+import { ChannelClient, ChannelCredentialManager, ChannelError } from 'agent-messenger/channeltalk'
 ```
 
 ## ChannelClient
@@ -299,7 +295,10 @@ const manager = new ChannelCredentialManager()
 const creds = await manager.getCredentials()
 if (!creds) throw new Error('No credentials')
 
-const client = await new ChannelClient().login({ accountCookie: creds.account_cookie, sessionCookie: creds.session_cookie })
+const client = await new ChannelClient().login({
+  accountCookie: creds.account_cookie,
+  sessionCookie: creds.session_cookie,
+})
 const account = await client.getAccount()
 console.log(`Logged in as ${account.name} (${account.email})`)
 

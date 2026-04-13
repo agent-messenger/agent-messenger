@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'bun:test'
+
 import { findFuzzyChats, mergeChats, normalizeChatSearchText } from './chat-utils'
 
 describe('normalizeChatSearchText', () => {
@@ -56,7 +57,10 @@ describe('findFuzzyChats', () => {
 
 describe('mergeChats', () => {
   const a = [{ id: 1, title: 'A', type: 'group' }] as any[]
-  const b = [{ id: 1, title: 'A', type: 'group' }, { id: 2, title: 'B', type: 'group' }] as any[]
+  const b = [
+    { id: 1, title: 'A', type: 'group' },
+    { id: 2, title: 'B', type: 'group' },
+  ] as any[]
 
   test('deduplicates by id', () => {
     const result = mergeChats(a, b)

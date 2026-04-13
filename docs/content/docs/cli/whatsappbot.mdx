@@ -25,13 +25,13 @@ agent-whatsappbot message send 15551234567 "Hello from the CLI!"
 
 WhatsApp Business Cloud API works differently from the user-mode WhatsApp integration:
 
-| Concept              | Description                                                                 |
-| -------------------- | --------------------------------------------------------------------------- |
-| **Send-only**        | Cannot list or read received messages. Inbound messages require webhooks.    |
-| **Template messages** | Required outside the 24-hour customer service window. Must be pre-approved. |
-| **Phone Number ID**  | Your WhatsApp Business phone number's unique identifier (not the number).   |
-| **Access Token**     | Token from Meta Business Manager with `whatsapp_business_messaging` permission. |
-| **Rate limits**      | Tier 0-3: 80 msg/s. Tier 4: 1,000 msg/s. Based on business verification.   |
+| Concept               | Description                                                                     |
+| --------------------- | ------------------------------------------------------------------------------- |
+| **Send-only**         | Cannot list or read received messages. Inbound messages require webhooks.       |
+| **Template messages** | Required outside the 24-hour customer service window. Must be pre-approved.     |
+| **Phone Number ID**   | Your WhatsApp Business phone number's unique identifier (not the number).       |
+| **Access Token**      | Token from Meta Business Manager with `whatsapp_business_messaging` permission. |
+| **Rate limits**       | Tier 0-3: 80 msg/s. Tier 4: 1,000 msg/s. Based on business verification.        |
 
 ## Authentication
 
@@ -124,10 +124,10 @@ agent-whatsappbot template get order_confirmation
 
 ## Global Options
 
-| Option           | Description                                |
-| ---------------- | ------------------------------------------ |
-| `--pretty`       | Human-readable output instead of JSON      |
-| `--account <id>` | Use a specific account for this command     |
+| Option           | Description                             |
+| ---------------- | --------------------------------------- |
+| `--pretty`       | Human-readable output instead of JSON   |
+| `--account <id>` | Use a specific account for this command |
 
 ## Storage
 

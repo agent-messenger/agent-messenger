@@ -42,7 +42,8 @@ beforeEach(() => {
   setCurrentAccountSpy = spyOn(LineCredentialManager.prototype, 'setCurrentAccount').mockResolvedValue(undefined)
   removeAccountSpy = spyOn(LineCredentialManager.prototype, 'removeAccount').mockResolvedValue(undefined)
   clearAllSpy = spyOn(LineCredentialManager.prototype, 'clearAll').mockResolvedValue(undefined)
-  consoleLogSpy = mock((..._args: unknown[]) => {}); console.log = consoleLogSpy
+  consoleLogSpy = mock((..._args: unknown[]) => {})
+  console.log = consoleLogSpy
 })
 
 afterEach(() => {

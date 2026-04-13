@@ -1,6 +1,8 @@
 import { Command } from 'commander'
+
 import { handleError } from '@/shared/utils/error-handler'
 import { formatOutput } from '@/shared/utils/output'
+
 import { parseLimitOption, withInstagramClient } from './shared'
 
 async function listAction(options: { account?: string; pretty?: boolean; limit?: string }): Promise<void> {

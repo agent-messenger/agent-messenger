@@ -27,8 +27,12 @@ import { messageCommand } from './message'
 
 function resetCommandState(cmd: Command): void {
   for (const sub of cmd.commands) {
-    (sub as unknown as { _optionValues: Record<string, unknown>; _optionValueSources: Record<string, unknown> })._optionValues = {}
-    ;(sub as unknown as { _optionValues: Record<string, unknown>; _optionValueSources: Record<string, unknown> })._optionValueSources = {}
+    ;(
+      sub as unknown as { _optionValues: Record<string, unknown>; _optionValueSources: Record<string, unknown> }
+    )._optionValues = {}
+    ;(
+      sub as unknown as { _optionValues: Record<string, unknown>; _optionValueSources: Record<string, unknown> }
+    )._optionValueSources = {}
   }
 }
 
@@ -51,7 +55,8 @@ describe('message commands', () => {
     mockSearchMessages.mockImplementation(() => Promise.resolve([{ id: 'msg-4', text: 'Found' }]))
     mockSearchUsers.mockImplementation(() => Promise.resolve([{ pk: '999', username: 'targetuser' }]))
 
-    consoleLogSpy = mock((..._args: unknown[]) => {}); console.log = consoleLogSpy
+    consoleLogSpy = mock((..._args: unknown[]) => {})
+    console.log = consoleLogSpy
     processExitSpy = spyOn(process, 'exit').mockImplementation(() => {
       throw new Error('process.exit called')
     })
@@ -64,9 +69,9 @@ describe('message commands', () => {
 
   describe('list', () => {
     test('lists messages from a thread', async () => {
-      await expect(
-        messageCommand.parseAsync(['list', 'thread-123'], { from: 'user' }),
-      ).rejects.toThrow('process.exit called')
+      await expect(messageCommand.parseAsync(['list', 'thread-123'], { from: 'user' })).rejects.toThrow(
+        'process.exit called',
+      )
 
       expect(processExitSpy).toHaveBeenCalledWith(0)
       expect(mockGetMessages).toHaveBeenCalledWith('thread-123', 25)
@@ -85,9 +90,9 @@ describe('message commands', () => {
 
   describe('send', () => {
     test('sends a message to a thread', async () => {
-      await expect(
-        messageCommand.parseAsync(['send', 'thread-123', 'Hello world'], { from: 'user' }),
-      ).rejects.toThrow('process.exit called')
+      await expect(messageCommand.parseAsync(['send', 'thread-123', 'Hello world'], { from: 'user' })).rejects.toThrow(
+        'process.exit called',
+      )
 
       expect(processExitSpy).toHaveBeenCalledWith(0)
       expect(mockSendMessage).toHaveBeenCalledWith('thread-123', 'Hello world')
@@ -98,9 +103,9 @@ describe('message commands', () => {
 
   describe('send-to', () => {
     test('sends a message to a user by username', async () => {
-      await expect(
-        messageCommand.parseAsync(['send-to', 'targetuser', 'Hi there'], { from: 'user' }),
-      ).rejects.toThrow('process.exit called')
+      await expect(messageCommand.parseAsync(['send-to', 'targetuser', 'Hi there'], { from: 'user' })).rejects.toThrow(
+        'process.exit called',
+      )
 
       expect(processExitSpy).toHaveBeenCalledWith(0)
       expect(mockSearchUsers).toHaveBeenCalledWith('targetuser')
@@ -110,9 +115,9 @@ describe('message commands', () => {
     })
 
     test('strips @ prefix from username', async () => {
-      await expect(
-        messageCommand.parseAsync(['send-to', '@targetuser', 'Hi there'], { from: 'user' }),
-      ).rejects.toThrow('process.exit called')
+      await expect(messageCommand.parseAsync(['send-to', '@targetuser', 'Hi there'], { from: 'user' })).rejects.toThrow(
+        'process.exit called',
+      )
 
       expect(mockSearchUsers).toHaveBeenCalledWith('targetuser')
     })
@@ -132,9 +137,9 @@ describe('message commands', () => {
 
   describe('search', () => {
     test('searches messages by query', async () => {
-      await expect(
-        messageCommand.parseAsync(['search', 'hello'], { from: 'user' }),
-      ).rejects.toThrow('process.exit called')
+      await expect(messageCommand.parseAsync(['search', 'hello'], { from: 'user' })).rejects.toThrow(
+        'process.exit called',
+      )
 
       expect(processExitSpy).toHaveBeenCalledWith(0)
       expect(mockSearchMessages).toHaveBeenCalledWith('hello', { threadId: undefined, limit: 20 })
@@ -151,9 +156,9 @@ describe('message commands', () => {
     })
 
     test('passes limit option to search', async () => {
-      await expect(
-        messageCommand.parseAsync(['search', 'hello2', '--limit', '5'], { from: 'user' }),
-      ).rejects.toThrow('process.exit called')
+      await expect(messageCommand.parseAsync(['search', 'hello2', '--limit', '5'], { from: 'user' })).rejects.toThrow(
+        'process.exit called',
+      )
 
       expect(mockSearchMessages).toHaveBeenCalledWith('hello2', { threadId: undefined, limit: 5 })
     })
@@ -161,9 +166,9 @@ describe('message commands', () => {
 
   describe('search-users', () => {
     test('searches users by query', async () => {
-      await expect(
-        messageCommand.parseAsync(['search-users', 'target'], { from: 'user' }),
-      ).rejects.toThrow('process.exit called')
+      await expect(messageCommand.parseAsync(['search-users', 'target'], { from: 'user' })).rejects.toThrow(
+        'process.exit called',
+      )
 
       expect(processExitSpy).toHaveBeenCalledWith(0)
       expect(mockSearchUsers).toHaveBeenCalledWith('target')

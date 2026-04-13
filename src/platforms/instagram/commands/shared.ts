@@ -1,4 +1,5 @@
 import { formatOutput } from '@/shared/utils/output'
+
 import { InstagramClient } from '../client'
 import { InstagramCredentialManager } from '../credential-manager'
 import { InstagramError } from '../types'
@@ -8,11 +9,7 @@ export interface AccountOption {
   pretty?: boolean
 }
 
-export function parseLimitOption(
-  rawLimit: string | undefined,
-  defaultValue: number,
-  maxValue = 100,
-): number {
+export function parseLimitOption(rawLimit: string | undefined, defaultValue: number, maxValue = 100): number {
   const trimmed = (rawLimit ?? `${defaultValue}`).trim()
 
   if (!/^\d+$/.test(trimmed)) {

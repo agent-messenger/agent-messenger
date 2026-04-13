@@ -13,7 +13,7 @@ export async function whoamiAction(options: { account?: string; pretty?: boolean
         account_id: status.account_id,
         phone_number: status.phone_number,
         authenticated: status.authenticated,
-        ...status.user && { user: status.user },
+        ...(status.user && { user: status.user }),
       }
       console.log(formatOutput(output, options.pretty))
     })

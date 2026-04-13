@@ -2,11 +2,9 @@ import { afterEach, beforeEach, describe, expect, mock, test } from 'bun:test'
 
 const originalConsoleLog = console.log
 
-const mockWithKakaoClient = mock(
-  async (_options: unknown, fn: (client: unknown) => Promise<unknown>) => {
-    return fn(mockClient)
-  },
-)
+const mockWithKakaoClient = mock(async (_options: unknown, fn: (client: unknown) => Promise<unknown>) => {
+  return fn(mockClient)
+})
 
 const mockGetProfile = mock(() =>
   Promise.resolve({
@@ -42,11 +40,9 @@ describe('whoami command', () => {
     mockWithKakaoClient.mockReset()
     mockGetProfile.mockReset()
 
-    mockWithKakaoClient.mockImplementation(
-      async (_options: unknown, fn: (client: unknown) => Promise<unknown>) => {
-        return fn(mockClient)
-      },
-    )
+    mockWithKakaoClient.mockImplementation(async (_options: unknown, fn: (client: unknown) => Promise<unknown>) => {
+      return fn(mockClient)
+    })
     mockGetProfile.mockImplementation(() =>
       Promise.resolve({
         user_id: 'user-1',

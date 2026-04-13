@@ -2,21 +2,15 @@ import { afterEach, beforeEach, describe, expect, mock, test } from 'bun:test'
 
 const originalConsoleLog = console.log
 
-const mockWithKakaoClient = mock(
-  async (_options: unknown, fn: (client: unknown) => Promise<unknown>) => {
-    return fn(mockClient)
-  },
-)
+const mockWithKakaoClient = mock(async (_options: unknown, fn: (client: unknown) => Promise<unknown>) => {
+  return fn(mockClient)
+})
 
 const mockGetMessages = mock(() =>
-  Promise.resolve([
-    { log_id: '1', message: 'Hello', sender_id: 'user-1', created_at: 1000 },
-  ]),
+  Promise.resolve([{ log_id: '1', message: 'Hello', sender_id: 'user-1', created_at: 1000 }]),
 )
 
-const mockSendMessage = mock(() =>
-  Promise.resolve({ log_id: '2', message: 'Hi there', created_at: 2000 }),
-)
+const mockSendMessage = mock(() => Promise.resolve({ log_id: '2', message: 'Hi there', created_at: 2000 }))
 
 const mockClient = {
   getMessages: mockGetMessages,
@@ -37,21 +31,16 @@ describe('message commands', () => {
     mockGetMessages.mockReset()
     mockSendMessage.mockReset()
 
-    mockWithKakaoClient.mockImplementation(
-      async (_options: unknown, fn: (client: unknown) => Promise<unknown>) => {
-        return fn(mockClient)
-      },
-    )
+    mockWithKakaoClient.mockImplementation(async (_options: unknown, fn: (client: unknown) => Promise<unknown>) => {
+      return fn(mockClient)
+    })
     mockGetMessages.mockImplementation(() =>
-      Promise.resolve([
-        { log_id: '1', message: 'Hello', sender_id: 'user-1', created_at: 1000 },
-      ]),
+      Promise.resolve([{ log_id: '1', message: 'Hello', sender_id: 'user-1', created_at: 1000 }]),
     )
-    mockSendMessage.mockImplementation(() =>
-      Promise.resolve({ log_id: '2', message: 'Hi there', created_at: 2000 }),
-    )
+    mockSendMessage.mockImplementation(() => Promise.resolve({ log_id: '2', message: 'Hi there', created_at: 2000 }))
 
-    consoleLogSpy = mock((..._args: unknown[]) => {}); console.log = consoleLogSpy
+    consoleLogSpy = mock((..._args: unknown[]) => {})
+    console.log = consoleLogSpy
   })
 
   afterEach(() => {
@@ -82,7 +71,9 @@ describe('message commands', () => {
     })
 
     test('passes account option to withKakaoClient', async () => {
-      await messageCommand.parseAsync(['list', 'chat-123', '--count', '20', '--account', 'my-account'], { from: 'user' })
+      await messageCommand.parseAsync(['list', 'chat-123', '--count', '20', '--account', 'my-account'], {
+        from: 'user',
+      })
 
       expect(mockWithKakaoClient).toHaveBeenCalledWith(
         expect.objectContaining({ account: 'my-account' }),

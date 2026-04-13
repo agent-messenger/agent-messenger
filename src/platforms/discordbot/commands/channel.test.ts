@@ -31,7 +31,9 @@ const mockResolveChannel = mock((_guildId: string, channel: string) => {
 
 mock.module('../client', () => ({
   DiscordBotClient: class MockDiscordBotClient {
-    async login(_credentials?: any) { return this }
+    async login(_credentials?: any) {
+      return this
+    }
     listChannels = mockListChannels
     getChannel = mockGetChannel
     resolveChannel = mockResolveChannel

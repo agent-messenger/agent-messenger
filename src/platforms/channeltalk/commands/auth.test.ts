@@ -19,9 +19,7 @@ const mockListChannels = mock(() =>
     { id: 'ws-2', name: 'Workspace 2' },
   ]),
 )
-const mockExtract = mock(() =>
-  Promise.resolve([{ accountCookie: 'fresh-account', sessionCookie: 'fresh-session' }]),
-)
+const mockExtract = mock(() => Promise.resolve([{ accountCookie: 'fresh-account', sessionCookie: 'fresh-session' }]))
 
 import {
   clearAction,
@@ -50,7 +48,7 @@ setChannelAuthCommandDependenciesForTesting({
   createCredentialManager: () => ({
     async getCredentials(workspaceId?: string): Promise<WorkspaceEntry | null> {
       const targetId = workspaceId ?? currentWorkspaceId
-      return targetId ? workspaceStore.get(targetId) ?? null : null
+      return targetId ? (workspaceStore.get(targetId) ?? null) : null
     },
 
     async setCredentials(entry: WorkspaceEntry): Promise<void> {
@@ -115,7 +113,9 @@ describe('channel auth commands', () => {
         { id: 'ws-2', name: 'Workspace 2' },
       ]),
     )
-    mockExtract.mockImplementation(() => Promise.resolve([{ accountCookie: 'fresh-account', sessionCookie: 'fresh-session' }]))
+    mockExtract.mockImplementation(() =>
+      Promise.resolve([{ accountCookie: 'fresh-account', sessionCookie: 'fresh-session' }]),
+    )
   })
 
   describe('extractAction', () => {

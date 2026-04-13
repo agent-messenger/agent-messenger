@@ -19,10 +19,7 @@ function isAuthCommand(command: CommandType): boolean {
 
 const program = new Command()
 
-program
-  .name('agent-whatsapp')
-  .description('CLI tool for WhatsApp via Baileys (linked device)')
-  .version(pkg.version)
+program.name('agent-whatsapp').description('CLI tool for WhatsApp via Baileys (linked device)').version(pkg.version)
 
 program.hook('preAction', async (_thisCommand, actionCommand) => {
   if (isAuthCommand(actionCommand)) return

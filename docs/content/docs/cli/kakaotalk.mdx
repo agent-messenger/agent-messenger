@@ -9,14 +9,14 @@ description: Complete reference for the agent-kakaotalk CLI.
 
 Before diving in, a few things about KakaoTalk's architecture:
 
-| Term                       | Description                                                                                         |
-| -------------------------- | --------------------------------------------------------------------------------------------------- |
-| **LOCO protocol**          | KakaoTalk's binary messaging protocol. The CLI handles this internally — you never touch it.        |
-| **Chat room**              | A conversation (1:1, group, or open chat). Referenced by a numeric chat ID.                         |
-| **Device slots**           | KakaoTalk allows one phone + one PC + one tablet session simultaneously.                            |
-| **Sub-device**             | A secondary device (PC or tablet). The CLI logs in as a sub-device so your phone session is never affected. |
-| **Passcode verification**  | When registering a new device, KakaoTalk displays a code that you confirm on your phone.            |
-| **Log ID**                 | A unique numeric identifier for each message, used for pagination.                                  |
+| Term                      | Description                                                                                                 |
+| ------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| **LOCO protocol**         | KakaoTalk's binary messaging protocol. The CLI handles this internally — you never touch it.                |
+| **Chat room**             | A conversation (1:1, group, or open chat). Referenced by a numeric chat ID.                                 |
+| **Device slots**          | KakaoTalk allows one phone + one PC + one tablet session simultaneously.                                    |
+| **Sub-device**            | A secondary device (PC or tablet). The CLI logs in as a sub-device so your phone session is never affected. |
+| **Passcode verification** | When registering a new device, KakaoTalk displays a code that you confirm on your phone.                    |
+| **Log ID**                | A unique numeric identifier for each message, used for pagination.                                          |
 
 ## Quick Start
 
@@ -219,6 +219,7 @@ Output includes:
 - Credentials stored in `~/.config/agent-messenger/kakaotalk-credentials.json` (0600 permissions)
 
 ## Limitations
+
 - No file upload or download
 - No channel/chat room creation or management
 - No friend list management

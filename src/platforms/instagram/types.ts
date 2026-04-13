@@ -83,8 +83,10 @@ export function getMessageType(item: Record<string, unknown>): string {
   switch (itemType) {
     case 'clip':
     case 'felix_share':
-    case 'reel_share': return 'reel_share'
-    default: return itemType
+    case 'reel_share':
+      return 'reel_share'
+    default:
+      return itemType
   }
 }
 

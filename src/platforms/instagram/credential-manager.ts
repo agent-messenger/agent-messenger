@@ -2,12 +2,8 @@ import { existsSync } from 'node:fs'
 import { mkdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
-import {
-  createAccountId,
-  type InstagramAccount,
-  type InstagramAccountPaths,
-  type InstagramConfig,
-} from './types'
+
+import { createAccountId, type InstagramAccount, type InstagramAccountPaths, type InstagramConfig } from './types'
 
 export class InstagramCredentialManager {
   private configDir: string

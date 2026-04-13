@@ -4,9 +4,7 @@ import { mkdir } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-const mockVerifyToken = mock(() =>
-  Promise.resolve({ verified_name: 'Test Business' }),
-)
+const mockVerifyToken = mock(() => Promise.resolve({ verified_name: 'Test Business' }))
 
 mock.module('../client', () => ({
   WhatsAppBotClient: class MockWhatsAppBotClient {

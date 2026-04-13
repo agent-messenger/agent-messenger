@@ -1,7 +1,7 @@
 import blessed from 'blessed'
 
-import { fuzzyMatch } from '../utils'
 import type { UnifiedChannel } from '../adapters/types'
+import { fuzzyMatch } from '../utils'
 
 export class ChannelPicker {
   private screen: blessed.Widgets.Screen

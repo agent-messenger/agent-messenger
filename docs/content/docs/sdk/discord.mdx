@@ -10,12 +10,7 @@ npm install agent-messenger
 ```
 
 ```typescript
-import {
-  DiscordClient,
-  DiscordCredentialManager,
-  DiscordError,
-  DiscordListener,
-} from 'agent-messenger/discord'
+import { DiscordClient, DiscordCredentialManager, DiscordError, DiscordListener } from 'agent-messenger/discord'
 ```
 
 ## DiscordClient
@@ -183,12 +178,12 @@ const limited = await client.searchMembers(serverId, 'alice', 5)
 // Search messages in a server
 const results = await client.searchMessages(serverId, 'deployment failed')
 const filtered = await client.searchMessages(serverId, 'API design', {
-  channelId: '123456789',   // limit to a specific channel
-  authorId: '987654321',    // limit to a specific author
-  has: 'file',              // 'file' | 'image' | 'video' | 'embed' | 'link' | 'sticker'
-  sortBy: 'timestamp',      // 'timestamp' | 'relevance'
-  sortOrder: 'desc',        // 'asc' | 'desc'
-  limit: 10,                // max 25
+  channelId: '123456789', // limit to a specific channel
+  authorId: '987654321', // limit to a specific author
+  has: 'file', // 'file' | 'image' | 'video' | 'embed' | 'link' | 'sticker'
+  sortBy: 'timestamp', // 'timestamp' | 'relevance'
+  sortOrder: 'desc', // 'asc' | 'desc'
+  limit: 10, // max 25
   offset: 0,
 })
 // → { results: DiscordSearchResult[], total: number }
@@ -200,8 +195,8 @@ const filtered = await client.searchMessages(serverId, 'API design', {
 // Create a thread in a channel
 const thread = await client.createThread(channelId, 'Bug Report: Login Issue')
 const configured = await client.createThread(channelId, 'Design Review', {
-  auto_archive_duration: 1440,  // minutes: 60, 1440, 4320, or 10080
-  rate_limit_per_user: 5,       // seconds between messages (slow mode)
+  auto_archive_duration: 1440, // minutes: 60, 1440, 4320, or 10080
+  rate_limit_per_user: 5, // seconds between messages (slow mode)
 })
 // → DiscordChannel (with thread_metadata)
 
@@ -236,7 +231,7 @@ listener.on('discord_event', (event) => {
 
 listener.on('error', (err) => console.error(err))
 
-await listener.start()  // connects via Gateway WebSocket
+await listener.start() // connects via Gateway WebSocket
 // listener.stop()      // clean shutdown
 ```
 
@@ -252,21 +247,22 @@ const listener = new DiscordListener(client, {
 
 ### Available Events
 
-| Event | Description |
-|-------|-------------|
-| `message_create` | New message in a channel or DM |
-| `message_update` | Message content edited |
-| `message_delete` | Message deleted |
-| `message_reaction_add` / `message_reaction_remove` | Reaction changes |
-| `guild_member_add` / `guild_member_remove` | Member joins/leaves server |
-| `typing_start` | Typing indicator |
-| `presence_update` | User online/idle/dnd/offline status |
-| `channel_create` / `channel_update` / `channel_delete` | Channel lifecycle |
-| `discord_event` | Catch-all for every Gateway dispatch event |
-| `connected` / `disconnected` | Connection lifecycle |
-| `error` | Connection or protocol error |
+| Event                                                  | Description                                |
+| ------------------------------------------------------ | ------------------------------------------ |
+| `message_create`                                       | New message in a channel or DM             |
+| `message_update`                                       | Message content edited                     |
+| `message_delete`                                       | Message deleted                            |
+| `message_reaction_add` / `message_reaction_remove`     | Reaction changes                           |
+| `guild_member_add` / `guild_member_remove`             | Member joins/leaves server                 |
+| `typing_start`                                         | Typing indicator                           |
+| `presence_update`                                      | User online/idle/dnd/offline status        |
+| `channel_create` / `channel_update` / `channel_delete` | Channel lifecycle                          |
+| `discord_event`                                        | Catch-all for every Gateway dispatch event |
+| `connected` / `disconnected`                           | Connection lifecycle                       |
+| `error`                                                | Connection or protocol error               |
 
 Features:
+
 - Gateway intents configurable (non-privileged defaults — `MessageContent`, `GuildMembers`, `GuildPresences` require opt-in)
 - Auto-reconnect with exponential backoff
 - Heartbeat keepalive with zombie connection detection
@@ -422,21 +418,21 @@ const thread = await client.createThread(channelId, 'Project Alpha — Kickoff',
 })
 
 // Post welcome message in the thread
-await client.sendMessage(thread.id, [
-  '👋 Welcome to **Project Alpha**!',
-  '',
-  '📋 **Resources** — links and docs will be pinned here',
-  '🧵 **Discussions** — use threads to keep things organized',
-  '🚀 **Goal** — ship the MVP by end of Q1',
-].join('\n'))
+await client.sendMessage(
+  thread.id,
+  [
+    '👋 Welcome to **Project Alpha**!',
+    '',
+    '📋 **Resources** — links and docs will be pinned here',
+    '🧵 **Discussions** — use threads to keep things organized',
+    '🚀 **Goal** — ship the MVP by end of Q1',
+  ].join('\n'),
+)
 
 // Look up team members and notify them
 const members = await client.searchMembers(serverId, 'alice')
 for (const member of members.slice(0, 3)) {
-  await client.sendMessage(
-    thread.id,
-    `Hey <@${member.user.id}>, you're on the Alpha team — see you here!`,
-  )
+  await client.sendMessage(thread.id, `Hey <@${member.user.id}>, you're on the Alpha team — see you here!`)
 }
 ```
 
@@ -457,10 +453,7 @@ for (const mention of mentions) {
   await client.addReaction(mention.channel_id, mention.id, '👀')
 
   // Reply with acknowledgment
-  await client.sendMessage(
-    mention.channel_id,
-    `Thanks for the ping <@${mention.author.id}> — on it!`,
-  )
+  await client.sendMessage(mention.channel_id, `Thanks for the ping <@${mention.author.id}> — on it!`)
 
   // Set a note on the user for context
   const existing = await client.getUserNote(mention.author.id)

@@ -106,7 +106,9 @@ describe('InstagramListener', () => {
     listener = new InstagramListener(client, { pollInterval: 60_000 })
 
     let called = false
-    const handler = () => { called = true }
+    const handler = () => {
+      called = true
+    }
     listener.on('disconnected', handler)
     listener.off('disconnected', handler)
     listener.stop()
@@ -119,7 +121,9 @@ describe('InstagramListener', () => {
     listener = new InstagramListener(client, { pollInterval: 60_000 })
 
     let count = 0
-    listener.once('connected', () => { count++ })
+    listener.once('connected', () => {
+      count++
+    })
 
     await listener.start()
     listener.stop()

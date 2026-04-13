@@ -813,10 +813,7 @@ describe('TokenExtractor browser fallback', () => {
     mkdirSync(leveldbDir, { recursive: true })
     writeFileSync(join(leveldbDir, '000001.log'), `"${token}"T12345678"name":"desktop-workspace"`)
 
-    const extractFromBrowsersSpy = spyOn(
-      TokenExtractor.prototype as any,
-      'extractFromBrowsers',
-    ).mockResolvedValue([])
+    const extractFromBrowsersSpy = spyOn(TokenExtractor.prototype as any, 'extractFromBrowsers').mockResolvedValue([])
 
     // when
     const extractor = new TokenExtractor('darwin', slackDir)
@@ -843,10 +840,9 @@ describe('TokenExtractor browser fallback', () => {
       cookie: '',
     }
 
-    const extractFromBrowsersSpy = spyOn(
-      TokenExtractor.prototype as any,
-      'extractFromBrowsers',
-    ).mockResolvedValue([browserWorkspace])
+    const extractFromBrowsersSpy = spyOn(TokenExtractor.prototype as any, 'extractFromBrowsers').mockResolvedValue([
+      browserWorkspace,
+    ])
 
     // when
     const extractor = new TokenExtractor('darwin', slackDir)
@@ -871,10 +867,9 @@ describe('TokenExtractor browser fallback', () => {
       cookie: 'xoxd-browser-cookie',
     }
 
-    const extractFromBrowsersSpy = spyOn(
-      TokenExtractor.prototype as any,
-      'extractFromBrowsers',
-    ).mockResolvedValue([browserWorkspace])
+    const extractFromBrowsersSpy = spyOn(TokenExtractor.prototype as any, 'extractFromBrowsers').mockResolvedValue([
+      browserWorkspace,
+    ])
 
     // when
     const extractor = new TokenExtractor('darwin', slackDir)

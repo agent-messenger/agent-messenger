@@ -29,5 +29,3 @@ export {
   KakaoTalkPushMessageEventSchema,
   KakaoTalkPushReadEventSchema,
 } from './types'
-
-

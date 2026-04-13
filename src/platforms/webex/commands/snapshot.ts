@@ -1,11 +1,11 @@
 import { Command } from 'commander'
+
 import { handleError } from '@/shared/utils/error-handler'
 import { formatOutput } from '@/shared/utils/output'
+
 import { WebexClient } from '../client'
 
-export async function snapshotAction(options: {
-  pretty?: boolean
-}): Promise<void> {
+export async function snapshotAction(options: { pretty?: boolean }): Promise<void> {
   try {
     const client = await new WebexClient().login()
 

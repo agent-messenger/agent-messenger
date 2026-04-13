@@ -90,7 +90,13 @@ describe('auth commands', () => {
       await loginAction({ clientId: 'my-id', clientSecret: 'my-secret', pretty: false })
 
       expect(WebexCredentialManager.prototype.requestDeviceCode).toHaveBeenCalledWith('my-id')
-      expect(WebexCredentialManager.prototype.pollDeviceToken).toHaveBeenCalledWith('d', 0.01, 300, 'my-id', 'my-secret')
+      expect(WebexCredentialManager.prototype.pollDeviceToken).toHaveBeenCalledWith(
+        'd',
+        0.01,
+        300,
+        'my-id',
+        'my-secret',
+      )
     })
 
     test('saves tokenType as oauth in config', async () => {

@@ -11,9 +11,7 @@ const mockSearchChats = mock(() =>
   Promise.resolve([{ id: 'chat-1', title: 'General', type: 'supergroup', unread_count: 0 }]),
 )
 
-const mockGetChat = mock(() =>
-  Promise.resolve({ id: 'chat-1', title: 'General', type: 'supergroup', unread_count: 0 }),
-)
+const mockGetChat = mock(() => Promise.resolve({ id: 'chat-1', title: 'General', type: 'supergroup', unread_count: 0 }))
 
 const mockClient = {
   listChats: mockListChats,
@@ -22,8 +20,7 @@ const mockClient = {
 }
 
 mock.module('./shared', () => ({
-  withTelegramClient: async (_opts: unknown, fn: (client: typeof mockClient) => Promise<unknown>) =>
-    fn(mockClient),
+  withTelegramClient: async (_opts: unknown, fn: (client: typeof mockClient) => Promise<unknown>) => fn(mockClient),
 }))
 
 import { chatCommand } from './chat'

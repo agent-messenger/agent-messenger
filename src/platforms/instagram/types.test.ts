@@ -1,10 +1,6 @@
 import { describe, expect, it } from 'bun:test'
-import {
-  InstagramError,
-  createAccountId,
-  extractMessageText,
-  getMessageType,
-} from './types'
+
+import { InstagramError, createAccountId, extractMessageText, getMessageType } from './types'
 
 describe('createAccountId', () => {
   it('normalizes plain username', () => {

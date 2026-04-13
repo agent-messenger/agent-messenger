@@ -891,8 +891,8 @@ export class SlackClient {
             reply_count: item.message.reply_count,
           },
           date_created: item.created || 0,
-        created_by: item.created_by || '',
-      }))
+          created_by: item.created_by || '',
+        }))
     })
   }
 
@@ -987,7 +987,12 @@ export class SlackClient {
     })
   }
 
-  async scheduleMessage(channel: string, text: string, postAt: number, threadTs?: string): Promise<SlackScheduledMessage> {
+  async scheduleMessage(
+    channel: string,
+    text: string,
+    postAt: number,
+    threadTs?: string,
+  ): Promise<SlackScheduledMessage> {
     return this.withRetry(async () => {
       const response = await this.ensureAuth().chat.scheduleMessage({
         channel,
@@ -1330,7 +1335,11 @@ export class SlackClient {
     }
   }
 
-  async listUsergroups(options?: { includeDisabled?: boolean; includeUsers?: boolean; includeCount?: boolean }): Promise<SlackUsergroup[]> {
+  async listUsergroups(options?: {
+    includeDisabled?: boolean
+    includeUsers?: boolean
+    includeCount?: boolean
+  }): Promise<SlackUsergroup[]> {
     return this.withRetry(async () => {
       const response = await this.ensureAuth().apiCall('usergroups.list', {
         include_disabled: options?.includeDisabled,

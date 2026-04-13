@@ -1,10 +1,6 @@
 import { afterEach, beforeAll, describe, expect, test } from 'bun:test'
 
-import {
-  CHANNELBOT_TEST_WORKSPACE_ID,
-  CHANNELBOT_TEST_WORKSPACE_NAME,
-  validateChannelBotEnvironment,
-} from './config'
+import { CHANNELBOT_TEST_WORKSPACE_ID, CHANNELBOT_TEST_WORKSPACE_NAME, validateChannelBotEnvironment } from './config'
 import { generateTestId, parseJSON, runCLI, waitForRateLimit } from './helpers'
 
 let channelbotAvailable = false

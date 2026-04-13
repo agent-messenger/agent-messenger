@@ -1,5 +1,6 @@
 import { constants, createCipheriv, createDecipheriv, createPublicKey, publicEncrypt, randomBytes } from 'node:crypto'
 
+import { LOCO_RSA_PUBLIC_KEY_DER_B64 } from './config'
 import {
   GCM_NONCE_SIZE,
   GCM_TAG_SIZE,
@@ -7,7 +8,6 @@ import {
   HANDSHAKE_KEY_ENCRYPT_TYPE,
   HANDSHAKE_KEY_SIZE,
 } from './types'
-import { LOCO_RSA_PUBLIC_KEY_DER_B64 } from './config'
 
 export class LocoCrypto {
   private aesKey: Buffer

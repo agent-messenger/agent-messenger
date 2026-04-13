@@ -13,17 +13,13 @@ mock.module('../client', () => ({
   },
 }))
 
-const { setAction, statusAction, clearAction, listAction, useAction, removeAction } = await import(
-  '@/platforms/wechatbot/commands/auth'
-)
+const { setAction, statusAction, clearAction, listAction, useAction, removeAction } =
+  await import('@/platforms/wechatbot/commands/auth')
 
 const testDirs: string[] = []
 
 function makeCredManager(): WeChatBotCredentialManager {
-  const dir = join(
-    import.meta.dir,
-    `.test-auth-config-${Date.now()}-${Math.random().toString(36).slice(2)}`,
-  )
+  const dir = join(import.meta.dir, `.test-auth-config-${Date.now()}-${Math.random().toString(36).slice(2)}`)
   testDirs.push(dir)
   return new WeChatBotCredentialManager(dir)
 }

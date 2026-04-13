@@ -1,7 +1,6 @@
 import { Binary, Long } from 'bson'
 
 import type { KakaoDeviceType } from '../types'
-
 import {
   BOOKING_HOST,
   BOOKING_PORT,
@@ -25,7 +24,13 @@ export class LocoSession {
   private closeHandler: (() => void) | null = null
   private deviceType: KakaoDeviceType = 'tablet'
 
-  async login(oauthToken: string, userId: string, deviceUuid: string, syncState?: SyncState, deviceType?: KakaoDeviceType): Promise<LoginListResponse> {
+  async login(
+    oauthToken: string,
+    userId: string,
+    deviceUuid: string,
+    syncState?: SyncState,
+    deviceType?: KakaoDeviceType,
+  ): Promise<LoginListResponse> {
     this.deviceType = deviceType ?? 'tablet'
     const deviceConfig = getLocoDeviceConfig(this.deviceType)
 
@@ -43,9 +48,7 @@ export class LocoSession {
 
     const chatIds = syncState?.chatIds.map((id) => new Long(id.low, id.high)) ?? []
     const maxIds = syncState?.maxIds.map((id) => new Long(id.low, id.high)) ?? []
-    const lastTokenId = syncState
-      ? new Long(syncState.lastTokenId.low, syncState.lastTokenId.high)
-      : Long.fromNumber(0)
+    const lastTokenId = syncState ? new Long(syncState.lastTokenId.low, syncState.lastTokenId.high) : Long.fromNumber(0)
     const lbk = syncState?.lbk ?? 0
 
     const response = await this.connection.sendPacket('LOGINLIST', {
@@ -71,7 +74,10 @@ export class LocoSession {
     return response.body as unknown as LoginListResponse
   }
 
-  private async bookAndCheckin(userId: string, deviceConfig: { os: string; appVersion: string; useSub: boolean }): Promise<{ host: string; port: number }> {
+  private async bookAndCheckin(
+    userId: string,
+    deviceConfig: { os: string; appVersion: string; useSub: boolean },
+  ): Promise<{ host: string; port: number }> {
     const bookingConn = new LocoConnection()
     await bookingConn.connectTls(BOOKING_HOST, BOOKING_PORT)
 

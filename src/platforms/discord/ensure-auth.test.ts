@@ -14,9 +14,11 @@ let saveSpy: ReturnType<typeof spyOn>
 beforeEach(() => {
   getTokenSpy = spyOn(DiscordCredentialManager.prototype, 'getToken').mockResolvedValue(null)
 
-  extractSpy = spyOn(DiscordTokenExtractor.prototype, 'extract').mockResolvedValue([{
-    token: 'test-token-123',
-  }])
+  extractSpy = spyOn(DiscordTokenExtractor.prototype, 'extract').mockResolvedValue([
+    {
+      token: 'test-token-123',
+    },
+  ])
 
   testAuthSpy = spyOn(DiscordClient.prototype, 'testAuth').mockResolvedValue({
     id: 'user-123',

@@ -86,9 +86,9 @@ describe('Usergroup Commands', () => {
       mockClient.updateUsergroup = mock(async () => {
         throw new Error('no_such_subteam')
       })
-      await expect(
-        (mockClient as SlackClient).updateUsergroup('S999', { name: 'Nope' }),
-      ).rejects.toThrow('no_such_subteam')
+      await expect((mockClient as SlackClient).updateUsergroup('S999', { name: 'Nope' })).rejects.toThrow(
+        'no_such_subteam',
+      )
     })
   })
 

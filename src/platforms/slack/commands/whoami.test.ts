@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, expect, spyOn, test } from 'bun:test'
 
 import { SlackClient } from '@/platforms/slack/client'
-import { CredentialManager } from '@/platforms/slack/credential-manager'
 import { whoamiAction, whoamiCommand } from '@/platforms/slack/commands/whoami'
+import { CredentialManager } from '@/platforms/slack/credential-manager'
 
 let credManagerSpy: ReturnType<typeof spyOn>
 let clientTestAuthSpy: ReturnType<typeof spyOn>

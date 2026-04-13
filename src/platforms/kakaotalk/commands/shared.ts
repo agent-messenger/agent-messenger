@@ -1,4 +1,5 @@
 import { formatOutput } from '@/shared/utils/output'
+
 import { KakaoTalkClient } from '../client'
 import { KakaoCredentialManager } from '../credential-manager'
 

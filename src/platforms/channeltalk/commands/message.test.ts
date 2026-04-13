@@ -309,9 +309,7 @@ describe('message commands', () => {
   test('sendAction sends a group message with wrapped blocks', async () => {
     const result = await sendAction('group', 'grp-1', 'Hello group')
 
-    expect(mockSendGroupMessage).toHaveBeenCalledWith('ws-1', 'grp-1', [
-      { type: 'text', value: 'Hello group' },
-    ])
+    expect(mockSendGroupMessage).toHaveBeenCalledWith('ws-1', 'grp-1', [{ type: 'text', value: 'Hello group' }])
     expect(result).toMatchObject({
       id: 'msg-group-1',
       channel_id: 'ws-1',
@@ -324,9 +322,7 @@ describe('message commands', () => {
   test('sendAction sends a user chat message with wrapped blocks', async () => {
     const result = await sendAction('user-chat', 'chat-1', 'Hello user chat')
 
-    expect(mockSendUserChatMessage).toHaveBeenCalledWith('ws-1', 'chat-1', [
-      { type: 'text', value: 'Hello user chat' },
-    ])
+    expect(mockSendUserChatMessage).toHaveBeenCalledWith('ws-1', 'chat-1', [{ type: 'text', value: 'Hello user chat' }])
     expect(result).toMatchObject({
       id: 'msg-user-1',
       channel_id: 'ws-1',

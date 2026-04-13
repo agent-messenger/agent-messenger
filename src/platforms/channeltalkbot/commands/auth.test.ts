@@ -13,7 +13,9 @@ const mockGetChannel = mock(() =>
 
 mock.module('../client', () => ({
   ChannelBotClient: class MockChannelBotClient {
-    async login(_credentials?: any) { return this }
+    async login(_credentials?: any) {
+      return this
+    }
     getChannel = mockGetChannel
   },
 }))

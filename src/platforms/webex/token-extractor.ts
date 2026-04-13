@@ -1,12 +1,4 @@
-import {
-  copyFileSync,
-  existsSync,
-  mkdirSync,
-  readdirSync,
-  readFileSync,
-  rmSync,
-  statSync,
-} from 'node:fs'
+import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync } from 'node:fs'
 import { homedir, tmpdir } from 'node:os'
 import { join } from 'node:path'
 
@@ -128,10 +120,7 @@ export class WebexTokenExtractor {
       case 'win32':
         relative = browser.win32
         if (!relative) return null
-        return join(
-          process.env.LOCALAPPDATA || join(homedir(), 'AppData', 'Local'),
-          relative,
-        )
+        return join(process.env.LOCALAPPDATA || join(homedir(), 'AppData', 'Local'), relative)
       default:
         return null
     }
@@ -176,8 +165,7 @@ export class WebexTokenExtractor {
     for (const leveldbDir of profileDirs) {
       this.debug(`Scanning: ${leveldbDir}`)
 
-      const result = await this.scanViaClassicLevelCopy(leveldbDir)
-        ?? this.scanRawFiles(leveldbDir)
+      const result = (await this.scanViaClassicLevelCopy(leveldbDir)) ?? this.scanRawFiles(leveldbDir)
 
       if (result?.token) {
         this.debug(`Found token in: ${leveldbDir}`)
@@ -339,9 +327,7 @@ export class WebexTokenExtractor {
     const innermostMarkerIdx = content.indexOf('"supertoken"')
 
     const markerIdx =
-      outerObjectMarkerIdx !== -1 ? outerObjectMarkerIdx
-      : innermostMarkerIdx !== -1 ? innermostMarkerIdx
-      : -1
+      outerObjectMarkerIdx !== -1 ? outerObjectMarkerIdx : innermostMarkerIdx !== -1 ? innermostMarkerIdx : -1
 
     if (markerIdx === -1) return null
 
@@ -387,11 +373,7 @@ export class WebexTokenExtractor {
     try {
       const data = JSON.parse(jsonStr)
 
-      const supertoken =
-        data?.Credentials?.['@']?.supertoken ??
-        data?.['@']?.supertoken ??
-        data?.supertoken ??
-        null
+      const supertoken = data?.Credentials?.['@']?.supertoken ?? data?.['@']?.supertoken ?? data?.supertoken ?? null
 
       if (!supertoken?.access_token) return null
 
@@ -410,10 +392,7 @@ export class WebexTokenExtractor {
         result.expiresAt = Date.now() + supertoken.expires_in * 1000
       }
 
-      const deviceUrl =
-        data?.Device?.['@']?.url ??
-        data?.['@']?.deviceUrl ??
-        null
+      const deviceUrl = data?.Device?.['@']?.url ?? data?.['@']?.deviceUrl ?? null
       if (deviceUrl && typeof deviceUrl === 'string') {
         result.deviceUrl = deviceUrl
       }

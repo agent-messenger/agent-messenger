@@ -28,7 +28,11 @@ export async function sendAction(openId: string, text: string, options: MessageO
   }
 }
 
-export async function sendImageAction(openId: string, mediaId: string, options: MessageOptions): Promise<MessageResult> {
+export async function sendImageAction(
+  openId: string,
+  mediaId: string,
+  options: MessageOptions,
+): Promise<MessageResult> {
   try {
     const client = await getClient(options)
     await client.sendImageMessage(openId, mediaId)

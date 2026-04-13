@@ -10,12 +10,7 @@ npm install agent-messenger
 ```
 
 ```typescript
-import {
-  LineClient,
-  LineListener,
-  LineError,
-  LineCredentialManager,
-} from 'agent-messenger/line'
+import { LineClient, LineListener, LineError, LineCredentialManager } from 'agent-messenger/line'
 ```
 
 ## LineClient
@@ -164,13 +159,13 @@ await listener.start()
 
 ### Events
 
-| Event | Payload | Description |
-|-------|---------|-------------|
-| `message` | `LinePushMessageEvent` | New message received |
-| `line_event` | `LinePushGenericEvent` | Catch-all for all LINE events |
-| `connected` | `{ account_id: string }` | Connected to LINE server |
-| `disconnected` | — | Disconnected (will auto-reconnect) |
-| `error` | `Error` | Connection or protocol error |
+| Event          | Payload                  | Description                        |
+| -------------- | ------------------------ | ---------------------------------- |
+| `message`      | `LinePushMessageEvent`   | New message received               |
+| `line_event`   | `LinePushGenericEvent`   | Catch-all for all LINE events      |
+| `connected`    | `{ account_id: string }` | Connected to LINE server           |
+| `disconnected` | —                        | Disconnected (will auto-reconnect) |
+| `error`        | `Error`                  | Connection or protocol error       |
 
 ### Reconnection
 

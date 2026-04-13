@@ -1,6 +1,7 @@
 import { constants, createCipheriv, publicEncrypt, randomBytes, randomUUID } from 'node:crypto'
 import { existsSync } from 'node:fs'
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
+
 import { InstagramCredentialManager } from './credential-manager'
 import {
   InstagramError,
@@ -164,11 +165,7 @@ export class InstagramClient {
     return { userId: this.userId ?? '' }
   }
 
-  async twoFactorLogin(
-    username: string,
-    code: string,
-    twoFactorIdentifier: string,
-  ): Promise<{ userId: string }> {
+  async twoFactorLogin(username: string, code: string, twoFactorIdentifier: string): Promise<{ userId: string }> {
     const { status, data } = await this.request('POST', '/accounts/two_factor_login/', {
       username,
       verification_code: code,
@@ -193,7 +190,10 @@ export class InstagramClient {
   ): Promise<{ contactPoint: string; stepName: string }> {
     this.ensureSession()
 
-    const { data: getData } = await this.request('GET', `${apiPath}?guid=${this.session!.device.uuid}&device_id=${this.session!.device.android_device_id}`)
+    const { data: getData } = await this.request(
+      'GET',
+      `${apiPath}?guid=${this.session!.device.uuid}&device_id=${this.session!.device.android_device_id}`,
+    )
     const stepName = (getData['step_name'] as string) ?? ''
 
     const choice = method === 'sms' ? '0' : '1'
@@ -210,10 +210,7 @@ export class InstagramClient {
     return { contactPoint, stepName: resultStep }
   }
 
-  async challengeSubmitCode(
-    apiPath: string,
-    code: string,
-  ): Promise<{ userId: string }> {
+  async challengeSubmitCode(apiPath: string, code: string): Promise<{ userId: string }> {
     this.ensureSession()
 
     const { status, data } = await this.request('POST', apiPath, {
@@ -304,9 +301,7 @@ export class InstagramClient {
   async searchChats(query: string, limit = 20): Promise<InstagramChatSummary[]> {
     const allChats = await this.listChats(Math.max(limit, 50))
     const lower = query.toLowerCase()
-    return allChats
-      .filter((c) => c.name.toLowerCase().includes(lower) || c.id.includes(query))
-      .slice(0, limit)
+    return allChats.filter((c) => c.name.toLowerCase().includes(lower) || c.id.includes(query)).slice(0, limit)
   }
 
   async searchMessages(
@@ -410,7 +405,12 @@ export class InstagramClient {
     return this.userId
   }
 
-  async getProfile(): Promise<{ user_id: string; username: string; full_name: string | null; profile_pic_url: string | null }> {
+  async getProfile(): Promise<{
+    user_id: string
+    username: string
+    full_name: string | null
+    profile_pic_url: string | null
+  }> {
     if (!this.userId) {
       throw new InstagramError('Not authenticated. Call login() first.', 'not_authenticated')
     }
@@ -441,17 +441,16 @@ export class InstagramClient {
     const keyIdHeader = response.headers.get('ig-set-password-encryption-key-id')
 
     if (pubKeyHeader && keyIdHeader) {
-      this.debugLog?.(`encryption key_id=${keyIdHeader} pub_key_length=${pubKeyHeader.length} pub_key_prefix=${pubKeyHeader.substring(0, 40)}...`)
+      this.debugLog?.(
+        `encryption key_id=${keyIdHeader} pub_key_length=${pubKeyHeader.length} pub_key_prefix=${pubKeyHeader.substring(0, 40)}...`,
+      )
       return { keyId: keyIdHeader, publicKey: pubKeyHeader }
     }
 
     return null
   }
 
-  private encryptPassword(
-    password: string,
-    key: { keyId: string; publicKey: string },
-  ): string {
+  private encryptPassword(password: string, key: { keyId: string; publicKey: string }): string {
     const timestamp = Math.floor(Date.now() / 1000).toString()
     const passwordBytes = Buffer.from(password, 'utf-8')
 
@@ -463,21 +462,24 @@ export class InstagramClient {
     const tag = cipher.getAuthTag()
 
     const pubKeyPem = Buffer.from(key.publicKey, 'base64').toString('utf-8')
-    const rsaEncrypted = publicEncrypt(
-      { key: pubKeyPem, padding: constants.RSA_PKCS1_PADDING },
-      aesKey,
-    )
+    const rsaEncrypted = publicEncrypt({ key: pubKeyPem, padding: constants.RSA_PKCS1_PADDING }, aesKey)
 
     // Wire format: version(1) | keyId(1) | iv(12) | rsaLen(2 LE) | rsaEncrypted | tag(16) | aesEncrypted
     const keyIdNum = Number.parseInt(key.keyId, 10)
     const buf = Buffer.alloc(1 + 1 + 12 + 2 + rsaEncrypted.length + 16 + encrypted.length)
     let offset = 0
-    buf.writeUInt8(1, offset); offset += 1
-    buf.writeUInt8(keyIdNum, offset); offset += 1
-    iv.copy(buf, offset); offset += 12
-    buf.writeUInt16LE(rsaEncrypted.length, offset); offset += 2
-    rsaEncrypted.copy(buf, offset); offset += rsaEncrypted.length
-    tag.copy(buf, offset); offset += 16
+    buf.writeUInt8(1, offset)
+    offset += 1
+    buf.writeUInt8(keyIdNum, offset)
+    offset += 1
+    iv.copy(buf, offset)
+    offset += 12
+    buf.writeUInt16LE(rsaEncrypted.length, offset)
+    offset += 2
+    rsaEncrypted.copy(buf, offset)
+    offset += rsaEncrypted.length
+    tag.copy(buf, offset)
+    offset += 16
     encrypted.copy(buf, offset)
 
     return `#PWD_INSTAGRAM:4:${timestamp}:${buf.toString('base64')}`
@@ -532,7 +534,7 @@ export class InstagramClient {
       'X-IG-Connection-Type': 'WIFI',
       'X-IG-Timezone-Offset': String(new Date().getTimezoneOffset() * -60),
       'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
-      'Accept': '*/*',
+      Accept: '*/*',
       'Accept-Language': 'en-US,en;q=0.9',
     }
 
@@ -606,7 +608,6 @@ export class InstagramClient {
     if (this.session) {
       this.session.user_id = this.userId ?? undefined
       this.session.cookies = this.serializeCookies()
-
     }
 
     await this.saveSession()
@@ -634,9 +635,13 @@ export class InstagramClient {
     const items = (thread['items'] ?? []) as Array<Record<string, unknown>>
     const lastItem = items[0]
 
-    const name = threadTitle
-      || users.map((u) => (u['full_name'] as string) || (u['username'] as string) || '').filter(Boolean).join(', ')
-      || threadId
+    const name =
+      threadTitle ||
+      users
+        .map((u) => (u['full_name'] as string) || (u['username'] as string) || '')
+        .filter(Boolean)
+        .join(', ') ||
+      threadId
 
     return {
       id: threadId,

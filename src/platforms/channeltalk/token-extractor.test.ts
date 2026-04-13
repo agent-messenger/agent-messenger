@@ -62,13 +62,7 @@ describe('ChannelTokenExtractor', () => {
       const extractor = new ChannelTokenExtractor('darwin')
       const paths = extractor.getBrowserCookiesPaths()
 
-      const chromeBase = join(
-        process.env.HOME || '/tmp',
-        'Library',
-        'Application Support',
-        'Google',
-        'Chrome',
-      )
+      const chromeBase = join(process.env.HOME || '/tmp', 'Library', 'Application Support', 'Google', 'Chrome')
       expect(paths).toContain(join(chromeBase, 'Default', 'Cookies'))
       expect(paths).toContain(join(chromeBase, 'Default', 'Network', 'Cookies'))
     })
@@ -132,10 +126,12 @@ describe('ChannelTokenExtractor', () => {
       const extractor = new ChannelTokenExtractor('darwin')
 
       const desktopSpy = spyOn(extractor as any, 'extractFromDesktopApp').mockResolvedValue(null)
-      const browserSpy = spyOn(extractor as any, 'extractAllFromBrowserPaths').mockResolvedValue([{
-        accountCookie: 'browser-account',
-        sessionCookie: undefined,
-      }])
+      const browserSpy = spyOn(extractor as any, 'extractAllFromBrowserPaths').mockResolvedValue([
+        {
+          accountCookie: 'browser-account',
+          sessionCookie: undefined,
+        },
+      ])
 
       const result = await extractor.extract()
 
@@ -169,10 +165,12 @@ describe('ChannelTokenExtractor', () => {
 
       const extractor = new TestExtractor(dbPath)
 
-      expect(await extractor.extract()).toEqual([{
-        accountCookie: 'account-jwt',
-        sessionCookie: 'session-jwt',
-      }])
+      expect(await extractor.extract()).toEqual([
+        {
+          accountCookie: 'account-jwt',
+          sessionCookie: 'session-jwt',
+        },
+      ])
     })
 
     test('returns token with undefined sessionCookie when only x-account is present', async () => {
@@ -265,7 +263,10 @@ describe('ChannelTokenExtractor', () => {
 
       const localStatePath = join(tempDir, 'Local State')
       const fakeEncryptedKey = Buffer.concat([Buffer.from('DPAPI'), randomBytes(32)])
-      writeFileSync(localStatePath, JSON.stringify({ os_crypt: { encrypted_key: fakeEncryptedKey.toString('base64') } }))
+      writeFileSync(
+        localStatePath,
+        JSON.stringify({ os_crypt: { encrypted_key: fakeEncryptedKey.toString('base64') } }),
+      )
 
       const extractor = new TestWinExtractor(dbPath, masterKey)
       const result = await extractor.extract()
@@ -283,10 +284,12 @@ describe('ChannelTokenExtractor', () => {
         accountCookie: 'same-account-cookie',
         sessionCookie: 'desktop-session',
       })
-      const browserSpy = spyOn(extractor as any, 'extractAllFromBrowserPaths').mockResolvedValue([{
-        accountCookie: 'same-account-cookie',
-        sessionCookie: 'browser-session',
-      }])
+      const browserSpy = spyOn(extractor as any, 'extractAllFromBrowserPaths').mockResolvedValue([
+        {
+          accountCookie: 'same-account-cookie',
+          sessionCookie: 'browser-session',
+        },
+      ])
 
       const result = await extractor.extract()
       expect(result).toHaveLength(1)
@@ -303,10 +306,12 @@ describe('ChannelTokenExtractor', () => {
         accountCookie: 'desktop-account-cookie',
         sessionCookie: 'desktop-session',
       })
-      const browserSpy = spyOn(extractor as any, 'extractAllFromBrowserPaths').mockResolvedValue([{
-        accountCookie: 'browser-account-cookie',
-        sessionCookie: 'browser-session',
-      }])
+      const browserSpy = spyOn(extractor as any, 'extractAllFromBrowserPaths').mockResolvedValue([
+        {
+          accountCookie: 'browser-account-cookie',
+          sessionCookie: 'browser-session',
+        },
+      ])
 
       const result = await extractor.extract()
       expect(result).toHaveLength(2)
@@ -350,7 +355,10 @@ describe('ChannelTokenExtractor', () => {
 
       const localStatePath = join(tempDir, 'Local State')
       const fakeEncryptedKey = Buffer.concat([Buffer.from('DPAPI'), randomBytes(32)])
-      writeFileSync(localStatePath, JSON.stringify({ os_crypt: { encrypted_key: fakeEncryptedKey.toString('base64') } }))
+      writeFileSync(
+        localStatePath,
+        JSON.stringify({ os_crypt: { encrypted_key: fakeEncryptedKey.toString('base64') } }),
+      )
 
       const extractor = new FailingDPAPIExtractor(dbPath)
       const result = await extractor.extract()

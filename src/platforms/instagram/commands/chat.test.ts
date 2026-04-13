@@ -10,9 +10,7 @@ const mockListChats = mock(() =>
   ]),
 )
 
-const mockSearchChats = mock(() =>
-  Promise.resolve([{ id: 'thread-1', title: 'Alice', last_message: 'Hi' }]),
-)
+const mockSearchChats = mock(() => Promise.resolve([{ id: 'thread-1', title: 'Alice', last_message: 'Hi' }]))
 
 const mockClient = {
   listChats: mockListChats,
@@ -29,8 +27,12 @@ import { chatCommand } from './chat'
 
 function resetCommandState(cmd: Command): void {
   for (const sub of cmd.commands) {
-    (sub as unknown as { _optionValues: Record<string, unknown>; _optionValueSources: Record<string, unknown> })._optionValues = {}
-    ;(sub as unknown as { _optionValues: Record<string, unknown>; _optionValueSources: Record<string, unknown> })._optionValueSources = {}
+    ;(
+      sub as unknown as { _optionValues: Record<string, unknown>; _optionValueSources: Record<string, unknown> }
+    )._optionValues = {}
+    ;(
+      sub as unknown as { _optionValues: Record<string, unknown>; _optionValueSources: Record<string, unknown> }
+    )._optionValueSources = {}
   }
 }
 
@@ -50,11 +52,10 @@ describe('chat commands', () => {
         { id: 'thread-2', title: 'Bob', last_message: 'Hey' },
       ]),
     )
-    mockSearchChats.mockImplementation(() =>
-      Promise.resolve([{ id: 'thread-1', title: 'Alice', last_message: 'Hi' }]),
-    )
+    mockSearchChats.mockImplementation(() => Promise.resolve([{ id: 'thread-1', title: 'Alice', last_message: 'Hi' }]))
 
-    consoleLogSpy = mock((..._args: unknown[]) => {}); console.log = consoleLogSpy
+    consoleLogSpy = mock((..._args: unknown[]) => {})
+    console.log = consoleLogSpy
     processExitSpy = spyOn(process, 'exit').mockImplementation(() => {
       throw new Error('process.exit called')
     })
@@ -67,9 +68,7 @@ describe('chat commands', () => {
 
   describe('list', () => {
     test('lists DM conversations', async () => {
-      await expect(
-        chatCommand.parseAsync(['list'], { from: 'user' }),
-      ).rejects.toThrow('process.exit called')
+      await expect(chatCommand.parseAsync(['list'], { from: 'user' })).rejects.toThrow('process.exit called')
 
       expect(processExitSpy).toHaveBeenCalledWith(0)
       expect(mockListChats).toHaveBeenCalledWith(20)
@@ -80,9 +79,9 @@ describe('chat commands', () => {
     })
 
     test('passes custom limit', async () => {
-      await expect(
-        chatCommand.parseAsync(['list', '--limit', '5'], { from: 'user' }),
-      ).rejects.toThrow('process.exit called')
+      await expect(chatCommand.parseAsync(['list', '--limit', '5'], { from: 'user' })).rejects.toThrow(
+        'process.exit called',
+      )
 
       expect(mockListChats).toHaveBeenCalledWith(5)
     })
@@ -90,9 +89,7 @@ describe('chat commands', () => {
 
   describe('search', () => {
     test('searches DM conversations by query', async () => {
-      await expect(
-        chatCommand.parseAsync(['search', 'Alice'], { from: 'user' }),
-      ).rejects.toThrow('process.exit called')
+      await expect(chatCommand.parseAsync(['search', 'Alice'], { from: 'user' })).rejects.toThrow('process.exit called')
 
       expect(processExitSpy).toHaveBeenCalledWith(0)
       expect(mockSearchChats).toHaveBeenCalledWith('Alice', 20)
@@ -102,9 +99,9 @@ describe('chat commands', () => {
     })
 
     test('passes custom limit to search', async () => {
-      await expect(
-        chatCommand.parseAsync(['search', 'Alice', '--limit', '10'], { from: 'user' }),
-      ).rejects.toThrow('process.exit called')
+      await expect(chatCommand.parseAsync(['search', 'Alice', '--limit', '10'], { from: 'user' })).rejects.toThrow(
+        'process.exit called',
+      )
 
       expect(mockSearchChats).toHaveBeenCalledWith('Alice', 10)
     })
@@ -112,9 +109,9 @@ describe('chat commands', () => {
     test('returns empty array when no results', async () => {
       mockSearchChats.mockImplementation(() => Promise.resolve([]))
 
-      await expect(
-        chatCommand.parseAsync(['search', 'nobody'], { from: 'user' }),
-      ).rejects.toThrow('process.exit called')
+      await expect(chatCommand.parseAsync(['search', 'nobody'], { from: 'user' })).rejects.toThrow(
+        'process.exit called',
+      )
 
       const output = JSON.parse(consoleLogSpy.mock.calls[0][0])
       expect(output).toEqual([])

@@ -130,7 +130,7 @@ export class KakaoTokenExtractor {
     // Extract oauth_token from talk-pilsner.kakao.com requests
     // talk-pilsner.kakao.com has the real messaging oauth tokens.
     // Other subdomains (bzm-capi, etc.) use different token types.
-    const talkRows = rows.filter(r => r.request_key.includes('talk-pilsner.kakao.com'))
+    const talkRows = rows.filter((r) => r.request_key.includes('talk-pilsner.kakao.com'))
     let token: ExtractedKakaoToken | null = null
 
     for (const row of talkRows) {
@@ -263,10 +263,10 @@ export class KakaoTokenExtractor {
 
   private readWindowsRegistry(): { deviceUuid: string; deviceId: string } | null {
     try {
-      const regOutput = execSync(
-        'reg query "HKCU\\Software\\Kakao\\KakaoTalk\\DeviceInfo" /s 2>nul',
-        { encoding: 'utf8', timeout: 5000 },
-      )
+      const regOutput = execSync('reg query "HKCU\\Software\\Kakao\\KakaoTalk\\DeviceInfo" /s 2>nul', {
+        encoding: 'utf8',
+        timeout: 5000,
+      })
 
       const uuidMatch = regOutput.match(/sys_uuid\s+REG_SZ\s+(.+)/i)
       const deviceIdMatch = regOutput.match(/dev_id\s+REG_SZ\s+(.+)/i)

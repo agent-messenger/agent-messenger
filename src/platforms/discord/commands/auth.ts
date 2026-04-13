@@ -98,23 +98,23 @@ export async function extractAction(options: { pretty?: boolean; debug?: boolean
 
         await credManager.save(config)
 
-      if (options.debug) {
-        debug(`[debug] ✓ Credentials saved`)
-      }
+        if (options.debug) {
+          debug(`[debug] ✓ Credentials saved`)
+        }
 
-      const output = {
-        servers: servers.map((g) => `${g.id}/${g.name}`),
-        current: servers[0].id,
-      }
+        const output = {
+          servers: servers.map((g) => `${g.id}/${g.name}`),
+          current: servers[0].id,
+        }
 
-      console.log(formatOutput(output, options.pretty))
-      return
-    } catch (error) {
-      if (options.debug) {
-        debug(`[debug] Token validation failed: ${(error as Error).message}, trying next...`)
+        console.log(formatOutput(output, options.pretty))
+        return
+      } catch (error) {
+        if (options.debug) {
+          debug(`[debug] Token validation failed: ${(error as Error).message}, trying next...`)
+        }
+        continue
       }
-      continue
-    }
     }
 
     console.log(

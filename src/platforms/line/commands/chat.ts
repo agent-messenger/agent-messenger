@@ -5,10 +5,7 @@ import { formatOutput } from '@/shared/utils/output'
 
 import { LineClient } from '../client'
 
-async function listAction(options: {
-  limit?: string
-  pretty?: boolean
-}): Promise<void> {
+async function listAction(options: { limit?: string; pretty?: boolean }): Promise<void> {
   let client: LineClient | undefined
   try {
     client = await new LineClient().login()

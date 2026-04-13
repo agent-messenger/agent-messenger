@@ -1,9 +1,9 @@
 import { afterEach, beforeEach, expect, spyOn, test } from 'bun:test'
 
-import { getNoTeamsTokenFoundMessage } from './auth'
 import { TeamsClient } from '../client'
 import { TeamsCredentialManager } from '../credential-manager'
 import { TeamsTokenExtractor } from '../token-extractor'
+import { getNoTeamsTokenFoundMessage } from './auth'
 
 let extractorExtractSpy: ReturnType<typeof spyOn>
 let clientTestAuthSpy: ReturnType<typeof spyOn>

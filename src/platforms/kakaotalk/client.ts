@@ -1,8 +1,9 @@
-import { Long } from 'bson'
 import { existsSync } from 'node:fs'
 import { chmod, mkdir, readFile, writeFile } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
+
+import { Long } from 'bson'
 
 import { warn } from '@/shared/utils/stderr'
 
@@ -312,7 +313,9 @@ export class KakaoTalkClient {
       // where a concurrent call already reconnected and replaced this.state.
       if (this.state?.session === state.session) throw error
 
-      try { state.session.close() } catch {}
+      try {
+        state.session.close()
+      } catch {}
       this.initPromise = null
       state = await this.ensureSession()
       return operation(state)
@@ -323,7 +326,13 @@ export class KakaoTalkClient {
     const session = new LocoSession()
     try {
       const syncState = await loadSyncState(this.deviceUuid!)
-      const loginResult = await session.login(this.oauthToken!, this.userId!, this.deviceUuid!, syncState, this.deviceType)
+      const loginResult = await session.login(
+        this.oauthToken!,
+        this.userId!,
+        this.deviceUuid!,
+        syncState,
+        this.deviceType,
+      )
 
       const newSyncState = mergeSyncState(syncState, loginResult)
       await saveSyncState(this.deviceUuid!, newSyncState)
@@ -338,11 +347,7 @@ export class KakaoTalkClient {
       return { session, loginResult }
     } catch (error) {
       session.close()
-      throw new KakaoTalkError(
-        error instanceof Error ? error.message : String(error),
-        'login_failed',
-        { cause: error },
-      )
+      throw new KakaoTalkError(error instanceof Error ? error.message : String(error), 'login_failed', { cause: error })
     }
   }
 
@@ -461,7 +466,10 @@ export class KakaoTalkClient {
         for (let page = 0; page < MAX_PAGES; page++) {
           const response = await session.syncMessages(cid, 80, cur, maxLogId)
           const batch = (response.body.chatLogs ?? []) as Array<Record<string, unknown>>
-          if (batch.length === 0) { reachedEnd = true; break }
+          if (batch.length === 0) {
+            reachedEnd = true
+            break
+          }
 
           for (const log of batch) {
             const lid = longToString(log.logId)
@@ -473,7 +481,10 @@ export class KakaoTalkClient {
 
           const maxLog = findMaxLogId(batch, 'logId')
 
-          if (!maxLog || maxLog.equals(cur) || response.body.isOK) { reachedEnd = true; break }
+          if (!maxLog || maxLog.equals(cur) || response.body.isOK) {
+            reachedEnd = true
+            break
+          }
           cur = maxLog
         }
         if (!reachedEnd) {
@@ -532,7 +543,7 @@ export class KakaoTalkClient {
         throw new KakaoTalkError(`Profile request failed: ${profileRes.status}`, 'profile_request_failed')
       }
 
-      const profileData = await profileRes.json() as Record<string, unknown>
+      const profileData = (await profileRes.json()) as Record<string, unknown>
       const profile = profileData.profile as Record<string, unknown> | undefined
 
       let accountDisplayId: string | null = null
@@ -540,7 +551,7 @@ export class KakaoTalkClient {
       let pstnNumber: string | null = null
       let emailVerified: boolean | null = null
       if (settingsRes.ok) {
-        const settingsData = await settingsRes.json() as Record<string, unknown>
+        const settingsData = (await settingsRes.json()) as Record<string, unknown>
         accountDisplayId = (settingsData.accountDisplayId as string) || null
         accountEmail = (settingsData.accountEmail as string) || null
         pstnNumber = (settingsData.pstnNumber as string) || null

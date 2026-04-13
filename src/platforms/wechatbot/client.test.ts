@@ -50,12 +50,16 @@ describe('WeChatBotClient', () => {
   describe('login', () => {
     test('throws on empty appId', async () => {
       await expect(new WeChatBotClient().login({ appId: '', appSecret: 'secret' })).rejects.toThrow(WeChatBotError)
-      await expect(new WeChatBotClient().login({ appId: '', appSecret: 'secret' })).rejects.toThrow('App ID is required')
+      await expect(new WeChatBotClient().login({ appId: '', appSecret: 'secret' })).rejects.toThrow(
+        'App ID is required',
+      )
     })
 
     test('throws on empty appSecret', async () => {
       await expect(new WeChatBotClient().login({ appId: 'wx123', appSecret: '' })).rejects.toThrow(WeChatBotError)
-      await expect(new WeChatBotClient().login({ appId: 'wx123', appSecret: '' })).rejects.toThrow('App Secret is required')
+      await expect(new WeChatBotClient().login({ appId: 'wx123', appSecret: '' })).rejects.toThrow(
+        'App Secret is required',
+      )
     })
 
     test('accepts valid credentials and returns client', async () => {

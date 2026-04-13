@@ -18,10 +18,7 @@ function isAuthCommand(command: CommandType): boolean {
 
 const program = new Command()
 
-program
-  .name('agent-line')
-  .description('CLI tool for LINE messaging')
-  .version(pkg.version)
+program.name('agent-line').description('CLI tool for LINE messaging').version(pkg.version)
 
 program.hook('preAction', async (_thisCommand, actionCommand) => {
   if (isAuthCommand(actionCommand)) return

@@ -129,10 +129,7 @@ function processInline(markdown: string): string {
     if (!isSafeUrl(url)) {
       return processInline(label)
     }
-    return createInlinePlaceholder(
-      placeholders,
-      `<a href="${escapeHtml(url)}">${processInline(label)}</a>`,
-    )
+    return createInlinePlaceholder(placeholders, `<a href="${escapeHtml(url)}">${processInline(label)}</a>`)
   })
 
   text = escapeHtml(text)
@@ -145,10 +142,13 @@ function processInline(markdown: string): string {
 
 function extractCodeBlocks(markdown: string): { text: string; blocks: string[] } {
   const blocks: string[] = []
-  const text = markdown.replace(/```([a-zA-Z0-9_-]+)?\n([\s\S]*?)\n```/g, (_, language: string | undefined, code: string) => {
-    const className = language ? ` class="language-${escapeHtml(language)}"` : ''
-    return createBlockPlaceholder(blocks, `<pre><code${className}>${escapeHtml(code)}</code></pre>`)
-  })
+  const text = markdown.replace(
+    /```([a-zA-Z0-9_-]+)?\n([\s\S]*?)\n```/g,
+    (_, language: string | undefined, code: string) => {
+      const className = language ? ` class="language-${escapeHtml(language)}"` : ''
+      return createBlockPlaceholder(blocks, `<pre><code${className}>${escapeHtml(code)}</code></pre>`)
+    },
+  )
 
   return { text, blocks }
 }

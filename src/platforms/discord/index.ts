@@ -48,4 +48,3 @@ export {
   DiscordSearchResultSchema,
   DiscordUserSchema,
 } from './types'
-

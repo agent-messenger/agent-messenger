@@ -3,13 +3,13 @@ import { ChannelCredentialManager } from './credential-manager'
 import { ChannelTokenExtractor } from './token-extractor'
 
 type ChannelClientLike = Pick<ChannelClient, 'getAccount' | 'listChannels'>
-type ChannelCredentialManagerLike = Pick<
-  ChannelCredentialManager,
-  'getCredentials' | 'setCredentials' | 'setCurrent'
->
+type ChannelCredentialManagerLike = Pick<ChannelCredentialManager, 'getCredentials' | 'setCredentials' | 'setCurrent'>
 type ChannelTokenExtractorLike = Pick<ChannelTokenExtractor, 'extract'>
 
-let createChannelClient: (accountCookie: string, sessionCookie?: string) => ChannelClientLike | Promise<ChannelClientLike> = async (
+let createChannelClient: (
+  accountCookie: string,
+  sessionCookie?: string,
+) => ChannelClientLike | Promise<ChannelClientLike> = async (
   accountCookie: string,
   sessionCookie?: string,
 ): Promise<ChannelClientLike> => new ChannelClient().login({ accountCookie, sessionCookie })
@@ -38,8 +38,7 @@ export const setEnsureChannelAuthClientFactoryForTesting = (
   factory: (accountCookie: string, sessionCookie?: string) => ChannelClientLike | Promise<ChannelClientLike>,
 ): void => setEnsureChannelAuthDependenciesForTesting({ createClient: factory })
 
-export const resetEnsureChannelAuthClientFactoryForTesting = (): void =>
-  resetEnsureChannelAuthDependenciesForTesting()
+export const resetEnsureChannelAuthClientFactoryForTesting = (): void => resetEnsureChannelAuthDependenciesForTesting()
 
 export async function ensureChannelAuth(): Promise<void> {
   try {

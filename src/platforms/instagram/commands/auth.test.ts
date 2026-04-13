@@ -21,8 +21,12 @@ import { authCommand } from './auth'
 
 function resetCommandState(cmd: Command): void {
   for (const sub of cmd.commands) {
-    (sub as unknown as { _optionValues: Record<string, unknown>; _optionValueSources: Record<string, unknown> })._optionValues = {}
-    ;(sub as unknown as { _optionValues: Record<string, unknown>; _optionValueSources: Record<string, unknown> })._optionValueSources = {}
+    ;(
+      sub as unknown as { _optionValues: Record<string, unknown>; _optionValueSources: Record<string, unknown> }
+    )._optionValues = {}
+    ;(
+      sub as unknown as { _optionValues: Record<string, unknown>; _optionValueSources: Record<string, unknown> }
+    )._optionValueSources = {}
   }
 }
 
@@ -38,7 +42,8 @@ describe('auth commands', () => {
     mockSetCurrent.mockReset()
     mockRemoveAccount.mockReset()
 
-    consoleLogSpy = mock((..._args: unknown[]) => {}); console.log = consoleLogSpy
+    consoleLogSpy = mock((..._args: unknown[]) => {})
+    console.log = consoleLogSpy
     processExitSpy = spyOn(process, 'exit').mockImplementation(() => {
       throw new Error('process.exit called')
     })
@@ -53,9 +58,7 @@ describe('auth commands', () => {
     test('outputs error and exits when no account found', async () => {
       mockGetAccount.mockImplementation(() => Promise.resolve(null))
 
-      await expect(
-        authCommand.parseAsync(['status'], { from: 'user' }),
-      ).rejects.toThrow('process.exit called')
+      await expect(authCommand.parseAsync(['status'], { from: 'user' })).rejects.toThrow('process.exit called')
 
       expect(processExitSpy).toHaveBeenCalledWith(1)
       const output = JSON.parse(consoleLogSpy.mock.calls[0][0])
@@ -160,9 +163,9 @@ describe('auth commands', () => {
     test('outputs error when account not found', async () => {
       mockSetCurrent.mockImplementation(() => Promise.resolve(false))
 
-      await expect(
-        authCommand.parseAsync(['use', 'missing_account'], { from: 'user' }),
-      ).rejects.toThrow('process.exit called')
+      await expect(authCommand.parseAsync(['use', 'missing_account'], { from: 'user' })).rejects.toThrow(
+        'process.exit called',
+      )
 
       const output = JSON.parse(consoleLogSpy.mock.calls[0][0])
       expect(output.error).toContain('missing_account')
@@ -194,9 +197,7 @@ describe('auth commands', () => {
     test('outputs error when no account configured', async () => {
       mockGetAccount.mockImplementation(() => Promise.resolve(null))
 
-      await expect(
-        authCommand.parseAsync(['logout'], { from: 'user' }),
-      ).rejects.toThrow('process.exit called')
+      await expect(authCommand.parseAsync(['logout'], { from: 'user' })).rejects.toThrow('process.exit called')
 
       const output = JSON.parse(consoleLogSpy.mock.calls[0][0])
       expect(output.error).toContain('No Instagram account configured')

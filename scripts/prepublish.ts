@@ -21,9 +21,7 @@ for (const [key, value] of Object.entries(pkg.exports as Record<string, unknown>
 
 for (const conditionObj of Object.values(pkg.typesVersions as Record<string, Record<string, string[]>>)) {
   for (const [entryName, paths] of Object.entries(conditionObj)) {
-    conditionObj[entryName] = paths.map((p) =>
-      p.replace(/^\.\/src\//, './dist/src/').replace(/\.ts$/, '.d.ts'),
-    )
+    conditionObj[entryName] = paths.map((p) => p.replace(/^\.\/src\//, './dist/src/').replace(/\.ts$/, '.d.ts'))
   }
 }
 

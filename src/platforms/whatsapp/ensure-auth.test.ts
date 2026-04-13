@@ -27,10 +27,7 @@ const validPaths = {
 beforeEach(() => {
   getAccountSpy = spyOn(WhatsAppCredentialManager.prototype, 'getAccount').mockResolvedValue(null)
 
-  getAccountPathsSpy = spyOn(
-    WhatsAppCredentialManager.prototype,
-    'getAccountPaths',
-  ).mockReturnValue(validPaths)
+  getAccountPathsSpy = spyOn(WhatsAppCredentialManager.prototype, 'getAccountPaths').mockReturnValue(validPaths)
 
   existsSyncSpy = spyOn(fs, 'existsSync').mockReturnValue(false)
 

@@ -41,7 +41,12 @@ async function resolveClientCredentials(options: {
   return getWebexAppCredentials()
 }
 
-export async function loginAction(options: { token?: string; clientId?: string; clientSecret?: string; pretty?: boolean }): Promise<void> {
+export async function loginAction(options: {
+  token?: string
+  clientId?: string
+  clientSecret?: string
+  pretty?: boolean
+}): Promise<void> {
   try {
     const credManager = new WebexCredentialManager()
 
@@ -110,9 +115,7 @@ export async function statusAction(options: { pretty?: boolean }): Promise<void>
     const token = await credManager.getToken(config?.clientId, config?.clientSecret)
 
     if (!token) {
-      console.log(
-        formatOutput({ error: 'Not authenticated. Run "auth login" first.' }, options.pretty),
-      )
+      console.log(formatOutput({ error: 'Not authenticated. Run "auth login" first.' }, options.pretty))
       process.exit(1)
       return
     }
@@ -139,10 +142,7 @@ export async function statusAction(options: { pretty?: boolean }): Promise<void>
 
 export async function extractAction(options: { pretty?: boolean; debug?: boolean }): Promise<void> {
   try {
-    const extractor = new WebexTokenExtractor(
-      undefined,
-      options.debug ? (msg) => debug(`[debug] ${msg}`) : undefined,
-    )
+    const extractor = new WebexTokenExtractor(undefined, options.debug ? (msg) => debug(`[debug] ${msg}`) : undefined)
 
     if (options.debug) {
       debug('[debug] Searching browser profiles for Webex tokens...')
@@ -154,7 +154,8 @@ export async function extractAction(options: { pretty?: boolean; debug?: boolean
       console.log(
         formatOutput(
           {
-            error: 'No Webex token found in any browser. Make sure you are logged in to web.webex.com in Chrome, Edge, Arc, or Brave.',
+            error:
+              'No Webex token found in any browser. Make sure you are logged in to web.webex.com in Chrome, Edge, Arc, or Brave.',
             hint: 'Run "auth login" for OAuth Device Grant flow, or --debug for more info.',
           },
           options.pretty,
@@ -175,9 +176,7 @@ export async function extractAction(options: { pretty?: boolean; debug?: boolean
       tokenType: 'extracted',
       deviceUrl: extracted.deviceUrl,
       userId: extracted.userId,
-      encryptionKeys: extracted.encryptionKeys
-        ? Object.fromEntries(extracted.encryptionKeys)
-        : undefined,
+      encryptionKeys: extracted.encryptionKeys ? Object.fromEntries(extracted.encryptionKeys) : undefined,
     })
 
     console.log(
@@ -201,9 +200,7 @@ export async function logoutAction(options: { pretty?: boolean }): Promise<void>
     const config = await credManager.loadConfig()
 
     if (!config) {
-      console.log(
-        formatOutput({ error: 'Not authenticated. Run "auth login" first.' }, options.pretty),
-      )
+      console.log(formatOutput({ error: 'Not authenticated. Run "auth login" first.' }, options.pretty))
       process.exit(1)
       return
     }

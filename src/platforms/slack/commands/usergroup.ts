@@ -18,7 +18,11 @@ async function getClient(pretty?: boolean): Promise<SlackClient | null> {
   return await new SlackClient().login({ token: ws.token, cookie: ws.cookie })
 }
 
-async function listAction(options: { includeDisabled?: boolean; includeUsers?: boolean; pretty?: boolean }): Promise<void> {
+async function listAction(options: {
+  includeDisabled?: boolean
+  includeUsers?: boolean
+  pretty?: boolean
+}): Promise<void> {
   try {
     const client = await getClient(options.pretty)
     if (!client) return process.exit(1)
@@ -136,7 +140,10 @@ async function disableAction(usergroupId: string, options: { pretty?: boolean })
   }
 }
 
-async function membersAction(usergroupId: string, options: { includeDisabled?: boolean; pretty?: boolean }): Promise<void> {
+async function membersAction(
+  usergroupId: string,
+  options: { includeDisabled?: boolean; pretty?: boolean },
+): Promise<void> {
   try {
     const client = await getClient(options.pretty)
     if (!client) return process.exit(1)
@@ -151,11 +158,7 @@ async function membersAction(usergroupId: string, options: { includeDisabled?: b
   }
 }
 
-async function membersUpdateAction(
-  usergroupId: string,
-  users: string,
-  options: { pretty?: boolean },
-): Promise<void> {
+async function membersUpdateAction(usergroupId: string, users: string, options: { pretty?: boolean }): Promise<void> {
   try {
     const client = await getClient(options.pretty)
     if (!client) return process.exit(1)

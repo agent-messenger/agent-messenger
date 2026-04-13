@@ -3,7 +3,14 @@
 import { Command } from 'commander'
 
 import pkg from '../../../package.json' with { type: 'json' }
-import { authCommand, channelCommand, messageCommand, reactionCommand, userCommand, whoamiCommand } from './commands/index'
+import {
+  authCommand,
+  channelCommand,
+  messageCommand,
+  reactionCommand,
+  userCommand,
+  whoamiCommand,
+} from './commands/index'
 
 const program = new Command()
 

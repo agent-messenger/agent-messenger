@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, expect, spyOn, test } from 'bun:test'
 
 import { DiscordClient } from '@/platforms/discord/client'
-import { DiscordCredentialManager } from '@/platforms/discord/credential-manager'
 import { whoamiAction, whoamiCommand } from '@/platforms/discord/commands/whoami'
+import { DiscordCredentialManager } from '@/platforms/discord/credential-manager'
 
 let credManagerSpy: ReturnType<typeof spyOn>
 let clientTestAuthSpy: ReturnType<typeof spyOn>
@@ -84,8 +84,6 @@ test('whoami exits with error when not authenticated', async () => {
 
   await whoamiAction({})
 
-  expect(consoleLogSpy).toHaveBeenCalledWith(
-    JSON.stringify({ error: 'Not authenticated. Run "auth extract" first.' }),
-  )
+  expect(consoleLogSpy).toHaveBeenCalledWith(JSON.stringify({ error: 'Not authenticated. Run "auth extract" first.' }))
   expect(processExitSpy).toHaveBeenCalledWith(1)
 })

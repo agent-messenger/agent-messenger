@@ -2,9 +2,10 @@ import { Writable } from 'node:stream'
 
 import { Command } from 'commander'
 
+import { info, error as stderrError } from '@/shared/utils/stderr'
+
 import { handleError } from '../../../shared/utils/error-handler'
 import { formatOutput } from '../../../shared/utils/output'
-import { info, error as stderrError } from '@/shared/utils/stderr'
 import { getTelegramAppCredentials } from '../app-config'
 import { TelegramTdlibClient } from '../client'
 import { TelegramCredentialManager } from '../credential-manager'
@@ -226,9 +227,7 @@ async function handleNonInteractiveProvisioning(
   }
 
   if (!options.phone) {
-    console.log(
-      formatOutput({ next_action: 'provide_phone', message: 'Provide --phone flag to start login.' }, pretty),
-    )
+    console.log(formatOutput({ next_action: 'provide_phone', message: 'Provide --phone flag to start login.' }, pretty))
     process.exit(0)
   }
 

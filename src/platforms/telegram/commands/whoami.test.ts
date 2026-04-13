@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, spyOn, test } from 'bun:test'
 
 import { TelegramTdlibClient } from '../client'
-import type { TelegramAccount } from '../types'
 import { TelegramCredentialManager } from '../credential-manager'
+import type { TelegramAccount } from '../types'
 import * as sharedModule from './shared'
 import { whoamiAction } from './whoami'
 
@@ -28,12 +28,10 @@ let consoleLogSpy: ReturnType<typeof spyOn>
 describe('whoami command', () => {
   beforeEach(() => {
     getAuthStatusSpy = spyOn(TelegramTdlibClient.prototype, 'getAuthStatus').mockResolvedValue(mockAuthStatus)
-    withTelegramClientSpy = spyOn(sharedModule, 'withTelegramClient').mockImplementation(
-      async (_opts, fn) => {
-        const fakeClient = Object.create(TelegramTdlibClient.prototype) as TelegramTdlibClient
-        return fn(fakeClient, {} as TelegramAccount, new TelegramCredentialManager())
-      },
-    )
+    withTelegramClientSpy = spyOn(sharedModule, 'withTelegramClient').mockImplementation(async (_opts, fn) => {
+      const fakeClient = Object.create(TelegramTdlibClient.prototype) as TelegramTdlibClient
+      return fn(fakeClient, {} as TelegramAccount, new TelegramCredentialManager())
+    })
     consoleLogSpy = spyOn(console, 'log').mockImplementation(() => {})
   })
 

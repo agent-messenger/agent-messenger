@@ -15,7 +15,10 @@ export class LocoConnection {
   private buffer = Buffer.alloc(0)
   private decryptedBuffer = Buffer.alloc(0)
   private packetIdCounter = 0
-  private pendingResolvers = new Map<number, { resolve: (packet: LocoPacket) => void; timer: ReturnType<typeof setTimeout> }>()
+  private pendingResolvers = new Map<
+    number,
+    { resolve: (packet: LocoPacket) => void; timer: ReturnType<typeof setTimeout> }
+  >()
   private timedOutIds = new Set<number>()
   private pushHandler: ((packet: LocoPacket) => void) | null = null
   private closeHandler: (() => void) | null = null

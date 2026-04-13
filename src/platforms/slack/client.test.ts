@@ -1274,12 +1274,27 @@ describe('SlackClient extended methods', () => {
         list: mock_fn(() => Promise.resolve({ ok: true, items: [] })),
       },
       conversations: {
-        create: mock_fn(() => Promise.resolve({ ok: true, channel: { id: 'C001', name: 'test', is_private: false, is_archived: false, created: 0, creator: 'U001' } })),
+        create: mock_fn(() =>
+          Promise.resolve({
+            ok: true,
+            channel: { id: 'C001', name: 'test', is_private: false, is_archived: false, created: 0, creator: 'U001' },
+          }),
+        ),
         archive: mock_fn(() => Promise.resolve({ ok: true })),
         setTopic: mock_fn(() => Promise.resolve({ ok: true, topic: 'new-topic' })),
         setPurpose: mock_fn(() => Promise.resolve({ ok: true, purpose: 'new-purpose' })),
-        invite: mock_fn(() => Promise.resolve({ ok: true, channel: { id: 'C001', name: 'test', is_private: false, is_archived: false, created: 0, creator: 'U001' } })),
-        join: mock_fn(() => Promise.resolve({ ok: true, channel: { id: 'C001', name: 'test', is_private: false, is_archived: false, created: 0, creator: 'U001' } })),
+        invite: mock_fn(() =>
+          Promise.resolve({
+            ok: true,
+            channel: { id: 'C001', name: 'test', is_private: false, is_archived: false, created: 0, creator: 'U001' },
+          }),
+        ),
+        join: mock_fn(() =>
+          Promise.resolve({
+            ok: true,
+            channel: { id: 'C001', name: 'test', is_private: false, is_archived: false, created: 0, creator: 'U001' },
+          }),
+        ),
         leave: mock_fn(() => Promise.resolve({ ok: true })),
         list: mock_fn(() => Promise.resolve({ ok: true, channels: [] })),
       },
@@ -1290,17 +1305,52 @@ describe('SlackClient extended methods', () => {
         },
         deleteScheduledMessage: mock_fn(() => Promise.resolve({ ok: true })),
         postEphemeral: mock_fn(() => Promise.resolve({ ok: true, message_ts: '123.456' })),
-        getPermalink: mock_fn(() => Promise.resolve({ ok: true, permalink: 'https://slack.com/archives/C001/p123456' })),
+        getPermalink: mock_fn(() =>
+          Promise.resolve({ ok: true, permalink: 'https://slack.com/archives/C001/p123456' }),
+        ),
       },
       users: {
-        lookupByEmail: mock_fn(() => Promise.resolve({ ok: true, user: { id: 'U001', name: 'test', real_name: 'Test User', is_admin: false, is_owner: false, is_bot: false, is_app_user: false } })),
+        lookupByEmail: mock_fn(() =>
+          Promise.resolve({
+            ok: true,
+            user: {
+              id: 'U001',
+              name: 'test',
+              real_name: 'Test User',
+              is_admin: false,
+              is_owner: false,
+              is_bot: false,
+              is_app_user: false,
+            },
+          }),
+        ),
         profile: {
-          get: mock_fn(() => Promise.resolve({ ok: true, profile: { display_name: 'Test', status_text: '', status_emoji: '' } })),
-          set: mock_fn(() => Promise.resolve({ ok: true, profile: { display_name: 'Test', status_text: 'Working', status_emoji: ':computer:' } })),
+          get: mock_fn(() =>
+            Promise.resolve({ ok: true, profile: { display_name: 'Test', status_text: '', status_emoji: '' } }),
+          ),
+          set: mock_fn(() =>
+            Promise.resolve({
+              ok: true,
+              profile: { display_name: 'Test', status_text: 'Working', status_emoji: ':computer:' },
+            }),
+          ),
         },
       },
       reminders: {
-        add: mock_fn(() => Promise.resolve({ ok: true, reminder: { id: 'Rm001', creator: 'U001', text: 'Test', user: 'U001', recurring: false, time: 1700000000, complete_ts: 0 } })),
+        add: mock_fn(() =>
+          Promise.resolve({
+            ok: true,
+            reminder: {
+              id: 'Rm001',
+              creator: 'U001',
+              text: 'Test',
+              user: 'U001',
+              recurring: false,
+              time: 1700000000,
+              complete_ts: 0,
+            },
+          }),
+        ),
         list: mock_fn(() => Promise.resolve({ ok: true, reminders: [] })),
         complete: mock_fn(() => Promise.resolve({ ok: true })),
         delete: mock_fn(() => Promise.resolve({ ok: true })),
@@ -1312,17 +1362,177 @@ describe('SlackClient extended methods', () => {
         list: mock_fn(() => Promise.resolve({ ok: true, emoji: { party_blob: 'https://example.com/party_blob.gif' } })),
       },
       apiCall: mock_fn((method: string) => {
-        if (method === 'bookmarks.add') return Promise.resolve({ ok: true, bookmark: { id: 'Bm001', channel_id: 'C001', title: 'Test', link: 'https://example.com', type: 'link', date_created: 0, date_updated: 0, created_by: 'U001' } })
-        if (method === 'bookmarks.edit') return Promise.resolve({ ok: true, bookmark: { id: 'Bm001', channel_id: 'C001', title: 'Updated', link: 'https://example.com', type: 'link', date_created: 0, date_updated: 1, created_by: 'U001' } })
+        if (method === 'bookmarks.add')
+          return Promise.resolve({
+            ok: true,
+            bookmark: {
+              id: 'Bm001',
+              channel_id: 'C001',
+              title: 'Test',
+              link: 'https://example.com',
+              type: 'link',
+              date_created: 0,
+              date_updated: 0,
+              created_by: 'U001',
+            },
+          })
+        if (method === 'bookmarks.edit')
+          return Promise.resolve({
+            ok: true,
+            bookmark: {
+              id: 'Bm001',
+              channel_id: 'C001',
+              title: 'Updated',
+              link: 'https://example.com',
+              type: 'link',
+              date_created: 0,
+              date_updated: 1,
+              created_by: 'U001',
+            },
+          })
         if (method === 'bookmarks.remove') return Promise.resolve({ ok: true })
         if (method === 'bookmarks.list') return Promise.resolve({ ok: true, bookmarks: [] })
-        if (method === 'usergroups.list') return Promise.resolve({ ok: true, usergroups: [{ id: 'S001', team_id: 'T001', name: 'Engineering', handle: 'engineering', description: 'Eng team', is_external: false, is_usergroup: true, date_create: 100, date_update: 200, date_delete: 0, auto_type: null, created_by: 'U001', updated_by: 'U001', deleted_by: null, prefs: { channels: [], groups: [] }, users: ['U001'], user_count: 1 }] })
-        if (method === 'usergroups.create') return Promise.resolve({ ok: true, usergroup: { id: 'S002', team_id: 'T001', name: 'Marketing', handle: 'marketing', description: '', is_external: false, is_usergroup: true, date_create: 100, date_update: 100, date_delete: 0, auto_type: null, created_by: 'U001', updated_by: 'U001', deleted_by: null, prefs: { channels: [], groups: [] }, users: [], user_count: 0 } })
-        if (method === 'usergroups.update') return Promise.resolve({ ok: true, usergroup: { id: 'S001', team_id: 'T001', name: 'Updated', handle: 'updated', description: 'New desc', is_external: false, is_usergroup: true, date_create: 100, date_update: 300, date_delete: 0, auto_type: null, created_by: 'U001', updated_by: 'U001', deleted_by: null, prefs: { channels: [], groups: [] }, users: ['U001'], user_count: 1 } })
-        if (method === 'usergroups.disable') return Promise.resolve({ ok: true, usergroup: { id: 'S001', team_id: 'T001', name: 'Engineering', handle: 'engineering', description: '', is_external: false, is_usergroup: true, date_create: 100, date_update: 300, date_delete: 400, auto_type: null, created_by: 'U001', updated_by: 'U001', deleted_by: 'U001', prefs: { channels: [], groups: [] }, users: [], user_count: 0 } })
-        if (method === 'usergroups.enable') return Promise.resolve({ ok: true, usergroup: { id: 'S001', team_id: 'T001', name: 'Engineering', handle: 'engineering', description: '', is_external: false, is_usergroup: true, date_create: 100, date_update: 500, date_delete: 0, auto_type: null, created_by: 'U001', updated_by: 'U001', deleted_by: null, prefs: { channels: [], groups: [] }, users: ['U001'], user_count: 1 } })
+        if (method === 'usergroups.list')
+          return Promise.resolve({
+            ok: true,
+            usergroups: [
+              {
+                id: 'S001',
+                team_id: 'T001',
+                name: 'Engineering',
+                handle: 'engineering',
+                description: 'Eng team',
+                is_external: false,
+                is_usergroup: true,
+                date_create: 100,
+                date_update: 200,
+                date_delete: 0,
+                auto_type: null,
+                created_by: 'U001',
+                updated_by: 'U001',
+                deleted_by: null,
+                prefs: { channels: [], groups: [] },
+                users: ['U001'],
+                user_count: 1,
+              },
+            ],
+          })
+        if (method === 'usergroups.create')
+          return Promise.resolve({
+            ok: true,
+            usergroup: {
+              id: 'S002',
+              team_id: 'T001',
+              name: 'Marketing',
+              handle: 'marketing',
+              description: '',
+              is_external: false,
+              is_usergroup: true,
+              date_create: 100,
+              date_update: 100,
+              date_delete: 0,
+              auto_type: null,
+              created_by: 'U001',
+              updated_by: 'U001',
+              deleted_by: null,
+              prefs: { channels: [], groups: [] },
+              users: [],
+              user_count: 0,
+            },
+          })
+        if (method === 'usergroups.update')
+          return Promise.resolve({
+            ok: true,
+            usergroup: {
+              id: 'S001',
+              team_id: 'T001',
+              name: 'Updated',
+              handle: 'updated',
+              description: 'New desc',
+              is_external: false,
+              is_usergroup: true,
+              date_create: 100,
+              date_update: 300,
+              date_delete: 0,
+              auto_type: null,
+              created_by: 'U001',
+              updated_by: 'U001',
+              deleted_by: null,
+              prefs: { channels: [], groups: [] },
+              users: ['U001'],
+              user_count: 1,
+            },
+          })
+        if (method === 'usergroups.disable')
+          return Promise.resolve({
+            ok: true,
+            usergroup: {
+              id: 'S001',
+              team_id: 'T001',
+              name: 'Engineering',
+              handle: 'engineering',
+              description: '',
+              is_external: false,
+              is_usergroup: true,
+              date_create: 100,
+              date_update: 300,
+              date_delete: 400,
+              auto_type: null,
+              created_by: 'U001',
+              updated_by: 'U001',
+              deleted_by: 'U001',
+              prefs: { channels: [], groups: [] },
+              users: [],
+              user_count: 0,
+            },
+          })
+        if (method === 'usergroups.enable')
+          return Promise.resolve({
+            ok: true,
+            usergroup: {
+              id: 'S001',
+              team_id: 'T001',
+              name: 'Engineering',
+              handle: 'engineering',
+              description: '',
+              is_external: false,
+              is_usergroup: true,
+              date_create: 100,
+              date_update: 500,
+              date_delete: 0,
+              auto_type: null,
+              created_by: 'U001',
+              updated_by: 'U001',
+              deleted_by: null,
+              prefs: { channels: [], groups: [] },
+              users: ['U001'],
+              user_count: 1,
+            },
+          })
         if (method === 'usergroups.users.list') return Promise.resolve({ ok: true, users: ['U001', 'U002'] })
-        if (method === 'usergroups.users.update') return Promise.resolve({ ok: true, usergroup: { id: 'S001', team_id: 'T001', name: 'Engineering', handle: 'engineering', description: '', is_external: false, is_usergroup: true, date_create: 100, date_update: 600, date_delete: 0, auto_type: null, created_by: 'U001', updated_by: 'U001', deleted_by: null, prefs: { channels: [], groups: [] }, users: ['U001', 'U003'], user_count: 2 } })
+        if (method === 'usergroups.users.update')
+          return Promise.resolve({
+            ok: true,
+            usergroup: {
+              id: 'S001',
+              team_id: 'T001',
+              name: 'Engineering',
+              handle: 'engineering',
+              description: '',
+              is_external: false,
+              is_usergroup: true,
+              date_create: 100,
+              date_update: 600,
+              date_delete: 0,
+              auto_type: null,
+              created_by: 'U001',
+              updated_by: 'U001',
+              deleted_by: null,
+              prefs: { channels: [], groups: [] },
+              users: ['U001', 'U003'],
+              user_count: 2,
+            },
+          })
         return Promise.resolve({ ok: true })
       }),
     }
@@ -1777,7 +1987,11 @@ describe('SlackClient extended methods', () => {
 
     test('calls apiCall with correct params including channels', async () => {
       const { client, mock } = await makeClient()
-      await client.createUsergroup('Marketing', { handle: 'marketing', description: 'Mktg', channels: ['C001', 'C002'] })
+      await client.createUsergroup('Marketing', {
+        handle: 'marketing',
+        description: 'Mktg',
+        channels: ['C001', 'C002'],
+      })
       expect(mock.apiCall).toHaveBeenCalledWith('usergroups.create', {
         name: 'Marketing',
         handle: 'marketing',

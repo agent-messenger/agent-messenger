@@ -10,11 +10,7 @@ npm install agent-messenger
 ```
 
 ```typescript
-import {
-  WhatsAppBotClient,
-  WhatsAppBotCredentialManager,
-  WhatsAppBotError,
-} from 'agent-messenger/whatsappbot'
+import { WhatsAppBotClient, WhatsAppBotCredentialManager, WhatsAppBotError } from 'agent-messenger/whatsappbot'
 ```
 
 ## WhatsAppBotClient
@@ -66,11 +62,7 @@ const reaction = await client.sendReaction('12025551234', 'wamid.abc123', '\u{1F
 
 // Send an image message
 const image = await client.sendImageMessage('12025551234', 'https://example.com/photo.jpg')
-const captioned = await client.sendImageMessage(
-  '12025551234',
-  'https://example.com/photo.jpg',
-  'Product screenshot',
-)
+const captioned = await client.sendImageMessage('12025551234', 'https://example.com/photo.jpg', 'Product screenshot')
 // → WhatsAppBotMessageResponse
 
 // Send a document message

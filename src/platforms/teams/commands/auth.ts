@@ -292,7 +292,10 @@ export async function statusAction(options: { pretty?: boolean }): Promise<void>
 
       if (!isExpired) {
         try {
-          const client = await new TeamsClient().login({ token: account.token, tokenExpiresAt: account.token_expires_at ?? undefined })
+          const client = await new TeamsClient().login({
+            token: account.token,
+            tokenExpiresAt: account.token_expires_at ?? undefined,
+          })
           const authInfo = await client.testAuth()
           displayName = authInfo.displayName
           valid = true

@@ -14,7 +14,9 @@ export async function getClient(options: AccountOption): Promise<WhatsAppBotClie
   const creds = await credManager.getCredentials(options.account)
 
   if (!creds) {
-    console.log(formatOutput({ error: 'No credentials. Run "auth set <phone-number-id> <access-token>" first.' }, options.pretty))
+    console.log(
+      formatOutput({ error: 'No credentials. Run "auth set <phone-number-id> <access-token>" first.' }, options.pretty),
+    )
     process.exit(1)
   }
 

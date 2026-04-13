@@ -17,7 +17,9 @@ const mockTestAuth = mock(() =>
 
 mock.module('../client', () => ({
   SlackBotClient: class MockSlackBotClient {
-    async login(_credentials?: any) { return this }
+    async login(_credentials?: any) {
+      return this
+    }
     testAuth = mockTestAuth
   },
 }))

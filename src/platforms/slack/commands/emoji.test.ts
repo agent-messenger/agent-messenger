@@ -7,10 +7,12 @@ describe('Emoji Commands', () => {
 
   beforeEach(() => {
     mockClient = {
-      listEmoji: mock(async (): Promise<Record<string, string>> => ({
-        party_blob: 'https://example.com/party_blob.gif',
-        cool_sunglasses: 'https://example.com/cool_sunglasses.png',
-      })),
+      listEmoji: mock(
+        async (): Promise<Record<string, string>> => ({
+          party_blob: 'https://example.com/party_blob.gif',
+          cool_sunglasses: 'https://example.com/cool_sunglasses.png',
+        }),
+      ),
     }
   })
 

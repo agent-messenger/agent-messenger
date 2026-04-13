@@ -760,7 +760,12 @@ describe('DiscordListener', () => {
         5,
       )
 
-      mockWsInstance.simulateMessage({ op: 0, t: 'TYPING_START', s: null, d: { user_id: 'U1', channel_id: 'C1', timestamp: 1 } })
+      mockWsInstance.simulateMessage({
+        op: 0,
+        t: 'TYPING_START',
+        s: null,
+        d: { user_id: 'U1', channel_id: 'C1', timestamp: 1 },
+      })
 
       expect((listener as any).sequence).toBe(5)
     })

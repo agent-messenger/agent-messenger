@@ -47,9 +47,7 @@ describe('member commands', () => {
 
   beforeEach(() => {
     mockListMemberships.mockReset().mockImplementation(() => Promise.resolve(mockMembers))
-    mockLogin.mockReset().mockImplementation(() =>
-      Promise.resolve({ listMemberships: mockListMemberships }),
-    )
+    mockLogin.mockReset().mockImplementation(() => Promise.resolve({ listMemberships: mockListMemberships }))
     mockHandleError.mockReset().mockImplementation((err: Error) => {
       throw err
     })

@@ -70,7 +70,11 @@ export async function sendAction(
   }
 }
 
-export async function listAction(chatType: ChatType, chatId: string, options: MessageOptions = {}): Promise<MessageResult> {
+export async function listAction(
+  chatType: ChatType,
+  chatId: string,
+  options: MessageOptions = {},
+): Promise<MessageResult> {
   try {
     const client = await getClient(options)
     const channelId = await getCurrentWorkspaceId(options)

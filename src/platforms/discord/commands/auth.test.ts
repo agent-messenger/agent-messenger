@@ -1,9 +1,9 @@
 import { afterEach, beforeEach, expect, spyOn, test } from 'bun:test'
 
-import { getNoDiscordTokenFoundMessage } from './auth'
 import { DiscordClient } from '../client'
 import { DiscordCredentialManager } from '../credential-manager'
 import { DiscordTokenExtractor } from '../token-extractor'
+import { getNoDiscordTokenFoundMessage } from './auth'
 
 let extractorExtractSpy: ReturnType<typeof spyOn>
 let clientTestAuthSpy: ReturnType<typeof spyOn>
@@ -14,9 +14,11 @@ let credManagerClearTokenSpy: ReturnType<typeof spyOn>
 
 beforeEach(() => {
   // Spy on DiscordTokenExtractor.prototype.extract
-  extractorExtractSpy = spyOn(DiscordTokenExtractor.prototype, 'extract').mockResolvedValue([{
-    token: 'test-token-123',
-  }])
+  extractorExtractSpy = spyOn(DiscordTokenExtractor.prototype, 'extract').mockResolvedValue([
+    {
+      token: 'test-token-123',
+    },
+  ])
 
   // Spy on DiscordClient.prototype methods
   clientTestAuthSpy = spyOn(DiscordClient.prototype, 'testAuth').mockResolvedValue({

@@ -28,7 +28,7 @@ function computeXVC(email: string): string {
 function buildHeaders(email: string): Record<string, string> {
   return {
     'Content-Type': 'application/x-www-form-urlencoded',
-    'A': ANDROID_AGENT,
+    A: ANDROID_AGENT,
     'User-Agent': ANDROID_USER_AGENT,
     'Accept-Language': 'ko',
     'X-VC': computeXVC(email),
@@ -112,9 +112,10 @@ export async function attemptLogin(
     return {
       authenticated: false,
       error: 'bad_credentials',
-      message: typeof data.message === 'string'
-        ? `Login failed: ${data.message}`
-        : 'Login failed: incorrect email or password.',
+      message:
+        typeof data.message === 'string'
+          ? `Login failed: ${data.message}`
+          : 'Login failed: incorrect email or password.',
     }
   }
 
@@ -155,7 +156,11 @@ export async function requestPasscode(email: string, password: string, deviceUui
   })
 
   if (!response.ok) {
-    return { authenticated: false, error: 'passcode_request_failed', message: `HTTP ${response.status} from passcode endpoint` }
+    return {
+      authenticated: false,
+      error: 'passcode_request_failed',
+      message: `HTTP ${response.status} from passcode endpoint`,
+    }
   }
 
   const data = (await response.json()) as { status?: number; passcode?: string; remainingSeconds?: number }
@@ -202,7 +207,11 @@ export async function registerDevice(
     })
 
     if (!response.ok) {
-      return { authenticated: false, error: 'registration_failed', message: `HTTP ${response.status} from register endpoint` }
+      return {
+        authenticated: false,
+        error: 'registration_failed',
+        message: `HTTP ${response.status} from register endpoint`,
+      }
     }
 
     const data = (await response.json()) as {
@@ -248,7 +257,14 @@ export async function loginFlow(options: {
   const forced = options.force ?? false
 
   // Step 1: Try login (forced:false for tablet-first safe attempt)
-  const loginResult = await attemptLogin(options.email, options.password, deviceUuid, deviceType, forced, options.debugLog)
+  const loginResult = await attemptLogin(
+    options.email,
+    options.password,
+    deviceUuid,
+    deviceType,
+    forced,
+    options.debugLog,
+  )
 
   if (loginResult.authenticated) {
     return loginResult
@@ -261,7 +277,13 @@ export async function loginFlow(options: {
     if (passcodeResult.error) {
       return {
         ...passcodeResult,
-        credentials: { access_token: '', refresh_token: '', user_id: '', device_uuid: deviceUuid, device_type: deviceType },
+        credentials: {
+          access_token: '',
+          refresh_token: '',
+          user_id: '',
+          device_uuid: deviceUuid,
+          device_type: deviceType,
+        },
       }
     }
 

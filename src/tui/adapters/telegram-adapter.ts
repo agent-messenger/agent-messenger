@@ -1,5 +1,5 @@
-import { TelegramCredentialManager } from '@/platforms/telegram/credential-manager'
 import { TelegramTdlibClient } from '@/platforms/telegram/client'
+import { TelegramCredentialManager } from '@/platforms/telegram/credential-manager'
 
 import type { AuthHint, AuthIO, PlatformAdapter, UnifiedChannel, UnifiedMessage, Workspace } from './types'
 

@@ -174,7 +174,12 @@ export const userCommand = new Command('user')
               ? (() => {
                   const ts = Number(options.expiration)
                   if (!Number.isInteger(ts) || ts <= 0) {
-                    console.log(formatOutput({ error: 'Invalid --expiration value. Use a Unix timestamp in seconds.' }, options.pretty))
+                    console.log(
+                      formatOutput(
+                        { error: 'Invalid --expiration value. Use a Unix timestamp in seconds.' },
+                        options.pretty,
+                      ),
+                    )
                     process.exit(1)
                   }
                   return ts

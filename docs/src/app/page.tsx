@@ -1,7 +1,7 @@
 'use client'
 
-import Link from 'next/link'
 import { useTheme } from 'next-themes'
+import Link from 'next/link'
 import { useEffect, useState } from 'react'
 
 // ============================================================
@@ -147,7 +147,9 @@ function ChannelTalkIcon({ className, style }: { className?: string; style?: Rea
     <svg viewBox="0 0 128 128" fill="currentColor" className={className} style={style}>
       <title>Channel Talk icon</title>
       <rect width="128" height="128" rx="28" fill="#3B3FE4" />
-      <text x="64" y="82" textAnchor="middle" fill="white" fontSize="48" fontWeight="bold" fontFamily="monospace">CT</text>
+      <text x="64" y="82" textAnchor="middle" fill="white" fontSize="48" fontWeight="bold" fontFamily="monospace">
+        CT
+      </text>
     </svg>
   )
 }
@@ -158,7 +160,15 @@ function ChannelTalkIcon({ className, style }: { className?: string; style?: Rea
 
 function ShieldIcon({ className }: { className?: string }) {
   return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
       <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
       <path d="M9.5 12.5L11 14l3.5-3.5" />
     </svg>
@@ -167,7 +177,15 @@ function ShieldIcon({ className }: { className?: string }) {
 
 function UserIcon({ className }: { className?: string }) {
   return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
       <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" />
       <circle cx="12" cy="7" r="4" />
     </svg>
@@ -176,7 +194,15 @@ function UserIcon({ className }: { className?: string }) {
 
 function TerminalIcon({ className }: { className?: string }) {
   return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
       <polyline points="4 17 10 11 4 5" />
       <line x1="12" y1="19" x2="20" y2="19" />
     </svg>
@@ -185,7 +211,15 @@ function TerminalIcon({ className }: { className?: string }) {
 
 function CpuIcon({ className }: { className?: string }) {
   return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
       <rect x="4" y="4" width="16" height="16" rx="2" />
       <rect x="9" y="9" width="6" height="6" />
       <line x1="9" y1="1" x2="9" y2="4" />
@@ -202,7 +236,15 @@ function CpuIcon({ className }: { className?: string }) {
 
 function ZapIcon({ className }: { className?: string }) {
   return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
       <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
     </svg>
   )
@@ -210,7 +252,15 @@ function ZapIcon({ className }: { className?: string }) {
 
 function DatabaseIcon({ className }: { className?: string }) {
   return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
       <ellipse cx="12" cy="5" rx="9" ry="3" />
       <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3" />
       <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5" />
@@ -238,11 +288,27 @@ function CopyButton({ text }: { text: string }) {
       aria-label={copied ? 'Copied' : 'Copy to clipboard'}
     >
       {copied ? (
-        <svg className="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <svg
+          className="size-4"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
           <polyline points="20 6 9 17 4 12" />
         </svg>
       ) : (
-        <svg className="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <svg
+          className="size-4"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
           <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
           <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
         </svg>
@@ -271,7 +337,15 @@ function ThemeToggle() {
       aria-label="Toggle theme"
     >
       {resolvedTheme === 'dark' ? (
-        <svg className="size-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <svg
+          className="size-[18px]"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
           <circle cx="12" cy="12" r="5" />
           <line x1="12" y1="1" x2="12" y2="3" />
           <line x1="12" y1="21" x2="12" y2="23" />
@@ -283,7 +357,15 @@ function ThemeToggle() {
           <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
         </svg>
       ) : (
-        <svg className="size-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <svg
+          className="size-[18px]"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
           <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" />
         </svg>
       )}
@@ -295,15 +377,7 @@ function ThemeToggle() {
 // Terminal Block Component
 // ============================================================
 
-function TerminalBlock({
-  title,
-  copyText,
-  children,
-}: {
-  title?: string
-  copyText: string
-  children: React.ReactNode
-}) {
+function TerminalBlock({ title, copyText, children }: { title?: string; copyText: string; children: React.ReactNode }) {
   return (
     <div className="overflow-hidden rounded-xl border border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-950">
       <div className="flex items-center justify-between border-b border-zinc-200 bg-zinc-100 px-4 py-3 dark:border-zinc-800 dark:bg-zinc-900">
@@ -354,15 +428,23 @@ function PlatformTerminal() {
             <span className="size-3 rounded-full bg-zinc-300 dark:bg-zinc-700" />
           </div>
           <span className="font-mono text-xs text-zinc-400 dark:text-zinc-500">agent-messenger</span>
-          <CopyButton text={demo.commands.filter((c) => 'cmd' in c).map((c) => c.cmd).join('\n')} />
+          <CopyButton
+            text={demo.commands
+              .filter((c) => 'cmd' in c)
+              .map((c) => c.cmd)
+              .join('\n')}
+          />
         </div>
         <div className="flex gap-0 overflow-x-auto px-2">
           {TERMINAL_DEMOS.map((d, i) => (
             <button
               key={d.platform}
               type="button"
-              onClick={() => { setActive(i); setPaused(true) }}
-              className={`whitespace-nowrap px-3 py-2 font-mono text-xs transition-colors duration-200 ${
+              onClick={() => {
+                setActive(i)
+                setPaused(true)
+              }}
+              className={`px-3 py-2 font-mono text-xs whitespace-nowrap transition-colors duration-200 ${
                 i === active
                   ? 'border-b-2 border-blue-500 text-zinc-800 dark:text-zinc-200'
                   : 'border-b-2 border-transparent text-zinc-400 hover:text-zinc-600 dark:text-zinc-600 dark:hover:text-zinc-400'
@@ -406,22 +488,26 @@ const FEATURES = [
   {
     icon: <ShieldIcon className="size-5" />,
     title: 'Auto-Extract Auth',
-    description: 'Reads tokens from Slack, Discord, Teams, KakaoTalk, and Channel Talk desktop apps. Telegram and WhatsApp authenticate with a one-time code — still under a minute.',
+    description:
+      'Reads tokens from Slack, Discord, Teams, KakaoTalk, and Channel Talk desktop apps. Telegram and WhatsApp authenticate with a one-time code — still under a minute.',
   },
   {
     icon: <UserIcon className="size-5" />,
     title: 'Act As Yourself',
-    description: 'Extracts your user session — not a bot token. Your agent sends messages, reacts, and searches as you. Need bot mode? Bot CLIs are included too.',
+    description:
+      'Extracts your user session — not a bot token. Your agent sends messages, reacts, and searches as you. Need bot mode? Bot CLIs are included too.',
   },
   {
     icon: <TerminalIcon className="size-5" />,
     title: 'One Interface',
-    description: 'Same command patterns across 7 platforms: message send, message search, channel list, snapshot. Learn once.',
+    description:
+      'Same command patterns across 7 platforms: message send, message search, channel list, snapshot. Learn once.',
   },
   {
     icon: <CpuIcon className="size-5" />,
     title: 'Agent-Native Output',
-    description: 'JSON by default for LLM tool use. --pretty for human-readable. Structured output your agent can parse and act on.',
+    description:
+      'JSON by default for LLM tool use. --pretty for human-readable. Structured output your agent can parse and act on.',
   },
   {
     icon: <ZapIcon className="size-5" />,
@@ -517,14 +603,50 @@ const TERMINAL_DEMOS = [
 
 const PLATFORMS = [
   { name: 'Slack', href: '/docs/cli/slack', Icon: SlackIcon, color: '#4A154B', glowColor: 'rgba(74,21,75,0.4)' },
-  { name: 'Discord', href: '/docs/cli/discord', Icon: DiscordIcon, color: '#5865F2', glowColor: 'rgba(88,101,242,0.4)' },
+  {
+    name: 'Discord',
+    href: '/docs/cli/discord',
+    Icon: DiscordIcon,
+    color: '#5865F2',
+    glowColor: 'rgba(88,101,242,0.4)',
+  },
   { name: 'Teams', href: '/docs/cli/teams', Icon: TeamsIcon, color: '#6264A7', glowColor: 'rgba(98,100,167,0.4)' },
-  { name: 'Telegram', href: '/docs/cli/telegram', Icon: TelegramIcon, color: '#2AABEE', glowColor: 'rgba(42,171,238,0.4)' },
-  { name: 'WhatsApp', href: '/docs/cli/whatsapp', Icon: WhatsAppIcon, color: '#25D366', glowColor: 'rgba(37,211,102,0.4)' },
+  {
+    name: 'Telegram',
+    href: '/docs/cli/telegram',
+    Icon: TelegramIcon,
+    color: '#2AABEE',
+    glowColor: 'rgba(42,171,238,0.4)',
+  },
+  {
+    name: 'WhatsApp',
+    href: '/docs/cli/whatsapp',
+    Icon: WhatsAppIcon,
+    color: '#25D366',
+    glowColor: 'rgba(37,211,102,0.4)',
+  },
   { name: 'LINE', href: '/docs/cli/line', Icon: LineIcon, color: '#06C755', glowColor: 'rgba(6,199,85,0.4)' },
-  { name: 'Instagram', href: '/docs/cli/instagram', Icon: InstagramIcon, color: '#E4405F', glowColor: 'rgba(228,64,95,0.4)' },
-  { name: 'KakaoTalk', href: '/docs/cli/kakaotalk', Icon: KakaoTalkIcon, color: '#FEE500', glowColor: 'rgba(254,229,0,0.4)' },
-  { name: 'Channel Talk', href: '/docs/cli/channeltalk', Icon: ChannelTalkIcon, color: '#3B3FE4', glowColor: 'rgba(59,63,228,0.4)' },
+  {
+    name: 'Instagram',
+    href: '/docs/cli/instagram',
+    Icon: InstagramIcon,
+    color: '#E4405F',
+    glowColor: 'rgba(228,64,95,0.4)',
+  },
+  {
+    name: 'KakaoTalk',
+    href: '/docs/cli/kakaotalk',
+    Icon: KakaoTalkIcon,
+    color: '#FEE500',
+    glowColor: 'rgba(254,229,0,0.4)',
+  },
+  {
+    name: 'Channel Talk',
+    href: '/docs/cli/channeltalk',
+    Icon: ChannelTalkIcon,
+    color: '#3B3FE4',
+    glowColor: 'rgba(59,63,228,0.4)',
+  },
 ]
 
 const HOW_IT_WORKS = [
@@ -532,19 +654,22 @@ const HOW_IT_WORKS = [
     step: 1,
     title: 'Install',
     code: 'npm install -g agent-messenger',
-    description: 'Installs agent-slack, agent-discord, agent-teams, agent-telegram, agent-whatsapp, agent-line, agent-instagram, agent-kakaotalk, agent-channeltalk, plus bot variants.',
+    description:
+      'Installs agent-slack, agent-discord, agent-teams, agent-telegram, agent-whatsapp, agent-line, agent-instagram, agent-kakaotalk, agent-channeltalk, plus bot variants.',
   },
   {
     step: 2,
     title: 'Run',
     code: 'agent-slack snapshot --pretty',
-    description: 'Slack, Discord, Teams, KakaoTalk, and Channel Talk tokens are read from your desktop app automatically. Telegram and WhatsApp authenticate with a one-time code.',
+    description:
+      'Slack, Discord, Teams, KakaoTalk, and Channel Talk tokens are read from your desktop app automatically. Telegram and WhatsApp authenticate with a one-time code.',
   },
   {
     step: 3,
     title: 'Teach Your Agent',
     code: 'npx skills add agent-messenger/agent-messenger',
-    description: 'Install Agent Skills via Skills CLI, Claude Code, OpenCode, or SkillPad — your agent learns every command and starts messaging on its own.',
+    description:
+      'Install Agent Skills via Skills CLI, Claude Code, OpenCode, or SkillPad — your agent learns every command and starts messaging on its own.',
   },
 ]
 
@@ -554,7 +679,7 @@ const USE_CASES = [
   'Search the Teams #design channel for the latest discussion about the new onboarding flow',
   'Check my unread Slack messages right now and draft replies for anything urgent',
   'Look up who reacted to my last message in #general on Discord and what they said after',
-  'Summarize today\'s WhatsApp group chat and send the summary to #standup in Slack',
+  "Summarize today's WhatsApp group chat and send the summary to #standup in Slack",
 ]
 
 const CAPABILITIES: {
@@ -569,22 +694,150 @@ const CAPABILITIES: {
   kakaotalk: boolean
   channeltalk: boolean
 }[] = [
-  { feature: 'Zero-config credentials', slack: true, discord: true, teams: true, telegram: false, whatsapp: false, line: false, instagram: false, kakaotalk: true, channeltalk: true },
-  { feature: 'Send & list messages', slack: true, discord: true, teams: true, telegram: true, whatsapp: true, line: true, instagram: true, kakaotalk: true, channeltalk: true },
-  { feature: 'Search messages', slack: true, discord: true, teams: false, telegram: false, whatsapp: true, line: false, instagram: true, kakaotalk: false, channeltalk: true },
-  { feature: 'Threads', slack: true, discord: true, teams: false, telegram: false, whatsapp: false, line: false, instagram: false, kakaotalk: false, channeltalk: false },
-  { feature: 'Reactions', slack: true, discord: true, teams: true, telegram: false, whatsapp: true, line: false, instagram: false, kakaotalk: false, channeltalk: false },
-  { feature: 'File upload & download', slack: true, discord: true, teams: true, telegram: false, whatsapp: false, line: false, instagram: false, kakaotalk: false, channeltalk: false },
-  { feature: 'Workspace snapshot', slack: true, discord: true, teams: true, telegram: false, whatsapp: false, line: false, instagram: false, kakaotalk: false, channeltalk: true },
-  { feature: 'Multi-account', slack: true, discord: true, teams: true, telegram: true, whatsapp: true, line: true, instagram: true, kakaotalk: false, channeltalk: true },
-  { feature: 'Bot CLI available', slack: true, discord: true, teams: false, telegram: false, whatsapp: true, line: false, instagram: false, kakaotalk: false, channeltalk: true },
-  { feature: 'Real-time events (SDK)', slack: true, discord: false, teams: false, telegram: false, whatsapp: false, line: true, instagram: true, kakaotalk: false, channeltalk: false },
+  {
+    feature: 'Zero-config credentials',
+    slack: true,
+    discord: true,
+    teams: true,
+    telegram: false,
+    whatsapp: false,
+    line: false,
+    instagram: false,
+    kakaotalk: true,
+    channeltalk: true,
+  },
+  {
+    feature: 'Send & list messages',
+    slack: true,
+    discord: true,
+    teams: true,
+    telegram: true,
+    whatsapp: true,
+    line: true,
+    instagram: true,
+    kakaotalk: true,
+    channeltalk: true,
+  },
+  {
+    feature: 'Search messages',
+    slack: true,
+    discord: true,
+    teams: false,
+    telegram: false,
+    whatsapp: true,
+    line: false,
+    instagram: true,
+    kakaotalk: false,
+    channeltalk: true,
+  },
+  {
+    feature: 'Threads',
+    slack: true,
+    discord: true,
+    teams: false,
+    telegram: false,
+    whatsapp: false,
+    line: false,
+    instagram: false,
+    kakaotalk: false,
+    channeltalk: false,
+  },
+  {
+    feature: 'Reactions',
+    slack: true,
+    discord: true,
+    teams: true,
+    telegram: false,
+    whatsapp: true,
+    line: false,
+    instagram: false,
+    kakaotalk: false,
+    channeltalk: false,
+  },
+  {
+    feature: 'File upload & download',
+    slack: true,
+    discord: true,
+    teams: true,
+    telegram: false,
+    whatsapp: false,
+    line: false,
+    instagram: false,
+    kakaotalk: false,
+    channeltalk: false,
+  },
+  {
+    feature: 'Workspace snapshot',
+    slack: true,
+    discord: true,
+    teams: true,
+    telegram: false,
+    whatsapp: false,
+    line: false,
+    instagram: false,
+    kakaotalk: false,
+    channeltalk: true,
+  },
+  {
+    feature: 'Multi-account',
+    slack: true,
+    discord: true,
+    teams: true,
+    telegram: true,
+    whatsapp: true,
+    line: true,
+    instagram: true,
+    kakaotalk: false,
+    channeltalk: true,
+  },
+  {
+    feature: 'Bot CLI available',
+    slack: true,
+    discord: true,
+    teams: false,
+    telegram: false,
+    whatsapp: true,
+    line: false,
+    instagram: false,
+    kakaotalk: false,
+    channeltalk: true,
+  },
+  {
+    feature: 'Real-time events (SDK)',
+    slack: true,
+    discord: false,
+    teams: false,
+    telegram: false,
+    whatsapp: false,
+    line: true,
+    instagram: true,
+    kakaotalk: false,
+    channeltalk: false,
+  },
 ]
 
-const PLATFORM_COLUMNS = ['Slack', 'Discord', 'Teams', 'Telegram', 'WhatsApp', 'LINE', 'Instagram', 'KakaoTalk', 'Ch. Talk'] as const
-const PLATFORM_KEYS = ['slack', 'discord', 'teams', 'telegram', 'whatsapp', 'line', 'instagram', 'kakaotalk', 'channeltalk'] as const
-
-
+const PLATFORM_COLUMNS = [
+  'Slack',
+  'Discord',
+  'Teams',
+  'Telegram',
+  'WhatsApp',
+  'LINE',
+  'Instagram',
+  'KakaoTalk',
+  'Ch. Talk',
+] as const
+const PLATFORM_KEYS = [
+  'slack',
+  'discord',
+  'teams',
+  'telegram',
+  'whatsapp',
+  'line',
+  'instagram',
+  'kakaotalk',
+  'channeltalk',
+] as const
 
 // ============================================================
 // Page Component
@@ -593,13 +846,12 @@ const PLATFORM_KEYS = ['slack', 'discord', 'teams', 'telegram', 'whatsapp', 'lin
 export default function Home() {
   return (
     <div className="min-h-screen bg-white text-zinc-900 dark:bg-zinc-950 dark:text-zinc-100">
-
       {/* ================================================================
           AMBIENT GLOW BACKGROUND
           ================================================================ */}
       <div className="pointer-events-none fixed inset-0 overflow-hidden">
         <div className="absolute -top-[20%] left-1/2 h-[900px] w-[900px] -translate-x-1/2 rounded-full bg-[radial-gradient(circle,rgba(139,92,246,0.15)_0%,rgba(59,130,246,0.08)_40%,transparent_70%)] opacity-[0.03] dark:opacity-[0.08]" />
-        <div className="absolute -bottom-[10%] -right-[5%] h-[600px] w-[600px] rounded-full bg-[radial-gradient(circle,rgba(59,130,246,0.5)_0%,transparent_60%)] opacity-[0.02] dark:opacity-[0.05]" />
+        <div className="absolute -right-[5%] -bottom-[10%] h-[600px] w-[600px] rounded-full bg-[radial-gradient(circle,rgba(59,130,246,0.5)_0%,transparent_60%)] opacity-[0.02] dark:opacity-[0.05]" />
       </div>
 
       {/* ================================================================
@@ -681,7 +933,7 @@ export default function Home() {
           ================================================================ */}
       <section className="relative z-10 border-y border-zinc-100/50 px-4 py-16 sm:px-6 dark:border-white/[0.04]">
         <div className="mx-auto max-w-5xl text-center">
-          <p className="font-mono text-xs uppercase tracking-widest text-zinc-400 dark:text-zinc-600">
+          <p className="font-mono text-xs tracking-widest text-zinc-400 uppercase dark:text-zinc-600">
             Works with the platforms your team already uses
           </p>
           <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
@@ -714,7 +966,9 @@ export default function Home() {
       <section className="relative z-10 px-4 py-20 sm:px-6 sm:py-24">
         <div className="mx-auto max-w-5xl">
           <div className="text-center">
-            <p className="font-mono text-xs font-medium uppercase tracking-widest text-blue-600 dark:text-blue-400">Why Agent Messenger?</p>
+            <p className="font-mono text-xs font-medium tracking-widest text-blue-600 uppercase dark:text-blue-400">
+              Why Agent Messenger?
+            </p>
             <h2 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">
               You shouldn&apos;t need a bot token to send a message
             </h2>
@@ -723,32 +977,36 @@ export default function Home() {
           <div className="mt-14 grid grid-cols-1 gap-6 md:grid-cols-2">
             {/* The Problem */}
             <div className="rounded-2xl border border-zinc-200/40 bg-white/60 p-8 backdrop-blur-xl transition-all duration-300 hover:border-zinc-300/60 hover:shadow-lg dark:border-white/[0.06] dark:bg-white/[0.03] dark:hover:border-white/15 dark:hover:shadow-[0_0_40px_-15px_rgba(139,92,246,0.15)]">
-              <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-red-50 px-3 py-1 font-mono text-xs font-medium uppercase tracking-wider text-red-600 dark:bg-red-950/50 dark:text-red-400">
+              <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-red-50 px-3 py-1 font-mono text-xs font-medium tracking-wider text-red-600 uppercase dark:bg-red-950/50 dark:text-red-400">
                 <span className="size-1.5 rounded-full bg-red-500" />
                 Problem
               </div>
               <p className="leading-relaxed text-zinc-600 dark:text-zinc-400">
-                Every platform gates API access behind OAuth apps that need admin approval — days of waiting just to send a message.
-                And even then, your agent is a <strong className="text-zinc-900 dark:text-zinc-100">bot</strong>, not you. Different name, different permissions, different context.
+                Every platform gates API access behind OAuth apps that need admin approval — days of waiting just to
+                send a message. And even then, your agent is a{' '}
+                <strong className="text-zinc-900 dark:text-zinc-100">bot</strong>, not you. Different name, different
+                permissions, different context.
               </p>
             </div>
 
             {/* The Solution */}
             <div className="rounded-2xl border border-zinc-200/40 bg-white/60 p-8 backdrop-blur-xl transition-all duration-300 hover:border-zinc-300/60 hover:shadow-lg dark:border-white/[0.06] dark:bg-white/[0.03] dark:hover:border-white/15 dark:hover:shadow-[0_0_40px_-15px_rgba(139,92,246,0.15)]">
-              <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1 font-mono text-xs font-medium uppercase tracking-wider text-emerald-600 dark:bg-emerald-950/50 dark:text-emerald-400">
+              <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1 font-mono text-xs font-medium tracking-wider text-emerald-600 uppercase dark:bg-emerald-950/50 dark:text-emerald-400">
                 <span className="size-1.5 rounded-full bg-emerald-500" />
                 Solution
               </div>
               <p className="leading-relaxed text-zinc-600 dark:text-zinc-400">
-                Agent Messenger reads session tokens from your Slack, Discord, Teams, or KakaoTalk desktop app — zero config.
-                Telegram, WhatsApp, LINE, and Instagram authenticate with a one-time code or credentials.
-                Either way, your agent operates <strong className="text-zinc-900 dark:text-zinc-100">as you</strong> — same name, same permissions, same context.
+                Agent Messenger reads session tokens from your Slack, Discord, Teams, or KakaoTalk desktop app — zero
+                config. Telegram, WhatsApp, LINE, and Instagram authenticate with a one-time code or credentials. Either
+                way, your agent operates <strong className="text-zinc-900 dark:text-zinc-100">as you</strong> — same
+                name, same permissions, same context.
               </p>
             </div>
           </div>
 
           <p className="mt-6 text-center text-sm text-zinc-400 dark:text-zinc-600">
-            Credentials are stored locally in ~/.config/agent-messenger/ with restricted permissions. Nothing is sent to third-party servers.
+            Credentials are stored locally in ~/.config/agent-messenger/ with restricted permissions. Nothing is sent to
+            third-party servers.
           </p>
         </div>
       </section>
@@ -759,10 +1017,10 @@ export default function Home() {
       <section className="relative z-10 border-t border-zinc-100/50 px-4 py-20 sm:px-6 sm:py-24 dark:border-white/[0.04]">
         <div className="mx-auto max-w-5xl">
           <div className="text-center">
-            <p className="font-mono text-xs font-medium uppercase tracking-widest text-blue-600 dark:text-blue-400">Features</p>
-            <h2 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">
-              Built for agents, not humans
-            </h2>
+            <p className="font-mono text-xs font-medium tracking-widest text-blue-600 uppercase dark:text-blue-400">
+              Features
+            </p>
+            <h2 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">Built for agents, not humans</h2>
           </div>
 
           <div className="mt-14 grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3">
@@ -788,16 +1046,16 @@ export default function Home() {
       <section className="relative z-10 border-t border-zinc-100/50 px-4 py-20 sm:px-6 sm:py-24 dark:border-white/[0.04]">
         <div className="mx-auto max-w-3xl">
           <div className="text-center">
-            <p className="font-mono text-xs font-medium uppercase tracking-widest text-blue-600 dark:text-blue-400">How It Works</p>
-            <h2 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">
-              Running in under a minute
-            </h2>
+            <p className="font-mono text-xs font-medium tracking-widest text-blue-600 uppercase dark:text-blue-400">
+              How It Works
+            </p>
+            <h2 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">Running in under a minute</h2>
           </div>
 
           {/* Vertical Timeline */}
           <div className="relative mt-14">
             {/* Gradient Timeline Line */}
-            <div className="absolute left-[27px] top-8 bottom-8 w-px bg-gradient-to-b from-violet-300/50 via-blue-300/30 to-transparent dark:from-violet-500/30 dark:via-blue-500/20 dark:to-transparent" />
+            <div className="absolute top-8 bottom-8 left-[27px] w-px bg-gradient-to-b from-violet-300/50 via-blue-300/30 to-transparent dark:from-violet-500/30 dark:via-blue-500/20 dark:to-transparent" />
 
             <div className="space-y-8">
               {HOW_IT_WORKS.map((step) => (
@@ -811,12 +1069,8 @@ export default function Home() {
 
                   {/* Content Card */}
                   <div className="flex-1 rounded-2xl border border-zinc-200/40 bg-white/60 p-5 backdrop-blur-xl transition-all duration-300 hover:border-zinc-300/60 dark:border-white/[0.06] dark:bg-white/[0.03] dark:hover:border-white/15">
-                    <h3 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">
-                      {step.title}
-                    </h3>
-                    <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-                      {step.description}
-                    </p>
+                    <h3 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">{step.title}</h3>
+                    <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">{step.description}</p>
                     <code className="mt-3 inline-block rounded-lg border border-zinc-100 bg-zinc-50 px-3 py-1.5 font-mono text-xs text-blue-600 dark:border-white/[0.04] dark:bg-white/[0.04] dark:text-blue-400">
                       {step.code}
                     </code>
@@ -834,10 +1088,10 @@ export default function Home() {
       <section className="relative z-10 border-t border-zinc-100/50 px-4 py-20 sm:px-6 sm:py-24 dark:border-white/[0.04]">
         <div className="mx-auto max-w-5xl">
           <div className="text-center">
-            <p className="font-mono text-xs font-medium uppercase tracking-widest text-blue-600 dark:text-blue-400">Use Cases</p>
-            <h2 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">
-              What agents build with this
-            </h2>
+            <p className="font-mono text-xs font-medium tracking-widest text-blue-600 uppercase dark:text-blue-400">
+              Use Cases
+            </p>
+            <h2 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">What agents build with this</h2>
           </div>
 
           <div className="mt-14 grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -846,9 +1100,7 @@ export default function Home() {
                 key={uc}
                 className="rounded-r-xl border-l-4 border-blue-500 bg-white/60 px-5 py-4 backdrop-blur-xl transition-all duration-300 dark:bg-white/[0.02]"
               >
-                <p className="text-sm leading-relaxed text-zinc-600 italic dark:text-zinc-400">
-                  &ldquo;{uc}&rdquo;
-                </p>
+                <p className="text-sm leading-relaxed text-zinc-600 italic dark:text-zinc-400">&ldquo;{uc}&rdquo;</p>
               </div>
             ))}
           </div>
@@ -861,10 +1113,10 @@ export default function Home() {
       <section className="relative z-10 border-t border-zinc-100/50 px-4 py-20 sm:px-6 sm:py-24 dark:border-white/[0.04]">
         <div className="mx-auto max-w-4xl">
           <div className="text-center">
-            <p className="font-mono text-xs font-medium uppercase tracking-widest text-blue-600 dark:text-blue-400">Philosophy</p>
-            <h2 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">
-              Why CLI, not MCP?
-            </h2>
+            <p className="font-mono text-xs font-medium tracking-widest text-blue-600 uppercase dark:text-blue-400">
+              Philosophy
+            </p>
+            <h2 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">Why CLI, not MCP?</h2>
           </div>
 
           <div className="mt-14 grid grid-cols-1 gap-6 md:grid-cols-2">
@@ -915,10 +1167,10 @@ export default function Home() {
       <section className="relative z-10 border-t border-zinc-100/50 px-4 py-20 sm:px-6 sm:py-24 dark:border-white/[0.04]">
         <div className="mx-auto max-w-5xl">
           <div className="text-center">
-            <p className="font-mono text-xs font-medium uppercase tracking-widest text-blue-600 dark:text-blue-400">Compatibility</p>
-            <h2 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">
-              Platform capabilities
-            </h2>
+            <p className="font-mono text-xs font-medium tracking-widest text-blue-600 uppercase dark:text-blue-400">
+              Compatibility
+            </p>
+            <h2 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">Platform capabilities</h2>
           </div>
 
           <div className="mt-14 overflow-x-auto rounded-2xl border border-zinc-200/40 bg-white/50 backdrop-blur-xl dark:border-white/[0.06] dark:bg-white/[0.02]">
@@ -931,7 +1183,7 @@ export default function Home() {
                   {PLATFORM_COLUMNS.map((col) => (
                     <th
                       key={col}
-                      className="px-4 py-3 text-center font-mono text-xs font-semibold tracking-wide text-zinc-500 uppercase whitespace-nowrap dark:text-zinc-500"
+                      className="px-4 py-3 text-center font-mono text-xs font-semibold tracking-wide whitespace-nowrap text-zinc-500 uppercase dark:text-zinc-500"
                     >
                       {col}
                     </th>
@@ -942,13 +1194,9 @@ export default function Home() {
                 {CAPABILITIES.map((row, i) => (
                   <tr
                     key={row.feature}
-                    className={
-                      i % 2 === 0
-                        ? 'bg-white/30 dark:bg-white/[0.01]'
-                        : 'bg-zinc-50/30 dark:bg-transparent'
-                    }
+                    className={i % 2 === 0 ? 'bg-white/30 dark:bg-white/[0.01]' : 'bg-zinc-50/30 dark:bg-transparent'}
                   >
-                    <td className="px-4 py-3 font-medium text-zinc-700 whitespace-nowrap dark:text-zinc-300">
+                    <td className="px-4 py-3 font-medium whitespace-nowrap text-zinc-700 dark:text-zinc-300">
                       {row.feature}
                     </td>
                     {PLATFORM_KEYS.map((key) => (
@@ -966,7 +1214,8 @@ export default function Home() {
             </table>
           </div>
           <p className="mt-6 text-center text-sm text-zinc-500 dark:text-zinc-400">
-            Slack goes deepest — scheduled messages, ephemeral sends, file downloads, real-time events SDK, activity feed, drafts, saved items, reminders, pins, and bookmarks.
+            Slack goes deepest — scheduled messages, ephemeral sends, file downloads, real-time events SDK, activity
+            feed, drafts, saved items, reminders, pins, and bookmarks.
           </p>
         </div>
       </section>
@@ -981,14 +1230,10 @@ export default function Home() {
             {/* Subtle CTA glow behind */}
             <div className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_center,rgba(139,92,246,0.08)_0%,transparent_60%)] opacity-0 dark:opacity-100" />
 
-          <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
-            Install once. Message everywhere.
-          </h2>
+            <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">Install once. Message everywhere.</h2>
 
             <div className="mx-auto mt-10 max-w-lg text-left">
-              <TerminalBlock
-                copyText="npm install -g agent-messenger"
-              >
+              <TerminalBlock copyText="npm install -g agent-messenger">
                 <span className="text-zinc-400 dark:text-zinc-500">$ </span>
                 <span className="text-zinc-800 dark:text-zinc-100">npm install -g agent-messenger</span>
               </TerminalBlock>

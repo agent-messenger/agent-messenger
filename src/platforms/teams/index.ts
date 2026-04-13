@@ -27,4 +27,3 @@ export {
   TeamsTeamSchema,
   TeamsUserSchema,
 } from './types'
-

@@ -6,15 +6,14 @@ import {
   setEnsureChannelAuthDependenciesForTesting,
 } from './ensure-auth'
 
-const mockGetCredentials = mock<() => Promise<
-  | {
-      workspace_id: string
-      workspace_name: string
-      account_cookie: string
-      session_cookie: string
-    }
-  | null
->>(() => Promise.resolve(null))
+const mockGetCredentials = mock<
+  () => Promise<{
+    workspace_id: string
+    workspace_name: string
+    account_cookie: string
+    session_cookie: string
+  } | null>
+>(() => Promise.resolve(null))
 const mockSetCredentials = mock(() => Promise.resolve())
 const mockSetCurrent = mock(() => Promise.resolve(true))
 const mockExtract = mock(() => Promise.resolve([]))
@@ -65,10 +64,12 @@ describe('ensureChannelAuth', () => {
 
   test('extracts and saves workspaces when no credentials exist', async () => {
     mockExtract.mockImplementation(() =>
-      Promise.resolve([{
-        accountCookie: 'account-cookie',
-        sessionCookie: 'session-cookie',
-      }]),
+      Promise.resolve([
+        {
+          accountCookie: 'account-cookie',
+          sessionCookie: 'session-cookie',
+        },
+      ]),
     )
     mockListChannels.mockImplementation(() =>
       Promise.resolve([
@@ -128,10 +129,12 @@ describe('ensureChannelAuth', () => {
     )
     mockGetAccount.mockImplementationOnce(() => Promise.reject(new Error('Unauthorized')))
     mockExtract.mockImplementation(() =>
-      Promise.resolve([{
-        accountCookie: 'fresh-account',
-        sessionCookie: 'fresh-session',
-      }]),
+      Promise.resolve([
+        {
+          accountCookie: 'fresh-account',
+          sessionCookie: 'fresh-session',
+        },
+      ]),
     )
 
     await ensureChannelAuth()

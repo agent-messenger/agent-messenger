@@ -8,10 +8,7 @@ import type { KakaoAccountCredentials } from './types'
 const testDirs: string[] = []
 
 function setup(): KakaoCredentialManager {
-  const testConfigDir = join(
-    import.meta.dir,
-    `.test-kakao-config-${Date.now()}-${Math.random().toString(36).slice(2)}`,
-  )
+  const testConfigDir = join(import.meta.dir, `.test-kakao-config-${Date.now()}-${Math.random().toString(36).slice(2)}`)
   testDirs.push(testConfigDir)
   return new KakaoCredentialManager(testConfigDir)
 }

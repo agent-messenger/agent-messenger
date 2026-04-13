@@ -6,14 +6,18 @@ import { join } from 'node:path'
 
 const mockListBots = mock(() =>
   Promise.resolve([
-    { id: 'bot1', channelId: 'ch1', name: 'Support Bot', avatarUrl: 'https://example.com/avatar.png', color: '#FF0000' },
+    {
+      id: 'bot1',
+      channelId: 'ch1',
+      name: 'Support Bot',
+      avatarUrl: 'https://example.com/avatar.png',
+      color: '#FF0000',
+    },
     { id: 'bot2', channelId: 'ch1', name: 'Sales Bot' },
   ]),
 )
 
-const mockCreateBot = mock(() =>
-  Promise.resolve({ id: 'bot3', channelId: 'ch1', name: 'New Bot', color: '#00FF00' }),
-)
+const mockCreateBot = mock(() => Promise.resolve({ id: 'bot3', channelId: 'ch1', name: 'New Bot', color: '#00FF00' }))
 
 const mockDeleteBot = mock(() => Promise.resolve(undefined))
 
@@ -86,7 +90,11 @@ describe('bot commands', () => {
 
     test('creates bot with optional color and avatar', async () => {
       const manager = new ChannelBotCredentialManager(tempDir)
-      await createAction('New Bot', { color: '#00FF00', avatarUrl: 'https://example.com/avatar.png', _credManager: manager })
+      await createAction('New Bot', {
+        color: '#00FF00',
+        avatarUrl: 'https://example.com/avatar.png',
+        _credManager: manager,
+      })
 
       expect(capturedCreateArgs[1]).toMatchObject({ color: '#00FF00', avatarUrl: 'https://example.com/avatar.png' })
     })

@@ -18,7 +18,9 @@ const mockUser = {
 }
 
 const makeFakeClient = () => ({
-  login: async function (this: unknown) { return this },
+  login: async function (this: unknown) {
+    return this
+  },
   testAuth: async () => mockUser,
 })
 
@@ -100,10 +102,15 @@ test('whoami outputs pretty-printed JSON when --pretty flag is passed', async ()
 
 test('whoami exits with code 1 when not authenticated', async () => {
   // given: no credentials
-  webexClientSpy.mockImplementation(() => ({
-    login: async () => { throw new WebexError('No Webex credentials found.', 'no_credentials') },
-    testAuth: async () => mockUser,
-  }) as unknown as clientModule.WebexClient)
+  webexClientSpy.mockImplementation(
+    () =>
+      ({
+        login: async () => {
+          throw new WebexError('No Webex credentials found.', 'no_credentials')
+        },
+        testAuth: async () => mockUser,
+      }) as unknown as clientModule.WebexClient,
+  )
 
   // when: running whoami
   await whoamiCommand.parseAsync([], { from: 'user' })
