@@ -16,5 +16,17 @@
       }
     }
   ],
-  "ignorePatterns": ["dist/**", ".github/**", ".claude-plugin/**", "**/*.md"]
+  "ignorePatterns": [
+    "dist/**",
+    ".github/**",
+    ".claude-plugin/**",
+    "**/*.md",
+    "src/vendor/**",
+    "node_modules/**",
+    "**/bun.lock*",
+    "docs/.next/**",
+    "docs/next-env.d.ts",
+    "**/*.tsbuildinfo",
+    "cubic.yaml"
+  ]
 }
