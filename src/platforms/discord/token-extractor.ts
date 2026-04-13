@@ -1,9 +1,17 @@
 import { execSync, spawn } from 'node:child_process'
-import { createDecipheriv, pbkdf2Sync } from 'node:crypto'
+import { pbkdf2Sync } from 'node:crypto'
 import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
 
+import {
+  BROWSER_KEYCHAIN_VARIANTS,
+  CHROMIUM_BROWSERS,
+  ChromiumCookieDecryptor,
+  discoverBrowserProfileDirs,
+  getBrowserBasePath,
+} from '@/shared/chromium'
+import type { KeychainVariant } from '@/shared/chromium'
 import { DerivedKeyCache } from '@/shared/utils/derived-key-cache'
 import { lookupLinuxKeyringPassword } from '@/shared/utils/linux-keyring'
 
@@ -12,11 +20,6 @@ export interface ExtractedDiscordToken {
 }
 
 export type DiscordVariant = 'stable' | 'canary' | 'ptb'
-
-interface KeychainVariant {
-  service: string
-  account: string
-}
 
 interface CDPTarget {
   id: string
@@ -32,13 +35,6 @@ interface CDPMessage {
   params?: Record<string, unknown>
   result?: { result?: { value?: unknown } }
   error?: { code: number; message: string }
-}
-
-interface BrowserConfig {
-  name: string
-  darwin: string
-  linux: string
-  win32: string
 }
 
 const TOKEN_REGEX = /[\w-]{24,}\.[\w-]{6}\.[\w-]{25,110}/
@@ -62,49 +58,13 @@ const DISCORD_APP_PATHS: Record<DiscordVariant, { darwin: string }> = {
   ptb: { darwin: '/Applications/Discord PTB.app/Contents/MacOS/Discord PTB' },
 }
 
-const BROWSERS: BrowserConfig[] = [
-  {
-    name: 'Chrome',
-    darwin: join('Google', 'Chrome'),
-    linux: 'google-chrome',
-    win32: join('Google', 'Chrome', 'User Data'),
-  },
-  {
-    name: 'Chrome Canary',
-    darwin: join('Google', 'Chrome Canary'),
-    linux: 'google-chrome-unstable',
-    win32: join('Google', 'Chrome SxS', 'User Data'),
-  },
-  {
-    name: 'Edge',
-    darwin: 'Microsoft Edge',
-    linux: 'microsoft-edge',
-    win32: join('Microsoft', 'Edge', 'User Data'),
-  },
-  {
-    name: 'Arc',
-    darwin: join('Arc', 'User Data'),
-    linux: '',
-    win32: join('Arc', 'User Data'),
-  },
-  {
-    name: 'Brave',
-    darwin: join('BraveSoftware', 'Brave-Browser'),
-    linux: join('BraveSoftware', 'Brave-Browser'),
-    win32: join('BraveSoftware', 'Brave-Browser', 'User Data'),
-  },
-  {
-    name: 'Vivaldi',
-    darwin: 'Vivaldi',
-    linux: 'vivaldi',
-    win32: join('Vivaldi', 'User Data'),
-  },
-  {
-    name: 'Chromium',
-    darwin: 'Chromium',
-    linux: 'chromium',
-    win32: join('Chromium', 'User Data'),
-  },
+const DISCORD_APP_KEYCHAIN_VARIANTS: KeychainVariant[] = [
+  { service: 'discord Safe Storage', account: 'discord Key' },
+  { service: 'discordcanary Safe Storage', account: 'discordcanary Key' },
+  { service: 'discordptb Safe Storage', account: 'discordptb Key' },
+  { service: 'Discord Safe Storage', account: 'Discord' },
+  { service: 'Discord Canary Safe Storage', account: 'Discord Canary' },
+  { service: 'Discord PTB Safe Storage', account: 'Discord PTB' },
 ]
 
 export class DiscordTokenExtractor {
@@ -113,12 +73,20 @@ export class DiscordTokenExtractor {
   private killWait: number
   private keyCache: DerivedKeyCache
   private cachedKey: Buffer | null = null
+  private decryptor: ChromiumCookieDecryptor
 
   constructor(platform?: NodeJS.Platform, startupWait?: number, killWait?: number, keyCache?: DerivedKeyCache) {
     this.platform = platform ?? process.platform
     this.startupWait = startupWait ?? DISCORD_STARTUP_WAIT
     this.killWait = killWait ?? 1000
     this.keyCache = keyCache ?? new DerivedKeyCache()
+    this.decryptor = new ChromiumCookieDecryptor({
+      platform: this.platform,
+      appKeychainVariants: DISCORD_APP_KEYCHAIN_VARIANTS,
+      keyCache: this.keyCache,
+      keyCachePlatform: 'discord',
+      linuxKeyringAppNames: ['discord', 'Discord'],
+    })
   }
 
   getDiscordDirs(): string[] {
@@ -147,58 +115,15 @@ export class DiscordTokenExtractor {
   getBrowserLevelDBDirs(): string[] {
     const dirs: string[] = []
 
-    for (const browser of BROWSERS) {
-      const browserBase = this.getBrowserBasePath(browser)
+    for (const browser of CHROMIUM_BROWSERS) {
+      const browserBase = getBrowserBasePath(browser, this.platform)
       if (!browserBase) continue
 
-      const profileDirs = this.discoverProfileDirs(browserBase)
+      const profileDirs = discoverBrowserProfileDirs(browserBase)
       for (const profileDir of profileDirs) {
         dirs.push(join(profileDir, 'Local Storage', 'leveldb'))
       }
     }
-
-    return dirs
-  }
-
-  private getBrowserBasePath(browser: BrowserConfig): string | null {
-    let relative: string
-
-    switch (this.platform) {
-      case 'darwin':
-        relative = browser.darwin
-        if (!relative) return null
-        return join(homedir(), 'Library', 'Application Support', relative)
-      case 'linux':
-        relative = browser.linux
-        if (!relative) return null
-        return join(homedir(), '.config', relative)
-      case 'win32':
-        relative = browser.win32
-        if (!relative) return null
-        return join(
-          process.env.LOCALAPPDATA || join(homedir(), 'AppData', 'Local'),
-          relative,
-        )
-      default:
-        return null
-    }
-  }
-
-  private discoverProfileDirs(browserBase: string): string[] {
-    const dirs: string[] = []
-
-    dirs.push(join(browserBase, 'Default'))
-
-    if (!existsSync(browserBase)) return dirs
-
-    try {
-      const entries = readdirSync(browserBase, { withFileTypes: true })
-      for (const entry of entries) {
-        if (!entry.isDirectory()) continue
-        if (!/^Profile \d+$/i.test(entry.name)) continue
-        dirs.push(join(browserBase, entry.name))
-      }
-    } catch {}
 
     return dirs
   }
@@ -214,24 +139,7 @@ export class DiscordTokenExtractor {
   }
 
   getKeychainVariants(): KeychainVariant[] {
-    return [
-      // Modern Discord (lowercase)
-      { service: 'discord Safe Storage', account: 'discord Key' },
-      { service: 'discordcanary Safe Storage', account: 'discordcanary Key' },
-      { service: 'discordptb Safe Storage', account: 'discordptb Key' },
-      // Legacy Discord (capitalized)
-      { service: 'Discord Safe Storage', account: 'Discord' },
-      { service: 'Discord Canary Safe Storage', account: 'Discord Canary' },
-      { service: 'Discord PTB Safe Storage', account: 'Discord PTB' },
-      // Browser keychain entries for fallback
-      { service: 'Chrome Safe Storage', account: 'Chrome' },
-      { service: 'Chrome Canary Safe Storage', account: 'Chrome Canary' },
-      { service: 'Microsoft Edge Safe Storage', account: 'Microsoft Edge' },
-      { service: 'Arc Safe Storage', account: 'Arc' },
-      { service: 'Brave Safe Storage', account: 'Brave' },
-      { service: 'Vivaldi Safe Storage', account: 'Vivaldi' },
-      { service: 'Chromium Safe Storage', account: 'Chromium' },
-    ]
+    return [...DISCORD_APP_KEYCHAIN_VARIANTS, ...BROWSER_KEYCHAIN_VARIANTS]
   }
 
   getVariantFromPath(path: string): DiscordVariant {
@@ -283,6 +191,8 @@ export class DiscordTokenExtractor {
   private async loadCachedKey(): Promise<void> {
     if (this.platform !== 'darwin') return
 
+    await this.decryptor.loadCachedKey()
+
     const cached = await this.keyCache.get('discord')
     if (cached) {
       this.cachedKey = cached
@@ -290,7 +200,7 @@ export class DiscordTokenExtractor {
   }
 
   async clearKeyCache(): Promise<void> {
-    await this.keyCache.clear('discord')
+    await this.decryptor.clearKeyCache()
     this.cachedKey = null
   }
 
@@ -445,27 +355,10 @@ export class DiscordTokenExtractor {
       const encryptedKey = Buffer.from(localState.os_crypt.encrypted_key, 'base64')
 
       const dpapiBlobKey = encryptedKey.subarray(5)
-      const masterKey = this.decryptDPAPI(dpapiBlobKey)
+      const masterKey = this.decryptor.decryptDPAPI(dpapiBlobKey)
       if (!masterKey) return null
 
-      return this.decryptAESGCM(encryptedData, masterKey)
-    } catch {
-      return null
-    }
-  }
-
-  private decryptDPAPI(encryptedBlob: Buffer): Buffer | null {
-    try {
-      const b64 = encryptedBlob.toString('base64')
-      const psScript = `
-        Add-Type -AssemblyName System.Security
-        $bytes = [Convert]::FromBase64String('${b64}')
-        $decrypted = [Security.Cryptography.ProtectedData]::Unprotect($bytes, $null, 'CurrentUser')
-        [Convert]::ToBase64String($decrypted)
-      `.replace(/\n/g, ' ')
-
-      const result = execSync(`powershell -Command "${psScript}"`, { encoding: 'utf8' })
-      return Buffer.from(result.trim(), 'base64')
+      return this.decryptor.decryptAESGCM(encryptedData, masterKey)
     } catch {
       return null
     }
@@ -473,7 +366,7 @@ export class DiscordTokenExtractor {
 
   private decryptMacToken(encryptedData: Buffer, discordDir: string): string | null {
     if (this.cachedKey) {
-      const decrypted = this.decryptAESCBC(encryptedData, this.cachedKey)
+      const decrypted = this.decryptor.decryptAESCBC(encryptedData, this.cachedKey)
       if (decrypted && this.isValidToken(decrypted)) return decrypted
     }
 
@@ -500,7 +393,7 @@ export class DiscordTokenExtractor {
         ).trim()
 
         const key = pbkdf2Sync(password, 'saltysalt', 1003, 16, 'sha1')
-        const decrypted = this.decryptAESCBC(encryptedData, key)
+        const decrypted = this.decryptor.decryptAESCBC(encryptedData, key)
         if (decrypted && this.isValidToken(decrypted)) {
           this.cachedKey = key
           this.keyCache.set('discord', key).catch(() => {})
@@ -514,61 +407,24 @@ export class DiscordTokenExtractor {
 
   private decryptLinuxToken(encryptedData: Buffer): string | null {
     const prefix = encryptedData.subarray(0, 3).toString()
+
     if (prefix === 'v11') {
-      const result = this.decryptV11LinuxToken(encryptedData)
-      if (result) return result
+      for (const appName of ['discord', 'Discord']) {
+        try {
+          const keyringPassword = this.getLinuxKeyringPassword(appName)
+          const key = pbkdf2Sync(keyringPassword, 'saltysalt', 1, 16, 'sha1')
+          const decrypted = this.decryptor.decryptAESCBC(encryptedData, key)
+          if (decrypted) return decrypted
+        } catch {}
+      }
     }
-    // v10 or fallback
+
     const key = pbkdf2Sync('peanuts', 'saltysalt', 1, 16, 'sha1')
-    return this.decryptAESCBC(encryptedData, key)
+    return this.decryptor.decryptAESCBC(encryptedData, key)
   }
 
   private getLinuxKeyringPassword(appName: string): string {
     return lookupLinuxKeyringPassword(appName)
-  }
-
-  private decryptV11LinuxToken(encryptedData: Buffer): string | null {
-    const appNames = ['discord', 'Discord']
-    for (const appName of appNames) {
-      try {
-        const keyringPassword = this.getLinuxKeyringPassword(appName)
-        const key = pbkdf2Sync(keyringPassword, 'saltysalt', 1, 16, 'sha1')
-        const result = this.decryptAESCBC(encryptedData, key)
-        if (result) return result
-      } catch {}
-    }
-    return null
-  }
-
-  private decryptAESCBC(encryptedData: Buffer, key: Buffer): string | null {
-    try {
-      const ciphertext = encryptedData.subarray(3)
-      const iv = Buffer.alloc(16, 0x20)
-
-      const decipher = createDecipheriv('aes-128-cbc', key, iv)
-      decipher.setAutoPadding(true)
-
-      const decrypted = Buffer.concat([decipher.update(ciphertext), decipher.final()])
-      return decrypted.toString('utf8')
-    } catch {
-      return null
-    }
-  }
-
-  private decryptAESGCM(encryptedData: Buffer, key: Buffer): string | null {
-    try {
-      const iv = encryptedData.subarray(3, 15)
-      const authTag = encryptedData.subarray(-16)
-      const ciphertext = encryptedData.subarray(15, -16)
-
-      const decipher = createDecipheriv('aes-256-gcm', key, iv)
-      decipher.setAuthTag(authTag)
-
-      const decrypted = Buffer.concat([decipher.update(ciphertext), decipher.final()])
-      return decrypted.toString('utf8')
-    } catch {
-      return null
-    }
   }
 
   async isDiscordRunning(variant?: DiscordVariant): Promise<boolean> {
