@@ -1,5 +1,19 @@
 import { WebClient } from '@slack/web-api'
 
+import {
+  mapBookmark,
+  mapChannel,
+  mapDM,
+  mapFile,
+  mapMessage,
+  mapPin,
+  mapReminder,
+  mapSavedItem,
+  mapScheduledMessage,
+  mapUser,
+  mapUserProfile,
+  mapUsergroup,
+} from './client-mappers'
 import type {
   SlackActivityItem,
   SlackBookmark,
@@ -132,28 +146,7 @@ export class SlackClient {
 
         if (response.channels) {
           for (const ch of response.channels) {
-            channels.push({
-              id: ch.id!,
-              name: ch.name!,
-              is_private: ch.is_private || false,
-              is_archived: ch.is_archived || false,
-              created: ch.created || 0,
-              creator: ch.creator || '',
-              topic: ch.topic
-                ? {
-                    value: ch.topic.value || '',
-                    creator: ch.topic.creator || '',
-                    last_set: ch.topic.last_set || 0,
-                  }
-                : undefined,
-              purpose: ch.purpose
-                ? {
-                    value: ch.purpose.value || '',
-                    creator: ch.purpose.creator || '',
-                    last_set: ch.purpose.last_set || 0,
-                  }
-                : undefined,
-            })
+            channels.push(mapChannel(ch))
           }
         }
 
@@ -180,11 +173,7 @@ export class SlackClient {
 
         if (response.channels) {
           for (const ch of response.channels) {
-            dms.push({
-              id: ch.id!,
-              user: ch.user || ch.name || '',
-              is_mpim: ch.is_mpim || false,
-            })
+            dms.push(mapDM(ch))
           }
         }
 
@@ -200,29 +189,7 @@ export class SlackClient {
       const response = await this.ensureAuth().conversations.info({ channel: id })
       this.checkResponse(response)
 
-      const ch = response.channel!
-      return {
-        id: ch.id!,
-        name: ch.name!,
-        is_private: ch.is_private || false,
-        is_archived: ch.is_archived || false,
-        created: ch.created || 0,
-        creator: ch.creator || '',
-        topic: ch.topic
-          ? {
-              value: ch.topic.value || '',
-              creator: ch.topic.creator || '',
-              last_set: ch.topic.last_set || 0,
-            }
-          : undefined,
-        purpose: ch.purpose
-          ? {
-              value: ch.purpose.value || '',
-              creator: ch.purpose.creator || '',
-              last_set: ch.purpose.last_set || 0,
-            }
-          : undefined,
-      }
+      return mapChannel(response.channel)
     })
   }
 
@@ -257,14 +224,7 @@ export class SlackClient {
       })
       this.checkResponse(response)
 
-      const msg = response.message!
-      return {
-        ts: response.ts!,
-        text: msg.text || text,
-        type: msg.type || 'message',
-        user: msg.user,
-        thread_ts: msg.thread_ts,
-      }
+      return mapMessage(response.message, { ts: response.ts!, text, type: 'message' })
     })
   }
 
@@ -284,34 +244,7 @@ export class SlackClient {
       })
       this.checkResponse(response)
 
-      return (response.messages || []).map((msg) => ({
-        ts: msg.ts!,
-        text: msg.text || '',
-        type: msg.type || 'message',
-        user: msg.user,
-        username: msg.username,
-        thread_ts: msg.thread_ts,
-        reply_count: msg.reply_count,
-        replies: (msg as any).replies,
-        reactions: (msg as any).reactions,
-        edited: msg.edited
-          ? {
-              user: msg.edited.user || '',
-              ts: msg.edited.ts || '',
-            }
-          : undefined,
-        files: (msg as any).files?.map((f: any) => ({
-          id: f.id!,
-          name: f.name!,
-          title: f.title || f.name || '',
-          mimetype: f.mimetype || 'application/octet-stream',
-          size: f.size || 0,
-          url_private: f.url_private || '',
-          created: f.created || 0,
-          user: f.user || '',
-          channels: f.channels,
-        })),
-      }))
+      return (response.messages || []).map((msg) => mapMessage(msg))
     })
   }
 
@@ -330,34 +263,7 @@ export class SlackClient {
         return null
       }
 
-      return {
-        ts: msg.ts!,
-        text: msg.text || '',
-        type: msg.type || 'message',
-        user: msg.user,
-        username: msg.username,
-        thread_ts: msg.thread_ts,
-        reply_count: msg.reply_count,
-        replies: (msg as any).replies,
-        reactions: (msg as any).reactions,
-        edited: msg.edited
-          ? {
-              user: msg.edited.user || '',
-              ts: msg.edited.ts || '',
-            }
-          : undefined,
-        files: (msg as any).files?.map((f: any) => ({
-          id: f.id!,
-          name: f.name!,
-          title: f.title || f.name || '',
-          mimetype: f.mimetype || 'application/octet-stream',
-          size: f.size || 0,
-          url_private: f.url_private || '',
-          created: f.created || 0,
-          user: f.user || '',
-          channels: f.channels,
-        })),
-      }
+      return mapMessage(msg)
     })
   }
 
@@ -370,13 +276,7 @@ export class SlackClient {
       })
       this.checkResponse(response)
 
-      const msg = response.message!
-      return {
-        ts: response.ts!,
-        text: msg.text || text,
-        type: 'message',
-        user: msg.user,
-      }
+      return mapMessage(response.message, { ts: response.ts!, text, type: 'message' })
     })
   }
 
@@ -426,23 +326,7 @@ export class SlackClient {
 
         if (response.members) {
           for (const member of response.members) {
-            users.push({
-              id: member.id!,
-              name: member.name!,
-              real_name: member.real_name || member.name || '',
-              is_admin: member.is_admin || false,
-              is_owner: member.is_owner || false,
-              is_bot: member.is_bot || false,
-              is_app_user: member.is_app_user || false,
-              profile: member.profile
-                ? {
-                    email: member.profile.email,
-                    phone: member.profile.phone,
-                    title: member.profile.title,
-                    status_text: member.profile.status_text,
-                  }
-                : undefined,
-            })
+            users.push(mapUser(member))
           }
         }
 
@@ -482,24 +366,7 @@ export class SlackClient {
       const response = await this.ensureAuth().users.info({ user: id })
       this.checkResponse(response)
 
-      const member = response.user!
-      return {
-        id: member.id!,
-        name: member.name!,
-        real_name: member.real_name || member.name || '',
-        is_admin: member.is_admin || false,
-        is_owner: member.is_owner || false,
-        is_bot: member.is_bot || false,
-        is_app_user: member.is_app_user || false,
-        profile: member.profile
-          ? {
-              email: member.profile.email,
-              phone: member.profile.phone,
-              title: member.profile.title,
-              status_text: member.profile.status_text,
-            }
-          : undefined,
-      }
+      return mapUser(response.user)
     })
   }
 
@@ -517,17 +384,7 @@ export class SlackClient {
       if (!f) {
         throw new SlackError('No file returned in upload response', 'file_not_found')
       }
-      return {
-        id: f.id!,
-        name: f.name!,
-        title: f.title || f.name || '',
-        mimetype: f.mimetype || 'application/octet-stream',
-        size: f.size || 0,
-        url_private: f.url_private || '',
-        created: f.created || 0,
-        user: f.user || '',
-        channels: f.channels,
-      }
+      return mapFile(f)
     })
   }
 
@@ -538,17 +395,7 @@ export class SlackClient {
       })
       this.checkResponse(response)
 
-      return (response.files || []).map((f) => ({
-        id: f.id!,
-        name: f.name!,
-        title: f.title || f.name || '',
-        mimetype: f.mimetype || 'application/octet-stream',
-        size: f.size || 0,
-        url_private: f.url_private || '',
-        created: f.created || 0,
-        user: f.user || '',
-        channels: f.channels,
-      }))
+      return (response.files || []).map((f) => mapFile(f))
     })
   }
 
@@ -557,18 +404,7 @@ export class SlackClient {
       const response = await this.ensureAuth().files.info({ file: fileId })
       this.checkResponse(response)
 
-      const f = response.file!
-      return {
-        id: f.id!,
-        name: f.name!,
-        title: f.title || f.name || '',
-        mimetype: f.mimetype || 'application/octet-stream',
-        size: f.size || 0,
-        url_private: f.url_private || '',
-        created: f.created || 0,
-        user: f.user || '',
-        channels: f.channels,
-      }
+      return mapFile(response.file)
     })
   }
 
@@ -642,33 +478,7 @@ export class SlackClient {
       })
       this.checkResponse(response)
 
-      const messages = (response.messages || []).map((msg: any) => ({
-        ts: msg.ts!,
-        text: msg.text || '',
-        type: msg.type || 'message',
-        user: msg.user,
-        username: msg.username,
-        thread_ts: msg.thread_ts,
-        reply_count: msg.reply_count,
-        edited: msg.edited
-          ? {
-              user: msg.edited.user || '',
-              ts: msg.edited.ts || '',
-            }
-          : undefined,
-        reactions: msg.reactions,
-        files: msg.files?.map((f: any) => ({
-          id: f.id!,
-          name: f.name!,
-          title: f.title || f.name || '',
-          mimetype: f.mimetype || 'application/octet-stream',
-          size: f.size || 0,
-          url_private: f.url_private || '',
-          created: f.created || 0,
-          user: f.user || '',
-          channels: f.channels,
-        })),
-      }))
+      const messages = (response.messages || []).map((msg: unknown) => mapMessage(msg))
 
       return {
         messages,
@@ -762,30 +572,7 @@ export class SlackClient {
       })
       this.checkResponse(response)
 
-      const items = (response.items || []).map((item: any) => ({
-        type: item.type || 'message',
-        message: {
-          ts: item.message?.ts || '',
-          text: item.message?.text || '',
-          user: item.message?.user,
-          username: item.message?.username,
-          type: item.message?.type || 'message',
-          thread_ts: item.message?.thread_ts,
-          reply_count: item.message?.reply_count,
-          replies: item.message?.replies,
-          edited: item.message?.edited
-            ? {
-                user: item.message.edited.user || '',
-                ts: item.message.edited.ts || '',
-              }
-            : undefined,
-        },
-        channel: {
-          id: item.channel?.id || '',
-          name: item.channel?.name || '',
-        },
-        date_created: item.date_created || 0,
-      }))
+      const items = (response.items || []).map((item: unknown) => mapSavedItem(item))
 
       return {
         items,
@@ -879,20 +666,7 @@ export class SlackClient {
 
       return ((response as any).items || [])
         .filter((item: any) => item.message)
-        .map((item: any) => ({
-          channel,
-          message: {
-            ts: item.message.ts || '',
-            text: item.message.text || '',
-            user: item.message.user,
-            username: item.message.username,
-            type: item.message.type || 'message',
-            thread_ts: item.message.thread_ts,
-            reply_count: item.message.reply_count,
-          },
-          date_created: item.created || 0,
-          created_by: item.created_by || '',
-        }))
+        .map((item: unknown) => mapPin(item, channel))
     })
   }
 
@@ -912,19 +686,12 @@ export class SlackClient {
       })
       this.checkResponse(response)
 
-      const b = (response as any).bookmark
-      return {
-        id: b.id || '',
-        channel_id: b.channel_id || channel,
-        title: b.title || title,
-        link: b.link || link,
-        emoji: b.emoji,
-        icon_url: b.icon_url,
-        type: b.type || 'link',
-        date_created: b.date_created || 0,
-        date_updated: b.date_updated || 0,
-        created_by: b.created_by || '',
-      }
+      return mapBookmark((response as any).bookmark, {
+        channel_id: channel,
+        title,
+        link,
+        type: options?.type || 'link',
+      })
     })
   }
 
@@ -941,19 +708,7 @@ export class SlackClient {
       })
       this.checkResponse(response)
 
-      const b = (response as any).bookmark
-      return {
-        id: b.id || bookmarkId,
-        channel_id: b.channel_id || channel,
-        title: b.title || '',
-        link: b.link || '',
-        emoji: b.emoji,
-        icon_url: b.icon_url,
-        type: b.type || 'link',
-        date_created: b.date_created || 0,
-        date_updated: b.date_updated || 0,
-        created_by: b.created_by || '',
-      }
+      return mapBookmark((response as any).bookmark, { id: bookmarkId, channel_id: channel, type: 'link' })
     })
   }
 
@@ -972,18 +727,9 @@ export class SlackClient {
       const response = await this.ensureAuth().apiCall('bookmarks.list', { channel_id: channel })
       this.checkResponse(response)
 
-      return ((response as any).bookmarks || []).map((b: any) => ({
-        id: b.id || '',
-        channel_id: b.channel_id || channel,
-        title: b.title || '',
-        link: b.link || '',
-        emoji: b.emoji,
-        icon_url: b.icon_url,
-        type: b.type || 'link',
-        date_created: b.date_created || 0,
-        date_updated: b.date_updated || 0,
-        created_by: b.created_by || '',
-      }))
+      return ((response as any).bookmarks || []).map((bookmark: unknown) =>
+        mapBookmark(bookmark, { channel_id: channel, type: 'link' }),
+      )
     })
   }
 
@@ -1002,13 +748,12 @@ export class SlackClient {
       })
       this.checkResponse(response)
 
-      return {
-        id: (response as any).scheduled_message_id || '',
+      return mapScheduledMessage(response, {
         channel_id: channel,
         post_at: postAt,
         date_created: Math.floor(Date.now() / 1000),
         text,
-      }
+      })
     })
   }
 
@@ -1024,13 +769,9 @@ export class SlackClient {
         })
         this.checkResponse(response)
 
-        const messages = ((response as any).scheduled_messages || []).map((msg: any) => ({
-          id: msg.id || msg.scheduled_message_id || '',
-          channel_id: msg.channel_id || '',
-          post_at: msg.post_at || 0,
-          date_created: msg.date_created || 0,
-          text: msg.text || '',
-        }))
+        const messages = ((response as any).scheduled_messages || []).map((message: unknown) =>
+          mapScheduledMessage(message),
+        )
         allMessages.push(...messages)
         cursor = (response as any).response_metadata?.next_cursor
       } while (cursor)
@@ -1054,29 +795,7 @@ export class SlackClient {
       const response = await this.ensureAuth().conversations.create({ name, is_private: isPrivate })
       this.checkResponse(response)
 
-      const ch = response.channel!
-      return {
-        id: ch.id!,
-        name: ch.name!,
-        is_private: ch.is_private || false,
-        is_archived: ch.is_archived || false,
-        created: ch.created || 0,
-        creator: ch.creator || '',
-        topic: ch.topic
-          ? {
-              value: ch.topic.value || '',
-              creator: ch.topic.creator || '',
-              last_set: ch.topic.last_set || 0,
-            }
-          : undefined,
-        purpose: ch.purpose
-          ? {
-              value: ch.purpose.value || '',
-              creator: ch.purpose.creator || '',
-              last_set: ch.purpose.last_set || 0,
-            }
-          : undefined,
-      }
+      return mapChannel(response.channel, { name })
     })
   }
 
@@ -1108,15 +827,7 @@ export class SlackClient {
       const response = await this.ensureAuth().conversations.invite({ channel, users })
       this.checkResponse(response)
 
-      const ch = response.channel!
-      return {
-        id: ch.id!,
-        name: ch.name!,
-        is_private: ch.is_private || false,
-        is_archived: ch.is_archived || false,
-        created: ch.created || 0,
-        creator: ch.creator || '',
-      }
+      return mapChannel(response.channel)
     })
   }
 
@@ -1125,15 +836,7 @@ export class SlackClient {
       const response = await this.ensureAuth().conversations.join({ channel })
       this.checkResponse(response)
 
-      const ch = response.channel!
-      return {
-        id: ch.id!,
-        name: ch.name!,
-        is_private: ch.is_private || false,
-        is_archived: ch.is_archived || false,
-        created: ch.created || 0,
-        creator: ch.creator || '',
-      }
+      return mapChannel(response.channel)
     })
   }
 
@@ -1149,24 +852,7 @@ export class SlackClient {
       const response = await this.ensureAuth().users.lookupByEmail({ email })
       this.checkResponse(response)
 
-      const member = response.user!
-      return {
-        id: member.id!,
-        name: member.name!,
-        real_name: member.real_name || member.name || '',
-        is_admin: member.is_admin || false,
-        is_owner: member.is_owner || false,
-        is_bot: member.is_bot || false,
-        is_app_user: member.is_app_user || false,
-        profile: member.profile
-          ? {
-              email: member.profile.email,
-              phone: member.profile.phone,
-              title: member.profile.title,
-              status_text: member.profile.status_text,
-            }
-          : undefined,
-      }
+      return mapUser(response.user)
     })
   }
 
@@ -1175,28 +861,7 @@ export class SlackClient {
       const response = await this.ensureAuth().users.profile.get({ user: userId })
       this.checkResponse(response)
 
-      const p = (response as any).profile || {}
-      return {
-        title: p.title,
-        phone: p.phone,
-        skype: p.skype,
-        real_name: p.real_name,
-        real_name_normalized: p.real_name_normalized,
-        display_name: p.display_name,
-        display_name_normalized: p.display_name_normalized,
-        status_text: p.status_text,
-        status_emoji: p.status_emoji,
-        status_expiration: p.status_expiration,
-        email: p.email,
-        first_name: p.first_name,
-        last_name: p.last_name,
-        image_24: p.image_24,
-        image_32: p.image_32,
-        image_48: p.image_48,
-        image_72: p.image_72,
-        image_192: p.image_192,
-        image_512: p.image_512,
-      }
+      return mapUserProfile((response as any).profile)
     })
   }
 
@@ -1205,28 +870,7 @@ export class SlackClient {
       const response = await this.ensureAuth().users.profile.set({ profile: profile as any })
       this.checkResponse(response)
 
-      const p = (response as any).profile || {}
-      return {
-        title: p.title,
-        phone: p.phone,
-        skype: p.skype,
-        real_name: p.real_name,
-        real_name_normalized: p.real_name_normalized,
-        display_name: p.display_name,
-        display_name_normalized: p.display_name_normalized,
-        status_text: p.status_text,
-        status_emoji: p.status_emoji,
-        status_expiration: p.status_expiration,
-        email: p.email,
-        first_name: p.first_name,
-        last_name: p.last_name,
-        image_24: p.image_24,
-        image_32: p.image_32,
-        image_48: p.image_48,
-        image_72: p.image_72,
-        image_192: p.image_192,
-        image_512: p.image_512,
-      }
+      return mapUserProfile((response as any).profile)
     })
   }
 
@@ -1251,16 +895,7 @@ export class SlackClient {
       const response = await this.ensureAuth().reminders.add({ text, time: time as any, user: options?.user })
       this.checkResponse(response)
 
-      const r = (response as any).reminder || {}
-      return {
-        id: r.id || '',
-        creator: r.creator || '',
-        text: r.text || text,
-        user: r.user || '',
-        recurring: r.recurring || false,
-        time: r.time || time,
-        complete_ts: r.complete_ts || 0,
-      }
+      return mapReminder((response as any).reminder, { text, time })
     })
   }
 
@@ -1269,15 +904,7 @@ export class SlackClient {
       const response = await this.ensureAuth().reminders.list({})
       this.checkResponse(response)
 
-      return ((response as any).reminders || []).map((r: any) => ({
-        id: r.id || '',
-        creator: r.creator || '',
-        text: r.text || '',
-        user: r.user || '',
-        recurring: r.recurring || false,
-        time: r.time || 0,
-        complete_ts: r.complete_ts || 0,
-      }))
+      return ((response as any).reminders || []).map((reminder: unknown) => mapReminder(reminder))
     })
   }
 
@@ -1310,31 +937,6 @@ export class SlackClient {
     })
   }
 
-  private mapUsergroup(ug: any): SlackUsergroup {
-    return {
-      id: ug.id || '',
-      team_id: ug.team_id || '',
-      name: ug.name || '',
-      handle: ug.handle || '',
-      description: ug.description || '',
-      is_external: ug.is_external ?? false,
-      is_usergroup: ug.is_usergroup ?? true,
-      date_create: ug.date_create ?? 0,
-      date_update: ug.date_update ?? 0,
-      date_delete: ug.date_delete ?? 0,
-      auto_type: ug.auto_type ?? null,
-      created_by: ug.created_by || '',
-      updated_by: ug.updated_by || '',
-      deleted_by: ug.deleted_by ?? null,
-      prefs: {
-        channels: ug.prefs?.channels || [],
-        groups: ug.prefs?.groups || [],
-      },
-      users: ug.users || [],
-      user_count: ug.user_count ?? 0,
-    }
-  }
-
   async listUsergroups(options?: {
     includeDisabled?: boolean
     includeUsers?: boolean
@@ -1347,7 +949,7 @@ export class SlackClient {
         include_count: options?.includeCount,
       })
       this.checkResponse(response)
-      return ((response as any).usergroups || []).map((ug: any) => this.mapUsergroup(ug))
+      return ((response as any).usergroups || []).map((usergroup: unknown) => mapUsergroup(usergroup))
     })
   }
 
@@ -1363,7 +965,7 @@ export class SlackClient {
         channels: options?.channels?.join(','),
       })
       this.checkResponse(response)
-      return this.mapUsergroup((response as any).usergroup)
+      return mapUsergroup((response as any).usergroup)
     })
   }
 
@@ -1380,7 +982,7 @@ export class SlackClient {
         channels: options.channels?.join(','),
       })
       this.checkResponse(response)
-      return this.mapUsergroup((response as any).usergroup)
+      return mapUsergroup((response as any).usergroup)
     })
   }
 
@@ -1390,7 +992,7 @@ export class SlackClient {
         usergroup: usergroupId,
       })
       this.checkResponse(response)
-      return this.mapUsergroup((response as any).usergroup)
+      return mapUsergroup((response as any).usergroup)
     })
   }
 
@@ -1400,7 +1002,7 @@ export class SlackClient {
         usergroup: usergroupId,
       })
       this.checkResponse(response)
-      return this.mapUsergroup((response as any).usergroup)
+      return mapUsergroup((response as any).usergroup)
     })
   }
 
@@ -1422,7 +1024,7 @@ export class SlackClient {
         users: users.join(','),
       })
       this.checkResponse(response)
-      return this.mapUsergroup((response as any).usergroup)
+      return mapUsergroup((response as any).usergroup)
     })
   }
 }
