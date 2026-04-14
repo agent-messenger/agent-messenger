@@ -312,25 +312,47 @@ export class SlackClient {
     })
   }
 
+  async listUsersPage(options?: {
+    limit?: number
+    cursor?: string
+  }): Promise<{ users: SlackUser[]; has_more: boolean; next_cursor?: string }> {
+    return this.withRetry(async () => {
+      const response = await this.ensureAuth().users.list({
+        cursor: options?.cursor,
+        limit: options?.limit ?? 200,
+      })
+      this.checkResponse(response)
+
+      const users: SlackUser[] = []
+      if (response.members) {
+        for (const member of response.members) {
+          users.push(mapUser(member))
+        }
+      }
+
+      const nextCursor = response.response_metadata?.next_cursor || undefined
+
+      return {
+        users,
+        has_more: Boolean(nextCursor),
+        next_cursor: nextCursor,
+      }
+    })
+  }
+
   async listUsers(): Promise<SlackUser[]> {
     return this.withRetry(async () => {
       const users: SlackUser[] = []
       let cursor: string | undefined
 
       do {
-        const response = await this.ensureAuth().users.list({
+        const response = await this.listUsersPage({
           cursor,
           limit: 200,
         })
-        this.checkResponse(response)
 
-        if (response.members) {
-          for (const member of response.members) {
-            users.push(mapUser(member))
-          }
-        }
-
-        cursor = response.response_metadata?.next_cursor
+        users.push(...response.users)
+        cursor = response.next_cursor
       } while (cursor)
 
       return users

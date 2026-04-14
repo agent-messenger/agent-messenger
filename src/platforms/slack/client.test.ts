@@ -643,6 +643,63 @@ describe('SlackClient', () => {
       expect(mockWebClient.users.list).toHaveBeenCalledTimes(2)
     })
 
+    test('returns pagination info for a single page', async () => {
+      mockWebClient.users.list.mockResolvedValue({
+        ok: true,
+        members: [
+          {
+            id: 'U123',
+            name: 'alice',
+            real_name: 'Alice',
+            is_admin: false,
+            is_owner: false,
+            is_bot: false,
+            is_app_user: false,
+          },
+        ],
+        response_metadata: { next_cursor: 'cursor123' },
+      })
+
+      const client = await new SlackClient().login({ token: 'xoxc-token', cookie: 'xoxd-cookie' })
+      // @ts-expect-error - accessing private property for testing
+      client.client = mockWebClient as unknown as WebClient
+
+      const result = await client.listUsersPage({ limit: 1 })
+
+      expect(result.users).toHaveLength(1)
+      expect(result.has_more).toBe(true)
+      expect(result.next_cursor).toBe('cursor123')
+      expect(mockWebClient.users.list).toHaveBeenCalledWith(expect.objectContaining({ limit: 1 }))
+    })
+
+    test('accepts cursor for paginated user listing', async () => {
+      mockWebClient.users.list.mockResolvedValue({
+        ok: true,
+        members: [
+          {
+            id: 'U456',
+            name: 'bob',
+            real_name: 'Bob',
+            is_admin: false,
+            is_owner: false,
+            is_bot: false,
+            is_app_user: false,
+          },
+        ],
+      })
+
+      const client = await new SlackClient().login({ token: 'xoxc-token', cookie: 'xoxd-cookie' })
+      // @ts-expect-error - accessing private property for testing
+      client.client = mockWebClient as unknown as WebClient
+
+      const result = await client.listUsersPage({ cursor: 'cursor123', limit: 50 })
+
+      expect(result.users).toHaveLength(1)
+      expect(result.has_more).toBe(false)
+      expect(result.next_cursor).toBeUndefined()
+      expect(mockWebClient.users.list).toHaveBeenCalledWith(expect.objectContaining({ cursor: 'cursor123', limit: 50 }))
+    })
+
     test('throws SlackError on API failure', async () => {
       mockWebClient.users.list.mockResolvedValue({
         ok: false,

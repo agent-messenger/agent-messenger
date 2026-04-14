@@ -155,6 +155,10 @@ await client.leaveChannel(channelId)
 const users = await client.listUsers()
 // → SlackUser[]
 
+// List one page of users with pagination metadata
+const page = await client.listUsersPage({ limit: 100 })
+// → { users: SlackUser[], has_more: boolean, next_cursor?: string }
+
 // Get user info
 const user = await client.getUser(userId)
 // → SlackUser { id, name, real_name, is_admin, is_bot, profile, ... }

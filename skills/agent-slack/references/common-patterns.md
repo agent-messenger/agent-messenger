@@ -250,9 +250,30 @@ agent-slack file download "$FILE_ID" ./downloads/
 CHANNEL="general"
 USERNAME="john.doe"
 
-# Get user info
-USERS=$(agent-slack user list)
-USER_ID=$(echo "$USERS" | jq -r ".[] | select(.name==\"$USERNAME\") | .id")
+# Find user across paginated results
+CURSOR=""
+USER_ID=""
+
+while true; do
+  if [ -n "$CURSOR" ]; then
+    USERS_PAGE=$(agent-slack user list --cursor "$CURSOR")
+  else
+    USERS_PAGE=$(agent-slack user list)
+  fi
+
+  USER_ID=$(echo "$USERS_PAGE" | jq -r --arg username "$USERNAME" '
+    .users[]? | select(.name == $username) | .id
+  ' | head -n 1)
+
+  if [ -n "$USER_ID" ] && [ "$USER_ID" != "null" ]; then
+    break
+  fi
+
+  CURSOR=$(echo "$USERS_PAGE" | jq -r '.next_cursor // empty')
+  if [ -z "$CURSOR" ]; then
+    break
+  fi
+done
 
 if [ -z "$USER_ID" ]; then
   echo "User $USERNAME not found"
