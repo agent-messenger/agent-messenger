@@ -18,37 +18,62 @@ async function getClient(pretty?: boolean): Promise<SlackClient | null> {
   return await new SlackClient().login({ token: workspace.token, cookie: workspace.cookie })
 }
 
+type UserListOptions = {
+  includeBots?: boolean
+  limit?: number
+  cursor?: string
+  pretty?: boolean
+}
+
+export async function listAction(options: UserListOptions): Promise<void> {
+  try {
+    const client = await getClient(options.pretty)
+    if (!client) return process.exit(1)
+
+    const result = await client.listUsersPage({
+      limit: options.limit,
+      cursor: options.cursor,
+    })
+
+    const filtered = options.includeBots ? result.users : result.users.filter((user) => !user.is_bot)
+
+    const output = {
+      users: filtered.map((user) => ({
+        id: user.id,
+        name: user.name,
+        real_name: user.real_name,
+        is_admin: user.is_admin,
+        is_owner: user.is_owner,
+        is_bot: user.is_bot,
+        is_app_user: user.is_app_user,
+        profile: user.profile,
+      })),
+      has_more: result.has_more,
+      next_cursor: result.next_cursor,
+    }
+
+    console.log(formatOutput(output, options.pretty))
+  } catch (error) {
+    handleError(error as Error)
+  }
+}
+
 export const userCommand = new Command('user')
   .description('User commands')
   .addCommand(
     new Command('list')
       .description('List workspace users')
+      .option('--limit <n>', 'Number of users to fetch')
+      .option('--cursor <cursor>', 'Pagination cursor')
       .option('--include-bots', 'Include bot users')
       .option('--pretty', 'Pretty print JSON output')
       .action(async (options) => {
-        try {
-          const client = await getClient(options.pretty)
-          if (!client) return process.exit(1)
-
-          const users = await client.listUsers()
-
-          const filtered = options.includeBots ? users : users.filter((u) => !u.is_bot)
-
-          const output = filtered.map((user) => ({
-            id: user.id,
-            name: user.name,
-            real_name: user.real_name,
-            is_admin: user.is_admin,
-            is_owner: user.is_owner,
-            is_bot: user.is_bot,
-            is_app_user: user.is_app_user,
-            profile: user.profile,
-          }))
-
-          console.log(formatOutput(output, options.pretty))
-        } catch (error) {
-          handleError(error as Error)
-        }
+        await listAction({
+          includeBots: options.includeBots,
+          limit: options.limit ? parseInt(options.limit, 10) : undefined,
+          cursor: options.cursor,
+          pretty: options.pretty,
+        })
       }),
   )
   .addCommand(
