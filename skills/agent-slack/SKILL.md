@@ -272,6 +272,8 @@ agent-slack channel leave <channel>
 ```bash
 # List users
 agent-slack user list
+agent-slack user list --limit 100
+agent-slack user list --cursor <next_cursor>
 agent-slack user list --include-bots
 
 # Get user info
@@ -291,6 +293,22 @@ agent-slack user profile <user-id>
 agent-slack user set-status <status-text>
 agent-slack user set-status "In a meeting" --emoji calendar
 agent-slack user set-status "On vacation" --emoji palm_tree --expiration 1700100000
+```
+
+`agent-slack user list` returns paginated output in the shape below. Use `--limit` to fetch a smaller page and `--cursor` with the prior `next_cursor` to continue through large workspaces.
+
+```json
+{
+  "users": [
+    {
+      "id": "U0ABC123",
+      "name": "alice",
+      "real_name": "Alice Smith"
+    }
+  ],
+  "has_more": true,
+  "next_cursor": "dXNlcjpVMDYx..."
+}
 ```
 
 ### Reaction Commands
