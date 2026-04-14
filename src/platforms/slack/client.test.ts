@@ -697,9 +697,7 @@ describe('SlackClient', () => {
       expect(result.users).toHaveLength(1)
       expect(result.has_more).toBe(false)
       expect(result.next_cursor).toBeUndefined()
-      expect(mockWebClient.users.list).toHaveBeenCalledWith(
-        expect.objectContaining({ cursor: 'cursor123', limit: 50 }),
-      )
+      expect(mockWebClient.users.list).toHaveBeenCalledWith(expect.objectContaining({ cursor: 'cursor123', limit: 50 }))
     })
 
     test('throws SlackError on API failure', async () => {
