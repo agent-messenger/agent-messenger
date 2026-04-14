@@ -24,8 +24,7 @@
     "src/vendor/**",
     "node_modules/**",
     "**/bun.lock*",
-    "docs/.next/**",
-    "docs/next-env.d.ts",
+    "docs/**",
     "**/*.tsbuildinfo",
     "cubic.yaml"
   ]
