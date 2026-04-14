@@ -643,6 +643,7 @@ describe('SlackClient', () => {
       expect(mockWebClient.users.list).toHaveBeenCalledTimes(2)
     })
 
+
     test('throws SlackError on API failure', async () => {
       mockWebClient.users.list.mockResolvedValue({
         ok: false,
