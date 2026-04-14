@@ -1,6 +1,6 @@
 {
   "name": "agent-messenger",
-  "version": "2.7.0",
+  "version": "2.8.0",
   "description": "Multi-platform messaging CLI for AI agents (Slack, Discord, Teams, Webex, Telegram, WhatsApp, LINE, Instagram, KakaoTalk, Channel Talk)",
   "repository": {
     "type": "git",
