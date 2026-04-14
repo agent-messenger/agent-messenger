@@ -18,7 +18,6 @@ One CLI for Slack, Discord, Teams, Webex, Telegram, WhatsApp, LINE, Instagram, K
   - [SkillPad](#skillpad)
   - [Skills CLI](#skills-cli)
   - [Claude Code Plugin](#claude-code-plugin)
-  - [OpenCode Plugin](#opencode-plugin)
 - [Quick Start](#quick-start)
 - [SDK](#sdk)
 - [TUI (Experimental)](#tui-experimental)
@@ -114,16 +113,6 @@ Or within Claude Code:
 ```
 /plugin marketplace add agent-messenger/agent-messenger
 /plugin install agent-messenger
-```
-
-### OpenCode Plugin
-
-Add to your `opencode.jsonc`:
-
-```jsonc
-{
-  "plugins": ["agent-messenger"],
-}
 ```
 
 ## Quick Start
