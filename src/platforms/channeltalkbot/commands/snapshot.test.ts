@@ -67,9 +67,27 @@ describe('snapshot command', () => {
   })
 
   describe('snapshotAction', () => {
-    test('returns workspace, groups, user_chats, managers, bots', async () => {
+    test('brief snapshot returns workspace, groups (names), chat counts, and hint', async () => {
       const manager = new ChannelBotCredentialManager(tempDir)
       const result = await snapshotAction({ _credManager: manager })
+
+      expect(result.error).toBeUndefined()
+      expect(result.workspace).toBeDefined()
+      expect(result.workspace?.id).toBe('ch1')
+      expect(result.workspace?.name).toBe('Test Workspace')
+      expect(result.groups).toBeDefined()
+      expect(result.groups?.[0]).toEqual({ id: 'grp1', name: 'Team Alpha' })
+      expect(result.user_chats).toBeDefined()
+      expect(result.user_chats?.opened_count).toBe(1)
+      expect(result.hint).toBeDefined()
+      expect(result.managers).toBeUndefined()
+      expect(result.bots).toBeUndefined()
+      expect(mockGetGroupMessages).not.toHaveBeenCalled()
+    })
+
+    test('full snapshot returns workspace, groups, user_chats, managers, bots', async () => {
+      const manager = new ChannelBotCredentialManager(tempDir)
+      const result = await snapshotAction({ full: true, _credManager: manager })
 
       expect(result.error).toBeUndefined()
       expect(result.workspace).toBeDefined()
@@ -83,7 +101,7 @@ describe('snapshot command', () => {
 
     test('groups-only flag skips user_chats, managers, bots', async () => {
       const manager = new ChannelBotCredentialManager(tempDir)
-      const result = await snapshotAction({ groupsOnly: true, _credManager: manager })
+      const result = await snapshotAction({ full: true, groupsOnly: true, _credManager: manager })
 
       expect(result.error).toBeUndefined()
       expect(result.workspace).toBeDefined()
@@ -95,7 +113,7 @@ describe('snapshot command', () => {
 
     test('chats-only flag skips groups, managers, bots', async () => {
       const manager = new ChannelBotCredentialManager(tempDir)
-      const result = await snapshotAction({ chatsOnly: true, _credManager: manager })
+      const result = await snapshotAction({ full: true, chatsOnly: true, _credManager: manager })
 
       expect(result.error).toBeUndefined()
       expect(result.workspace).toBeDefined()
@@ -105,21 +123,21 @@ describe('snapshot command', () => {
       expect(result.bots).toBeUndefined()
     })
 
-    test('groups include recent messages', async () => {
+    test('full groups include recent messages', async () => {
       const manager = new ChannelBotCredentialManager(tempDir)
-      const result = await snapshotAction({ groupsOnly: true, limit: 3, _credManager: manager })
+      const result = await snapshotAction({ full: true, groupsOnly: true, limit: 3, _credManager: manager })
 
       expect(result.groups?.[0].messages).toBeDefined()
       expect(result.groups?.[0].messages?.[0].id).toBe('msg1')
     })
 
-    test('user_chats includes counts and recent opened', async () => {
+    test('full user_chats includes counts and recent opened', async () => {
       const manager = new ChannelBotCredentialManager(tempDir)
-      const result = await snapshotAction({ chatsOnly: true, _credManager: manager })
+      const result = await snapshotAction({ full: true, chatsOnly: true, _credManager: manager })
 
       expect(result.user_chats?.opened_count).toBe(1)
       expect(result.user_chats?.recent_opened).toHaveLength(1)
-      expect(result.user_chats?.recent_opened[0].id).toBe('chat1')
+      expect(result.user_chats?.recent_opened?.[0].id).toBe('chat1')
     })
   })
 })

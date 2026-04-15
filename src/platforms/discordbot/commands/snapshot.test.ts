@@ -86,11 +86,42 @@ describe('snapshot command', () => {
     process.env = originalEnv
   })
 
-  describe('default (channels + messages)', () => {
-    test('returns channels with recent messages', async () => {
+  describe('default (brief)', () => {
+    test('returns channels with id and name only', async () => {
       const manager = await setupManager(tempDir)
 
       const result = await snapshotAction({ _credManager: manager })
+
+      expect(result.server_id).toBe('guild1')
+      expect(result.channels).toHaveLength(2)
+      expect(result.channels?.[0]).toEqual({ id: 'ch1', name: 'general' })
+      expect(result.channels?.[1]).toEqual({ id: 'ch2', name: 'random' })
+      expect(result.hint).toBeDefined()
+    })
+
+    test('filters out non-text channels', async () => {
+      const manager = await setupManager(tempDir)
+
+      const result = await snapshotAction({ _credManager: manager })
+
+      const channelNames = result.channels?.map((ch) => ch.name)
+      expect(channelNames).not.toContain('voice')
+    })
+
+    test('does not fetch messages', async () => {
+      const manager = await setupManager(tempDir)
+
+      await snapshotAction({ _credManager: manager })
+
+      expect(mockGetMessages).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('--full (channels + messages)', () => {
+    test('returns channels with recent messages', async () => {
+      const manager = await setupManager(tempDir)
+
+      const result = await snapshotAction({ _credManager: manager, full: true })
 
       expect(result.server_id).toBe('guild1')
       expect(result.channels).toHaveLength(2)
@@ -105,19 +136,10 @@ describe('snapshot command', () => {
       })
     })
 
-    test('filters out non-text channels', async () => {
-      const manager = await setupManager(tempDir)
-
-      const result = await snapshotAction({ _credManager: manager })
-
-      const channelNames = result.channels?.map((ch) => ch.name)
-      expect(channelNames).not.toContain('voice')
-    })
-
     test('fetches messages in parallel for all text channels', async () => {
       const manager = await setupManager(tempDir)
 
-      await snapshotAction({ _credManager: manager })
+      await snapshotAction({ _credManager: manager, full: true })
 
       expect(mockGetMessages).toHaveBeenCalledTimes(2)
       expect(mockGetMessages).toHaveBeenCalledWith('ch1', 5)
@@ -127,7 +149,7 @@ describe('snapshot command', () => {
     test('respects --limit option', async () => {
       const manager = await setupManager(tempDir)
 
-      await snapshotAction({ _credManager: manager, limit: 10 })
+      await snapshotAction({ _credManager: manager, full: true, limit: 10 })
 
       expect(mockGetMessages).toHaveBeenCalledWith('ch1', 10)
       expect(mockGetMessages).toHaveBeenCalledWith('ch2', 10)
@@ -136,17 +158,17 @@ describe('snapshot command', () => {
     test('defaults limit to 5', async () => {
       const manager = await setupManager(tempDir)
 
-      await snapshotAction({ _credManager: manager })
+      await snapshotAction({ _credManager: manager, full: true })
 
       expect(mockGetMessages).toHaveBeenCalledWith('ch1', 5)
     })
   })
 
-  describe('--channels-only', () => {
+  describe('--full --channels-only', () => {
     test('returns only channel list without messages', async () => {
       const manager = await setupManager(tempDir)
 
-      const result = await snapshotAction({ _credManager: manager, channelsOnly: true })
+      const result = await snapshotAction({ _credManager: manager, full: true, channelsOnly: true })
 
       expect(result.server_id).toBe('guild1')
       expect(result.channels).toHaveLength(2)
@@ -156,11 +178,11 @@ describe('snapshot command', () => {
     })
   })
 
-  describe('--users-only', () => {
+  describe('--full --users-only', () => {
     test('returns only user list', async () => {
       const manager = await setupManager(tempDir)
 
-      const result = await snapshotAction({ _credManager: manager, usersOnly: true })
+      const result = await snapshotAction({ _credManager: manager, full: true, usersOnly: true })
 
       expect(result.server_id).toBe('guild1')
       expect(result.users).toHaveLength(3)

@@ -8,7 +8,7 @@ test('snapshot: command is defined', () => {
 })
 
 test('snapshot: command has correct description', () => {
-  expect(snapshotCommand.description()).toContain('server state')
+  expect(snapshotCommand.description()).toContain('server overview')
 })
 
 test('snapshot: command has --channels-only option', () => {

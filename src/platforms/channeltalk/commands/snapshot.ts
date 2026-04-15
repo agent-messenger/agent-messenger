@@ -10,6 +10,7 @@ interface SnapshotOptions {
   pretty?: boolean
   groupsOnly?: boolean
   chatsOnly?: boolean
+  full?: boolean
   limit?: number | string
 }
 
@@ -33,7 +34,7 @@ interface SnapshotResult {
   groups?: Array<{
     id: string
     name: string
-    recent_messages: Array<{
+    recent_messages?: Array<{
       id: string
       person_type?: string
       plain_text?: string
@@ -43,7 +44,7 @@ interface SnapshotResult {
   user_chats?: {
     total: number
     by_state: Record<string, number>
-    recent: Array<{
+    recent?: Array<{
       id: string
       state?: string
       assignee_id?: string
@@ -51,6 +52,7 @@ interface SnapshotResult {
       updated_at?: number
     }>
   }
+  hint?: string
   error?: string
 }
 
@@ -58,7 +60,6 @@ export async function snapshotAction(options: SnapshotOptions = {}): Promise<Sna
   try {
     const client = await getClient(options)
     const workspaceId = await getCurrentWorkspaceId(options)
-    const limit = parseLimit(options.limit)
 
     const channel = await client.getChannel(workspaceId)
     const workspace = {
@@ -66,42 +67,114 @@ export async function snapshotAction(options: SnapshotOptions = {}): Promise<Sna
       name: channel.name,
     }
 
-    if (options.groupsOnly) {
-      const groups = await buildGroupsSnapshot(client, workspaceId, limit)
-      return { workspace, groups }
+    if (options.full) {
+      return buildFullSnapshot(client, workspaceId, workspace, options)
     }
 
-    if (options.chatsOnly) {
-      const userChats = await buildUserChatsSnapshot(client, workspaceId, limit)
-      return { workspace, user_chats: userChats }
-    }
-
-    const [managers, bots, groups, userChats] = await Promise.all([
-      client.listManagers(workspaceId, { limit: 50 }),
-      client.listBots(workspaceId, { limit: 50 }),
-      buildGroupsSnapshot(client, workspaceId, limit),
-      buildUserChatsSnapshot(client, workspaceId, limit),
-    ])
-
-    return {
-      workspace,
-      managers: managers.map((manager) => ({
-        id: manager.id,
-        name: manager.name,
-        email: manager.email,
-        account_id: manager.accountId,
-        role_id: manager.roleId,
-      })),
-      bots: bots.map((bot) => ({
-        id: bot.id,
-        name: bot.name,
-        avatar_url: bot.avatarUrl,
-      })),
-      groups,
-      user_chats: userChats,
-    }
+    return buildBriefSnapshot(client, workspaceId, workspace, options)
   } catch (error) {
     return { error: (error as Error).message }
+  }
+}
+
+async function buildBriefSnapshot(
+  client: Awaited<ReturnType<typeof getClient>>,
+  workspaceId: string,
+  workspace: { id: string; name: string },
+  options: SnapshotOptions,
+): Promise<SnapshotResult> {
+  if (options.groupsOnly) {
+    const groups = await client.listGroups(workspaceId, { limit: 20 })
+    return {
+      workspace,
+      groups: groups.map((g) => ({ id: g.id, name: g.name })),
+      hint: "Use 'group messages <group>' for messages.",
+    }
+  }
+
+  if (options.chatsOnly) {
+    const [openedChats, snoozedChats, closedChats] = await Promise.all([
+      client.listUserChats(workspaceId, { state: 'opened', limit: 100 }),
+      client.listUserChats(workspaceId, { state: 'snoozed', limit: 100 }),
+      client.listUserChats(workspaceId, { state: 'closed', limit: 100 }),
+    ])
+    return {
+      workspace,
+      user_chats: {
+        total: openedChats.length + snoozedChats.length + closedChats.length,
+        by_state: {
+          opened: openedChats.length,
+          snoozed: snoozedChats.length,
+          closed: closedChats.length,
+        },
+      },
+      hint: "Use 'chat list --state opened' for chat details, 'chat messages <chat>' for messages.",
+    }
+  }
+
+  const [groups, openedChats, snoozedChats, closedChats] = await Promise.all([
+    client.listGroups(workspaceId, { limit: 20 }),
+    client.listUserChats(workspaceId, { state: 'opened', limit: 100 }),
+    client.listUserChats(workspaceId, { state: 'snoozed', limit: 100 }),
+    client.listUserChats(workspaceId, { state: 'closed', limit: 100 }),
+  ])
+
+  return {
+    workspace,
+    groups: groups.map((g) => ({ id: g.id, name: g.name })),
+    user_chats: {
+      total: openedChats.length + snoozedChats.length + closedChats.length,
+      by_state: {
+        opened: openedChats.length,
+        snoozed: snoozedChats.length,
+        closed: closedChats.length,
+      },
+    },
+    hint: "Use 'group messages <group>' for group messages, 'chat list --state opened' for chats, 'manager list' for managers.",
+  }
+}
+
+async function buildFullSnapshot(
+  client: Awaited<ReturnType<typeof getClient>>,
+  workspaceId: string,
+  workspace: { id: string; name: string },
+  options: SnapshotOptions,
+): Promise<SnapshotResult> {
+  const limit = parseLimit(options.limit)
+
+  if (options.groupsOnly) {
+    const groups = await buildGroupsSnapshot(client, workspaceId, limit)
+    return { workspace, groups }
+  }
+
+  if (options.chatsOnly) {
+    const userChats = await buildUserChatsSnapshot(client, workspaceId, limit)
+    return { workspace, user_chats: userChats }
+  }
+
+  const [managers, bots, groups, userChats] = await Promise.all([
+    client.listManagers(workspaceId, { limit: 50 }),
+    client.listBots(workspaceId, { limit: 50 }),
+    buildGroupsSnapshot(client, workspaceId, limit),
+    buildUserChatsSnapshot(client, workspaceId, limit),
+  ])
+
+  return {
+    workspace,
+    managers: managers.map((manager) => ({
+      id: manager.id,
+      name: manager.name,
+      email: manager.email,
+      account_id: manager.accountId,
+      role_id: manager.roleId,
+    })),
+    bots: bots.map((bot) => ({
+      id: bot.id,
+      name: bot.name,
+      avatar_url: bot.avatarUrl,
+    })),
+    groups,
+    user_chats: userChats,
   }
 }
 
@@ -178,10 +251,11 @@ function cliOutput(result: SnapshotResult, pretty?: boolean): void {
 
 export function createSnapshotCommand(): Command {
   return new Command('snapshot')
-    .description('Workspace overview for AI agent context')
+    .description('Workspace overview for AI agents (brief by default, use --full for comprehensive data)')
+    .option('--full', 'Include messages, managers, and bots (verbose)')
     .option('--groups-only', 'List groups only, skip user chats')
     .option('--chats-only', 'List user chats only, skip groups')
-    .option('--limit <n>', 'Messages per group and recent opened chats', '5')
+    .option('--limit <n>', 'Messages per group and recent opened chats with --full', '5')
     .option('--workspace <id>', 'Workspace ID')
     .option('--pretty', 'Pretty print JSON output')
     .action(async (options: SnapshotOptions) => {

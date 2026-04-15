@@ -11,6 +11,7 @@ import type { TeamsChannel } from '../types'
 export async function snapshotAction(options: {
   channelsOnly?: boolean
   usersOnly?: boolean
+  full?: boolean
   limit?: number
   teamId?: string
   pretty?: boolean
@@ -34,7 +35,6 @@ export async function snapshotAction(options: {
     }
 
     const client = await new TeamsClient().login({ token: cred.token, tokenExpiresAt: cred.tokenExpiresAt })
-    const messageLimit = options.limit || 20
 
     const snapshot: Record<string, unknown> = {}
 
@@ -45,47 +45,59 @@ export async function snapshotAction(options: {
       description: team.description,
     }
 
-    if (!options.usersOnly) {
-      const channels = await client.listChannels(teamId)
+    if (options.full) {
+      const messageLimit = options.limit || 20
 
-      snapshot.channels = channels.map((ch) => ({
-        id: ch.id,
-        name: ch.name,
-        type: ch.type,
-      }))
+      if (!options.usersOnly) {
+        const channels = await client.listChannels(teamId)
+
+        snapshot.channels = channels.map((ch) => ({
+          id: ch.id,
+          name: ch.name,
+          type: ch.type,
+        }))
+
+        if (!options.channelsOnly) {
+          const channelMessages = await parallelMap(
+            channels,
+            async (channel: TeamsChannel) => {
+              const messages = await client.getMessages(teamId, channel.id, messageLimit)
+              return messages.map((msg) => ({
+                ...msg,
+                channel_name: channel.name,
+              }))
+            },
+            5,
+          )
+
+          snapshot.recent_messages = channelMessages.flat().map((msg) => ({
+            channel_id: msg.channel_id,
+            channel_name: msg.channel_name,
+            id: msg.id,
+            author: msg.author.displayName,
+            content: msg.content,
+            timestamp: msg.timestamp,
+          }))
+        }
+      }
 
       if (!options.channelsOnly) {
-        const channelMessages = await parallelMap(
-          channels,
-          async (channel: TeamsChannel) => {
-            const messages = await client.getMessages(teamId, channel.id, messageLimit)
-            return messages.map((msg) => ({
-              ...msg,
-              channel_name: channel.name,
-            }))
-          },
-          5,
-        )
+        const users = await client.listUsers(teamId)
 
-        snapshot.recent_messages = channelMessages.flat().map((msg) => ({
-          channel_id: msg.channel_id,
-          channel_name: msg.channel_name,
-          id: msg.id,
-          author: msg.author.displayName,
-          content: msg.content,
-          timestamp: msg.timestamp,
+        snapshot.members = users.map((u) => ({
+          id: u.id,
+          displayName: u.displayName,
+          email: u.email || null,
         }))
       }
-    }
+    } else {
+      if (!options.usersOnly) {
+        const channels = await client.listChannels(teamId)
+        snapshot.channels = channels.map((ch) => ({ id: ch.id, name: ch.name }))
+      }
 
-    if (!options.channelsOnly) {
-      const users = await client.listUsers(teamId)
-
-      snapshot.members = users.map((u) => ({
-        id: u.id,
-        displayName: u.displayName,
-        email: u.email || null,
-      }))
+      snapshot.hint =
+        "Use 'message list <channel>' for messages, 'channel info <channel>' for channel details, 'user list' for members."
     }
 
     console.log(formatOutput(snapshot, options.pretty))
@@ -95,16 +107,18 @@ export async function snapshotAction(options: {
 }
 
 export const snapshotCommand = new Command('snapshot')
-  .description('Get comprehensive team state for AI agents')
+  .description('Get team overview for AI agents (brief by default, use --full for comprehensive data)')
+  .option('--full', 'Include messages and members (verbose)')
   .option('--channels-only', 'Include only channels (exclude messages and members)')
   .option('--users-only', 'Include only members (exclude channels and messages)')
-  .option('--limit <n>', 'Number of recent messages per channel (default: 20)', '20')
+  .option('--limit <n>', 'Number of recent messages per channel with --full (default: 20)', '20')
   .option('--team-id <id>', 'Team ID (defaults to current team)')
   .option('--pretty', 'Pretty print JSON output')
   .action(async (options) => {
     await snapshotAction({
       channelsOnly: options.channelsOnly,
       usersOnly: options.usersOnly,
+      full: options.full,
       limit: parseInt(options.limit, 10),
       teamId: options.teamId,
       pretty: options.pretty,
