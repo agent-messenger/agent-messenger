@@ -247,15 +247,24 @@ agent-webex member list <space-id> --limit 100
 
 ### Snapshot Command
 
-Get workspace spaces overview for AI agents:
+Get workspace overview for AI agents (brief by default):
 
 ```bash
+# Brief snapshot (default) — fast, minimal output
 agent-webex snapshot
+
+# Full snapshot — includes type and lastActivity
+agent-webex snapshot --full
 ```
 
-Returns JSON with:
+Default returns brief JSON with:
 
-- Spaces (id, title, type, lastActivity) — only spaces you're a member of
+- Spaces (id, title) — only spaces you're a member of
+- Hint for next commands
+
+With `--full`, returns:
+
+- Spaces (id, title, type, lastActivity)
 
 For messages or members, use `message list <space-id>` or `member list <space-id>`.
 

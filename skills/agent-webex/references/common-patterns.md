@@ -336,10 +336,16 @@ SPACE_COUNT=$(echo "$SNAPSHOT" | jq -r '.spaces | length')
 echo "Total spaces: $SPACE_COUNT"
 
 # List all spaces
-echo "$SNAPSHOT" | jq -r '.spaces[] | "  \(.title) (\(.type))"'
+echo "$SNAPSHOT" | jq -r '.spaces[] | "  \(.title) (\(.id))"'
+
+# Then drill into a specific space for details
+SPACE_ID=$(echo "$SNAPSHOT" | jq -r '.spaces[0].id // empty')
+if [ -n "$SPACE_ID" ]; then
+  agent-webex message list "$SPACE_ID" --limit 10
+fi
 ```
 
-**When to use**: Quick workspace overview to discover space IDs and titles. Use `message list <space-id>` or `member list <space-id>` for details.
+**When to use**: Quick workspace overview to discover space IDs and titles. Start with brief snapshot, then use `message list <space-id>` or `member list <space-id>` for details.
 
 ## Pipeline Patterns
 

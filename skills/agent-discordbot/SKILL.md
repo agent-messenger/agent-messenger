@@ -284,7 +284,7 @@ agent-discordbot snapshot --full --limit 10
 
 Default returns brief JSON with:
 
-- Server metadata (id, name)
+- Server ID
 - Channels (id, name) — text channels only
 - Hint for next commands
 
