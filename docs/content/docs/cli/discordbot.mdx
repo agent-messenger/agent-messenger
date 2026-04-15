@@ -256,10 +256,10 @@ Default returns brief JSON with:
 
 With `--full`, returns comprehensive JSON with:
 
-- Server metadata (id, name)
-- Channels (id, name, type, topic)
-- Recent messages (id, content, author, timestamp)
-- Members (id, username, global_name)
+- Server ID
+- Channels with messages (id, name, messages)
+- Use `--full --channels-only` for channel type info
+- Use `--full --users-only` for members (id, username, global_name)
 
 ## Key Differences from agent-discord
 

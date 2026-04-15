@@ -337,7 +337,7 @@ if ! agent-teams auth status | grep -q "valid"; then
 fi
 
 # 2. Get team context
-agent-teams snapshot --limit 5 > /tmp/teams-context.json
+agent-teams snapshot > /tmp/teams-context.json
 
 # 3. Send standup reminder
 agent-teams message send $STANDUP_CHANNEL "Good morning! Time for standup."

@@ -205,9 +205,9 @@ agent-channeltalkbot snapshot
 # Full snapshot — includes messages, managers, bots (slow, large output)
 agent-channeltalkbot snapshot --full
 
-# Filtered full snapshots
-agent-channeltalkbot snapshot --full --groups-only
-agent-channeltalkbot snapshot --full --chats-only
+# Filtered snapshots (work in both brief and full mode)
+agent-channeltalkbot snapshot --groups-only
+agent-channeltalkbot snapshot --chats-only
 
 # Limit messages per group/chat (only with --full)
 agent-channeltalkbot snapshot --full --limit 10
