@@ -112,28 +112,29 @@ fi
 ```bash
 #!/bin/bash
 
-# Full snapshot for comprehensive context
+# Get brief snapshot (default — fast, minimal output)
 SNAPSHOT=$(agent-channeltalkbot snapshot)
 
 # Extract key info
 WORKSPACE=$(echo "$SNAPSHOT" | jq -r '.workspace.name')
 GROUP_COUNT=$(echo "$SNAPSHOT" | jq '.groups | length')
 OPEN_CHATS=$(echo "$SNAPSHOT" | jq '.user_chats.opened_count')
-MANAGER_COUNT=$(echo "$SNAPSHOT" | jq '.managers | length')
-BOT_COUNT=$(echo "$SNAPSHOT" | jq '.bots | length')
 
 echo "Workspace: $WORKSPACE"
 echo "Groups: $GROUP_COUNT"
 echo "Open chats: $OPEN_CHATS"
-echo "Managers: $MANAGER_COUNT"
-echo "Bots: $BOT_COUNT"
 
-# For focused views
-agent-channeltalkbot snapshot --groups-only    # Just groups and messages
-agent-channeltalkbot snapshot --chats-only     # Just UserChat summary
+# List all groups
+echo -e "\nGroups:"
+echo "$SNAPSHOT" | jq -r '.groups[] | "  \(.name) (\(.id))"'
+
+# Then drill into specific resources for details
+agent-channeltalkbot chat list --state opened --limit 10
+agent-channeltalkbot manager list
+agent-channeltalkbot bot list
 ```
 
-**When to use**: Start of every AI agent session, periodic context refresh, workspace audits.
+**When to use**: Start of every AI agent session, periodic context refresh, workspace audits. Start with brief snapshot, then use targeted list commands for chats, managers, or bots.
 
 ## Pattern 6: Search Messages Across Chats
 

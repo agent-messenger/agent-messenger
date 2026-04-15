@@ -9,6 +9,7 @@ import { getClient } from './shared'
 interface SnapshotOption extends WorkspaceOption {
   groupsOnly?: boolean
   chatsOnly?: boolean
+  full?: boolean
   limit?: number
 }
 
@@ -33,7 +34,7 @@ interface SnapshotResult {
     opened_count: number
     snoozed_count: number
     closed_count: number
-    recent_opened: Array<{
+    recent_opened?: Array<{
       id: string
       name?: string
       user_id?: string
@@ -46,13 +47,13 @@ interface SnapshotResult {
   }
   managers?: Array<{ id: string; name: string; description?: string }>
   bots?: Array<{ id: string; name: string }>
+  hint?: string
   error?: string
 }
 
 export async function snapshotAction(options: SnapshotOption): Promise<SnapshotResult> {
   try {
     const client = await getClient(options)
-    const limit = options.limit ?? 5
 
     const channel = await client.getChannel()
     const workspace = {
@@ -62,71 +63,75 @@ export async function snapshotAction(options: SnapshotOption): Promise<SnapshotR
       description: channel.description,
     }
 
-    if (options.groupsOnly) {
-      const groups = await client.listGroups({ limit: 20 })
-      const groupsWithMessages = await Promise.all(
-        groups.map(async (g) => {
-          const messages = await client.getGroupMessages(g.id, { limit, sortOrder: 'desc' })
-          return {
-            id: g.id,
-            name: g.name,
-            messages: messages.map((m) => ({
-              id: m.id,
-              person_type: m.personType,
-              plain_text: m.plainText,
-              created_at: m.createdAt,
-            })),
-          }
-        }),
-      )
-      return { workspace, groups: groupsWithMessages }
+    if (options.full) {
+      return buildFullSnapshot(client, workspace, options)
     }
 
-    if (options.chatsOnly) {
-      const [openedChats, snoozedChats, closedChats] = await Promise.all([
-        client.listUserChats({ state: 'opened', limit: 10, sortOrder: 'desc' }),
-        client.listUserChats({ state: 'snoozed', limit: 1 }),
-        client.listUserChats({ state: 'closed', limit: 1 }),
-      ])
+    return buildBriefSnapshot(client, workspace, options)
+  } catch (error) {
+    return { error: (error as Error).message }
+  }
+}
 
-      const recentOpened = await Promise.all(
-        openedChats.slice(0, 5).map(async (chat) => {
-          const messages = await client.getUserChatMessages(chat.id, { limit: 1, sortOrder: 'desc' })
-          return {
-            id: chat.id,
-            name: chat.name,
-            user_id: chat.userId,
-            last_message: messages[0]
-              ? {
-                  id: messages[0].id,
-                  plain_text: messages[0].plainText,
-                  created_at: messages[0].createdAt,
-                }
-              : undefined,
-          }
-        }),
-      )
-
-      return {
-        workspace,
-        user_chats: {
-          opened_count: openedChats.length,
-          snoozed_count: snoozedChats.length,
-          closed_count: closedChats.length,
-          recent_opened: recentOpened,
-        },
-      }
+async function buildBriefSnapshot(
+  client: Awaited<ReturnType<typeof getClient>>,
+  workspace: SnapshotResult['workspace'],
+  options: SnapshotOption,
+): Promise<SnapshotResult> {
+  if (options.groupsOnly) {
+    const groups = await client.listGroups({ limit: 20 })
+    return {
+      workspace,
+      groups: groups.map((g) => ({ id: g.id, name: g.name })),
+      hint: "Use 'group messages <group>' for messages.",
     }
+  }
 
-    const [groups, openedChats, snoozedChats, closedChats, managers, bots] = await Promise.all([
-      client.listGroups({ limit: 20 }),
+  if (options.chatsOnly) {
+    const [openedChats, snoozedChats, closedChats] = await Promise.all([
       client.listUserChats({ state: 'opened', limit: 10, sortOrder: 'desc' }),
       client.listUserChats({ state: 'snoozed', limit: 1 }),
       client.listUserChats({ state: 'closed', limit: 1 }),
-      client.listManagers({ limit: 50 }),
-      client.listBots({ limit: 50 }),
     ])
+    return {
+      workspace,
+      user_chats: {
+        opened_count: openedChats.length,
+        snoozed_count: snoozedChats.length,
+        closed_count: closedChats.length,
+      },
+      hint: "Use 'chat list --state opened' for chat details, 'chat messages <chat>' for messages.",
+    }
+  }
 
+  const [groups, openedChats, snoozedChats, closedChats] = await Promise.all([
+    client.listGroups({ limit: 20 }),
+    client.listUserChats({ state: 'opened', limit: 10, sortOrder: 'desc' }),
+    client.listUserChats({ state: 'snoozed', limit: 1 }),
+    client.listUserChats({ state: 'closed', limit: 1 }),
+  ])
+
+  return {
+    workspace,
+    groups: groups.map((g) => ({ id: g.id, name: g.name })),
+    user_chats: {
+      opened_count: openedChats.length,
+      snoozed_count: snoozedChats.length,
+      closed_count: closedChats.length,
+    },
+    hint: "Use 'group messages <group>' for group messages, 'chat list --state opened' for chats, 'manager list' for managers.",
+  }
+}
+
+async function buildFullSnapshot(
+  client: Awaited<ReturnType<typeof getClient>>,
+  workspace: SnapshotResult['workspace'],
+  options: SnapshotOption,
+): Promise<SnapshotResult> {
+  const limit = options.limit ?? 5
+
+  if (options.groupsOnly) {
+    const groups = await client.listGroups({ limit: 20 })
     const groupsWithMessages = await Promise.all(
       groups.map(async (g) => {
         const messages = await client.getGroupMessages(g.id, { limit, sortOrder: 'desc' })
@@ -142,6 +147,15 @@ export async function snapshotAction(options: SnapshotOption): Promise<SnapshotR
         }
       }),
     )
+    return { workspace, groups: groupsWithMessages }
+  }
+
+  if (options.chatsOnly) {
+    const [openedChats, snoozedChats, closedChats] = await Promise.all([
+      client.listUserChats({ state: 'opened', limit: 10, sortOrder: 'desc' }),
+      client.listUserChats({ state: 'snoozed', limit: 1 }),
+      client.listUserChats({ state: 'closed', limit: 1 }),
+    ])
 
     const recentOpened = await Promise.all(
       openedChats.slice(0, 5).map(async (chat) => {
@@ -163,26 +177,78 @@ export async function snapshotAction(options: SnapshotOption): Promise<SnapshotR
 
     return {
       workspace,
-      groups: groupsWithMessages,
       user_chats: {
         opened_count: openedChats.length,
         snoozed_count: snoozedChats.length,
         closed_count: closedChats.length,
         recent_opened: recentOpened,
       },
-      managers: managers.map((m) => ({ id: m.id, name: m.name, description: m.description })),
-      bots: bots.map((b) => ({ id: b.id, name: b.name })),
     }
-  } catch (error) {
-    return { error: (error as Error).message }
+  }
+
+  const [groups, openedChats, snoozedChats, closedChats, managers, bots] = await Promise.all([
+    client.listGroups({ limit: 20 }),
+    client.listUserChats({ state: 'opened', limit: 10, sortOrder: 'desc' }),
+    client.listUserChats({ state: 'snoozed', limit: 1 }),
+    client.listUserChats({ state: 'closed', limit: 1 }),
+    client.listManagers({ limit: 50 }),
+    client.listBots({ limit: 50 }),
+  ])
+
+  const groupsWithMessages = await Promise.all(
+    groups.map(async (g) => {
+      const messages = await client.getGroupMessages(g.id, { limit, sortOrder: 'desc' })
+      return {
+        id: g.id,
+        name: g.name,
+        messages: messages.map((m) => ({
+          id: m.id,
+          person_type: m.personType,
+          plain_text: m.plainText,
+          created_at: m.createdAt,
+        })),
+      }
+    }),
+  )
+
+  const recentOpened = await Promise.all(
+    openedChats.slice(0, 5).map(async (chat) => {
+      const messages = await client.getUserChatMessages(chat.id, { limit: 1, sortOrder: 'desc' })
+      return {
+        id: chat.id,
+        name: chat.name,
+        user_id: chat.userId,
+        last_message: messages[0]
+          ? {
+              id: messages[0].id,
+              plain_text: messages[0].plainText,
+              created_at: messages[0].createdAt,
+            }
+          : undefined,
+      }
+    }),
+  )
+
+  return {
+    workspace,
+    groups: groupsWithMessages,
+    user_chats: {
+      opened_count: openedChats.length,
+      snoozed_count: snoozedChats.length,
+      closed_count: closedChats.length,
+      recent_opened: recentOpened,
+    },
+    managers: managers.map((m) => ({ id: m.id, name: m.name, description: m.description })),
+    bots: bots.map((b) => ({ id: b.id, name: b.name })),
   }
 }
 
 export const snapshotCommand = new Command('snapshot')
-  .description('Workspace overview for AI agent context')
+  .description('Workspace overview for AI agents (brief by default, use --full for comprehensive data)')
+  .option('--full', 'Include messages, managers, and bots (verbose)')
   .option('--groups-only', 'List groups only, skip user chats')
   .option('--chats-only', 'List user chats only, skip groups')
-  .option('--limit <n>', 'Messages per group/chat (default: 5)', '5')
+  .option('--limit <n>', 'Messages per group/chat with --full (default: 5)', '5')
   .option('--workspace <id>', 'Workspace ID')
   .option('--bot <name>', 'Bot name')
   .option('--pretty', 'Pretty print JSON output')
@@ -190,6 +256,7 @@ export const snapshotCommand = new Command('snapshot')
     try {
       const result = await snapshotAction({
         ...options,
+        full: options.full,
         limit: parseInt(options.limit, 10),
       })
       console.log(formatOutput(result, options.pretty))

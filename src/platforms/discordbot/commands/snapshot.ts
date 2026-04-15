@@ -10,6 +10,7 @@ import { getClient } from './shared'
 interface SnapshotOption extends BotOption {
   channelsOnly?: boolean
   usersOnly?: boolean
+  full?: boolean
   limit?: number
 }
 
@@ -31,6 +32,7 @@ interface SnapshotResult {
     username: string
     global_name: string | null
   }>
+  hint?: string
   error?: string
 }
 
@@ -43,53 +45,66 @@ export async function snapshotAction(options: SnapshotOption): Promise<SnapshotR
     }
 
     const client = await getClient(options)
-    const limit = options.limit ?? 5
 
-    if (options.usersOnly) {
-      const users = await client.listUsers(serverId)
+    const isFull = options.full || options.channelsOnly || options.usersOnly
+    if (isFull) {
+      const limit = options.limit ?? 5
+
+      if (options.usersOnly) {
+        const users = await client.listUsers(serverId)
+        return {
+          server_id: serverId,
+          users: users.map((u) => ({
+            id: u.id,
+            username: u.username,
+            global_name: u.global_name ?? null,
+          })),
+        }
+      }
+
+      const allChannels = await client.listChannels(serverId)
+      const textChannels = allChannels.filter((ch) => ch.type === 0)
+
+      if (options.channelsOnly) {
+        return {
+          server_id: serverId,
+          channels: textChannels.map((ch) => ({
+            id: ch.id,
+            name: ch.name,
+            type: ch.type,
+          })),
+        }
+      }
+
+      const channelsWithMessages = await Promise.all(
+        textChannels.map(async (ch) => {
+          const messages = await client.getMessages(ch.id, limit)
+          return {
+            id: ch.id,
+            name: ch.name,
+            messages: messages.map((msg) => ({
+              id: msg.id,
+              author: msg.author.username,
+              content: msg.content,
+              timestamp: msg.timestamp,
+            })),
+          }
+        }),
+      )
+
       return {
         server_id: serverId,
-        users: users.map((u) => ({
-          id: u.id,
-          username: u.username,
-          global_name: u.global_name ?? null,
-        })),
+        channels: channelsWithMessages,
       }
     }
 
     const allChannels = await client.listChannels(serverId)
     const textChannels = allChannels.filter((ch) => ch.type === 0)
 
-    if (options.channelsOnly) {
-      return {
-        server_id: serverId,
-        channels: textChannels.map((ch) => ({
-          id: ch.id,
-          name: ch.name,
-          type: ch.type,
-        })),
-      }
-    }
-
-    const channelsWithMessages = await Promise.all(
-      textChannels.map(async (ch) => {
-        const messages = await client.getMessages(ch.id, limit)
-        return {
-          id: ch.id,
-          name: ch.name,
-          messages: messages.map((msg) => ({
-            id: msg.id,
-            author: msg.author.username,
-            content: msg.content,
-            timestamp: msg.timestamp,
-          })),
-        }
-      }),
-    )
-
     return {
       server_id: serverId,
-      channels: channelsWithMessages,
+      channels: textChannels.map((ch) => ({ id: ch.id, name: ch.name })),
+      hint: "Use 'message list <channel>' for messages, 'channel info <channel>' for channel details, 'user list' for members.",
     }
   } catch (error) {
     return { error: (error as Error).message }
@@ -97,10 +112,11 @@ export async function snapshotAction(options: SnapshotOption): Promise<SnapshotR
 }
 
 export const snapshotCommand = new Command('snapshot')
-  .description('Server overview for AI agent context')
+  .description('Server overview for AI agents (brief by default, use --full for comprehensive data)')
+  .option('--full', 'Include messages and members (verbose)')
   .option('--channels-only', 'List channels only, skip messages')
   .option('--users-only', 'List users only')
-  .option('--limit <n>', 'Messages per channel (default: 5)', '5')
+  .option('--limit <n>', 'Messages per channel with --full (default: 5)', '5')
   .option('--server <id>', 'Use specific server')
   .option('--bot <id>', 'Use specific bot')
   .option('--pretty', 'Pretty print JSON output')
@@ -108,6 +124,7 @@ export const snapshotCommand = new Command('snapshot')
     try {
       const result = await snapshotAction({
         ...options,
+        full: options.full,
         limit: parseInt(options.limit, 10),
       })
       console.log(formatOutput(result, options.pretty))

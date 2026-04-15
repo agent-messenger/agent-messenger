@@ -241,19 +241,36 @@ agent-slack file delete <file-id>
 
 ### Snapshot Command
 
-Get comprehensive workspace state for AI agents:
+Get workspace overview for AI agents (brief by default):
 
 ```bash
-# Full snapshot
+# Brief snapshot (default) — fast, minimal API calls
 agent-slack snapshot
 
-# Filtered snapshots
-agent-slack snapshot --channels-only
-agent-slack snapshot --users-only
+# Full snapshot — includes messages, users, user groups (slow, large output)
+agent-slack snapshot --full
 
-# Limit messages per channel
-agent-slack snapshot --limit 10
+# Filtered full snapshots
+agent-slack snapshot --full --channels-only
+agent-slack snapshot --full --users-only
+
+# Limit messages per channel (only with --full)
+agent-slack snapshot --full --limit 10
 ```
+
+Default returns brief JSON with:
+
+- Workspace metadata
+- Channels (id, name) — non-archived only
+- Hint for next commands
+
+With `--full`, returns comprehensive JSON with:
+
+- Workspace metadata
+- Channels (id, name, topic, purpose, is_private, is_archived)
+- Recent messages (ts, text, user, channel)
+- Users (id, name, profile)
+- User groups (id, name, handle, description, user_count, users)
 
 ### Activity Commands
 

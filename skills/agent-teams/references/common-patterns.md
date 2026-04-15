@@ -127,28 +127,30 @@ done
 # Ensure fresh token
 agent-teams auth extract 2>/dev/null || true
 
-# Get full snapshot
+# Get brief snapshot (default — fast, minimal output)
 SNAPSHOT=$(agent-teams snapshot)
 
 # Extract key information
 TEAM_NAME=$(echo "$SNAPSHOT" | jq -r '.team.name // "Unknown"')
 CHANNEL_COUNT=$(echo "$SNAPSHOT" | jq -r '.channels | length')
-MEMBER_COUNT=$(echo "$SNAPSHOT" | jq -r '.members | length')
 
 echo "Team: $TEAM_NAME"
 echo "Channels: $CHANNEL_COUNT"
-echo "Members: $MEMBER_COUNT"
 
 # List all channels
 echo -e "\nChannels:"
 echo "$SNAPSHOT" | jq -r '.channels[] | "  #\(.name) (\(.id))"'
 
-# List recent activity
-echo -e "\nRecent messages:"
-echo "$SNAPSHOT" | jq -r '.recent_messages[] | "  [\(.channel_name)] \(.author): \(.content[0:50])"'
+# Then drill into a specific channel for recent activity
+CHANNEL_ID=$(echo "$SNAPSHOT" | jq -r '.channels[0].id // empty')
+TEAM_ID=$(echo "$SNAPSHOT" | jq -r '.team.id // empty')
+if [ -n "$TEAM_ID" ] && [ -n "$CHANNEL_ID" ]; then
+  echo -e "\nRecent messages:"
+  agent-teams message list "$TEAM_ID" "$CHANNEL_ID" --limit 10
+fi
 ```
 
-**When to use**: Initial context gathering, status reports, team summaries.
+**When to use**: Initial context gathering, status reports, team summaries. Start with brief snapshot, then use `message list <team-id> <channel-id>` or `member list <team-id>` for details.
 
 ## Pattern 4: Find Channel by Name
 

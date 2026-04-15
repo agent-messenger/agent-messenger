@@ -170,21 +170,31 @@ agent-channeltalk bot list --limit 50
 
 ### Snapshot Command
 
-Get comprehensive workspace state for AI agents:
+Get workspace overview for AI agents (brief by default):
 
 ```bash
-# Full snapshot of current workspace
+# Brief snapshot (default) — fast, minimal API calls
 agent-channeltalk snapshot
 
-# Filtered snapshots
-agent-channeltalk snapshot --groups-only
-agent-channeltalk snapshot --chats-only
+# Full snapshot — includes messages, managers, bots (slow, large output)
+agent-channeltalk snapshot --full
 
-# Limit messages per group/chat
-agent-channeltalk snapshot --limit 10
+# Filtered full snapshots
+agent-channeltalk snapshot --full --groups-only
+agent-channeltalk snapshot --full --chats-only
+
+# Limit messages per group/chat (only with --full)
+agent-channeltalk snapshot --full --limit 10
 ```
 
-Returns JSON with:
+Default returns brief JSON with:
+
+- Workspace metadata (id, name)
+- Groups (id, name)
+- UserChat summary (total count, by state)
+- Hint for next commands
+
+With `--full`, returns comprehensive JSON with:
 
 - Workspace metadata (id, name)
 - Groups with recent messages (id, name, messages)

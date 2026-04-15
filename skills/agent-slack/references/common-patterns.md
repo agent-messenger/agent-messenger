@@ -71,28 +71,25 @@ done
 ```bash
 #!/bin/bash
 
-# Get full snapshot
+# Get brief snapshot (default — fast, minimal output)
 SNAPSHOT=$(agent-slack snapshot)
 
 # Extract key information
 WORKSPACE_NAME=$(echo "$SNAPSHOT" | jq -r '.workspace.name')
 CHANNEL_COUNT=$(echo "$SNAPSHOT" | jq -r '.channels | length')
-USER_COUNT=$(echo "$SNAPSHOT" | jq -r '.users | length')
 
 echo "Workspace: $WORKSPACE_NAME"
 echo "Channels: $CHANNEL_COUNT"
-echo "Users: $USER_COUNT"
 
 # List all channels
 echo -e "\nChannels:"
 echo "$SNAPSHOT" | jq -r '.channels[] | "  \(.name) (\(.id))"'
 
-# List recent activity
-echo -e "\nRecent messages:"
-echo "$SNAPSHOT" | jq -r '.recent_messages[] | "  \(.channel_name): \(.text[0:50])"'
+# Then drill into specific channels for messages
+agent-slack message list general --limit 10
 ```
 
-**When to use**: Initial context gathering, status reports, workspace summaries.
+**When to use**: Initial context gathering, status reports, workspace summaries. Start with brief snapshot, then use targeted commands for details.
 
 ## Pattern 4: Thread Conversation
 

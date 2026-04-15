@@ -5,7 +5,7 @@ import { formatOutput } from '@/shared/utils/output'
 
 import { WebexClient } from '../client'
 
-export async function snapshotAction(options: { pretty?: boolean }): Promise<void> {
+export async function snapshotAction(options: { full?: boolean; pretty?: boolean }): Promise<void> {
   try {
     const client = await new WebexClient().login()
 
@@ -15,13 +15,19 @@ export async function snapshotAction(options: { pretty?: boolean }): Promise<voi
     const allSpaces = await client.listSpaces({ max: 100 })
     const spaces = allSpaces.filter((s) => myRoomIds.has(s.id))
 
-    const snapshot = {
-      spaces: spaces.map((s) => ({
-        id: s.id,
-        title: s.title,
-        type: s.type,
-        lastActivity: s.lastActivity,
-      })),
+    const snapshot: Record<string, any> = {
+      spaces: options.full
+        ? spaces.map((s) => ({
+            id: s.id,
+            title: s.title,
+            type: s.type,
+            lastActivity: s.lastActivity,
+          }))
+        : spaces.map((s) => ({ id: s.id, title: s.title })),
+    }
+
+    if (!options.full) {
+      snapshot.hint = "Use 'message list <space>' for messages, 'space info <space>' for space details."
     }
 
     console.log(formatOutput(snapshot, options.pretty))
@@ -31,10 +37,12 @@ export async function snapshotAction(options: { pretty?: boolean }): Promise<voi
 }
 
 export const snapshotCommand = new Command('snapshot')
-  .description('Get workspace spaces overview for AI agents')
+  .description('Get workspace overview for AI agents (brief by default, use --full for comprehensive data)')
+  .option('--full', 'Include full space details (verbose)')
   .option('--pretty', 'Pretty print JSON output')
   .action(async (options) => {
     await snapshotAction({
+      full: options.full,
       pretty: options.pretty,
     })
   })

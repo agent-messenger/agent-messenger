@@ -81,8 +81,53 @@ describe('snapshot command', () => {
     mockListUserChats.mockClear()
   })
 
-  test('returns workspace, managers, bots, groups, and user chats', async () => {
+  test('brief snapshot returns workspace, groups (name only), chat counts, and hint', async () => {
     const result = await snapshotAction()
+
+    expect(result.error).toBeUndefined()
+    expect(result.workspace).toEqual({ id: 'ws-1', name: 'Workspace One' })
+    expect(result.groups).toEqual([
+      { id: 'grp-1', name: 'Support' },
+      { id: 'grp-2', name: 'Sales' },
+    ])
+    expect(result.user_chats).toEqual({
+      total: 4,
+      by_state: { opened: 2, snoozed: 1, closed: 1 },
+    })
+    expect(result.hint).toBeDefined()
+    expect(result.managers).toBeUndefined()
+    expect(result.bots).toBeUndefined()
+    expect(mockGetGroupMessages).not.toHaveBeenCalled()
+  })
+
+  test('brief groups-only returns group names without messages', async () => {
+    const result = await snapshotAction({ groupsOnly: true })
+
+    expect(result.workspace).toEqual({ id: 'ws-1', name: 'Workspace One' })
+    expect(result.groups).toHaveLength(2)
+    expect(result.groups?.[0]).toEqual({ id: 'grp-1', name: 'Support' })
+    expect(result.hint).toBeDefined()
+    expect(result.user_chats).toBeUndefined()
+    expect(mockGetGroupMessages).not.toHaveBeenCalled()
+    expect(mockListUserChats).not.toHaveBeenCalled()
+  })
+
+  test('brief chats-only returns counts without recent details', async () => {
+    const result = await snapshotAction({ chatsOnly: true })
+
+    expect(result.workspace).toEqual({ id: 'ws-1', name: 'Workspace One' })
+    expect(result.groups).toBeUndefined()
+    expect(result.user_chats).toEqual({
+      total: 4,
+      by_state: { opened: 2, snoozed: 1, closed: 1 },
+    })
+    expect(result.hint).toBeDefined()
+    expect(mockListGroups).not.toHaveBeenCalled()
+    expect(mockGetGroupMessages).not.toHaveBeenCalled()
+  })
+
+  test('full snapshot returns workspace, managers, bots, groups, and user chats', async () => {
+    const result = await snapshotAction({ full: true })
 
     expect(result.error).toBeUndefined()
     expect(result).toEqual({
@@ -156,19 +201,21 @@ describe('snapshot command', () => {
     })
   })
 
-  test('groups-only skips user chats', async () => {
-    const result = await snapshotAction({ groupsOnly: true })
+  test('full groups-only includes messages', async () => {
+    const result = await snapshotAction({ full: true, groupsOnly: true, limit: 3 })
 
-    expect(result.workspace).toEqual({ id: 'ws-1', name: 'Workspace One' })
-    expect(result.groups).toHaveLength(2)
-    expect(result.user_chats).toBeUndefined()
-    expect(result.managers).toBeUndefined()
-    expect(result.bots).toBeUndefined()
-    expect(mockListUserChats).not.toHaveBeenCalled()
+    expect(mockGetGroupMessages).toHaveBeenCalledWith('ws-1', 'grp-1', { limit: 3, sortOrder: 'desc' })
+    expect(mockGetGroupMessages).toHaveBeenCalledWith('ws-1', 'grp-2', { limit: 3, sortOrder: 'desc' })
+    expect(result.groups?.[0].recent_messages?.[0]).toEqual({
+      id: 'grp-1-msg-1',
+      person_type: 'manager',
+      plain_text: 'Message for grp-1',
+      created_at: 1000,
+    })
   })
 
-  test('chats-only skips groups', async () => {
-    const result = await snapshotAction({ chatsOnly: true, limit: 1 })
+  test('full chats-only includes recent details', async () => {
+    const result = await snapshotAction({ full: true, chatsOnly: true, limit: 1 })
 
     expect(result.workspace).toEqual({ id: 'ws-1', name: 'Workspace One' })
     expect(result.groups).toBeUndefined()
@@ -188,21 +235,6 @@ describe('snapshot command', () => {
           updated_at: 200,
         },
       ],
-    })
-    expect(mockListGroups).not.toHaveBeenCalled()
-    expect(mockGetGroupMessages).not.toHaveBeenCalled()
-  })
-
-  test('includes recent messages for each group with requested limit', async () => {
-    const result = await snapshotAction({ groupsOnly: true, limit: 3 })
-
-    expect(mockGetGroupMessages).toHaveBeenCalledWith('ws-1', 'grp-1', { limit: 3, sortOrder: 'desc' })
-    expect(mockGetGroupMessages).toHaveBeenCalledWith('ws-1', 'grp-2', { limit: 3, sortOrder: 'desc' })
-    expect(result.groups?.[0].recent_messages[0]).toEqual({
-      id: 'grp-1-msg-1',
-      person_type: 'manager',
-      plain_text: 'Message for grp-1',
-      created_at: 1000,
     })
   })
 })

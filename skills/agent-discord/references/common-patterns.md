@@ -77,28 +77,29 @@ done
 ```bash
 #!/bin/bash
 
-# Get full snapshot
+# Get brief snapshot (default — fast, minimal output)
 SNAPSHOT=$(agent-discord snapshot)
 
 # Extract key information
 SERVER_NAME=$(echo "$SNAPSHOT" | jq -r '.server.name')
 CHANNEL_COUNT=$(echo "$SNAPSHOT" | jq -r '.channels | length')
-MEMBER_COUNT=$(echo "$SNAPSHOT" | jq -r '.members | length')
 
 echo "Server: $SERVER_NAME"
 echo "Channels: $CHANNEL_COUNT"
-echo "Members: $MEMBER_COUNT"
 
 # List all text channels
 echo -e "\nChannels:"
 echo "$SNAPSHOT" | jq -r '.channels[] | "  #\(.name) (\(.id))"'
 
-# List recent activity
-echo -e "\nRecent messages:"
-echo "$SNAPSHOT" | jq -r '.recent_messages[] | "  [\(.channel_name)] \(.author): \(.content[0:50])"'
+# Then drill into a specific channel for recent activity
+CHANNEL_ID=$(echo "$SNAPSHOT" | jq -r '.channels[0].id // empty')
+if [ -n "$CHANNEL_ID" ]; then
+  echo -e "\nRecent messages:"
+  agent-discord message list "$CHANNEL_ID" --limit 10
+fi
 ```
 
-**When to use**: Initial context gathering, status reports, server summaries.
+**When to use**: Initial context gathering, status reports, server summaries. Start with brief snapshot, then use `message list <channel-id>` or `user list` for details.
 
 ## Pattern 4: Find Channel by Name
 

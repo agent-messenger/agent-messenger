@@ -79,8 +79,20 @@ describe('snapshot command', () => {
     consoleSpy.mockRestore()
   })
 
-  test('returns spaces with id, title, type, lastActivity', async () => {
+  test('brief snapshot returns spaces with id and title only', async () => {
     await snapshotAction({})
+
+    expect(consoleSpy).toHaveBeenCalled()
+    const output = JSON.parse(consoleSpy.mock.calls[consoleSpy.mock.calls.length - 1][0])
+    expect(output.spaces).toHaveLength(1)
+    expect(output.spaces[0].id).toBe('space-1')
+    expect(output.spaces[0].title).toBe('General')
+    expect(output.spaces[0].type).toBeUndefined()
+    expect(output.hint).toBeDefined()
+  })
+
+  test('full snapshot returns spaces with id, title, type, lastActivity', async () => {
+    await snapshotAction({ full: true })
 
     expect(consoleSpy).toHaveBeenCalled()
     const output = JSON.parse(consoleSpy.mock.calls[consoleSpy.mock.calls.length - 1][0])
@@ -89,6 +101,7 @@ describe('snapshot command', () => {
     expect(output.spaces[0].title).toBe('General')
     expect(output.spaces[0].type).toBe('group')
     expect(output.spaces[0].lastActivity).toBe('2024-01-15T00:00:00.000Z')
+    expect(output.hint).toBeUndefined()
   })
 
   test('filters spaces to only those in my memberships', async () => {

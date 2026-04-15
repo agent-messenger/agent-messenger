@@ -92,28 +92,29 @@ done
 ```bash
 #!/bin/bash
 
-# Full snapshot for comprehensive context
+# Get brief snapshot (default — fast, minimal output)
 SNAPSHOT=$(agent-channeltalk snapshot)
 
 # Extract key info
 WORKSPACE=$(echo "$SNAPSHOT" | jq -r '.workspace.name')
 GROUP_COUNT=$(echo "$SNAPSHOT" | jq '.groups | length')
 OPEN_CHATS=$(echo "$SNAPSHOT" | jq '.user_chats.by_state.opened')
-MANAGER_COUNT=$(echo "$SNAPSHOT" | jq '.managers | length')
-BOT_COUNT=$(echo "$SNAPSHOT" | jq '.bots | length')
 
 echo "Workspace: $WORKSPACE"
 echo "Groups: $GROUP_COUNT"
 echo "Open chats: $OPEN_CHATS"
-echo "Managers: $MANAGER_COUNT"
-echo "Bots: $BOT_COUNT"
 
-# For focused views
-agent-channeltalk snapshot --groups-only    # Just groups and messages
-agent-channeltalk snapshot --chats-only     # Just UserChat summary
+# List all groups
+echo -e "\nGroups:"
+echo "$SNAPSHOT" | jq -r '.groups[] | "  \(.name) (\(.id))"'
+
+# Then drill into specific resources for details
+agent-channeltalk chat list --state opened --limit 10
+agent-channeltalk manager list --limit 20
+agent-channeltalk bot list --limit 20
 ```
 
-**When to use**: Start of every AI agent session, periodic context refresh, workspace audits.
+**When to use**: Start of every AI agent session, periodic context refresh, workspace audits. Start with brief snapshot, then use targeted list commands for messages, managers, or bots.
 
 ## Pattern 5: Find Group by Name
 

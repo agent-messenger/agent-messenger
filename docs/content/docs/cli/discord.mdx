@@ -179,19 +179,35 @@ agent-discord file info <channel-id> <file-id>
 
 ### Snapshot Command
 
-Get comprehensive server state for AI agents:
+Get server overview for AI agents (brief by default):
 
 ```bash
-# Full snapshot (channels, members, recent messages)
+# Brief snapshot (default) — fast, minimal API calls
 agent-discord snapshot
 
-# Filtered snapshots
-agent-discord snapshot --channels-only
-agent-discord snapshot --users-only
+# Full snapshot — includes messages and members (slow, large output)
+agent-discord snapshot --full
 
-# Limit messages per channel
-agent-discord snapshot --limit 10
+# Filtered full snapshots
+agent-discord snapshot --full --channels-only
+agent-discord snapshot --full --users-only
+
+# Limit messages per channel (only with --full)
+agent-discord snapshot --full --limit 10
 ```
+
+Default returns brief JSON with:
+
+- Server metadata (id, name)
+- Channels (id, name) — text channels only
+- Hint for next commands
+
+With `--full`, returns comprehensive JSON with:
+
+- Server metadata (id, name)
+- Channels (id, name, type, topic)
+- Recent messages (id, content, author, timestamp)
+- Members (id, username, global_name)
 
 ### DM Commands
 
