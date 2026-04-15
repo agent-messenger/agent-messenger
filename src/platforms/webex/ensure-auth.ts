@@ -11,7 +11,11 @@ export async function ensureWebexAuth(): Promise<void> {
       const token = await credManager.getToken(config.clientId, config.clientSecret)
       if (token) {
         const client = new WebexClient()
-        await client.login({ token })
+        await client.login({
+          token,
+          deviceUrl: config.deviceUrl,
+          tokenType: config.tokenType,
+        })
         await client.testAuth()
         return
       }
@@ -22,7 +26,11 @@ export async function ensureWebexAuth(): Promise<void> {
     if (!extracted) return
 
     const client = new WebexClient()
-    await client.login({ token: extracted.accessToken })
+    await client.login({
+      token: extracted.accessToken,
+      deviceUrl: extracted.deviceUrl,
+      tokenType: 'extracted',
+    })
     await client.testAuth()
 
     await credManager.saveConfig({

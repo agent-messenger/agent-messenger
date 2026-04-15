@@ -45,16 +45,33 @@ export class WebexCredentialManager {
     const config = await this.loadConfig()
     if (!config) return null
 
-    if (config.tokenType === 'manual' || config.tokenType === 'extracted') {
+    if (config.tokenType === 'manual') {
       return config.accessToken
     }
 
-    if (config.expiresAt < Date.now() + 5 * 60 * 1000) {
+    const isExpired = config.expiresAt > 0 && config.expiresAt < Date.now() + 5 * 60 * 1000
+
+    if (config.tokenType === 'extracted') {
+      if (isExpired && config.refreshToken) {
+        const builtinCreds = getWebexAppCredentials()
+        const refreshed = await this.refreshToken(config.refreshToken, builtinCreds.clientId, builtinCreds.clientSecret)
+        if (refreshed) {
+          await this.saveConfig({ ...config, ...refreshed, tokenType: 'extracted' })
+          return refreshed.accessToken
+        }
+      }
+      return config.accessToken
+    }
+
+    if (isExpired) {
       const builtinCreds = getWebexAppCredentials()
       const resolvedClientId = clientId ?? config.clientId ?? builtinCreds.clientId
       const resolvedClientSecret = clientSecret ?? config.clientSecret ?? builtinCreds.clientSecret
       const refreshed = await this.refreshToken(config.refreshToken, resolvedClientId, resolvedClientSecret)
-      if (refreshed) return refreshed.accessToken
+      if (refreshed) {
+        await this.saveConfig({ ...config, ...refreshed })
+        return refreshed.accessToken
+      }
       return null
     }
 
@@ -82,14 +99,11 @@ export class WebexCredentialManager {
         expires_in: number
       }
 
-      const config: WebexConfig = {
+      return {
         accessToken: data.access_token,
         refreshToken: data.refresh_token,
         expiresAt: Date.now() + data.expires_in * 1000,
-      }
-
-      await this.saveConfig(config)
-      return config
+      } satisfies Pick<WebexConfig, 'accessToken' | 'refreshToken' | 'expiresAt'>
     } catch {
       return null
     }

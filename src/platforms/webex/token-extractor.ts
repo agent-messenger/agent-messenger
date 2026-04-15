@@ -160,25 +160,46 @@ export class WebexTokenExtractor {
       return null
     }
 
+    let best: { token: ExtractedWebexToken; source: string } | null = null
+
     for (const leveldbDir of profileDirs) {
       this.debug(`Scanning: ${leveldbDir}`)
 
       const result = (await this.scanViaClassicLevelCopy(leveldbDir)) ?? this.scanRawFiles(leveldbDir)
 
       if (result?.token) {
-        this.debug(`Found token in: ${leveldbDir}`)
-
         const token = result.token
         if (result.encryptionKeys.size > 0) {
           token.encryptionKeys = result.encryptionKeys
         }
 
-        return token
+        this.debug(
+          `Found token in: ${leveldbDir} (expires: ${token.expiresAt ? new Date(token.expiresAt).toISOString() : 'unknown'}, length: ${token.accessToken.length})`,
+        )
+
+        if (!best || this.isTokenFresher(token, best.token)) {
+          best = { token, source: leveldbDir }
+        }
       }
     }
 
-    this.debug('No Webex tokens found in any browser profile')
-    return null
+    if (!best) {
+      this.debug('No Webex tokens found in any browser profile')
+      return null
+    }
+
+    this.debug(`Selected token from: ${best.source}`)
+    return best.token
+  }
+
+  private isTokenFresher(candidate: ExtractedWebexToken, current: ExtractedWebexToken): boolean {
+    const candidateExpiry = candidate.expiresAt ?? 0
+    const currentExpiry = current.expiresAt ?? 0
+    if (candidateExpiry > 0 && currentExpiry > 0) {
+      return candidateExpiry > currentExpiry
+    }
+    if (candidateExpiry > 0 && currentExpiry === 0) return true
+    return false
   }
 
   private async scanViaClassicLevelCopy(dbPath: string): Promise<ScanResult | null> {
