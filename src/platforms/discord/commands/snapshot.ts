@@ -35,7 +35,8 @@ export async function snapshotAction(options: {
       name: server.name,
     }
 
-    if (options.full) {
+    const isFull = options.full || options.channelsOnly || options.usersOnly
+    if (isFull) {
       const messageLimit = options.limit || 20
 
       if (!options.usersOnly) {

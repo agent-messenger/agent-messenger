@@ -46,7 +46,8 @@ export async function snapshotAction(options: SnapshotOption): Promise<SnapshotR
 
     const client = await getClient(options)
 
-    if (options.full) {
+    const isFull = options.full || options.channelsOnly || options.usersOnly
+    if (isFull) {
       const limit = options.limit ?? 5
 
       if (options.usersOnly) {

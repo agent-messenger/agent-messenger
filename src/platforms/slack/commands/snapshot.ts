@@ -35,7 +35,8 @@ async function snapshotAction(options: {
       },
     }
 
-    if (options.full) {
+    const isFull = options.full || options.channelsOnly || options.usersOnly
+    if (isFull) {
       await buildFullSnapshot(client, snapshot, options)
     } else {
       await buildBriefSnapshot(client, snapshot, options)
