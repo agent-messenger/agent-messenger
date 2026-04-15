@@ -291,6 +291,69 @@ describe('WebexCredentialManager', () => {
     expect(loaded?.clientSecret).toBe('my-client-secret')
   })
 
+  test('getToken tries refresh for expired extracted tokens', async () => {
+    const originalFetch = globalThis.fetch
+    globalThis.fetch = mock(() =>
+      Promise.resolve(
+        new Response(
+          JSON.stringify({
+            access_token: 'refreshed-extracted-token',
+            refresh_token: 'new-refresh',
+            expires_in: 3600,
+          }),
+          { status: 200 },
+        ),
+      ),
+    ) as typeof fetch
+
+    await credManager.saveConfig({
+      accessToken: 'expired-extracted-token',
+      refreshToken: 'extracted-refresh',
+      expiresAt: Date.now() - 1000,
+      tokenType: 'extracted',
+    })
+
+    const token = await credManager.getToken()
+    expect(token).toBe('refreshed-extracted-token')
+
+    const config = await credManager.loadConfig()
+    expect(config?.tokenType).toBe('extracted')
+    expect(config?.accessToken).toBe('refreshed-extracted-token')
+
+    globalThis.fetch = originalFetch
+  })
+
+  test('getToken returns expired extracted token when refresh fails', async () => {
+    const originalFetch = globalThis.fetch
+    globalThis.fetch = mock(() =>
+      Promise.resolve(new Response('{"error":"invalid_grant"}', { status: 400 })),
+    ) as typeof fetch
+
+    await credManager.saveConfig({
+      accessToken: 'expired-extracted-token',
+      refreshToken: 'bad-refresh',
+      expiresAt: Date.now() - 1000,
+      tokenType: 'extracted',
+    })
+
+    const token = await credManager.getToken()
+    expect(token).toBe('expired-extracted-token')
+
+    globalThis.fetch = originalFetch
+  })
+
+  test('getToken returns non-expired extracted token without refresh', async () => {
+    await credManager.saveConfig({
+      accessToken: 'valid-extracted-token',
+      refreshToken: 'refresh',
+      expiresAt: Date.now() + 3600000,
+      tokenType: 'extracted',
+    })
+
+    const token = await credManager.getToken()
+    expect(token).toBe('valid-extracted-token')
+  })
+
   test('loadConfig backward compat — old config without clientId/clientSecret', async () => {
     // Write raw JSON without clientId/clientSecret fields
     const credPath = join(tempDir, 'webex-credentials.json')

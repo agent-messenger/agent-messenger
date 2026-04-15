@@ -8,6 +8,7 @@ import { getWebexAppCredentials } from '../app-config'
 import { WebexClient } from '../client'
 import { WebexCredentialManager } from '../credential-manager'
 import { WebexTokenExtractor } from '../token-extractor'
+import { WebexError } from '../types'
 
 interface ResolvedCredentials {
   clientId: string
@@ -142,7 +143,8 @@ export async function statusAction(options: { pretty?: boolean }): Promise<void>
 
 export async function extractAction(options: { pretty?: boolean; debug?: boolean }): Promise<void> {
   try {
-    const extractor = new WebexTokenExtractor(undefined, options.debug ? (msg) => debug(`[debug] ${msg}`) : undefined)
+    const debugLog = options.debug ? (msg: string) => debug(`[debug] ${msg}`) : undefined
+    const extractor = new WebexTokenExtractor(undefined, debugLog)
 
     if (options.debug) {
       debug('[debug] Searching browser profiles for Webex tokens...')
@@ -155,7 +157,7 @@ export async function extractAction(options: { pretty?: boolean; debug?: boolean
         formatOutput(
           {
             error:
-              'No Webex token found in any browser. Make sure you are logged in to web.webex.com in Chrome, Edge, Arc, or Brave.',
+              'No Webex token found in any browser. Make sure you are logged in at https://web.webex.com (not webex.com) in Chrome, Edge, Arc, or Brave.',
             hint: 'Run "auth login" for OAuth Device Grant flow, or --debug for more info.',
           },
           options.pretty,
@@ -165,30 +167,83 @@ export async function extractAction(options: { pretty?: boolean; debug?: boolean
       return
     }
 
-    const client = await new WebexClient().login({ token: extracted.accessToken })
-    const person = await client.testAuth()
+    const isExpired = extracted.expiresAt != null && extracted.expiresAt > 0 && extracted.expiresAt < Date.now()
+    if (isExpired && options.debug) {
+      const agoMs = Date.now() - extracted.expiresAt!
+      const agoHours = Math.round(agoMs / 3_600_000)
+      debugLog?.(`Token expired ${agoHours > 0 ? `${agoHours}h ago` : 'recently'}.`)
+    }
+
+    let activeToken = extracted.accessToken
+    let refreshedConfig: { accessToken: string; refreshToken: string; expiresAt: number } | null = null
+
+    if (isExpired && extracted.refreshToken) {
+      debugLog?.('Attempting token refresh...')
+      const credManager = new WebexCredentialManager()
+      const { clientId, clientSecret } = getWebexAppCredentials()
+      refreshedConfig = await credManager.refreshToken(extracted.refreshToken, clientId, clientSecret)
+      if (refreshedConfig) {
+        debugLog?.('Token refreshed successfully.')
+        activeToken = refreshedConfig.accessToken
+      } else {
+        debugLog?.('Token refresh failed. Will attempt validation with expired token.')
+      }
+    }
+
+    const client = await new WebexClient().login({
+      token: activeToken,
+      deviceUrl: extracted.deviceUrl,
+      tokenType: 'extracted',
+    })
+
+    let person: { id: string; displayName: string; emails: string[] } | null = null
+    try {
+      const result = await client.testAuth()
+      if (result.id) {
+        person = { id: result.id, displayName: result.displayName, emails: result.emails }
+      }
+    } catch (authError) {
+      const isAuthFailure =
+        authError instanceof WebexError && (authError.code === 'http_401' || authError.code === 'http_403')
+      if (isExpired && isAuthFailure) {
+        console.log(
+          formatOutput(
+            {
+              error: 'Extracted browser token is expired and could not be refreshed.',
+              hint: 'Log in at https://web.webex.com (not webex.com) in your browser, then run "auth extract" again. Or use "auth login" for OAuth Device Grant flow.',
+            },
+            options.pretty,
+          ),
+        )
+        process.exit(1)
+        return
+      }
+      throw authError
+    }
 
     const credManager = new WebexCredentialManager()
     await credManager.saveConfig({
-      accessToken: extracted.accessToken,
-      refreshToken: extracted.refreshToken ?? '',
-      expiresAt: extracted.expiresAt ?? 0,
+      accessToken: activeToken,
+      refreshToken: refreshedConfig?.refreshToken ?? extracted.refreshToken ?? '',
+      expiresAt: refreshedConfig?.expiresAt ?? extracted.expiresAt ?? 0,
       tokenType: 'extracted',
       deviceUrl: extracted.deviceUrl,
       userId: extracted.userId,
       encryptionKeys: extracted.encryptionKeys ? Object.fromEntries(extracted.encryptionKeys) : undefined,
     })
 
-    console.log(
-      formatOutput(
-        {
-          user: { id: person.id, displayName: person.displayName, emails: person.emails },
-          authenticated: true,
-          tokenType: 'extracted',
-        },
-        options.pretty,
-      ),
-    )
+    const output: Record<string, unknown> = {
+      authenticated: true,
+      tokenType: 'extracted',
+    }
+    if (refreshedConfig) {
+      output['refreshed'] = true
+    }
+    if (person) {
+      output['user'] = person
+    }
+
+    console.log(formatOutput(output, options.pretty))
   } catch (error) {
     handleError(error as Error)
   }

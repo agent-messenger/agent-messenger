@@ -56,6 +56,17 @@ describe('WebexClient', () => {
       await expect(new WebexClient().login({ token: '' })).rejects.toThrow(WebexError)
       await expect(new WebexClient().login({ token: '' })).rejects.toThrow('Token is required')
     })
+
+    test('accepts deviceUrl and tokenType', async () => {
+      const client = await new WebexClient().login({
+        token: 'test-token',
+        deviceUrl: 'https://wdm-r.wbx2.com/wdm/api/v1/devices/dev-1',
+        tokenType: 'extracted',
+      })
+      expect(client).toBeInstanceOf(WebexClient)
+      expect((client as any).deviceUrl).toBe('https://wdm-r.wbx2.com/wdm/api/v1/devices/dev-1')
+      expect((client as any).tokenType).toBe('extracted')
+    })
   })
 
   describe('testAuth', () => {
@@ -83,6 +94,59 @@ describe('WebexClient', () => {
 
       const client = await new WebexClient().login({ token: 'bad-token' })
       await expect(client.testAuth()).rejects.toThrow(WebexError)
+    })
+
+    test('falls back to internal API when public API fails for extracted tokens', async () => {
+      // given - public API rejects, internal API succeeds
+      mockResponse({ message: 'Unauthorized' }, 401)
+      fetchResponses.push(
+        new Response(JSON.stringify({ id: 'conv-1', activities: { items: [] } }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        }),
+      )
+
+      const client = await new WebexClient().login({
+        token: 'extracted-token',
+        deviceUrl: 'https://wdm-r.wbx2.com/wdm/api/v1/devices/dev-1',
+        tokenType: 'extracted',
+      })
+
+      // when
+      const person = await client.testAuth()
+
+      // then - succeeds via internal API
+      expect(fetchCalls.length).toBe(2)
+      expect(fetchCalls[0].url).toBe('https://webexapis.com/v1/people/me')
+      expect(fetchCalls[1].url).toContain('conv-r.wbx2.com/conversation/api/v1/conversations')
+      expect(person).toBeTruthy()
+    })
+
+    test('throws when both public and internal APIs fail for extracted tokens', async () => {
+      // given - both APIs reject
+      mockResponse({ message: 'Unauthorized' }, 401)
+      fetchResponses.push(
+        new Response(JSON.stringify({ message: 'Unauthorized' }), {
+          status: 401,
+          headers: { 'Content-Type': 'application/json' },
+        }),
+      )
+
+      const client = await new WebexClient().login({
+        token: 'bad-extracted-token',
+        deviceUrl: 'https://wdm-r.wbx2.com/wdm/api/v1/devices/dev-1',
+        tokenType: 'extracted',
+      })
+
+      await expect(client.testAuth()).rejects.toThrow(WebexError)
+    })
+
+    test('does not use internal API fallback for non-extracted tokens', async () => {
+      mockResponse({ message: 'Unauthorized' }, 401)
+
+      const client = await new WebexClient().login({ token: 'bad-token' })
+      await expect(client.testAuth()).rejects.toThrow(WebexError)
+      expect(fetchCalls.length).toBe(1)
     })
   })
 
@@ -402,10 +466,11 @@ describe('WebexClient', () => {
     })
 
     const createExtractedClient = async () => {
-      const client = await new WebexClient().login({ token: 'extracted-token' })
-      ;(client as any).deviceUrl = TEST_DEVICE_URL
-      ;(client as any).tokenType = 'extracted'
-      return client
+      return new WebexClient().login({
+        token: 'extracted-token',
+        deviceUrl: TEST_DEVICE_URL,
+        tokenType: 'extracted',
+      })
     }
 
     describe('sendMessage', () => {

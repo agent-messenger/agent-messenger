@@ -216,12 +216,41 @@ describe('WebexTokenExtractor', () => {
       expect(result).not.toBeNull()
     })
 
-    test('returns first valid token and stops scanning', async () => {
+    test('prefers token with latest expiry across profiles', async () => {
       const dir1 = createLevelDBDir(tempDir, 'Default')
       const dir2 = createLevelDBDir(tempDir, 'Profile 1')
 
-      const token1 = makeWebexStorageJson({ accessToken: 'first-valid-token-longer-than-twenty-chars' })
-      const token2 = makeWebexStorageJson({ accessToken: 'second-valid-token-longer-than-twenty-chars' })
+      const expiredToken = makeWebexStorageJson({
+        accessToken: 'expired-token-longer-than-twenty-chars-xx',
+        expires: Date.now() - 3600000,
+      })
+      const freshToken = makeWebexStorageJson({
+        accessToken: 'fresh-token-longer-than-twenty-chars-xxx',
+        expires: Date.now() + 3600000,
+      })
+
+      writeFileSync(join(dir1, '000003.log'), expiredToken)
+      writeFileSync(join(dir2, '000003.log'), freshToken)
+
+      const extractor = new WebexTokenExtractor('darwin', undefined, tempDir)
+      const result = await extractor.extract()
+
+      expect(result!.accessToken).toBe('fresh-token-longer-than-twenty-chars-xxx')
+    })
+
+    test('returns first token when all have same expiry', async () => {
+      const dir1 = createLevelDBDir(tempDir, 'Default')
+      const dir2 = createLevelDBDir(tempDir, 'Profile 1')
+
+      const expires = Date.now() + 3600000
+      const token1 = makeWebexStorageJson({
+        accessToken: 'first-valid-token-longer-than-twenty-chars',
+        expires,
+      })
+      const token2 = makeWebexStorageJson({
+        accessToken: 'second-valid-token-longer-than-twenty-chars',
+        expires,
+      })
 
       writeFileSync(join(dir1, '000003.log'), token1)
       writeFileSync(join(dir2, '000003.log'), token2)

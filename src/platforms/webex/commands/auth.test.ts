@@ -3,7 +3,9 @@ import * as childProcess from 'node:child_process'
 
 import { WebexClient } from '../client'
 import { WebexCredentialManager } from '../credential-manager'
-import { loginAction, logoutAction, statusAction } from './auth'
+import { WebexTokenExtractor } from '../token-extractor'
+import { WebexError } from '../types'
+import { extractAction, loginAction, logoutAction, statusAction } from './auth'
 
 describe('auth commands', () => {
   let consoleSpy: ReturnType<typeof spyOn>
@@ -205,6 +207,125 @@ describe('auth commands', () => {
       await statusAction({ pretty: false })
 
       expect(WebexCredentialManager.prototype.getToken).toHaveBeenCalledWith('stored-id', 'stored-secret')
+    })
+  })
+
+  describe('extractAction', () => {
+    test('passes deviceUrl and tokenType to client.login', async () => {
+      protoSpy(WebexTokenExtractor.prototype, 'extract').mockResolvedValue({
+        accessToken: 'extracted-token-at-least-twenty-chars',
+        refreshToken: 'refresh-token',
+        expiresAt: Date.now() + 3600000,
+        deviceUrl: 'https://wdm-r.wbx2.com/wdm/api/v1/devices/test-device-id',
+        userId: 'user-1',
+      })
+      const loginSpy = protoSpy(WebexClient.prototype, 'login').mockResolvedValue(new WebexClient())
+      protoSpy(WebexClient.prototype, 'testAuth').mockResolvedValue(mockPerson)
+      protoSpy(WebexCredentialManager.prototype, 'saveConfig').mockResolvedValue(undefined)
+
+      await extractAction({ pretty: false })
+
+      expect(loginSpy).toHaveBeenCalledWith({
+        token: 'extracted-token-at-least-twenty-chars',
+        deviceUrl: 'https://wdm-r.wbx2.com/wdm/api/v1/devices/test-device-id',
+        tokenType: 'extracted',
+      })
+    })
+
+    test('attempts refresh when token is expired', async () => {
+      protoSpy(WebexTokenExtractor.prototype, 'extract').mockResolvedValue({
+        accessToken: 'expired-token-at-least-twenty-chars-',
+        refreshToken: 'valid-refresh-token',
+        expiresAt: Date.now() - 7200000,
+      })
+      const refreshSpy = protoSpy(WebexCredentialManager.prototype, 'refreshToken').mockResolvedValue({
+        accessToken: 'refreshed-token-at-least-twenty-ch',
+        refreshToken: 'new-refresh',
+        expiresAt: Date.now() + 3600000,
+      })
+      const loginSpy = protoSpy(WebexClient.prototype, 'login').mockResolvedValue(new WebexClient())
+      protoSpy(WebexClient.prototype, 'testAuth').mockResolvedValue(mockPerson)
+      protoSpy(WebexCredentialManager.prototype, 'saveConfig').mockResolvedValue(undefined)
+
+      await extractAction({ pretty: false })
+
+      expect(refreshSpy).toHaveBeenCalled()
+      expect(loginSpy).toHaveBeenCalledWith(expect.objectContaining({ token: 'refreshed-token-at-least-twenty-ch' }))
+      const lastCall = consoleSpy.mock.calls[consoleSpy.mock.calls.length - 1][0] as string
+      const output = JSON.parse(lastCall)
+      expect(output.authenticated).toBe(true)
+      expect(output.refreshed).toBe(true)
+    })
+
+    test('reports expired token with actionable hint when refresh fails', async () => {
+      protoSpy(WebexTokenExtractor.prototype, 'extract').mockResolvedValue({
+        accessToken: 'expired-token-at-least-twenty-chars-',
+        refreshToken: 'bad-refresh-token',
+        expiresAt: Date.now() - 7200000,
+      })
+      protoSpy(WebexCredentialManager.prototype, 'refreshToken').mockResolvedValue(null)
+      protoSpy(WebexClient.prototype, 'login').mockResolvedValue(new WebexClient())
+      protoSpy(WebexClient.prototype, 'testAuth').mockRejectedValue(new WebexError('Unauthorized', 'http_401'))
+      const exitSpy = protoSpy(process, 'exit').mockImplementation(() => undefined as never)
+
+      await extractAction({ pretty: false })
+
+      const lastCall = consoleSpy.mock.calls[consoleSpy.mock.calls.length - 1][0] as string
+      const output = JSON.parse(lastCall)
+      expect(output.error).toContain('expired')
+      expect(output.hint).toContain('web.webex.com')
+      expect(output.hint).toContain('not webex.com')
+      expect(exitSpy).toHaveBeenCalledWith(1)
+    })
+
+    test('rethrows non-auth errors even when token is expired', async () => {
+      protoSpy(WebexTokenExtractor.prototype, 'extract').mockResolvedValue({
+        accessToken: 'expired-token-at-least-twenty-chars-',
+        refreshToken: 'bad-refresh-token',
+        expiresAt: Date.now() - 7200000,
+      })
+      protoSpy(WebexCredentialManager.prototype, 'refreshToken').mockResolvedValue(null)
+      protoSpy(WebexClient.prototype, 'login').mockResolvedValue(new WebexClient())
+      protoSpy(WebexClient.prototype, 'testAuth').mockRejectedValue(new Error('Network error'))
+      protoSpy(process, 'exit').mockImplementation(() => undefined as never)
+
+      await extractAction({ pretty: false })
+
+      const lastCall = consoleErrorSpy.mock.calls[consoleErrorSpy.mock.calls.length - 1]?.[0] as string | undefined
+      if (lastCall) {
+        const output = JSON.parse(lastCall)
+        expect(output.error).toContain('Network error')
+      }
+    })
+
+    test('rethrows non-expiry auth errors', async () => {
+      protoSpy(WebexTokenExtractor.prototype, 'extract').mockResolvedValue({
+        accessToken: 'valid-token-at-least-twenty-chars-xx',
+        expiresAt: Date.now() + 3600000,
+      })
+      protoSpy(WebexClient.prototype, 'login').mockResolvedValue(new WebexClient())
+      protoSpy(WebexClient.prototype, 'testAuth').mockRejectedValue(new Error('Network error'))
+      protoSpy(process, 'exit').mockImplementation(() => undefined as never)
+
+      await extractAction({ pretty: false })
+
+      const lastCall = consoleErrorSpy.mock.calls[consoleErrorSpy.mock.calls.length - 1]?.[0] as string | undefined
+      if (lastCall) {
+        const output = JSON.parse(lastCall)
+        expect(output.error).toContain('Network error')
+      }
+    })
+
+    test('outputs no token found when extract returns null', async () => {
+      protoSpy(WebexTokenExtractor.prototype, 'extract').mockResolvedValue(null)
+      const exitSpy = protoSpy(process, 'exit').mockImplementation(() => undefined as never)
+
+      await extractAction({ pretty: false })
+
+      const lastCall = consoleSpy.mock.calls[consoleSpy.mock.calls.length - 1][0] as string
+      const output = JSON.parse(lastCall)
+      expect(output.error).toContain('No Webex token found')
+      expect(exitSpy).toHaveBeenCalledWith(1)
     })
   })
 

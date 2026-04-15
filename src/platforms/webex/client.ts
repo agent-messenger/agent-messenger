@@ -21,12 +21,14 @@ export class WebexClient {
   private globalRateLimitUntil: number = 0
   private encryption: WebexEncryptionService | null = null
 
-  async login(credentials?: { token: string }): Promise<this> {
+  async login(credentials?: { token: string; deviceUrl?: string; tokenType?: string }): Promise<this> {
     if (credentials) {
       if (!credentials.token) {
         throw new WebexError('Token is required', 'missing_token')
       }
       this.token = credentials.token
+      if (credentials.deviceUrl !== undefined) this.deviceUrl = credentials.deviceUrl
+      if (credentials.tokenType !== undefined) this.tokenType = credentials.tokenType
       return this
     }
 
@@ -161,7 +163,26 @@ export class WebexClient {
   }
 
   async testAuth(): Promise<WebexPerson> {
+    if (this.useInternalAPI) {
+      try {
+        return await this.request<WebexPerson>('GET', '/people/me')
+      } catch (err) {
+        const isAuthError = err instanceof WebexError && (err.code === 'http_401' || err.code === 'http_403')
+        if (!isAuthError) throw err
+        await this.testAuthInternal()
+        return { id: '', emails: [], displayName: '', orgId: '', type: 'person', created: '' } as WebexPerson
+      }
+    }
     return this.request<WebexPerson>('GET', '/people/me')
+  }
+
+  private async testAuthInternal(): Promise<void> {
+    if (!this.deviceUrl) {
+      throw new WebexError('No device URL available for internal API validation', 'no_device_url')
+    }
+    await this.internalRequest<InternalConversation>(
+      '/conversations?participantsLimit=0&activitiesLimit=0&conversationsLimit=1',
+    )
   }
 
   async listSpaces(options?: { type?: string; max?: number }): Promise<WebexSpace[]> {
