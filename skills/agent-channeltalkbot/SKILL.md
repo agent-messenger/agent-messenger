@@ -274,21 +274,31 @@ agent-channeltalkbot bot delete <bot-id> --force
 
 ### Snapshot Command
 
-Get comprehensive workspace state for AI agents:
+Get workspace overview for AI agents (brief by default):
 
 ```bash
-# Full snapshot of current workspace
+# Brief snapshot (default) — fast, minimal API calls
 agent-channeltalkbot snapshot
 
-# Filtered snapshots
-agent-channeltalkbot snapshot --groups-only
-agent-channeltalkbot snapshot --chats-only
+# Full snapshot — includes messages, managers, bots (slow, large output)
+agent-channeltalkbot snapshot --full
 
-# Limit messages per group/chat
-agent-channeltalkbot snapshot --limit 10
+# Filtered full snapshots
+agent-channeltalkbot snapshot --full --groups-only
+agent-channeltalkbot snapshot --full --chats-only
+
+# Limit messages per group/chat (only with --full)
+agent-channeltalkbot snapshot --full --limit 10
 ```
 
-Returns JSON with:
+Default returns brief JSON with:
+
+- Workspace metadata (id, name, homepage_url, description)
+- Groups (id, name)
+- UserChat summary (opened/snoozed/closed counts)
+- Hint for next commands
+
+With `--full`, returns comprehensive JSON with:
 
 - Workspace metadata (id, name, homepage_url, description)
 - Groups with recent messages (id, name, messages)

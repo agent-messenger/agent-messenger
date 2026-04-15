@@ -262,21 +262,30 @@ agent-teams file info <team-id> <channel-id> <file-id>
 
 ### Snapshot Command
 
-Get comprehensive team state for AI agents:
+Get team overview for AI agents (brief by default):
 
 ```bash
-# Full snapshot
+# Brief snapshot (default) — fast, minimal API calls
 agent-teams snapshot
 
-# Filtered snapshots
-agent-teams snapshot --channels-only
-agent-teams snapshot --users-only
+# Full snapshot — includes messages and members (slow, large output)
+agent-teams snapshot --full
 
-# Limit messages per channel
-agent-teams snapshot --limit 10
+# Filtered full snapshots
+agent-teams snapshot --full --channels-only
+agent-teams snapshot --full --users-only
+
+# Limit messages per channel (only with --full)
+agent-teams snapshot --full --limit 10
 ```
 
-Returns JSON with:
+Default returns brief JSON with:
+
+- Team metadata (id, name)
+- Channels (id, name)
+- Hint for next commands
+
+With `--full`, returns comprehensive JSON with:
 
 - Team metadata (id, name)
 - Channels (id, name, type, description)
