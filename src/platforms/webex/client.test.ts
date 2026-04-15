@@ -419,7 +419,7 @@ describe('WebexClient', () => {
         expect(fetchCalls[0].options?.method).toBe('POST')
       })
 
-      test('body has verb, object type, displayName, and content', async () => {
+      test('body has verb, object type, and displayName (no content for plain text)', async () => {
         mockResponse(mockActivity('Hello world'))
 
         const client = await createExtractedClient()
@@ -429,7 +429,7 @@ describe('WebexClient', () => {
         expect(body.verb).toBe('post')
         expect(body.object.objectType).toBe('comment')
         expect(body.object.displayName).toBe('Hello world')
-        expect(body.object.content).toBe('Hello world')
+        expect(body.object.content).toBeUndefined()
       })
 
       test('body has target with decoded conv UUID and conversation type', async () => {
@@ -488,7 +488,7 @@ describe('WebexClient', () => {
         expect(body.object.markdown).toBeUndefined()
       })
 
-      test('markdown option does not affect plain text messages', async () => {
+      test('plain text messages omit content field', async () => {
         mockResponse(mockActivity('Hello world'))
 
         const client = await createExtractedClient()
@@ -496,7 +496,7 @@ describe('WebexClient', () => {
 
         const body = JSON.parse(fetchCalls[0].options?.body as string)
         expect(body.object.displayName).toBe('Hello world')
-        expect(body.object.content).toBe('Hello world')
+        expect(body.object.content).toBeUndefined()
       })
     })
 
@@ -631,7 +631,7 @@ describe('WebexClient', () => {
         expect(body.parent).toEqual({ id: 'activity-123', type: 'edit' })
       })
 
-      test('body has object with comment type and new text', async () => {
+      test('body has object with comment type and displayName (no content for plain text)', async () => {
         mockResponse(mockActivity('Edited text'))
 
         const client = await createExtractedClient()
@@ -640,7 +640,7 @@ describe('WebexClient', () => {
         const body = JSON.parse(fetchCalls[0].options?.body as string)
         expect(body.object.objectType).toBe('comment')
         expect(body.object.displayName).toBe('Edited text')
-        expect(body.object.content).toBe('Edited text')
+        expect(body.object.content).toBeUndefined()
       })
 
       test('target has decoded conv UUID', async () => {
