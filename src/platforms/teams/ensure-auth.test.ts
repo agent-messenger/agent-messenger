@@ -10,6 +10,7 @@ let extractSpy: ReturnType<typeof spyOn>
 let testAuthSpy: ReturnType<typeof spyOn>
 let listTeamsSpy: ReturnType<typeof spyOn>
 let saveConfigSpy: ReturnType<typeof spyOn>
+let getRegionSpy: ReturnType<typeof spyOn>
 
 beforeEach(() => {
   loadConfigSpy = spyOn(TeamsCredentialManager.prototype, 'loadConfig').mockResolvedValue(null)
@@ -28,6 +29,8 @@ beforeEach(() => {
     { id: 'team-2', name: 'Team Two' },
   ])
 
+  getRegionSpy = spyOn(TeamsClient.prototype, 'getRegion').mockReturnValue('emea')
+
   saveConfigSpy = spyOn(TeamsCredentialManager.prototype, 'saveConfig').mockResolvedValue(undefined)
 })
 
@@ -37,6 +40,7 @@ afterEach(() => {
   testAuthSpy?.mockRestore()
   listTeamsSpy?.mockRestore()
   saveConfigSpy?.mockRestore()
+  getRegionSpy?.mockRestore()
 })
 
 describe('ensureTeamsAuth', () => {
@@ -78,6 +82,7 @@ describe('ensureTeamsAuth', () => {
         accounts: expect.objectContaining({
           work: expect.objectContaining({
             token: 'test-teams-token',
+            region: 'emea',
             current_team: 'team-1',
             teams: {
               'team-1': { team_id: 'team-1', team_name: 'Team One' },
@@ -215,7 +220,7 @@ describe('ensureTeamsAuth', () => {
         current_account: 'work',
         accounts: expect.objectContaining({
           work: expect.objectContaining({ token: 'work-token', current_team: 'team-w' }),
-          personal: expect.objectContaining({ token: 'personal-token', current_team: 'team-p' }),
+          personal: expect.objectContaining({ token: 'personal-token', region: 'emea', current_team: 'team-p' }),
         }),
       }),
     )

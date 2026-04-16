@@ -27,6 +27,7 @@ export async function addAction(
       token: cred.token,
       tokenExpiresAt: cred.tokenExpiresAt,
       accountType: cred.accountType,
+      region: cred.region,
     })
     await client.addReaction(teamId, channelId, messageId, emoji)
 
@@ -68,6 +69,7 @@ export async function removeAction(
       token: cred.token,
       tokenExpiresAt: cred.tokenExpiresAt,
       accountType: cred.accountType,
+      region: cred.region,
     })
     await client.removeReaction(teamId, channelId, messageId, emoji)
 

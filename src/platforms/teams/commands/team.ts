@@ -38,6 +38,7 @@ export async function infoAction(teamId: string, options: { pretty?: boolean }):
       token: cred.token,
       tokenExpiresAt: cred.tokenExpiresAt,
       accountType: cred.accountType,
+      region: cred.region,
     })
     const team = await client.getTeam(teamId)
 

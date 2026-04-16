@@ -26,6 +26,7 @@ export async function sendAction(
       token: cred.token,
       tokenExpiresAt: cred.tokenExpiresAt,
       accountType: cred.accountType,
+      region: cred.region,
     })
     const message = await client.sendMessage(teamId, channelId, content)
 
@@ -60,6 +61,7 @@ export async function listAction(
       token: cred.token,
       tokenExpiresAt: cred.tokenExpiresAt,
       accountType: cred.accountType,
+      region: cred.region,
     })
     const limit = options.limit || 50
     const messages = await client.getMessages(teamId, channelId, limit)
@@ -96,6 +98,7 @@ export async function getAction(
       token: cred.token,
       tokenExpiresAt: cred.tokenExpiresAt,
       accountType: cred.accountType,
+      region: cred.region,
     })
     const message = await client.getMessage(teamId, channelId, messageId)
 
@@ -141,6 +144,7 @@ export async function deleteAction(
       token: cred.token,
       tokenExpiresAt: cred.tokenExpiresAt,
       accountType: cred.accountType,
+      region: cred.region,
     })
     await client.deleteMessage(teamId, channelId, messageId)
 

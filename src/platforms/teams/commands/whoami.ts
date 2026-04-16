@@ -20,6 +20,7 @@ export async function whoamiAction(options: { pretty?: boolean }): Promise<void>
       token: cred.token,
       tokenExpiresAt: cred.tokenExpiresAt,
       accountType: cred.accountType,
+      region: cred.region,
     })
     const user = await client.testAuth()
 

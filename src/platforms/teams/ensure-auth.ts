@@ -23,7 +23,7 @@ export async function ensureTeamsAuth(): Promise<void> {
 
     for (const { token, accountType } of extracted) {
       try {
-        const client = await new TeamsClient().login({ token, accountType })
+        const client = await new TeamsClient().login({ token, accountType, region: config?.accounts[accountType]?.region })
         await client.testAuth()
 
         const teams = await client.listTeams()
@@ -38,6 +38,7 @@ export async function ensureTeamsAuth(): Promise<void> {
         const account: TeamsAccount = {
           token,
           token_expires_at: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+          region: client.getRegion(),
           account_type: accountType,
           user_name: existing?.user_name,
           current_team: existing?.current_team ?? teams[0].id,

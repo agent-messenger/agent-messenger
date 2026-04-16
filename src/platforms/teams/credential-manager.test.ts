@@ -108,6 +108,7 @@ describe('TeamsCredentialManager', () => {
     expect(token).toEqual({
       token: 'test-token',
       tokenExpiresAt: '2025-12-31T23:59:59Z',
+      accountType: 'work',
       region: 'emea',
     })
   })
