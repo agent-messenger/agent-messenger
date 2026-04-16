@@ -16,7 +16,8 @@ export async function extractAction(options: { pretty?: boolean; debug?: boolean
       return
     }
 
-    const extractor = new TeamsTokenExtractor()
+    const debugLog = options.debug ? (msg: string) => debug(`[debug] ${msg}`) : undefined
+    const extractor = new TeamsTokenExtractor(undefined, undefined, debugLog)
 
     if (process.platform === 'darwin') {
       console.log('')
