@@ -2,7 +2,15 @@ import { readFile } from 'node:fs/promises'
 import { basename } from 'node:path'
 
 import { TeamsCredentialManager } from './credential-manager'
-import type { TeamsAccountType, TeamsChannel, TeamsFile, TeamsMessage, TeamsRegion, TeamsTeam, TeamsUser } from './types'
+import type {
+  TeamsAccountType,
+  TeamsChannel,
+  TeamsFile,
+  TeamsMessage,
+  TeamsRegion,
+  TeamsTeam,
+  TeamsUser,
+} from './types'
 import { TeamsError } from './types'
 
 interface RateLimitBucket {
