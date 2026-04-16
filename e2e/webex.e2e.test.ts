@@ -117,7 +117,64 @@ describe('Webex E2E Tests', () => {
 
       const result = await runCLI('webex', ['message', 'edit', sent!.id, WEBEX_TEST_SPACE_ID, `edited ${testId}`])
       expect(result.exitCode).toBe(0)
+
+      const edited = parseJSON<{ id: string; text: string }>(result.stdout)
+      expect(edited?.id).toBeTruthy()
+      expect(edited?.text).toBe(`edited ${testId}`)
     }, 30000)
+
+    // Regression for the silent-edit-failure bug: plain-text and markdown edits go
+    // through different `buildEncryptedObject` branches, and a second edit catches
+    // cases where the first edit corrupted the activity chain.
+    //
+    // Uses `editWithRetry` because the Webex internal conversation endpoint has
+    // a tighter 429 budget than the public REST gateway, and internal requests
+    // do not share the same auto-retry logic as public-API requests.
+    const editWithRetry = async (args: string[]) => {
+      for (let attempt = 0; attempt < 3; attempt++) {
+        const r = await runCLI('webex', args)
+        if (r.exitCode === 0 || !r.stderr.includes('HTTP 429')) return r
+        await waitForRateLimit(5000 * (attempt + 1))
+      }
+      return runCLI('webex', args)
+    }
+
+    test('message edit survives second edit and markdown edit (regression for silent failure)', async () => {
+      if (!webexAvailable) return
+
+      const testId = generateTestId()
+      const sendResult = await runCLI('webex', ['message', 'send', WEBEX_TEST_SPACE_ID, `regression ${testId}`])
+      expect(sendResult.exitCode).toBe(0)
+
+      const sent = parseJSON<{ id: string }>(sendResult.stdout)
+      expect(sent?.id).toBeTruthy()
+      if (sent?.id) testMessages.push(sent.id)
+
+      await waitForRateLimit(3000)
+
+      const first = await editWithRetry(['message', 'edit', sent!.id, WEBEX_TEST_SPACE_ID, `first edit ${testId}`])
+      expect(first.exitCode).toBe(0)
+      expect(first.stderr).not.toContain('edit_failed')
+      expect(first.stderr).not.toContain('Edit rejected')
+
+      await waitForRateLimit(3000)
+
+      const second = await editWithRetry([
+        'message',
+        'edit',
+        sent!.id,
+        WEBEX_TEST_SPACE_ID,
+        `**second edit** ${testId}`,
+        '--markdown',
+      ])
+      expect(second.exitCode).toBe(0)
+      expect(second.stderr).not.toContain('edit_failed')
+      expect(second.stderr).not.toContain('Edit rejected')
+
+      const secondData = parseJSON<{ id: string; text: string }>(second.stdout)
+      expect(secondData?.id).toBeTruthy()
+      expect(secondData?.text).toContain(testId)
+    }, 60000)
   })
 
   describe('space', () => {

@@ -1,6 +1,9 @@
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
 
+import * as jose from 'node-jose'
+
 import { WebexClient } from './client'
+import { WebexEncryptionService } from './encryption'
 import { WebexError } from './types'
 
 describe('WebexClient', () => {
@@ -743,18 +746,67 @@ describe('WebexClient', () => {
         expect(body.object.markdown).toBeUndefined()
       })
 
-      test('throws when server returns activity not linked to the edited message', async () => {
+      test('tolerates responses that omit parent (minimal success shape)', async () => {
         mockResponse(mockActivity('Edited text'))
 
         const client = await createExtractedClient()
-        await expect(client.editMessage('activity-123', TEST_ROOM_ID, 'Edited text')).rejects.toThrow(WebexError)
+        const message = await client.editMessage('activity-123', TEST_ROOM_ID, 'Edited text')
+        expect(message.id).toBe('activity-123')
       })
 
       test('throws when server returns activity linked to a different parent', async () => {
         mockResponse(mockEditActivity('Edited text', 'activity-999'))
 
         const client = await createExtractedClient()
-        await expect(client.editMessage('activity-123', TEST_ROOM_ID, 'Edited text')).rejects.toThrow(/Edit failed/)
+        await expect(client.editMessage('activity-123', TEST_ROOM_ID, 'Edited text')).rejects.toThrow(/Edit rejected/)
+      })
+    })
+
+    describe('encrypted send and edit', () => {
+      const TEST_KEY_URI = 'kms://kms-aore.wbx2.com/keys/test-key-id'
+
+      const decodeJweHeader = (jwe: string): Record<string, unknown> => {
+        const [header = ''] = jwe.split('.')
+        const padded = header + '='.repeat((4 - (header.length % 4)) % 4)
+        return JSON.parse(Buffer.from(padded, 'base64url').toString('utf8')) as Record<string, unknown>
+      }
+
+      const createEncryptedClient = async () => {
+        const keystore = jose.JWK.createKeyStore()
+        const key = await keystore.generate('oct', 256, { alg: 'A256GCM' })
+        const rawKeys = new Map<string, string>([[TEST_KEY_URI, JSON.stringify({ jwk: key.toJSON(true) })]])
+        const service = new WebexEncryptionService(rawKeys)
+        const client = await createExtractedClient()
+        ;(client as unknown as { encryption: WebexEncryptionService }).encryption = service
+        return client
+      }
+
+      test('plain text send omits content field on encrypted path (preserves prior fix)', async () => {
+        mockResponse({ id: TEST_CONV_UUID, defaultActivityEncryptionKeyUrl: TEST_KEY_URI })
+        mockResponse(mockActivity('Hello world'))
+
+        const client = await createEncryptedClient()
+        await client.sendMessage(TEST_ROOM_ID, 'Hello world')
+
+        const body = JSON.parse(fetchCalls[1].options?.body as string)
+        expect(body.object.content).toBeUndefined()
+        expect(body.object.displayName.startsWith('eyJ')).toBe(true)
+        expect(body.encryptionKeyUrl).toBe(TEST_KEY_URI)
+      })
+
+      test('plain text edit encrypts both displayName and content with kid in JWE header', async () => {
+        mockResponse({ id: TEST_CONV_UUID, defaultActivityEncryptionKeyUrl: TEST_KEY_URI })
+        mockResponse(mockActivity('Edited text', { parent: { id: 'activity-123', type: 'edit' } }))
+
+        const client = await createEncryptedClient()
+        await client.editMessage('activity-123', TEST_ROOM_ID, 'Edited text')
+
+        const body = JSON.parse(fetchCalls[1].options?.body as string)
+        expect(body.object.displayName.startsWith('eyJ')).toBe(true)
+        expect(body.object.content.startsWith('eyJ')).toBe(true)
+        expect(body.encryptionKeyUrl).toBe(TEST_KEY_URI)
+        expect(decodeJweHeader(body.object.displayName).kid).toBe(TEST_KEY_URI)
+        expect(decodeJweHeader(body.object.content).kid).toBe(TEST_KEY_URI)
       })
     })
 

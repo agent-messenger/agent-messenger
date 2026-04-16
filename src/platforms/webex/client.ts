@@ -438,9 +438,11 @@ export class WebexClient {
         body: JSON.stringify(activity),
       })
 
-      if (result.parent?.id !== messageId) {
+      // Tolerate responses that omit `parent` (server may return minimal shape) —
+      // only fail on an explicit mismatch between the echoed parent and the edited id.
+      if (result.parent && result.parent.id !== messageId) {
         throw new WebexError(
-          `Edit failed: server returned activity ${result.id} unlinked from parent ${messageId}.`,
+          `Edit rejected: server linked the new activity ${result.id} to ${result.parent.id} instead of ${messageId}.`,
           'edit_failed',
         )
       }
