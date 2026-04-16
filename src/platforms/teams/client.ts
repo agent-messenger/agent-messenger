@@ -144,7 +144,7 @@ export class TeamsClient {
         const errorBody = (await response.json().catch(() => null)) as {
           message?: string
         } | null
-        throw new TeamsError(errorBody?.message ?? 'Rate limited', 'rate_limited')
+        throw new TeamsError(errorBody?.message || 'Rate limited', 'rate_limited')
       }
 
       if (response.status >= 500 && attempt < MAX_RETRIES) {
@@ -158,7 +158,7 @@ export class TeamsClient {
           code?: string | number
         } | null
         throw new TeamsError(
-          errorBody?.message ?? `HTTP ${response.status}`,
+          errorBody?.message || `HTTP ${response.status}`,
           errorBody?.code?.toString() ?? `http_${response.status}`,
         )
       }
@@ -199,7 +199,7 @@ export class TeamsClient {
         code?: string | number
       } | null
       throw new TeamsError(
-        errorBody?.message ?? `HTTP ${response.status}`,
+        errorBody?.message || `HTTP ${response.status}`,
         errorBody?.code?.toString() ?? `http_${response.status}`,
       )
     }
