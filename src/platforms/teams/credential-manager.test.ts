@@ -88,6 +88,30 @@ describe('TeamsCredentialManager', () => {
     expect(team).toBeNull()
   })
 
+  test('getTokenWithExpiry includes region', async () => {
+    const manager = setup()
+    await manager.saveConfig({
+      current_account: 'work',
+      accounts: {
+        work: {
+          token: 'test-token',
+          token_expires_at: '2025-12-31T23:59:59Z',
+          region: 'emea',
+          account_type: 'work',
+          current_team: null,
+          teams: {},
+        },
+      },
+    })
+
+    const token = await manager.getTokenWithExpiry()
+    expect(token).toEqual({
+      token: 'test-token',
+      tokenExpiresAt: '2025-12-31T23:59:59Z',
+      region: 'emea',
+    })
+  })
+
   test('getCurrentTeam returns null when current_team is set but team not in teams record', async () => {
     const manager = setup()
     await manager.setToken('test-token', 'work')

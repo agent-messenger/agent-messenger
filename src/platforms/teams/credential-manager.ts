@@ -3,7 +3,7 @@ import { mkdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
 
-import type { TeamsAccount, TeamsAccountType, TeamsConfig, TeamsConfigLegacy } from './types'
+import type { TeamsAccount, TeamsAccountType, TeamsConfig, TeamsConfigLegacy, TeamsRegion } from './types'
 
 export class TeamsCredentialManager {
   static accountOverride?: TeamsAccountType
@@ -82,12 +82,18 @@ export class TeamsCredentialManager {
     token: string
     tokenExpiresAt?: string
     accountType?: TeamsAccountType
+    region?: TeamsRegion
   } | null> {
     const config = await this.loadConfig()
     if (!config) return null
     const account = this.resolveCurrentAccount(config)
     if (!account?.token) return null
-    return { token: account.token, tokenExpiresAt: account.token_expires_at, accountType: account.account_type }
+    return {
+      token: account.token,
+      tokenExpiresAt: account.token_expires_at,
+      accountType: account.account_type,
+      region: account.region,
+    }
   }
 
   async setToken(token: string, accountType: TeamsAccountType, expiresAt?: string): Promise<void> {
