@@ -34,7 +34,11 @@ export async function infoAction(teamId: string, options: { pretty?: boolean }):
       process.exit(1)
     }
 
-    const client = await new TeamsClient().login({ token: cred.token, tokenExpiresAt: cred.tokenExpiresAt })
+    const client = await new TeamsClient().login({
+      token: cred.token,
+      tokenExpiresAt: cred.tokenExpiresAt,
+      accountType: cred.accountType,
+    })
     const team = await client.getTeam(teamId)
 
     const output = {

@@ -23,7 +23,11 @@ export async function addAction(
       return
     }
 
-    const client = await new TeamsClient().login({ token: cred.token, tokenExpiresAt: cred.tokenExpiresAt })
+    const client = await new TeamsClient().login({
+      token: cred.token,
+      tokenExpiresAt: cred.tokenExpiresAt,
+      accountType: cred.accountType,
+    })
     await client.addReaction(teamId, channelId, messageId, emoji)
 
     console.log(
@@ -60,7 +64,11 @@ export async function removeAction(
       return
     }
 
-    const client = await new TeamsClient().login({ token: cred.token, tokenExpiresAt: cred.tokenExpiresAt })
+    const client = await new TeamsClient().login({
+      token: cred.token,
+      tokenExpiresAt: cred.tokenExpiresAt,
+      accountType: cred.accountType,
+    })
     await client.removeReaction(teamId, channelId, messageId, emoji)
 
     console.log(

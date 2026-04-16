@@ -16,7 +16,11 @@ export async function listAction(teamId: string, options: { pretty?: boolean }):
       process.exit(1)
     }
 
-    const client = await new TeamsClient().login({ token: cred.token, tokenExpiresAt: cred.tokenExpiresAt })
+    const client = await new TeamsClient().login({
+      token: cred.token,
+      tokenExpiresAt: cred.tokenExpiresAt,
+      accountType: cred.accountType,
+    })
     const channels = await client.listChannels(teamId)
 
     const output = channels.map((ch) => ({
@@ -42,7 +46,11 @@ export async function infoAction(teamId: string, channelId: string, options: { p
       process.exit(1)
     }
 
-    const client = await new TeamsClient().login({ token: cred.token, tokenExpiresAt: cred.tokenExpiresAt })
+    const client = await new TeamsClient().login({
+      token: cred.token,
+      tokenExpiresAt: cred.tokenExpiresAt,
+      accountType: cred.accountType,
+    })
     const channel = await client.getChannel(teamId, channelId)
 
     const output = {
@@ -72,7 +80,11 @@ export async function historyAction(
       process.exit(1)
     }
 
-    const client = await new TeamsClient().login({ token: cred.token, tokenExpiresAt: cred.tokenExpiresAt })
+    const client = await new TeamsClient().login({
+      token: cred.token,
+      tokenExpiresAt: cred.tokenExpiresAt,
+      accountType: cred.accountType,
+    })
     const messages = await client.getMessages(teamId, channelId, options.limit || 50)
 
     const output = messages.map((msg) => ({

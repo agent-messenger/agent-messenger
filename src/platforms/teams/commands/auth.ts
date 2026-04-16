@@ -73,7 +73,7 @@ export async function extractAction(options: { pretty?: boolean; debug?: boolean
       }
 
       try {
-        const client = await new TeamsClient().login({ token })
+        const client = await new TeamsClient().login({ token, accountType })
         const authInfo = await client.testAuth()
         const teams = await client.listTeams()
 
@@ -296,6 +296,7 @@ export async function statusAction(options: { pretty?: boolean }): Promise<void>
           const client = await new TeamsClient().login({
             token: account.token,
             tokenExpiresAt: account.token_expires_at ?? undefined,
+            accountType: account.account_type,
           })
           const authInfo = await client.testAuth()
           displayName = authInfo.displayName

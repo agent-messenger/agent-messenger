@@ -23,11 +23,11 @@ export async function ensureTeamsAuth(): Promise<void> {
 
     for (const { token, accountType } of extracted) {
       try {
-        const client = await new TeamsClient().login({ token })
+        const client = await new TeamsClient().login({ token, accountType })
         await client.testAuth()
 
         const teams = await client.listTeams()
-        if (teams.length === 0) continue
+        if (accountType !== 'personal' && teams.length === 0) continue
 
         const teamMap: Record<string, { team_id: string; team_name: string }> = {}
         for (const team of teams) {
