@@ -20,6 +20,7 @@ export async function listAction(teamId: string, options: { pretty?: boolean }):
       token: cred.token,
       tokenExpiresAt: cred.tokenExpiresAt,
       accountType: cred.accountType,
+      region: cred.region,
     })
     const channels = await client.listChannels(teamId)
 
@@ -50,6 +51,7 @@ export async function infoAction(teamId: string, channelId: string, options: { p
       token: cred.token,
       tokenExpiresAt: cred.tokenExpiresAt,
       accountType: cred.accountType,
+      region: cred.region,
     })
     const channel = await client.getChannel(teamId, channelId)
 
@@ -84,6 +86,7 @@ export async function historyAction(
       token: cred.token,
       tokenExpiresAt: cred.tokenExpiresAt,
       accountType: cred.accountType,
+      region: cred.region,
     })
     const messages = await client.getMessages(teamId, channelId, options.limit || 50)
 

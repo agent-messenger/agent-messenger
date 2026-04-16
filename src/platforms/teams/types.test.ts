@@ -203,6 +203,7 @@ test('TeamsConfigSchema validates config with multiple accounts', () => {
       work: {
         token: 'work_token',
         token_expires_at: '2024-01-01T00:00:00.000Z',
+        region: 'emea',
         account_type: 'work',
         user_name: 'Work User',
         current_team: '19:abc123@thread.tacv2',
@@ -222,6 +223,22 @@ test('TeamsConfigSchema validates config with multiple accounts', () => {
     },
   })
   expect(result.success).toBe(true)
+})
+
+test('TeamsConfigSchema rejects invalid region', () => {
+  const result = TeamsConfigSchema.safeParse({
+    current_account: 'work',
+    accounts: {
+      work: {
+        token: 'token_value',
+        region: 'invalid',
+        account_type: 'work',
+        current_team: null,
+        teams: {},
+      },
+    },
+  })
+  expect(result.success).toBe(false)
 })
 
 test('TeamsConfigSchema rejects missing required fields', () => {

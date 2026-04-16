@@ -55,9 +55,12 @@ export interface TeamsCredentials {
 
 export type TeamsAccountType = 'work' | 'personal'
 
+export type TeamsRegion = 'amer' | 'emea' | 'apac'
+
 export interface TeamsAccount {
   token: string
   token_expires_at?: string
+  region?: TeamsRegion
   account_type: TeamsAccountType
   user_name?: string
   current_team: string | null
@@ -141,9 +144,12 @@ export const TeamsCredentialsSchema = z.object({
 
 export const TeamsAccountTypeSchema = z.enum(['work', 'personal'])
 
+export const TeamsRegionSchema = z.enum(['amer', 'emea', 'apac'])
+
 export const TeamsAccountSchema = z.object({
   token: z.string(),
   token_expires_at: z.string().optional(),
+  region: TeamsRegionSchema.optional(),
   account_type: TeamsAccountTypeSchema,
   user_name: z.string().optional(),
   current_team: z.string().nullable(),

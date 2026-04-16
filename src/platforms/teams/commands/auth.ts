@@ -89,6 +89,7 @@ export async function extractAction(options: { pretty?: boolean; debug?: boolean
         const account: TeamsAccount = {
           token,
           token_expires_at: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+          region: client.getRegion(),
           account_type: accountType,
           user_name: authInfo.displayName,
           current_team: teams[0]?.id ?? null,
@@ -192,6 +193,7 @@ async function extractManualToken(token: string, options: { pretty?: boolean; de
     const account: TeamsAccount = {
       token,
       token_expires_at: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+      region: client.getRegion(),
       account_type: accountType,
       user_name: authInfo.displayName,
       current_team: teams[0].id,
@@ -297,6 +299,7 @@ export async function statusAction(options: { pretty?: boolean }): Promise<void>
             token: account.token,
             tokenExpiresAt: account.token_expires_at ?? undefined,
             accountType: account.account_type,
+            region: account.region,
           })
           const authInfo = await client.testAuth()
           displayName = authInfo.displayName

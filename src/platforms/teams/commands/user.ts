@@ -20,6 +20,7 @@ async function listAction(teamId: string, options: { pretty?: boolean }): Promis
       token: cred.token,
       tokenExpiresAt: cred.tokenExpiresAt,
       accountType: cred.accountType,
+      region: cred.region,
     })
     const users = await client.listUsers(teamId)
 
@@ -50,6 +51,7 @@ async function infoAction(userId: string, options: { pretty?: boolean }): Promis
       token: cred.token,
       tokenExpiresAt: cred.tokenExpiresAt,
       accountType: cred.accountType,
+      region: cred.region,
     })
     const user = await client.getUser(userId)
 
@@ -80,6 +82,7 @@ async function meAction(options: { pretty?: boolean }): Promise<void> {
       token: cred.token,
       tokenExpiresAt: cred.tokenExpiresAt,
       accountType: cred.accountType,
+      region: cred.region,
     })
     const user = await client.testAuth()
 

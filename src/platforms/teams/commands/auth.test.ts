@@ -12,6 +12,7 @@ let credManagerLoadConfigSpy: ReturnType<typeof spyOn>
 let credManagerSaveConfigSpy: ReturnType<typeof spyOn>
 let credManagerClearCredentialsSpy: ReturnType<typeof spyOn>
 let credManagerIsTokenExpiredSpy: ReturnType<typeof spyOn>
+let clientGetRegionSpy: ReturnType<typeof spyOn>
 
 beforeEach(() => {
   extractorExtractSpy = spyOn(TeamsTokenExtractor.prototype, 'extract').mockResolvedValue([
@@ -28,6 +29,8 @@ beforeEach(() => {
     { id: 'team-1', name: 'Team One' },
     { id: 'team-2', name: 'Team Two' },
   ])
+
+  clientGetRegionSpy = spyOn(TeamsClient.prototype, 'getRegion').mockReturnValue('emea')
 
   credManagerLoadConfigSpy = spyOn(TeamsCredentialManager.prototype, 'loadConfig').mockResolvedValue(null)
 
@@ -48,6 +51,7 @@ afterEach(() => {
   credManagerSaveConfigSpy?.mockRestore()
   credManagerClearCredentialsSpy?.mockRestore()
   credManagerIsTokenExpiredSpy?.mockRestore()
+  clientGetRegionSpy?.mockRestore()
 })
 
 test('extract: calls TeamsTokenExtractor', async () => {
@@ -59,7 +63,7 @@ test('extract: calls TeamsTokenExtractor', async () => {
 })
 
 test('extract: validates token with TeamsClient', async () => {
-  const client = await new TeamsClient().login({ token: 'test-skype-token-123' })
+  const client = await new TeamsClient().login({ token: 'test-skype-token-123', region: 'emea' })
   const authInfo = await client.testAuth()
   expect(authInfo).toBeDefined()
   expect(authInfo.id).toBe('user-123')
@@ -67,7 +71,7 @@ test('extract: validates token with TeamsClient', async () => {
 })
 
 test('extract: discovers teams', async () => {
-  const client = await new TeamsClient().login({ token: 'test-skype-token-123' })
+  const client = await new TeamsClient().login({ token: 'test-skype-token-123', region: 'emea' })
   const teams = await client.listTeams()
   expect(teams).toHaveLength(2)
   expect(teams[0].id).toBe('team-1')

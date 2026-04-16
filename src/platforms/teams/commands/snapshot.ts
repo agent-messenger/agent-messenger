@@ -38,6 +38,7 @@ export async function snapshotAction(options: {
       token: cred.token,
       tokenExpiresAt: cred.tokenExpiresAt,
       accountType: cred.accountType,
+      region: cred.region,
     })
 
     const snapshot: Record<string, unknown> = {}

@@ -55,18 +55,18 @@ describe('TeamsClient', () => {
 
   describe('login', () => {
     test('requires token', async () => {
-      await expect(new TeamsClient().login({ token: '' })).rejects.toThrow(TeamsError)
-      await expect(new TeamsClient().login({ token: '' })).rejects.toThrow('Token is required')
+      await expect(new TeamsClient().login({ token: '', region: 'emea' })).rejects.toThrow(TeamsError)
+      await expect(new TeamsClient().login({ token: '', region: 'emea' })).rejects.toThrow('Token is required')
     })
 
     test('accepts valid token', async () => {
-      const client = await new TeamsClient().login({ token: 'test-token' })
+      const client = await new TeamsClient().login({ token: 'test-token', region: 'emea' })
       expect(client).toBeInstanceOf(TeamsClient)
     })
 
     test('accepts token with expiry time', async () => {
       const expiresAt = new Date(Date.now() + 3600000).toISOString()
-      const client = await new TeamsClient().login({ token: 'test-token', tokenExpiresAt: expiresAt })
+      const client = await new TeamsClient().login({ token: 'test-token', tokenExpiresAt: expiresAt, region: 'emea' })
       expect(client).toBeInstanceOf(TeamsClient)
     })
   })
@@ -74,7 +74,11 @@ describe('TeamsClient', () => {
   describe('token expiry', () => {
     test('throws when token is expired', async () => {
       const expiredAt = new Date(Date.now() - 1000).toISOString()
-      const client = await new TeamsClient().login({ token: 'expired-token', tokenExpiresAt: expiredAt })
+      const client = await new TeamsClient().login({
+        token: 'expired-token',
+        tokenExpiresAt: expiredAt,
+        region: 'emea',
+      })
 
       await expect(client.testAuth()).rejects.toThrow(TeamsError)
       await expect(client.testAuth()).rejects.toThrow('Token has expired')
@@ -87,7 +91,7 @@ describe('TeamsClient', () => {
         locale: 'en-us',
       })
 
-      const client = await new TeamsClient().login({ token: 'valid-token', tokenExpiresAt: expiresAt })
+      const client = await new TeamsClient().login({ token: 'valid-token', tokenExpiresAt: expiresAt, region: 'emea' })
       const user = await client.testAuth()
 
       expect(user.id).toBe('ME')
@@ -102,7 +106,7 @@ describe('TeamsClient', () => {
         locale: 'en-us',
       })
 
-      const client = await new TeamsClient().login({ token: 'test-token' })
+      const client = await new TeamsClient().login({ token: 'test-token', region: 'emea' })
       const user = await client.testAuth()
 
       expect(user.id).toBe('ME')
@@ -117,7 +121,7 @@ describe('TeamsClient', () => {
     test('throws TeamsError on API error', async () => {
       mockResponse({ message: 'Unauthorized', code: 'unauthorized' }, 401)
 
-      const client = await new TeamsClient().login({ token: 'bad-token' })
+      const client = await new TeamsClient().login({ token: 'bad-token', region: 'emea' })
       await expect(client.testAuth()).rejects.toThrow(TeamsError)
     })
   })
@@ -153,7 +157,7 @@ describe('TeamsClient', () => {
         ],
       })
 
-      const client = await new TeamsClient().login({ token: 'test-token' })
+      const client = await new TeamsClient().login({ token: 'test-token', region: 'emea' })
       const teams = await client.listTeams()
 
       expect(teams).toHaveLength(2)
@@ -169,7 +173,7 @@ describe('TeamsClient', () => {
     test('returns team info', async () => {
       mockResponse({ id: '111', name: 'Test Team', description: 'A test team' })
 
-      const client = await new TeamsClient().login({ token: 'test-token' })
+      const client = await new TeamsClient().login({ token: 'test-token', region: 'emea' })
       const team = await client.getTeam('111')
 
       expect(team.id).toBe('111')
@@ -185,7 +189,7 @@ describe('TeamsClient', () => {
         { id: 'ch2', team_id: '111', name: 'Random', type: 'standard' },
       ])
 
-      const client = await new TeamsClient().login({ token: 'test-token' })
+      const client = await new TeamsClient().login({ token: 'test-token', region: 'emea' })
       const channels = await client.listChannels('111')
 
       expect(channels).toHaveLength(2)
@@ -198,7 +202,7 @@ describe('TeamsClient', () => {
     test('returns channel info', async () => {
       mockResponse({ id: 'ch1', team_id: '111', name: 'General', type: 'standard' })
 
-      const client = await new TeamsClient().login({ token: 'test-token' })
+      const client = await new TeamsClient().login({ token: 'test-token', region: 'emea' })
       const channel = await client.getChannel('111', 'ch1')
 
       expect(channel.id).toBe('ch1')
@@ -217,7 +221,7 @@ describe('TeamsClient', () => {
         timestamp: '2024-01-01T00:00:00.000Z',
       })
 
-      const client = await new TeamsClient().login({ token: 'test-token' })
+      const client = await new TeamsClient().login({ token: 'test-token', region: 'emea' })
       const message = await client.sendMessage('111', 'ch1', 'Hello world')
 
       expect(message.content).toBe('Hello world')
@@ -239,7 +243,7 @@ describe('TeamsClient', () => {
         },
       ])
 
-      const client = await new TeamsClient().login({ token: 'test-token' })
+      const client = await new TeamsClient().login({ token: 'test-token', region: 'emea' })
       const messages = await client.getMessages('111', 'ch1', 50)
 
       expect(messages).toHaveLength(1)
@@ -252,7 +256,7 @@ describe('TeamsClient', () => {
     test('uses default limit of 50', async () => {
       mockResponse([])
 
-      const client = await new TeamsClient().login({ token: 'test-token' })
+      const client = await new TeamsClient().login({ token: 'test-token', region: 'emea' })
       await client.getMessages('111', 'ch1')
 
       expect(fetchCalls[0].url).toBe(
@@ -271,7 +275,7 @@ describe('TeamsClient', () => {
         timestamp: '2024-01-01T00:00:00.000Z',
       })
 
-      const client = await new TeamsClient().login({ token: 'test-token' })
+      const client = await new TeamsClient().login({ token: 'test-token', region: 'emea' })
       const message = await client.getMessage('111', 'ch1', 'msg1')
 
       expect(message.id).toBe('msg1')
@@ -285,7 +289,7 @@ describe('TeamsClient', () => {
     test('deletes message', async () => {
       mockResponse(null, 204)
 
-      const client = await new TeamsClient().login({ token: 'test-token' })
+      const client = await new TeamsClient().login({ token: 'test-token', region: 'emea' })
       await client.deleteMessage('111', 'ch1', 'msg1')
 
       expect(fetchCalls[0].url).toBe(
@@ -299,7 +303,7 @@ describe('TeamsClient', () => {
     test('adds reaction to message', async () => {
       mockResponse(null, 204)
 
-      const client = await new TeamsClient().login({ token: 'test-token' })
+      const client = await new TeamsClient().login({ token: 'test-token', region: 'emea' })
       await client.addReaction('111', 'ch1', 'msg1', 'like')
 
       expect(fetchCalls[0].url).toBe(
@@ -314,7 +318,7 @@ describe('TeamsClient', () => {
     test('removes reaction from message', async () => {
       mockResponse(null, 204)
 
-      const client = await new TeamsClient().login({ token: 'test-token' })
+      const client = await new TeamsClient().login({ token: 'test-token', region: 'emea' })
       await client.removeReaction('111', 'ch1', 'msg1', 'like')
 
       expect(fetchCalls[0].url).toBe(
@@ -331,7 +335,7 @@ describe('TeamsClient', () => {
         { id: 'u2', displayName: 'User 2', email: 'user2@example.com' },
       ])
 
-      const client = await new TeamsClient().login({ token: 'test-token' })
+      const client = await new TeamsClient().login({ token: 'test-token', region: 'emea' })
       const users = await client.listUsers('111')
 
       expect(users).toHaveLength(2)
@@ -344,7 +348,7 @@ describe('TeamsClient', () => {
     test('returns user info', async () => {
       mockResponse({ id: 'u1', displayName: 'Test User', email: 'test@example.com' })
 
-      const client = await new TeamsClient().login({ token: 'test-token' })
+      const client = await new TeamsClient().login({ token: 'test-token', region: 'emea' })
       const user = await client.getUser('u1')
 
       expect(user.id).toBe('u1')
@@ -365,7 +369,7 @@ describe('TeamsClient', () => {
         url: 'https://teams.microsoft.com/files/file1',
       })
 
-      const client = await new TeamsClient().login({ token: 'test-token' })
+      const client = await new TeamsClient().login({ token: 'test-token', region: 'emea' })
       const file = await client.uploadFile('111', 'ch1', tempFile)
 
       expect(file.name).toBe('test-teams-upload.txt')
@@ -381,7 +385,7 @@ describe('TeamsClient', () => {
         { id: 'file2', name: 'image.png', size: 2048, url: 'https://example.com/image.png' },
       ])
 
-      const client = await new TeamsClient().login({ token: 'test-token' })
+      const client = await new TeamsClient().login({ token: 'test-token', region: 'emea' })
       const files = await client.listFiles('111', 'ch1')
 
       expect(files).toHaveLength(2)
@@ -401,7 +405,7 @@ describe('TeamsClient', () => {
         'X-RateLimit-Reset': String(Date.now() / 1000 + 60),
       })
 
-      const client = await new TeamsClient().login({ token: 'test-token' })
+      const client = await new TeamsClient().login({ token: 'test-token', region: 'emea' })
       await client.testAuth()
 
       const startTime = Date.now()
@@ -416,7 +420,7 @@ describe('TeamsClient', () => {
       mockResponse({ message: 'Rate limited' }, 429, { 'Retry-After': '0.1' })
       mockResponse({ userDetails: JSON.stringify({ name: 'User' }), locale: 'en-us' })
 
-      const client = await new TeamsClient().login({ token: 'test-token' })
+      const client = await new TeamsClient().login({ token: 'test-token', region: 'emea' })
       const user = await client.testAuth()
 
       expect(user.id).toBe('ME')
@@ -428,7 +432,7 @@ describe('TeamsClient', () => {
         mockResponse({ message: 'Rate limited' }, 429, { 'Retry-After': '0.01' })
       }
 
-      const client = await new TeamsClient().login({ token: 'test-token' })
+      const client = await new TeamsClient().login({ token: 'test-token', region: 'emea' })
       await expect(client.testAuth()).rejects.toThrow(TeamsError)
       expect(fetchCalls.length).toBeLessThanOrEqual(4)
     })
@@ -439,7 +443,7 @@ describe('TeamsClient', () => {
       mockResponse({ message: 'Internal Server Error' }, 500)
       mockResponse({ userDetails: JSON.stringify({ name: 'User' }), locale: 'en-us' })
 
-      const client = await new TeamsClient().login({ token: 'test-token' })
+      const client = await new TeamsClient().login({ token: 'test-token', region: 'emea' })
       const user = await client.testAuth()
 
       expect(user.id).toBe('ME')
@@ -449,7 +453,7 @@ describe('TeamsClient', () => {
     test('does not retry on 4xx client errors (except 429)', async () => {
       mockResponse({ message: 'Not Found' }, 404)
 
-      const client = await new TeamsClient().login({ token: 'test-token' })
+      const client = await new TeamsClient().login({ token: 'test-token', region: 'emea' })
       await expect(client.testAuth()).rejects.toThrow(TeamsError)
       expect(fetchCalls.length).toBe(1)
     })
@@ -459,7 +463,7 @@ describe('TeamsClient', () => {
       mockResponse({ message: 'Error' }, 500)
       mockResponse({ userDetails: JSON.stringify({ name: 'User' }), locale: 'en-us' })
 
-      const client = await new TeamsClient().login({ token: 'test-token' })
+      const client = await new TeamsClient().login({ token: 'test-token', region: 'emea' })
       const startTime = Date.now()
       await client.testAuth()
       const elapsed = Date.now() - startTime
@@ -474,7 +478,7 @@ describe('TeamsClient', () => {
       mockResponse([])
       mockResponse([])
 
-      const client = await new TeamsClient().login({ token: 'test-token' })
+      const client = await new TeamsClient().login({ token: 'test-token', region: 'emea' })
       await client.getMessages('team1', 'ch1')
       await client.getMessages('team2', 'ch2')
 
