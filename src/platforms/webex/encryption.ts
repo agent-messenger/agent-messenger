@@ -30,9 +30,11 @@ export class WebexEncryptionService {
     if (!key) return null
 
     try {
+      // Webex desktop/web clients auto-tombstone edit activities whose JWE is missing
+      // `kid` — they can't resolve the KMS key and treat the activity as malformed.
       return await jose.JWE.createEncrypt(
         { format: 'compact', contentAlg: 'A256GCM' },
-        { key, header: { alg: 'dir' }, reference: null },
+        { key, header: { alg: 'dir', kid: keyUri }, reference: null },
       ).final(plaintext, 'utf8')
     } catch {
       return null

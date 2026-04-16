@@ -685,8 +685,11 @@ describe('WebexClient', () => {
     })
 
     describe('editMessage', () => {
+      const mockEditActivity = (text: string, parentId = 'activity-123') =>
+        mockActivity(text, { parent: { id: parentId, type: 'edit' } })
+
       test('posts activity with verb post and parent edit reference', async () => {
-        mockResponse(mockActivity('Edited text'))
+        mockResponse(mockEditActivity('Edited text'))
 
         const client = await createExtractedClient()
         await client.editMessage('activity-123', TEST_ROOM_ID, 'Edited text')
@@ -696,8 +699,8 @@ describe('WebexClient', () => {
         expect(body.parent).toEqual({ id: 'activity-123', type: 'edit' })
       })
 
-      test('body has object with comment type and displayName (no content for plain text)', async () => {
-        mockResponse(mockActivity('Edited text'))
+      test('plain text edit populates both displayName and content to avoid auto-tombstone', async () => {
+        mockResponse(mockEditActivity('Edited text'))
 
         const client = await createExtractedClient()
         await client.editMessage('activity-123', TEST_ROOM_ID, 'Edited text')
@@ -705,11 +708,21 @@ describe('WebexClient', () => {
         const body = JSON.parse(fetchCalls[0].options?.body as string)
         expect(body.object.objectType).toBe('comment')
         expect(body.object.displayName).toBe('Edited text')
-        expect(body.object.content).toBeUndefined()
+        expect(body.object.content).toBe('Edited text')
+      })
+
+      test('clientTempId uses -edit suffix to match Webex web client format', async () => {
+        mockResponse(mockEditActivity('Edited text'))
+
+        const client = await createExtractedClient()
+        await client.editMessage('activity-123', TEST_ROOM_ID, 'Edited text')
+
+        const body = JSON.parse(fetchCalls[0].options?.body as string)
+        expect(body.clientTempId).toMatch(/^tmp-\d+-edit$/)
       })
 
       test('target has decoded conv UUID', async () => {
-        mockResponse(mockActivity('Edited text'))
+        mockResponse(mockEditActivity('Edited text'))
 
         const client = await createExtractedClient()
         await client.editMessage('activity-123', TEST_ROOM_ID, 'Edited text')
@@ -719,7 +732,7 @@ describe('WebexClient', () => {
       })
 
       test('markdown option converts content to HTML and strips displayName', async () => {
-        mockResponse(mockActivity('italic text'))
+        mockResponse(mockEditActivity('italic text'))
 
         const client = await createExtractedClient()
         await client.editMessage('activity-123', TEST_ROOM_ID, '_italic text_', { markdown: true })
@@ -728,6 +741,20 @@ describe('WebexClient', () => {
         expect(body.object.displayName).toBe('italic text')
         expect(body.object.content).toBe('<em>italic text</em>')
         expect(body.object.markdown).toBeUndefined()
+      })
+
+      test('throws when server returns activity not linked to the edited message', async () => {
+        mockResponse(mockActivity('Edited text'))
+
+        const client = await createExtractedClient()
+        await expect(client.editMessage('activity-123', TEST_ROOM_ID, 'Edited text')).rejects.toThrow(WebexError)
+      })
+
+      test('throws when server returns activity linked to a different parent', async () => {
+        mockResponse(mockEditActivity('Edited text', 'activity-999'))
+
+        const client = await createExtractedClient()
+        await expect(client.editMessage('activity-123', TEST_ROOM_ID, 'Edited text')).rejects.toThrow(/Edit failed/)
       })
     })
 

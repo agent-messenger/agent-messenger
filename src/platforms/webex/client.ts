@@ -269,10 +269,15 @@ export class WebexClient {
   private async buildEncryptedObject(
     convUuid: string,
     text: string,
-    options?: { markdown?: boolean },
+    options?: { markdown?: boolean; forEdit?: boolean },
   ): Promise<{ object: Record<string, string>; encryptionKeyUrl?: string }> {
     const displayName = options?.markdown ? stripMarkdown(text) : text
-    const content = options?.markdown ? markdownToHtml(text) : undefined
+    let content: string | undefined
+    if (options?.markdown) {
+      content = markdownToHtml(text)
+    } else if (options?.forEdit) {
+      content = text
+    }
 
     if (this.encryption) {
       const conv = await this.internalRequest<InternalConversation>(
@@ -374,6 +379,11 @@ export class WebexClient {
     if (this.useInternalAPI) {
       const activity = await this.internalRequest<InternalActivity>(`/activities/${messageId}`)
       const convId = activity.target?.id ?? ''
+      // Internal API responses don't carry the cluster shard (e.g. `us-west-2_r`) the
+      // public roomId encoding requires. The `unknown` placeholder is a sentinel — it
+      // round-trips through other internal API calls because they decode only the
+      // conversation UUID suffix. Callers that need a public-API-safe roomId should
+      // obtain it from `listSpaces()` or pass it through from a prior `sendMessage`.
       const roomId = convId ? Buffer.from(`ciscospark://urn:TEAM:unknown/ROOM/${convId}`).toString('base64') : ''
       return this.activityToMessage(activity, roomId)
     }
@@ -406,14 +416,17 @@ export class WebexClient {
   ): Promise<WebexMessage> {
     if (this.useInternalAPI) {
       const convUuid = this.decodeConvUuid(roomId)
-      const { object, encryptionKeyUrl } = await this.buildEncryptedObject(convUuid, text, options)
+      const { object, encryptionKeyUrl } = await this.buildEncryptedObject(convUuid, text, {
+        ...options,
+        forEdit: true,
+      })
 
       const activity: Record<string, unknown> = {
         verb: 'post',
         object,
         target: { id: convUuid, objectType: 'conversation' },
         parent: { id: messageId, type: 'edit' },
-        clientTempId: `tmp-${Date.now()}`,
+        clientTempId: `tmp-${Date.now()}-edit`,
       }
 
       if (encryptionKeyUrl) {
@@ -424,6 +437,14 @@ export class WebexClient {
         method: 'POST',
         body: JSON.stringify(activity),
       })
+
+      if (result.parent?.id !== messageId) {
+        throw new WebexError(
+          `Edit failed: server returned activity ${result.id} unlinked from parent ${messageId}.`,
+          'edit_failed',
+        )
+      }
+
       return this.activityToMessage(result, roomId)
     }
     const body = options?.markdown ? { roomId, markdown: text } : { roomId, text }
@@ -468,6 +489,7 @@ interface InternalActivity {
     encryptionKeyUrl?: string
   }
   target?: { id: string; encryptionKeyUrl?: string }
+  parent?: { id: string; type: string }
   published: string
   encryptionKeyUrl?: string
 }
