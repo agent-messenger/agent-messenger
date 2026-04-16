@@ -2,7 +2,7 @@ import { readFile } from 'node:fs/promises'
 import { basename } from 'node:path'
 
 import { TeamsCredentialManager } from './credential-manager'
-import type { TeamsAccountType, TeamsChannel, TeamsFile, TeamsMessage, TeamsTeam, TeamsUser } from './types'
+import type { TeamsAccountType, TeamsChannel, TeamsFile, TeamsMessage, TeamsRegion, TeamsTeam, TeamsUser } from './types'
 import { TeamsError } from './types'
 
 interface RateLimitBucket {
@@ -10,20 +10,28 @@ interface RateLimitBucket {
   resetAt: number
 }
 
-const WORK_MSG_API_BASE = 'https://emea.ng.msg.teams.microsoft.com/v1'
 const PERSONAL_MSG_API_BASE = 'https://msgapi.teams.live.com/v1'
 const CSA_API_BASE = 'https://teams.microsoft.com/api'
 const MAX_RETRIES = 3
 const BASE_BACKOFF_MS = 100
+const DEFAULT_REGION: TeamsRegion = 'amer'
+const REGIONS: TeamsRegion[] = ['amer', 'emea', 'apac']
 
 export class TeamsClient {
   private token: string | null = null
   private tokenExpiresAt?: Date
-  private msgApiBase: string = WORK_MSG_API_BASE
+  private isPersonalAccount: boolean = false
+  private region: TeamsRegion = DEFAULT_REGION
+  private regionDiscovered: boolean = false
   private buckets: Map<string, RateLimitBucket> = new Map()
   private globalRateLimitUntil: number = 0
 
-  async login(credentials?: { token: string; tokenExpiresAt?: string; accountType?: TeamsAccountType }): Promise<this> {
+  async login(credentials?: {
+    token: string
+    tokenExpiresAt?: string
+    accountType?: TeamsAccountType
+    region?: TeamsRegion
+  }): Promise<this> {
     if (credentials) {
       if (!credentials.token) {
         throw new TeamsError('Token is required', 'missing_token')
@@ -32,7 +40,11 @@ export class TeamsClient {
       if (credentials.tokenExpiresAt) {
         this.tokenExpiresAt = new Date(credentials.tokenExpiresAt)
       }
-      this.msgApiBase = credentials.accountType === 'personal' ? PERSONAL_MSG_API_BASE : WORK_MSG_API_BASE
+      this.isPersonalAccount = credentials.accountType === 'personal'
+      if (credentials.region) {
+        this.region = credentials.region
+        this.regionDiscovered = true
+      }
       return this
     }
 
@@ -46,7 +58,16 @@ export class TeamsClient {
         'no_credentials',
       )
     }
-    return this.login({ token: creds.token, tokenExpiresAt: creds.tokenExpiresAt, accountType: creds.accountType })
+    return this.login({
+      token: creds.token,
+      tokenExpiresAt: creds.tokenExpiresAt,
+      accountType: creds.accountType,
+      region: creds.region,
+    })
+  }
+
+  getRegion(): TeamsRegion {
+    return this.region
   }
 
   private ensureAuth(): string {
@@ -111,13 +132,47 @@ export class TeamsClient {
     return new Promise((resolve) => setTimeout(resolve, ms))
   }
 
+  private getMsgApiBase(): string {
+    if (this.isPersonalAccount) return PERSONAL_MSG_API_BASE
+    return `https://${this.region}.ng.msg.teams.microsoft.com/v1`
+  }
+
+  private async discoverRegion(): Promise<void> {
+    if (this.isPersonalAccount) {
+      this.regionDiscovered = true
+      return
+    }
+
+    const token = this.ensureAuth()
+
+    for (const region of REGIONS) {
+      try {
+        const response = await fetch(`https://${region}.ng.msg.teams.microsoft.com/v1/users/ME/properties`, {
+          headers: {
+            'X-Skypetoken': token,
+          },
+        })
+
+        if (response.ok || response.status !== 403) {
+          this.region = region
+          break
+        }
+      } catch {}
+    }
+
+    this.regionDiscovered = true
+  }
+
   private async request<T>(method: string, path: string, body?: unknown, baseUrl?: string): Promise<T> {
-    baseUrl ??= this.msgApiBase
     if (this.isTokenExpired()) {
       throw new TeamsError('Token has expired. Run "auth extract" to refresh.', 'token_expired')
     }
 
-    const url = `${baseUrl}${path}`
+    if (baseUrl === undefined && !this.regionDiscovered) {
+      await this.discoverRegion()
+    }
+
+    const url = `${baseUrl ?? this.getMsgApiBase()}${path}`
     const bucketKey = this.getBucketKey(method, path)
 
     for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
@@ -178,12 +233,15 @@ export class TeamsClient {
   }
 
   private async requestFormData<T>(path: string, formData: FormData, baseUrl?: string): Promise<T> {
-    baseUrl ??= this.msgApiBase
     if (this.isTokenExpired()) {
       throw new TeamsError('Token has expired. Run "auth extract" to refresh.', 'token_expired')
     }
 
-    const url = `${baseUrl}${path}`
+    if (baseUrl === undefined && !this.regionDiscovered) {
+      await this.discoverRegion()
+    }
+
+    const url = `${baseUrl ?? this.getMsgApiBase()}${path}`
     const bucketKey = this.getBucketKey('POST', path)
 
     await this.waitForRateLimit(bucketKey)
@@ -278,7 +336,7 @@ export class TeamsClient {
   async sendMessage(teamId: string, channelId: string, content: string): Promise<TeamsMessage> {
     return this.request<TeamsMessage>(
       'POST',
-      `/csa/emea/api/v2/teams/${teamId}/channels/${channelId}/messages`,
+      `/csa/${this.region}/api/v2/teams/${teamId}/channels/${channelId}/messages`,
       { content },
       CSA_API_BASE,
     )
@@ -287,7 +345,7 @@ export class TeamsClient {
   async getMessages(teamId: string, channelId: string, limit: number = 50): Promise<TeamsMessage[]> {
     return this.request<TeamsMessage[]>(
       'GET',
-      `/csa/emea/api/v2/teams/${teamId}/channels/${channelId}/messages?limit=${limit}`,
+      `/csa/${this.region}/api/v2/teams/${teamId}/channels/${channelId}/messages?limit=${limit}`,
       undefined,
       CSA_API_BASE,
     )
@@ -296,7 +354,7 @@ export class TeamsClient {
   async getMessage(teamId: string, channelId: string, messageId: string): Promise<TeamsMessage> {
     return this.request<TeamsMessage>(
       'GET',
-      `/csa/emea/api/v2/teams/${teamId}/channels/${channelId}/messages/${messageId}`,
+      `/csa/${this.region}/api/v2/teams/${teamId}/channels/${channelId}/messages/${messageId}`,
       undefined,
       CSA_API_BASE,
     )
@@ -305,7 +363,7 @@ export class TeamsClient {
   async deleteMessage(teamId: string, channelId: string, messageId: string): Promise<void> {
     return this.request<void>(
       'DELETE',
-      `/csa/emea/api/v2/teams/${teamId}/channels/${channelId}/messages/${messageId}`,
+      `/csa/${this.region}/api/v2/teams/${teamId}/channels/${channelId}/messages/${messageId}`,
       undefined,
       CSA_API_BASE,
     )
@@ -314,7 +372,7 @@ export class TeamsClient {
   async addReaction(teamId: string, channelId: string, messageId: string, emoji: string): Promise<void> {
     return this.request<void>(
       'POST',
-      `/csa/emea/api/v2/teams/${teamId}/channels/${channelId}/messages/${messageId}/reactions`,
+      `/csa/${this.region}/api/v2/teams/${teamId}/channels/${channelId}/messages/${messageId}/reactions`,
       { emoji },
       CSA_API_BASE,
     )
@@ -323,7 +381,7 @@ export class TeamsClient {
   async removeReaction(teamId: string, channelId: string, messageId: string, emoji: string): Promise<void> {
     return this.request<void>(
       'DELETE',
-      `/csa/emea/api/v2/teams/${teamId}/channels/${channelId}/messages/${messageId}/reactions/${emoji}`,
+      `/csa/${this.region}/api/v2/teams/${teamId}/channels/${channelId}/messages/${messageId}/reactions/${emoji}`,
       undefined,
       CSA_API_BASE,
     )
@@ -345,7 +403,7 @@ export class TeamsClient {
     formData.append('file', new Blob([fileBuffer]), filename)
 
     return this.requestFormData<TeamsFile>(
-      `/csa/emea/api/v2/teams/${teamId}/channels/${channelId}/files`,
+      `/csa/${this.region}/api/v2/teams/${teamId}/channels/${channelId}/files`,
       formData,
       CSA_API_BASE,
     )
@@ -354,7 +412,7 @@ export class TeamsClient {
   async listFiles(teamId: string, channelId: string): Promise<TeamsFile[]> {
     return this.request<TeamsFile[]>(
       'GET',
-      `/csa/emea/api/v2/teams/${teamId}/channels/${channelId}/files`,
+      `/csa/${this.region}/api/v2/teams/${teamId}/channels/${channelId}/files`,
       undefined,
       CSA_API_BASE,
     )

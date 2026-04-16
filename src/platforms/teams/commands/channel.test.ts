@@ -67,7 +67,7 @@ afterEach(() => {
 
 test('list: returns channels from team', async () => {
   // given
-  const client = await new TeamsClient().login({ token: 'test-token' })
+  const client = await new TeamsClient().login({ token: 'test-token', region: 'emea' })
 
   // when
   const channels = await client.listChannels('team-1')
@@ -80,7 +80,7 @@ test('list: returns channels from team', async () => {
 
 test('list: includes channel metadata', async () => {
   // given
-  const client = await new TeamsClient().login({ token: 'test-token' })
+  const client = await new TeamsClient().login({ token: 'test-token', region: 'emea' })
   const channels = await client.listChannels('team-1')
 
   // when
@@ -95,7 +95,7 @@ test('list: includes channel metadata', async () => {
 
 test('info: returns channel details', async () => {
   // given
-  const client = await new TeamsClient().login({ token: 'test-token' })
+  const client = await new TeamsClient().login({ token: 'test-token', region: 'emea' })
 
   // when
   const channel = await client.getChannel('team-1', 'ch-1')
@@ -108,7 +108,7 @@ test('info: returns channel details', async () => {
 
 test('info: throws error for non-existent channel', async () => {
   // given
-  const client = await new TeamsClient().login({ token: 'test-token' })
+  const client = await new TeamsClient().login({ token: 'test-token', region: 'emea' })
 
   // when/then
   try {
@@ -121,7 +121,7 @@ test('info: throws error for non-existent channel', async () => {
 
 test('history: returns messages', async () => {
   // given
-  const client = await new TeamsClient().login({ token: 'test-token' })
+  const client = await new TeamsClient().login({ token: 'test-token', region: 'emea' })
 
   // when
   const messages = await client.getMessages('team-1', 'ch-1', 50)
@@ -136,7 +136,7 @@ test('history: returns messages', async () => {
 
 test('history: includes message metadata', async () => {
   // given
-  const client = await new TeamsClient().login({ token: 'test-token' })
+  const client = await new TeamsClient().login({ token: 'test-token', region: 'emea' })
   const messages = await client.getMessages('team-1', 'ch-1', 50)
 
   // when
