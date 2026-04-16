@@ -55,9 +55,11 @@ export class TeamsTokenExtractor {
   private platform: NodeJS.Platform
   private decryptor: ChromiumCookieDecryptor
   private cookieReader: ChromiumCookieReader
+  private debugLog: ((message: string) => void) | null
 
-  constructor(platform?: NodeJS.Platform, keyCache?: DerivedKeyCache) {
+  constructor(platform?: NodeJS.Platform, keyCache?: DerivedKeyCache, debugLog?: (message: string) => void) {
     this.platform = platform ?? process.platform
+    this.debugLog = debugLog ?? null
 
     const resolvedKeyCache = keyCache ?? new DerivedKeyCache()
     this.decryptor = new ChromiumCookieDecryptor({
@@ -67,6 +69,10 @@ export class TeamsTokenExtractor {
       keyCachePlatform: 'teams',
     })
     this.cookieReader = new ChromiumCookieReader()
+  }
+
+  private debug(message: string): void {
+    this.debugLog?.(message)
   }
 
   getDesktopCookiesPaths(): TeamsCookiePath[] {
@@ -197,17 +203,38 @@ export class TeamsTokenExtractor {
   private async extractFromCookiesDB(): Promise<ExtractedTeamsToken[]> {
     const results: ExtractedTeamsToken[] = []
     const seenAccountTypes = new Set<TeamsAccountType>()
+    const allPaths = this.getTeamsCookiesPaths()
 
-    for (const { path: dbPath, accountType } of this.getTeamsCookiesPaths()) {
-      if (!dbPath || !existsSync(dbPath) || seenAccountTypes.has(accountType)) continue
+    this.debug(`Scanning ${allPaths.length} candidate cookie path(s)`)
+
+    for (const { path: dbPath, accountType } of allPaths) {
+      if (!dbPath) continue
+
+      if (!existsSync(dbPath)) {
+        this.debug(`  [skip] ${dbPath} (not found)`)
+        continue
+      }
+
+      if (seenAccountTypes.has(accountType)) {
+        this.debug(`  [skip] ${dbPath} (already have ${accountType} account)`)
+        continue
+      }
+
+      this.debug(`  [try]  ${dbPath} (${accountType})`)
 
       const token = await this.copyAndExtract(dbPath)
       if (token && this.isValidSkypeToken(token)) {
+        this.debug(`  [ok]   Extracted valid token (${token.length} chars)`)
         results.push({ token, accountType })
         seenAccountTypes.add(accountType)
+      } else if (token) {
+        this.debug(`  [fail] Token too short (${token.length} chars, need >=50)`)
+      } else {
+        this.debug(`  [fail] No token extracted`)
       }
     }
 
+    this.debug(`Extraction complete: ${results.length} token(s) found`)
     return results
   }
 
@@ -216,11 +243,26 @@ export class TeamsTokenExtractor {
 
     try {
       tempPath = this.copyDatabaseToTemp(dbPath, dbPath)
-      const localStatePath =
-        this.platform === 'win32' ? (findLocalStatePath(dbPath) ?? this.getLocalStatePath()) : undefined
+
+      let localStatePath: string | undefined
+      if (this.platform === 'win32') {
+        localStatePath = findLocalStatePath(dbPath) ?? undefined
+        if (localStatePath) {
+          this.debug(`    Local State (from cookie path): ${localStatePath}`)
+        } else {
+          localStatePath = this.getLocalStatePath()
+          if (existsSync(localStatePath)) {
+            this.debug(`    Local State (fallback): ${localStatePath}`)
+          } else {
+            this.debug(`    Local State not found (tried fallback: ${localStatePath})`)
+            localStatePath = undefined
+          }
+        }
+      }
 
       return await this.extractFromSQLite(tempPath, localStatePath)
-    } catch {
+    } catch (error) {
+      this.debug(`    Copy/extract error: ${(error as Error).message}`)
       return null
     } finally {
       this.cleanupTempFile(tempPath)
@@ -231,27 +273,50 @@ export class TeamsTokenExtractor {
     try {
       for (const hostPattern of TEAMS_HOST_PATTERNS) {
         const sql = `
-          SELECT encrypted_value 
+          SELECT value, encrypted_value 
           FROM cookies 
           WHERE name = '${SKYPETOKEN_COOKIE_NAME}' 
           AND host_key LIKE '%${hostPattern}%'
           LIMIT 1
         `
 
-        type CookieRow = { encrypted_value?: Uint8Array | Buffer } | null
+        type CookieRow = { value?: string; encrypted_value?: Uint8Array | Buffer } | null
 
         const row = await this.cookieReader.queryFirst<CookieRow>(dbPath, sql)
-        if (!row?.encrypted_value) continue
+        if (!row) continue
 
-        const decryptedBuf = this.decryptor.decryptCookieRaw(Buffer.from(row.encrypted_value), localStatePath)
-        if (!decryptedBuf) continue
+        if (row.value && row.value.length >= 50) {
+          this.debug(`    Found plaintext cookie for ${hostPattern} (${row.value.length} chars)`)
+          return row.value
+        }
 
+        if (!row.encrypted_value || row.encrypted_value.length === 0) {
+          this.debug(`    No cookie data for ${hostPattern}`)
+          continue
+        }
+
+        const encBuf = Buffer.from(row.encrypted_value)
+        const isEncrypted = this.isEncryptedValue(encBuf)
+        this.debug(
+          `    Found cookie for ${hostPattern}: ${encBuf.length} bytes, encrypted=${isEncrypted}, prefix=${encBuf.subarray(0, 3).toString('utf8')}`,
+        )
+
+        const decryptedBuf = this.decryptor.decryptCookieRaw(encBuf, localStatePath)
+        if (!decryptedBuf) {
+          this.debug(`    Decryption failed`)
+          continue
+        }
+
+        this.debug(`    Decrypted: ${decryptedBuf.length} bytes`)
         const token = this.postProcessDecrypted(decryptedBuf)
         if (this.isValidSkypeToken(token)) return token
+
+        this.debug(`    Post-process result not a valid token (${token.length} chars)`)
       }
 
       return null
-    } catch {
+    } catch (error) {
+      this.debug(`    SQLite query error: ${(error as Error).message}`)
       return null
     }
   }
