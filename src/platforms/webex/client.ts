@@ -272,7 +272,7 @@ export class WebexClient {
     options?: { markdown?: boolean },
   ): Promise<{ object: Record<string, string>; encryptionKeyUrl?: string }> {
     const displayName = options?.markdown ? stripMarkdown(text) : text
-    const content = options?.markdown ? markdownToHtml(text) : text
+    const content = options?.markdown ? markdownToHtml(text) : undefined
 
     if (this.encryption) {
       const conv = await this.internalRequest<InternalConversation>(
@@ -281,21 +281,25 @@ export class WebexClient {
       const keyUri = conv.defaultActivityEncryptionKeyUrl
       if (keyUri) {
         const encryptedDisplayName = await this.encryption.encryptText(keyUri, displayName)
-        const encryptedContent = await this.encryption.encryptText(keyUri, content)
-        if (encryptedDisplayName && encryptedContent) {
-          return {
-            object: {
-              objectType: 'comment',
-              displayName: encryptedDisplayName,
-              content: encryptedContent,
-            },
-            encryptionKeyUrl: keyUri,
+        const encryptedContent = content ? await this.encryption.encryptText(keyUri, content) : undefined
+        if (encryptedDisplayName) {
+          const object: Record<string, string> = {
+            objectType: 'comment',
+            displayName: encryptedDisplayName,
           }
+          if (encryptedContent) {
+            object.content = encryptedContent
+          }
+          return { object, encryptionKeyUrl: keyUri }
         }
       }
     }
 
-    return { object: { objectType: 'comment', displayName, content } }
+    const object: Record<string, string> = { objectType: 'comment', displayName }
+    if (content) {
+      object.content = content
+    }
+    return { object }
   }
 
   private async sendMessageInternal(
