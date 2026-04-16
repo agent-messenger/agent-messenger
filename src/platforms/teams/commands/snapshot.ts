@@ -34,7 +34,11 @@ export async function snapshotAction(options: {
       process.exit(1)
     }
 
-    const client = await new TeamsClient().login({ token: cred.token, tokenExpiresAt: cred.tokenExpiresAt })
+    const client = await new TeamsClient().login({
+      token: cred.token,
+      tokenExpiresAt: cred.tokenExpiresAt,
+      accountType: cred.accountType,
+    })
 
     const snapshot: Record<string, unknown> = {}
 

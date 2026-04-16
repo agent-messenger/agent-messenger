@@ -22,7 +22,11 @@ export async function sendAction(
       process.exit(1)
     }
 
-    const client = await new TeamsClient().login({ token: cred.token, tokenExpiresAt: cred.tokenExpiresAt })
+    const client = await new TeamsClient().login({
+      token: cred.token,
+      tokenExpiresAt: cred.tokenExpiresAt,
+      accountType: cred.accountType,
+    })
     const message = await client.sendMessage(teamId, channelId, content)
 
     const output = {
@@ -52,7 +56,11 @@ export async function listAction(
       process.exit(1)
     }
 
-    const client = await new TeamsClient().login({ token: cred.token, tokenExpiresAt: cred.tokenExpiresAt })
+    const client = await new TeamsClient().login({
+      token: cred.token,
+      tokenExpiresAt: cred.tokenExpiresAt,
+      accountType: cred.accountType,
+    })
     const limit = options.limit || 50
     const messages = await client.getMessages(teamId, channelId, limit)
 
@@ -84,7 +92,11 @@ export async function getAction(
       process.exit(1)
     }
 
-    const client = await new TeamsClient().login({ token: cred.token, tokenExpiresAt: cred.tokenExpiresAt })
+    const client = await new TeamsClient().login({
+      token: cred.token,
+      tokenExpiresAt: cred.tokenExpiresAt,
+      accountType: cred.accountType,
+    })
     const message = await client.getMessage(teamId, channelId, messageId)
 
     if (!message) {
@@ -125,7 +137,11 @@ export async function deleteAction(
       process.exit(0)
     }
 
-    const client = await new TeamsClient().login({ token: cred.token, tokenExpiresAt: cred.tokenExpiresAt })
+    const client = await new TeamsClient().login({
+      token: cred.token,
+      tokenExpiresAt: cred.tokenExpiresAt,
+      accountType: cred.accountType,
+    })
     await client.deleteMessage(teamId, channelId, messageId)
 
     console.log(formatOutput({ deleted: messageId }, options.pretty))

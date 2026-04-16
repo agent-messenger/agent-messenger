@@ -78,12 +78,16 @@ export class TeamsCredentialManager {
     return this.resolveCurrentAccount(config)?.token ?? null
   }
 
-  async getTokenWithExpiry(): Promise<{ token: string; tokenExpiresAt?: string } | null> {
+  async getTokenWithExpiry(): Promise<{
+    token: string
+    tokenExpiresAt?: string
+    accountType?: TeamsAccountType
+  } | null> {
     const config = await this.loadConfig()
     if (!config) return null
     const account = this.resolveCurrentAccount(config)
     if (!account?.token) return null
-    return { token: account.token, tokenExpiresAt: account.token_expires_at }
+    return { token: account.token, tokenExpiresAt: account.token_expires_at, accountType: account.account_type }
   }
 
   async setToken(token: string, accountType: TeamsAccountType, expiresAt?: string): Promise<void> {

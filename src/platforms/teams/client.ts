@@ -2,7 +2,7 @@ import { readFile } from 'node:fs/promises'
 import { basename } from 'node:path'
 
 import { TeamsCredentialManager } from './credential-manager'
-import type { TeamsChannel, TeamsFile, TeamsMessage, TeamsTeam, TeamsUser } from './types'
+import type { TeamsAccountType, TeamsChannel, TeamsFile, TeamsMessage, TeamsTeam, TeamsUser } from './types'
 import { TeamsError } from './types'
 
 interface RateLimitBucket {
@@ -10,7 +10,8 @@ interface RateLimitBucket {
   resetAt: number
 }
 
-const MSG_API_BASE = 'https://emea.ng.msg.teams.microsoft.com/v1'
+const WORK_MSG_API_BASE = 'https://emea.ng.msg.teams.microsoft.com/v1'
+const PERSONAL_MSG_API_BASE = 'https://msgapi.teams.live.com/v1'
 const CSA_API_BASE = 'https://teams.microsoft.com/api'
 const MAX_RETRIES = 3
 const BASE_BACKOFF_MS = 100
@@ -18,10 +19,11 @@ const BASE_BACKOFF_MS = 100
 export class TeamsClient {
   private token: string | null = null
   private tokenExpiresAt?: Date
+  private msgApiBase: string = WORK_MSG_API_BASE
   private buckets: Map<string, RateLimitBucket> = new Map()
   private globalRateLimitUntil: number = 0
 
-  async login(credentials?: { token: string; tokenExpiresAt?: string }): Promise<this> {
+  async login(credentials?: { token: string; tokenExpiresAt?: string; accountType?: TeamsAccountType }): Promise<this> {
     if (credentials) {
       if (!credentials.token) {
         throw new TeamsError('Token is required', 'missing_token')
@@ -30,6 +32,7 @@ export class TeamsClient {
       if (credentials.tokenExpiresAt) {
         this.tokenExpiresAt = new Date(credentials.tokenExpiresAt)
       }
+      this.msgApiBase = credentials.accountType === 'personal' ? PERSONAL_MSG_API_BASE : WORK_MSG_API_BASE
       return this
     }
 
@@ -43,7 +46,7 @@ export class TeamsClient {
         'no_credentials',
       )
     }
-    return this.login({ token: creds.token, tokenExpiresAt: creds.tokenExpiresAt })
+    return this.login({ token: creds.token, tokenExpiresAt: creds.tokenExpiresAt, accountType: creds.accountType })
   }
 
   private ensureAuth(): string {
@@ -108,7 +111,8 @@ export class TeamsClient {
     return new Promise((resolve) => setTimeout(resolve, ms))
   }
 
-  private async request<T>(method: string, path: string, body?: unknown, baseUrl: string = MSG_API_BASE): Promise<T> {
+  private async request<T>(method: string, path: string, body?: unknown, baseUrl?: string): Promise<T> {
+    baseUrl ??= this.msgApiBase
     if (this.isTokenExpired()) {
       throw new TeamsError('Token has expired. Run "auth extract" to refresh.', 'token_expired')
     }
@@ -173,7 +177,8 @@ export class TeamsClient {
     throw new TeamsError('Request failed after retries', 'max_retries')
   }
 
-  private async requestFormData<T>(path: string, formData: FormData, baseUrl: string = MSG_API_BASE): Promise<T> {
+  private async requestFormData<T>(path: string, formData: FormData, baseUrl?: string): Promise<T> {
+    baseUrl ??= this.msgApiBase
     if (this.isTokenExpired()) {
       throw new TeamsError('Token has expired. Run "auth extract" to refresh.', 'token_expired')
     }
@@ -210,13 +215,14 @@ export class TeamsClient {
   async testAuth(): Promise<TeamsUser> {
     interface UserProperties {
       userDetails?: string
+      primaryMemberName?: string
       locale?: string
     }
     const props = await this.request<UserProperties>('GET', '/users/ME/properties')
     const userDetails = props.userDetails ? JSON.parse(props.userDetails) : {}
     return {
       id: 'ME',
-      displayName: userDetails.name || 'Teams User',
+      displayName: userDetails.name || props.primaryMemberName || 'Teams User',
     }
   }
 
