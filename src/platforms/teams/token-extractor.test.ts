@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, spyOn, test } from 'bun:test'
-import { homedir } from 'node:os'
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { homedir, tmpdir } from 'node:os'
 import { join } from 'node:path'
 
 import { TeamsTokenExtractor } from './token-extractor'
@@ -16,58 +17,25 @@ describe('TeamsTokenExtractor', () => {
       const darwinExtractor = new TeamsTokenExtractor('darwin')
       const paths = darwinExtractor.getDesktopCookiesPaths()
 
+      const darwinEbWebView = join(
+        homedir(),
+        'Library',
+        'Containers',
+        'com.microsoft.teams2',
+        'Data',
+        'Library',
+        'Application Support',
+        'Microsoft',
+        'MSTeams',
+        'EBWebView',
+      )
       expect(paths).toEqual([
-        {
-          path: join(
-            homedir(),
-            'Library',
-            'Containers',
-            'com.microsoft.teams2',
-            'Data',
-            'Library',
-            'Application Support',
-            'Microsoft',
-            'MSTeams',
-            'EBWebView',
-            'WV2Profile_tfw',
-            'Cookies',
-          ),
-          accountType: 'work',
-        },
-        {
-          path: join(
-            homedir(),
-            'Library',
-            'Containers',
-            'com.microsoft.teams2',
-            'Data',
-            'Library',
-            'Application Support',
-            'Microsoft',
-            'MSTeams',
-            'EBWebView',
-            'WV2Profile_tfl',
-            'Cookies',
-          ),
-          accountType: 'personal',
-        },
-        {
-          path: join(
-            homedir(),
-            'Library',
-            'Containers',
-            'com.microsoft.teams2',
-            'Data',
-            'Library',
-            'Application Support',
-            'Microsoft',
-            'MSTeams',
-            'EBWebView',
-            'Default',
-            'Cookies',
-          ),
-          accountType: 'work',
-        },
+        { path: join(darwinEbWebView, 'WV2Profile_tfw', 'Cookies'), accountType: 'work' },
+        { path: join(darwinEbWebView, 'WV2Profile_tfw', 'Network', 'Cookies'), accountType: 'work' },
+        { path: join(darwinEbWebView, 'WV2Profile_tfl', 'Cookies'), accountType: 'personal' },
+        { path: join(darwinEbWebView, 'WV2Profile_tfl', 'Network', 'Cookies'), accountType: 'personal' },
+        { path: join(darwinEbWebView, 'Default', 'Cookies'), accountType: 'work' },
+        { path: join(darwinEbWebView, 'Default', 'Network', 'Cookies'), accountType: 'work' },
         {
           path: join(homedir(), 'Library', 'Application Support', 'Microsoft', 'Teams', 'Cookies'),
           accountType: 'work',
@@ -93,53 +61,23 @@ describe('TeamsTokenExtractor', () => {
 
       const localAppData = process.env.LOCALAPPDATA || join(homedir(), 'AppData', 'Local')
       const appdata = process.env.APPDATA || join(homedir(), 'AppData', 'Roaming')
+      const winEbWebView = join(
+        localAppData,
+        'Packages',
+        'MSTeams_8wekyb3d8bbwe',
+        'LocalCache',
+        'Microsoft',
+        'MSTeams',
+        'EBWebView',
+      )
       expect(paths).toEqual([
-        {
-          path: join(
-            localAppData,
-            'Packages',
-            'MSTeams_8wekyb3d8bbwe',
-            'LocalCache',
-            'Microsoft',
-            'MSTeams',
-            'EBWebView',
-            'WV2Profile_tfw',
-            'Cookies',
-          ),
-          accountType: 'work',
-        },
-        {
-          path: join(
-            localAppData,
-            'Packages',
-            'MSTeams_8wekyb3d8bbwe',
-            'LocalCache',
-            'Microsoft',
-            'MSTeams',
-            'EBWebView',
-            'WV2Profile_tfl',
-            'Cookies',
-          ),
-          accountType: 'personal',
-        },
-        {
-          path: join(
-            localAppData,
-            'Packages',
-            'MSTeams_8wekyb3d8bbwe',
-            'LocalCache',
-            'Microsoft',
-            'MSTeams',
-            'EBWebView',
-            'Default',
-            'Cookies',
-          ),
-          accountType: 'work',
-        },
-        {
-          path: join(appdata, 'Microsoft', 'Teams', 'Cookies'),
-          accountType: 'work',
-        },
+        { path: join(winEbWebView, 'WV2Profile_tfw', 'Cookies'), accountType: 'work' },
+        { path: join(winEbWebView, 'WV2Profile_tfw', 'Network', 'Cookies'), accountType: 'work' },
+        { path: join(winEbWebView, 'WV2Profile_tfl', 'Cookies'), accountType: 'personal' },
+        { path: join(winEbWebView, 'WV2Profile_tfl', 'Network', 'Cookies'), accountType: 'personal' },
+        { path: join(winEbWebView, 'Default', 'Cookies'), accountType: 'work' },
+        { path: join(winEbWebView, 'Default', 'Network', 'Cookies'), accountType: 'work' },
+        { path: join(appdata, 'Microsoft', 'Teams', 'Cookies'), accountType: 'work' },
       ])
     })
 
@@ -397,6 +335,82 @@ describe('TeamsTokenExtractor', () => {
       expect(result).toEqual([])
 
       extractFromCookiesDBSpy.mockRestore()
+    })
+  })
+
+  describe('extractFromCookiesDB (Network/Cookies fallback)', () => {
+    const mockToken = 'eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.signature_here'
+    let workDir: string
+
+    beforeEach(() => {
+      workDir = mkdtempSync(join(tmpdir(), 'teams-extractor-test-'))
+    })
+
+    const cleanup = () => rmSync(workDir, { recursive: true, force: true })
+
+    // Regression for #156: if only Network/Cookies exists, missing sibling must not poison accountType.
+    test('falls through to Network/Cookies when Cookies is missing', async () => {
+      // given: only Network/Cookies exists on disk for WV2Profile_tfl
+      const profileDir = join(workDir, 'WV2Profile_tfl')
+      const networkDir = join(profileDir, 'Network')
+      mkdirSync(networkDir, { recursive: true })
+      const cookiesPath = join(profileDir, 'Cookies')
+      const networkCookiesPath = join(networkDir, 'Cookies')
+      writeFileSync(networkCookiesPath, '')
+
+      const winExtractor = new TeamsTokenExtractor('win32')
+      const getPathsSpy = spyOn(winExtractor, 'getTeamsCookiesPaths').mockReturnValue([
+        { path: cookiesPath, accountType: 'personal' },
+        { path: networkCookiesPath, accountType: 'personal' },
+      ])
+      const tried: string[] = []
+      const copyAndExtractSpy = spyOn(winExtractor as any, 'copyAndExtract').mockImplementation(async (...args) => {
+        const path = args[0] as string
+        tried.push(path)
+        return mockToken
+      })
+
+      // when
+      const results = await (winExtractor as any).extractFromCookiesDB()
+
+      // then: the Cookies path was skipped (never passed to copyAndExtract),
+      // the Network/Cookies sibling was tried, and the token was returned.
+      expect(tried).toEqual([networkCookiesPath])
+      expect(results).toEqual([{ token: mockToken, accountType: 'personal' }])
+
+      getPathsSpy.mockRestore()
+      copyAndExtractSpy.mockRestore()
+      cleanup()
+    })
+
+    test('a missing path does not mark the account type as seen', async () => {
+      // given: work account has Cookies missing but Network/Cookies present
+      const workProfile = join(workDir, 'WV2Profile_tfw')
+      const workNetworkDir = join(workProfile, 'Network')
+      mkdirSync(workNetworkDir, { recursive: true })
+      const workCookies = join(workProfile, 'Cookies')
+      const workNetworkCookies = join(workNetworkDir, 'Cookies')
+      writeFileSync(workNetworkCookies, '')
+
+      const winExtractor = new TeamsTokenExtractor('win32')
+      const getPathsSpy = spyOn(winExtractor, 'getTeamsCookiesPaths').mockReturnValue([
+        { path: workCookies, accountType: 'work' },
+        { path: workNetworkCookies, accountType: 'work' },
+      ])
+      const copyAndExtractSpy = spyOn(winExtractor as any, 'copyAndExtract').mockResolvedValue(mockToken)
+
+      // when
+      const results = await (winExtractor as any).extractFromCookiesDB()
+
+      // then: missing first path did not block the sibling; work token extracted
+      expect(results).toHaveLength(1)
+      expect(results[0].accountType).toBe('work')
+      expect(copyAndExtractSpy).toHaveBeenCalledTimes(1)
+      expect(copyAndExtractSpy).toHaveBeenCalledWith(workNetworkCookies)
+
+      getPathsSpy.mockRestore()
+      copyAndExtractSpy.mockRestore()
+      cleanup()
     })
   })
 
