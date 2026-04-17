@@ -92,8 +92,11 @@ export class TeamsTokenExtractor {
         )
         return [
           { path: join(ebWebViewBase, 'WV2Profile_tfw', 'Cookies'), accountType: 'work' },
+          { path: join(ebWebViewBase, 'WV2Profile_tfw', 'Network', 'Cookies'), accountType: 'work' },
           { path: join(ebWebViewBase, 'WV2Profile_tfl', 'Cookies'), accountType: 'personal' },
+          { path: join(ebWebViewBase, 'WV2Profile_tfl', 'Network', 'Cookies'), accountType: 'personal' },
           { path: join(ebWebViewBase, 'Default', 'Cookies'), accountType: 'work' },
+          { path: join(ebWebViewBase, 'Default', 'Network', 'Cookies'), accountType: 'work' },
           {
             path: join(homedir(), 'Library', 'Application Support', 'Microsoft', 'Teams', 'Cookies'),
             accountType: 'work',
@@ -121,8 +124,11 @@ export class TeamsTokenExtractor {
         )
         return [
           { path: join(ebWebViewBase, 'WV2Profile_tfw', 'Cookies'), accountType: 'work' },
+          { path: join(ebWebViewBase, 'WV2Profile_tfw', 'Network', 'Cookies'), accountType: 'work' },
           { path: join(ebWebViewBase, 'WV2Profile_tfl', 'Cookies'), accountType: 'personal' },
+          { path: join(ebWebViewBase, 'WV2Profile_tfl', 'Network', 'Cookies'), accountType: 'personal' },
           { path: join(ebWebViewBase, 'Default', 'Cookies'), accountType: 'work' },
+          { path: join(ebWebViewBase, 'Default', 'Network', 'Cookies'), accountType: 'work' },
           { path: join(appdata, 'Microsoft', 'Teams', 'Cookies'), accountType: 'work' },
         ]
       }

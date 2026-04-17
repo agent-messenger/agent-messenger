@@ -16,58 +16,25 @@ describe('TeamsTokenExtractor', () => {
       const darwinExtractor = new TeamsTokenExtractor('darwin')
       const paths = darwinExtractor.getDesktopCookiesPaths()
 
+      const darwinEbWebView = join(
+        homedir(),
+        'Library',
+        'Containers',
+        'com.microsoft.teams2',
+        'Data',
+        'Library',
+        'Application Support',
+        'Microsoft',
+        'MSTeams',
+        'EBWebView',
+      )
       expect(paths).toEqual([
-        {
-          path: join(
-            homedir(),
-            'Library',
-            'Containers',
-            'com.microsoft.teams2',
-            'Data',
-            'Library',
-            'Application Support',
-            'Microsoft',
-            'MSTeams',
-            'EBWebView',
-            'WV2Profile_tfw',
-            'Cookies',
-          ),
-          accountType: 'work',
-        },
-        {
-          path: join(
-            homedir(),
-            'Library',
-            'Containers',
-            'com.microsoft.teams2',
-            'Data',
-            'Library',
-            'Application Support',
-            'Microsoft',
-            'MSTeams',
-            'EBWebView',
-            'WV2Profile_tfl',
-            'Cookies',
-          ),
-          accountType: 'personal',
-        },
-        {
-          path: join(
-            homedir(),
-            'Library',
-            'Containers',
-            'com.microsoft.teams2',
-            'Data',
-            'Library',
-            'Application Support',
-            'Microsoft',
-            'MSTeams',
-            'EBWebView',
-            'Default',
-            'Cookies',
-          ),
-          accountType: 'work',
-        },
+        { path: join(darwinEbWebView, 'WV2Profile_tfw', 'Cookies'), accountType: 'work' },
+        { path: join(darwinEbWebView, 'WV2Profile_tfw', 'Network', 'Cookies'), accountType: 'work' },
+        { path: join(darwinEbWebView, 'WV2Profile_tfl', 'Cookies'), accountType: 'personal' },
+        { path: join(darwinEbWebView, 'WV2Profile_tfl', 'Network', 'Cookies'), accountType: 'personal' },
+        { path: join(darwinEbWebView, 'Default', 'Cookies'), accountType: 'work' },
+        { path: join(darwinEbWebView, 'Default', 'Network', 'Cookies'), accountType: 'work' },
         {
           path: join(homedir(), 'Library', 'Application Support', 'Microsoft', 'Teams', 'Cookies'),
           accountType: 'work',
@@ -93,53 +60,23 @@ describe('TeamsTokenExtractor', () => {
 
       const localAppData = process.env.LOCALAPPDATA || join(homedir(), 'AppData', 'Local')
       const appdata = process.env.APPDATA || join(homedir(), 'AppData', 'Roaming')
+      const winEbWebView = join(
+        localAppData,
+        'Packages',
+        'MSTeams_8wekyb3d8bbwe',
+        'LocalCache',
+        'Microsoft',
+        'MSTeams',
+        'EBWebView',
+      )
       expect(paths).toEqual([
-        {
-          path: join(
-            localAppData,
-            'Packages',
-            'MSTeams_8wekyb3d8bbwe',
-            'LocalCache',
-            'Microsoft',
-            'MSTeams',
-            'EBWebView',
-            'WV2Profile_tfw',
-            'Cookies',
-          ),
-          accountType: 'work',
-        },
-        {
-          path: join(
-            localAppData,
-            'Packages',
-            'MSTeams_8wekyb3d8bbwe',
-            'LocalCache',
-            'Microsoft',
-            'MSTeams',
-            'EBWebView',
-            'WV2Profile_tfl',
-            'Cookies',
-          ),
-          accountType: 'personal',
-        },
-        {
-          path: join(
-            localAppData,
-            'Packages',
-            'MSTeams_8wekyb3d8bbwe',
-            'LocalCache',
-            'Microsoft',
-            'MSTeams',
-            'EBWebView',
-            'Default',
-            'Cookies',
-          ),
-          accountType: 'work',
-        },
-        {
-          path: join(appdata, 'Microsoft', 'Teams', 'Cookies'),
-          accountType: 'work',
-        },
+        { path: join(winEbWebView, 'WV2Profile_tfw', 'Cookies'), accountType: 'work' },
+        { path: join(winEbWebView, 'WV2Profile_tfw', 'Network', 'Cookies'), accountType: 'work' },
+        { path: join(winEbWebView, 'WV2Profile_tfl', 'Cookies'), accountType: 'personal' },
+        { path: join(winEbWebView, 'WV2Profile_tfl', 'Network', 'Cookies'), accountType: 'personal' },
+        { path: join(winEbWebView, 'Default', 'Cookies'), accountType: 'work' },
+        { path: join(winEbWebView, 'Default', 'Network', 'Cookies'), accountType: 'work' },
+        { path: join(appdata, 'Microsoft', 'Teams', 'Cookies'), accountType: 'work' },
       ])
     })
 
