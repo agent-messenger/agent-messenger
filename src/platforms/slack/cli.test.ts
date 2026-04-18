@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'bun:test'
+import { describe, expect, it } from 'bun:test'
 
 import { spawn } from 'bun'
 
@@ -9,26 +9,26 @@ import pkg from '../../../package.json' with { type: 'json' }
 
 describe('CLI Framework', () => {
   describe('formatOutput utility', () => {
-    test('formats JSON without pretty flag', () => {
+    it('formats JSON without pretty flag', () => {
       const data = { message: 'hello', count: 42 }
       const result = formatOutput(data, false)
       expect(result).toBe('{"message":"hello","count":42}')
     })
 
-    test('formats JSON with pretty flag', () => {
+    it('formats JSON with pretty flag', () => {
       const data = { message: 'hello', count: 42 }
       const result = formatOutput(data, true)
       const expected = JSON.stringify(data, null, 2)
       expect(result).toBe(expected)
     })
 
-    test('handles arrays', () => {
+    it('handles arrays', () => {
       const data = [1, 2, 3]
       const result = formatOutput(data, false)
       expect(result).toBe('[1,2,3]')
     })
 
-    test('handles nested objects with pretty flag', () => {
+    it('handles nested objects with pretty flag', () => {
       const data = { user: { name: 'Alice', id: 1 } }
       const result = formatOutput(data, true)
       expect(result).toContain('"user"')
@@ -37,7 +37,7 @@ describe('CLI Framework', () => {
   })
 
   describe('handleError utility', () => {
-    test('logs error as JSON and exits', () => {
+    it('logs error as JSON and exits', () => {
       const originalExit = process.exit
       const originalWrite = process.stderr.write
       let capturedOutput = ''
@@ -65,7 +65,7 @@ describe('CLI Framework', () => {
   })
 
   describe('Slack CLI program structure', () => {
-    test('--help shows all commands and global options', async () => {
+    it('--help shows all commands and global options', async () => {
       const proc = spawn(['bun', 'run', './src/platforms/slack/cli.ts', '--help'], {
         cwd: process.cwd(),
         stdio: ['pipe', 'pipe', 'pipe'],
@@ -84,7 +84,7 @@ describe('CLI Framework', () => {
       expect(output).toContain('--workspace')
     })
 
-    test('--version shows package version', async () => {
+    it('--version shows package version', async () => {
       const proc = spawn(['bun', 'run', './src/platforms/slack/cli.ts', '--version'], {
         cwd: process.cwd(),
         stdio: ['pipe', 'pipe', 'pipe'],

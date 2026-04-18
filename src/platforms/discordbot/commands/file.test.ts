@@ -71,7 +71,7 @@ describe('file commands', () => {
   })
 
   describe('uploadAction', () => {
-    it('should upload file successfully', async () => {
+    it('uploads file successfully', async () => {
       const result = await uploadAction('general', './test.txt', {
         ...options,
         _credManager: mockCredManager,
@@ -80,12 +80,12 @@ describe('file commands', () => {
       expect(result).toBeDefined()
     })
 
-    it('should return error when channel resolution fails', async () => {
+    it('returns error when channel resolution fails', async () => {
       const result = await uploadAction('nonexistent', './test.txt', options)
       expect(result.error).toBeDefined()
     })
 
-    it('should return error when file does not exist', async () => {
+    it('returns error when file does not exist', async () => {
       const result = await uploadAction('general', '/nonexistent/file.txt', {
         ...options,
         _credManager: mockCredManager,
@@ -95,7 +95,7 @@ describe('file commands', () => {
   })
 
   describe('listAction', () => {
-    it('should list files successfully', async () => {
+    it('lists files successfully', async () => {
       const result = await listAction('general', {
         ...options,
         _credManager: mockCredManager,
@@ -104,14 +104,14 @@ describe('file commands', () => {
       expect(result).toBeDefined()
     })
 
-    it('should return error when channel resolution fails', async () => {
+    it('returns error when channel resolution fails', async () => {
       const result = await listAction('nonexistent', options)
       expect(result.error).toBeDefined()
     })
   })
 
   describe('action result structure', () => {
-    it('uploadAction should return success result with file info', async () => {
+    it('returns success result with file info for uploadAction', async () => {
       const result = await uploadAction('general', './test.txt', {
         ...options,
         _credManager: mockCredManager,
@@ -129,7 +129,7 @@ describe('file commands', () => {
       }
     })
 
-    it('listAction should return success result with files array', async () => {
+    it('returns success result with files array for listAction', async () => {
       const result = await listAction('general', {
         ...options,
         _credManager: mockCredManager,

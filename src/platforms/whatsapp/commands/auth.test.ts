@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, mock, spyOn, test } from 'bun:test'
+import { afterEach, beforeEach, describe, expect, mock, spyOn, it } from 'bun:test'
 
 const originalConsoleLog = console.log
 
@@ -86,7 +86,7 @@ describe('auth commands', () => {
 
   // list has no throwing tests — run first to avoid Commander state corruption
   describe('list', () => {
-    test('outputs empty array when no accounts', async () => {
+    it('outputs empty array when no accounts', async () => {
       mockListAccounts.mockImplementation(() => Promise.resolve([]))
 
       await authCommand.parseAsync(['list'], { from: 'user' })
@@ -95,7 +95,7 @@ describe('auth commands', () => {
       expect(output).toEqual([])
     })
 
-    test('outputs accounts list with is_current flag', async () => {
+    it('outputs accounts list with is_current flag', async () => {
       mockListAccounts.mockImplementation(() =>
         Promise.resolve([
           {
@@ -130,7 +130,7 @@ describe('auth commands', () => {
 
   // use: success test first, then throwing test last
   describe('use', () => {
-    test('switches to specified account and outputs success', async () => {
+    it('switches to specified account and outputs success', async () => {
       mockSetCurrent.mockImplementation(() => Promise.resolve(true))
       mockGetAccount.mockImplementation(() =>
         Promise.resolve({
@@ -150,7 +150,7 @@ describe('auth commands', () => {
       expect(output.account_id).toBe('plus-12025551234')
     })
 
-    test('outputs error and exits when account not found', async () => {
+    it('outputs error and exits when account not found', async () => {
       mockSetCurrent.mockImplementation(() => Promise.resolve(false))
 
       await expect(authCommand.parseAsync(['use', 'nonexistent'], { from: 'user' })).rejects.toThrow('process.exit(1)')
@@ -163,7 +163,7 @@ describe('auth commands', () => {
 
   // status: no-account tests first, --account tests last (avoids Commander option caching)
   describe('status', () => {
-    test('outputs account info when account exists', async () => {
+    it('outputs account info when account exists', async () => {
       mockGetAccount.mockImplementation(() =>
         Promise.resolve({
           account_id: 'plus-12025551234',
@@ -182,7 +182,7 @@ describe('auth commands', () => {
       expect(output.name).toBe('Test User')
     })
 
-    test('outputs error and exits when no account configured', async () => {
+    it('outputs error and exits when no account configured', async () => {
       mockGetAccount.mockImplementation(() => Promise.resolve(null))
 
       await expect(authCommand.parseAsync(['status'], { from: 'user' })).rejects.toThrow('process.exit(1)')
@@ -193,7 +193,7 @@ describe('auth commands', () => {
       expect(output.error).toContain('No WhatsApp account configured')
     })
 
-    test('passes --account option to getAccount', async () => {
+    it('passes --account option to getAccount', async () => {
       mockGetAccount.mockImplementation((id?: string) => {
         if (id === 'plus-19995551234') {
           return Promise.resolve({
@@ -214,7 +214,7 @@ describe('auth commands', () => {
       expect(output.account_id).toBe('plus-19995551234')
     })
 
-    test('outputs error for specific missing account', async () => {
+    it('outputs error for specific missing account', async () => {
       mockGetAccount.mockImplementation(() => Promise.resolve(null))
 
       await expect(authCommand.parseAsync(['status', '--account', 'missing-id'], { from: 'user' })).rejects.toThrow(
@@ -229,7 +229,7 @@ describe('auth commands', () => {
 
   // logout: no-account tests first, --account test last (avoids Commander option caching)
   describe('logout', () => {
-    test('removes current account and outputs success', async () => {
+    it('removes current account and outputs success', async () => {
       mockGetAccount.mockImplementation(() =>
         Promise.resolve({
           account_id: 'plus-12025551234',
@@ -250,7 +250,7 @@ describe('auth commands', () => {
       expect(output.logged_out).toBe(true)
     })
 
-    test('outputs error and exits when no account configured', async () => {
+    it('outputs error and exits when no account configured', async () => {
       mockGetAccount.mockImplementation(() => Promise.resolve(null))
 
       await expect(authCommand.parseAsync(['logout'], { from: 'user' })).rejects.toThrow('process.exit(1)')
@@ -260,7 +260,7 @@ describe('auth commands', () => {
       expect(output.error).toBeDefined()
     })
 
-    test('proceeds with local cleanup even when client connection fails', async () => {
+    it('proceeds with local cleanup even when client connection fails', async () => {
       mockGetAccount.mockImplementation(() =>
         Promise.resolve({
           account_id: 'plus-12025551234',
@@ -280,7 +280,7 @@ describe('auth commands', () => {
       expect(output.success).toBe(true)
     })
 
-    test('removes specific account with --account flag', async () => {
+    it('removes specific account with --account flag', async () => {
       mockGetAccount.mockImplementation((id?: string) => {
         if (id === 'plus-19995551234') {
           return Promise.resolve({

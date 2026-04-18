@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, spyOn, test } from 'bun:test'
+import { beforeEach, describe, expect, spyOn, it } from 'bun:test'
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { homedir, tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -13,7 +13,7 @@ describe('TeamsTokenExtractor', () => {
   })
 
   describe('getDesktopCookiesPaths', () => {
-    test('returns darwin desktop paths on macOS', () => {
+    it('returns darwin desktop paths on macOS', () => {
       const darwinExtractor = new TeamsTokenExtractor('darwin')
       const paths = darwinExtractor.getDesktopCookiesPaths()
 
@@ -43,7 +43,7 @@ describe('TeamsTokenExtractor', () => {
       ])
     })
 
-    test('returns linux desktop path on Linux', () => {
+    it('returns linux desktop path on Linux', () => {
       const linuxExtractor = new TeamsTokenExtractor('linux')
       const paths = linuxExtractor.getDesktopCookiesPaths()
 
@@ -55,7 +55,7 @@ describe('TeamsTokenExtractor', () => {
       ])
     })
 
-    test('returns win32 desktop paths on Windows', () => {
+    it('returns win32 desktop paths on Windows', () => {
       const winExtractor = new TeamsTokenExtractor('win32')
       const paths = winExtractor.getDesktopCookiesPaths()
 
@@ -81,14 +81,14 @@ describe('TeamsTokenExtractor', () => {
       ])
     })
 
-    test('returns empty array for unsupported platform', () => {
+    it('returns empty array for unsupported platform', () => {
       const unsupportedExtractor = new TeamsTokenExtractor('freebsd' as NodeJS.Platform)
       expect(unsupportedExtractor.getDesktopCookiesPaths()).toEqual([])
     })
   })
 
   describe('getBrowserCookiesPaths', () => {
-    test('returns browser cookie paths on macOS (at least Default profile per browser)', () => {
+    it('returns browser cookie paths on macOS (at least Default profile per browser)', () => {
       const darwinExtractor = new TeamsTokenExtractor('darwin')
       const paths = darwinExtractor.getBrowserCookiesPaths()
 
@@ -103,7 +103,7 @@ describe('TeamsTokenExtractor', () => {
       })
     })
 
-    test('returns browser cookie paths on Linux', () => {
+    it('returns browser cookie paths on Linux', () => {
       const linuxExtractor = new TeamsTokenExtractor('linux')
       const paths = linuxExtractor.getBrowserCookiesPaths()
 
@@ -114,7 +114,7 @@ describe('TeamsTokenExtractor', () => {
       })
     })
 
-    test('returns browser cookie paths on Windows', () => {
+    it('returns browser cookie paths on Windows', () => {
       const winExtractor = new TeamsTokenExtractor('win32')
       const paths = winExtractor.getBrowserCookiesPaths()
 
@@ -126,12 +126,12 @@ describe('TeamsTokenExtractor', () => {
       })
     })
 
-    test('returns empty array for unsupported platform', () => {
+    it('returns empty array for unsupported platform', () => {
       const unsupportedExtractor = new TeamsTokenExtractor('freebsd' as NodeJS.Platform)
       expect(unsupportedExtractor.getBrowserCookiesPaths()).toEqual([])
     })
 
-    test('all browser paths have accountType work', () => {
+    it('all browser paths have accountType work', () => {
       const darwinExtractor = new TeamsTokenExtractor('darwin')
       const paths = darwinExtractor.getBrowserCookiesPaths()
       expect(paths.every((p) => p.accountType === 'work')).toBe(true)
@@ -139,7 +139,7 @@ describe('TeamsTokenExtractor', () => {
   })
 
   describe('getTeamsCookiesPaths', () => {
-    test('returns darwin paths on macOS with desktop paths first', () => {
+    it('returns darwin paths on macOS with desktop paths first', () => {
       const darwinExtractor = new TeamsTokenExtractor('darwin')
       const paths = darwinExtractor.getTeamsCookiesPaths()
       const desktopPaths = darwinExtractor.getDesktopCookiesPaths()
@@ -147,7 +147,7 @@ describe('TeamsTokenExtractor', () => {
       expect(paths.slice(0, desktopPaths.length)).toEqual(desktopPaths)
     })
 
-    test('browser paths come after desktop paths on macOS', () => {
+    it('browser paths come after desktop paths on macOS', () => {
       const darwinExtractor = new TeamsTokenExtractor('darwin')
       const paths = darwinExtractor.getTeamsCookiesPaths()
       const desktopPaths = darwinExtractor.getDesktopCookiesPaths()
@@ -157,7 +157,7 @@ describe('TeamsTokenExtractor', () => {
       expect(paths.slice(desktopPaths.length)).toEqual(browserPaths)
     })
 
-    test('returns linux paths with desktop first then browser paths', () => {
+    it('returns linux paths with desktop first then browser paths', () => {
       const linuxExtractor = new TeamsTokenExtractor('linux')
       const paths = linuxExtractor.getTeamsCookiesPaths()
       const desktopPaths = linuxExtractor.getDesktopCookiesPaths()
@@ -171,7 +171,7 @@ describe('TeamsTokenExtractor', () => {
       expect(paths.length).toBeGreaterThan(desktopPaths.length)
     })
 
-    test('returns win32 paths with desktop first then browser paths', () => {
+    it('returns win32 paths with desktop first then browser paths', () => {
       const winExtractor = new TeamsTokenExtractor('win32')
       const paths = winExtractor.getTeamsCookiesPaths()
       const desktopPaths = winExtractor.getDesktopCookiesPaths()
@@ -180,7 +180,7 @@ describe('TeamsTokenExtractor', () => {
       expect(paths.length).toBeGreaterThan(desktopPaths.length)
     })
 
-    test('returns empty array for unsupported platform', () => {
+    it('returns empty array for unsupported platform', () => {
       const unsupportedExtractor = new TeamsTokenExtractor('freebsd' as NodeJS.Platform)
       const paths = unsupportedExtractor.getTeamsCookiesPaths()
 
@@ -189,21 +189,21 @@ describe('TeamsTokenExtractor', () => {
   })
 
   describe('getLocalStatePath', () => {
-    test('returns darwin Local State path on macOS', () => {
+    it('returns darwin Local State path on macOS', () => {
       const darwinExtractor = new TeamsTokenExtractor('darwin')
       const path = darwinExtractor.getLocalStatePath()
 
       expect(path).toBe(join(homedir(), 'Library', 'Application Support', 'Microsoft', 'Teams', 'Local State'))
     })
 
-    test('returns linux Local State path on Linux', () => {
+    it('returns linux Local State path on Linux', () => {
       const linuxExtractor = new TeamsTokenExtractor('linux')
       const path = linuxExtractor.getLocalStatePath()
 
       expect(path).toBe(join(homedir(), '.config', 'Microsoft', 'Microsoft Teams', 'Local State'))
     })
 
-    test('returns win32 Local State path on Windows', () => {
+    it('returns win32 Local State path on Windows', () => {
       const winExtractor = new TeamsTokenExtractor('win32')
       const path = winExtractor.getLocalStatePath()
 
@@ -213,7 +213,7 @@ describe('TeamsTokenExtractor', () => {
   })
 
   describe('getKeychainVariants', () => {
-    test('includes Teams-specific keychain entries', () => {
+    it('includes Teams-specific keychain entries', () => {
       const macExtractor = new TeamsTokenExtractor('darwin')
       const variants = macExtractor.getKeychainVariants()
 
@@ -226,7 +226,7 @@ describe('TeamsTokenExtractor', () => {
       expect(variants).toContainEqual({ service: 'Teams Safe Storage', account: 'Teams' })
     })
 
-    test('includes browser keychain entries appended after Teams entries', () => {
+    it('includes browser keychain entries appended after Teams entries', () => {
       const macExtractor = new TeamsTokenExtractor('darwin')
       const variants = macExtractor.getKeychainVariants()
 
@@ -238,7 +238,7 @@ describe('TeamsTokenExtractor', () => {
       expect(variants).toContainEqual({ service: 'Chromium Safe Storage', account: 'Chromium' })
     })
 
-    test('Teams entries come before browser entries', () => {
+    it('Teams entries come before browser entries', () => {
       const macExtractor = new TeamsTokenExtractor('darwin')
       const variants = macExtractor.getKeychainVariants()
 
@@ -249,59 +249,59 @@ describe('TeamsTokenExtractor', () => {
   })
 
   describe('isValidSkypeToken', () => {
-    test('validates JWT-like skype token format', () => {
+    it('validates JWT-like skype token format', () => {
       const validToken = 'eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.signature'
       expect(extractor.isValidSkypeToken(validToken)).toBe(true)
     })
 
-    test('validates long base64 token format', () => {
+    it('validates long base64 token format', () => {
       const validToken = 'a'.repeat(100)
       expect(extractor.isValidSkypeToken(validToken)).toBe(true)
     })
 
-    test('rejects empty tokens', () => {
+    it('rejects empty tokens', () => {
       expect(extractor.isValidSkypeToken('')).toBe(false)
     })
 
-    test('rejects short tokens', () => {
+    it('rejects short tokens', () => {
       expect(extractor.isValidSkypeToken('short')).toBe(false)
     })
 
-    test('rejects null/undefined', () => {
+    it('rejects null/undefined', () => {
       expect(extractor.isValidSkypeToken(null as unknown as string)).toBe(false)
       expect(extractor.isValidSkypeToken(undefined as unknown as string)).toBe(false)
     })
   })
 
   describe('isEncryptedValue', () => {
-    test('detects v10 encrypted values', () => {
+    it('detects v10 encrypted values', () => {
       const encrypted = Buffer.from('v10encrypted_data')
       expect(extractor.isEncryptedValue(encrypted)).toBe(true)
     })
 
-    test('detects v11 encrypted values', () => {
+    it('detects v11 encrypted values', () => {
       const encrypted = Buffer.from('v11encrypted_data')
       expect(extractor.isEncryptedValue(encrypted)).toBe(true)
     })
 
-    test('rejects non-encrypted values', () => {
+    it('rejects non-encrypted values', () => {
       const plain = Buffer.from('plain_text')
       expect(extractor.isEncryptedValue(plain)).toBe(false)
     })
 
-    test('rejects empty buffers', () => {
+    it('rejects empty buffers', () => {
       const empty = Buffer.alloc(0)
       expect(extractor.isEncryptedValue(empty)).toBe(false)
     })
 
-    test('rejects short buffers', () => {
+    it('rejects short buffers', () => {
       const short = Buffer.from('v1')
       expect(extractor.isEncryptedValue(short)).toBe(false)
     })
   })
 
   describe('extract', () => {
-    test('returns null when cookies path does not exist', async () => {
+    it('returns null when cookies path does not exist', async () => {
       const linuxExtractor = new TeamsTokenExtractor('linux')
       const extractFromCookiesDBSpy = spyOn(linuxExtractor as any, 'extractFromCookiesDB').mockResolvedValue([])
 
@@ -311,7 +311,7 @@ describe('TeamsTokenExtractor', () => {
       extractFromCookiesDBSpy.mockRestore()
     })
 
-    test('extracts token from cookies database when available', async () => {
+    it('extracts token from cookies database when available', async () => {
       const mockToken = 'eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.signature_here'
 
       const linuxExtractor = new TeamsTokenExtractor('linux')
@@ -327,7 +327,7 @@ describe('TeamsTokenExtractor', () => {
       extractFromCookiesDBSpy.mockRestore()
     })
 
-    test('returns null when extraction fails', async () => {
+    it('returns null when extraction fails', async () => {
       const darwinExtractor = new TeamsTokenExtractor('darwin')
       const extractFromCookiesDBSpy = spyOn(darwinExtractor as any, 'extractFromCookiesDB').mockResolvedValue([])
 
@@ -349,7 +349,7 @@ describe('TeamsTokenExtractor', () => {
     const cleanup = () => rmSync(workDir, { recursive: true, force: true })
 
     // Regression for #156: if only Network/Cookies exists, missing sibling must not poison accountType.
-    test('falls through to Network/Cookies when Cookies is missing', async () => {
+    it('falls through to Network/Cookies when Cookies is missing', async () => {
       // given: only Network/Cookies exists on disk for WV2Profile_tfl
       const profileDir = join(workDir, 'WV2Profile_tfl')
       const networkDir = join(profileDir, 'Network')
@@ -383,7 +383,7 @@ describe('TeamsTokenExtractor', () => {
       cleanup()
     })
 
-    test('a missing path does not mark the account type as seen', async () => {
+    it('a missing path does not mark the account type as seen', async () => {
       // given: work account has Cookies missing but Network/Cookies present
       const workProfile = join(workDir, 'WV2Profile_tfw')
       const workNetworkDir = join(workProfile, 'Network')
@@ -415,7 +415,7 @@ describe('TeamsTokenExtractor', () => {
   })
 
   describe('copyAndExtract', () => {
-    test('attempts to copy database to temp location', async () => {
+    it('attempts to copy database to temp location', async () => {
       const darwinExtractor = new TeamsTokenExtractor('darwin')
 
       const copyFileSpy = spyOn(darwinExtractor as any, 'copyDatabaseToTemp').mockReturnValue('/tmp/test-cookies')
@@ -434,7 +434,7 @@ describe('TeamsTokenExtractor', () => {
       cleanupSpy.mockRestore()
     })
 
-    test('returns null when copy fails (file locked)', async () => {
+    it('returns null when copy fails (file locked)', async () => {
       const darwinExtractor = new TeamsTokenExtractor('darwin')
 
       const copyFileSpy = spyOn(darwinExtractor as any, 'copyDatabaseToTemp').mockImplementation(() => {
@@ -451,7 +451,7 @@ describe('TeamsTokenExtractor', () => {
 
   describe('decryption', () => {
     describe('decryptAESGCM', () => {
-      test('returns null for invalid encrypted data', () => {
+      it('returns null for invalid encrypted data', () => {
         const darwinExtractor = new TeamsTokenExtractor('darwin')
         const invalidData = Buffer.from('too_short')
         const key = Buffer.alloc(32, 0)
@@ -460,7 +460,7 @@ describe('TeamsTokenExtractor', () => {
         expect(result).toBeNull()
       })
 
-      test('returns null when decryption fails', () => {
+      it('returns null when decryption fails', () => {
         const darwinExtractor = new TeamsTokenExtractor('darwin')
         const fakeEncrypted = Buffer.concat([
           Buffer.from('v10'),
@@ -476,7 +476,7 @@ describe('TeamsTokenExtractor', () => {
     })
 
     describe('getKeychainPassword (macOS)', () => {
-      test('tries multiple keychain variants', async () => {
+      it('tries multiple keychain variants', async () => {
         const darwinExtractor = new TeamsTokenExtractor('darwin')
         const execSyncSpy = spyOn(darwinExtractor as any, 'execSecurityCommand')
           .mockReturnValueOnce(null)
@@ -490,7 +490,7 @@ describe('TeamsTokenExtractor', () => {
         execSyncSpy.mockRestore()
       })
 
-      test('returns null when all keychain variants fail', async () => {
+      it('returns null when all keychain variants fail', async () => {
         const darwinExtractor = new TeamsTokenExtractor('darwin')
         const execSyncSpy = spyOn(darwinExtractor as any, 'execSecurityCommand').mockReturnValue(null)
 
@@ -505,7 +505,7 @@ describe('TeamsTokenExtractor', () => {
 
   describe('process management', () => {
     describe('isTeamsRunning', () => {
-      test('returns true when Teams process is found', async () => {
+      it('returns true when Teams process is found', async () => {
         const darwinExtractor = new TeamsTokenExtractor('darwin')
         const checkProcessRunningSpy = spyOn(darwinExtractor as any, 'checkProcessRunning').mockReturnValue(true)
 
@@ -515,7 +515,7 @@ describe('TeamsTokenExtractor', () => {
         checkProcessRunningSpy.mockRestore()
       })
 
-      test('returns false when no Teams process is found', async () => {
+      it('returns false when no Teams process is found', async () => {
         const darwinExtractor = new TeamsTokenExtractor('darwin')
         const checkProcessRunningSpy = spyOn(darwinExtractor as any, 'checkProcessRunning').mockReturnValue(false)
 
@@ -527,17 +527,17 @@ describe('TeamsTokenExtractor', () => {
     })
 
     describe('getProcessName', () => {
-      test('returns correct process name for macOS', () => {
+      it('returns correct process name for macOS', () => {
         const darwinExtractor = new TeamsTokenExtractor('darwin')
         expect((darwinExtractor as any).getProcessName()).toBe('Microsoft Teams')
       })
 
-      test('returns correct process name for Windows', () => {
+      it('returns correct process name for Windows', () => {
         const winExtractor = new TeamsTokenExtractor('win32')
         expect((winExtractor as any).getProcessName()).toBe('Teams.exe')
       })
 
-      test('returns correct process name for Linux', () => {
+      it('returns correct process name for Linux', () => {
         const linuxExtractor = new TeamsTokenExtractor('linux')
         expect((linuxExtractor as any).getProcessName()).toBe('teams')
       })
@@ -545,7 +545,7 @@ describe('TeamsTokenExtractor', () => {
   })
 
   describe('SQLite extraction', () => {
-    test('returns null when database path does not exist', async () => {
+    it('returns null when database path does not exist', async () => {
       const darwinExtractor = new TeamsTokenExtractor('darwin')
 
       const result = await (darwinExtractor as any).extractFromSQLite('/nonexistent/path')
@@ -553,7 +553,7 @@ describe('TeamsTokenExtractor', () => {
       expect(result).toBeNull()
     })
 
-    test('returns null when extraction throws', async () => {
+    it('returns null when extraction throws', async () => {
       const darwinExtractor = new TeamsTokenExtractor('darwin')
 
       const result = await (darwinExtractor as any).extractFromSQLite('/dev/null')

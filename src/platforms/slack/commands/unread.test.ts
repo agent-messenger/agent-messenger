@@ -43,7 +43,7 @@ afterEach(() => {
 
 describe('unread commands', () => {
   describe('getUnreadCounts', () => {
-    it('should return unread counts', async () => {
+    it('returns unread counts', async () => {
       const mockCounts = {
         channels: [
           { id: 'C123', name: 'general', unread_count: 5, mention_count: 2 },
@@ -66,7 +66,7 @@ describe('unread commands', () => {
   })
 
   describe('getThreadView', () => {
-    it('should return thread subscription details', async () => {
+    it('returns thread subscription details', async () => {
       const mockThreadView = {
         channel_id: 'C123',
         thread_ts: '1234567890.123456',
@@ -87,7 +87,7 @@ describe('unread commands', () => {
   })
 
   describe('markRead', () => {
-    it('should mark channel as read', async () => {
+    it('marks channel as read', async () => {
       const mockClient = await new SlackClient().login({ token: 'xoxc-test', cookie: 'test-cookie' })
       await mockClient.markRead('C123', '1234567890.123456')
 
@@ -96,7 +96,7 @@ describe('unread commands', () => {
   })
 
   describe('CLI commands', () => {
-    it('should handle unread counts command', async () => {
+    it('handles unread counts command', async () => {
       const mockConsoleLog = mock(() => {})
       const originalLog = console.log
       console.log = mockConsoleLog
@@ -109,7 +109,7 @@ describe('unread commands', () => {
       console.log = originalLog
     })
 
-    it('should handle unread threads command', async () => {
+    it('handles unread threads command', async () => {
       const mockConsoleLog = mock(() => {})
       const originalLog = console.log
       console.log = mockConsoleLog
@@ -122,7 +122,7 @@ describe('unread commands', () => {
       console.log = originalLog
     })
 
-    it('should handle mark read command', async () => {
+    it('handles mark read command', async () => {
       const mockConsoleLog = mock(() => {})
       const originalLog = console.log
       console.log = mockConsoleLog

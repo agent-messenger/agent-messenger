@@ -1,4 +1,4 @@
-import { describe, test, expect } from 'bun:test'
+import { describe, it, expect } from 'bun:test'
 
 import {
   LineError,
@@ -9,7 +9,7 @@ import {
 } from './types'
 
 describe('LineError', () => {
-  test('has correct name and code', () => {
+  it('has correct name and code', () => {
     const error = new LineError('AUTH_FAILED', 'Authentication failed')
     expect(error.name).toBe('LineError')
     expect(error.code).toBe('AUTH_FAILED')
@@ -19,7 +19,7 @@ describe('LineError', () => {
 })
 
 describe('LineChatSchema', () => {
-  test('parses valid data', () => {
+  it('parses valid data', () => {
     const data = {
       chat_id: 'u1234567890abcdef',
       type: 'user',
@@ -31,7 +31,7 @@ describe('LineChatSchema', () => {
     expect(result.display_name).toBe('Test User')
   })
 
-  test('parses valid data with optional fields', () => {
+  it('parses valid data with optional fields', () => {
     const data = {
       chat_id: 'g1234567890abcdef',
       type: 'group',
@@ -44,7 +44,7 @@ describe('LineChatSchema', () => {
     expect(result.picture_url).toBe('https://example.com/pic.jpg')
   })
 
-  test('rejects invalid type', () => {
+  it('rejects invalid type', () => {
     const data = {
       chat_id: 'u1234',
       type: 'invalid',
@@ -53,13 +53,13 @@ describe('LineChatSchema', () => {
     expect(() => LineChatSchema.parse(data)).toThrow()
   })
 
-  test('rejects missing required fields', () => {
+  it('rejects missing required fields', () => {
     expect(() => LineChatSchema.parse({ chat_id: 'u1234' })).toThrow()
   })
 })
 
 describe('LineMessageSchema', () => {
-  test('parses valid data', () => {
+  it('parses valid data', () => {
     const data = {
       message_id: 'msg123',
       chat_id: 'u1234567890abcdef',
@@ -74,7 +74,7 @@ describe('LineMessageSchema', () => {
     expect(result.content_type).toBe('NONE')
   })
 
-  test('parses message with null text', () => {
+  it('parses message with null text', () => {
     const data = {
       message_id: 'msg456',
       chat_id: 'u1234567890abcdef',
@@ -87,13 +87,13 @@ describe('LineMessageSchema', () => {
     expect(result.text).toBeNull()
   })
 
-  test('rejects missing required fields', () => {
+  it('rejects missing required fields', () => {
     expect(() => LineMessageSchema.parse({ message_id: 'msg123' })).toThrow()
   })
 })
 
 describe('LineSendResultSchema', () => {
-  test('parses valid data', () => {
+  it('parses valid data', () => {
     const data = {
       success: true,
       chat_id: 'u1234567890abcdef',
@@ -105,7 +105,7 @@ describe('LineSendResultSchema', () => {
     expect(result.message_id).toBe('msg789')
   })
 
-  test('rejects invalid success type', () => {
+  it('rejects invalid success type', () => {
     const data = {
       success: 'yes',
       chat_id: 'u1234',
@@ -117,7 +117,7 @@ describe('LineSendResultSchema', () => {
 })
 
 describe('LineAccountCredentialsSchema', () => {
-  test('parses valid data', () => {
+  it('parses valid data', () => {
     const data = {
       account_id: 'u1234567890abcdef1234567890abcdef12',
       auth_token: 'token_abc123',
@@ -130,7 +130,7 @@ describe('LineAccountCredentialsSchema', () => {
     expect(result.device).toBe('ANDROID')
   })
 
-  test('parses valid data with optional fields', () => {
+  it('parses valid data with optional fields', () => {
     const data = {
       account_id: 'u1234567890abcdef1234567890abcdef12',
       auth_token: 'token_abc123',
@@ -145,7 +145,7 @@ describe('LineAccountCredentialsSchema', () => {
     expect(result.display_name).toBe('Test User')
   })
 
-  test('rejects invalid device type', () => {
+  it('rejects invalid device type', () => {
     const data = {
       account_id: 'u1234',
       auth_token: 'token',

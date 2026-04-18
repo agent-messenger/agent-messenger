@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, expect, spyOn, test } from 'bun:test'
+import { afterEach, beforeEach, expect, spyOn, it } from 'bun:test'
 
 import { TeamsClient } from '../client'
 import { TeamsCredentialManager } from '../credential-manager'
@@ -54,7 +54,7 @@ afterEach(() => {
   clientGetRegionSpy?.mockRestore()
 })
 
-test('extract: calls TeamsTokenExtractor', async () => {
+it('extract: calls TeamsTokenExtractor', async () => {
   const extractor = new TeamsTokenExtractor()
   const result = await extractor.extract()
   expect(result).toHaveLength(1)
@@ -62,7 +62,7 @@ test('extract: calls TeamsTokenExtractor', async () => {
   expect(result[0].accountType).toBe('work')
 })
 
-test('extract: validates token with TeamsClient', async () => {
+it('extract: validates token with TeamsClient', async () => {
   const client = await new TeamsClient().login({ token: 'test-skype-token-123', region: 'emea' })
   const authInfo = await client.testAuth()
   expect(authInfo).toBeDefined()
@@ -70,31 +70,31 @@ test('extract: validates token with TeamsClient', async () => {
   expect(authInfo.displayName).toBe('Test User')
 })
 
-test('extract: discovers teams', async () => {
+it('extract: discovers teams', async () => {
   const client = await new TeamsClient().login({ token: 'test-skype-token-123', region: 'emea' })
   const teams = await client.listTeams()
   expect(teams).toHaveLength(2)
   expect(teams[0].id).toBe('team-1')
 })
 
-test('logout: clears credentials', async () => {
+it('logout: clears credentials', async () => {
   const credManager = new TeamsCredentialManager()
   await credManager.clearCredentials()
   expect(credManager.clearCredentials).toHaveBeenCalled()
 })
 
-test('status: returns auth state when not authenticated', async () => {
+it('status: returns auth state when not authenticated', async () => {
   const credManager = new TeamsCredentialManager()
   const config = await credManager.loadConfig()
   expect(config).toBeNull()
 })
 
-test('status: checks token expiry', async () => {
+it('status: checks token expiry', async () => {
   const credManager = new TeamsCredentialManager()
   const isExpired = await credManager.isTokenExpired()
   expect(isExpired).toBe(false)
 })
 
-test('no-token message mentions desktop app and browser fallback', () => {
+it('no-token message mentions desktop app and browser fallback', () => {
   expect(getNoTeamsTokenFoundMessage()).toContain('desktop app or a supported Chromium browser')
 })

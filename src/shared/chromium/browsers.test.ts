@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, test } from 'bun:test'
+import { afterEach, describe, expect, it } from 'bun:test'
 import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -26,34 +26,34 @@ describe('browsers', () => {
   })
 
   describe('CHROMIUM_BROWSERS', () => {
-    test('has 7 browsers', () => {
+    it('has 7 browsers', () => {
       expect(CHROMIUM_BROWSERS).toHaveLength(7)
     })
 
-    test('includes major supported browsers', () => {
+    it('includes major supported browsers', () => {
       const browserNames = CHROMIUM_BROWSERS.map((browser) => browser.name)
 
       expect(browserNames).toEqual(expect.arrayContaining(['Chrome', 'Edge', 'Arc', 'Brave', 'Vivaldi', 'Chromium']))
     })
 
-    test('Arc has empty linux path', () => {
+    it('Arc has empty linux path', () => {
       expect(CHROMIUM_BROWSERS.find((browser) => browser.name === 'Arc')?.linux).toBe('')
     })
   })
 
   describe('BROWSER_KEYCHAIN_VARIANTS', () => {
-    test('has 7 keychain variants', () => {
+    it('has 7 keychain variants', () => {
       expect(BROWSER_KEYCHAIN_VARIANTS).toHaveLength(7)
     })
 
-    test('each variant has service and account properties', () => {
+    it('each variant has service and account properties', () => {
       for (const variant of BROWSER_KEYCHAIN_VARIANTS) {
         expect(variant.service).toBeString()
         expect(variant.account).toBeString()
       }
     })
 
-    test('includes known safe storage services', () => {
+    it('includes known safe storage services', () => {
       const services = BROWSER_KEYCHAIN_VARIANTS.map((variant) => variant.service)
 
       expect(services).toEqual(expect.arrayContaining(['Chrome Safe Storage', 'Microsoft Edge Safe Storage']))
@@ -61,7 +61,7 @@ describe('browsers', () => {
   })
 
   describe('getBrowserBasePath', () => {
-    test('returns darwin path with Library/Application Support prefix', () => {
+    it('returns darwin path with Library/Application Support prefix', () => {
       // given
       const chrome = CHROMIUM_BROWSERS.find((browser) => browser.name === 'Chrome')!
 
@@ -74,7 +74,7 @@ describe('browsers', () => {
       expect(path).toEndWith(join('Google', 'Chrome'))
     })
 
-    test('returns linux path with .config prefix', () => {
+    it('returns linux path with .config prefix', () => {
       // given
       const chrome = CHROMIUM_BROWSERS.find((browser) => browser.name === 'Chrome')!
 
@@ -86,7 +86,7 @@ describe('browsers', () => {
       expect(path).toContain(join('.config', 'google-chrome'))
     })
 
-    test('returns win32 path with LOCALAPPDATA prefix', () => {
+    it('returns win32 path with LOCALAPPDATA prefix', () => {
       // given
       const localAppData = mkdtempSync(join(tmpdir(), 'browser-localappdata-'))
       tempDirs.push(localAppData)
@@ -100,7 +100,7 @@ describe('browsers', () => {
       expect(path).toBe(join(localAppData, 'Google', 'Chrome', 'User Data'))
     })
 
-    test('returns null for unsupported platform', () => {
+    it('returns null for unsupported platform', () => {
       // given
       const chrome = CHROMIUM_BROWSERS.find((browser) => browser.name === 'Chrome')!
 
@@ -111,7 +111,7 @@ describe('browsers', () => {
       expect(path).toBeNull()
     })
 
-    test('returns null when browser has empty path for platform', () => {
+    it('returns null when browser has empty path for platform', () => {
       // given
       const arc = CHROMIUM_BROWSERS.find((browser) => browser.name === 'Arc')!
 
@@ -124,7 +124,7 @@ describe('browsers', () => {
   })
 
   describe('discoverBrowserProfileDirs', () => {
-    test('always includes Default dir even when base does not exist', () => {
+    it('always includes Default dir even when base does not exist', () => {
       // given
       const browserBase = join(tmpdir(), `missing-browser-base-${Date.now()}-${Math.random().toString(36).slice(2)}`)
 
@@ -135,7 +135,7 @@ describe('browsers', () => {
       expect(dirs).toEqual([join(browserBase, 'Default')])
     })
 
-    test('discovers Profile 1 and Profile 2 dirs when they exist', () => {
+    it('discovers Profile 1 and Profile 2 dirs when they exist', () => {
       // given
       const browserBase = mkdtempSync(join(tmpdir(), 'browser-profiles-'))
       tempDirs.push(browserBase)
@@ -153,7 +153,7 @@ describe('browsers', () => {
       ])
     })
 
-    test('ignores non-profile directories', () => {
+    it('ignores non-profile directories', () => {
       // given
       const browserBase = mkdtempSync(join(tmpdir(), 'browser-non-profile-'))
       tempDirs.push(browserBase)
@@ -168,7 +168,7 @@ describe('browsers', () => {
       expect(dirs).toEqual([join(browserBase, 'Default'), join(browserBase, 'Profile 1')])
     })
 
-    test('ignores files that match profile pattern', () => {
+    it('ignores files that match profile pattern', () => {
       // given
       const browserBase = mkdtempSync(join(tmpdir(), 'browser-profile-files-'))
       tempDirs.push(browserBase)
@@ -182,7 +182,7 @@ describe('browsers', () => {
       expect(dirs).toEqual([join(browserBase, 'Default'), join(browserBase, 'Profile 2')])
     })
 
-    test('returns only Default when base directory is empty', () => {
+    it('returns only Default when base directory is empty', () => {
       // given
       const browserBase = mkdtempSync(join(tmpdir(), 'browser-empty-'))
       tempDirs.push(browserBase)
@@ -196,7 +196,7 @@ describe('browsers', () => {
   })
 
   describe('findLocalStatePath', () => {
-    test('returns null when no Local State exists at any level', () => {
+    it('returns null when no Local State exists at any level', () => {
       // given
       const rootDir = mkdtempSync(join(tmpdir(), 'browser-local-state-missing-'))
       tempDirs.push(rootDir)
@@ -210,7 +210,7 @@ describe('browsers', () => {
       expect(path).toBeNull()
     })
 
-    test('finds Local State 2 levels up from cookie path', () => {
+    it('finds Local State 2 levels up from cookie path', () => {
       // given
       const rootDir = mkdtempSync(join(tmpdir(), 'browser-local-state-two-'))
       tempDirs.push(rootDir)
@@ -226,7 +226,7 @@ describe('browsers', () => {
       expect(path).toBe(join(profileDir, 'Local State'))
     })
 
-    test('finds Local State 3 levels up from cookie path', () => {
+    it('finds Local State 3 levels up from cookie path', () => {
       // given
       const rootDir = mkdtempSync(join(tmpdir(), 'browser-local-state-three-'))
       tempDirs.push(rootDir)
@@ -242,7 +242,7 @@ describe('browsers', () => {
       expect(path).toBe(join(browserDir, 'Local State'))
     })
 
-    test('returns null for path with too few segments', () => {
+    it('returns null for path with too few segments', () => {
       // given
       const cookiePath = 'Cookies'
 
@@ -253,7 +253,7 @@ describe('browsers', () => {
       expect(path).toBeNull()
     })
 
-    test('finds the first match when multiple levels could match', () => {
+    it('finds the first match when multiple levels could match', () => {
       // given
       const rootDir = mkdtempSync(join(tmpdir(), 'browser-local-state-first-'))
       tempDirs.push(rootDir)

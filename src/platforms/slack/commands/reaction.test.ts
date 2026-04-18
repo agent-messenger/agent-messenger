@@ -1,4 +1,4 @@
-import { describe, expect, mock, test } from 'bun:test'
+import { describe, expect, mock, it } from 'bun:test'
 
 import { Command } from 'commander'
 
@@ -6,7 +6,7 @@ import { reactionCommand } from '@/platforms/slack/commands/reaction'
 
 describe('reaction command', () => {
   describe('add subcommand', () => {
-    test('adds reaction to message with channel and message ts', async () => {
+    it('adds reaction to message with channel and message ts', async () => {
       const channelId = 'C123'
       const messageTs = '1234567890.123456'
       const emoji = 'thumbsup'
@@ -18,7 +18,7 @@ describe('reaction command', () => {
       expect(mockAddReaction).toHaveBeenCalledTimes(1)
     })
 
-    test('handles emoji without colons', async () => {
+    it('handles emoji without colons', async () => {
       const channelId = 'C123'
       const messageTs = '1234567890.123456'
       const emoji = 'thumbsup'
@@ -31,7 +31,7 @@ describe('reaction command', () => {
   })
 
   describe('remove subcommand', () => {
-    test('removes reaction from message with channel and message ts', async () => {
+    it('removes reaction from message with channel and message ts', async () => {
       const channelId = 'C123'
       const messageTs = '1234567890.123456'
       const emoji = 'thumbsup'
@@ -45,7 +45,7 @@ describe('reaction command', () => {
   })
 
   describe('list subcommand', () => {
-    test('lists reactions on a message', async () => {
+    it('lists reactions on a message', async () => {
       const messageTs = '1234567890.123456'
       const mockMessage = {
         ts: messageTs,
@@ -66,7 +66,7 @@ describe('reaction command', () => {
       expect(result!.reactions).toHaveLength(2)
     })
 
-    test('returns empty reactions list when no reactions', async () => {
+    it('returns empty reactions list when no reactions', async () => {
       const messageTs = '1234567890.123456'
       const mockMessage = {
         ts: messageTs,
@@ -83,7 +83,7 @@ describe('reaction command', () => {
       expect(result!.reactions).toEqual([])
     })
 
-    test('returns null when message not found', async () => {
+    it('returns null when message not found', async () => {
       const mockGetMessage = mock(() => Promise.resolve(null))
       const result = await mockGetMessage()
 
@@ -92,15 +92,15 @@ describe('reaction command', () => {
   })
 
   describe('command structure', () => {
-    test('reaction command exists', () => {
+    it('reaction command exists', () => {
       expect(reactionCommand).toBeInstanceOf(Command)
     })
 
-    test('reaction command has correct name', () => {
+    it('reaction command has correct name', () => {
       expect(reactionCommand.name()).toBe('reaction')
     })
 
-    test('reaction command has description', () => {
+    it('reaction command has description', () => {
       expect(reactionCommand.description()).toBe('Reaction commands')
     })
   })

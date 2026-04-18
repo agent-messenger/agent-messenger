@@ -1,4 +1,4 @@
-import { expect, mock, test } from 'bun:test'
+import { expect, mock, it } from 'bun:test'
 
 // Mock TeamsClient
 const mockClient = {
@@ -28,7 +28,7 @@ const mockClient = {
   ]),
 }
 
-test('me returns current user info', async () => {
+it('me returns current user info', async () => {
   // given: authenticated user
   const user = await mockClient.testAuth()
 
@@ -46,7 +46,7 @@ test('me returns current user info', async () => {
   expect(result.email).toBe('test@example.com')
 })
 
-test('info returns user details by id', async () => {
+it('info returns user details by id', async () => {
   // given: user id
   const userId = 'user123'
 
@@ -64,7 +64,7 @@ test('info returns user details by id', async () => {
   expect(result.displayName).toBe('Test User')
 })
 
-test('list returns team members', async () => {
+it('list returns team members', async () => {
   // given: team id
   const teamId = 'team123'
 

@@ -1,4 +1,4 @@
-import { expect, test } from 'bun:test'
+import { expect, it } from 'bun:test'
 
 import {
   WeChatBotAccountEntrySchema,
@@ -10,7 +10,7 @@ import {
   WeChatBotUserInfoSchema,
 } from '@/platforms/wechatbot/types'
 
-test('WeChatBotAccountEntrySchema validates correct data', () => {
+it('WeChatBotAccountEntrySchema validates correct data', () => {
   const result = WeChatBotAccountEntrySchema.safeParse({
     app_id: 'wx123',
     app_secret: 'secret123',
@@ -19,7 +19,7 @@ test('WeChatBotAccountEntrySchema validates correct data', () => {
   expect(result.success).toBe(true)
 })
 
-test('WeChatBotAccountEntrySchema rejects missing app_id', () => {
+it('WeChatBotAccountEntrySchema rejects missing app_id', () => {
   const result = WeChatBotAccountEntrySchema.safeParse({
     app_secret: 'secret123',
     account_name: 'My Account',
@@ -27,7 +27,7 @@ test('WeChatBotAccountEntrySchema rejects missing app_id', () => {
   expect(result.success).toBe(false)
 })
 
-test('WeChatBotAccountEntrySchema rejects missing app_secret', () => {
+it('WeChatBotAccountEntrySchema rejects missing app_secret', () => {
   const result = WeChatBotAccountEntrySchema.safeParse({
     app_id: 'wx123',
     account_name: 'My Account',
@@ -35,7 +35,7 @@ test('WeChatBotAccountEntrySchema rejects missing app_secret', () => {
   expect(result.success).toBe(false)
 })
 
-test('WeChatBotAccountEntrySchema rejects missing account_name', () => {
+it('WeChatBotAccountEntrySchema rejects missing account_name', () => {
   const result = WeChatBotAccountEntrySchema.safeParse({
     app_id: 'wx123',
     app_secret: 'secret123',
@@ -43,7 +43,7 @@ test('WeChatBotAccountEntrySchema rejects missing account_name', () => {
   expect(result.success).toBe(false)
 })
 
-test('WeChatBotConfigSchema validates with current account', () => {
+it('WeChatBotConfigSchema validates with current account', () => {
   const result = WeChatBotConfigSchema.safeParse({
     current: { account_id: 'wx123' },
     accounts: {
@@ -53,7 +53,7 @@ test('WeChatBotConfigSchema validates with current account', () => {
   expect(result.success).toBe(true)
 })
 
-test('WeChatBotConfigSchema validates with current null and empty accounts', () => {
+it('WeChatBotConfigSchema validates with current null and empty accounts', () => {
   const result = WeChatBotConfigSchema.safeParse({
     current: null,
     accounts: {},
@@ -61,7 +61,7 @@ test('WeChatBotConfigSchema validates with current null and empty accounts', () 
   expect(result.success).toBe(true)
 })
 
-test('WeChatBotConfigSchema validates with multiple accounts', () => {
+it('WeChatBotConfigSchema validates with multiple accounts', () => {
   const result = WeChatBotConfigSchema.safeParse({
     current: { account_id: 'wx-a' },
     accounts: {
@@ -72,17 +72,17 @@ test('WeChatBotConfigSchema validates with multiple accounts', () => {
   expect(result.success).toBe(true)
 })
 
-test('WeChatBotConfigSchema rejects missing accounts field', () => {
+it('WeChatBotConfigSchema rejects missing accounts field', () => {
   const result = WeChatBotConfigSchema.safeParse({ current: null })
   expect(result.success).toBe(false)
 })
 
-test('WeChatBotConfigSchema rejects missing current field', () => {
+it('WeChatBotConfigSchema rejects missing current field', () => {
   const result = WeChatBotConfigSchema.safeParse({ accounts: {} })
   expect(result.success).toBe(false)
 })
 
-test('WeChatBotCredentialsSchema validates correct data', () => {
+it('WeChatBotCredentialsSchema validates correct data', () => {
   const result = WeChatBotCredentialsSchema.safeParse({
     app_id: 'wx123',
     app_secret: 'secret123',
@@ -91,7 +91,7 @@ test('WeChatBotCredentialsSchema validates correct data', () => {
   expect(result.success).toBe(true)
 })
 
-test('WeChatBotCredentialsSchema rejects missing app_id', () => {
+it('WeChatBotCredentialsSchema rejects missing app_id', () => {
   const result = WeChatBotCredentialsSchema.safeParse({
     app_secret: 'secret123',
     account_name: 'My Account',
@@ -99,7 +99,7 @@ test('WeChatBotCredentialsSchema rejects missing app_id', () => {
   expect(result.success).toBe(false)
 })
 
-test('WeChatBotCredentialsSchema rejects missing app_secret', () => {
+it('WeChatBotCredentialsSchema rejects missing app_secret', () => {
   const result = WeChatBotCredentialsSchema.safeParse({
     app_id: 'wx123',
     account_name: 'My Account',
@@ -107,7 +107,7 @@ test('WeChatBotCredentialsSchema rejects missing app_secret', () => {
   expect(result.success).toBe(false)
 })
 
-test('WeChatBotCredentialsSchema rejects missing account_name', () => {
+it('WeChatBotCredentialsSchema rejects missing account_name', () => {
   const result = WeChatBotCredentialsSchema.safeParse({
     app_id: 'wx123',
     app_secret: 'secret123',
@@ -115,7 +115,7 @@ test('WeChatBotCredentialsSchema rejects missing account_name', () => {
   expect(result.success).toBe(false)
 })
 
-test('WeChatBotNewsArticleSchema validates correct data', () => {
+it('WeChatBotNewsArticleSchema validates correct data', () => {
   const result = WeChatBotNewsArticleSchema.safeParse({
     title: 'Test Article',
     description: 'Test description',
@@ -125,7 +125,7 @@ test('WeChatBotNewsArticleSchema validates correct data', () => {
   expect(result.success).toBe(true)
 })
 
-test('WeChatBotNewsArticleSchema rejects missing title', () => {
+it('WeChatBotNewsArticleSchema rejects missing title', () => {
   const result = WeChatBotNewsArticleSchema.safeParse({
     description: 'Test description',
     url: 'https://example.com',
@@ -134,7 +134,7 @@ test('WeChatBotNewsArticleSchema rejects missing title', () => {
   expect(result.success).toBe(false)
 })
 
-test('WeChatBotTemplateSchema validates correct data', () => {
+it('WeChatBotTemplateSchema validates correct data', () => {
   const result = WeChatBotTemplateSchema.safeParse({
     template_id: 'tmpl-001',
     title: 'Order Notification',
@@ -146,7 +146,7 @@ test('WeChatBotTemplateSchema validates correct data', () => {
   expect(result.success).toBe(true)
 })
 
-test('WeChatBotTemplateSchema rejects missing template_id', () => {
+it('WeChatBotTemplateSchema rejects missing template_id', () => {
   const result = WeChatBotTemplateSchema.safeParse({
     title: 'Order Notification',
     primary_industry: 'IT科技',
@@ -157,7 +157,7 @@ test('WeChatBotTemplateSchema rejects missing template_id', () => {
   expect(result.success).toBe(false)
 })
 
-test('WeChatBotUserInfoSchema validates correct data', () => {
+it('WeChatBotUserInfoSchema validates correct data', () => {
   const result = WeChatBotUserInfoSchema.safeParse({
     subscribe: 1,
     openid: 'openid-123',
@@ -172,7 +172,7 @@ test('WeChatBotUserInfoSchema validates correct data', () => {
   expect(result.success).toBe(true)
 })
 
-test('WeChatBotUserInfoSchema validates with optional unionid', () => {
+it('WeChatBotUserInfoSchema validates with optional unionid', () => {
   const result = WeChatBotUserInfoSchema.safeParse({
     subscribe: 1,
     openid: 'openid-123',
@@ -188,7 +188,7 @@ test('WeChatBotUserInfoSchema validates with optional unionid', () => {
   expect(result.success).toBe(true)
 })
 
-test('WeChatBotUserInfoSchema rejects missing openid', () => {
+it('WeChatBotUserInfoSchema rejects missing openid', () => {
   const result = WeChatBotUserInfoSchema.safeParse({
     subscribe: 1,
     language: 'zh_CN',
@@ -202,22 +202,22 @@ test('WeChatBotUserInfoSchema rejects missing openid', () => {
   expect(result.success).toBe(false)
 })
 
-test('WeChatBotError has correct name', () => {
+it('WeChatBotError has correct name', () => {
   const error = new WeChatBotError('Test error', 'TEST_CODE')
   expect(error.name).toBe('WeChatBotError')
 })
 
-test('WeChatBotError has correct message', () => {
+it('WeChatBotError has correct message', () => {
   const error = new WeChatBotError('Test error', 'TEST_CODE')
   expect(error.message).toBe('Test error')
 })
 
-test('WeChatBotError has correct code', () => {
+it('WeChatBotError has correct code', () => {
   const error = new WeChatBotError('Test error', 'TEST_CODE')
   expect(error.code).toBe('TEST_CODE')
 })
 
-test('WeChatBotError is instance of Error', () => {
+it('WeChatBotError is instance of Error', () => {
   const error = new WeChatBotError('Test error', 'TEST_CODE')
   expect(error instanceof Error).toBe(true)
 })

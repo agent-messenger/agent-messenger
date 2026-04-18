@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, mock, test } from 'bun:test'
+import { beforeEach, describe, expect, mock, it } from 'bun:test'
 
 const mockResolveChannel = mock((_channel: string) => Promise.resolve('C123456'))
 const mockListChannels = mock(() =>
@@ -55,7 +55,7 @@ describe('channel commands', () => {
   })
 
   describe('listChannels', () => {
-    test('returns list of channels', async () => {
+    it('returns list of channels', async () => {
       // given
       const client = await new SlackBotClient().login({ token: 'xoxb-test-token' })
 
@@ -68,7 +68,7 @@ describe('channel commands', () => {
       expect(channels[1].name).toBe('random')
     })
 
-    test('includes channel metadata', async () => {
+    it('includes channel metadata', async () => {
       // given
       const client = await new SlackBotClient().login({ token: 'xoxb-test-token' })
 
@@ -84,7 +84,7 @@ describe('channel commands', () => {
       expect(channel.created).toBeDefined()
     })
 
-    test('passes limit option', async () => {
+    it('passes limit option', async () => {
       // given
       const client = await new SlackBotClient().login({ token: 'xoxb-test-token' })
 
@@ -97,7 +97,7 @@ describe('channel commands', () => {
   })
 
   describe('getChannelInfo', () => {
-    test('returns channel details', async () => {
+    it('returns channel details', async () => {
       // given
       const client = await new SlackBotClient().login({ token: 'xoxb-test-token' })
 
@@ -110,7 +110,7 @@ describe('channel commands', () => {
       expect(channel.is_private).toBe(false)
     })
 
-    test('includes topic and purpose', async () => {
+    it('includes topic and purpose', async () => {
       // given
       const client = await new SlackBotClient().login({ token: 'xoxb-test-token' })
 
@@ -124,7 +124,7 @@ describe('channel commands', () => {
   })
 
   describe('resolveChannel', () => {
-    test('resolves channel name to ID', async () => {
+    it('resolves channel name to ID', async () => {
       // given
       const client = await new SlackBotClient().login({ token: 'xoxb-test-token' })
 

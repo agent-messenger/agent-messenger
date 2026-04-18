@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, spyOn, test } from 'bun:test'
+import { beforeEach, describe, expect, spyOn, it } from 'bun:test'
 import { createCipheriv, pbkdf2Sync, randomBytes } from 'node:crypto'
 
 import * as linuxKeyring from '@/shared/utils/linux-keyring'
@@ -29,7 +29,7 @@ describe('ChromiumCookieDecryptor', () => {
   })
 
   describe('constructor', () => {
-    test('prepends appKeychainVariants before browser variants', () => {
+    it('prepends appKeychainVariants before browser variants', () => {
       // given
       const appVariants = [{ service: 'App Safe Storage', account: 'App' }]
 
@@ -40,7 +40,7 @@ describe('ChromiumCookieDecryptor', () => {
       expect((decryptor as any).keychainVariants).toEqual([...appVariants, ...BROWSER_KEYCHAIN_VARIANTS])
     })
 
-    test('uses only browser variants when no appKeychainVariants provided', () => {
+    it('uses only browser variants when no appKeychainVariants provided', () => {
       // given
       const decryptor = new ChromiumCookieDecryptor({ platform: 'darwin' })
 
@@ -50,7 +50,7 @@ describe('ChromiumCookieDecryptor', () => {
   })
 
   describe('isEncryptedValue', () => {
-    test('returns true for v10 prefix with sufficient length', () => {
+    it('returns true for v10 prefix with sufficient length', () => {
       // given
       const decryptor = new ChromiumCookieDecryptor({ platform: 'linux' })
 
@@ -61,7 +61,7 @@ describe('ChromiumCookieDecryptor', () => {
       expect(result).toBe(true)
     })
 
-    test('returns true for v11 prefix with sufficient length', () => {
+    it('returns true for v11 prefix with sufficient length', () => {
       // given
       const decryptor = new ChromiumCookieDecryptor({ platform: 'linux' })
 
@@ -72,7 +72,7 @@ describe('ChromiumCookieDecryptor', () => {
       expect(result).toBe(true)
     })
 
-    test('returns false for non-v10/v11 prefix', () => {
+    it('returns false for non-v10/v11 prefix', () => {
       // given
       const decryptor = new ChromiumCookieDecryptor({ platform: 'linux' })
 
@@ -83,7 +83,7 @@ describe('ChromiumCookieDecryptor', () => {
       expect(result).toBe(false)
     })
 
-    test('returns false for too-short buffer (< 4 bytes)', () => {
+    it('returns false for too-short buffer (< 4 bytes)', () => {
       // given
       const decryptor = new ChromiumCookieDecryptor({ platform: 'linux' })
 
@@ -94,7 +94,7 @@ describe('ChromiumCookieDecryptor', () => {
       expect(result).toBe(false)
     })
 
-    test('returns false for null/empty buffer', () => {
+    it('returns false for null/empty buffer', () => {
       // given
       const decryptor = new ChromiumCookieDecryptor({ platform: 'linux' })
 
@@ -105,7 +105,7 @@ describe('ChromiumCookieDecryptor', () => {
   })
 
   describe('decryptAESCBC / decryptAESCBCRaw', () => {
-    test('decrypts v10-prefixed AES-128-CBC data with correct key', () => {
+    it('decrypts v10-prefixed AES-128-CBC data with correct key', () => {
       // given
       const decryptor = new ChromiumCookieDecryptor({ platform: 'linux' })
       const encrypted = encryptAESCBC('test-value', peanutsKey)
@@ -117,7 +117,7 @@ describe('ChromiumCookieDecryptor', () => {
       expect(result).toBe('test-value')
     })
 
-    test('returns null with wrong key', () => {
+    it('returns null with wrong key', () => {
       // given
       const decryptor = new ChromiumCookieDecryptor({ platform: 'linux' })
       const encrypted = encryptAESCBC('test-value', peanutsKey)
@@ -130,7 +130,7 @@ describe('ChromiumCookieDecryptor', () => {
       expect(result).toBeNull()
     })
 
-    test('returns null for corrupted ciphertext', () => {
+    it('returns null for corrupted ciphertext', () => {
       // given
       const decryptor = new ChromiumCookieDecryptor({ platform: 'linux' })
       const encrypted = encryptAESCBC('test-value', peanutsKey)
@@ -144,7 +144,7 @@ describe('ChromiumCookieDecryptor', () => {
       expect(result).toBeNull()
     })
 
-    test('decryptAESCBC returns string, decryptAESCBCRaw returns Buffer', () => {
+    it('decryptAESCBC returns string, decryptAESCBCRaw returns Buffer', () => {
       // given
       const decryptor = new ChromiumCookieDecryptor({ platform: 'linux' })
       const encrypted = encryptAESCBC('test-value', peanutsKey)
@@ -160,7 +160,7 @@ describe('ChromiumCookieDecryptor', () => {
   })
 
   describe('decryptAESGCM / decryptAESGCMRaw', () => {
-    test('decrypts v10-prefixed AES-256-GCM data with correct key', () => {
+    it('decrypts v10-prefixed AES-256-GCM data with correct key', () => {
       // given
       const decryptor = new ChromiumCookieDecryptor({ platform: 'win32' })
       const masterKey = randomBytes(32)
@@ -173,7 +173,7 @@ describe('ChromiumCookieDecryptor', () => {
       expect(result).toBe('test-value')
     })
 
-    test('returns null with wrong key', () => {
+    it('returns null with wrong key', () => {
       // given
       const decryptor = new ChromiumCookieDecryptor({ platform: 'win32' })
       const masterKey = randomBytes(32)
@@ -186,7 +186,7 @@ describe('ChromiumCookieDecryptor', () => {
       expect(result).toBeNull()
     })
 
-    test('returns null for data shorter than minimum length (3+12+16 = 31 bytes)', () => {
+    it('returns null for data shorter than minimum length (3+12+16 = 31 bytes)', () => {
       // given
       const decryptor = new ChromiumCookieDecryptor({ platform: 'win32' })
 
@@ -197,7 +197,7 @@ describe('ChromiumCookieDecryptor', () => {
       expect(result).toBeNull()
     })
 
-    test('decryptAESGCM returns string, decryptAESGCMRaw returns Buffer', () => {
+    it('decryptAESGCM returns string, decryptAESGCMRaw returns Buffer', () => {
       // given
       const decryptor = new ChromiumCookieDecryptor({ platform: 'win32' })
       const masterKey = randomBytes(32)
@@ -214,7 +214,7 @@ describe('ChromiumCookieDecryptor', () => {
   })
 
   describe('decryptCookie / decryptCookieRaw', () => {
-    test('returns plaintext for non-encrypted values (no v10/v11 prefix)', () => {
+    it('returns plaintext for non-encrypted values (no v10/v11 prefix)', () => {
       // given
       const decryptor = new ChromiumCookieDecryptor({ platform: 'linux' })
       const plaintext = Buffer.from('plain-cookie')
@@ -228,7 +228,7 @@ describe('ChromiumCookieDecryptor', () => {
       expect(rawResult).toEqual(plaintext)
     })
 
-    test('dispatches to Linux decryption for linux platform with v10 prefix', () => {
+    it('dispatches to Linux decryption for linux platform with v10 prefix', () => {
       // given
       const decryptor = new ChromiumCookieDecryptor({ platform: 'linux' })
       const encrypted = Buffer.from('v10cookie')
@@ -242,7 +242,7 @@ describe('ChromiumCookieDecryptor', () => {
       spy.mockRestore()
     })
 
-    test('returns null for unsupported platform (e.g. freebsd)', () => {
+    it('returns null for unsupported platform (e.g. freebsd)', () => {
       // given
       const decryptor = new ChromiumCookieDecryptor({ platform: 'freebsd' as NodeJS.Platform })
 
@@ -253,7 +253,7 @@ describe('ChromiumCookieDecryptor', () => {
       expect(result).toBeNull()
     })
 
-    test('decryptCookie returns string, decryptCookieRaw returns Buffer', () => {
+    it('decryptCookie returns string, decryptCookieRaw returns Buffer', () => {
       // given
       const decryptor = new ChromiumCookieDecryptor({ platform: 'linux' })
       const encrypted = encryptAESCBC('test-value', peanutsKey)
@@ -269,7 +269,7 @@ describe('ChromiumCookieDecryptor', () => {
   })
 
   describe('decryptLinuxCookieRaw', () => {
-    test('decrypts v10-prefixed cookie using peanuts key (known key, verifiable)', () => {
+    it('decrypts v10-prefixed cookie using peanuts key (known key, verifiable)', () => {
       // given
       const decryptor = new ChromiumCookieDecryptor({ platform: 'linux' })
       const encrypted = encryptAESCBC('linux-cookie', peanutsKey)
@@ -281,7 +281,7 @@ describe('ChromiumCookieDecryptor', () => {
       expect(result).toEqual(Buffer.from('linux-cookie'))
     })
 
-    test('falls back to peanuts key for v11 when no keyring app names configured', () => {
+    it('falls back to peanuts key for v11 when no keyring app names configured', () => {
       // given
       const decryptor = new ChromiumCookieDecryptor({ platform: 'linux' })
       const encrypted = encryptAESCBC('linux-v11-cookie', peanutsKey, 'v11')
@@ -295,7 +295,7 @@ describe('ChromiumCookieDecryptor', () => {
   })
 
   describe('decryptDPAPI', () => {
-    test('returns null on non-win32 platforms', () => {
+    it('returns null on non-win32 platforms', () => {
       // given
       const decryptor = new ChromiumCookieDecryptor({ platform: 'linux' })
 
@@ -308,7 +308,7 @@ describe('ChromiumCookieDecryptor', () => {
   })
 
   describe('stripIntegrityHash', () => {
-    test('returns input unchanged when length <= 32', () => {
+    it('returns input unchanged when length <= 32', () => {
       // given
       const decrypted = Buffer.alloc(32, 0x41)
 
@@ -319,7 +319,7 @@ describe('ChromiumCookieDecryptor', () => {
       expect(result).toEqual(decrypted)
     })
 
-    test('strips first 32 bytes when they contain non-printable characters', () => {
+    it('strips first 32 bytes when they contain non-printable characters', () => {
       // given
       const hash = Buffer.concat([Buffer.from([0x00, 0x1f, 0xff]), Buffer.alloc(29, 0x01)])
       const value = Buffer.from('cookie-value')
@@ -331,7 +331,7 @@ describe('ChromiumCookieDecryptor', () => {
       expect(result).toEqual(value)
     })
 
-    test('returns input unchanged when first 32 bytes are all printable ASCII', () => {
+    it('returns input unchanged when first 32 bytes are all printable ASCII', () => {
       // given
       const printablePrefix = Buffer.from('12345678901234567890123456789012')
       const decrypted = Buffer.concat([printablePrefix, Buffer.from('cookie-value')])
@@ -343,7 +343,7 @@ describe('ChromiumCookieDecryptor', () => {
       expect(result).toEqual(decrypted)
     })
 
-    test('correctly strips binary hash prefix followed by readable cookie value', () => {
+    it('correctly strips binary hash prefix followed by readable cookie value', () => {
       // given
       const hash = randomBytes(32)
       const value = Buffer.from('readable-cookie-value')
@@ -355,7 +355,7 @@ describe('ChromiumCookieDecryptor', () => {
       expect(result).toEqual(value)
     })
 
-    test('handles non-printable bytes that would be mangled by UTF-8 conversion (the v130+ fix)', () => {
+    it('handles non-printable bytes that would be mangled by UTF-8 conversion (the v130+ fix)', () => {
       // given
       const binaryPrefix = Buffer.from([
         ...Array.from({ length: 16 }, (_, i) => i),
@@ -372,7 +372,7 @@ describe('ChromiumCookieDecryptor', () => {
   })
 
   describe('loadCachedKey / clearKeyCache', () => {
-    test('loadCachedKey is no-op on non-darwin platform', async () => {
+    it('loadCachedKey is no-op on non-darwin platform', async () => {
       // given
       const keyCache = {
         get: async () => Buffer.from('should-not-be-used'),
@@ -392,7 +392,7 @@ describe('ChromiumCookieDecryptor', () => {
       expect((decryptor as any).usedCachedKey).toBe(false)
     })
 
-    test('loadCachedKey is no-op when no keyCache configured', async () => {
+    it('loadCachedKey is no-op when no keyCache configured', async () => {
       // given
       const decryptor = new ChromiumCookieDecryptor({ platform: 'darwin', keyCachePlatform: 'slack' })
 
@@ -404,7 +404,7 @@ describe('ChromiumCookieDecryptor', () => {
       expect((decryptor as any).usedCachedKey).toBe(false)
     })
 
-    test('clearKeyCache resets cached key state', async () => {
+    it('clearKeyCache resets cached key state', async () => {
       // given
       const clear = async () => {}
       const keyCache = { get: async () => null, clear }
@@ -426,7 +426,7 @@ describe('ChromiumCookieDecryptor', () => {
   })
 
   describe('linux v11 keyring behavior', () => {
-    test('uses configured keyring password before falling back', () => {
+    it('uses configured keyring password before falling back', () => {
       // given
       const password = 'secret-from-keyring'
       const key = pbkdf2Sync(password, 'saltysalt', 1, 16, 'sha1')

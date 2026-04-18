@@ -1,4 +1,4 @@
-import { expect, test } from 'bun:test'
+import { expect, it } from 'bun:test'
 
 import {
   WhatsAppBotAccountEntrySchema,
@@ -9,26 +9,26 @@ import {
   WhatsAppBotError,
 } from '@/platforms/whatsappbot/index'
 
-test('WhatsAppBotClient is exported from barrel', () => {
+it('WhatsAppBotClient is exported from barrel', () => {
   expect(typeof WhatsAppBotClient).toBe('function')
 })
 
-test('WhatsAppBotCredentialManager is exported from barrel', () => {
+it('WhatsAppBotCredentialManager is exported from barrel', () => {
   expect(typeof WhatsAppBotCredentialManager).toBe('function')
 })
 
-test('WhatsAppBotError is exported from barrel', () => {
+it('WhatsAppBotError is exported from barrel', () => {
   expect(typeof WhatsAppBotError).toBe('function')
 })
 
-test('WhatsAppBotAccountEntrySchema is exported from barrel', () => {
+it('WhatsAppBotAccountEntrySchema is exported from barrel', () => {
   expect(typeof WhatsAppBotAccountEntrySchema.parse).toBe('function')
 })
 
-test('WhatsAppBotConfigSchema is exported from barrel', () => {
+it('WhatsAppBotConfigSchema is exported from barrel', () => {
   expect(typeof WhatsAppBotConfigSchema.parse).toBe('function')
 })
 
-test('WhatsAppBotCredentialsSchema is exported from barrel', () => {
+it('WhatsAppBotCredentialsSchema is exported from barrel', () => {
   expect(typeof WhatsAppBotCredentialsSchema.parse).toBe('function')
 })

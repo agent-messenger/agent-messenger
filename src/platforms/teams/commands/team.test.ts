@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, expect, spyOn, test } from 'bun:test'
+import { afterEach, beforeEach, expect, spyOn, it } from 'bun:test'
 
 import { TeamsClient } from '../client'
 import { TeamsCredentialManager } from '../credential-manager'
@@ -60,7 +60,7 @@ afterEach(() => {
   credManagerSaveConfigSpy?.mockRestore()
 })
 
-test('list: returns teams with current marker', async () => {
+it('list: returns teams with current marker', async () => {
   // given: credential manager with teams
   const credManager = new TeamsCredentialManager()
   const config = await credManager.loadConfig()
@@ -75,7 +75,7 @@ test('list: returns teams with current marker', async () => {
   expect(account.teams['team-2']).toBeDefined()
 })
 
-test('list: marks current team', async () => {
+it('list: marks current team', async () => {
   // given: credential manager with current team set
   const credManager = new TeamsCredentialManager()
   const config = await credManager.loadConfig()
@@ -88,7 +88,7 @@ test('list: marks current team', async () => {
   expect(config!.accounts.work.current_team).toBe('team-1')
 })
 
-test('info: returns team details', async () => {
+it('info: returns team details', async () => {
   // given: teams client with team data
   const client = await new TeamsClient().login({ token: 'test-token', region: 'emea' })
   const team = await client.getTeam('team-1')
@@ -102,7 +102,7 @@ test('info: returns team details', async () => {
   expect(team.description).toBe('First team')
 })
 
-test('info: throws error for non-existent team', async () => {
+it('info: throws error for non-existent team', async () => {
   // given: teams client
   const client = await new TeamsClient().login({ token: 'test-token', region: 'emea' })
 
@@ -116,7 +116,7 @@ test('info: throws error for non-existent team', async () => {
   }
 })
 
-test('switch: updates current team', async () => {
+it('switch: updates current team', async () => {
   // given: credential manager
   const credManager = new TeamsCredentialManager()
 
@@ -127,7 +127,7 @@ test('switch: updates current team', async () => {
   expect(credManager.setCurrentTeam).toHaveBeenCalledWith('team-2', 'Team Two')
 })
 
-test('current: returns current team info', async () => {
+it('current: returns current team info', async () => {
   // given: credential manager with current team
   const credManager = new TeamsCredentialManager()
   const config = await credManager.loadConfig()
@@ -140,7 +140,7 @@ test('current: returns current team info', async () => {
   expect(config!.accounts.work.current_team).toBe('team-1')
 })
 
-test('remove: removes team from config', async () => {
+it('remove: removes team from config', async () => {
   // given: credential manager with teams
   const credManager = new TeamsCredentialManager()
   const config = await credManager.loadConfig()

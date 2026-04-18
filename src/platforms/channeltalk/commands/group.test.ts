@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, mock, test } from 'bun:test'
+import { beforeEach, describe, expect, mock, it } from 'bun:test'
 
 const mockListGroups = mock(() =>
   Promise.resolve([
@@ -103,7 +103,7 @@ describe('group commands', () => {
     )
   })
 
-  test('listAction lists groups', async () => {
+  it('listAction lists groups', async () => {
     const result = await listAction({ limit: '3' })
 
     expect(mockListGroups).toHaveBeenCalledWith('ws-1', { limit: 3 })
@@ -121,7 +121,7 @@ describe('group commands', () => {
     ])
   })
 
-  test('getAction gets a specific group', async () => {
+  it('getAction gets a specific group', async () => {
     const result = await getAction('grp-1')
 
     expect(mockGetGroup).toHaveBeenCalledWith('ws-1', 'grp-1')
@@ -137,7 +137,7 @@ describe('group commands', () => {
     })
   })
 
-  test('messagesAction gets group messages with limit and sort', async () => {
+  it('messagesAction gets group messages with limit and sort', async () => {
     const result = await messagesAction('grp-1', { limit: '7', sort: 'asc' })
 
     expect(mockGetGroupMessages).toHaveBeenCalledWith('ws-1', 'grp-1', { limit: 7, sortOrder: 'asc' })

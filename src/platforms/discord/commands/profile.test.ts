@@ -1,4 +1,4 @@
-import { expect, mock, test } from 'bun:test'
+import { expect, mock, it } from 'bun:test'
 
 // Mock DiscordClient
 const mockClient = {
@@ -38,7 +38,7 @@ const mockClient = {
   })),
 }
 
-test('get returns user profile with all fields', async () => {
+it('get returns user profile with all fields', async () => {
   // given: user id
   const userId = 'user123'
 
@@ -57,7 +57,7 @@ test('get returns user profile with all fields', async () => {
   expect(profile.mutual_guilds?.[0].nick).toBe('TestNick')
 })
 
-test('get returns profile with minimal fields', async () => {
+it('get returns profile with minimal fields', async () => {
   // given: mock with minimal profile
   const minimalMock = {
     getUserProfile: mock(async (userId: string) => ({
@@ -81,7 +81,7 @@ test('get returns profile with minimal fields', async () => {
   expect(profile.mutual_guilds).toBeUndefined()
 })
 
-test('get formats connected accounts correctly', async () => {
+it('get formats connected accounts correctly', async () => {
   // given: user with connected accounts
   const userId = 'user789'
   const profile = await mockClient.getUserProfile(userId)

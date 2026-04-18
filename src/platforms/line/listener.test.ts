@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, mock, test } from 'bun:test'
+import { afterEach, describe, expect, mock, it } from 'bun:test'
 
 import { LineListener } from '@/platforms/line/listener'
 import type { LinePushGenericEvent, LinePushMessageEvent } from '@/platforms/line/types'
@@ -73,7 +73,7 @@ describe('LineListener', () => {
   })
 
   describe('start', () => {
-    test('calls login on LineClient', async () => {
+    it('calls login on LineClient', async () => {
       const client = createMockLineClient()
       listener = new LineListener(client)
 
@@ -82,7 +82,7 @@ describe('LineListener', () => {
       expect(mockLogin).toHaveBeenCalledTimes(1)
     })
 
-    test('is idempotent', async () => {
+    it('is idempotent', async () => {
       const client = createMockLineClient()
       listener = new LineListener(client)
 
@@ -94,7 +94,7 @@ describe('LineListener', () => {
   })
 
   describe('connected event', () => {
-    test('emits connected with account_id after successful login', async () => {
+    it('emits connected with account_id after successful login', async () => {
       const client = createMockLineClient()
       listener = new LineListener(client)
 
@@ -109,7 +109,7 @@ describe('LineListener', () => {
   })
 
   describe('message events', () => {
-    test('emits message with parsed fields on incoming message', async () => {
+    it('emits message with parsed fields on incoming message', async () => {
       const client = createMockLineClient()
       listener = new LineListener(client)
 
@@ -138,7 +138,7 @@ describe('LineListener', () => {
       expect(messages[0].content_type).toBe('NONE')
     })
 
-    test('uses to.id as chat_id for own messages', async () => {
+    it('uses to.id as chat_id for own messages', async () => {
       const client = createMockLineClient()
       listener = new LineListener(client)
 
@@ -160,7 +160,7 @@ describe('LineListener', () => {
   })
 
   describe('line_event catch-all', () => {
-    test('emits line_event for every message', async () => {
+    it('emits line_event for every message', async () => {
       const client = createMockLineClient()
       listener = new LineListener(client)
 
@@ -180,7 +180,7 @@ describe('LineListener', () => {
       expect(events[0].type).toBe('message')
     })
 
-    test('emits line_event for raw operation events', async () => {
+    it('emits line_event for raw operation events', async () => {
       const client = createMockLineClient()
       listener = new LineListener(client)
 
@@ -197,7 +197,7 @@ describe('LineListener', () => {
   })
 
   describe('stop', () => {
-    test('aborts and prevents reconnection', async () => {
+    it('aborts and prevents reconnection', async () => {
       const client = createMockLineClient()
       listener = new LineListener(client)
 
@@ -210,7 +210,7 @@ describe('LineListener', () => {
   })
 
   describe('reconnection', () => {
-    test('reconnects on listen error when still running', async () => {
+    it('reconnects on listen error when still running', async () => {
       const client = createMockLineClient()
       listener = new LineListener(client)
 
@@ -228,7 +228,7 @@ describe('LineListener', () => {
       expect(mockLogin.mock.calls.length).toBeGreaterThanOrEqual(2)
     })
 
-    test('emits error and reconnects on login failure', async () => {
+    it('emits error and reconnects on login failure', async () => {
       let callCount = 0
       mockLogin.mockImplementation((): Promise<void> => {
         callCount++
@@ -252,7 +252,7 @@ describe('LineListener', () => {
       expect(mockLogin.mock.calls.length).toBeGreaterThanOrEqual(2)
     })
 
-    test('does not reconnect after stop', async () => {
+    it('does not reconnect after stop', async () => {
       const client = createMockLineClient()
       listener = new LineListener(client)
 
@@ -267,7 +267,7 @@ describe('LineListener', () => {
   })
 
   describe('on/off/once', () => {
-    test('off removes listener', async () => {
+    it('off removes listener', async () => {
       const client = createMockLineClient()
       listener = new LineListener(client)
 
@@ -297,7 +297,7 @@ describe('LineListener', () => {
       expect(messages[0].text).toBe('first')
     })
 
-    test('once fires only once', async () => {
+    it('once fires only once', async () => {
       const client = createMockLineClient()
       listener = new LineListener(client)
 
@@ -326,7 +326,7 @@ describe('LineListener', () => {
   })
 
   describe('start after stop', () => {
-    test('resets reconnect attempts on fresh start', async () => {
+    it('resets reconnect attempts on fresh start', async () => {
       const client = createMockLineClient()
       listener = new LineListener(client)
 

@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, mock, test } from 'bun:test'
+import { afterEach, beforeEach, describe, expect, mock, it } from 'bun:test'
 import { existsSync, rmSync } from 'node:fs'
 import { mkdir } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
@@ -38,7 +38,7 @@ describe('whoami command', () => {
     process.env = originalEnv
   })
 
-  test('returns app_id, account_name, and verified status', async () => {
+  it('returns app_id, account_name, and verified status', async () => {
     const manager = new WeChatBotCredentialManager(tempDir)
     await manager.setCredentials({
       app_id: 'wx1234567890',
@@ -54,7 +54,7 @@ describe('whoami command', () => {
     expect(result.error).toBeUndefined()
   })
 
-  test('returns info for specific --account', async () => {
+  it('returns info for specific --account', async () => {
     const manager = new WeChatBotCredentialManager(tempDir)
     await manager.setCredentials({
       app_id: 'wxAAA',
@@ -74,7 +74,7 @@ describe('whoami command', () => {
     expect(result.verified).toBe(true)
   })
 
-  test('returns verified false when credentials are invalid', async () => {
+  it('returns verified false when credentials are invalid', async () => {
     mockVerifyCredentials.mockImplementationOnce(() => Promise.resolve(false))
 
     const manager = new WeChatBotCredentialManager(tempDir)
@@ -91,7 +91,7 @@ describe('whoami command', () => {
     expect(result.error).toBeUndefined()
   })
 
-  test('returns error when client throws', async () => {
+  it('returns error when client throws', async () => {
     mockVerifyCredentials.mockImplementationOnce(() => Promise.reject(new Error('Network error')))
 
     const manager = new WeChatBotCredentialManager(tempDir)

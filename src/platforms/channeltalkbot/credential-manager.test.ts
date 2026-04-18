@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
+import { afterEach, beforeEach, describe, expect, it } from 'bun:test'
 import { existsSync, rmSync } from 'node:fs'
 import { mkdir, stat } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
@@ -39,7 +39,7 @@ describe('ChannelBotCredentialManager', () => {
   })
 
   describe('load', () => {
-    test('returns empty config when no file exists', async () => {
+    it('returns empty config when no file exists', async () => {
       const config = await manager.load()
 
       expect(config.current).toBeNull()
@@ -49,7 +49,7 @@ describe('ChannelBotCredentialManager', () => {
   })
 
   describe('save and load', () => {
-    test('persists config to file', async () => {
+    it('persists config to file', async () => {
       const config = {
         current: { workspace_id: 'ch_abc123' },
         workspaces: {
@@ -71,11 +71,11 @@ describe('ChannelBotCredentialManager', () => {
   })
 
   describe('getCredentials', () => {
-    test('returns null when no credentials exist', async () => {
+    it('returns null when no credentials exist', async () => {
       expect(await manager.getCredentials()).toBeNull()
     })
 
-    test('returns current workspace credentials', async () => {
+    it('returns current workspace credentials', async () => {
       await manager.setCredentials(WORKSPACE_A)
 
       const creds = await manager.getCredentials()
@@ -83,7 +83,7 @@ describe('ChannelBotCredentialManager', () => {
       expect(creds).toEqual(WORKSPACE_A)
     })
 
-    test('returns specific workspace by id', async () => {
+    it('returns specific workspace by id', async () => {
       await manager.setCredentials(WORKSPACE_A)
       await manager.setCredentials(WORKSPACE_B)
 
@@ -92,7 +92,7 @@ describe('ChannelBotCredentialManager', () => {
       expect(creds).toEqual(WORKSPACE_A)
     })
 
-    test('returns null for non-existent workspace id', async () => {
+    it('returns null for non-existent workspace id', async () => {
       await manager.setCredentials(WORKSPACE_A)
 
       const creds = await manager.getCredentials('nonexistent')
@@ -100,7 +100,7 @@ describe('ChannelBotCredentialManager', () => {
       expect(creds).toBeNull()
     })
 
-    test('env vars take precedence when no workspaceId specified', async () => {
+    it('env vars take precedence when no workspaceId specified', async () => {
       await manager.setCredentials(WORKSPACE_A)
 
       process.env.E2E_CHANNELBOT_ACCESS_KEY = 'env-key'
@@ -114,7 +114,7 @@ describe('ChannelBotCredentialManager', () => {
       expect(creds?.workspace_name).toBe('env')
     })
 
-    test('env vars ignored when workspaceId explicitly provided', async () => {
+    it('env vars ignored when workspaceId explicitly provided', async () => {
       await manager.setCredentials(WORKSPACE_A)
 
       process.env.E2E_CHANNELBOT_ACCESS_KEY = 'env-key'
@@ -129,7 +129,7 @@ describe('ChannelBotCredentialManager', () => {
   })
 
   describe('setCredentials', () => {
-    test('stores workspace and sets as current', async () => {
+    it('stores workspace and sets as current', async () => {
       await manager.setCredentials(WORKSPACE_A)
 
       const config = await manager.load()
@@ -137,7 +137,7 @@ describe('ChannelBotCredentialManager', () => {
       expect(config.workspaces['ch_abc123']).toEqual(WORKSPACE_A)
     })
 
-    test('stores multiple workspaces', async () => {
+    it('stores multiple workspaces', async () => {
       await manager.setCredentials(WORKSPACE_A)
       await manager.setCredentials(WORKSPACE_B)
 
@@ -146,7 +146,7 @@ describe('ChannelBotCredentialManager', () => {
       expect(config.current).toEqual({ workspace_id: 'ch_def456' })
     })
 
-    test('overwrites existing workspace with same id', async () => {
+    it('overwrites existing workspace with same id', async () => {
       await manager.setCredentials(WORKSPACE_A)
       const updated = { ...WORKSPACE_A, workspace_name: 'Updated Company A' }
       await manager.setCredentials(updated)
@@ -158,7 +158,7 @@ describe('ChannelBotCredentialManager', () => {
   })
 
   describe('listAll', () => {
-    test('returns all workspaces with current flag', async () => {
+    it('returns all workspaces with current flag', async () => {
       await manager.setCredentials(WORKSPACE_A)
       await manager.setCredentials(WORKSPACE_B)
 
@@ -169,7 +169,7 @@ describe('ChannelBotCredentialManager', () => {
       expect(all.find((w) => w.workspace_id === 'ch_def456')?.is_current).toBe(true)
     })
 
-    test('returns empty array when no workspaces exist', async () => {
+    it('returns empty array when no workspaces exist', async () => {
       const all = await manager.listAll()
 
       expect(all).toEqual([])
@@ -177,7 +177,7 @@ describe('ChannelBotCredentialManager', () => {
   })
 
   describe('setCurrent', () => {
-    test('switches current workspace', async () => {
+    it('switches current workspace', async () => {
       await manager.setCredentials(WORKSPACE_A)
       await manager.setCredentials(WORKSPACE_B)
 
@@ -188,13 +188,13 @@ describe('ChannelBotCredentialManager', () => {
       expect(creds?.workspace_id).toBe('ch_abc123')
     })
 
-    test('returns false for unknown workspace', async () => {
+    it('returns false for unknown workspace', async () => {
       expect(await manager.setCurrent('nonexistent')).toBe(false)
     })
   })
 
   describe('removeWorkspace', () => {
-    test('removes a workspace by id', async () => {
+    it('removes a workspace by id', async () => {
       await manager.setCredentials(WORKSPACE_A)
       await manager.setCredentials(WORKSPACE_B)
 
@@ -205,7 +205,7 @@ describe('ChannelBotCredentialManager', () => {
       expect(Object.keys(config.workspaces)).toEqual(['ch_def456'])
     })
 
-    test('clears current when current workspace removed', async () => {
+    it('clears current when current workspace removed', async () => {
       await manager.setCredentials(WORKSPACE_A)
 
       await manager.removeWorkspace('ch_abc123')
@@ -214,11 +214,11 @@ describe('ChannelBotCredentialManager', () => {
       expect(config.current).toBeNull()
     })
 
-    test('returns false for unknown workspace', async () => {
+    it('returns false for unknown workspace', async () => {
       expect(await manager.removeWorkspace('nonexistent')).toBe(false)
     })
 
-    test('does not clear current if removing non-current workspace', async () => {
+    it('does not clear current if removing non-current workspace', async () => {
       await manager.setCredentials(WORKSPACE_A)
       await manager.setCredentials(WORKSPACE_B)
 
@@ -230,7 +230,7 @@ describe('ChannelBotCredentialManager', () => {
   })
 
   describe('clearCredentials', () => {
-    test('removes all credentials', async () => {
+    it('removes all credentials', async () => {
       await manager.setCredentials(WORKSPACE_A)
       await manager.setCredentials(WORKSPACE_B)
 
@@ -244,13 +244,13 @@ describe('ChannelBotCredentialManager', () => {
   })
 
   describe('getDefaultBot', () => {
-    test('returns null initially', async () => {
+    it('returns null initially', async () => {
       const bot = await manager.getDefaultBot()
 
       expect(bot).toBeNull()
     })
 
-    test('returns default bot name', async () => {
+    it('returns default bot name', async () => {
       await manager.setDefaultBot('my-bot')
 
       const bot = await manager.getDefaultBot()
@@ -260,7 +260,7 @@ describe('ChannelBotCredentialManager', () => {
   })
 
   describe('setDefaultBot', () => {
-    test('saves and retrieves default bot', async () => {
+    it('saves and retrieves default bot', async () => {
       await manager.setDefaultBot('my-bot')
 
       const bot = await manager.getDefaultBot()
@@ -268,7 +268,7 @@ describe('ChannelBotCredentialManager', () => {
       expect(bot).toBe('my-bot')
     })
 
-    test('updates existing default bot', async () => {
+    it('updates existing default bot', async () => {
       await manager.setDefaultBot('bot-1')
       await manager.setDefaultBot('bot-2')
 
@@ -277,7 +277,7 @@ describe('ChannelBotCredentialManager', () => {
       expect(bot).toBe('bot-2')
     })
 
-    test('scopes default bot to current workspace', async () => {
+    it('scopes default bot to current workspace', async () => {
       // given
       await manager.setCredentials(WORKSPACE_A)
       await manager.setDefaultBot('bot-a')
@@ -296,7 +296,7 @@ describe('ChannelBotCredentialManager', () => {
   })
 
   describe('file permissions', () => {
-    test('saves file with secure permissions (600)', async () => {
+    it('saves file with secure permissions (600)', async () => {
       await manager.setCredentials(WORKSPACE_A)
 
       const credPath = join(tempDir, 'channelbot-credentials.json')

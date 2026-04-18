@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, spyOn, test } from 'bun:test'
+import { afterEach, beforeEach, describe, expect, spyOn, it } from 'bun:test'
 import * as fs from 'node:fs'
 
 import { WhatsAppCredentialManager } from '@/platforms/whatsapp/credential-manager'
@@ -47,7 +47,7 @@ afterEach(() => {
 })
 
 describe('ensureWhatsAppAuth', () => {
-  test('exits with error when no account configured', async () => {
+  it('exits with error when no account configured', async () => {
     // given
     getAccountSpy.mockResolvedValue(null)
 
@@ -57,7 +57,7 @@ describe('ensureWhatsAppAuth', () => {
     expect(consoleSpy).toHaveBeenCalled()
   })
 
-  test('exits with error when creds file missing', async () => {
+  it('exits with error when creds file missing', async () => {
     // given
     getAccountSpy.mockResolvedValue(validAccount)
     existsSyncSpy.mockReturnValue(false)
@@ -68,7 +68,7 @@ describe('ensureWhatsAppAuth', () => {
     expect(consoleSpy).toHaveBeenCalled()
   })
 
-  test('succeeds when account and creds file exist', async () => {
+  it('succeeds when account and creds file exist', async () => {
     // given
     getAccountSpy.mockResolvedValue(validAccount)
     existsSyncSpy.mockReturnValue(true)

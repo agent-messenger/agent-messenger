@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, expect, spyOn, test } from 'bun:test'
+import { afterEach, beforeEach, expect, spyOn, it } from 'bun:test'
 
 import { DiscordClient } from '@/platforms/discord/client'
 import { whoamiAction, whoamiCommand } from '@/platforms/discord/commands/whoami'
@@ -35,19 +35,19 @@ afterEach(() => {
   processExitSpy?.mockRestore()
 })
 
-test('whoami command is defined with correct name and description', () => {
+it('whoami command is defined with correct name and description', () => {
   expect(whoamiCommand).toBeDefined()
   expect(whoamiCommand.name()).toBe('whoami')
   expect(whoamiCommand.description()).toBe('Show current authenticated user')
 })
 
-test('whoami command has --pretty option', () => {
+it('whoami command has --pretty option', () => {
   const options = whoamiCommand.options
   const hasPretty = options.some((opt: { long?: string }) => opt.long === '--pretty')
   expect(hasPretty).toBe(true)
 })
 
-test('whoami outputs expected user fields', async () => {
+it('whoami outputs expected user fields', async () => {
   await whoamiAction({})
 
   expect(consoleLogSpy).toHaveBeenCalledWith(
@@ -61,7 +61,7 @@ test('whoami outputs expected user fields', async () => {
   )
 })
 
-test('whoami outputs pretty-printed JSON when pretty is true', async () => {
+it('whoami outputs pretty-printed JSON when pretty is true', async () => {
   await whoamiAction({ pretty: true })
 
   expect(consoleLogSpy).toHaveBeenCalledWith(
@@ -79,7 +79,7 @@ test('whoami outputs pretty-printed JSON when pretty is true', async () => {
   )
 })
 
-test('whoami exits with error when not authenticated', async () => {
+it('whoami exits with error when not authenticated', async () => {
   credManagerSpy.mockResolvedValue({ token: undefined })
 
   await whoamiAction({})

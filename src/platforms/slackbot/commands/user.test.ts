@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, mock, test } from 'bun:test'
+import { beforeEach, describe, expect, mock, it } from 'bun:test'
 
 const mockListUsers = mock(() =>
   Promise.resolve([
@@ -61,7 +61,7 @@ describe('user commands', () => {
   })
 
   describe('listUsers', () => {
-    test('returns list of users', async () => {
+    it('returns list of users', async () => {
       // given
       const client = await new SlackBotClient().login({ token: 'xoxb-test-token' })
 
@@ -74,7 +74,7 @@ describe('user commands', () => {
       expect(users[1].name).toBe('bob')
     })
 
-    test('includes user metadata', async () => {
+    it('includes user metadata', async () => {
       // given
       const client = await new SlackBotClient().login({ token: 'xoxb-test-token' })
 
@@ -90,7 +90,7 @@ describe('user commands', () => {
       expect(user.is_admin).toBe(false)
     })
 
-    test('passes limit option', async () => {
+    it('passes limit option', async () => {
       // given
       const client = await new SlackBotClient().login({ token: 'xoxb-test-token' })
 
@@ -103,7 +103,7 @@ describe('user commands', () => {
   })
 
   describe('getUserInfo', () => {
-    test('returns user details by ID', async () => {
+    it('returns user details by ID', async () => {
       // given
       const client = await new SlackBotClient().login({ token: 'xoxb-test-token' })
 
@@ -116,7 +116,7 @@ describe('user commands', () => {
       expect(user.real_name).toBe('Alice Smith')
     })
 
-    test('includes profile information', async () => {
+    it('includes profile information', async () => {
       // given
       const client = await new SlackBotClient().login({ token: 'xoxb-test-token' })
 
@@ -129,7 +129,7 @@ describe('user commands', () => {
       expect(user.profile?.status_text).toBe('Working from home')
     })
 
-    test('called with correct user ID', async () => {
+    it('passes the user ID to getUserInfo', async () => {
       // given
       const client = await new SlackBotClient().login({ token: 'xoxb-test-token' })
 

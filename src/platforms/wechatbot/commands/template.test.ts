@@ -1,4 +1,4 @@
-import { afterAll, describe, expect, mock, test } from 'bun:test'
+import { afterAll, describe, expect, mock, it } from 'bun:test'
 import { rmSync } from 'node:fs'
 import { join } from 'node:path'
 
@@ -49,7 +49,7 @@ afterAll(() => {
 })
 
 describe('listAction', () => {
-  test('returns templates list', async () => {
+  it('returns templates list', async () => {
     const credManager = await makeCredManagerWithCreds()
     const result = await listAction({ _credManager: credManager })
 
@@ -58,7 +58,7 @@ describe('listAction', () => {
     expect(result.templates?.[0].title).toBe('Order Notification')
   })
 
-  test('returns error when client throws', async () => {
+  it('returns error when client throws', async () => {
     mock.module('../client', () => ({
       WeChatBotClient: class MockWeChatBotClient {
         async login() {
@@ -78,7 +78,7 @@ describe('listAction', () => {
 })
 
 describe('sendAction (template)', () => {
-  test('sends template message and returns msgid', async () => {
+  it('sends template message and returns msgid', async () => {
     mock.module('../client', () => ({
       WeChatBotClient: class MockWeChatBotClient {
         async login() {
@@ -100,7 +100,7 @@ describe('sendAction (template)', () => {
     expect(result.error).toBeUndefined()
   })
 
-  test('returns error when data is invalid JSON', async () => {
+  it('returns error when data is invalid JSON', async () => {
     mock.module('../client', () => ({
       WeChatBotClient: class MockWeChatBotClient {
         async login() {
@@ -121,7 +121,7 @@ describe('sendAction (template)', () => {
     expect(result.msgid).toBeUndefined()
   })
 
-  test('sends without data when not provided', async () => {
+  it('sends without data when not provided', async () => {
     const sendTemplateMsg = mock(() => Promise.resolve({ msgid: 777 }))
     mock.module('../client', () => ({
       WeChatBotClient: class MockWeChatBotClient {
@@ -139,7 +139,7 @@ describe('sendAction (template)', () => {
     expect(result.msgid).toBe(777)
   })
 
-  test('returns error when client throws', async () => {
+  it('returns error when client throws', async () => {
     mock.module('../client', () => ({
       WeChatBotClient: class MockWeChatBotClient {
         async login() {
@@ -158,7 +158,7 @@ describe('sendAction (template)', () => {
 })
 
 describe('deleteAction', () => {
-  test('deletes template and returns success', async () => {
+  it('deletes template and returns success', async () => {
     mock.module('../client', () => ({
       WeChatBotClient: class MockWeChatBotClient {
         async login() {
@@ -176,7 +176,7 @@ describe('deleteAction', () => {
     expect(result.error).toBeUndefined()
   })
 
-  test('returns error when client throws', async () => {
+  it('returns error when client throws', async () => {
     mock.module('../client', () => ({
       WeChatBotClient: class MockWeChatBotClient {
         async login() {

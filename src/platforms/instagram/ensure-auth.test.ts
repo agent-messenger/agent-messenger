@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, spyOn, test } from 'bun:test'
+import { afterEach, beforeEach, describe, expect, spyOn, it } from 'bun:test'
 import * as fs from 'node:fs'
 
 import { InstagramCredentialManager } from '@/platforms/instagram/credential-manager'
@@ -46,7 +46,7 @@ afterEach(() => {
 })
 
 describe('ensureInstagramAuth', () => {
-  test('exits with error when no account configured', async () => {
+  it('exits with error when no account configured', async () => {
     // given
     getAccountSpy.mockResolvedValue(null)
 
@@ -56,7 +56,7 @@ describe('ensureInstagramAuth', () => {
     expect(consoleSpy).toHaveBeenCalled()
   })
 
-  test('exits with error when session file missing', async () => {
+  it('exits with error when session file missing', async () => {
     // given
     getAccountSpy.mockResolvedValue(validAccount)
     existsSyncSpy.mockReturnValue(false)
@@ -67,7 +67,7 @@ describe('ensureInstagramAuth', () => {
     expect(consoleSpy).toHaveBeenCalled()
   })
 
-  test('succeeds when account and session file exist', async () => {
+  it('succeeds when account and session file exist', async () => {
     // given
     getAccountSpy.mockResolvedValue(validAccount)
     existsSyncSpy.mockReturnValue(true)

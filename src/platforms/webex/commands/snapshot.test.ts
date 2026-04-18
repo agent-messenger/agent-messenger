@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, mock, spyOn, test } from 'bun:test'
+import { afterEach, beforeEach, describe, expect, mock, spyOn, it } from 'bun:test'
 
 import { WebexError } from '../types'
 
@@ -79,7 +79,7 @@ describe('snapshot command', () => {
     consoleSpy.mockRestore()
   })
 
-  test('brief snapshot returns spaces with id and title only', async () => {
+  it('returns spaces with id and title only in brief mode', async () => {
     await snapshotAction({})
 
     expect(consoleSpy).toHaveBeenCalled()
@@ -91,7 +91,7 @@ describe('snapshot command', () => {
     expect(output.hint).toBeDefined()
   })
 
-  test('full snapshot returns spaces with id, title, type, lastActivity', async () => {
+  it('returns spaces with id, title, type, and lastActivity in full mode', async () => {
     await snapshotAction({ full: true })
 
     expect(consoleSpy).toHaveBeenCalled()
@@ -104,7 +104,7 @@ describe('snapshot command', () => {
     expect(output.hint).toBeUndefined()
   })
 
-  test('filters spaces to only those in my memberships', async () => {
+  it('filters spaces to only those in my memberships', async () => {
     await snapshotAction({})
 
     const output = JSON.parse(consoleSpy.mock.calls[consoleSpy.mock.calls.length - 1][0])
@@ -112,7 +112,7 @@ describe('snapshot command', () => {
     expect(output.spaces[0].id).toBe('space-1')
   })
 
-  test('not authenticated outputs error', async () => {
+  it('throws when not authenticated', async () => {
     mockLogin.mockImplementation(async () => {
       throw new WebexError('No Webex credentials found.', 'no_credentials')
     })

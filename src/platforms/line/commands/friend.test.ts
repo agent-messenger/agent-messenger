@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, expect, mock, spyOn, test } from 'bun:test'
+import { afterEach, beforeEach, expect, mock, spyOn, it } from 'bun:test'
 
 const originalConsoleLog = console.log
 
@@ -42,7 +42,7 @@ afterEach(() => {
   console.log = originalConsoleLog
 })
 
-test('list: fetches and outputs friends', async () => {
+it('list: fetches and outputs friends', async () => {
   // when
   await friendCommand.parseAsync(['node', 'friend', 'list'])
 
@@ -56,7 +56,7 @@ test('list: fetches and outputs friends', async () => {
   expect(output[0].display_name).toBe('Alice')
 })
 
-test('list: outputs friends with metadata', async () => {
+it('list: outputs friends with metadata', async () => {
   // when
   await friendCommand.parseAsync(['node', 'friend', 'list'])
 
@@ -67,7 +67,7 @@ test('list: outputs friends with metadata', async () => {
   expect(friend.display_name).toBeDefined()
 })
 
-test('list: closes client after fetching friends', async () => {
+it('list: closes client after fetching friends', async () => {
   // when
   await friendCommand.parseAsync(['node', 'friend', 'list'])
 
@@ -75,7 +75,7 @@ test('list: closes client after fetching friends', async () => {
   expect(closeSpy).toHaveBeenCalledTimes(1)
 })
 
-test('list: outputs empty array when no friends', async () => {
+it('list: outputs empty array when no friends', async () => {
   // given
   getFriendsSpy.mockResolvedValue([])
 
@@ -87,7 +87,7 @@ test('list: outputs empty array when no friends', async () => {
   expect(output).toHaveLength(0)
 })
 
-test('list: includes all friend fields', async () => {
+it('list: includes all friend fields', async () => {
   // when
   await friendCommand.parseAsync(['node', 'friend', 'list'])
 

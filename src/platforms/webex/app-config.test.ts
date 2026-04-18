@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
+import { afterEach, beforeEach, describe, expect, it } from 'bun:test'
 
 import { getWebexAppCredentials } from './app-config'
 
@@ -30,7 +30,7 @@ describe('webex app config', () => {
     }
   })
 
-  test('returns env credentials when primary env vars are set', () => {
+  it('returns env credentials when primary env vars are set', () => {
     process.env.AGENT_WEBEX_CLIENT_ID = 'my-client-id'
     process.env.AGENT_WEBEX_CLIENT_SECRET = 'my-client-secret'
 
@@ -41,7 +41,7 @@ describe('webex app config', () => {
     })
   })
 
-  test('returns env credentials when legacy env vars are set', () => {
+  it('returns env credentials when legacy env vars are set', () => {
     process.env.AGENT_MESSENGER_WEBEX_CLIENT_ID = 'legacy-client-id'
     process.env.AGENT_MESSENGER_WEBEX_CLIENT_SECRET = 'legacy-client-secret'
 
@@ -52,28 +52,28 @@ describe('webex app config', () => {
     })
   })
 
-  test('returns builtin credentials when nothing is configured', () => {
+  it('returns builtin credentials when nothing is configured', () => {
     const result = getWebexAppCredentials()
     expect(result.source).toBe('builtin')
     expect(result.clientId).toBeTruthy()
     expect(result.clientSecret).toBeTruthy()
   })
 
-  test('returns builtin when only clientId is set', () => {
+  it('returns builtin when only clientId is set', () => {
     process.env.AGENT_WEBEX_CLIENT_ID = 'my-client-id'
 
     const result = getWebexAppCredentials()
     expect(result.source).toBe('builtin')
   })
 
-  test('returns builtin when only clientSecret is set', () => {
+  it('returns builtin when only clientSecret is set', () => {
     process.env.AGENT_WEBEX_CLIENT_SECRET = 'my-client-secret'
 
     const result = getWebexAppCredentials()
     expect(result.source).toBe('builtin')
   })
 
-  test('trims whitespace from clientId and clientSecret', () => {
+  it('trims whitespace from clientId and clientSecret', () => {
     process.env.AGENT_WEBEX_CLIENT_ID = '  my-client-id  '
     process.env.AGENT_WEBEX_CLIENT_SECRET = '  my-client-secret  '
 
@@ -84,7 +84,7 @@ describe('webex app config', () => {
     })
   })
 
-  test('primary env takes precedence over legacy env', () => {
+  it('primary env takes precedence over legacy env', () => {
     process.env.AGENT_WEBEX_CLIENT_ID = 'primary-id'
     process.env.AGENT_WEBEX_CLIENT_SECRET = 'primary-secret'
     process.env.AGENT_MESSENGER_WEBEX_CLIENT_ID = 'legacy-id'

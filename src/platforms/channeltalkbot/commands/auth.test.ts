@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, mock, test } from 'bun:test'
+import { afterEach, beforeEach, describe, expect, mock, it } from 'bun:test'
 import { existsSync, rmSync } from 'node:fs'
 import { mkdir } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
@@ -39,7 +39,7 @@ describe('auth commands', () => {
   })
 
   describe('setAction', () => {
-    test('validates and stores credentials with workspace info from API', async () => {
+    it('validates and stores credentials with workspace info from API', async () => {
       const manager = new ChannelBotCredentialManager(tempDir)
 
       const result = await setAction('key123', 'secret123', { _credManager: manager })
@@ -53,7 +53,7 @@ describe('auth commands', () => {
       expect(creds?.workspace_id).toBe('ch123')
     })
 
-    test('uses --workspace option as workspace name', async () => {
+    it('uses --workspace option as workspace name', async () => {
       const manager = new ChannelBotCredentialManager(tempDir)
 
       const result = await setAction('key123', 'secret123', {
@@ -68,7 +68,7 @@ describe('auth commands', () => {
       expect(creds?.workspace_name).toBe('My Custom Name')
     })
 
-    test('handles client errors gracefully', async () => {
+    it('handles client errors gracefully', async () => {
       mockGetChannel.mockImplementationOnce(() => Promise.reject(new Error('Invalid credentials')))
 
       const manager = new ChannelBotCredentialManager(tempDir)
@@ -81,7 +81,7 @@ describe('auth commands', () => {
   })
 
   describe('statusAction', () => {
-    test('returns no credentials when none set', async () => {
+    it('returns no credentials when none set', async () => {
       const manager = new ChannelBotCredentialManager(tempDir)
 
       const result = await statusAction({ _credManager: manager })
@@ -90,7 +90,7 @@ describe('auth commands', () => {
       expect(result.error).toBeDefined()
     })
 
-    test('returns valid status for current workspace', async () => {
+    it('returns valid status for current workspace', async () => {
       const manager = new ChannelBotCredentialManager(tempDir)
       await manager.setCredentials({
         workspace_id: 'ch123',
@@ -105,7 +105,7 @@ describe('auth commands', () => {
       expect(result.workspace_id).toBe('ch123')
     })
 
-    test('returns invalid when API call fails', async () => {
+    it('returns invalid when API call fails', async () => {
       mockGetChannel.mockImplementationOnce(() => Promise.reject(new Error('Unauthorized')))
 
       const manager = new ChannelBotCredentialManager(tempDir)
@@ -123,7 +123,7 @@ describe('auth commands', () => {
   })
 
   describe('clearAction', () => {
-    test('removes all stored credentials', async () => {
+    it('removes all stored credentials', async () => {
       const manager = new ChannelBotCredentialManager(tempDir)
       await manager.setCredentials({
         workspace_id: 'ch123',
@@ -140,7 +140,7 @@ describe('auth commands', () => {
   })
 
   describe('listAction', () => {
-    test('returns all stored workspaces', async () => {
+    it('returns all stored workspaces', async () => {
       const manager = new ChannelBotCredentialManager(tempDir)
       await manager.setCredentials({
         workspace_id: 'ch1',
@@ -162,7 +162,7 @@ describe('auth commands', () => {
       expect(result.workspaces?.find((w) => w.workspace_id === 'ch1')?.is_current).toBe(false)
     })
 
-    test('returns empty list when no workspaces stored', async () => {
+    it('returns empty list when no workspaces stored', async () => {
       const manager = new ChannelBotCredentialManager(tempDir)
 
       const result = await listAction({ _credManager: manager })
@@ -172,7 +172,7 @@ describe('auth commands', () => {
   })
 
   describe('useAction', () => {
-    test('switches current workspace', async () => {
+    it('switches current workspace', async () => {
       const manager = new ChannelBotCredentialManager(tempDir)
       await manager.setCredentials({
         workspace_id: 'ch1',
@@ -193,7 +193,7 @@ describe('auth commands', () => {
       expect(result.workspace_id).toBe('ch1')
     })
 
-    test('returns error for unknown workspace', async () => {
+    it('returns error for unknown workspace', async () => {
       const manager = new ChannelBotCredentialManager(tempDir)
 
       const result = await useAction('nonexistent', { _credManager: manager })
@@ -203,7 +203,7 @@ describe('auth commands', () => {
   })
 
   describe('removeAction', () => {
-    test('removes a stored workspace', async () => {
+    it('removes a stored workspace', async () => {
       const manager = new ChannelBotCredentialManager(tempDir)
       await manager.setCredentials({
         workspace_id: 'ch1',
@@ -218,7 +218,7 @@ describe('auth commands', () => {
       expect(await manager.getCredentials('ch1')).toBeNull()
     })
 
-    test('returns error for unknown workspace', async () => {
+    it('returns error for unknown workspace', async () => {
       const manager = new ChannelBotCredentialManager(tempDir)
 
       const result = await removeAction('nonexistent', { _credManager: manager })
@@ -228,7 +228,7 @@ describe('auth commands', () => {
   })
 
   describe('botAction', () => {
-    test('sets default bot name', async () => {
+    it('sets default bot name', async () => {
       const manager = new ChannelBotCredentialManager(tempDir)
 
       const result = await botAction('my-bot', { _credManager: manager })
@@ -238,7 +238,7 @@ describe('auth commands', () => {
       expect(await manager.getDefaultBot()).toBe('my-bot')
     })
 
-    test('updates existing default bot', async () => {
+    it('updates existing default bot', async () => {
       const manager = new ChannelBotCredentialManager(tempDir)
       await manager.setDefaultBot('old-bot')
 

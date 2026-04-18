@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, expect, mock, spyOn, test } from 'bun:test'
+import { afterEach, beforeEach, expect, mock, spyOn, it } from 'bun:test'
 
 import { DiscordClient } from '../client'
 import { DiscordCredentialManager } from '../credential-manager'
@@ -93,7 +93,7 @@ afterEach(() => {
   credManagerLoadSpy?.mockRestore()
 })
 
-test('send: returns message with id', async () => {
+it('send: returns message with id', async () => {
   const consoleSpy = mock((_msg: string) => {})
   console.log = consoleSpy
 
@@ -104,7 +104,7 @@ test('send: returns message with id', async () => {
   expect(output).toContain('msg_123')
 })
 
-test('list: returns array of messages', async () => {
+it('list: returns array of messages', async () => {
   const consoleSpy = mock((_msg: string) => {})
   console.log = consoleSpy
 
@@ -116,7 +116,7 @@ test('list: returns array of messages', async () => {
   expect(output).toContain('msg_124')
 })
 
-test('get: returns single message', async () => {
+it('get: returns single message', async () => {
   const consoleSpy = mock((_msg: string) => {})
   console.log = consoleSpy
 
@@ -127,7 +127,7 @@ test('get: returns single message', async () => {
   expect(output).toContain('msg_123')
 })
 
-test('delete: returns success', async () => {
+it('delete: returns success', async () => {
   const consoleSpy = mock((_msg: string) => {})
   console.log = consoleSpy
 
@@ -138,7 +138,7 @@ test('delete: returns success', async () => {
   expect(output).toContain('deleted')
 })
 
-test('ack: returns success', async () => {
+it('ack: returns success', async () => {
   const consoleSpy = mock((_msg: string) => {})
   console.log = consoleSpy
 
@@ -149,7 +149,7 @@ test('ack: returns success', async () => {
   expect(output).toContain('acknowledged')
 })
 
-test('search: returns search results with query', async () => {
+it('search: returns search results with query', async () => {
   const consoleSpy = mock((_msg: string) => {})
   console.log = consoleSpy
 
@@ -162,7 +162,7 @@ test('search: returns search results with query', async () => {
   expect(output).toContain('Hello world')
 })
 
-test('search: includes total_results in output', async () => {
+it('search: includes total_results in output', async () => {
   const consoleSpy = mock((_msg: string) => {})
   console.log = consoleSpy
 
@@ -174,7 +174,7 @@ test('search: includes total_results in output', async () => {
   expect(output).toContain('2')
 })
 
-test('search: passes options to client', async () => {
+it('search: passes options to client', async () => {
   const consoleSpy = mock((_msg: string) => {})
   console.log = consoleSpy
 

@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, spyOn, test } from 'bun:test'
+import { afterEach, beforeEach, describe, expect, spyOn, it } from 'bun:test'
 import * as childProcess from 'node:child_process'
 
 import { WebexClient } from '../client'
@@ -42,7 +42,7 @@ describe('auth commands', () => {
   })
 
   describe('loginAction with --token', () => {
-    test('authenticates with provided token (bot token flow)', async () => {
+    it('authenticates with provided token (bot token flow)', async () => {
       protoSpy(WebexClient.prototype, 'login').mockResolvedValue(new WebexClient())
       protoSpy(WebexClient.prototype, 'testAuth').mockResolvedValue(mockPerson)
       protoSpy(WebexCredentialManager.prototype, 'saveConfig').mockResolvedValue(undefined)
@@ -56,7 +56,7 @@ describe('auth commands', () => {
       expect(output.user.displayName).toBe('Test User')
     })
 
-    test('saves tokenType as manual with expiresAt 0', async () => {
+    it('saves tokenType as manual with expiresAt 0', async () => {
       protoSpy(WebexClient.prototype, 'login').mockResolvedValue(new WebexClient())
       protoSpy(WebexClient.prototype, 'testAuth').mockResolvedValue(mockPerson)
       const saveSpy = protoSpy(WebexCredentialManager.prototype, 'saveConfig').mockResolvedValue(undefined)
@@ -71,7 +71,7 @@ describe('auth commands', () => {
   })
 
   describe('loginAction with --client-id and --client-secret', () => {
-    test('uses provided credentials for Device Grant flow', async () => {
+    it('uses provided credentials for Device Grant flow', async () => {
       protoSpy(WebexCredentialManager.prototype, 'requestDeviceCode').mockResolvedValue({
         deviceCode: 'd',
         userCode: 'u',
@@ -101,7 +101,7 @@ describe('auth commands', () => {
       )
     })
 
-    test('saves tokenType as oauth in config', async () => {
+    it('saves tokenType as oauth in config', async () => {
       protoSpy(WebexCredentialManager.prototype, 'requestDeviceCode').mockResolvedValue({
         deviceCode: 'd',
         userCode: 'u',
@@ -125,7 +125,7 @@ describe('auth commands', () => {
       expect(savedConfig.tokenType).toBe('oauth')
     })
 
-    test('saves clientId and clientSecret in config', async () => {
+    it('saves clientId and clientSecret in config', async () => {
       protoSpy(WebexCredentialManager.prototype, 'requestDeviceCode').mockResolvedValue({
         deviceCode: 'd',
         userCode: 'u',
@@ -152,7 +152,7 @@ describe('auth commands', () => {
   })
 
   describe('statusAction', () => {
-    test('shows authenticated status when token is valid', async () => {
+    it('shows authenticated status when token is valid', async () => {
       protoSpy(WebexCredentialManager.prototype, 'loadConfig').mockResolvedValue(null)
       protoSpy(WebexCredentialManager.prototype, 'getToken').mockResolvedValue('valid-token')
       protoSpy(WebexClient.prototype, 'login').mockResolvedValue(new WebexClient())
@@ -166,7 +166,7 @@ describe('auth commands', () => {
       expect(output.user.displayName).toBe('Test User')
     })
 
-    test('shows not authenticated when no token', async () => {
+    it('shows not authenticated when no token', async () => {
       protoSpy(WebexCredentialManager.prototype, 'loadConfig').mockResolvedValue(null)
       protoSpy(WebexCredentialManager.prototype, 'getToken').mockResolvedValue(null)
       const exitSpy = protoSpy(process, 'exit').mockImplementation(() => undefined as never)
@@ -179,7 +179,7 @@ describe('auth commands', () => {
       expect(exitSpy).toHaveBeenCalledWith(1)
     })
 
-    test('shows not authenticated when token validation fails', async () => {
+    it('shows not authenticated when token validation fails', async () => {
       protoSpy(WebexCredentialManager.prototype, 'loadConfig').mockResolvedValue(null)
       protoSpy(WebexCredentialManager.prototype, 'getToken').mockResolvedValue('invalid-token')
       protoSpy(WebexClient.prototype, 'login').mockResolvedValue(new WebexClient())
@@ -192,7 +192,7 @@ describe('auth commands', () => {
       expect(output.authenticated).toBe(false)
     })
 
-    test('loads config for stored client credentials', async () => {
+    it('loads config for stored client credentials', async () => {
       protoSpy(WebexCredentialManager.prototype, 'loadConfig').mockResolvedValue({
         accessToken: 'at',
         refreshToken: 'rt',
@@ -211,7 +211,7 @@ describe('auth commands', () => {
   })
 
   describe('extractAction', () => {
-    test('passes deviceUrl and tokenType to client.login', async () => {
+    it('passes deviceUrl and tokenType to client.login', async () => {
       protoSpy(WebexTokenExtractor.prototype, 'extract').mockResolvedValue({
         accessToken: 'extracted-token-at-least-twenty-chars',
         refreshToken: 'refresh-token',
@@ -232,7 +232,7 @@ describe('auth commands', () => {
       })
     })
 
-    test('attempts refresh when token is expired', async () => {
+    it('attempts refresh when token is expired', async () => {
       protoSpy(WebexTokenExtractor.prototype, 'extract').mockResolvedValue({
         accessToken: 'expired-token-at-least-twenty-chars-',
         refreshToken: 'valid-refresh-token',
@@ -257,7 +257,7 @@ describe('auth commands', () => {
       expect(output.refreshed).toBe(true)
     })
 
-    test('reports expired token with actionable hint when refresh fails', async () => {
+    it('reports expired token with actionable hint when refresh fails', async () => {
       protoSpy(WebexTokenExtractor.prototype, 'extract').mockResolvedValue({
         accessToken: 'expired-token-at-least-twenty-chars-',
         refreshToken: 'bad-refresh-token',
@@ -278,7 +278,7 @@ describe('auth commands', () => {
       expect(exitSpy).toHaveBeenCalledWith(1)
     })
 
-    test('rethrows non-auth errors even when token is expired', async () => {
+    it('rethrows non-auth errors even when token is expired', async () => {
       protoSpy(WebexTokenExtractor.prototype, 'extract').mockResolvedValue({
         accessToken: 'expired-token-at-least-twenty-chars-',
         refreshToken: 'bad-refresh-token',
@@ -298,7 +298,7 @@ describe('auth commands', () => {
       }
     })
 
-    test('rethrows non-expiry auth errors', async () => {
+    it('rethrows non-expiry auth errors', async () => {
       protoSpy(WebexTokenExtractor.prototype, 'extract').mockResolvedValue({
         accessToken: 'valid-token-at-least-twenty-chars-xx',
         expiresAt: Date.now() + 3600000,
@@ -316,7 +316,7 @@ describe('auth commands', () => {
       }
     })
 
-    test('outputs no token found when extract returns null', async () => {
+    it('outputs no token found when extract returns null', async () => {
       protoSpy(WebexTokenExtractor.prototype, 'extract').mockResolvedValue(null)
       const exitSpy = protoSpy(process, 'exit').mockImplementation(() => undefined as never)
 
@@ -330,7 +330,7 @@ describe('auth commands', () => {
   })
 
   describe('logoutAction', () => {
-    test('clears credentials when authenticated', async () => {
+    it('clears credentials when authenticated', async () => {
       protoSpy(WebexCredentialManager.prototype, 'loadConfig').mockResolvedValue({
         accessToken: 'token',
         refreshToken: 'refresh',
@@ -346,7 +346,7 @@ describe('auth commands', () => {
       expect(output.success).toBe(true)
     })
 
-    test('shows error when not authenticated', async () => {
+    it('shows error when not authenticated', async () => {
       protoSpy(WebexCredentialManager.prototype, 'loadConfig').mockResolvedValue(null)
       const exitSpy = protoSpy(process, 'exit').mockImplementation(() => undefined as never)
 

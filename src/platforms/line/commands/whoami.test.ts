@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, expect, mock, spyOn, test } from 'bun:test'
+import { afterEach, beforeEach, expect, mock, spyOn, it } from 'bun:test'
 
 const originalConsoleLog = console.log
 
@@ -34,7 +34,7 @@ afterEach(() => {
   console.log = originalConsoleLog
 })
 
-test('whoami: fetches and outputs profile', async () => {
+it('whoami: fetches and outputs profile', async () => {
   // when
   await whoamiCommand.parseAsync(['node', 'whoami'])
 
@@ -47,7 +47,7 @@ test('whoami: fetches and outputs profile', async () => {
   expect(output.display_name).toBe('Test User')
 })
 
-test('whoami: outputs profile with all fields', async () => {
+it('whoami: outputs profile with all fields', async () => {
   // when
   await whoamiCommand.parseAsync(['node', 'whoami'])
 
@@ -59,7 +59,7 @@ test('whoami: outputs profile with all fields', async () => {
   expect(output.status_message).toBeDefined()
 })
 
-test('whoami: closes client after fetching profile', async () => {
+it('whoami: closes client after fetching profile', async () => {
   // when
   await whoamiCommand.parseAsync(['node', 'whoami'])
 
@@ -67,7 +67,7 @@ test('whoami: closes client after fetching profile', async () => {
   expect(closeSpy).toHaveBeenCalledTimes(1)
 })
 
-test('whoami: outputs profile with picture_url', async () => {
+it('whoami: outputs profile with picture_url', async () => {
   // when
   await whoamiCommand.parseAsync(['node', 'whoami'])
 
@@ -76,7 +76,7 @@ test('whoami: outputs profile with picture_url', async () => {
   expect(output.picture_url).toBe('https://example.com/pic.jpg')
 })
 
-test('whoami: outputs profile with status_message', async () => {
+it('whoami: outputs profile with status_message', async () => {
   // when
   await whoamiCommand.parseAsync(['node', 'whoami'])
 

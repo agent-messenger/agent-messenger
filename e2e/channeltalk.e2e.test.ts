@@ -1,4 +1,4 @@
-import { afterEach, beforeAll, describe, expect, test } from 'bun:test'
+import { afterEach, beforeAll, describe, expect, it } from 'bun:test'
 
 import { CHANNEL_TEST_WORKSPACE_ID, CHANNEL_TEST_WORKSPACE_NAME, validateChannelEnvironment } from './config'
 import { generateTestId, parseJSON, runCLI, waitForRateLimit } from './helpers'
@@ -30,7 +30,7 @@ describe('Channel E2E Tests', () => {
   })
 
   describe('auth', () => {
-    test('auth status returns valid workspace info', async () => {
+    it('auth status returns valid workspace info', async () => {
       if (!channelAvailable) return
 
       const result = await runCLI('channeltalk', ['auth', 'status'])
@@ -44,7 +44,7 @@ describe('Channel E2E Tests', () => {
       }
     })
 
-    test('auth list shows workspaces', async () => {
+    it('auth list shows workspaces', async () => {
       if (!channelAvailable) return
 
       const result = await runCLI('channeltalk', ['auth', 'list'])
@@ -57,7 +57,7 @@ describe('Channel E2E Tests', () => {
   })
 
   describe('group', () => {
-    test('group list returns groups array', async () => {
+    it('group list returns groups array', async () => {
       if (!channelAvailable) return
 
       const result = await runCLI('channeltalk', ['group', 'list', '--limit', '10'])
@@ -68,7 +68,7 @@ describe('Channel E2E Tests', () => {
       expect(data!.groups.length).toBeGreaterThan(0)
     })
 
-    test('group get returns group details', async () => {
+    it('group get returns group details', async () => {
       if (!channelAvailable) return
 
       const result = await runCLI('channeltalk', ['group', 'get', testGroupId])
@@ -79,7 +79,7 @@ describe('Channel E2E Tests', () => {
       expect(data?.name).toBe(testGroupName)
     })
 
-    test('group messages returns messages array', async () => {
+    it('group messages returns messages array', async () => {
       if (!channelAvailable) return
 
       const result = await runCLI('channeltalk', ['group', 'messages', testGroupId, '--limit', '5'])
@@ -91,7 +91,7 @@ describe('Channel E2E Tests', () => {
   })
 
   describe('message', () => {
-    test('message send creates a group message', async () => {
+    it('message send creates a group message', async () => {
       if (!channelAvailable) return
 
       const testId = generateTestId()
@@ -104,7 +104,7 @@ describe('Channel E2E Tests', () => {
       expect(data?.plain_text).toContain(testId)
     })
 
-    test('message list returns messages from group', async () => {
+    it('message list returns messages from group', async () => {
       if (!channelAvailable) return
 
       const result = await runCLI('channeltalk', ['message', 'list', 'group', testGroupId, '--limit', '5'])
@@ -114,7 +114,7 @@ describe('Channel E2E Tests', () => {
       expect(Array.isArray(data?.messages)).toBe(true)
     })
 
-    test('message get retrieves a specific message', async () => {
+    it('message get retrieves a specific message', async () => {
       if (!channelAvailable) return
 
       const testId = generateTestId()
@@ -136,7 +136,7 @@ describe('Channel E2E Tests', () => {
   })
 
   describe('chat', () => {
-    test('chat list returns user chats array', async () => {
+    it('chat list returns user chats array', async () => {
       if (!channelAvailable) return
 
       const result = await runCLI('channeltalk', ['chat', 'list', '--limit', '5'])
@@ -148,7 +148,7 @@ describe('Channel E2E Tests', () => {
   })
 
   describe('manager', () => {
-    test('manager list returns managers array', async () => {
+    it('manager list returns managers array', async () => {
       if (!channelAvailable) return
 
       const result = await runCLI('channeltalk', ['manager', 'list', '--limit', '10'])
@@ -161,7 +161,7 @@ describe('Channel E2E Tests', () => {
   })
 
   describe('bot', () => {
-    test('bot list returns bots array', async () => {
+    it('bot list returns bots array', async () => {
       if (!channelAvailable) return
 
       const result = await runCLI('channeltalk', ['bot', 'list', '--limit', '10'])
@@ -173,7 +173,7 @@ describe('Channel E2E Tests', () => {
   })
 
   describe('snapshot', () => {
-    test('snapshot returns workspace overview', async () => {
+    it('snapshot returns workspace overview', async () => {
       if (!channelAvailable) return
 
       const result = await runCLI('channeltalk', ['snapshot', '--limit', '2'])

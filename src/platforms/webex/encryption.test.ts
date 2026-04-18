@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'bun:test'
+import { describe, expect, it } from 'bun:test'
 
 import * as jose from 'node-jose'
 
@@ -23,7 +23,7 @@ const createKeyring = async (keyUri: string) => {
 describe('WebexEncryptionService', () => {
   const keyUri = 'kms://kms-aore.wbx2.com/keys/7819829b-5e0d-4139-9cad-1b6fe7aee533'
 
-  test('encryptText emits JWE with alg, enc, and kid JOSE headers', async () => {
+  it('encryptText emits JWE with alg, enc, and kid JOSE headers', async () => {
     const service = await createKeyring(keyUri)
 
     const jwe = await service.encryptText(keyUri, 'hello world')
@@ -35,7 +35,7 @@ describe('WebexEncryptionService', () => {
     expect(header.kid).toBe(keyUri)
   })
 
-  test('encryptText returns null when key is unknown', async () => {
+  it('encryptText returns null when key is unknown', async () => {
     const service = await createKeyring(keyUri)
 
     const jwe = await service.encryptText('kms://other/keys/missing', 'hello')
@@ -43,7 +43,7 @@ describe('WebexEncryptionService', () => {
     expect(jwe).toBeNull()
   })
 
-  test('decryptText round-trips plaintext encrypted by encryptText', async () => {
+  it('decryptText round-trips plaintext encrypted by encryptText', async () => {
     const service = await createKeyring(keyUri)
 
     const jwe = await service.encryptText(keyUri, 'round trip')

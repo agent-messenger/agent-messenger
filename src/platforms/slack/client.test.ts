@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, mock, test } from 'bun:test'
+import { beforeEach, describe, expect, mock, it } from 'bun:test'
 
 import type { WebClient } from '@slack/web-api'
 
@@ -47,21 +47,21 @@ function resetMocks() {
 
 describe('SlackClient', () => {
   describe('login', () => {
-    test('throws SlackError when token is empty', async () => {
+    it('throws SlackError when token is empty', async () => {
       await expect(new SlackClient().login({ token: '', cookie: 'xoxd-cookie' })).rejects.toThrow(SlackError)
       await expect(new SlackClient().login({ token: '', cookie: 'xoxd-cookie' })).rejects.toThrow('Token is required')
     })
 
-    test('throws SlackError when cookie is empty', async () => {
+    it('throws SlackError when cookie is empty', async () => {
       await expect(new SlackClient().login({ token: 'xoxc-token', cookie: '' })).rejects.toThrow(SlackError)
       await expect(new SlackClient().login({ token: 'xoxc-token', cookie: '' })).rejects.toThrow('Cookie is required')
     })
 
-    test('throws SlackError when both token and cookie are empty', async () => {
+    it('throws SlackError when both token and cookie are empty', async () => {
       await expect(new SlackClient().login({ token: '', cookie: '' })).rejects.toThrow(SlackError)
     })
 
-    test('creates client successfully with valid token and cookie', async () => {
+    it('creates client successfully with valid token and cookie', async () => {
       const client = await new SlackClient().login({ token: 'xoxc-token', cookie: 'xoxd-cookie' })
       expect(client).toBeInstanceOf(SlackClient)
     })
@@ -70,7 +70,7 @@ describe('SlackClient', () => {
   describe('testAuth', () => {
     beforeEach(() => resetMocks())
 
-    test('returns auth info on success', async () => {
+    it('returns auth info on success', async () => {
       mockWebClient.auth.test.mockResolvedValue({
         ok: true,
         user_id: 'U123',
@@ -88,7 +88,7 @@ describe('SlackClient', () => {
       expect(result.team_id).toBe('T123')
     })
 
-    test('throws SlackError on API failure', async () => {
+    it('throws SlackError on API failure', async () => {
       mockWebClient.auth.test.mockResolvedValue({
         ok: false,
         error: 'invalid_auth',
@@ -105,7 +105,7 @@ describe('SlackClient', () => {
   describe('listChannels', () => {
     beforeEach(() => resetMocks())
 
-    test('returns list of channels', async () => {
+    it('returns list of channels', async () => {
       mockWebClient.conversations.list.mockResolvedValue({
         ok: true,
         channels: [
@@ -138,7 +138,7 @@ describe('SlackClient', () => {
       expect(channels[1].name).toBe('random')
     })
 
-    test('handles pagination automatically', async () => {
+    it('handles pagination automatically', async () => {
       mockWebClient.conversations.list
         .mockResolvedValueOnce({
           ok: true,
@@ -177,7 +177,7 @@ describe('SlackClient', () => {
       expect(mockWebClient.conversations.list).toHaveBeenCalledTimes(2)
     })
 
-    test('throws SlackError on API failure', async () => {
+    it('throws SlackError on API failure', async () => {
       mockWebClient.conversations.list.mockResolvedValue({
         ok: false,
         error: 'channel_not_found',
@@ -194,7 +194,7 @@ describe('SlackClient', () => {
   describe('getChannel', () => {
     beforeEach(() => resetMocks())
 
-    test('returns channel info', async () => {
+    it('returns channel info', async () => {
       mockWebClient.conversations.info.mockResolvedValue({
         ok: true,
         channel: {
@@ -216,7 +216,7 @@ describe('SlackClient', () => {
       expect(channel.name).toBe('general')
     })
 
-    test('throws SlackError when channel not found', async () => {
+    it('throws SlackError when channel not found', async () => {
       mockWebClient.conversations.info.mockResolvedValue({
         ok: false,
         error: 'channel_not_found',
@@ -233,25 +233,25 @@ describe('SlackClient', () => {
   describe('resolveChannel', () => {
     beforeEach(() => resetMocks())
 
-    test('returns channel ID unchanged when input starts with C', async () => {
+    it('returns channel ID unchanged when input starts with C', async () => {
       const client = await new SlackClient().login({ token: 'xoxc-token', cookie: 'xoxd-cookie' })
       const channel = await client.resolveChannel('C123ABC')
       expect(channel).toBe('C123ABC')
     })
 
-    test('returns channel ID unchanged when input starts with D', async () => {
+    it('returns channel ID unchanged when input starts with D', async () => {
       const client = await new SlackClient().login({ token: 'xoxc-token', cookie: 'xoxd-cookie' })
       const channel = await client.resolveChannel('D123ABC')
       expect(channel).toBe('D123ABC')
     })
 
-    test('returns channel ID unchanged when input starts with G', async () => {
+    it('returns channel ID unchanged when input starts with G', async () => {
       const client = await new SlackClient().login({ token: 'xoxc-token', cookie: 'xoxd-cookie' })
       const channel = await client.resolveChannel('G123ABC')
       expect(channel).toBe('G123ABC')
     })
 
-    test('resolves channel name to ID by calling listChannels', async () => {
+    it('resolves channel name to ID by calling listChannels', async () => {
       mockWebClient.conversations.list.mockResolvedValue({
         ok: true,
         channels: [
@@ -275,7 +275,7 @@ describe('SlackClient', () => {
       expect(mockWebClient.conversations.list).toHaveBeenCalledTimes(1)
     })
 
-    test('strips leading # from channel name', async () => {
+    it('strips leading # from channel name', async () => {
       mockWebClient.conversations.list.mockResolvedValue({
         ok: true,
         channels: [
@@ -299,13 +299,13 @@ describe('SlackClient', () => {
       expect(mockWebClient.conversations.list).toHaveBeenCalledTimes(1)
     })
 
-    test('returns channel ID unchanged when input is #C prefixed ID', async () => {
+    it('returns channel ID unchanged when input is #C prefixed ID', async () => {
       const client = await new SlackClient().login({ token: 'xoxc-token', cookie: 'xoxd-cookie' })
       const channel = await client.resolveChannel('#C123ABC')
       expect(channel).toBe('C123ABC')
     })
 
-    test("throws SlackError with code 'channel_not_found' when name is not found", async () => {
+    it("throws SlackError with code 'channel_not_found' when name is not found", async () => {
       mockWebClient.conversations.list.mockResolvedValue({
         ok: true,
         channels: [
@@ -334,7 +334,7 @@ describe('SlackClient', () => {
   describe('getMessages', () => {
     beforeEach(() => resetMocks())
 
-    test('returns messages with default limit of 20', async () => {
+    it('returns messages with default limit of 20', async () => {
       const messages = Array.from({ length: 20 }, (_, i) => ({
         ts: `123.${i}`,
         text: `Message ${i}`,
@@ -356,7 +356,7 @@ describe('SlackClient', () => {
       )
     })
 
-    test('respects custom limit', async () => {
+    it('respects custom limit', async () => {
       mockWebClient.conversations.history.mockResolvedValue({
         ok: true,
         messages: [{ ts: '123.456', text: 'Hello', type: 'message' }],
@@ -372,7 +372,7 @@ describe('SlackClient', () => {
       )
     })
 
-    test('throws SlackError on API failure', async () => {
+    it('throws SlackError on API failure', async () => {
       mockWebClient.conversations.history.mockResolvedValue({
         ok: false,
         error: 'channel_not_found',
@@ -389,7 +389,7 @@ describe('SlackClient', () => {
   describe('sendMessage', () => {
     beforeEach(() => resetMocks())
 
-    test('sends message to channel', async () => {
+    it('sends message to channel', async () => {
       mockWebClient.chat.postMessage.mockResolvedValue({
         ok: true,
         ts: '123.456',
@@ -407,7 +407,7 @@ describe('SlackClient', () => {
       )
     })
 
-    test('sends message to thread', async () => {
+    it('sends message to thread', async () => {
       mockWebClient.chat.postMessage.mockResolvedValue({
         ok: true,
         ts: '123.789',
@@ -425,7 +425,7 @@ describe('SlackClient', () => {
       )
     })
 
-    test('throws SlackError on API failure', async () => {
+    it('throws SlackError on API failure', async () => {
       mockWebClient.chat.postMessage.mockResolvedValue({
         ok: false,
         error: 'channel_not_found',
@@ -442,7 +442,7 @@ describe('SlackClient', () => {
   describe('updateMessage', () => {
     beforeEach(() => resetMocks())
 
-    test('updates message text', async () => {
+    it('updates message text', async () => {
       mockWebClient.chat.update.mockResolvedValue({
         ok: true,
         ts: '123.456',
@@ -460,7 +460,7 @@ describe('SlackClient', () => {
       )
     })
 
-    test('throws SlackError on API failure', async () => {
+    it('throws SlackError on API failure', async () => {
       mockWebClient.chat.update.mockResolvedValue({
         ok: false,
         error: 'message_not_found',
@@ -477,7 +477,7 @@ describe('SlackClient', () => {
   describe('deleteMessage', () => {
     beforeEach(() => resetMocks())
 
-    test('deletes message', async () => {
+    it('deletes message', async () => {
       mockWebClient.chat.delete.mockResolvedValue({ ok: true })
 
       const client = await new SlackClient().login({ token: 'xoxc-token', cookie: 'xoxd-cookie' })
@@ -490,7 +490,7 @@ describe('SlackClient', () => {
       )
     })
 
-    test('throws SlackError on API failure', async () => {
+    it('throws SlackError on API failure', async () => {
       mockWebClient.chat.delete.mockResolvedValue({
         ok: false,
         error: 'message_not_found',
@@ -507,7 +507,7 @@ describe('SlackClient', () => {
   describe('addReaction', () => {
     beforeEach(() => resetMocks())
 
-    test('adds reaction to message', async () => {
+    it('adds reaction to message', async () => {
       mockWebClient.reactions.add.mockResolvedValue({ ok: true })
 
       const client = await new SlackClient().login({ token: 'xoxc-token', cookie: 'xoxd-cookie' })
@@ -520,7 +520,7 @@ describe('SlackClient', () => {
       )
     })
 
-    test('throws SlackError on API failure', async () => {
+    it('throws SlackError on API failure', async () => {
       mockWebClient.reactions.add.mockResolvedValue({
         ok: false,
         error: 'already_reacted',
@@ -537,7 +537,7 @@ describe('SlackClient', () => {
   describe('removeReaction', () => {
     beforeEach(() => resetMocks())
 
-    test('removes reaction from message', async () => {
+    it('removes reaction from message', async () => {
       mockWebClient.reactions.remove.mockResolvedValue({ ok: true })
 
       const client = await new SlackClient().login({ token: 'xoxc-token', cookie: 'xoxd-cookie' })
@@ -550,7 +550,7 @@ describe('SlackClient', () => {
       )
     })
 
-    test('throws SlackError on API failure', async () => {
+    it('throws SlackError on API failure', async () => {
       mockWebClient.reactions.remove.mockResolvedValue({
         ok: false,
         error: 'no_reaction',
@@ -567,7 +567,7 @@ describe('SlackClient', () => {
   describe('listUsers', () => {
     beforeEach(() => resetMocks())
 
-    test('returns list of users', async () => {
+    it('returns list of users', async () => {
       mockWebClient.users.list.mockResolvedValue({
         ok: true,
         members: [
@@ -602,7 +602,7 @@ describe('SlackClient', () => {
       expect(users[1].is_admin).toBe(true)
     })
 
-    test('handles pagination automatically', async () => {
+    it('handles pagination automatically', async () => {
       mockWebClient.users.list
         .mockResolvedValueOnce({
           ok: true,
@@ -643,7 +643,7 @@ describe('SlackClient', () => {
       expect(mockWebClient.users.list).toHaveBeenCalledTimes(2)
     })
 
-    test('throws SlackError on API failure', async () => {
+    it('throws SlackError on API failure', async () => {
       mockWebClient.users.list.mockResolvedValue({
         ok: false,
         error: 'invalid_auth',
@@ -660,7 +660,7 @@ describe('SlackClient', () => {
   describe('listChannelMembers', () => {
     beforeEach(() => resetMocks())
 
-    test('returns member IDs for a channel', async () => {
+    it('returns member IDs for a channel', async () => {
       mockWebClient.conversations.members.mockResolvedValue({
         ok: true,
         members: ['U123', 'U456', 'U789'],
@@ -677,7 +677,7 @@ describe('SlackClient', () => {
       )
     })
 
-    test('handles pagination automatically', async () => {
+    it('handles pagination automatically', async () => {
       mockWebClient.conversations.members
         .mockResolvedValueOnce({
           ok: true,
@@ -698,7 +698,7 @@ describe('SlackClient', () => {
       expect(mockWebClient.conversations.members).toHaveBeenCalledTimes(2)
     })
 
-    test('throws SlackError on API failure', async () => {
+    it('throws SlackError on API failure', async () => {
       mockWebClient.conversations.members.mockResolvedValue({
         ok: false,
         error: 'channel_not_found',
@@ -715,7 +715,7 @@ describe('SlackClient', () => {
   describe('getUser', () => {
     beforeEach(() => resetMocks())
 
-    test('returns user info', async () => {
+    it('returns user info', async () => {
       mockWebClient.users.info.mockResolvedValue({
         ok: true,
         user: {
@@ -738,7 +738,7 @@ describe('SlackClient', () => {
       expect(user.name).toBe('alice')
     })
 
-    test('throws SlackError when user not found', async () => {
+    it('throws SlackError when user not found', async () => {
       mockWebClient.users.info.mockResolvedValue({
         ok: false,
         error: 'user_not_found',
@@ -755,7 +755,7 @@ describe('SlackClient', () => {
   describe('uploadFile', () => {
     beforeEach(() => resetMocks())
 
-    test('uploads file to channels', async () => {
+    it('uploads file to channels', async () => {
       mockWebClient.files.uploadV2.mockResolvedValue({
         ok: true,
         files: [
@@ -788,7 +788,7 @@ describe('SlackClient', () => {
       )
     })
 
-    test('throws SlackError on API failure', async () => {
+    it('throws SlackError on API failure', async () => {
       mockWebClient.files.uploadV2.mockResolvedValue({
         ok: false,
         error: 'file_upload_failed',
@@ -801,7 +801,7 @@ describe('SlackClient', () => {
       await expect(client.uploadFile(['C123'], Buffer.from('test'), 'test.txt')).rejects.toThrow(SlackError)
     })
 
-    test('throws SlackError when response has empty files array', async () => {
+    it('throws SlackError when response has empty files array', async () => {
       mockWebClient.files.uploadV2.mockResolvedValue({
         ok: true,
         files: [],
@@ -814,7 +814,7 @@ describe('SlackClient', () => {
       await expect(client.uploadFile(['C123'], Buffer.from('test'), 'test.txt')).rejects.toThrow(SlackError)
     })
 
-    test('throws SlackError when completion has no inner files', async () => {
+    it('throws SlackError when completion has no inner files', async () => {
       mockWebClient.files.uploadV2.mockResolvedValue({
         ok: true,
         files: [{ ok: true, files: [] }],
@@ -831,7 +831,7 @@ describe('SlackClient', () => {
   describe('listFiles', () => {
     beforeEach(() => resetMocks())
 
-    test('returns list of files', async () => {
+    it('returns list of files', async () => {
       mockWebClient.files.list.mockResolvedValue({
         ok: true,
         files: [
@@ -857,7 +857,7 @@ describe('SlackClient', () => {
       expect(files[0].name).toBe('test.txt')
     })
 
-    test('filters by channel when provided', async () => {
+    it('filters by channel when provided', async () => {
       mockWebClient.files.list.mockResolvedValue({
         ok: true,
         files: [],
@@ -871,7 +871,7 @@ describe('SlackClient', () => {
       expect(mockWebClient.files.list).toHaveBeenCalledWith(expect.objectContaining({ channel: 'C123' }))
     })
 
-    test('throws SlackError on API failure', async () => {
+    it('throws SlackError on API failure', async () => {
       mockWebClient.files.list.mockResolvedValue({
         ok: false,
         error: 'invalid_auth',
@@ -888,7 +888,7 @@ describe('SlackClient', () => {
   describe('getFileInfo', () => {
     beforeEach(() => resetMocks())
 
-    test('returns file info', async () => {
+    it('returns file info', async () => {
       mockWebClient.files.info.mockResolvedValue({
         ok: true,
         file: {
@@ -914,7 +914,7 @@ describe('SlackClient', () => {
       expect(file.url_private).toBe('https://files.slack.com/files-pri/T123-F123/test.txt')
     })
 
-    test('throws on API failure', async () => {
+    it('throws on API failure', async () => {
       mockWebClient.files.info.mockResolvedValue({ ok: false, error: 'file_not_found' })
 
       const client = await new SlackClient().login({ token: 'xoxc-token', cookie: 'xoxd-cookie' })
@@ -928,7 +928,7 @@ describe('SlackClient', () => {
   describe('downloadFile', () => {
     beforeEach(() => resetMocks())
 
-    test('downloads file content', async () => {
+    it('downloads file content', async () => {
       mockWebClient.files.info.mockResolvedValue({
         ok: true,
         file: {
@@ -960,7 +960,7 @@ describe('SlackClient', () => {
       }
     })
 
-    test('throws when url_private is empty', async () => {
+    it('throws when url_private is empty', async () => {
       mockWebClient.files.info.mockResolvedValue({
         ok: true,
         file: {
@@ -982,7 +982,7 @@ describe('SlackClient', () => {
       await expect(client.downloadFile('F123')).rejects.toThrow('File has no download URL')
     })
 
-    test('throws on download failure', async () => {
+    it('throws on download failure', async () => {
       mockWebClient.files.info.mockResolvedValue({
         ok: true,
         file: {
@@ -1011,7 +1011,7 @@ describe('SlackClient', () => {
       }
     })
 
-    test('sends correct auth headers', async () => {
+    it('sends correct auth headers', async () => {
       mockWebClient.files.info.mockResolvedValue({
         ok: true,
         file: {
@@ -1050,7 +1050,7 @@ describe('SlackClient', () => {
   describe('getThreadReplies', () => {
     beforeEach(() => resetMocks())
 
-    test('returns thread replies including parent message', async () => {
+    it('returns thread replies including parent message', async () => {
       mockWebClient.conversations.replies.mockResolvedValue({
         ok: true,
         messages: [
@@ -1093,7 +1093,7 @@ describe('SlackClient', () => {
       expect(result.has_more).toBe(false)
     })
 
-    test('respects limit parameter', async () => {
+    it('respects limit parameter', async () => {
       mockWebClient.conversations.replies.mockResolvedValue({
         ok: true,
         messages: [{ ts: '123.456', text: 'Hello', type: 'message' }],
@@ -1110,7 +1110,7 @@ describe('SlackClient', () => {
       )
     })
 
-    test('passes optional oldest and latest parameters', async () => {
+    it('passes optional oldest and latest parameters', async () => {
       mockWebClient.conversations.replies.mockResolvedValue({
         ok: true,
         messages: [],
@@ -1135,7 +1135,7 @@ describe('SlackClient', () => {
       )
     })
 
-    test('returns pagination info when has_more is true', async () => {
+    it('returns pagination info when has_more is true', async () => {
       mockWebClient.conversations.replies.mockResolvedValue({
         ok: true,
         messages: [{ ts: '123.456', text: 'Hello', type: 'message' }],
@@ -1152,7 +1152,7 @@ describe('SlackClient', () => {
       expect(result.next_cursor).toBe('cursor123')
     })
 
-    test('throws SlackError when thread not found', async () => {
+    it('throws SlackError when thread not found', async () => {
       mockWebClient.conversations.replies.mockResolvedValue({
         ok: false,
         error: 'thread_not_found',
@@ -1165,7 +1165,7 @@ describe('SlackClient', () => {
       await expect(client.getThreadReplies('C123', '999.999')).rejects.toThrow(SlackError)
     })
 
-    test('throws SlackError when channel not found', async () => {
+    it('throws SlackError when channel not found', async () => {
       mockWebClient.conversations.replies.mockResolvedValue({
         ok: false,
         error: 'channel_not_found',
@@ -1182,7 +1182,7 @@ describe('SlackClient', () => {
   describe('rate limiting', () => {
     beforeEach(() => resetMocks())
 
-    test('retries on rate limit error with exponential backoff', async () => {
+    it('retries on rate limit error with exponential backoff', async () => {
       const rateLimitError = new Error('Rate limited')
       ;(rateLimitError as any).code = 'slack_webapi_rate_limited_error'
       ;(rateLimitError as any).retryAfter = 0.001
@@ -1213,7 +1213,7 @@ describe('SlackClient', () => {
       expect(mockWebClient.conversations.list).toHaveBeenCalledTimes(3)
     })
 
-    test('throws SlackError after max retries (3)', async () => {
+    it('throws SlackError after max retries (3)', async () => {
       const rateLimitError = new Error('Rate limited')
       ;(rateLimitError as any).code = 'slack_webapi_rate_limited_error'
       ;(rateLimitError as any).retryAfter = 0.001
@@ -1229,7 +1229,7 @@ describe('SlackClient', () => {
       expect(mockWebClient.conversations.list).toHaveBeenCalledTimes(4)
     })
 
-    test('does not retry on non-rate-limit errors', async () => {
+    it('does not retry on non-rate-limit errors', async () => {
       const otherError = new Error('Some other error')
       ;(otherError as any).code = 'some_other_error'
 
@@ -1245,19 +1245,19 @@ describe('SlackClient', () => {
   })
 
   describe('SlackError', () => {
-    test('is an instance of Error', () => {
+    it('is an instance of Error', () => {
       const error = new SlackError('test error', 'test_code')
       expect(error).toBeInstanceOf(Error)
       expect(error).toBeInstanceOf(SlackError)
     })
 
-    test('has message and code properties', () => {
+    it('has message and code properties', () => {
       const error = new SlackError('test error', 'test_code')
       expect(error.message).toBe('test error')
       expect(error.code).toBe('test_code')
     })
 
-    test('has name property set to SlackError', () => {
+    it('has name property set to SlackError', () => {
       const error = new SlackError('test error', 'test_code')
       expect(error.name).toBe('SlackError')
     })
@@ -1553,7 +1553,7 @@ describe('SlackClient extended methods', () => {
   }
 
   describe('mid-surface methods', () => {
-    test('lists DMs and respects includeArchived option', async () => {
+    it('lists DMs and respects includeArchived option', async () => {
       const { client, mock } = await makeClient()
       mock.conversations.list.mockResolvedValueOnce({
         ok: true,
@@ -1577,7 +1577,7 @@ describe('SlackClient extended methods', () => {
       })
     })
 
-    test('maps unread counts and totals', async () => {
+    it('maps unread counts and totals', async () => {
       const { client, mock } = await makeClient()
       mock.apiCall.mockImplementation((method: string) => {
         if (method === 'client.counts') {
@@ -1602,7 +1602,7 @@ describe('SlackClient extended methods', () => {
       expect(counts.total_mentions).toBe(1)
     })
 
-    test('maps thread view from subscriptions API', async () => {
+    it('maps thread view from subscriptions API', async () => {
       const { client, mock } = await makeClient()
       mock.subscriptions.thread.getView.mockResolvedValue({
         ok: true,
@@ -1630,7 +1630,7 @@ describe('SlackClient extended methods', () => {
       })
     })
 
-    test('marks a channel as read', async () => {
+    it('marks a channel as read', async () => {
       const { client, mock } = await makeClient()
 
       await client.markRead('C001', '123.456')
@@ -1638,7 +1638,7 @@ describe('SlackClient extended methods', () => {
       expect(mock.conversations.mark).toHaveBeenCalledWith({ channel: 'C001', ts: '123.456' })
     })
 
-    test('maps activity feed and passes custom options', async () => {
+    it('maps activity feed and passes custom options', async () => {
       const { client, mock } = await makeClient()
       mock.apiCall.mockImplementation((method: string, args?: Record<string, unknown>) => {
         if (method === 'activity.feed') {
@@ -1680,7 +1680,7 @@ describe('SlackClient extended methods', () => {
       ])
     })
 
-    test('maps saved items with pagination metadata', async () => {
+    it('maps saved items with pagination metadata', async () => {
       const { client, mock } = await makeClient()
       mock.apiCall.mockImplementation((method: string) => {
         if (method === 'saved.list') {
@@ -1737,7 +1737,7 @@ describe('SlackClient extended methods', () => {
       })
     })
 
-    test('maps channel sections', async () => {
+    it('maps channel sections', async () => {
       const { client, mock } = await makeClient()
       mock.apiCall.mockImplementation((method: string) => {
         if (method === 'users.channelSections.list') {
@@ -1770,7 +1770,7 @@ describe('SlackClient extended methods', () => {
       ])
     })
 
-    test('opens a conversation and returns open status', async () => {
+    it('opens a conversation and returns open status', async () => {
       const { client, mock } = await makeClient()
       mock.conversations.open.mockResolvedValue({
         ok: true,
@@ -1784,7 +1784,7 @@ describe('SlackClient extended methods', () => {
       expect(mock.conversations.open).toHaveBeenCalledWith({ users: 'U001,U002' })
     })
 
-    test('maps drafts and next cursor', async () => {
+    it('maps drafts and next cursor', async () => {
       const { client, mock } = await makeClient()
       mock.apiCall.mockImplementation((method: string) => {
         if (method === 'drafts.list') {
@@ -1821,7 +1821,7 @@ describe('SlackClient extended methods', () => {
       })
     })
 
-    test('returns RTM connection info with stored cookie', async () => {
+    it('returns RTM connection info with stored cookie', async () => {
       const { client, mock } = await makeClient()
       mock.apiCall.mockImplementation((method: string) => {
         if (method === 'rtm.connect') {
@@ -1847,13 +1847,13 @@ describe('SlackClient extended methods', () => {
   })
 
   describe('pinMessage', () => {
-    test('calls pins.add with correct args', async () => {
+    it('calls pins.add with correct args', async () => {
       const { client, mock } = await makeClient()
       await client.pinMessage('C001', '123.456')
       expect(mock.pins.add).toHaveBeenCalledWith({ channel: 'C001', timestamp: '123.456' })
     })
 
-    test('throws SlackError on API failure', async () => {
+    it('throws SlackError on API failure', async () => {
       const { client, mock } = await makeClient()
       mock.pins.add.mockResolvedValue({ ok: false, error: 'not_pinned' })
       await expect(client.pinMessage('C001', '123.456')).rejects.toThrow(SlackError)
@@ -1861,13 +1861,13 @@ describe('SlackClient extended methods', () => {
   })
 
   describe('unpinMessage', () => {
-    test('calls pins.remove with correct args', async () => {
+    it('calls pins.remove with correct args', async () => {
       const { client, mock } = await makeClient()
       await client.unpinMessage('C001', '123.456')
       expect(mock.pins.remove).toHaveBeenCalledWith({ channel: 'C001', timestamp: '123.456' })
     })
 
-    test('throws SlackError on API failure', async () => {
+    it('throws SlackError on API failure', async () => {
       const { client, mock } = await makeClient()
       mock.pins.remove.mockResolvedValue({ ok: false, error: 'no_pin' })
       await expect(client.unpinMessage('C001', '123.456')).rejects.toThrow(SlackError)
@@ -1875,7 +1875,7 @@ describe('SlackClient extended methods', () => {
   })
 
   describe('listPins', () => {
-    test('returns mapped pin items', async () => {
+    it('returns mapped pin items', async () => {
       const { client, mock } = await makeClient()
       mock.pins.list.mockResolvedValue({
         ok: true,
@@ -1887,7 +1887,7 @@ describe('SlackClient extended methods', () => {
       expect(pins[0].created_by).toBe('U001')
     })
 
-    test('throws SlackError on API failure', async () => {
+    it('throws SlackError on API failure', async () => {
       const { client, mock } = await makeClient()
       mock.pins.list.mockResolvedValue({ ok: false, error: 'channel_not_found' })
       await expect(client.listPins('C001')).rejects.toThrow(SlackError)
@@ -1895,14 +1895,14 @@ describe('SlackClient extended methods', () => {
   })
 
   describe('addBookmark', () => {
-    test('calls bookmarks.add and returns bookmark', async () => {
+    it('calls bookmarks.add and returns bookmark', async () => {
       const { client } = await makeClient()
       const result = await client.addBookmark('C001', 'Test', 'https://example.com')
       expect(result.id).toBe('Bm001')
       expect(result.title).toBe('Test')
     })
 
-    test('throws SlackError on API failure', async () => {
+    it('throws SlackError on API failure', async () => {
       const { client, mock } = await makeClient()
       mock.apiCall.mockResolvedValue({ ok: false, error: 'channel_not_found' })
       await expect(client.addBookmark('C001', 'Test', 'https://example.com')).rejects.toThrow(SlackError)
@@ -1910,13 +1910,13 @@ describe('SlackClient extended methods', () => {
   })
 
   describe('editBookmark', () => {
-    test('calls bookmarks.edit and returns updated bookmark', async () => {
+    it('calls bookmarks.edit and returns updated bookmark', async () => {
       const { client } = await makeClient()
       const result = await client.editBookmark('C001', 'Bm001', { title: 'Updated' })
       expect(result.title).toBe('Updated')
     })
 
-    test('throws SlackError on API failure', async () => {
+    it('throws SlackError on API failure', async () => {
       const { client, mock } = await makeClient()
       mock.apiCall.mockResolvedValue({ ok: false, error: 'bookmark_not_found' })
       await expect(client.editBookmark('C001', 'Bm001', { title: 'X' })).rejects.toThrow(SlackError)
@@ -1924,13 +1924,13 @@ describe('SlackClient extended methods', () => {
   })
 
   describe('removeBookmark', () => {
-    test('calls bookmarks.remove successfully', async () => {
+    it('calls bookmarks.remove successfully', async () => {
       const { client, mock } = await makeClient()
       await client.removeBookmark('C001', 'Bm001')
       expect(mock.apiCall).toHaveBeenCalledWith('bookmarks.remove', { channel_id: 'C001', bookmark_id: 'Bm001' })
     })
 
-    test('throws SlackError on API failure', async () => {
+    it('throws SlackError on API failure', async () => {
       const { client, mock } = await makeClient()
       mock.apiCall.mockResolvedValue({ ok: false, error: 'bookmark_not_found' })
       await expect(client.removeBookmark('C001', 'Bm001')).rejects.toThrow(SlackError)
@@ -1938,13 +1938,13 @@ describe('SlackClient extended methods', () => {
   })
 
   describe('listBookmarks', () => {
-    test('returns empty array when no bookmarks', async () => {
+    it('returns empty array when no bookmarks', async () => {
       const { client } = await makeClient()
       const result = await client.listBookmarks('C001')
       expect(result).toHaveLength(0)
     })
 
-    test('throws SlackError on API failure', async () => {
+    it('throws SlackError on API failure', async () => {
       const { client, mock } = await makeClient()
       mock.apiCall.mockResolvedValue({ ok: false, error: 'channel_not_found' })
       await expect(client.listBookmarks('C001')).rejects.toThrow(SlackError)
@@ -1952,7 +1952,7 @@ describe('SlackClient extended methods', () => {
   })
 
   describe('scheduleMessage', () => {
-    test('returns scheduled message with id', async () => {
+    it('returns scheduled message with id', async () => {
       const { client } = await makeClient()
       const result = await client.scheduleMessage('C001', 'Hello', 1700000000)
       expect(result.id).toBe('SM001')
@@ -1960,7 +1960,7 @@ describe('SlackClient extended methods', () => {
       expect(result.channel_id).toBe('C001')
     })
 
-    test('throws SlackError on API failure', async () => {
+    it('throws SlackError on API failure', async () => {
       const { client, mock } = await makeClient()
       mock.chat.scheduleMessage.mockResolvedValue({ ok: false, error: 'invalid_time' })
       await expect(client.scheduleMessage('C001', 'Hello', 1700000000)).rejects.toThrow(SlackError)
@@ -1968,13 +1968,13 @@ describe('SlackClient extended methods', () => {
   })
 
   describe('listScheduledMessages', () => {
-    test('returns empty array when no scheduled messages', async () => {
+    it('returns empty array when no scheduled messages', async () => {
       const { client } = await makeClient()
       const result = await client.listScheduledMessages()
       expect(result).toHaveLength(0)
     })
 
-    test('throws SlackError on API failure', async () => {
+    it('throws SlackError on API failure', async () => {
       const { client, mock } = await makeClient()
       mock.chat.scheduledMessages.list.mockResolvedValue({ ok: false, error: 'invalid_auth' })
       await expect(client.listScheduledMessages()).rejects.toThrow(SlackError)
@@ -1982,13 +1982,13 @@ describe('SlackClient extended methods', () => {
   })
 
   describe('deleteScheduledMessage', () => {
-    test('calls deleteScheduledMessage with correct args', async () => {
+    it('calls deleteScheduledMessage with correct args', async () => {
       const { client, mock } = await makeClient()
       await client.deleteScheduledMessage('C001', 'SM001')
       expect(mock.chat.deleteScheduledMessage).toHaveBeenCalledWith({ channel: 'C001', scheduled_message_id: 'SM001' })
     })
 
-    test('throws SlackError on API failure', async () => {
+    it('throws SlackError on API failure', async () => {
       const { client, mock } = await makeClient()
       mock.chat.deleteScheduledMessage.mockResolvedValue({ ok: false, error: 'invalid_scheduled_message_id' })
       await expect(client.deleteScheduledMessage('C001', 'SM001')).rejects.toThrow(SlackError)
@@ -1996,14 +1996,14 @@ describe('SlackClient extended methods', () => {
   })
 
   describe('createChannel', () => {
-    test('returns created channel', async () => {
+    it('returns created channel', async () => {
       const { client } = await makeClient()
       const ch = await client.createChannel('new-channel')
       expect(ch.id).toBe('C001')
       expect(ch.name).toBe('test')
     })
 
-    test('throws SlackError on API failure', async () => {
+    it('throws SlackError on API failure', async () => {
       const { client, mock } = await makeClient()
       mock.conversations.create.mockResolvedValue({ ok: false, error: 'name_taken' })
       await expect(client.createChannel('existing')).rejects.toThrow(SlackError)
@@ -2011,13 +2011,13 @@ describe('SlackClient extended methods', () => {
   })
 
   describe('archiveChannel', () => {
-    test('archives channel successfully', async () => {
+    it('archives channel successfully', async () => {
       const { client, mock } = await makeClient()
       await client.archiveChannel('C001')
       expect(mock.conversations.archive).toHaveBeenCalledWith({ channel: 'C001' })
     })
 
-    test('throws SlackError on API failure', async () => {
+    it('throws SlackError on API failure', async () => {
       const { client, mock } = await makeClient()
       mock.conversations.archive.mockResolvedValue({ ok: false, error: 'already_archived' })
       await expect(client.archiveChannel('C001')).rejects.toThrow(SlackError)
@@ -2025,13 +2025,13 @@ describe('SlackClient extended methods', () => {
   })
 
   describe('setChannelTopic', () => {
-    test('returns new topic', async () => {
+    it('returns new topic', async () => {
       const { client } = await makeClient()
       const result = await client.setChannelTopic('C001', 'new-topic')
       expect(result.topic).toBe('new-topic')
     })
 
-    test('throws SlackError on API failure', async () => {
+    it('throws SlackError on API failure', async () => {
       const { client, mock } = await makeClient()
       mock.conversations.setTopic.mockResolvedValue({ ok: false, error: 'channel_not_found' })
       await expect(client.setChannelTopic('C001', 'topic')).rejects.toThrow(SlackError)
@@ -2039,13 +2039,13 @@ describe('SlackClient extended methods', () => {
   })
 
   describe('setChannelPurpose', () => {
-    test('returns new purpose', async () => {
+    it('returns new purpose', async () => {
       const { client } = await makeClient()
       const result = await client.setChannelPurpose('C001', 'new-purpose')
       expect(result.purpose).toBe('new-purpose')
     })
 
-    test('throws SlackError on API failure', async () => {
+    it('throws SlackError on API failure', async () => {
       const { client, mock } = await makeClient()
       mock.conversations.setPurpose.mockResolvedValue({ ok: false, error: 'channel_not_found' })
       await expect(client.setChannelPurpose('C001', 'purpose')).rejects.toThrow(SlackError)
@@ -2053,13 +2053,13 @@ describe('SlackClient extended methods', () => {
   })
 
   describe('inviteToChannel', () => {
-    test('returns channel after invite', async () => {
+    it('returns channel after invite', async () => {
       const { client } = await makeClient()
       const ch = await client.inviteToChannel('C001', 'U002')
       expect(ch.id).toBe('C001')
     })
 
-    test('throws SlackError on API failure', async () => {
+    it('throws SlackError on API failure', async () => {
       const { client, mock } = await makeClient()
       mock.conversations.invite.mockResolvedValue({ ok: false, error: 'user_not_found' })
       await expect(client.inviteToChannel('C001', 'U999')).rejects.toThrow(SlackError)
@@ -2067,13 +2067,13 @@ describe('SlackClient extended methods', () => {
   })
 
   describe('joinChannel', () => {
-    test('returns channel after joining', async () => {
+    it('returns channel after joining', async () => {
       const { client } = await makeClient()
       const ch = await client.joinChannel('C001')
       expect(ch.id).toBe('C001')
     })
 
-    test('throws SlackError on API failure', async () => {
+    it('throws SlackError on API failure', async () => {
       const { client, mock } = await makeClient()
       mock.conversations.join.mockResolvedValue({ ok: false, error: 'channel_not_found' })
       await expect(client.joinChannel('C001')).rejects.toThrow(SlackError)
@@ -2081,13 +2081,13 @@ describe('SlackClient extended methods', () => {
   })
 
   describe('leaveChannel', () => {
-    test('leaves channel successfully', async () => {
+    it('leaves channel successfully', async () => {
       const { client, mock } = await makeClient()
       await client.leaveChannel('C001')
       expect(mock.conversations.leave).toHaveBeenCalledWith({ channel: 'C001' })
     })
 
-    test('throws SlackError on API failure', async () => {
+    it('throws SlackError on API failure', async () => {
       const { client, mock } = await makeClient()
       mock.conversations.leave.mockResolvedValue({ ok: false, error: 'channel_not_found' })
       await expect(client.leaveChannel('C001')).rejects.toThrow(SlackError)
@@ -2095,14 +2095,14 @@ describe('SlackClient extended methods', () => {
   })
 
   describe('lookupUserByEmail', () => {
-    test('returns user for given email', async () => {
+    it('returns user for given email', async () => {
       const { client } = await makeClient()
       const user = await client.lookupUserByEmail('test@example.com')
       expect(user.id).toBe('U001')
       expect(user.name).toBe('test')
     })
 
-    test('throws SlackError on API failure', async () => {
+    it('throws SlackError on API failure', async () => {
       const { client, mock } = await makeClient()
       mock.users.lookupByEmail.mockResolvedValue({ ok: false, error: 'users_not_found' })
       await expect(client.lookupUserByEmail('nobody@example.com')).rejects.toThrow(SlackError)
@@ -2110,13 +2110,13 @@ describe('SlackClient extended methods', () => {
   })
 
   describe('getUserProfile', () => {
-    test('returns user profile', async () => {
+    it('returns user profile', async () => {
       const { client } = await makeClient()
       const profile = await client.getUserProfile('U001')
       expect(profile.display_name).toBe('Test')
     })
 
-    test('throws SlackError on API failure', async () => {
+    it('throws SlackError on API failure', async () => {
       const { client, mock } = await makeClient()
       mock.users.profile.get.mockResolvedValue({ ok: false, error: 'user_not_found' })
       await expect(client.getUserProfile('U999')).rejects.toThrow(SlackError)
@@ -2124,13 +2124,13 @@ describe('SlackClient extended methods', () => {
   })
 
   describe('setUserProfile', () => {
-    test('returns updated profile', async () => {
+    it('returns updated profile', async () => {
       const { client } = await makeClient()
       const profile = await client.setUserProfile({ status_text: 'Working', status_emoji: ':computer:' })
       expect(profile.status_text).toBe('Working')
     })
 
-    test('throws SlackError on API failure', async () => {
+    it('throws SlackError on API failure', async () => {
       const { client, mock } = await makeClient()
       mock.users.profile.set.mockResolvedValue({ ok: false, error: 'invalid_profile' })
       await expect(client.setUserProfile({ status_text: 'x' })).rejects.toThrow(SlackError)
@@ -2138,13 +2138,13 @@ describe('SlackClient extended methods', () => {
   })
 
   describe('postEphemeral', () => {
-    test('returns message_ts on success', async () => {
+    it('returns message_ts on success', async () => {
       const { client } = await makeClient()
       const ts = await client.postEphemeral('C001', 'U001', 'Hello!')
       expect(ts).toBe('123.456')
     })
 
-    test('throws SlackError on API failure', async () => {
+    it('throws SlackError on API failure', async () => {
       const { client, mock } = await makeClient()
       mock.chat.postEphemeral.mockResolvedValue({ ok: false, error: 'user_not_in_channel' })
       await expect(client.postEphemeral('C001', 'U001', 'Hello!')).rejects.toThrow(SlackError)
@@ -2152,13 +2152,13 @@ describe('SlackClient extended methods', () => {
   })
 
   describe('getPermalink', () => {
-    test('returns permalink on success', async () => {
+    it('returns permalink on success', async () => {
       const { client } = await makeClient()
       const link = await client.getPermalink('C001', '123.456')
       expect(link).toBe('https://slack.com/archives/C001/p123456')
     })
 
-    test('throws SlackError on API failure', async () => {
+    it('throws SlackError on API failure', async () => {
       const { client, mock } = await makeClient()
       mock.chat.getPermalink.mockResolvedValue({ ok: false, error: 'message_not_found' })
       await expect(client.getPermalink('C001', '123.456')).rejects.toThrow(SlackError)
@@ -2166,14 +2166,14 @@ describe('SlackClient extended methods', () => {
   })
 
   describe('addReminder', () => {
-    test('returns reminder on success', async () => {
+    it('returns reminder on success', async () => {
       const { client } = await makeClient()
       const reminder = await client.addReminder('Do something', 1700000000)
       expect(reminder.id).toBe('Rm001')
       expect(reminder.text).toBe('Test')
     })
 
-    test('throws SlackError on API failure', async () => {
+    it('throws SlackError on API failure', async () => {
       const { client, mock } = await makeClient()
       mock.reminders.add.mockResolvedValue({ ok: false, error: 'invalid_time' })
       await expect(client.addReminder('Do something', 1700000000)).rejects.toThrow(SlackError)
@@ -2181,13 +2181,13 @@ describe('SlackClient extended methods', () => {
   })
 
   describe('listReminders', () => {
-    test('returns empty array when no reminders', async () => {
+    it('returns empty array when no reminders', async () => {
       const { client } = await makeClient()
       const result = await client.listReminders()
       expect(result).toHaveLength(0)
     })
 
-    test('throws SlackError on API failure', async () => {
+    it('throws SlackError on API failure', async () => {
       const { client, mock } = await makeClient()
       mock.reminders.list.mockResolvedValue({ ok: false, error: 'invalid_auth' })
       await expect(client.listReminders()).rejects.toThrow(SlackError)
@@ -2195,13 +2195,13 @@ describe('SlackClient extended methods', () => {
   })
 
   describe('completeReminder', () => {
-    test('completes reminder successfully', async () => {
+    it('completes reminder successfully', async () => {
       const { client, mock } = await makeClient()
       await client.completeReminder('Rm001')
       expect(mock.reminders.complete).toHaveBeenCalledWith({ reminder: 'Rm001' })
     })
 
-    test('throws SlackError on API failure', async () => {
+    it('throws SlackError on API failure', async () => {
       const { client, mock } = await makeClient()
       mock.reminders.complete.mockResolvedValue({ ok: false, error: 'reminder_not_found' })
       await expect(client.completeReminder('Rm999')).rejects.toThrow(SlackError)
@@ -2209,13 +2209,13 @@ describe('SlackClient extended methods', () => {
   })
 
   describe('deleteReminder', () => {
-    test('deletes reminder successfully', async () => {
+    it('deletes reminder successfully', async () => {
       const { client, mock } = await makeClient()
       await client.deleteReminder('Rm001')
       expect(mock.reminders.delete).toHaveBeenCalledWith({ reminder: 'Rm001' })
     })
 
-    test('throws SlackError on API failure', async () => {
+    it('throws SlackError on API failure', async () => {
       const { client, mock } = await makeClient()
       mock.reminders.delete.mockResolvedValue({ ok: false, error: 'reminder_not_found' })
       await expect(client.deleteReminder('Rm999')).rejects.toThrow(SlackError)
@@ -2223,13 +2223,13 @@ describe('SlackClient extended methods', () => {
   })
 
   describe('deleteFile', () => {
-    test('deletes file successfully', async () => {
+    it('deletes file successfully', async () => {
       const { client, mock } = await makeClient()
       await client.deleteFile('F001')
       expect(mock.files.delete).toHaveBeenCalledWith({ file: 'F001' })
     })
 
-    test('throws SlackError on API failure', async () => {
+    it('throws SlackError on API failure', async () => {
       const { client, mock } = await makeClient()
       mock.files.delete.mockResolvedValue({ ok: false, error: 'file_not_found' })
       await expect(client.deleteFile('F999')).rejects.toThrow(SlackError)
@@ -2237,13 +2237,13 @@ describe('SlackClient extended methods', () => {
   })
 
   describe('listEmoji', () => {
-    test('returns emoji map on success', async () => {
+    it('returns emoji map on success', async () => {
       const { client } = await makeClient()
       const emoji = await client.listEmoji()
       expect(emoji['party_blob']).toBe('https://example.com/party_blob.gif')
     })
 
-    test('throws SlackError on API failure', async () => {
+    it('throws SlackError on API failure', async () => {
       const { client, mock } = await makeClient()
       mock.emoji.list.mockResolvedValue({ ok: false, error: 'invalid_auth' })
       await expect(client.listEmoji()).rejects.toThrow(SlackError)
@@ -2251,7 +2251,7 @@ describe('SlackClient extended methods', () => {
   })
 
   describe('listUsergroups', () => {
-    test('returns mapped usergroups', async () => {
+    it('returns mapped usergroups', async () => {
       const { client } = await makeClient()
       const groups = await client.listUsergroups({ includeCount: true })
       expect(groups).toHaveLength(1)
@@ -2261,7 +2261,7 @@ describe('SlackClient extended methods', () => {
       expect(groups[0].user_count).toBe(1)
     })
 
-    test('calls apiCall with correct params', async () => {
+    it('calls apiCall with correct params', async () => {
       const { client, mock } = await makeClient()
       await client.listUsergroups({ includeDisabled: true, includeUsers: true, includeCount: true })
       expect(mock.apiCall).toHaveBeenCalledWith('usergroups.list', {
@@ -2271,7 +2271,7 @@ describe('SlackClient extended methods', () => {
       })
     })
 
-    test('throws SlackError on API failure', async () => {
+    it('throws SlackError on API failure', async () => {
       const { client, mock } = await makeClient()
       mock.apiCall.mockResolvedValue({ ok: false, error: 'invalid_auth' })
       await expect(client.listUsergroups()).rejects.toThrow(SlackError)
@@ -2279,14 +2279,14 @@ describe('SlackClient extended methods', () => {
   })
 
   describe('createUsergroup', () => {
-    test('returns created usergroup', async () => {
+    it('returns created usergroup', async () => {
       const { client } = await makeClient()
       const group = await client.createUsergroup('Marketing', { handle: 'marketing' })
       expect(group.id).toBe('S002')
       expect(group.name).toBe('Marketing')
     })
 
-    test('calls apiCall with correct params including channels', async () => {
+    it('calls apiCall with correct params including channels', async () => {
       const { client, mock } = await makeClient()
       await client.createUsergroup('Marketing', {
         handle: 'marketing',
@@ -2301,7 +2301,7 @@ describe('SlackClient extended methods', () => {
       })
     })
 
-    test('throws SlackError on API failure', async () => {
+    it('throws SlackError on API failure', async () => {
       const { client, mock } = await makeClient()
       mock.apiCall.mockResolvedValue({ ok: false, error: 'name_already_exists' })
       await expect(client.createUsergroup('Dup')).rejects.toThrow(SlackError)
@@ -2309,14 +2309,14 @@ describe('SlackClient extended methods', () => {
   })
 
   describe('updateUsergroup', () => {
-    test('returns updated usergroup', async () => {
+    it('returns updated usergroup', async () => {
       const { client } = await makeClient()
       const group = await client.updateUsergroup('S001', { name: 'Updated', handle: 'updated' })
       expect(group.name).toBe('Updated')
       expect(group.handle).toBe('updated')
     })
 
-    test('calls apiCall with correct params', async () => {
+    it('calls apiCall with correct params', async () => {
       const { client, mock } = await makeClient()
       await client.updateUsergroup('S001', { name: 'New', channels: ['C001'] })
       expect(mock.apiCall).toHaveBeenCalledWith('usergroups.update', {
@@ -2328,7 +2328,7 @@ describe('SlackClient extended methods', () => {
       })
     })
 
-    test('throws SlackError on API failure', async () => {
+    it('throws SlackError on API failure', async () => {
       const { client, mock } = await makeClient()
       mock.apiCall.mockResolvedValue({ ok: false, error: 'no_such_subteam' })
       await expect(client.updateUsergroup('S999', { name: 'X' })).rejects.toThrow(SlackError)
@@ -2336,14 +2336,14 @@ describe('SlackClient extended methods', () => {
   })
 
   describe('disableUsergroup', () => {
-    test('returns disabled usergroup with date_delete set', async () => {
+    it('returns disabled usergroup with date_delete set', async () => {
       const { client } = await makeClient()
       const group = await client.disableUsergroup('S001')
       expect(group.id).toBe('S001')
       expect(group.date_delete).toBeGreaterThan(0)
     })
 
-    test('throws SlackError on API failure', async () => {
+    it('throws SlackError on API failure', async () => {
       const { client, mock } = await makeClient()
       mock.apiCall.mockResolvedValue({ ok: false, error: 'no_such_subteam' })
       await expect(client.disableUsergroup('S999')).rejects.toThrow(SlackError)
@@ -2351,14 +2351,14 @@ describe('SlackClient extended methods', () => {
   })
 
   describe('enableUsergroup', () => {
-    test('returns enabled usergroup with date_delete cleared', async () => {
+    it('returns enabled usergroup with date_delete cleared', async () => {
       const { client } = await makeClient()
       const group = await client.enableUsergroup('S001')
       expect(group.id).toBe('S001')
       expect(group.date_delete).toBe(0)
     })
 
-    test('throws SlackError on API failure', async () => {
+    it('throws SlackError on API failure', async () => {
       const { client, mock } = await makeClient()
       mock.apiCall.mockResolvedValue({ ok: false, error: 'no_such_subteam' })
       await expect(client.enableUsergroup('S999')).rejects.toThrow(SlackError)
@@ -2366,13 +2366,13 @@ describe('SlackClient extended methods', () => {
   })
 
   describe('listUsergroupMembers', () => {
-    test('returns user ID array', async () => {
+    it('returns user ID array', async () => {
       const { client } = await makeClient()
       const users = await client.listUsergroupMembers('S001')
       expect(users).toEqual(['U001', 'U002'])
     })
 
-    test('calls apiCall with correct params', async () => {
+    it('calls apiCall with correct params', async () => {
       const { client, mock } = await makeClient()
       await client.listUsergroupMembers('S001', { includeDisabled: true })
       expect(mock.apiCall).toHaveBeenCalledWith('usergroups.users.list', {
@@ -2381,7 +2381,7 @@ describe('SlackClient extended methods', () => {
       })
     })
 
-    test('throws SlackError on API failure', async () => {
+    it('throws SlackError on API failure', async () => {
       const { client, mock } = await makeClient()
       mock.apiCall.mockResolvedValue({ ok: false, error: 'no_such_subteam' })
       await expect(client.listUsergroupMembers('S999')).rejects.toThrow(SlackError)
@@ -2389,14 +2389,14 @@ describe('SlackClient extended methods', () => {
   })
 
   describe('updateUsergroupMembers', () => {
-    test('returns updated usergroup with new members', async () => {
+    it('returns updated usergroup with new members', async () => {
       const { client } = await makeClient()
       const group = await client.updateUsergroupMembers('S001', ['U001', 'U003'])
       expect(group.users).toEqual(['U001', 'U003'])
       expect(group.user_count).toBe(2)
     })
 
-    test('calls apiCall with comma-joined user IDs', async () => {
+    it('calls apiCall with comma-joined user IDs', async () => {
       const { client, mock } = await makeClient()
       await client.updateUsergroupMembers('S001', ['U001', 'U003'])
       expect(mock.apiCall).toHaveBeenCalledWith('usergroups.users.update', {
@@ -2405,7 +2405,7 @@ describe('SlackClient extended methods', () => {
       })
     })
 
-    test('throws SlackError on API failure', async () => {
+    it('throws SlackError on API failure', async () => {
       const { client, mock } = await makeClient()
       mock.apiCall.mockResolvedValue({ ok: false, error: 'no_users_provided' })
       await expect(client.updateUsergroupMembers('S001', [])).rejects.toThrow(SlackError)

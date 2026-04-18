@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
+import { afterEach, beforeEach, describe, expect, it } from 'bun:test'
 import { existsSync, rmSync } from 'node:fs'
 import { mkdir, stat } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
@@ -50,7 +50,7 @@ describe('SlackBotCredentialManager', () => {
   })
 
   describe('load', () => {
-    test('returns empty config when no file exists', async () => {
+    it('returns empty config when no file exists', async () => {
       const config = await manager.load()
 
       expect(config.current).toBeNull()
@@ -59,7 +59,7 @@ describe('SlackBotCredentialManager', () => {
   })
 
   describe('save and load', () => {
-    test('persists config to file', async () => {
+    it('persists config to file', async () => {
       const config = {
         current: { workspace_id: 'T123', bot_id: 'deploy' },
         workspaces: {
@@ -81,11 +81,11 @@ describe('SlackBotCredentialManager', () => {
   })
 
   describe('getCredentials', () => {
-    test('returns null when no credentials exist', async () => {
+    it('returns null when no credentials exist', async () => {
       expect(await manager.getCredentials()).toBeNull()
     })
 
-    test('returns current bot credentials', async () => {
+    it('returns current bot credentials', async () => {
       await manager.setCredentials(CREDS_A)
 
       const creds = await manager.getCredentials()
@@ -93,7 +93,7 @@ describe('SlackBotCredentialManager', () => {
       expect(creds).toEqual(CREDS_A)
     })
 
-    test('returns specific bot by id', async () => {
+    it('returns specific bot by id', async () => {
       await manager.setCredentials(CREDS_A)
       await manager.setCredentials(CREDS_B)
 
@@ -102,7 +102,7 @@ describe('SlackBotCredentialManager', () => {
       expect(creds).toEqual(CREDS_A)
     })
 
-    test('returns specific bot by workspace_id/bot_id', async () => {
+    it('returns specific bot by workspace_id/bot_id', async () => {
       await manager.setCredentials(CREDS_A)
       await manager.setCredentials(CREDS_C)
 
@@ -111,7 +111,7 @@ describe('SlackBotCredentialManager', () => {
       expect(creds).toEqual(CREDS_A)
     })
 
-    test('returns null for ambiguous bot_id across workspaces', async () => {
+    it('returns null for ambiguous bot_id across workspaces', async () => {
       await manager.setCredentials(CREDS_A)
       await manager.setCredentials(CREDS_C)
 
@@ -120,7 +120,7 @@ describe('SlackBotCredentialManager', () => {
       expect(creds).toBeNull()
     })
 
-    test('env vars take precedence over file', async () => {
+    it('env vars take precedence over file', async () => {
       await manager.setCredentials(CREDS_A)
 
       process.env.E2E_SLACKBOT_TOKEN = 'xoxb-env-token'
@@ -136,7 +136,7 @@ describe('SlackBotCredentialManager', () => {
   })
 
   describe('setCredentials', () => {
-    test('stores bot and sets as current', async () => {
+    it('stores bot and sets as current', async () => {
       await manager.setCredentials(CREDS_A)
 
       const config = await manager.load()
@@ -144,7 +144,7 @@ describe('SlackBotCredentialManager', () => {
       expect(config.workspaces.T123.bots.deploy.token).toBe('xoxb-token-a')
     })
 
-    test('stores multiple bots in same workspace', async () => {
+    it('stores multiple bots in same workspace', async () => {
       await manager.setCredentials(CREDS_A)
       await manager.setCredentials(CREDS_B)
 
@@ -153,7 +153,7 @@ describe('SlackBotCredentialManager', () => {
       expect(config.current).toEqual({ workspace_id: 'T123', bot_id: 'alert' })
     })
 
-    test('stores bots across workspaces', async () => {
+    it('stores bots across workspaces', async () => {
       await manager.setCredentials(CREDS_A)
       await manager.setCredentials(CREDS_C)
 
@@ -163,7 +163,7 @@ describe('SlackBotCredentialManager', () => {
   })
 
   describe('listAll', () => {
-    test('returns all bots with current flag', async () => {
+    it('returns all bots with current flag', async () => {
       await manager.setCredentials(CREDS_A)
       await manager.setCredentials(CREDS_B)
 
@@ -176,7 +176,7 @@ describe('SlackBotCredentialManager', () => {
   })
 
   describe('setCurrent', () => {
-    test('switches current bot', async () => {
+    it('switches current bot', async () => {
       await manager.setCredentials(CREDS_A)
       await manager.setCredentials(CREDS_B)
 
@@ -187,13 +187,13 @@ describe('SlackBotCredentialManager', () => {
       expect(creds?.bot_id).toBe('deploy')
     })
 
-    test('returns false for unknown bot', async () => {
+    it('returns false for unknown bot', async () => {
       expect(await manager.setCurrent('nonexistent')).toBe(false)
     })
   })
 
   describe('removeBot', () => {
-    test('removes a bot by id', async () => {
+    it('removes a bot by id', async () => {
       await manager.setCredentials(CREDS_A)
       await manager.setCredentials(CREDS_B)
 
@@ -204,7 +204,7 @@ describe('SlackBotCredentialManager', () => {
       expect(Object.keys(config.workspaces.T123.bots)).toEqual(['alert'])
     })
 
-    test('removes workspace when last bot removed', async () => {
+    it('removes workspace when last bot removed', async () => {
       await manager.setCredentials(CREDS_A)
 
       await manager.removeBot('deploy')
@@ -213,7 +213,7 @@ describe('SlackBotCredentialManager', () => {
       expect(config.workspaces.T123).toBeUndefined()
     })
 
-    test('clears current when current bot removed', async () => {
+    it('clears current when current bot removed', async () => {
       await manager.setCredentials(CREDS_A)
 
       await manager.removeBot('deploy')
@@ -222,11 +222,11 @@ describe('SlackBotCredentialManager', () => {
       expect(config.current).toBeNull()
     })
 
-    test('returns false for unknown bot', async () => {
+    it('returns false for unknown bot', async () => {
       expect(await manager.removeBot('nonexistent')).toBe(false)
     })
 
-    test('returns false for ambiguous bot_id across workspaces', async () => {
+    it('returns false for ambiguous bot_id across workspaces', async () => {
       await manager.setCredentials(CREDS_A)
       await manager.setCredentials(CREDS_C)
 
@@ -240,7 +240,7 @@ describe('SlackBotCredentialManager', () => {
   })
 
   describe('clearCredentials', () => {
-    test('removes all credentials', async () => {
+    it('removes all credentials', async () => {
       await manager.setCredentials(CREDS_A)
       await manager.setCredentials(CREDS_B)
 
@@ -253,7 +253,7 @@ describe('SlackBotCredentialManager', () => {
   })
 
   describe('file permissions', () => {
-    test('saves file with secure permissions (600)', async () => {
+    it('saves file with secure permissions (600)', async () => {
       await manager.setCredentials(CREDS_A)
 
       const credPath = join(tempDir, 'slackbot-credentials.json')

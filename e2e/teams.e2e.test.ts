@@ -1,4 +1,4 @@
-import { describe, test, expect, beforeAll, afterEach } from 'bun:test'
+import { describe, it, expect, beforeAll, afterEach } from 'bun:test'
 
 import { TEAMS_TEST_CHANNEL_ID, TEAMS_TEST_TEAM_ID, validateTeamsEnvironment } from './config'
 import { runCLI, parseJSON, generateTestId, waitForRateLimit } from './helpers'
@@ -41,7 +41,7 @@ describe('Teams E2E Tests', () => {
   })
 
   describe('auth', () => {
-    test('auth status returns authenticated team info', async () => {
+    it('auth status returns authenticated team info', async () => {
       if (!teamsAvailable) return
 
       const result = await runCLI('teams', ['auth', 'status'])
@@ -56,7 +56,7 @@ describe('Teams E2E Tests', () => {
   })
 
   describe('team', () => {
-    test('team list returns array', async () => {
+    it('team list returns array', async () => {
       if (!teamsAvailable) return
 
       const result = await runCLI('teams', ['team', 'list'])
@@ -66,7 +66,7 @@ describe('Teams E2E Tests', () => {
       expect(Array.isArray(data)).toBe(true)
     })
 
-    test('team current returns current team', async () => {
+    it('team current returns current team', async () => {
       if (!teamsAvailable) return
 
       const result = await runCLI('teams', ['team', 'current'])
@@ -76,7 +76,7 @@ describe('Teams E2E Tests', () => {
       expect(data?.team_id).toBe(TEAMS_TEST_TEAM_ID)
     })
 
-    test('team info returns team details', async () => {
+    it('team info returns team details', async () => {
       if (!teamsAvailable) return
 
       const result = await runCLI('teams', ['team', 'info', TEAMS_TEST_TEAM_ID])
@@ -89,7 +89,7 @@ describe('Teams E2E Tests', () => {
   })
 
   describe('message', () => {
-    test('message send creates message', async () => {
+    it('message send creates message', async () => {
       if (!teamsAvailable) return
 
       const testId = generateTestId()
@@ -108,7 +108,7 @@ describe('Teams E2E Tests', () => {
       if (data?.id) testMessages.push(data.id)
     })
 
-    test('message list returns messages array', async () => {
+    it('message list returns messages array', async () => {
       if (!teamsAvailable) return
 
       const result = await runCLI('teams', [
@@ -125,7 +125,7 @@ describe('Teams E2E Tests', () => {
       expect(Array.isArray(data)).toBe(true)
     })
 
-    test('message get retrieves specific message', async () => {
+    it('message get retrieves specific message', async () => {
       if (!teamsAvailable) return
 
       const testId = generateTestId()
@@ -141,7 +141,7 @@ describe('Teams E2E Tests', () => {
       expect(data?.content).toContain(testId)
     })
 
-    test('message delete removes message', async () => {
+    it('message delete removes message', async () => {
       if (!teamsAvailable) return
 
       const testId = generateTestId()
@@ -160,7 +160,7 @@ describe('Teams E2E Tests', () => {
       expect(result.exitCode).toBe(0)
     })
 
-    test('message command does not register update subcommand', async () => {
+    it('message command does not register update subcommand', async () => {
       if (!teamsAvailable) return
 
       const result = await runCLI('teams', ['message', '--help'])
@@ -170,7 +170,7 @@ describe('Teams E2E Tests', () => {
   })
 
   describe('channel', () => {
-    test('channel list returns channels array', async () => {
+    it('channel list returns channels array', async () => {
       if (!teamsAvailable) return
 
       const result = await runCLI('teams', ['channel', 'list', TEAMS_TEST_TEAM_ID])
@@ -180,7 +180,7 @@ describe('Teams E2E Tests', () => {
       expect(Array.isArray(data)).toBe(true)
     })
 
-    test('channel info returns channel details', async () => {
+    it('channel info returns channel details', async () => {
       if (!teamsAvailable) return
 
       const result = await runCLI('teams', ['channel', 'info', TEAMS_TEST_TEAM_ID, TEAMS_TEST_CHANNEL_ID])
@@ -190,7 +190,7 @@ describe('Teams E2E Tests', () => {
       expect(data?.id).toBe(TEAMS_TEST_CHANNEL_ID)
     })
 
-    test('channel history returns messages', async () => {
+    it('channel history returns messages', async () => {
       if (!teamsAvailable) return
 
       const result = await runCLI('teams', [
@@ -209,7 +209,7 @@ describe('Teams E2E Tests', () => {
   })
 
   describe('user', () => {
-    test('user list returns users array', async () => {
+    it('user list returns users array', async () => {
       if (!teamsAvailable) return
 
       const result = await runCLI('teams', ['user', 'list', TEAMS_TEST_TEAM_ID])
@@ -219,7 +219,7 @@ describe('Teams E2E Tests', () => {
       expect(Array.isArray(data)).toBe(true)
     })
 
-    test('user me returns current user', async () => {
+    it('user me returns current user', async () => {
       if (!teamsAvailable) return
 
       const result = await runCLI('teams', ['user', 'me'])
@@ -230,7 +230,7 @@ describe('Teams E2E Tests', () => {
       expect(data?.displayName).toBeTruthy()
     })
 
-    test('user info returns user details', async () => {
+    it('user info returns user details', async () => {
       if (!teamsAvailable) return
 
       const meResult = await runCLI('teams', ['user', 'me'])
@@ -250,7 +250,7 @@ describe('Teams E2E Tests', () => {
   })
 
   describe('reaction', () => {
-    test('reaction add/remove lifecycle', async () => {
+    it('reaction add/remove lifecycle', async () => {
       if (!teamsAvailable) return
 
       const testId = generateTestId()
@@ -288,7 +288,7 @@ describe('Teams E2E Tests', () => {
       expect(removeData?.success).toBe(true)
     }, 15000)
 
-    test('reaction command does not register list subcommand', async () => {
+    it('reaction command does not register list subcommand', async () => {
       if (!teamsAvailable) return
 
       const result = await runCLI('teams', ['reaction', '--help'])
@@ -298,7 +298,7 @@ describe('Teams E2E Tests', () => {
   })
 
   describe('file', () => {
-    test('file list returns files array', async () => {
+    it('file list returns files array', async () => {
       if (!teamsAvailable) return
 
       const result = await runCLI('teams', ['file', 'list', TEAMS_TEST_TEAM_ID, TEAMS_TEST_CHANNEL_ID])
@@ -308,7 +308,7 @@ describe('Teams E2E Tests', () => {
       expect(Array.isArray(data)).toBe(true)
     })
 
-    test('file upload uploads file and file info returns details', async () => {
+    it('file upload uploads file and file info returns details', async () => {
       if (!teamsAvailable) return
 
       const testId = generateTestId()
@@ -348,7 +348,7 @@ describe('Teams E2E Tests', () => {
   })
 
   describe('snapshot', () => {
-    test('snapshot returns full team data', async () => {
+    it('snapshot returns full team data', async () => {
       if (!teamsAvailable) return
 
       const result = await runCLI('teams', ['snapshot', '--team-id', TEAMS_TEST_TEAM_ID, '--limit', '2'])
@@ -359,7 +359,7 @@ describe('Teams E2E Tests', () => {
       expect(data?.members).toBeDefined()
     })
 
-    test('snapshot --channels-only returns only channels', async () => {
+    it('snapshot --channels-only returns only channels', async () => {
       if (!teamsAvailable) return
 
       const result = await runCLI('teams', ['snapshot', '--team-id', TEAMS_TEST_TEAM_ID, '--channels-only'])
@@ -369,7 +369,7 @@ describe('Teams E2E Tests', () => {
       expect(data?.channels).toBeDefined()
     })
 
-    test('snapshot --users-only returns only users', async () => {
+    it('snapshot --users-only returns only users', async () => {
       if (!teamsAvailable) return
 
       const result = await runCLI('teams', ['snapshot', '--team-id', TEAMS_TEST_TEAM_ID, '--users-only'])

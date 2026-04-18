@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, mock, test } from 'bun:test'
+import { afterEach, beforeEach, describe, expect, mock, it } from 'bun:test'
 import { existsSync, rmSync } from 'node:fs'
 import { mkdir } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
@@ -67,7 +67,7 @@ describe('bot commands', () => {
   })
 
   describe('listAction', () => {
-    test('returns all bots', async () => {
+    it('returns all bots', async () => {
       const manager = new ChannelBotCredentialManager(tempDir)
       const result = await listAction({ _credManager: manager })
 
@@ -78,7 +78,7 @@ describe('bot commands', () => {
   })
 
   describe('createAction', () => {
-    test('creates bot with name', async () => {
+    it('creates bot with name', async () => {
       const manager = new ChannelBotCredentialManager(tempDir)
       const result = await createAction('New Bot', { _credManager: manager })
 
@@ -88,7 +88,7 @@ describe('bot commands', () => {
       expect(capturedCreateArgs[0]).toBe('New Bot')
     })
 
-    test('creates bot with optional color and avatar', async () => {
+    it('creates bot with optional color and avatar', async () => {
       const manager = new ChannelBotCredentialManager(tempDir)
       await createAction('New Bot', {
         color: '#00FF00',
@@ -101,7 +101,7 @@ describe('bot commands', () => {
   })
 
   describe('deleteAction', () => {
-    test('deletes bot with --force flag', async () => {
+    it('deletes bot with --force flag', async () => {
       const manager = new ChannelBotCredentialManager(tempDir)
       const result = await deleteAction('bot1', { force: true, _credManager: manager })
 
@@ -111,7 +111,7 @@ describe('bot commands', () => {
       expect(capturedDeleteArg).toBe('bot1')
     })
 
-    test('returns error without --force flag', async () => {
+    it('returns error without --force flag', async () => {
       const manager = new ChannelBotCredentialManager(tempDir)
       const result = await deleteAction('bot1', { _credManager: manager })
 

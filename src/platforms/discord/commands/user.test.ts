@@ -1,4 +1,4 @@
-import { expect, mock, test } from 'bun:test'
+import { expect, mock, it } from 'bun:test'
 
 // Mock DiscordClient
 const mockClient = {
@@ -41,7 +41,7 @@ const mockClient = {
   ]),
 }
 
-test('me returns current user info', async () => {
+it('me returns current user info', async () => {
   // given: authenticated user
   const user = await mockClient.testAuth()
 
@@ -61,7 +61,7 @@ test('me returns current user info', async () => {
   expect(result.bot).toBe(false)
 })
 
-test('info returns user details by id', async () => {
+it('info returns user details by id', async () => {
   // given: user id
   const userId = 'user123'
 
@@ -80,7 +80,7 @@ test('info returns user details by id', async () => {
   expect(result.username).toBe('testuser')
 })
 
-test('list returns server members', async () => {
+it('list returns server members', async () => {
   // given: server id
   const serverId = 'server123'
 
@@ -101,7 +101,7 @@ test('list returns server members', async () => {
   expect(result[2].username).toBe('bob')
 })
 
-test('list filters out bots when flag not set', async () => {
+it('list filters out bots when flag not set', async () => {
   // given: server id and users with bots
   const serverId = 'server123'
   const users = await mockClient.listUsers(serverId)

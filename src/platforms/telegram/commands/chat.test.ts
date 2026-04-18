@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, mock, spyOn, test } from 'bun:test'
+import { afterEach, beforeEach, describe, expect, mock, spyOn, it } from 'bun:test'
 
 const mockListChats = mock(() =>
   Promise.resolve([
@@ -55,19 +55,19 @@ describe('chat commands', () => {
   })
 
   describe('list subcommand', () => {
-    test('calls listChats with default limit', async () => {
+    it('calls listChats with default limit', async () => {
       await chatCommand.parseAsync(['list'], { from: 'user' })
 
       expect(mockListChats).toHaveBeenCalledWith(20)
     })
 
-    test('calls listChats with custom limit', async () => {
+    it('calls listChats with custom limit', async () => {
       await chatCommand.parseAsync(['list', '--limit', '5'], { from: 'user' })
 
       expect(mockListChats).toHaveBeenCalledWith(5)
     })
 
-    test('outputs JSON array to console', async () => {
+    it('outputs JSON array to console', async () => {
       await chatCommand.parseAsync(['list'], { from: 'user' })
 
       expect(consoleSpy).toHaveBeenCalled()
@@ -79,19 +79,19 @@ describe('chat commands', () => {
   })
 
   describe('search subcommand', () => {
-    test('calls searchChats with query and default limit', async () => {
+    it('calls searchChats with query and default limit', async () => {
       await chatCommand.parseAsync(['search', 'General'], { from: 'user' })
 
       expect(mockSearchChats).toHaveBeenCalledWith('General', 20)
     })
 
-    test('calls searchChats with query and custom limit', async () => {
+    it('calls searchChats with query and custom limit', async () => {
       await chatCommand.parseAsync(['search', 'General', '--limit', '3'], { from: 'user' })
 
       expect(mockSearchChats).toHaveBeenCalledWith('General', 3)
     })
 
-    test('outputs JSON array to console', async () => {
+    it('outputs JSON array to console', async () => {
       await chatCommand.parseAsync(['search', 'General'], { from: 'user' })
 
       expect(consoleSpy).toHaveBeenCalled()
@@ -103,13 +103,13 @@ describe('chat commands', () => {
   })
 
   describe('get subcommand', () => {
-    test('calls getChat with chat reference', async () => {
+    it('calls getChat with chat reference', async () => {
       await chatCommand.parseAsync(['get', 'chat-1'], { from: 'user' })
 
       expect(mockGetChat).toHaveBeenCalledWith('chat-1')
     })
 
-    test('outputs JSON object to console', async () => {
+    it('outputs JSON object to console', async () => {
       await chatCommand.parseAsync(['get', 'chat-1'], { from: 'user' })
 
       expect(consoleSpy).toHaveBeenCalled()

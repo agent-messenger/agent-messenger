@@ -1,4 +1,4 @@
-import { expect, test } from 'bun:test'
+import { expect, it } from 'bun:test'
 
 import {
   createAccountId,
@@ -11,34 +11,34 @@ import {
   InstagramListener,
 } from '@/platforms/instagram/index'
 
-test('InstagramClient is exported from barrel', () => {
+it('InstagramClient is exported from barrel', () => {
   expect(typeof InstagramClient).toBe('function')
 })
 
-test('InstagramCredentialManager is exported from barrel', () => {
+it('InstagramCredentialManager is exported from barrel', () => {
   expect(typeof InstagramCredentialManager).toBe('function')
 })
 
-test('InstagramListener is exported from barrel', () => {
+it('InstagramListener is exported from barrel', () => {
   expect(typeof InstagramListener).toBe('function')
 })
 
-test('InstagramError is exported from barrel', () => {
+it('InstagramError is exported from barrel', () => {
   expect(typeof InstagramError).toBe('function')
 })
 
-test('createAccountId is exported from barrel', () => {
+it('createAccountId is exported from barrel', () => {
   expect(typeof createAccountId).toBe('function')
 })
 
-test('extractMediaUrl is exported from barrel', () => {
+it('extractMediaUrl is exported from barrel', () => {
   expect(typeof extractMediaUrl).toBe('function')
 })
 
-test('extractMessageText is exported from barrel', () => {
+it('extractMessageText is exported from barrel', () => {
   expect(typeof extractMessageText).toBe('function')
 })
 
-test('getMessageType is exported from barrel', () => {
+it('getMessageType is exported from barrel', () => {
   expect(typeof getMessageType).toBe('function')
 })

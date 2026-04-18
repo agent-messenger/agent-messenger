@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, mock, spyOn, test } from 'bun:test'
+import { afterEach, beforeEach, describe, expect, mock, spyOn, it } from 'bun:test'
 
 const mockListMessages = mock(() =>
   Promise.resolve([
@@ -46,19 +46,19 @@ describe('message commands', () => {
   })
 
   describe('list subcommand', () => {
-    test('calls listMessages with chat reference and default limit', async () => {
+    it('calls listMessages with chat reference and default limit', async () => {
       await messageCommand.parseAsync(['list', 'chat-123'], { from: 'user' })
 
       expect(mockListMessages).toHaveBeenCalledWith('chat-123', 20)
     })
 
-    test('calls listMessages with custom limit', async () => {
+    it('calls listMessages with custom limit', async () => {
       await messageCommand.parseAsync(['list', 'chat-123', '--limit', '10'], { from: 'user' })
 
       expect(mockListMessages).toHaveBeenCalledWith('chat-123', 10)
     })
 
-    test('outputs JSON to console', async () => {
+    it('outputs JSON to console', async () => {
       await messageCommand.parseAsync(['list', 'chat-123'], { from: 'user' })
 
       expect(consoleSpy).toHaveBeenCalled()
@@ -70,13 +70,13 @@ describe('message commands', () => {
   })
 
   describe('send subcommand', () => {
-    test('calls sendMessage with chat reference and text', async () => {
+    it('calls sendMessage with chat reference and text', async () => {
       await messageCommand.parseAsync(['send', 'chat-123', 'Hello there'], { from: 'user' })
 
       expect(mockSendMessage).toHaveBeenCalledWith('chat-123', 'Hello there')
     })
 
-    test('outputs JSON to console', async () => {
+    it('outputs JSON to console', async () => {
       await messageCommand.parseAsync(['send', 'chat-123', 'Hello there'], { from: 'user' })
 
       expect(consoleSpy).toHaveBeenCalled()

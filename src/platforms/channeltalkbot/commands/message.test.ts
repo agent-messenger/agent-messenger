@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, mock, test } from 'bun:test'
+import { afterEach, beforeEach, describe, expect, mock, it } from 'bun:test'
 import { existsSync, rmSync } from 'node:fs'
 import { mkdir } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
@@ -113,7 +113,7 @@ describe('message commands', () => {
   })
 
   describe('sendAction', () => {
-    test('sends to userchat and wraps text in blocks', async () => {
+    it('sends to userchat and wraps text in blocks', async () => {
       const manager = new ChannelBotCredentialManager(tempDir)
       const result = await sendAction('chat1', 'Hello world', { type: 'userchat', _credManager: manager })
 
@@ -122,7 +122,7 @@ describe('message commands', () => {
       expect(capturedSendUserChatArgs[1]).toEqual([{ type: 'text', value: 'Hello world' }])
     })
 
-    test('sends to group when type=group', async () => {
+    it('sends to group when type=group', async () => {
       const manager = new ChannelBotCredentialManager(tempDir)
       const result = await sendAction('grp1', 'Hello group', { type: 'group', _credManager: manager })
 
@@ -131,14 +131,14 @@ describe('message commands', () => {
       expect(mockSendGroupMessage).toHaveBeenCalledTimes(1)
     })
 
-    test('includes botName in request when --bot provided', async () => {
+    it('includes botName in request when --bot provided', async () => {
       const manager = new ChannelBotCredentialManager(tempDir)
       await sendAction('chat1', 'Hello', { type: 'userchat', bot: 'my-bot', _credManager: manager })
 
       expect(capturedSendUserChatArgs[2]).toBe('my-bot')
     })
 
-    test('auto-detects group target from @ prefix', async () => {
+    it('auto-detects group target from @ prefix', async () => {
       const manager = new ChannelBotCredentialManager(tempDir)
       await sendAction('@team', 'Hello', { _credManager: manager })
 
@@ -147,7 +147,7 @@ describe('message commands', () => {
   })
 
   describe('listAction', () => {
-    test('lists userchat messages', async () => {
+    it('lists userchat messages', async () => {
       const manager = new ChannelBotCredentialManager(tempDir)
       const result = await listAction('chat1', { type: 'userchat', _credManager: manager })
 
@@ -156,7 +156,7 @@ describe('message commands', () => {
       expect(result.messages?.[0].id).toBe('msg1')
     })
 
-    test('lists group messages when type=group', async () => {
+    it('lists group messages when type=group', async () => {
       const manager = new ChannelBotCredentialManager(tempDir)
       const result = await listAction('grp1', { type: 'group', _credManager: manager })
 
@@ -165,7 +165,7 @@ describe('message commands', () => {
       expect(result.messages?.[0].id).toBe('msg2')
     })
 
-    test('passes pagination params', async () => {
+    it('passes pagination params', async () => {
       const manager = new ChannelBotCredentialManager(tempDir)
       await listAction('chat1', {
         type: 'userchat',
@@ -181,7 +181,7 @@ describe('message commands', () => {
   })
 
   describe('getAction', () => {
-    test('returns specific message by ID', async () => {
+    it('returns specific message by ID', async () => {
       const manager = new ChannelBotCredentialManager(tempDir)
       const result = await getAction('chat1', 'msg1', { type: 'userchat', _credManager: manager })
 
@@ -189,7 +189,7 @@ describe('message commands', () => {
       expect(result.id).toBe('msg1')
     })
 
-    test('returns error when message not found', async () => {
+    it('returns error when message not found', async () => {
       const manager = new ChannelBotCredentialManager(tempDir)
       const result = await getAction('chat1', 'nonexistent', { type: 'userchat', _credManager: manager })
 

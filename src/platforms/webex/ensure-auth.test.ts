@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, spyOn, test } from 'bun:test'
+import { afterEach, beforeEach, describe, expect, spyOn, it } from 'bun:test'
 
 import { WebexClient } from './client'
 import { WebexCredentialManager } from './credential-manager'
@@ -33,7 +33,7 @@ afterEach(() => {
 })
 
 describe('ensureWebexAuth', () => {
-  test('does nothing when no config stored', async () => {
+  it('does nothing when no config stored', async () => {
     // given
     loadConfigSpy.mockResolvedValue(null)
 
@@ -45,7 +45,7 @@ describe('ensureWebexAuth', () => {
     expect(testAuthSpy).not.toHaveBeenCalled()
   })
 
-  test('validates token when stored', async () => {
+  it('validates token when stored', async () => {
     // given
     loadConfigSpy.mockResolvedValue({
       accessToken: 'test-webex-token',
@@ -65,7 +65,7 @@ describe('ensureWebexAuth', () => {
     expect(testAuthSpy).toHaveBeenCalled()
   })
 
-  test('does not throw when token validation fails', async () => {
+  it('does not throw when token validation fails', async () => {
     // given
     loadConfigSpy.mockResolvedValue({
       accessToken: 'invalid-token',
@@ -79,7 +79,7 @@ describe('ensureWebexAuth', () => {
     await expect(ensureWebexAuth()).resolves.toBeUndefined()
   })
 
-  test('does not throw when credential manager fails', async () => {
+  it('does not throw when credential manager fails', async () => {
     // given
     getTokenSpy.mockRejectedValue(new Error('Disk read error'))
 

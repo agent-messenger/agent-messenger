@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, mock, test } from 'bun:test'
+import { afterEach, beforeEach, describe, expect, mock, it } from 'bun:test'
 import { existsSync, rmSync } from 'node:fs'
 import { mkdir } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
@@ -120,7 +120,7 @@ describe('message commands', () => {
   })
 
   describe('sendAction', () => {
-    test('sends message to channel by name', async () => {
+    it('sends message to channel by name', async () => {
       const result = await sendAction('general', 'hello world', { _credManager: manager })
 
       expect(result.id).toBe('msg1')
@@ -130,7 +130,7 @@ describe('message commands', () => {
       expect(mockSendMessage).toHaveBeenCalledWith('ch1', 'hello world', { thread_id: undefined })
     })
 
-    test('sends message to channel by ID', async () => {
+    it('sends message to channel by ID', async () => {
       const result = await sendAction('123456', 'hi', { _credManager: manager })
 
       expect(result.id).toBe('msg1')
@@ -138,7 +138,7 @@ describe('message commands', () => {
       expect(mockSendMessage).toHaveBeenCalledWith('123456', 'hi', { thread_id: undefined })
     })
 
-    test('sends message to thread', async () => {
+    it('sends message to thread', async () => {
       const result = await sendAction('general', 'thread reply', {
         _credManager: manager,
         thread: 'thread123',
@@ -148,13 +148,13 @@ describe('message commands', () => {
       expect(mockSendMessage).toHaveBeenCalledWith('ch1', 'thread reply', { thread_id: 'thread123' })
     })
 
-    test('returns error on channel not found', async () => {
+    it('returns error on channel not found', async () => {
       const result = await sendAction('unknown', 'hi', { _credManager: manager })
 
       expect(result.error).toContain('Channel not found')
     })
 
-    test('returns error on client failure', async () => {
+    it('returns error on client failure', async () => {
       mockSendMessage.mockImplementationOnce(() => Promise.reject(new Error('API Error')))
 
       const result = await sendAction('general', 'hi', { _credManager: manager })
@@ -164,7 +164,7 @@ describe('message commands', () => {
   })
 
   describe('listAction', () => {
-    test('lists messages in channel', async () => {
+    it('lists messages in channel', async () => {
       const result = await listAction('general', { _credManager: manager })
 
       expect(result.messages).toHaveLength(2)
@@ -174,25 +174,25 @@ describe('message commands', () => {
       expect(mockGetMessages).toHaveBeenCalledWith('ch1', 50)
     })
 
-    test('uses custom limit', async () => {
+    it('uses custom limit', async () => {
       await listAction('general', { _credManager: manager, limit: '10' })
 
       expect(mockGetMessages).toHaveBeenCalledWith('ch1', 10)
     })
 
-    test('defaults to 50 messages', async () => {
+    it('defaults to 50 messages', async () => {
       await listAction('general', { _credManager: manager })
 
       expect(mockGetMessages).toHaveBeenCalledWith('ch1', 50)
     })
 
-    test('resolves channel name', async () => {
+    it('resolves channel name', async () => {
       await listAction('general', { _credManager: manager })
 
       expect(mockResolveChannel).toHaveBeenCalledWith('guild1', 'general')
     })
 
-    test('returns error on failure', async () => {
+    it('returns error on failure', async () => {
       mockGetMessages.mockImplementationOnce(() => Promise.reject(new Error('Forbidden')))
 
       const result = await listAction('general', { _credManager: manager })
@@ -202,7 +202,7 @@ describe('message commands', () => {
   })
 
   describe('getAction', () => {
-    test('gets a single message', async () => {
+    it('gets a single message', async () => {
       const result = await getAction('general', 'msg1', { _credManager: manager })
 
       expect(result.id).toBe('msg1')
@@ -211,13 +211,13 @@ describe('message commands', () => {
       expect(mockGetMessage).toHaveBeenCalledWith('ch1', 'msg1')
     })
 
-    test('resolves channel name', async () => {
+    it('resolves channel name', async () => {
       await getAction('general', 'msg1', { _credManager: manager })
 
       expect(mockResolveChannel).toHaveBeenCalledWith('guild1', 'general')
     })
 
-    test('returns error on failure', async () => {
+    it('returns error on failure', async () => {
       mockGetMessage.mockImplementationOnce(() => Promise.reject(new Error('Not Found')))
 
       const result = await getAction('general', 'msg999', { _credManager: manager })
@@ -227,7 +227,7 @@ describe('message commands', () => {
   })
 
   describe('updateAction', () => {
-    test('updates a message', async () => {
+    it('updates a message', async () => {
       const result = await updateAction('general', 'msg1', 'updated text', { _credManager: manager })
 
       expect(result.id).toBe('msg1')
@@ -236,13 +236,13 @@ describe('message commands', () => {
       expect(mockEditMessage).toHaveBeenCalledWith('ch1', 'msg1', 'updated text')
     })
 
-    test('resolves channel name', async () => {
+    it('resolves channel name', async () => {
       await updateAction('general', 'msg1', 'new', { _credManager: manager })
 
       expect(mockResolveChannel).toHaveBeenCalledWith('guild1', 'general')
     })
 
-    test('returns error on failure', async () => {
+    it('returns error on failure', async () => {
       mockEditMessage.mockImplementationOnce(() => Promise.reject(new Error('Cannot edit')))
 
       const result = await updateAction('general', 'msg1', 'new', { _credManager: manager })
@@ -252,34 +252,34 @@ describe('message commands', () => {
   })
 
   describe('deleteAction', () => {
-    test('deletes message with --force', async () => {
+    it('deletes message with --force', async () => {
       const result = await deleteAction('general', 'msg1', { _credManager: manager, force: true })
 
       expect(result.deleted).toBe('msg1')
       expect(mockDeleteMessage).toHaveBeenCalledWith('ch1', 'msg1')
     })
 
-    test('returns error without --force', async () => {
+    it('returns error without --force', async () => {
       const result = await deleteAction('general', 'msg1', { _credManager: manager })
 
       expect(result.error).toBe('Use --force to confirm deletion')
       expect(mockDeleteMessage).not.toHaveBeenCalled()
     })
 
-    test('returns error with force=false', async () => {
+    it('returns error with force=false', async () => {
       const result = await deleteAction('general', 'msg1', { _credManager: manager, force: false })
 
       expect(result.error).toBe('Use --force to confirm deletion')
       expect(mockDeleteMessage).not.toHaveBeenCalled()
     })
 
-    test('resolves channel name', async () => {
+    it('resolves channel name', async () => {
       await deleteAction('general', 'msg1', { _credManager: manager, force: true })
 
       expect(mockResolveChannel).toHaveBeenCalledWith('guild1', 'general')
     })
 
-    test('returns error on failure', async () => {
+    it('returns error on failure', async () => {
       mockDeleteMessage.mockImplementationOnce(() => Promise.reject(new Error('Forbidden')))
 
       const result = await deleteAction('general', 'msg1', { _credManager: manager, force: true })
@@ -289,20 +289,20 @@ describe('message commands', () => {
   })
 
   describe('repliesAction', () => {
-    test('fetches thread messages', async () => {
+    it('fetches thread messages', async () => {
       const result = await repliesAction('general', 'thread1', { _credManager: manager })
 
       expect(result.messages).toHaveLength(2)
       expect(mockGetMessages).toHaveBeenCalledWith('thread1', 50)
     })
 
-    test('uses custom limit', async () => {
+    it('uses custom limit', async () => {
       await repliesAction('general', 'thread1', { _credManager: manager, limit: '25' })
 
       expect(mockGetMessages).toHaveBeenCalledWith('thread1', 25)
     })
 
-    test('returns error on failure', async () => {
+    it('returns error on failure', async () => {
       mockGetMessages.mockImplementationOnce(() => Promise.reject(new Error('Thread not found')))
 
       const result = await repliesAction('general', 'thread999', { _credManager: manager })

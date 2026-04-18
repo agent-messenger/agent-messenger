@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, mock, test } from 'bun:test'
+import { beforeEach, describe, expect, mock, it } from 'bun:test'
 
 const mockResolveChannel = mock((_channel: string) => Promise.resolve('C123456'))
 const mockAddReaction = mock(() => Promise.resolve())
@@ -25,7 +25,7 @@ describe('reaction commands', () => {
   })
 
   describe('addReaction', () => {
-    test('adds emoji reaction to message', async () => {
+    it('adds emoji reaction to message', async () => {
       // given
       const client = await new SlackBotClient().login({ token: 'xoxb-test-token' })
 
@@ -36,7 +36,7 @@ describe('reaction commands', () => {
       expect(mockAddReaction).toHaveBeenCalledWith('C123456', '1234567890.000100', 'thumbsup')
     })
 
-    test('called with correct arguments', async () => {
+    it('passes correct arguments', async () => {
       // given
       const client = await new SlackBotClient().login({ token: 'xoxb-test-token' })
 
@@ -50,7 +50,7 @@ describe('reaction commands', () => {
   })
 
   describe('removeReaction', () => {
-    test('removes emoji reaction from message', async () => {
+    it('removes emoji reaction from message', async () => {
       // given
       const client = await new SlackBotClient().login({ token: 'xoxb-test-token' })
 
@@ -61,7 +61,7 @@ describe('reaction commands', () => {
       expect(mockRemoveReaction).toHaveBeenCalledWith('C123456', '1234567890.000100', 'thumbsup')
     })
 
-    test('called with correct arguments', async () => {
+    it('passes correct arguments', async () => {
       // given
       const client = await new SlackBotClient().login({ token: 'xoxb-test-token' })
 
@@ -75,7 +75,7 @@ describe('reaction commands', () => {
   })
 
   describe('resolveChannel', () => {
-    test('resolves channel name before reaction', async () => {
+    it('resolves channel name before reaction', async () => {
       // given
       const client = await new SlackBotClient().login({ token: 'xoxb-test-token' })
 

@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, expect, spyOn, test } from 'bun:test'
+import { afterEach, beforeEach, expect, spyOn, it } from 'bun:test'
 
 import { DiscordClient } from '../client'
 import { DiscordCredentialManager } from '../credential-manager'
@@ -62,7 +62,7 @@ afterEach(() => {
   credManagerLoadSpy?.mockRestore()
 })
 
-test('list: returns all relationships', async () => {
+it('list: returns all relationships', async () => {
   // given: discord client with relationships
   const client = await new DiscordClient().login({ token: 'test-token' })
   const relationships = await client.getRelationships()
@@ -74,7 +74,7 @@ test('list: returns all relationships', async () => {
   expect(relationships).toHaveLength(4)
 })
 
-test('list: includes relationship metadata', async () => {
+it('list: includes relationship metadata', async () => {
   // given: discord client with relationships
   const client = await new DiscordClient().login({ token: 'test-token' })
   const relationships = await client.getRelationships()
@@ -90,7 +90,7 @@ test('list: includes relationship metadata', async () => {
   expect(relationship.user.username).toBeDefined()
 })
 
-test('list: filters friends (type=1)', async () => {
+it('list: filters friends (type=1)', async () => {
   // given: discord client with relationships
   const client = await new DiscordClient().login({ token: 'test-token' })
   const relationships = await client.getRelationships()
@@ -104,7 +104,7 @@ test('list: filters friends (type=1)', async () => {
   expect(friends[1].user.username).toBe('bob')
 })
 
-test('list: includes optional nickname', async () => {
+it('list: includes optional nickname', async () => {
   // given: discord client with relationships
   const client = await new DiscordClient().login({ token: 'test-token' })
   const relationships = await client.getRelationships()
@@ -118,7 +118,7 @@ test('list: includes optional nickname', async () => {
   expect(withoutNickname?.nickname).toBeUndefined()
 })
 
-test('list: distinguishes relationship types', async () => {
+it('list: distinguishes relationship types', async () => {
   // given: discord client with relationships
   const client = await new DiscordClient().login({ token: 'test-token' })
   const relationships = await client.getRelationships()

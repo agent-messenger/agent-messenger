@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
+import { afterEach, beforeEach, describe, expect, it } from 'bun:test'
 import { existsSync, mkdtempSync, rmSync } from 'node:fs'
 import { stat } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
@@ -42,14 +42,14 @@ describe('ChannelCredentialManager', () => {
     delete process.env.E2E_CHANNEL_WORKSPACE_ID
   })
 
-  test('returns empty config when no file exists', async () => {
+  it('returns empty config when no file exists', async () => {
     const config = await manager.load()
 
     expect(config.current).toBeNull()
     expect(config.workspaces).toEqual({})
   })
 
-  test('persists config to file', async () => {
+  it('persists config to file', async () => {
     const config = {
       current: { workspace_id: '232986' },
       workspaces: {
@@ -63,11 +63,11 @@ describe('ChannelCredentialManager', () => {
     expect(loaded).toEqual(config)
   })
 
-  test('returns null when no credentials exist', async () => {
+  it('returns null when no credentials exist', async () => {
     expect(await manager.getCredentials()).toBeNull()
   })
 
-  test('returns current workspace credentials', async () => {
+  it('returns current workspace credentials', async () => {
     await manager.setCredentials(WORKSPACE_A)
 
     expect(await manager.getCredentials()).toEqual({
@@ -78,7 +78,7 @@ describe('ChannelCredentialManager', () => {
     })
   })
 
-  test('returns specific workspace by id', async () => {
+  it('returns specific workspace by id', async () => {
     await manager.setCredentials(WORKSPACE_A)
     await manager.setCredentials(WORKSPACE_B)
 
@@ -90,13 +90,13 @@ describe('ChannelCredentialManager', () => {
     })
   })
 
-  test('returns null for unknown workspace id', async () => {
+  it('returns null for unknown workspace id', async () => {
     await manager.setCredentials(WORKSPACE_A)
 
     expect(await manager.getCredentials('missing')).toBeNull()
   })
 
-  test('env vars take precedence when no workspace id is specified', async () => {
+  it('env vars take precedence when no workspace id is specified', async () => {
     await manager.setCredentials(WORKSPACE_A)
 
     process.env.E2E_CHANNEL_ACCOUNT_COOKIE = 'env-account-cookie'
@@ -111,7 +111,7 @@ describe('ChannelCredentialManager', () => {
     })
   })
 
-  test('env vars are ignored when a workspace id is explicitly provided', async () => {
+  it('env vars are ignored when a workspace id is explicitly provided', async () => {
     await manager.setCredentials(WORKSPACE_A)
 
     process.env.E2E_CHANNEL_ACCOUNT_COOKIE = 'env-account-cookie'
@@ -126,7 +126,7 @@ describe('ChannelCredentialManager', () => {
     })
   })
 
-  test('stores multiple workspaces and marks the latest current', async () => {
+  it('stores multiple workspaces and marks the latest current', async () => {
     await manager.setCredentials(WORKSPACE_A)
     await manager.setCredentials(WORKSPACE_B)
 
@@ -136,7 +136,7 @@ describe('ChannelCredentialManager', () => {
     expect(config.current).toEqual({ workspace_id: '232987' })
   })
 
-  test('lists all workspaces with current flag', async () => {
+  it('lists all workspaces with current flag', async () => {
     await manager.setCredentials(WORKSPACE_A)
     await manager.setCredentials(WORKSPACE_B)
 
@@ -147,7 +147,7 @@ describe('ChannelCredentialManager', () => {
     expect(all.find((workspace) => workspace.workspace_id === '232987')?.is_current).toBe(true)
   })
 
-  test('switches current workspace', async () => {
+  it('switches current workspace', async () => {
     await manager.setCredentials(WORKSPACE_A)
     await manager.setCredentials(WORKSPACE_B)
 
@@ -160,11 +160,11 @@ describe('ChannelCredentialManager', () => {
     })
   })
 
-  test('returns false when setting an unknown current workspace', async () => {
+  it('returns false when setting an unknown current workspace', async () => {
     expect(await manager.setCurrent('missing')).toBe(false)
   })
 
-  test('removes a workspace by id', async () => {
+  it('removes a workspace by id', async () => {
     await manager.setCredentials(WORKSPACE_A)
     await manager.setCredentials(WORKSPACE_B)
 
@@ -172,7 +172,7 @@ describe('ChannelCredentialManager', () => {
     expect(await manager.listAll()).toHaveLength(1)
   })
 
-  test('clears current when current workspace is removed', async () => {
+  it('clears current when current workspace is removed', async () => {
     await manager.setCredentials(WORKSPACE_A)
 
     await manager.removeWorkspace(WORKSPACE_A.workspace_id)
@@ -181,11 +181,11 @@ describe('ChannelCredentialManager', () => {
     expect(config.current).toBeNull()
   })
 
-  test('returns false when removing an unknown workspace', async () => {
+  it('returns false when removing an unknown workspace', async () => {
     expect(await manager.removeWorkspace('missing')).toBe(false)
   })
 
-  test('clears all credentials', async () => {
+  it('clears all credentials', async () => {
     await manager.setCredentials(WORKSPACE_A)
     await manager.setCredentials(WORKSPACE_B)
 
@@ -196,7 +196,7 @@ describe('ChannelCredentialManager', () => {
     expect(config.workspaces).toEqual({})
   })
 
-  test('saves file with secure permissions', async () => {
+  it('saves file with secure permissions', async () => {
     await manager.setCredentials(WORKSPACE_A)
 
     const credentialsPath = join(tempDir, 'channel-credentials.json')

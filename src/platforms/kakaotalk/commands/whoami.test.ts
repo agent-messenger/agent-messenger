@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, mock, test } from 'bun:test'
+import { afterEach, beforeEach, describe, expect, mock, it } from 'bun:test'
 
 const originalConsoleLog = console.log
 
@@ -68,7 +68,7 @@ describe('whoami command', () => {
     console.log = originalConsoleLog
   })
 
-  test('outputs profile information', async () => {
+  it('outputs profile information', async () => {
     await whoamiCommand.parseAsync([], { from: 'user' })
 
     expect(mockGetProfile).toHaveBeenCalled()
@@ -78,7 +78,7 @@ describe('whoami command', () => {
     expect(output.profile_image_url).toBe('https://example.com/avatar.jpg')
   })
 
-  test('outputs enriched profile fields', async () => {
+  it('outputs enriched profile fields', async () => {
     await whoamiCommand.parseAsync([], { from: 'user' })
 
     const output = JSON.parse(consoleLogSpy.mock.calls[0][0])
@@ -92,7 +92,7 @@ describe('whoami command', () => {
     expect(output.email_verified).toBe(true)
   })
 
-  test('passes account option to withKakaoClient', async () => {
+  it('passes account option to withKakaoClient', async () => {
     await whoamiCommand.parseAsync(['--account', 'my-account'], { from: 'user' })
 
     expect(mockWithKakaoClient).toHaveBeenCalledWith(
@@ -101,7 +101,7 @@ describe('whoami command', () => {
     )
   })
 
-  test('outputs profile with pretty flag', async () => {
+  it('outputs profile with pretty flag', async () => {
     await whoamiCommand.parseAsync(['--pretty'], { from: 'user' })
 
     expect(mockGetProfile).toHaveBeenCalled()

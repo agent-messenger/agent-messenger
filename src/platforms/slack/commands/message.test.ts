@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, mock, test } from 'bun:test'
+import { beforeEach, describe, expect, mock, it } from 'bun:test'
 
 import { SlackClient } from '@/platforms/slack/client'
 import type { SlackMessage } from '@/platforms/slack/types'
@@ -97,7 +97,7 @@ describe('Message Commands', () => {
   })
 
   describe('message send', () => {
-    test('sends message to channel', async () => {
+    it('sends message to channel', async () => {
       // Given: A channel and message text
       const channel = 'C123'
       const text = 'Hello, world!'
@@ -111,7 +111,7 @@ describe('Message Commands', () => {
       expect(result.type).toBe('message')
     })
 
-    test('sends message to thread', async () => {
+    it('sends message to thread', async () => {
       // Given: A channel, message text, and thread ts
       const channel = 'C123'
       const text = 'Reply in thread'
@@ -127,7 +127,7 @@ describe('Message Commands', () => {
   })
 
   describe('message list', () => {
-    test('lists messages from channel', async () => {
+    it('lists messages from channel', async () => {
       // Given: A channel
       const channel = 'C123'
 
@@ -140,7 +140,7 @@ describe('Message Commands', () => {
       expect(messages[1].text).toBe('Second message')
     })
 
-    test('respects limit parameter', async () => {
+    it('respects limit parameter', async () => {
       // Given: A channel and limit
       const channel = 'C123'
       const limit = 10
@@ -152,7 +152,7 @@ describe('Message Commands', () => {
       expect(messages).toBeDefined()
     })
 
-    test('filters messages by thread', async () => {
+    it('filters messages by thread', async () => {
       // Given: A channel and thread ts
       const channel = 'C123'
       const _threadTs = '1234567890.123456'
@@ -166,7 +166,7 @@ describe('Message Commands', () => {
   })
 
   describe('message update', () => {
-    test('updates message text', async () => {
+    it('updates message text', async () => {
       // Given: A channel, message ts, and new text
       const channel = 'C123'
       const ts = '1234567890.123456'
@@ -182,7 +182,7 @@ describe('Message Commands', () => {
   })
 
   describe('message delete', () => {
-    test('deletes message', async () => {
+    it('deletes message', async () => {
       // Given: A channel and message ts
       const channel = 'C123'
       const ts = '1234567890.123456'
@@ -196,7 +196,7 @@ describe('Message Commands', () => {
   })
 
   describe('message get', () => {
-    test('gets single message by timestamp', async () => {
+    it('gets single message by timestamp', async () => {
       // Given: A channel and message ts
       const channel = 'C123'
       const ts = '1234567890.123456'
@@ -210,7 +210,7 @@ describe('Message Commands', () => {
       expect(message?.text).toBe('Found single message')
     })
 
-    test('returns null for non-existent message', async () => {
+    it('returns null for non-existent message', async () => {
       // Given: A channel and non-existent ts
       const channel = 'C123'
       const ts = '9999999999.999999'
@@ -224,7 +224,7 @@ describe('Message Commands', () => {
   })
 
   describe('message search', () => {
-    test('searches messages across workspace', async () => {
+    it('searches messages across workspace', async () => {
       // Given: A search query
       const query = 'hello world'
 
@@ -238,7 +238,7 @@ describe('Message Commands', () => {
       expect(results[0].permalink).toBeDefined()
     })
 
-    test('returns channel info with each result', async () => {
+    it('returns channel info with each result', async () => {
       // Given: A search query
       const query = 'test'
 
@@ -255,7 +255,7 @@ describe('Message Commands', () => {
   })
 
   describe('message replies', () => {
-    test('gets thread replies including parent message', async () => {
+    it('gets thread replies including parent message', async () => {
       // Given: A channel and thread ts
       const channel = 'C123'
       const threadTs = '1234567890.123456'
@@ -271,7 +271,7 @@ describe('Message Commands', () => {
       expect(result.messages[2].text).toBe('Second reply')
     })
 
-    test('returns has_more flag for pagination', async () => {
+    it('returns has_more flag for pagination', async () => {
       // Given: A channel and thread ts
       const channel = 'C123'
       const threadTs = '1234567890.123456'
@@ -283,7 +283,7 @@ describe('Message Commands', () => {
       expect(result.has_more).toBe(false)
     })
 
-    test('all replies have same thread_ts as parent', async () => {
+    it('all replies have same thread_ts as parent', async () => {
       // Given: A channel and thread ts
       const channel = 'C123'
       const threadTs = '1234567890.123456'
@@ -299,7 +299,7 @@ describe('Message Commands', () => {
   })
 
   describe('output formatting', () => {
-    test('formats message output', () => {
+    it('formats message output', () => {
       // Given: A message
       const message: SlackMessage = {
         ts: '1234567890.123456',
@@ -316,7 +316,7 @@ describe('Message Commands', () => {
       expect(output.text).toBe('Hello')
     })
 
-    test('formats multiple messages', () => {
+    it('formats multiple messages', () => {
       // Given: Multiple messages
       const messages: SlackMessage[] = [
         {
@@ -342,7 +342,7 @@ describe('Message Commands', () => {
       expect(output[1].text).toBe('Second')
     })
 
-    test('formats message with files', () => {
+    it('formats message with files', () => {
       // Given: A message with file attachments
       const message: SlackMessage = {
         ts: '1234567890.123456',
@@ -375,7 +375,7 @@ describe('Message Commands', () => {
       expect(output.files![0].url_private).toContain('files.slack.com')
     })
 
-    test('message without files has undefined files field', () => {
+    it('message without files has undefined files field', () => {
       // Given: A message without file attachments
       const message: SlackMessage = {
         ts: '1234567890.123456',

@@ -1,4 +1,4 @@
-import { afterAll, describe, expect, mock, test } from 'bun:test'
+import { afterAll, describe, expect, mock, it } from 'bun:test'
 import { rmSync } from 'node:fs'
 import { join } from 'node:path'
 
@@ -56,7 +56,7 @@ afterAll(() => {
 })
 
 describe('listAction (user)', () => {
-  test('returns followers list with total, count, openids, next_openid', async () => {
+  it('returns followers list with total, count, openids, next_openid', async () => {
     const credManager = await makeCredManagerWithCreds()
     const result = await listAction({ _credManager: credManager })
 
@@ -66,7 +66,7 @@ describe('listAction (user)', () => {
     expect(result.next_openid).toBe('')
   })
 
-  test('returns error when client throws', async () => {
+  it('returns error when client throws', async () => {
     mock.module('../client', () => ({
       WeChatBotClient: class MockWeChatBotClient {
         async login() {
@@ -84,7 +84,7 @@ describe('listAction (user)', () => {
     expect(result.openids).toBeUndefined()
   })
 
-  test('passes nextOpenid option to client', async () => {
+  it('passes nextOpenid option to client', async () => {
     const getFollowersMock = mock(() => Promise.resolve({ total: 1, count: 1, openids: ['openid-3'], next_openid: '' }))
     mock.module('../client', () => ({
       WeChatBotClient: class MockWeChatBotClient {
@@ -104,7 +104,7 @@ describe('listAction (user)', () => {
 })
 
 describe('getAction', () => {
-  test('returns user info for given openId', async () => {
+  it('returns user info for given openId', async () => {
     mock.module('../client', () => ({
       WeChatBotClient: class MockWeChatBotClient {
         async login() {
@@ -122,7 +122,7 @@ describe('getAction', () => {
     expect(result.user?.openid).toBe('openid-123')
   })
 
-  test('returns error when client throws', async () => {
+  it('returns error when client throws', async () => {
     mock.module('../client', () => ({
       WeChatBotClient: class MockWeChatBotClient {
         async login() {
@@ -140,7 +140,7 @@ describe('getAction', () => {
     expect(result.user).toBeUndefined()
   })
 
-  test('passes lang option to client', async () => {
+  it('passes lang option to client', async () => {
     const getUserInfoMock = mock(() => Promise.resolve({ ...mockUserInfo, language: 'en' }))
     mock.module('../client', () => ({
       WeChatBotClient: class MockWeChatBotClient {

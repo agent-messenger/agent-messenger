@@ -1,4 +1,4 @@
-import { afterEach, beforeAll, describe, expect, test } from 'bun:test'
+import { afterEach, beforeAll, describe, expect, it } from 'bun:test'
 
 import { LINE_TEST_CHAT_ID, validateLineEnvironment } from './config'
 import { generateTestId, parseJSON, runCLI, waitForRateLimit } from './helpers'
@@ -15,14 +15,14 @@ describe('LINE E2E Tests', () => {
   })
 
   describe('auth', () => {
-    test('auth status returns valid auth info', async () => {
+    it('auth status returns valid auth info', async () => {
       if (!lineAvailable) return
 
       const result = await runCLI('line', ['auth', 'status'])
       expect(result.exitCode).toBe(0)
     })
 
-    test('auth list returns accounts array', async () => {
+    it('auth list returns accounts array', async () => {
       if (!lineAvailable) return
 
       const result = await runCLI('line', ['auth', 'list'])
@@ -34,7 +34,7 @@ describe('LINE E2E Tests', () => {
   })
 
   describe('chat', () => {
-    test('chat list returns chats', async () => {
+    it('chat list returns chats', async () => {
       if (!lineAvailable) return
 
       const result = await runCLI('line', ['chat', 'list', '--limit', '5'])
@@ -46,7 +46,7 @@ describe('LINE E2E Tests', () => {
   })
 
   describe('friend', () => {
-    test('friend list returns friends', async () => {
+    it('friend list returns friends', async () => {
       if (!lineAvailable) return
 
       const result = await runCLI('line', ['friend', 'list'])
@@ -58,7 +58,7 @@ describe('LINE E2E Tests', () => {
   })
 
   describe('message', () => {
-    test('message send sends a message to the test chat', async () => {
+    it('message send sends a message to the test chat', async () => {
       if (!lineAvailable) return
 
       const testId = generateTestId()
@@ -66,7 +66,7 @@ describe('LINE E2E Tests', () => {
       expect(result.exitCode).toBe(0)
     })
 
-    test('message list returns messages from the test chat', async () => {
+    it('message list returns messages from the test chat', async () => {
       if (!lineAvailable) return
 
       const result = await runCLI('line', ['message', 'list', LINE_TEST_CHAT_ID, '-n', '5'])
@@ -78,7 +78,7 @@ describe('LINE E2E Tests', () => {
   })
 
   describe('profile', () => {
-    test('profile returns current user profile', async () => {
+    it('profile returns current user profile', async () => {
       if (!lineAvailable) return
 
       const result = await runCLI('line', ['profile'])

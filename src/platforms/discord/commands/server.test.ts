@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, expect, spyOn, test } from 'bun:test'
+import { afterEach, beforeEach, expect, spyOn, it } from 'bun:test'
 
 import { DiscordClient } from '../client'
 import { DiscordCredentialManager } from '../credential-manager'
@@ -53,7 +53,7 @@ afterEach(() => {
   credManagerGetCurrentServerSpy?.mockRestore()
 })
 
-test('list: returns servers with current marker', async () => {
+it('list: returns servers with current marker', async () => {
   // given: credential manager with servers
   const credManager = new DiscordCredentialManager()
   const config = await credManager.load()
@@ -67,7 +67,7 @@ test('list: returns servers with current marker', async () => {
   expect(config.servers['server-2']).toBeDefined()
 })
 
-test('list: marks current server', async () => {
+it('list: marks current server', async () => {
   // given: credential manager with current server set
   const credManager = new DiscordCredentialManager()
   const config = await credManager.load()
@@ -80,7 +80,7 @@ test('list: marks current server', async () => {
   expect(config.current_server).toBe('server-1')
 })
 
-test('info: returns server details', async () => {
+it('info: returns server details', async () => {
   // given: discord client with server data
   const client = await new DiscordClient().login({ token: 'test-token' })
   const server = await client.getServer('server-1')
@@ -95,7 +95,7 @@ test('info: returns server details', async () => {
   expect(server.owner).toBe(true)
 })
 
-test('info: throws error for non-existent server', async () => {
+it('info: throws error for non-existent server', async () => {
   // given: discord client
   const client = await new DiscordClient().login({ token: 'test-token' })
 
@@ -109,7 +109,7 @@ test('info: throws error for non-existent server', async () => {
   }
 })
 
-test('switch: updates current server', async () => {
+it('switch: updates current server', async () => {
   // given: credential manager
   const credManager = new DiscordCredentialManager()
 
@@ -120,7 +120,7 @@ test('switch: updates current server', async () => {
   expect(credManager.setCurrentServer).toHaveBeenCalledWith('server-2')
 })
 
-test('current: returns current server info', async () => {
+it('current: returns current server info', async () => {
   // given: credential manager with current server
   const credManager = new DiscordCredentialManager()
   const config = await credManager.load()

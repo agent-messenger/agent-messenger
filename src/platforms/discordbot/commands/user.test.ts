@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, mock, test } from 'bun:test'
+import { afterEach, beforeEach, describe, expect, mock, it } from 'bun:test'
 import { existsSync, rmSync } from 'node:fs'
 import { mkdir } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
@@ -61,7 +61,7 @@ describe('user commands', () => {
   })
 
   describe('listAction', () => {
-    test('lists users from current server', async () => {
+    it('lists users from current server', async () => {
       const manager = new DiscordBotCredentialManager(tempDir)
       await manager.setCredentials({
         token: 'token123',
@@ -89,7 +89,7 @@ describe('user commands', () => {
       })
     })
 
-    test('includes bot users in list', async () => {
+    it('includes bot users in list', async () => {
       const manager = new DiscordBotCredentialManager(tempDir)
       await manager.setCredentials({
         token: 'token123',
@@ -105,7 +105,7 @@ describe('user commands', () => {
       expect(botUser?.username).toBe('mybot')
     })
 
-    test('returns error when no server set', async () => {
+    it('returns error when no server set', async () => {
       const manager = new DiscordBotCredentialManager(tempDir)
       await manager.setCredentials({
         token: 'token123',
@@ -119,7 +119,7 @@ describe('user commands', () => {
       expect(result.error).toContain('No server set')
     })
 
-    test('handles client errors', async () => {
+    it('handles client errors', async () => {
       mockListUsers.mockImplementationOnce(() => Promise.reject(new Error('API Error')))
 
       const manager = new DiscordBotCredentialManager(tempDir)
@@ -138,7 +138,7 @@ describe('user commands', () => {
   })
 
   describe('infoAction', () => {
-    test('returns user info by ID', async () => {
+    it('returns user info by ID', async () => {
       const manager = new DiscordBotCredentialManager(tempDir)
       await manager.setCredentials({
         token: 'token123',
@@ -155,7 +155,7 @@ describe('user commands', () => {
       expect(result.bot).toBe(false)
     })
 
-    test('returns bot user info', async () => {
+    it('returns bot user info', async () => {
       const manager = new DiscordBotCredentialManager(tempDir)
       await manager.setCredentials({
         token: 'token123',
@@ -170,7 +170,7 @@ describe('user commands', () => {
       expect(result.bot).toBe(true)
     })
 
-    test('returns error for nonexistent user', async () => {
+    it('returns error for nonexistent user', async () => {
       const manager = new DiscordBotCredentialManager(tempDir)
       await manager.setCredentials({
         token: 'token123',
@@ -184,7 +184,7 @@ describe('user commands', () => {
       expect(result.error).toContain('User not found')
     })
 
-    test('handles client errors', async () => {
+    it('handles client errors', async () => {
       mockGetUser.mockImplementationOnce(() => Promise.reject(new Error('API Error')))
 
       const manager = new DiscordBotCredentialManager(tempDir)

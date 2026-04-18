@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, mock, test } from 'bun:test'
+import { afterEach, beforeEach, describe, expect, mock, it } from 'bun:test'
 import { existsSync, rmSync } from 'node:fs'
 import { mkdir } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
@@ -66,7 +66,7 @@ describe('channel commands', () => {
   })
 
   describe('listAction', () => {
-    test('lists text channels from current server', async () => {
+    it('lists text channels from current server', async () => {
       const manager = new DiscordBotCredentialManager(tempDir)
       await manager.setCredentials({
         token: 'token123',
@@ -90,7 +90,7 @@ describe('channel commands', () => {
       })
     })
 
-    test('filters out non-text channels', async () => {
+    it('filters out non-text channels', async () => {
       const manager = new DiscordBotCredentialManager(tempDir)
       await manager.setCredentials({
         token: 'token123',
@@ -105,7 +105,7 @@ describe('channel commands', () => {
       expect(hasVoiceChannel).toBe(false)
     })
 
-    test('returns error when no server set', async () => {
+    it('returns error when no server set', async () => {
       const manager = new DiscordBotCredentialManager(tempDir)
       await manager.setCredentials({
         token: 'token123',
@@ -119,7 +119,7 @@ describe('channel commands', () => {
       expect(result.error).toContain('No server set')
     })
 
-    test('handles client errors', async () => {
+    it('handles client errors', async () => {
       mockListChannels.mockImplementationOnce(() => Promise.reject(new Error('API Error')))
 
       const manager = new DiscordBotCredentialManager(tempDir)
@@ -138,7 +138,7 @@ describe('channel commands', () => {
   })
 
   describe('infoAction', () => {
-    test('returns channel info by ID', async () => {
+    it('returns channel info by ID', async () => {
       const manager = new DiscordBotCredentialManager(tempDir)
       await manager.setCredentials({
         token: 'token123',
@@ -156,7 +156,7 @@ describe('channel commands', () => {
       expect(result.guild_id).toBe('guild1')
     })
 
-    test('resolves channel by name', async () => {
+    it('resolves channel by name', async () => {
       const manager = new DiscordBotCredentialManager(tempDir)
       await manager.setCredentials({
         token: 'token123',
@@ -171,7 +171,7 @@ describe('channel commands', () => {
       expect(result.name).toBe('general')
     })
 
-    test('resolves channel by name with hash prefix', async () => {
+    it('resolves channel by name with hash prefix', async () => {
       const manager = new DiscordBotCredentialManager(tempDir)
       await manager.setCredentials({
         token: 'token123',
@@ -186,7 +186,7 @@ describe('channel commands', () => {
       expect(result.name).toBe('announcements')
     })
 
-    test('returns error for nonexistent channel', async () => {
+    it('returns error for nonexistent channel', async () => {
       const manager = new DiscordBotCredentialManager(tempDir)
       await manager.setCredentials({
         token: 'token123',
@@ -201,7 +201,7 @@ describe('channel commands', () => {
       expect(result.error).toContain('Channel not found')
     })
 
-    test('returns error when no server set', async () => {
+    it('returns error when no server set', async () => {
       const manager = new DiscordBotCredentialManager(tempDir)
       await manager.setCredentials({
         token: 'token123',
@@ -215,7 +215,7 @@ describe('channel commands', () => {
       expect(result.error).toContain('No server set')
     })
 
-    test('handles client errors', async () => {
+    it('handles client errors', async () => {
       mockGetChannel.mockImplementationOnce(() => Promise.reject(new Error('Channel not found')))
 
       const manager = new DiscordBotCredentialManager(tempDir)

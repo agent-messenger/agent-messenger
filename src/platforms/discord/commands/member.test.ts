@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, expect, spyOn, test } from 'bun:test'
+import { afterEach, beforeEach, expect, spyOn, it } from 'bun:test'
 
 import { DiscordClient } from '../client'
 import { DiscordCredentialManager } from '../credential-manager'
@@ -54,7 +54,7 @@ afterEach(() => {
   credManagerLoadSpy?.mockRestore()
 })
 
-test('search: returns members matching query', async () => {
+it('search: returns members matching query', async () => {
   const client = await new DiscordClient().login({ token: 'test-token' })
   const members = await client.searchMembers('guild-1', 'alice', 10)
 
@@ -64,7 +64,7 @@ test('search: returns members matching query', async () => {
   expect(members[1].user.username).toBe('alice_bot')
 })
 
-test('search: includes member metadata', async () => {
+it('search: includes member metadata', async () => {
   const client = await new DiscordClient().login({ token: 'test-token' })
   const members = await client.searchMembers('guild-1', 'alice', 10)
 
@@ -82,7 +82,7 @@ test('search: includes member metadata', async () => {
   expect(member.flags).toBe(0)
 })
 
-test('search: respects limit parameter', async () => {
+it('search: respects limit parameter', async () => {
   const client = await new DiscordClient().login({ token: 'test-token' })
 
   await client.searchMembers('guild-1', 'alice', 5)
@@ -90,7 +90,7 @@ test('search: respects limit parameter', async () => {
   expect(clientSearchMembersSpy).toHaveBeenCalledWith('guild-1', 'alice', 5)
 })
 
-test('search: uses default limit of 10', async () => {
+it('search: uses default limit of 10', async () => {
   const client = await new DiscordClient().login({ token: 'test-token' })
 
   const members = await client.searchMembers('guild-1', 'alice')

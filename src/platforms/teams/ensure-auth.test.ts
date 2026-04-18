@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, spyOn, test } from 'bun:test'
+import { afterEach, beforeEach, describe, expect, spyOn, it } from 'bun:test'
 
 import { TeamsClient } from './client'
 import { TeamsCredentialManager } from './credential-manager'
@@ -44,7 +44,7 @@ afterEach(() => {
 })
 
 describe('ensureTeamsAuth', () => {
-  test('skips extraction when token exists and not expired', async () => {
+  it('skips extraction when token exists and not expired', async () => {
     // given
     loadConfigSpy.mockResolvedValue({
       current_account: 'work',
@@ -66,7 +66,7 @@ describe('ensureTeamsAuth', () => {
     expect(extractSpy).not.toHaveBeenCalled()
   })
 
-  test('extracts when no config exists', async () => {
+  it('extracts when no config exists', async () => {
     // given
     loadConfigSpy.mockResolvedValue(null)
 
@@ -94,7 +94,7 @@ describe('ensureTeamsAuth', () => {
     )
   })
 
-  test('re-extracts when token is expired', async () => {
+  it('re-extracts when token is expired', async () => {
     // given
     loadConfigSpy.mockResolvedValue({
       current_account: 'work',
@@ -124,7 +124,7 @@ describe('ensureTeamsAuth', () => {
     )
   })
 
-  test('sets first team as current', async () => {
+  it('sets first team as current', async () => {
     // when
     await ensureTeamsAuth()
 
@@ -138,7 +138,7 @@ describe('ensureTeamsAuth', () => {
     )
   })
 
-  test('saves token_expires_at', async () => {
+  it('saves token_expires_at', async () => {
     // when
     const before = Date.now()
     await ensureTeamsAuth()
@@ -151,7 +151,7 @@ describe('ensureTeamsAuth', () => {
     expect(expiresAt).toBeLessThanOrEqual(after + 60 * 60 * 1000 + 1)
   })
 
-  test('does not save when extraction returns null', async () => {
+  it('does not save when extraction returns null', async () => {
     // given
     extractSpy.mockResolvedValue([])
 
@@ -163,7 +163,7 @@ describe('ensureTeamsAuth', () => {
     expect(saveConfigSpy).not.toHaveBeenCalled()
   })
 
-  test('does not save when no teams found', async () => {
+  it('does not save when no teams found', async () => {
     // given
     listTeamsSpy.mockResolvedValue([])
 
@@ -174,7 +174,7 @@ describe('ensureTeamsAuth', () => {
     expect(saveConfigSpy).not.toHaveBeenCalled()
   })
 
-  test('silently handles extraction failure', async () => {
+  it('silently handles extraction failure', async () => {
     // given
     extractSpy.mockRejectedValue(new Error('Teams not found'))
 
@@ -185,7 +185,7 @@ describe('ensureTeamsAuth', () => {
     expect(saveConfigSpy).not.toHaveBeenCalled()
   })
 
-  test('silently handles auth validation failure', async () => {
+  it('silently handles auth validation failure', async () => {
     // given
     testAuthSpy.mockRejectedValue(new Error('401 Unauthorized'))
 
@@ -196,7 +196,7 @@ describe('ensureTeamsAuth', () => {
     expect(saveConfigSpy).not.toHaveBeenCalled()
   })
 
-  test('extracts and saves multiple accounts', async () => {
+  it('extracts and saves multiple accounts', async () => {
     // given
     extractSpy.mockResolvedValue([
       { token: 'work-token', accountType: 'work' },
@@ -226,7 +226,7 @@ describe('ensureTeamsAuth', () => {
     )
   })
 
-  test('skips failed account but saves successful ones', async () => {
+  it('skips failed account but saves successful ones', async () => {
     // given
     extractSpy.mockResolvedValue([
       { token: 'work-token', accountType: 'work' },
@@ -248,7 +248,7 @@ describe('ensureTeamsAuth', () => {
     expect(savedConfig.accounts.personal).toBeUndefined()
   })
 
-  test('re-extracts when token is empty string', async () => {
+  it('re-extracts when token is empty string', async () => {
     // given
     loadConfigSpy.mockResolvedValue({
       current_account: 'work',

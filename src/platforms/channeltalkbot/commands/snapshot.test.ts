@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, mock, test } from 'bun:test'
+import { afterEach, beforeEach, describe, expect, mock, it } from 'bun:test'
 import { existsSync, rmSync } from 'node:fs'
 import { mkdir } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
@@ -67,7 +67,7 @@ describe('snapshot command', () => {
   })
 
   describe('snapshotAction', () => {
-    test('brief snapshot returns workspace, groups (names), chat counts, and hint', async () => {
+    it('brief snapshot returns workspace, groups (names), chat counts, and hint', async () => {
       const manager = new ChannelBotCredentialManager(tempDir)
       const result = await snapshotAction({ _credManager: manager })
 
@@ -85,7 +85,7 @@ describe('snapshot command', () => {
       expect(mockGetGroupMessages).not.toHaveBeenCalled()
     })
 
-    test('full snapshot returns workspace, groups, user_chats, managers, bots', async () => {
+    it('full snapshot returns workspace, groups, user_chats, managers, bots', async () => {
       const manager = new ChannelBotCredentialManager(tempDir)
       const result = await snapshotAction({ full: true, _credManager: manager })
 
@@ -99,7 +99,7 @@ describe('snapshot command', () => {
       expect(result.bots).toBeDefined()
     })
 
-    test('groups-only flag skips user_chats, managers, bots', async () => {
+    it('groups-only flag skips user_chats, managers, bots', async () => {
       const manager = new ChannelBotCredentialManager(tempDir)
       const result = await snapshotAction({ full: true, groupsOnly: true, _credManager: manager })
 
@@ -111,7 +111,7 @@ describe('snapshot command', () => {
       expect(result.bots).toBeUndefined()
     })
 
-    test('chats-only flag skips groups, managers, bots', async () => {
+    it('chats-only flag skips groups, managers, bots', async () => {
       const manager = new ChannelBotCredentialManager(tempDir)
       const result = await snapshotAction({ full: true, chatsOnly: true, _credManager: manager })
 
@@ -123,7 +123,7 @@ describe('snapshot command', () => {
       expect(result.bots).toBeUndefined()
     })
 
-    test('full groups include recent messages', async () => {
+    it('full groups include recent messages', async () => {
       const manager = new ChannelBotCredentialManager(tempDir)
       const result = await snapshotAction({ full: true, groupsOnly: true, limit: 3, _credManager: manager })
 
@@ -131,7 +131,7 @@ describe('snapshot command', () => {
       expect(result.groups?.[0].messages?.[0].id).toBe('msg1')
     })
 
-    test('full user_chats includes counts and recent opened', async () => {
+    it('full user_chats includes counts and recent opened', async () => {
       const manager = new ChannelBotCredentialManager(tempDir)
       const result = await snapshotAction({ full: true, chatsOnly: true, _credManager: manager })
 

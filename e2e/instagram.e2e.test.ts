@@ -1,4 +1,4 @@
-import { afterEach, beforeAll, describe, expect, test } from 'bun:test'
+import { afterEach, beforeAll, describe, expect, it } from 'bun:test'
 
 import { INSTAGRAM_TEST_THREAD_ID, INSTAGRAM_TEST_USERNAME, validateInstagramEnvironment } from './config'
 import { generateTestId, parseJSON, runCLI, waitForRateLimit } from './helpers'
@@ -15,14 +15,14 @@ describe('Instagram E2E Tests', () => {
   })
 
   describe('auth', () => {
-    test('auth status returns exit code 0', async () => {
+    it('auth status returns exit code 0', async () => {
       if (!instagramAvailable) return
 
       const result = await runCLI('instagram', ['auth', 'status'])
       expect(result.exitCode).toBe(0)
     })
 
-    test('auth list returns accounts array', async () => {
+    it('auth list returns accounts array', async () => {
       if (!instagramAvailable) return
 
       const result = await runCLI('instagram', ['auth', 'list'])
@@ -34,7 +34,7 @@ describe('Instagram E2E Tests', () => {
   })
 
   describe('chat', () => {
-    test('chat list returns chats', async () => {
+    it('chat list returns chats', async () => {
       if (!instagramAvailable) return
 
       const result = await runCLI('instagram', ['chat', 'list', '--limit', '5'])
@@ -44,7 +44,7 @@ describe('Instagram E2E Tests', () => {
       expect(data).toBeDefined()
     })
 
-    test('chat search returns results', async () => {
+    it('chat search returns results', async () => {
       if (!instagramAvailable) return
 
       const result = await runCLI('instagram', ['chat', 'search', 'test', '--limit', '5'])
@@ -53,7 +53,7 @@ describe('Instagram E2E Tests', () => {
   })
 
   describe('message', () => {
-    test('message send sends a message to thread', async () => {
+    it('message send sends a message to thread', async () => {
       if (!instagramAvailable) return
 
       const testId = generateTestId()
@@ -61,7 +61,7 @@ describe('Instagram E2E Tests', () => {
       expect(result.exitCode).toBe(0)
     })
 
-    test('message list returns messages from thread', async () => {
+    it('message list returns messages from thread', async () => {
       if (!instagramAvailable) return
 
       const result = await runCLI('instagram', ['message', 'list', INSTAGRAM_TEST_THREAD_ID, '--limit', '5'])
@@ -71,7 +71,7 @@ describe('Instagram E2E Tests', () => {
       expect(data).toBeDefined()
     })
 
-    test('message send-to sends a message to username', async () => {
+    it('message send-to sends a message to username', async () => {
       if (!instagramAvailable) return
       if (!INSTAGRAM_TEST_USERNAME) return
 
@@ -80,14 +80,14 @@ describe('Instagram E2E Tests', () => {
       expect(result.exitCode).toBe(0)
     })
 
-    test('message search returns results', async () => {
+    it('message search returns results', async () => {
       if (!instagramAvailable) return
 
       const result = await runCLI('instagram', ['message', 'search', 'test', '--limit', '5'])
       expect(result.exitCode).toBe(0)
     })
 
-    test('message search-users returns results', async () => {
+    it('message search-users returns results', async () => {
       if (!instagramAvailable) return
 
       const result = await runCLI('instagram', ['message', 'search-users', 'test'])

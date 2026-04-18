@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, mock, test } from 'bun:test'
+import { afterEach, beforeEach, describe, expect, mock, it } from 'bun:test'
 import { existsSync, rmSync } from 'node:fs'
 import { mkdir } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
@@ -48,7 +48,7 @@ describe('manager commands', () => {
   })
 
   describe('listAction', () => {
-    test('returns all managers with id, name, description', async () => {
+    it('returns all managers with id, name, description', async () => {
       const manager = new ChannelBotCredentialManager(tempDir)
       const result = await listAction({ _credManager: manager })
 
@@ -60,7 +60,7 @@ describe('manager commands', () => {
   })
 
   describe('getAction', () => {
-    test('returns specific manager', async () => {
+    it('returns specific manager', async () => {
       const manager = new ChannelBotCredentialManager(tempDir)
       const result = await getAction('mgr1', { _credManager: manager })
 

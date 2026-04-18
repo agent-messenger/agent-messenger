@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
+import { afterEach, beforeEach, describe, expect, it } from 'bun:test'
 
 import * as jose from 'node-jose'
 
@@ -50,17 +50,17 @@ describe('WebexClient', () => {
   }
 
   describe('login', () => {
-    test('accepts valid token', async () => {
+    it('accepts valid token', async () => {
       const client = await new WebexClient().login({ token: 'test-token' })
       expect(client).toBeInstanceOf(WebexClient)
     })
 
-    test('throws on empty token', async () => {
+    it('throws on empty token', async () => {
       await expect(new WebexClient().login({ token: '' })).rejects.toThrow(WebexError)
       await expect(new WebexClient().login({ token: '' })).rejects.toThrow('Token is required')
     })
 
-    test('accepts deviceUrl and tokenType', async () => {
+    it('accepts deviceUrl and tokenType', async () => {
       const client = await new WebexClient().login({
         token: 'test-token',
         deviceUrl: 'https://wdm-r.wbx2.com/wdm/api/v1/devices/dev-1',
@@ -73,7 +73,7 @@ describe('WebexClient', () => {
   })
 
   describe('testAuth', () => {
-    test('calls GET /people/me and returns person', async () => {
+    it('calls GET /people/me and returns person', async () => {
       mockResponse({
         id: 'user-123',
         displayName: 'Test User',
@@ -92,14 +92,14 @@ describe('WebexClient', () => {
       })
     })
 
-    test('throws WebexError on API error', async () => {
+    it('throws WebexError on API error', async () => {
       mockResponse({ message: 'Unauthorized' }, 401)
 
       const client = await new WebexClient().login({ token: 'bad-token' })
       await expect(client.testAuth()).rejects.toThrow(WebexError)
     })
 
-    test('falls back to internal API when public API fails for extracted tokens', async () => {
+    it('falls back to internal API when public API fails for extracted tokens', async () => {
       // given - public API rejects, internal API succeeds
       mockResponse({ message: 'Unauthorized' }, 401)
       fetchResponses.push(
@@ -125,7 +125,7 @@ describe('WebexClient', () => {
       expect(person).toBeTruthy()
     })
 
-    test('throws when both public and internal APIs fail for extracted tokens', async () => {
+    it('throws when both public and internal APIs fail for extracted tokens', async () => {
       // given - both APIs reject
       mockResponse({ message: 'Unauthorized' }, 401)
       fetchResponses.push(
@@ -144,7 +144,7 @@ describe('WebexClient', () => {
       await expect(client.testAuth()).rejects.toThrow(WebexError)
     })
 
-    test('does not use internal API fallback for non-extracted tokens', async () => {
+    it('does not use internal API fallback for non-extracted tokens', async () => {
       mockResponse({ message: 'Unauthorized' }, 401)
 
       const client = await new WebexClient().login({ token: 'bad-token' })
@@ -154,7 +154,7 @@ describe('WebexClient', () => {
   })
 
   describe('listSpaces', () => {
-    test('returns unwrapped items array', async () => {
+    it('returns unwrapped items array', async () => {
       mockResponse({
         items: [
           { id: 'room1', title: 'Room One', type: 'group' },
@@ -170,7 +170,7 @@ describe('WebexClient', () => {
       expect(spaces[1].title).toBe('Room Two')
     })
 
-    test('includes default max=50 query param', async () => {
+    it('includes default max=50 query param', async () => {
       mockResponse({ items: [] })
 
       const client = await new WebexClient().login({ token: 'test-token' })
@@ -179,7 +179,7 @@ describe('WebexClient', () => {
       expect(fetchCalls[0].url).toContain('max=50')
     })
 
-    test('passes type and max query params', async () => {
+    it('passes type and max query params', async () => {
       mockResponse({ items: [] })
 
       const client = await new WebexClient().login({ token: 'test-token' })
@@ -192,7 +192,7 @@ describe('WebexClient', () => {
   })
 
   describe('getSpace', () => {
-    test('calls GET /rooms/{spaceId}', async () => {
+    it('calls GET /rooms/{spaceId}', async () => {
       mockResponse({ id: 'room1', title: 'Test Room', type: 'group' })
 
       const client = await new WebexClient().login({ token: 'test-token' })
@@ -204,7 +204,7 @@ describe('WebexClient', () => {
   })
 
   describe('sendMessage', () => {
-    test('posts text message to room', async () => {
+    it('posts text message to room', async () => {
       mockResponse({ id: 'msg1', roomId: 'room1', text: 'Hello world' })
 
       const client = await new WebexClient().login({ token: 'test-token' })
@@ -216,7 +216,7 @@ describe('WebexClient', () => {
       expect(fetchCalls[0].options?.body).toBe(JSON.stringify({ roomId: 'room1', text: 'Hello world' }))
     })
 
-    test('sends markdown message when option set', async () => {
+    it('sends markdown message when option set', async () => {
       mockResponse({ id: 'msg1', roomId: 'room1', markdown: '**bold**' })
 
       const client = await new WebexClient().login({ token: 'test-token' })
@@ -227,7 +227,7 @@ describe('WebexClient', () => {
   })
 
   describe('sendDirectMessage', () => {
-    test('posts message with toPersonEmail', async () => {
+    it('posts message with toPersonEmail', async () => {
       mockResponse({ id: 'msg1', toPersonEmail: 'user@example.com', text: 'Hello' })
 
       const client = await new WebexClient().login({ token: 'test-token' })
@@ -236,7 +236,7 @@ describe('WebexClient', () => {
       expect(fetchCalls[0].options?.body).toBe(JSON.stringify({ toPersonEmail: 'user@example.com', text: 'Hello' }))
     })
 
-    test('sends markdown direct message when option set', async () => {
+    it('sends markdown direct message when option set', async () => {
       mockResponse({ id: 'msg1', toPersonEmail: 'user@example.com' })
 
       const client = await new WebexClient().login({ token: 'test-token' })
@@ -249,7 +249,7 @@ describe('WebexClient', () => {
   })
 
   describe('listMessages', () => {
-    test('includes roomId query param and unwraps items', async () => {
+    it('includes roomId query param and unwraps items', async () => {
       mockResponse({
         items: [
           { id: 'msg1', roomId: 'room1', text: 'Message 1' },
@@ -266,7 +266,7 @@ describe('WebexClient', () => {
       expect(fetchCalls[0].url).toContain('max=50')
     })
 
-    test('passes custom max', async () => {
+    it('passes custom max', async () => {
       mockResponse({ items: [] })
 
       const client = await new WebexClient().login({ token: 'test-token' })
@@ -277,7 +277,7 @@ describe('WebexClient', () => {
   })
 
   describe('getMessage', () => {
-    test('calls GET /messages/{messageId}', async () => {
+    it('calls GET /messages/{messageId}', async () => {
       mockResponse({ id: 'msg1', roomId: 'room1', text: 'Hello' })
 
       const client = await new WebexClient().login({ token: 'test-token' })
@@ -289,7 +289,7 @@ describe('WebexClient', () => {
   })
 
   describe('deleteMessage', () => {
-    test('calls DELETE /messages/{messageId} and handles 204', async () => {
+    it('calls DELETE /messages/{messageId} and handles 204', async () => {
       mockResponse(null, 204)
 
       const client = await new WebexClient().login({ token: 'test-token' })
@@ -301,7 +301,7 @@ describe('WebexClient', () => {
   })
 
   describe('editMessage', () => {
-    test('calls PUT /messages/{messageId} with roomId and text', async () => {
+    it('calls PUT /messages/{messageId} with roomId and text', async () => {
       mockResponse({ id: 'msg1', roomId: 'room1', text: 'Edited text' })
 
       const client = await new WebexClient().login({ token: 'test-token' })
@@ -312,7 +312,7 @@ describe('WebexClient', () => {
       expect(fetchCalls[0].options?.body).toBe(JSON.stringify({ roomId: 'room1', text: 'Edited text' }))
     })
 
-    test('sends markdown when option set', async () => {
+    it('sends markdown when option set', async () => {
       mockResponse({ id: 'msg1', roomId: 'room1', markdown: '**edited**' })
 
       const client = await new WebexClient().login({ token: 'test-token' })
@@ -323,7 +323,7 @@ describe('WebexClient', () => {
   })
 
   describe('listPeople', () => {
-    test('returns unwrapped items', async () => {
+    it('returns unwrapped items', async () => {
       mockResponse({
         items: [
           { id: 'u1', displayName: 'User One', emails: ['user1@example.com'] },
@@ -338,7 +338,7 @@ describe('WebexClient', () => {
       expect(people[0].displayName).toBe('User One')
     })
 
-    test('passes email, displayName, max query params', async () => {
+    it('passes email, displayName, max query params', async () => {
       mockResponse({ items: [] })
 
       const client = await new WebexClient().login({ token: 'test-token' })
@@ -351,7 +351,7 @@ describe('WebexClient', () => {
   })
 
   describe('listMemberships', () => {
-    test('includes roomId and returns unwrapped items', async () => {
+    it('includes roomId and returns unwrapped items', async () => {
       mockResponse({
         items: [
           { id: 'm1', roomId: 'room1', personEmail: 'user1@example.com', isModerator: false },
@@ -367,7 +367,7 @@ describe('WebexClient', () => {
       expect(fetchCalls[0].url).toContain('roomId=room1')
     })
 
-    test('passes max query param', async () => {
+    it('passes max query param', async () => {
       mockResponse({ items: [] })
 
       const client = await new WebexClient().login({ token: 'test-token' })
@@ -378,7 +378,7 @@ describe('WebexClient', () => {
   })
 
   describe('rate limiting', () => {
-    test('retries on 429 with Retry-After header', async () => {
+    it('retries on 429 with Retry-After header', async () => {
       mockResponse({ message: 'Rate limited' }, 429, { 'Retry-After': '0.1' })
       mockResponse({
         id: 'user-123',
@@ -393,7 +393,7 @@ describe('WebexClient', () => {
       expect(fetchCalls.length).toBe(2)
     })
 
-    test('throws after max retries exceeded on 429', async () => {
+    it('throws after max retries exceeded on 429', async () => {
       for (let i = 0; i <= MAX_RETRIES; i++) {
         mockResponse({ message: 'Rate limited' }, 429, { 'Retry-After': '0.01' })
       }
@@ -405,7 +405,7 @@ describe('WebexClient', () => {
   })
 
   describe('server errors', () => {
-    test('retries on 500 with exponential backoff', async () => {
+    it('retries on 500 with exponential backoff', async () => {
       mockResponse({ message: 'Internal Server Error' }, 500)
       mockResponse({
         id: 'user-123',
@@ -420,7 +420,7 @@ describe('WebexClient', () => {
       expect(fetchCalls.length).toBe(2)
     })
 
-    test('does not retry on 4xx errors except 429', async () => {
+    it('does not retry on 4xx errors except 429', async () => {
       mockResponse({ message: 'Not Found' }, 404)
 
       const client = await new WebexClient().login({ token: 'test-token' })
@@ -428,7 +428,7 @@ describe('WebexClient', () => {
       expect(fetchCalls.length).toBe(1)
     })
 
-    test('backoff increases with multiple retries', async () => {
+    it('backoff increases with multiple retries', async () => {
       mockResponse({ message: 'Error' }, 500)
       mockResponse({ message: 'Error' }, 500)
       mockResponse({
@@ -477,7 +477,7 @@ describe('WebexClient', () => {
     }
 
     describe('sendMessage', () => {
-      test('posts activity to /activities with POST method', async () => {
+      it('posts activity to /activities with POST method', async () => {
         mockResponse(mockActivity('Hello world'))
 
         const client = await createExtractedClient()
@@ -487,7 +487,7 @@ describe('WebexClient', () => {
         expect(fetchCalls[0].options?.method).toBe('POST')
       })
 
-      test('body has verb, object type, and displayName (no content for plain text)', async () => {
+      it('body has verb, object type, and displayName (no content for plain text)', async () => {
         mockResponse(mockActivity('Hello world'))
 
         const client = await createExtractedClient()
@@ -500,7 +500,7 @@ describe('WebexClient', () => {
         expect(body.object.content).toBeUndefined()
       })
 
-      test('body has target with decoded conv UUID and conversation type', async () => {
+      it('body has target with decoded conv UUID and conversation type', async () => {
         mockResponse(mockActivity('Hello world'))
 
         const client = await createExtractedClient()
@@ -511,7 +511,7 @@ describe('WebexClient', () => {
         expect(body.target.objectType).toBe('conversation')
       })
 
-      test('body has clientTempId starting with tmp-', async () => {
+      it('body has clientTempId starting with tmp-', async () => {
         mockResponse(mockActivity('Hello world'))
 
         const client = await createExtractedClient()
@@ -521,7 +521,7 @@ describe('WebexClient', () => {
         expect(body.clientTempId).toStartWith('tmp-')
       })
 
-      test('includes cisco-device-url header', async () => {
+      it('includes cisco-device-url header', async () => {
         mockResponse(mockActivity('Hello world'))
 
         const client = await createExtractedClient()
@@ -532,7 +532,7 @@ describe('WebexClient', () => {
         })
       })
 
-      test('returns WebexMessage mapped from activity response', async () => {
+      it('returns WebexMessage mapped from activity response', async () => {
         mockResponse(mockActivity('Hello world'))
 
         const client = await createExtractedClient()
@@ -544,7 +544,7 @@ describe('WebexClient', () => {
         expect(message.created).toBe('2026-01-01T00:00:00.000Z')
       })
 
-      test('markdown option converts content to HTML and strips displayName', async () => {
+      it('markdown option converts content to HTML and strips displayName', async () => {
         mockResponse(mockActivity('bold text'))
 
         const client = await createExtractedClient()
@@ -556,7 +556,7 @@ describe('WebexClient', () => {
         expect(body.object.markdown).toBeUndefined()
       })
 
-      test('plain text messages omit content field', async () => {
+      it('plain text messages omit content field', async () => {
         mockResponse(mockActivity('Hello world'))
 
         const client = await createExtractedClient()
@@ -569,7 +569,7 @@ describe('WebexClient', () => {
     })
 
     describe('listMessages', () => {
-      test('calls GET on conversations endpoint with activitiesLimit and participantsLimit', async () => {
+      it('calls GET on conversations endpoint with activitiesLimit and participantsLimit', async () => {
         mockResponse(mockConversation([mockActivity('Hello')]))
 
         const client = await createExtractedClient()
@@ -580,7 +580,7 @@ describe('WebexClient', () => {
         )
       })
 
-      test('filters activities to only those with verb post', async () => {
+      it('filters activities to only those with verb post', async () => {
         mockResponse(
           mockConversation([
             mockActivity('Hello'),
@@ -597,7 +597,7 @@ describe('WebexClient', () => {
         expect(messages[1].text).toBe('World')
       })
 
-      test('maps each activity to WebexMessage format', async () => {
+      it('maps each activity to WebexMessage format', async () => {
         mockResponse(mockConversation([mockActivity('Hello')]))
 
         const client = await createExtractedClient()
@@ -609,7 +609,7 @@ describe('WebexClient', () => {
         expect(messages[0].created).toBe('2026-01-01T00:00:00.000Z')
       })
 
-      test('passes custom max to activitiesLimit', async () => {
+      it('passes custom max to activitiesLimit', async () => {
         mockResponse(mockConversation([]))
 
         const client = await createExtractedClient()
@@ -618,7 +618,7 @@ describe('WebexClient', () => {
         expect(fetchCalls[0].url).toContain('activitiesLimit=25')
       })
 
-      test('includes cisco-device-url header', async () => {
+      it('includes cisco-device-url header', async () => {
         mockResponse(mockConversation([]))
 
         const client = await createExtractedClient()
@@ -631,7 +631,7 @@ describe('WebexClient', () => {
     })
 
     describe('getMessage', () => {
-      test('calls GET on activities endpoint', async () => {
+      it('calls GET on activities endpoint', async () => {
         mockResponse(mockActivity('Hello'))
 
         const client = await createExtractedClient()
@@ -640,7 +640,7 @@ describe('WebexClient', () => {
         expect(fetchCalls[0].url).toBe(`${CONV_BASE}/activities/activity-123`)
       })
 
-      test('maps activity to WebexMessage format', async () => {
+      it('maps activity to WebexMessage format', async () => {
         mockResponse(mockActivity('Hello'))
 
         const client = await createExtractedClient()
@@ -653,7 +653,7 @@ describe('WebexClient', () => {
     })
 
     describe('deleteMessage', () => {
-      test('first GETs the activity then POSTs a delete activity', async () => {
+      it('first GETs the activity then POSTs a delete activity', async () => {
         mockResponse(mockActivity('Hello'))
         mockResponse({})
 
@@ -665,7 +665,7 @@ describe('WebexClient', () => {
         expect(fetchCalls[1].options?.method).toBe('POST')
       })
 
-      test('delete activity body has correct verb, object, and target', async () => {
+      it('delete activity body has correct verb, object, and target', async () => {
         mockResponse(mockActivity('Hello'))
         mockResponse({})
 
@@ -679,7 +679,7 @@ describe('WebexClient', () => {
         expect(body.target.id).toBe(TEST_CONV_UUID)
       })
 
-      test('throws WebexError when activity has no target', async () => {
+      it('throws WebexError when activity has no target', async () => {
         mockResponse({ ...mockActivity('Hello'), target: undefined })
 
         const client = await createExtractedClient()
@@ -691,7 +691,7 @@ describe('WebexClient', () => {
       const mockEditActivity = (text: string, parentId = 'activity-123') =>
         mockActivity(text, { parent: { id: parentId, type: 'edit' } })
 
-      test('posts activity with verb post and parent edit reference', async () => {
+      it('posts activity with verb post and parent edit reference', async () => {
         mockResponse(mockEditActivity('Edited text'))
 
         const client = await createExtractedClient()
@@ -702,7 +702,7 @@ describe('WebexClient', () => {
         expect(body.parent).toEqual({ id: 'activity-123', type: 'edit' })
       })
 
-      test('plain text edit populates both displayName and content to avoid auto-tombstone', async () => {
+      it('plain text edit populates both displayName and content to avoid auto-tombstone', async () => {
         mockResponse(mockEditActivity('Edited text'))
 
         const client = await createExtractedClient()
@@ -714,7 +714,7 @@ describe('WebexClient', () => {
         expect(body.object.content).toBe('Edited text')
       })
 
-      test('clientTempId uses -edit suffix to match Webex web client format', async () => {
+      it('clientTempId uses -edit suffix to match Webex web client format', async () => {
         mockResponse(mockEditActivity('Edited text'))
 
         const client = await createExtractedClient()
@@ -724,7 +724,7 @@ describe('WebexClient', () => {
         expect(body.clientTempId).toMatch(/^tmp-\d+-edit$/)
       })
 
-      test('target has decoded conv UUID', async () => {
+      it('target has decoded conv UUID', async () => {
         mockResponse(mockEditActivity('Edited text'))
 
         const client = await createExtractedClient()
@@ -734,7 +734,7 @@ describe('WebexClient', () => {
         expect(body.target.id).toBe(TEST_CONV_UUID)
       })
 
-      test('markdown option converts content to HTML and strips displayName', async () => {
+      it('markdown option converts content to HTML and strips displayName', async () => {
         mockResponse(mockEditActivity('italic text'))
 
         const client = await createExtractedClient()
@@ -746,7 +746,7 @@ describe('WebexClient', () => {
         expect(body.object.markdown).toBeUndefined()
       })
 
-      test('tolerates responses that omit parent (minimal success shape)', async () => {
+      it('tolerates responses that omit parent (minimal success shape)', async () => {
         mockResponse(mockActivity('Edited text'))
 
         const client = await createExtractedClient()
@@ -754,7 +754,7 @@ describe('WebexClient', () => {
         expect(message.id).toBe('activity-123')
       })
 
-      test('throws when server returns activity linked to a different parent', async () => {
+      it('throws when server returns activity linked to a different parent', async () => {
         mockResponse(mockEditActivity('Edited text', 'activity-999'))
 
         const client = await createExtractedClient()
@@ -781,7 +781,7 @@ describe('WebexClient', () => {
         return client
       }
 
-      test('plain text send omits content field on encrypted path (preserves prior fix)', async () => {
+      it('plain text send omits content field on encrypted path (preserves prior fix)', async () => {
         mockResponse({ id: TEST_CONV_UUID, defaultActivityEncryptionKeyUrl: TEST_KEY_URI })
         mockResponse(mockActivity('Hello world'))
 
@@ -794,7 +794,7 @@ describe('WebexClient', () => {
         expect(body.encryptionKeyUrl).toBe(TEST_KEY_URI)
       })
 
-      test('plain text edit encrypts both displayName and content with kid in JWE header', async () => {
+      it('plain text edit encrypts both displayName and content with kid in JWE header', async () => {
         mockResponse({ id: TEST_CONV_UUID, defaultActivityEncryptionKeyUrl: TEST_KEY_URI })
         mockResponse(mockActivity('Edited text', { parent: { id: 'activity-123', type: 'edit' } }))
 
@@ -811,7 +811,7 @@ describe('WebexClient', () => {
     })
 
     describe('sendDirectMessage', () => {
-      test('calls public rooms and memberships API to find room, then sends via internal API', async () => {
+      it('calls public rooms and memberships API to find room, then sends via internal API', async () => {
         mockResponse({ items: [{ id: TEST_ROOM_ID, title: 'DM', type: 'direct' }] })
         mockResponse({
           items: [{ id: 'm1', roomId: TEST_ROOM_ID, personEmail: 'target@example.com', isModerator: false }],
@@ -827,7 +827,7 @@ describe('WebexClient', () => {
         expect(message.id).toBe('activity-123')
       })
 
-      test('throws WebexError when no existing direct conversation found', async () => {
+      it('throws WebexError when no existing direct conversation found', async () => {
         mockResponse({ items: [{ id: 'room-x', title: 'DM', type: 'direct' }] })
         mockResponse({
           items: [{ id: 'm1', roomId: 'room-x', personEmail: 'other@example.com', isModerator: false }],
@@ -839,7 +839,7 @@ describe('WebexClient', () => {
     })
 
     describe('error handling', () => {
-      test('throws WebexError when internal API returns non-OK response', async () => {
+      it('throws WebexError when internal API returns non-OK response', async () => {
         fetchResponses.push(
           new Response(JSON.stringify({ message: 'Activity not found' }), {
             status: 404,
@@ -851,7 +851,7 @@ describe('WebexClient', () => {
         await expect(client.getMessage('bad-activity')).rejects.toThrow(WebexError)
       })
 
-      test('error message extracted from internal API response body', async () => {
+      it('error message extracted from internal API response body', async () => {
         fetchResponses.push(
           new Response(JSON.stringify({ message: 'Activity not found' }), {
             status: 404,
@@ -874,7 +874,7 @@ describe('WebexClient', () => {
   })
 
   describe('error handling', () => {
-    test('throws WebexError with parsed message from response body', async () => {
+    it('throws WebexError with parsed message from response body', async () => {
       mockResponse({ message: 'The requested resource could not be found.', trackingId: 'abc' }, 404)
 
       const client = await new WebexClient().login({ token: 'test-token' })
@@ -889,7 +889,7 @@ describe('WebexClient', () => {
       expect(error?.message).toBe('The requested resource could not be found.')
     })
 
-    test('falls back to HTTP status message when no body', async () => {
+    it('falls back to HTTP status message when no body', async () => {
       fetchResponses.push(
         new Response(null, {
           status: 403,

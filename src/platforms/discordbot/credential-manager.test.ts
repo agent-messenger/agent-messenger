@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
+import { afterEach, beforeEach, describe, expect, it } from 'bun:test'
 import { existsSync, rmSync } from 'node:fs'
 import { mkdir, stat } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
@@ -38,7 +38,7 @@ describe('DiscordBotCredentialManager', () => {
   })
 
   describe('load', () => {
-    test('returns empty config when no file exists', async () => {
+    it('returns empty config when no file exists', async () => {
       const config = await manager.load()
 
       expect(config.current).toBeNull()
@@ -49,7 +49,7 @@ describe('DiscordBotCredentialManager', () => {
   })
 
   describe('save and load', () => {
-    test('persists config to file', async () => {
+    it('persists config to file', async () => {
       const config = {
         current: { bot_id: 'bot-123' },
         bots: {
@@ -67,11 +67,11 @@ describe('DiscordBotCredentialManager', () => {
   })
 
   describe('getCredentials', () => {
-    test('returns null when no credentials exist', async () => {
+    it('returns null when no credentials exist', async () => {
       expect(await manager.getCredentials()).toBeNull()
     })
 
-    test('returns current bot credentials', async () => {
+    it('returns current bot credentials', async () => {
       await manager.setCredentials(CREDS_A)
 
       const creds = await manager.getCredentials()
@@ -79,7 +79,7 @@ describe('DiscordBotCredentialManager', () => {
       expect(creds).toEqual(CREDS_A)
     })
 
-    test('returns specific bot by id', async () => {
+    it('returns specific bot by id', async () => {
       await manager.setCredentials(CREDS_A)
       await manager.setCredentials(CREDS_B)
 
@@ -88,7 +88,7 @@ describe('DiscordBotCredentialManager', () => {
       expect(creds).toEqual(CREDS_A)
     })
 
-    test('returns null for non-existent bot id', async () => {
+    it('returns null for non-existent bot id', async () => {
       await manager.setCredentials(CREDS_A)
 
       const creds = await manager.getCredentials('nonexistent')
@@ -96,7 +96,7 @@ describe('DiscordBotCredentialManager', () => {
       expect(creds).toBeNull()
     })
 
-    test('env vars take precedence when no botId specified', async () => {
+    it('env vars take precedence when no botId specified', async () => {
       await manager.setCredentials(CREDS_A)
 
       process.env.E2E_DISCORDBOT_TOKEN = 'env-token'
@@ -112,7 +112,7 @@ describe('DiscordBotCredentialManager', () => {
       expect(creds?.server_name).toBe('Env Server')
     })
 
-    test('env vars ignored when botId explicitly provided', async () => {
+    it('env vars ignored when botId explicitly provided', async () => {
       await manager.setCredentials(CREDS_A)
 
       process.env.E2E_DISCORDBOT_TOKEN = 'env-token'
@@ -124,7 +124,7 @@ describe('DiscordBotCredentialManager', () => {
       expect(creds?.bot_id).toBe('bot-123')
     })
 
-    test('env vars use default server name when not provided', async () => {
+    it('env vars use default server name when not provided', async () => {
       process.env.E2E_DISCORDBOT_TOKEN = 'env-token'
       process.env.E2E_DISCORDBOT_SERVER_ID = 'server-789'
       delete process.env.E2E_DISCORDBOT_SERVER_NAME
@@ -136,7 +136,7 @@ describe('DiscordBotCredentialManager', () => {
   })
 
   describe('setCredentials', () => {
-    test('stores bot and sets as current', async () => {
+    it('stores bot and sets as current', async () => {
       await manager.setCredentials(CREDS_A)
 
       const config = await manager.load()
@@ -144,7 +144,7 @@ describe('DiscordBotCredentialManager', () => {
       expect(config.bots['bot-123'].token).toBe('bot-token-a')
     })
 
-    test('stores multiple bots', async () => {
+    it('stores multiple bots', async () => {
       await manager.setCredentials(CREDS_A)
       await manager.setCredentials(CREDS_B)
 
@@ -153,7 +153,7 @@ describe('DiscordBotCredentialManager', () => {
       expect(config.current).toEqual({ bot_id: 'bot-456' })
     })
 
-    test('overwrites existing bot with same id', async () => {
+    it('overwrites existing bot with same id', async () => {
       await manager.setCredentials(CREDS_A)
       const updated = { ...CREDS_A, bot_name: 'Updated Bot A' }
       await manager.setCredentials(updated)
@@ -165,7 +165,7 @@ describe('DiscordBotCredentialManager', () => {
   })
 
   describe('listAll', () => {
-    test('returns all bots with current flag', async () => {
+    it('returns all bots with current flag', async () => {
       await manager.setCredentials(CREDS_A)
       await manager.setCredentials(CREDS_B)
 
@@ -176,7 +176,7 @@ describe('DiscordBotCredentialManager', () => {
       expect(all.find((b) => b.bot_id === 'bot-456')?.is_current).toBe(true)
     })
 
-    test('returns empty array when no bots exist', async () => {
+    it('returns empty array when no bots exist', async () => {
       const all = await manager.listAll()
 
       expect(all).toEqual([])
@@ -184,7 +184,7 @@ describe('DiscordBotCredentialManager', () => {
   })
 
   describe('setCurrent', () => {
-    test('switches current bot', async () => {
+    it('switches current bot', async () => {
       await manager.setCredentials(CREDS_A)
       await manager.setCredentials(CREDS_B)
 
@@ -195,13 +195,13 @@ describe('DiscordBotCredentialManager', () => {
       expect(creds?.bot_id).toBe('bot-123')
     })
 
-    test('returns false for unknown bot', async () => {
+    it('returns false for unknown bot', async () => {
       expect(await manager.setCurrent('nonexistent')).toBe(false)
     })
   })
 
   describe('removeBot', () => {
-    test('removes a bot by id', async () => {
+    it('removes a bot by id', async () => {
       await manager.setCredentials(CREDS_A)
       await manager.setCredentials(CREDS_B)
 
@@ -212,7 +212,7 @@ describe('DiscordBotCredentialManager', () => {
       expect(Object.keys(config.bots)).toEqual(['bot-456'])
     })
 
-    test('clears current when current bot removed', async () => {
+    it('clears current when current bot removed', async () => {
       await manager.setCredentials(CREDS_A)
 
       await manager.removeBot('bot-123')
@@ -221,11 +221,11 @@ describe('DiscordBotCredentialManager', () => {
       expect(config.current).toBeNull()
     })
 
-    test('returns false for unknown bot', async () => {
+    it('returns false for unknown bot', async () => {
       expect(await manager.removeBot('nonexistent')).toBe(false)
     })
 
-    test('does not clear current if removing non-current bot', async () => {
+    it('does not clear current if removing non-current bot', async () => {
       await manager.setCredentials(CREDS_A)
       await manager.setCredentials(CREDS_B)
 
@@ -237,7 +237,7 @@ describe('DiscordBotCredentialManager', () => {
   })
 
   describe('clearCredentials', () => {
-    test('removes all credentials', async () => {
+    it('removes all credentials', async () => {
       await manager.setCredentials(CREDS_A)
       await manager.setCredentials(CREDS_B)
 
@@ -252,13 +252,13 @@ describe('DiscordBotCredentialManager', () => {
   })
 
   describe('getCurrentServer', () => {
-    test('returns null when no server set', async () => {
+    it('returns null when no server set', async () => {
       const serverId = await manager.getCurrentServer()
 
       expect(serverId).toBeNull()
     })
 
-    test('returns current server id', async () => {
+    it('returns current server id', async () => {
       await manager.setCurrentServer('guild-123', 'My Server')
 
       const serverId = await manager.getCurrentServer()
@@ -268,7 +268,7 @@ describe('DiscordBotCredentialManager', () => {
   })
 
   describe('setCurrentServer', () => {
-    test('sets current server and adds to servers map', async () => {
+    it('sets current server and adds to servers map', async () => {
       await manager.setCurrentServer('guild-123', 'My Server')
 
       const config = await manager.load()
@@ -279,7 +279,7 @@ describe('DiscordBotCredentialManager', () => {
       })
     })
 
-    test('updates existing server entry', async () => {
+    it('updates existing server entry', async () => {
       await manager.setCurrentServer('guild-123', 'My Server')
       await manager.setCurrentServer('guild-123', 'Updated Server')
 
@@ -287,7 +287,7 @@ describe('DiscordBotCredentialManager', () => {
       expect(config.servers['guild-123'].server_name).toBe('Updated Server')
     })
 
-    test('switches current server', async () => {
+    it('switches current server', async () => {
       await manager.setCurrentServer('guild-123', 'Server A')
       await manager.setCurrentServer('guild-456', 'Server B')
 
@@ -298,7 +298,7 @@ describe('DiscordBotCredentialManager', () => {
   })
 
   describe('file permissions', () => {
-    test('saves file with secure permissions (600)', async () => {
+    it('saves file with secure permissions (600)', async () => {
       await manager.setCredentials(CREDS_A)
 
       const credPath = join(tempDir, 'discordbot-credentials.json')

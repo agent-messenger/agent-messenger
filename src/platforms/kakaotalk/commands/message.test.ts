@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, mock, test } from 'bun:test'
+import { afterEach, beforeEach, describe, expect, mock, it } from 'bun:test'
 
 const originalConsoleLog = console.log
 
@@ -48,7 +48,7 @@ describe('message commands', () => {
   })
 
   describe('list', () => {
-    test('fetches messages for a chat room with default count', async () => {
+    it('fetches messages for a chat room with default count', async () => {
       await messageCommand.parseAsync(['list', 'chat-123', '--count', '20'], { from: 'user' })
 
       expect(mockGetMessages).toHaveBeenCalledWith('chat-123', { count: 20, from: undefined })
@@ -58,19 +58,19 @@ describe('message commands', () => {
       expect(output[0].message).toBe('Hello')
     })
 
-    test('respects --count option', async () => {
+    it('respects --count option', async () => {
       await messageCommand.parseAsync(['list', 'chat-123', '--count', '5'], { from: 'user' })
 
       expect(mockGetMessages).toHaveBeenCalledWith('chat-123', { count: 5, from: undefined })
     })
 
-    test('respects --from option', async () => {
+    it('respects --from option', async () => {
       await messageCommand.parseAsync(['list', 'chat-123', '--count', '20', '--from', '999'], { from: 'user' })
 
       expect(mockGetMessages).toHaveBeenCalledWith('chat-123', { count: 20, from: '999' })
     })
 
-    test('passes account option to withKakaoClient', async () => {
+    it('passes account option to withKakaoClient', async () => {
       await messageCommand.parseAsync(['list', 'chat-123', '--count', '20', '--account', 'my-account'], {
         from: 'user',
       })
@@ -83,7 +83,7 @@ describe('message commands', () => {
   })
 
   describe('send', () => {
-    test('sends a message to a chat room', async () => {
+    it('sends a message to a chat room', async () => {
       await messageCommand.parseAsync(['send', 'chat-123', 'Hello world'], { from: 'user' })
 
       expect(mockSendMessage).toHaveBeenCalledWith('chat-123', 'Hello world')
@@ -92,7 +92,7 @@ describe('message commands', () => {
       expect(output.message).toBe('Hi there')
     })
 
-    test('passes account option to withKakaoClient', async () => {
+    it('passes account option to withKakaoClient', async () => {
       await messageCommand.parseAsync(['send', 'chat-123', 'Hi', '--account', 'my-account'], { from: 'user' })
 
       expect(mockWithKakaoClient).toHaveBeenCalledWith(

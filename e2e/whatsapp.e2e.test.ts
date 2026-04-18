@@ -1,4 +1,4 @@
-import { afterEach, beforeAll, describe, expect, test } from 'bun:test'
+import { afterEach, beforeAll, describe, expect, it } from 'bun:test'
 
 import { WHATSAPP_TEST_CHAT_ID, validateWhatsAppEnvironment } from './config'
 import { generateTestId, parseJSON, runCLI, waitForRateLimit } from './helpers'
@@ -15,14 +15,14 @@ describe('WhatsApp E2E Tests', () => {
   })
 
   describe('auth', () => {
-    test('auth status returns exit code 0', async () => {
+    it('auth status returns exit code 0', async () => {
       if (!whatsappAvailable) return
 
       const result = await runCLI('whatsapp', ['auth', 'status'])
       expect(result.exitCode).toBe(0)
     })
 
-    test('auth list returns accounts array', async () => {
+    it('auth list returns accounts array', async () => {
       if (!whatsappAvailable) return
 
       const result = await runCLI('whatsapp', ['auth', 'list'])
@@ -34,7 +34,7 @@ describe('WhatsApp E2E Tests', () => {
   })
 
   describe('chat', () => {
-    test('chat list returns chats', async () => {
+    it('chat list returns chats', async () => {
       if (!whatsappAvailable) return
 
       const result = await runCLI('whatsapp', ['chat', 'list', '--limit', '5'])
@@ -44,7 +44,7 @@ describe('WhatsApp E2E Tests', () => {
       expect(data).toBeTruthy()
     })
 
-    test('chat search returns results', async () => {
+    it('chat search returns results', async () => {
       if (!whatsappAvailable) return
 
       const result = await runCLI('whatsapp', ['chat', 'search', 'test', '--limit', '5'])
@@ -53,7 +53,7 @@ describe('WhatsApp E2E Tests', () => {
   })
 
   describe('message', () => {
-    test('message send delivers message to chat', async () => {
+    it('message send delivers message to chat', async () => {
       if (!whatsappAvailable) return
 
       const testId = generateTestId()
@@ -61,7 +61,7 @@ describe('WhatsApp E2E Tests', () => {
       expect(result.exitCode).toBe(0)
     })
 
-    test('message list returns messages', async () => {
+    it('message list returns messages', async () => {
       if (!whatsappAvailable) return
 
       const result = await runCLI('whatsapp', ['message', 'list', WHATSAPP_TEST_CHAT_ID, '--limit', '5'])
@@ -71,7 +71,7 @@ describe('WhatsApp E2E Tests', () => {
       expect(data).toBeTruthy()
     })
 
-    test('message react adds reaction to message', async () => {
+    it('message react adds reaction to message', async () => {
       if (!whatsappAvailable) return
 
       const testId = generateTestId()

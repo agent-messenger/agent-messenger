@@ -1,4 +1,4 @@
-import { afterAll, beforeEach, describe, expect, mock, test } from 'bun:test'
+import { afterAll, beforeEach, describe, expect, mock, it } from 'bun:test'
 import { mkdirSync, rmSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
@@ -27,7 +27,7 @@ describe('TokenExtractor', () => {
   })
 
   describe('getSlackDir', () => {
-    test('returns correct path for darwin', () => {
+    it('returns correct path for darwin', () => {
       // Given: Platform is darwin
       extractor = new TokenExtractor('darwin')
 
@@ -49,7 +49,7 @@ describe('TokenExtractor', () => {
       expect([directPath, sandboxedPath]).toContain(dir)
     })
 
-    test('returns correct path for linux', () => {
+    it('returns correct path for linux', () => {
       // Given: Platform is linux
       extractor = new TokenExtractor('linux')
 
@@ -60,7 +60,7 @@ describe('TokenExtractor', () => {
       expect(dir).toBe(join(homedir(), '.config', 'Slack'))
     })
 
-    test('returns correct path for win32', () => {
+    it('returns correct path for win32', () => {
       // Given: Platform is win32
       extractor = new TokenExtractor('win32')
 
@@ -71,7 +71,7 @@ describe('TokenExtractor', () => {
       expect(dir).toContain('Slack')
     })
 
-    test('throws error for unsupported platform', () => {
+    it('throws error for unsupported platform', () => {
       // Given: Platform is unsupported
       // When/Then: Constructor should throw
       expect(() => new TokenExtractor('freebsd' as NodeJS.Platform)).toThrow('Unsupported platform')
@@ -79,7 +79,7 @@ describe('TokenExtractor', () => {
   })
 
   describe('extract', () => {
-    test('returns empty array when Slack directory does not exist (falls back to browser)', async () => {
+    it('returns empty array when Slack directory does not exist (falls back to browser)', async () => {
       // given
       const nonExistentPath = `/tmp/nonexistent-slack-${Date.now()}-${Math.random()}`
       extractor = new TokenExtractor('darwin', nonExistentPath)
@@ -91,7 +91,7 @@ describe('TokenExtractor', () => {
       expect(result).toEqual([])
     })
 
-    test('returns empty array when no tokens found', async () => {
+    it('returns empty array when no tokens found', async () => {
       // Given: Slack directory exists but has no tokens
       mkdirSync(join(testSlackDir, 'storage'), { recursive: true })
       extractor = new TokenExtractor('darwin', testSlackDir)
@@ -105,7 +105,7 @@ describe('TokenExtractor', () => {
   })
 
   describe('extractTokensFromLevelDB', () => {
-    test('extracts xoxc tokens from LevelDB', async () => {
+    it('extracts xoxc tokens from LevelDB', async () => {
       // Given: LevelDB with xoxc token data
       // This test requires mocking LevelDB - we'll test the integration
       extractor = new TokenExtractor('darwin', testSlackDir)
@@ -117,7 +117,7 @@ describe('TokenExtractor', () => {
   })
 
   describe('extractCookieFromSQLite', () => {
-    test('extracts xoxd cookie from SQLite', async () => {
+    it('extracts xoxd cookie from SQLite', async () => {
       // Given: SQLite Cookies database with d cookie
       // This test requires mocking SQLite - we'll test the integration
       extractor = new TokenExtractor('darwin', testSlackDir)
@@ -143,7 +143,7 @@ describe('Auth Commands Integration', () => {
   })
 
   describe('auth extract', () => {
-    test('stores extracted workspaces in credential manager', async () => {
+    it('stores extracted workspaces in credential manager', async () => {
       // Given: Extracted workspaces
       const workspaces: ExtractedWorkspace[] = [
         {
@@ -174,7 +174,7 @@ describe('Auth Commands Integration', () => {
       expect(config.workspaces.T456.token).toBe('xoxc-789-012')
     })
 
-    test('sets first workspace as current if none exists', async () => {
+    it('sets first workspace as current if none exists', async () => {
       // Given: No current workspace
       const workspace: ExtractedWorkspace = {
         workspace_id: 'T789',
@@ -198,7 +198,7 @@ describe('Auth Commands Integration', () => {
   })
 
   describe('auth logout', () => {
-    test('removes workspace by id', async () => {
+    it('removes workspace by id', async () => {
       // Given: A workspace exists
       await credManager.setWorkspace({
         workspace_id: 'T-logout',
@@ -215,7 +215,7 @@ describe('Auth Commands Integration', () => {
       expect(ws).toBeNull()
     })
 
-    test('removes current workspace and clears current', async () => {
+    it('removes current workspace and clears current', async () => {
       // Given: Current workspace is set
       await credManager.setWorkspace({
         workspace_id: 'T-current',
@@ -233,7 +233,7 @@ describe('Auth Commands Integration', () => {
       expect(config.current_workspace).toBeNull()
     })
 
-    test('throws error when workspace not found', async () => {
+    it('throws error when workspace not found', async () => {
       // Given: Workspace does not exist
       // When: Trying to get non-existent workspace
       const ws = await credManager.getWorkspace('nonexistent')
@@ -244,7 +244,7 @@ describe('Auth Commands Integration', () => {
   })
 
   describe('auth status', () => {
-    test('returns current workspace info', async () => {
+    it('returns current workspace info', async () => {
       // Given: A current workspace is set
       await credManager.setWorkspace({
         workspace_id: 'T-status',
@@ -263,7 +263,7 @@ describe('Auth Commands Integration', () => {
       expect(ws?.workspace_name).toBe('status-test')
     })
 
-    test('returns null when no workspace configured', async () => {
+    it('returns null when no workspace configured', async () => {
       // Given: No workspace configured
       // When: Getting current workspace
       const ws = await credManager.getWorkspace()
@@ -272,7 +272,7 @@ describe('Auth Commands Integration', () => {
       expect(ws).toBeNull()
     })
 
-    test('validates token with Slack API', async () => {
+    it('validates token with Slack API', async () => {
       // Given: A workspace with valid credentials
       // This would require mocking SlackClient.testAuth()
       // We test the integration pattern here
@@ -299,7 +299,7 @@ describe('Auth Commands Integration', () => {
 })
 
 describe('Platform Detection', () => {
-  test('auto-detects current platform', () => {
+  it('auto-detects current platform', () => {
     // Given: Running on current platform
     const platform = process.platform
 
@@ -312,7 +312,7 @@ describe('Platform Detection', () => {
 })
 
 describe('Output Formatting', () => {
-  test('formats extract output correctly', () => {
+  it('formats extract output correctly', () => {
     // Given: Extracted workspaces
     const output = {
       workspaces: ['T123/acme-corp', 'T456/side-project'],
@@ -328,7 +328,7 @@ describe('Output Formatting', () => {
     expect(pretty).toContain('\n')
   })
 
-  test('formats status output correctly', () => {
+  it('formats status output correctly', () => {
     // Given: Status info
     const output = {
       workspace_id: 'T123',
@@ -345,7 +345,7 @@ describe('Output Formatting', () => {
     expect(JSON.parse(json)).toEqual(output)
   })
 
-  test('formats logout output correctly', () => {
+  it('formats logout output correctly', () => {
     // Given: Logout result
     const output = {
       removed: 'T123',
@@ -369,7 +369,7 @@ describe('formatCredentialDebug', () => {
     cookie: 'xoxd-abc123def456ghi789jkl012mno345pqr678stu901vwx234yz',
   }
 
-  test('truncates token and hides cookie by default', () => {
+  it('truncates token and hides cookie by default', () => {
     const result = formatCredentialDebug(ws)
 
     expect(result).toContain('T123ABC')
@@ -379,7 +379,7 @@ describe('formatCredentialDebug', () => {
     expect(result).not.toContain(ws.cookie)
   })
 
-  test('shows full token and cookie when showSecrets is true', () => {
+  it('shows full token and cookie when showSecrets is true', () => {
     const result = formatCredentialDebug(ws, true)
 
     expect(result).toContain(ws.token)
@@ -388,14 +388,14 @@ describe('formatCredentialDebug', () => {
     expect(result).not.toContain('present')
   })
 
-  test('shows cookie=missing when cookie is empty and secrets hidden', () => {
+  it('shows cookie=missing when cookie is empty and secrets hidden', () => {
     const wsNoCookie = { ...ws, cookie: '' }
     const result = formatCredentialDebug(wsNoCookie)
 
     expect(result).toContain('cookie=missing')
   })
 
-  test('shows empty cookie value when cookie is empty and secrets shown', () => {
+  it('shows empty cookie value when cookie is empty and secrets shown', () => {
     const wsNoCookie = { ...ws, cookie: '' }
     const result = formatCredentialDebug(wsNoCookie, true)
 
@@ -405,35 +405,35 @@ describe('formatCredentialDebug', () => {
 })
 
 describe('getExtractionErrorMessage', () => {
-  test('returns cookie failure message for missing_cookie', () => {
+  it('returns cookie failure message for missing_cookie', () => {
     const message = getExtractionErrorMessage(['missing_cookie'])
 
     expect(message).toContain('Cookie extraction failed')
     expect(message).toContain('desktop app or a supported Chromium browser')
   })
 
-  test('returns session expired message for invalid_auth', () => {
+  it('returns session expired message for invalid_auth', () => {
     const message = getExtractionErrorMessage(['invalid_auth'])
 
     expect(message).toContain('session has expired')
     expect(message).toContain('desktop app or a supported Chromium browser')
   })
 
-  test('prioritizes missing_cookie over invalid_auth', () => {
+  it('prioritizes missing_cookie over invalid_auth', () => {
     const message = getExtractionErrorMessage(['invalid_auth', 'missing_cookie'])
 
     expect(message).toContain('Cookie extraction failed')
     expect(message).toContain('desktop app or a supported Chromium browser')
   })
 
-  test('returns generic message for unknown error codes', () => {
+  it('returns generic message for unknown error codes', () => {
     const message = getExtractionErrorMessage(['unknown_error'])
 
     expect(message).toContain('Extracted tokens are invalid')
     expect(message).toContain('desktop app or a supported Chromium browser')
   })
 
-  test('returns generic message for empty failure list', () => {
+  it('returns generic message for empty failure list', () => {
     const message = getExtractionErrorMessage([])
 
     expect(message).toContain('Extracted tokens are invalid')
@@ -442,7 +442,7 @@ describe('getExtractionErrorMessage', () => {
 })
 
 describe('getNoWorkspacesFoundMessage', () => {
-  test('mentions desktop app and browser fallback', () => {
+  it('mentions desktop app and browser fallback', () => {
     expect(getNoWorkspacesFoundMessage()).toContain('desktop app or a supported Chromium browser')
   })
 })
@@ -457,7 +457,7 @@ describe('Error Handling', () => {
     rmSync(testSlackDir, { recursive: true, force: true })
   })
 
-  test('handles missing Slack installation gracefully', async () => {
+  it('handles missing Slack installation gracefully', async () => {
     // given — Slack is not installed
     const nonExistentPath = `/tmp/nonexistent-slack-${Date.now()}-${Math.random()}`
     const extractor = new TokenExtractor('darwin', nonExistentPath)
@@ -467,7 +467,7 @@ describe('Error Handling', () => {
     expect(result).toEqual([])
   })
 
-  test('handles empty Slack directory gracefully', async () => {
+  it('handles empty Slack directory gracefully', async () => {
     // Given: Slack directory exists but has no data
     const extractor = new TokenExtractor('darwin', testSlackDir)
 
@@ -478,7 +478,7 @@ describe('Error Handling', () => {
     expect(result).toEqual([])
   })
 
-  test('handles missing Cookies database gracefully', async () => {
+  it('handles missing Cookies database gracefully', async () => {
     // Given: No Cookies database
     mkdirSync(join(testSlackDir, 'storage'), { recursive: true })
     const extractor = new TokenExtractor('darwin', testSlackDir)

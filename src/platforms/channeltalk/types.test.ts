@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'bun:test'
+import { describe, expect, it } from 'bun:test'
 
 import {
   ChannelAccountSchema,
@@ -10,7 +10,7 @@ import {
 } from './types'
 
 describe('channel types', () => {
-  test('accepts a valid workspace entry', () => {
+  it('accepts a valid workspace entry', () => {
     const result = ChannelWorkspaceEntrySchema.safeParse({
       workspace_id: '232986',
       workspace_name: 'Support',
@@ -23,7 +23,7 @@ describe('channel types', () => {
     expect(result.success).toBe(true)
   })
 
-  test('accepts a workspace entry without session_cookie', () => {
+  it('accepts a workspace entry without session_cookie', () => {
     const result = ChannelWorkspaceEntrySchema.safeParse({
       workspace_id: '232986',
       workspace_name: 'Support',
@@ -33,7 +33,7 @@ describe('channel types', () => {
     expect(result.success).toBe(true)
   })
 
-  test('rejects a workspace entry missing account_cookie', () => {
+  it('rejects a workspace entry missing account_cookie', () => {
     const result = ChannelWorkspaceEntrySchema.safeParse({
       workspace_id: '232986',
       workspace_name: 'Support',
@@ -42,7 +42,7 @@ describe('channel types', () => {
     expect(result.success).toBe(false)
   })
 
-  test('accepts a valid config', () => {
+  it('accepts a valid config', () => {
     const result = ChannelConfigSchema.safeParse({
       current: { workspace_id: '232986' },
       workspaces: {
@@ -58,7 +58,7 @@ describe('channel types', () => {
     expect(result.success).toBe(true)
   })
 
-  test('accepts a valid account', () => {
+  it('accepts a valid account', () => {
     const result = ChannelAccountSchema.safeParse({
       id: '493041',
       name: 'Devxoul',
@@ -72,7 +72,7 @@ describe('channel types', () => {
     expect(result.success).toBe(true)
   })
 
-  test('rejects an invalid account', () => {
+  it('rejects an invalid account', () => {
     const result = ChannelAccountSchema.safeParse({
       id: '493041',
       name: 'Devxoul',
@@ -86,7 +86,7 @@ describe('channel types', () => {
     expect(result.success).toBe(false)
   })
 
-  test('accepts a valid message with blocks', () => {
+  it('accepts a valid message with blocks', () => {
     const result = ChannelMessageSchema.safeParse({
       id: 'msg_1',
       channelId: '232986',
@@ -99,7 +99,7 @@ describe('channel types', () => {
     expect(result.success).toBe(true)
   })
 
-  test('rejects an invalid message block payload', () => {
+  it('rejects an invalid message block payload', () => {
     const result = ChannelMessageSchema.safeParse({
       id: 'msg_1',
       blocks: [{ type: 'text', value: 123 }],
@@ -108,7 +108,7 @@ describe('channel types', () => {
     expect(result.success).toBe(false)
   })
 
-  test('accepts a valid group', () => {
+  it('accepts a valid group', () => {
     const result = ChannelGroupSchema.safeParse({
       id: 'group_1',
       channelId: '232986',
@@ -120,7 +120,7 @@ describe('channel types', () => {
     expect(result.success).toBe(true)
   })
 
-  test('rejects an invalid group', () => {
+  it('rejects an invalid group', () => {
     const result = ChannelGroupSchema.safeParse({
       id: 'group_1',
       channelId: '232986',
@@ -131,7 +131,7 @@ describe('channel types', () => {
     expect(result.success).toBe(false)
   })
 
-  test('stores the code on ChannelError', () => {
+  it('stores the code on ChannelError', () => {
     const error = new ChannelError('boom', 'CHANNEL_FAILED')
 
     expect(error).toBeInstanceOf(Error)

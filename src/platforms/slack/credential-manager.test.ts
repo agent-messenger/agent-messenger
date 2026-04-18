@@ -1,4 +1,4 @@
-import { afterAll, beforeEach, describe, expect, test } from 'bun:test'
+import { afterAll, beforeEach, describe, expect, it } from 'bun:test'
 import { existsSync, rmSync } from 'node:fs'
 import { join } from 'node:path'
 
@@ -19,7 +19,7 @@ describe('CredentialManager', () => {
     rmSync(testConfigDir, { recursive: true, force: true })
   })
 
-  test('load() returns empty config when no file exists', async () => {
+  it('load() returns empty config when no file exists', async () => {
     // Given: No credentials file exists
     // When: load() is called
     const config = await manager.load()
@@ -31,7 +31,7 @@ describe('CredentialManager', () => {
     })
   })
 
-  test('save() and load() round-trip', async () => {
+  it('save() and load() round-trip', async () => {
     // Given: A config with workspace credentials
     const testConfig: Config = {
       current_workspace: 'workspace-1',
@@ -55,7 +55,7 @@ describe('CredentialManager', () => {
     expect(loaded).toEqual(testConfig)
   })
 
-  test('save() creates credentials file with 0600 permissions', async () => {
+  it('save() creates credentials file with 0600 permissions', async () => {
     // Given: A config to save
     const testConfig: Config = {
       current_workspace: null,
@@ -76,7 +76,7 @@ describe('CredentialManager', () => {
     expect(permissions).toBe(0o600)
   })
 
-  test('setWorkspace() adds or updates workspace', async () => {
+  it('setWorkspace() adds or updates workspace', async () => {
     // Given: A credential manager with empty config
     // When: setWorkspace() is called
     const creds: WorkspaceCredentials = {
@@ -92,7 +92,7 @@ describe('CredentialManager', () => {
     expect(loaded.workspaces['ws-123']).toEqual(creds)
   })
 
-  test('getWorkspace() returns workspace by id', async () => {
+  it('getWorkspace() returns workspace by id', async () => {
     // Given: A workspace is saved
     const creds: WorkspaceCredentials = {
       workspace_id: 'ws-456',
@@ -109,7 +109,7 @@ describe('CredentialManager', () => {
     expect(retrieved).toEqual(creds)
   })
 
-  test('getWorkspace() returns null for non-existent workspace', async () => {
+  it('getWorkspace() returns null for non-existent workspace', async () => {
     // Given: No workspace with this id exists
     // When: getWorkspace() is called
     const retrieved = await manager.getWorkspace('non-existent')
@@ -118,7 +118,7 @@ describe('CredentialManager', () => {
     expect(retrieved).toBeNull()
   })
 
-  test('getWorkspace() returns current workspace when no id provided', async () => {
+  it('getWorkspace() returns current workspace when no id provided', async () => {
     // Given: A current workspace is set
     const creds: WorkspaceCredentials = {
       workspace_id: 'ws-789',
@@ -136,7 +136,7 @@ describe('CredentialManager', () => {
     expect(retrieved).toEqual(creds)
   })
 
-  test('getWorkspace() returns null when no current workspace set', async () => {
+  it('getWorkspace() returns null when no current workspace set', async () => {
     // Given: No current workspace is set
     // When: getWorkspace() is called without id
     const retrieved = await manager.getWorkspace()
@@ -145,7 +145,7 @@ describe('CredentialManager', () => {
     expect(retrieved).toBeNull()
   })
 
-  test('removeWorkspace() deletes workspace', async () => {
+  it('removeWorkspace() deletes workspace', async () => {
     // Given: A workspace is saved
     const creds: WorkspaceCredentials = {
       workspace_id: 'ws-delete',
@@ -163,7 +163,7 @@ describe('CredentialManager', () => {
     expect(retrieved).toBeNull()
   })
 
-  test('removeWorkspace() clears current workspace if it matches', async () => {
+  it('removeWorkspace() clears current workspace if it matches', async () => {
     // Given: A workspace is set as current
     const creds: WorkspaceCredentials = {
       workspace_id: 'ws-current',
@@ -182,7 +182,7 @@ describe('CredentialManager', () => {
     expect(config.current_workspace).toBeNull()
   })
 
-  test('setCurrentWorkspace() sets current workspace', async () => {
+  it('setCurrentWorkspace() sets current workspace', async () => {
     // Given: A workspace exists
     const creds: WorkspaceCredentials = {
       workspace_id: 'ws-set-current',
@@ -200,7 +200,7 @@ describe('CredentialManager', () => {
     expect(config.current_workspace).toBe('ws-set-current')
   })
 
-  test('creates config directory if it does not exist', async () => {
+  it('creates config directory if it does not exist', async () => {
     // Given: Config directory does not exist
     expect(existsSync(testConfigDir)).toBe(false)
 
@@ -215,7 +215,7 @@ describe('CredentialManager', () => {
     expect(existsSync(testConfigDir)).toBe(true)
   })
 
-  test('multiple workspaces can coexist', async () => {
+  it('multiple workspaces can coexist', async () => {
     // Given: Multiple workspaces are added
     const creds1: WorkspaceCredentials = {
       workspace_id: 'ws-1',

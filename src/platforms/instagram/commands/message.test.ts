@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, mock, spyOn, test } from 'bun:test'
+import { afterEach, beforeEach, describe, expect, mock, spyOn, it } from 'bun:test'
 
 const originalConsoleLog = console.log
 import type { Command } from 'commander'
@@ -68,7 +68,7 @@ describe('message commands', () => {
   })
 
   describe('list', () => {
-    test('lists messages from a thread', async () => {
+    it('lists messages from a thread', async () => {
       await expect(messageCommand.parseAsync(['list', 'thread-123'], { from: 'user' })).rejects.toThrow(
         'process.exit called',
       )
@@ -79,7 +79,7 @@ describe('message commands', () => {
       expect(output).toEqual([{ id: 'msg-1', text: 'Hello' }])
     })
 
-    test('passes custom limit', async () => {
+    it('passes custom limit', async () => {
       await expect(
         messageCommand.parseAsync(['list', 'thread-123', '--limit', '10'], { from: 'user' }),
       ).rejects.toThrow('process.exit called')
@@ -89,7 +89,7 @@ describe('message commands', () => {
   })
 
   describe('send', () => {
-    test('sends a message to a thread', async () => {
+    it('sends a message to a thread', async () => {
       await expect(messageCommand.parseAsync(['send', 'thread-123', 'Hello world'], { from: 'user' })).rejects.toThrow(
         'process.exit called',
       )
@@ -102,7 +102,7 @@ describe('message commands', () => {
   })
 
   describe('send-to', () => {
-    test('sends a message to a user by username', async () => {
+    it('sends a message to a user by username', async () => {
       await expect(messageCommand.parseAsync(['send-to', 'targetuser', 'Hi there'], { from: 'user' })).rejects.toThrow(
         'process.exit called',
       )
@@ -114,7 +114,7 @@ describe('message commands', () => {
       expect(output).toEqual({ id: 'msg-3', text: 'Sent to user' })
     })
 
-    test('strips @ prefix from username', async () => {
+    it('strips @ prefix from username', async () => {
       await expect(messageCommand.parseAsync(['send-to', '@targetuser', 'Hi there'], { from: 'user' })).rejects.toThrow(
         'process.exit called',
       )
@@ -122,7 +122,7 @@ describe('message commands', () => {
       expect(mockSearchUsers).toHaveBeenCalledWith('targetuser')
     })
 
-    test('handles user not found error', async () => {
+    it('handles user not found error', async () => {
       mockSearchUsers.mockImplementation(() => Promise.resolve([]))
 
       try {
@@ -136,7 +136,7 @@ describe('message commands', () => {
   })
 
   describe('search', () => {
-    test('searches messages by query', async () => {
+    it('searches messages by query', async () => {
       await expect(messageCommand.parseAsync(['search', 'hello'], { from: 'user' })).rejects.toThrow(
         'process.exit called',
       )
@@ -147,7 +147,7 @@ describe('message commands', () => {
       expect(output).toEqual([{ id: 'msg-4', text: 'Found' }])
     })
 
-    test('passes thread option to search', async () => {
+    it('passes thread option to search', async () => {
       await expect(
         messageCommand.parseAsync(['search', 'hello', '--thread', 'thread-456'], { from: 'user' }),
       ).rejects.toThrow('process.exit called')
@@ -155,7 +155,7 @@ describe('message commands', () => {
       expect(mockSearchMessages).toHaveBeenCalledWith('hello', { threadId: 'thread-456', limit: 20 })
     })
 
-    test('passes limit option to search', async () => {
+    it('passes limit option to search', async () => {
       await expect(messageCommand.parseAsync(['search', 'hello2', '--limit', '5'], { from: 'user' })).rejects.toThrow(
         'process.exit called',
       )
@@ -165,7 +165,7 @@ describe('message commands', () => {
   })
 
   describe('search-users', () => {
-    test('searches users by query', async () => {
+    it('searches users by query', async () => {
       await expect(messageCommand.parseAsync(['search-users', 'target'], { from: 'user' })).rejects.toThrow(
         'process.exit called',
       )

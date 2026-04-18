@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, mock, spyOn, test } from 'bun:test'
+import { afterEach, beforeEach, describe, expect, mock, spyOn, it } from 'bun:test'
 
 const originalConsoleLog = console.log
 
@@ -67,7 +67,7 @@ describe('auth commands', () => {
   })
 
   describe('list', () => {
-    test('outputs empty array when no accounts', async () => {
+    it('outputs empty array when no accounts', async () => {
       mockListAccounts.mockImplementation(() => Promise.resolve([]))
 
       await authCommand.parseAsync(['list'], { from: 'user' })
@@ -76,7 +76,7 @@ describe('auth commands', () => {
       expect(output).toEqual([])
     })
 
-    test('outputs accounts list with is_current flag', async () => {
+    it('outputs accounts list with is_current flag', async () => {
       mockListAccounts.mockImplementation(() =>
         Promise.resolve([
           {
@@ -116,7 +116,7 @@ describe('auth commands', () => {
   })
 
   describe('use', () => {
-    test('switches to specified account', async () => {
+    it('switches to specified account', async () => {
       mockGetAccount.mockImplementation(() =>
         Promise.resolve({
           account_id: 'user-1',
@@ -138,7 +138,7 @@ describe('auth commands', () => {
       expect(output.account_id).toBe('user-1')
     })
 
-    test('outputs error and exits when account not found', async () => {
+    it('outputs error and exits when account not found', async () => {
       mockGetAccount.mockImplementation(() => Promise.resolve(null))
 
       await expect(authCommand.parseAsync(['use', 'nonexistent'], { from: 'user' })).rejects.toThrow('process.exit')
@@ -150,7 +150,7 @@ describe('auth commands', () => {
   })
 
   describe('status', () => {
-    test('outputs error and exits when no account configured', async () => {
+    it('outputs error and exits when no account configured', async () => {
       mockGetAccount.mockImplementation(() => Promise.resolve(null))
 
       await expect(authCommand.parseAsync(['status'], { from: 'user' })).rejects.toThrow('process.exit')
@@ -160,7 +160,7 @@ describe('auth commands', () => {
       expect(output.error).toBeDefined()
     })
 
-    test('outputs account info when account exists', async () => {
+    it('outputs account info when account exists', async () => {
       mockGetAccount.mockImplementation(() =>
         Promise.resolve({
           account_id: 'user-1',
@@ -184,7 +184,7 @@ describe('auth commands', () => {
       expect(output.has_device_uuid).toBe(true)
     })
 
-    test('outputs status for specific --account', async () => {
+    it('outputs status for specific --account', async () => {
       mockGetAccount.mockImplementation((id?: string) => {
         if (id === 'user-2') {
           return Promise.resolve({
@@ -210,7 +210,7 @@ describe('auth commands', () => {
   })
 
   describe('logout', () => {
-    test('removes current account and outputs success', async () => {
+    it('removes current account and outputs success', async () => {
       mockLoad.mockImplementation(() =>
         Promise.resolve({
           current_account: 'user-1',
@@ -237,7 +237,7 @@ describe('auth commands', () => {
       expect(output.removed).toBe('user-1')
     })
 
-    test('removes specific account with --account flag', async () => {
+    it('removes specific account with --account flag', async () => {
       mockLoad.mockImplementation(() =>
         Promise.resolve({
           current_account: 'user-1',
@@ -274,7 +274,7 @@ describe('auth commands', () => {
       expect(output.removed).toBe('user-2')
     })
 
-    test('outputs error and exits when no account configured', async () => {
+    it('outputs error and exits when no account configured', async () => {
       mockLoad.mockImplementation(() => Promise.resolve({ current_account: null, accounts: {} }))
 
       await expect(authCommand.parseAsync(['logout'], { from: 'user' })).rejects.toThrow('process.exit')

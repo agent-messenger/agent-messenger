@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, mock, test } from 'bun:test'
+import { afterEach, beforeEach, describe, expect, mock, it } from 'bun:test'
 import { existsSync, rmSync } from 'node:fs'
 import { mkdir } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
@@ -75,7 +75,7 @@ describe('thread commands', () => {
   })
 
   describe('createAction', () => {
-    test('creates thread successfully', async () => {
+    it('creates thread successfully', async () => {
       const result = await createAction('general', 'test-thread', { _credManager: manager })
 
       expect(result.success).toBe(true)
@@ -87,7 +87,7 @@ describe('thread commands', () => {
       }
     })
 
-    test('includes auto_archive_duration when provided', async () => {
+    it('includes auto_archive_duration when provided', async () => {
       const result = await createAction('general', 'test-thread', {
         _credManager: manager,
         autoArchiveDuration: '60',
@@ -98,19 +98,19 @@ describe('thread commands', () => {
       expect(mockCreateThread).toHaveBeenCalledWith('channel-456', 'test-thread', { auto_archive_duration: 60 })
     })
 
-    test('resolves channel name', async () => {
+    it('resolves channel name', async () => {
       await createAction('general', 'test-thread', { _credManager: manager })
 
       expect(mockResolveChannel).toHaveBeenCalledWith('guild1', 'general')
     })
 
-    test('returns error when channel resolution fails', async () => {
+    it('returns error when channel resolution fails', async () => {
       const result = await createAction('nonexistent', 'test-thread', { _credManager: manager })
 
       expect(result.error).toContain('Channel not found')
     })
 
-    test('returns error when thread creation fails', async () => {
+    it('returns error when thread creation fails', async () => {
       mockCreateThread.mockImplementationOnce(() => Promise.reject(new Error('API Error')))
 
       const result = await createAction('general', 'test-thread', { _credManager: manager })
@@ -120,7 +120,7 @@ describe('thread commands', () => {
   })
 
   describe('archiveAction', () => {
-    test('archives thread successfully', async () => {
+    it('archives thread successfully', async () => {
       const result = await archiveAction('thread-789', { _credManager: manager })
 
       expect(result.success).toBe(true)
@@ -128,7 +128,7 @@ describe('thread commands', () => {
       expect(mockArchiveThread).toHaveBeenCalledWith('thread-789')
     })
 
-    test('returns error when archive fails', async () => {
+    it('returns error when archive fails', async () => {
       mockArchiveThread.mockImplementationOnce(() => Promise.reject(new Error('Forbidden')))
 
       const result = await archiveAction('thread-789', { _credManager: manager })
@@ -138,7 +138,7 @@ describe('thread commands', () => {
   })
 
   describe('action result structure', () => {
-    test('createAction returns success result with thread info', async () => {
+    it('createAction returns success result with thread info', async () => {
       const result = await createAction('general', 'test-thread', { _credManager: manager })
 
       if (!result.error) {
@@ -152,7 +152,7 @@ describe('thread commands', () => {
       }
     })
 
-    test('archiveAction returns success result with threadId', async () => {
+    it('archiveAction returns success result with threadId', async () => {
       const result = await archiveAction('thread-789', { _credManager: manager })
 
       if (!result.error) {

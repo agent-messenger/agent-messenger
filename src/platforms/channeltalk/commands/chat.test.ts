@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, mock, test } from 'bun:test'
+import { beforeEach, describe, expect, mock, it } from 'bun:test'
 
 const mockListUserChats = mock(() =>
   Promise.resolve([
@@ -62,7 +62,7 @@ describe('chat commands', () => {
     )
   })
 
-  test('listAction lists user chats with the requested state filter', async () => {
+  it('listAction lists user chats with the requested state filter', async () => {
     const result = await listAction({ state: 'closed', limit: '5' })
 
     expect(mockListUserChats).toHaveBeenCalledWith('ws-1', { state: 'closed', limit: 5 })
@@ -78,7 +78,7 @@ describe('chat commands', () => {
     ])
   })
 
-  test('getAction gets a specific user chat', async () => {
+  it('getAction gets a specific user chat', async () => {
     const result = await getAction('chat-1')
 
     expect(mockGetUserChat).toHaveBeenCalledWith('ws-1', 'chat-1')

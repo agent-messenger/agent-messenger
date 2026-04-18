@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, mock, test } from 'bun:test'
+import { beforeEach, describe, expect, mock, it } from 'bun:test'
 
 import { SlackClient } from '@/platforms/slack/client'
 import type { SlackPin } from '@/platforms/slack/types'
@@ -29,12 +29,12 @@ describe('Pin Commands', () => {
   })
 
   describe('pin add', () => {
-    test('pins a message successfully', async () => {
+    it('pins a message successfully', async () => {
       await (mockClient as SlackClient).pinMessage('C001', '1234567890.123456')
       expect(mockClient.pinMessage).toHaveBeenCalledWith('C001', '1234567890.123456')
     })
 
-    test('throws error when API fails', async () => {
+    it('throws error when API fails', async () => {
       mockClient.pinMessage = mock(async () => {
         throw new Error('already_pinned')
       })
@@ -43,12 +43,12 @@ describe('Pin Commands', () => {
   })
 
   describe('pin remove', () => {
-    test('unpins a message successfully', async () => {
+    it('unpins a message successfully', async () => {
       await (mockClient as SlackClient).unpinMessage('C001', '1234567890.123456')
       expect(mockClient.unpinMessage).toHaveBeenCalledWith('C001', '1234567890.123456')
     })
 
-    test('throws error when API fails', async () => {
+    it('throws error when API fails', async () => {
       mockClient.unpinMessage = mock(async () => {
         throw new Error('no_pin')
       })
@@ -57,14 +57,14 @@ describe('Pin Commands', () => {
   })
 
   describe('pin list', () => {
-    test('lists pinned messages', async () => {
+    it('lists pinned messages', async () => {
       const pins = await (mockClient as SlackClient).listPins('C001')
       expect(pins).toHaveLength(1)
       expect(pins[0].message.text).toBe('Pinned message')
       expect(pins[0].created_by).toBe('U001')
     })
 
-    test('throws error when API fails', async () => {
+    it('throws error when API fails', async () => {
       mockClient.listPins = mock(async () => {
         throw new Error('channel_not_found')
       })

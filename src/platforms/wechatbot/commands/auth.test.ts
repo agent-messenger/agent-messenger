@@ -1,4 +1,4 @@
-import { afterAll, describe, expect, mock, test } from 'bun:test'
+import { afterAll, describe, expect, mock, it } from 'bun:test'
 import { rmSync } from 'node:fs'
 import { join } from 'node:path'
 
@@ -31,7 +31,7 @@ afterAll(() => {
 })
 
 describe('setAction', () => {
-  test('returns success with app_id when credentials are valid', async () => {
+  it('returns success with app_id when credentials are valid', async () => {
     const credManager = makeCredManager()
     const result = await setAction('wx123', 'secret123', { _credManager: credManager })
 
@@ -40,7 +40,7 @@ describe('setAction', () => {
     expect(result.account_name).toBe('wx123')
   })
 
-  test('saves credentials to credManager', async () => {
+  it('saves credentials to credManager', async () => {
     const credManager = makeCredManager()
     await setAction('wx456', 'secret456', { _credManager: credManager })
 
@@ -48,7 +48,7 @@ describe('setAction', () => {
     expect(creds?.app_id).toBe('wx456')
   })
 
-  test('returns error when verifyCredentials returns false', async () => {
+  it('returns error when verifyCredentials returns false', async () => {
     mock.module('../client', () => ({
       WeChatBotClient: class MockWeChatBotClient {
         async login() {
@@ -68,7 +68,7 @@ describe('setAction', () => {
 })
 
 describe('statusAction', () => {
-  test('returns valid: false when no credentials configured', async () => {
+  it('returns valid: false when no credentials configured', async () => {
     const credManager = makeCredManager()
     const result = await statusAction({ _credManager: credManager })
 
@@ -76,7 +76,7 @@ describe('statusAction', () => {
     expect(result.error).toBeDefined()
   })
 
-  test('returns valid: true when credentials exist and are valid', async () => {
+  it('returns valid: true when credentials exist and are valid', async () => {
     mock.module('../client', () => ({
       WeChatBotClient: class MockWeChatBotClient {
         async login() {
@@ -96,7 +96,7 @@ describe('statusAction', () => {
     expect(result.app_id).toBe('wx123')
   })
 
-  test('returns valid: false when credentials exist but are invalid', async () => {
+  it('returns valid: false when credentials exist but are invalid', async () => {
     mock.module('../client', () => ({
       WeChatBotClient: class MockWeChatBotClient {
         async login() {
@@ -115,7 +115,7 @@ describe('statusAction', () => {
     expect(result.valid).toBe(false)
   })
 
-  test('returns error message when account not found', async () => {
+  it('returns error message when account not found', async () => {
     const credManager = makeCredManager()
     const result = await statusAction({ account: 'nonexistent', _credManager: credManager })
 
@@ -125,7 +125,7 @@ describe('statusAction', () => {
 })
 
 describe('clearAction', () => {
-  test('clears all credentials and returns success', async () => {
+  it('clears all credentials and returns success', async () => {
     const credManager = makeCredManager()
     await credManager.setCredentials({ app_id: 'wx123', app_secret: 'secret123', account_name: 'My Account' })
 
@@ -139,14 +139,14 @@ describe('clearAction', () => {
 })
 
 describe('listAction', () => {
-  test('returns empty accounts array when none configured', async () => {
+  it('returns empty accounts array when none configured', async () => {
     const credManager = makeCredManager()
     const result = await listAction({ _credManager: credManager })
 
     expect(result.accounts).toEqual([])
   })
 
-  test('returns all accounts with is_current flag', async () => {
+  it('returns all accounts with is_current flag', async () => {
     const credManager = makeCredManager()
     await credManager.setCredentials({ app_id: 'wx-a', app_secret: 'secret-a', account_name: 'Account A' })
     await credManager.setCredentials({ app_id: 'wx-b', app_secret: 'secret-b', account_name: 'Account B' })
@@ -162,7 +162,7 @@ describe('listAction', () => {
 })
 
 describe('useAction', () => {
-  test('switches to specified account and returns success', async () => {
+  it('switches to specified account and returns success', async () => {
     const credManager = makeCredManager()
     await credManager.setCredentials({ app_id: 'wx-a', app_secret: 'secret-a', account_name: 'Account A' })
     await credManager.setCredentials({ app_id: 'wx-b', app_secret: 'secret-b', account_name: 'Account B' })
@@ -173,7 +173,7 @@ describe('useAction', () => {
     expect(result.app_id).toBe('wx-a')
   })
 
-  test('returns error when account not found', async () => {
+  it('returns error when account not found', async () => {
     const credManager = makeCredManager()
     const result = await useAction('nonexistent', { _credManager: credManager })
 
@@ -184,7 +184,7 @@ describe('useAction', () => {
 })
 
 describe('removeAction', () => {
-  test('removes specified account and returns success', async () => {
+  it('removes specified account and returns success', async () => {
     const credManager = makeCredManager()
     await credManager.setCredentials({ app_id: 'wx123', app_secret: 'secret123', account_name: 'My Account' })
 
@@ -196,7 +196,7 @@ describe('removeAction', () => {
     expect(creds).toBeNull()
   })
 
-  test('returns error when account not found', async () => {
+  it('returns error when account not found', async () => {
     const credManager = makeCredManager()
     const result = await removeAction('nonexistent', { _credManager: credManager })
 

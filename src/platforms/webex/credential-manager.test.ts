@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, mock, test } from 'bun:test'
+import { afterEach, beforeEach, describe, expect, mock, it } from 'bun:test'
 import { mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -18,11 +18,11 @@ describe('WebexCredentialManager', () => {
     await rm(tempDir, { recursive: true, force: true })
   })
 
-  test('loadConfig returns null when no file exists', async () => {
+  it('loadConfig returns null when no file exists', async () => {
     expect(await credManager.loadConfig()).toBeNull()
   })
 
-  test('saveConfig + loadConfig round trip with OAuth tokens', async () => {
+  it('saveConfig and loadConfig round-trip OAuth tokens', async () => {
     const config = {
       accessToken: 'test-access-token',
       refreshToken: 'test-refresh-token',
@@ -33,7 +33,7 @@ describe('WebexCredentialManager', () => {
     expect(loaded).toEqual(config)
   })
 
-  test('getToken returns accessToken when not expired', async () => {
+  it('getToken returns accessToken when not expired', async () => {
     await credManager.saveConfig({
       accessToken: 'valid-token',
       refreshToken: 'refresh',
@@ -43,7 +43,7 @@ describe('WebexCredentialManager', () => {
     expect(token).toBe('valid-token')
   })
 
-  test('getToken returns null when expired and no refresh available', async () => {
+  it('getToken returns null when expired and no refresh available', async () => {
     await credManager.saveConfig({
       accessToken: 'expired-token',
       refreshToken: 'bad-refresh',
@@ -53,7 +53,7 @@ describe('WebexCredentialManager', () => {
     expect(token).toBeNull()
   })
 
-  test('getToken auto-refreshes expired token', async () => {
+  it('getToken auto-refreshes expired token', async () => {
     const originalFetch = globalThis.fetch
     globalThis.fetch = mock(() =>
       Promise.resolve(
@@ -87,7 +87,7 @@ describe('WebexCredentialManager', () => {
     globalThis.fetch = originalFetch
   })
 
-  test('requestDeviceCode calls device authorize endpoint', async () => {
+  it('requestDeviceCode calls device authorize endpoint', async () => {
     const originalFetch = globalThis.fetch
     globalThis.fetch = mock(() =>
       Promise.resolve(
@@ -114,7 +114,7 @@ describe('WebexCredentialManager', () => {
     globalThis.fetch = originalFetch
   })
 
-  test('requestDeviceCode throws on failure', async () => {
+  it('requestDeviceCode throws on failure', async () => {
     const originalFetch = globalThis.fetch
     globalThis.fetch = mock(() =>
       Promise.resolve(new Response('{"error":"invalid_client"}', { status: 400 })),
@@ -125,7 +125,7 @@ describe('WebexCredentialManager', () => {
     globalThis.fetch = originalFetch
   })
 
-  test('pollDeviceToken polls until authorized', async () => {
+  it('pollDeviceToken polls until authorized', async () => {
     const originalFetch = globalThis.fetch
     let callCount = 0
     globalThis.fetch = mock(() => {
@@ -152,7 +152,7 @@ describe('WebexCredentialManager', () => {
     globalThis.fetch = originalFetch
   })
 
-  test('clearCredentials removes the file', async () => {
+  it('clearCredentials removes the file', async () => {
     await credManager.saveConfig({
       accessToken: 'token',
       refreshToken: 'refresh',
@@ -162,11 +162,11 @@ describe('WebexCredentialManager', () => {
     expect(await credManager.loadConfig()).toBeNull()
   })
 
-  test('clearCredentials does nothing when no file', async () => {
+  it('clearCredentials does nothing when no file', async () => {
     await credManager.clearCredentials() // Should not throw
   })
 
-  test('credentials file has 0o600 permissions', async () => {
+  it('saves credentials file with 0o600 permissions', async () => {
     await credManager.saveConfig({
       accessToken: 'token',
       refreshToken: 'refresh',
@@ -179,7 +179,7 @@ describe('WebexCredentialManager', () => {
     expect(mode).toBe(0o600)
   })
 
-  test('pollDeviceToken with undefined clientSecret uses empty Basic auth', async () => {
+  it('pollDeviceToken with undefined clientSecret uses empty Basic auth', async () => {
     const originalFetch = globalThis.fetch
     let capturedAuth: string | null = null
     globalThis.fetch = mock((url: string, init?: RequestInit) => {
@@ -202,7 +202,7 @@ describe('WebexCredentialManager', () => {
     globalThis.fetch = originalFetch
   })
 
-  test('pollDeviceToken does not auto-save config', async () => {
+  it('pollDeviceToken does not auto-save config', async () => {
     const originalFetch = globalThis.fetch
     globalThis.fetch = mock(() =>
       Promise.resolve(
@@ -225,7 +225,7 @@ describe('WebexCredentialManager', () => {
     globalThis.fetch = originalFetch
   })
 
-  test('getToken returns null when expired and no client credentials available', async () => {
+  it('getToken returns null when expired and no client credentials available', async () => {
     await credManager.saveConfig({
       accessToken: 'expired-token',
       refreshToken: 'valid-refresh',
@@ -236,7 +236,7 @@ describe('WebexCredentialManager', () => {
     expect(token).toBeNull()
   })
 
-  test('getToken returns manual token without attempting refresh', async () => {
+  it('getToken returns manual token without attempting refresh', async () => {
     await credManager.saveConfig({
       accessToken: 'my-bot-token',
       refreshToken: '',
@@ -248,7 +248,7 @@ describe('WebexCredentialManager', () => {
     expect(token).toBe('my-bot-token')
   })
 
-  test('getToken uses stored clientId/clientSecret for refresh', async () => {
+  it('getToken uses stored clientId/clientSecret for refresh', async () => {
     const originalFetch = globalThis.fetch
     globalThis.fetch = mock(() =>
       Promise.resolve(
@@ -277,7 +277,7 @@ describe('WebexCredentialManager', () => {
     globalThis.fetch = originalFetch
   })
 
-  test('saveConfig persists clientId and clientSecret', async () => {
+  it('saveConfig persists clientId and clientSecret', async () => {
     await credManager.saveConfig({
       accessToken: 'token',
       refreshToken: 'refresh',
@@ -291,7 +291,7 @@ describe('WebexCredentialManager', () => {
     expect(loaded?.clientSecret).toBe('my-client-secret')
   })
 
-  test('getToken tries refresh for expired extracted tokens', async () => {
+  it('getToken tries refresh for expired extracted tokens', async () => {
     const originalFetch = globalThis.fetch
     globalThis.fetch = mock(() =>
       Promise.resolve(
@@ -323,7 +323,7 @@ describe('WebexCredentialManager', () => {
     globalThis.fetch = originalFetch
   })
 
-  test('getToken returns expired extracted token when refresh fails', async () => {
+  it('getToken returns expired extracted token when refresh fails', async () => {
     const originalFetch = globalThis.fetch
     globalThis.fetch = mock(() =>
       Promise.resolve(new Response('{"error":"invalid_grant"}', { status: 400 })),
@@ -342,7 +342,7 @@ describe('WebexCredentialManager', () => {
     globalThis.fetch = originalFetch
   })
 
-  test('getToken returns non-expired extracted token without refresh', async () => {
+  it('getToken returns non-expired extracted token without refresh', async () => {
     await credManager.saveConfig({
       accessToken: 'valid-extracted-token',
       refreshToken: 'refresh',
@@ -354,7 +354,7 @@ describe('WebexCredentialManager', () => {
     expect(token).toBe('valid-extracted-token')
   })
 
-  test('loadConfig backward compat — old config without clientId/clientSecret', async () => {
+  it('loadConfig handles old config without clientId/clientSecret', async () => {
     // Write raw JSON without clientId/clientSecret fields
     const credPath = join(tempDir, 'webex-credentials.json')
     await writeFile(

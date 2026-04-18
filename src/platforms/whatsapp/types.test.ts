@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'bun:test'
+import { describe, expect, it } from 'bun:test'
 
 import {
   createAccountId,
@@ -9,182 +9,182 @@ import {
 } from '@/platforms/whatsapp/types'
 
 describe('WhatsAppError', () => {
-  test('name is WhatsAppError', () => {
+  it('has name WhatsAppError', () => {
     const err = new WhatsAppError('test message')
     expect(err.name).toBe('WhatsAppError')
   })
 
-  test('message is set correctly', () => {
+  it('sets message correctly', () => {
     const err = new WhatsAppError('something went wrong')
     expect(err.message).toBe('something went wrong')
   })
 
-  test('default code is whatsapp_error', () => {
+  it('defaults code to whatsapp_error', () => {
     const err = new WhatsAppError('test')
     expect(err.code).toBe('whatsapp_error')
   })
 
-  test('custom string code is preserved', () => {
+  it('preserves custom string code', () => {
     const err = new WhatsAppError('test', 'auth_failed')
     expect(err.code).toBe('auth_failed')
   })
 
-  test('numeric code is preserved', () => {
+  it('preserves numeric code', () => {
     const err = new WhatsAppError('test', 404)
     expect(err.code).toBe(404)
   })
 
-  test('is instanceof Error', () => {
+  it('is instanceof Error', () => {
     const err = new WhatsAppError('test')
     expect(err instanceof Error).toBe(true)
   })
 
-  test('is instanceof WhatsAppError', () => {
+  it('is instanceof WhatsAppError', () => {
     const err = new WhatsAppError('test')
     expect(err instanceof WhatsAppError).toBe(true)
   })
 })
 
 describe('createAccountId', () => {
-  test('converts phone with leading + to plus- prefix', () => {
+  it('converts phone with leading + to plus- prefix', () => {
     expect(createAccountId('+12025551234')).toBe('plus-12025551234')
   })
 
-  test('trims and lowercases with spaces becoming dashes', () => {
+  it('trims and lowercases with spaces becoming dashes', () => {
     expect(createAccountId('  My Account  ')).toBe('my-account')
   })
 
-  test('replaces special chars like @ with dashes', () => {
+  it('replaces special chars like @ with dashes', () => {
     expect(createAccountId('hello@world')).toBe('hello-world')
   })
 
-  test('empty string returns default', () => {
+  it('returns default for empty string', () => {
     expect(createAccountId('')).toBe('default')
   })
 
-  test('whitespace-only string returns default', () => {
+  it('returns default for whitespace-only string', () => {
     expect(createAccountId('   ')).toBe('default')
   })
 
-  test('already normalized input is unchanged', () => {
+  it('returns already normalized input unchanged', () => {
     expect(createAccountId('my-account')).toBe('my-account')
   })
 
-  test('collapses multiple special chars into single dash', () => {
+  it('collapses multiple special chars into single dash', () => {
     expect(createAccountId('foo!!bar')).toBe('foo-bar')
   })
 })
 
 describe('jidToType', () => {
-  test('individual JID returns individual', () => {
+  it('returns individual for individual JID', () => {
     expect(jidToType('1234@s.whatsapp.net')).toBe('individual')
   })
 
-  test('group JID returns group', () => {
+  it('returns group for group JID', () => {
     expect(jidToType('1234-5678@g.us')).toBe('group')
   })
 
-  test('status@broadcast returns status', () => {
+  it('returns status for status@broadcast JID', () => {
     expect(jidToType('status@broadcast')).toBe('status')
   })
 
-  test('other @broadcast JID returns broadcast', () => {
+  it('returns broadcast for other @broadcast JID', () => {
     expect(jidToType('1234@broadcast')).toBe('broadcast')
   })
 })
 
 describe('extractMessageText', () => {
-  test('null returns undefined', () => {
+  it('returns undefined for null', () => {
     expect(extractMessageText(null)).toBeUndefined()
   })
 
-  test('undefined returns undefined', () => {
+  it('returns undefined for undefined input', () => {
     expect(extractMessageText(undefined)).toBeUndefined()
   })
 
-  test('conversation returns conversation text', () => {
+  it('returns conversation text for conversation message', () => {
     expect(extractMessageText({ conversation: 'hello' })).toBe('hello')
   })
 
-  test('extendedTextMessage returns text', () => {
+  it('returns text for extendedTextMessage', () => {
     expect(extractMessageText({ extendedTextMessage: { text: 'hello' } })).toBe('hello')
   })
 
-  test('imageMessage returns caption', () => {
+  it('returns caption for imageMessage', () => {
     expect(extractMessageText({ imageMessage: { caption: 'photo' } })).toBe('photo')
   })
 
-  test('videoMessage returns caption', () => {
+  it('returns caption for videoMessage', () => {
     expect(extractMessageText({ videoMessage: { caption: 'vid' } })).toBe('vid')
   })
 
-  test('reactionMessage returns text', () => {
+  it('returns text for reactionMessage', () => {
     expect(extractMessageText({ reactionMessage: { text: '👍' } })).toBe('👍')
   })
 
-  test('empty message returns undefined', () => {
+  it('returns undefined for empty message', () => {
     expect(extractMessageText({})).toBeUndefined()
   })
 })
 
 describe('getMessageType', () => {
-  test('null returns unknown', () => {
+  it('returns unknown for null', () => {
     expect(getMessageType(null)).toBe('unknown')
   })
 
-  test('undefined returns unknown', () => {
+  it('returns unknown for undefined input', () => {
     expect(getMessageType(undefined)).toBe('unknown')
   })
 
-  test('conversation returns text', () => {
+  it('returns text for conversation message', () => {
     expect(getMessageType({ conversation: 'hi' })).toBe('text')
   })
 
-  test('extendedTextMessage returns text', () => {
+  it('returns text for extendedTextMessage', () => {
     expect(getMessageType({ extendedTextMessage: { text: 'hi' } })).toBe('text')
   })
 
-  test('imageMessage returns image', () => {
+  it('returns image for imageMessage', () => {
     expect(getMessageType({ imageMessage: {} })).toBe('image')
   })
 
-  test('videoMessage returns video', () => {
+  it('returns video for videoMessage', () => {
     expect(getMessageType({ videoMessage: {} })).toBe('video')
   })
 
-  test('videoMessage with gifPlayback returns gif', () => {
+  it('returns gif for videoMessage with gifPlayback', () => {
     expect(getMessageType({ videoMessage: { gifPlayback: true } })).toBe('gif')
   })
 
-  test('audioMessage returns audio', () => {
+  it('returns audio for audioMessage', () => {
     expect(getMessageType({ audioMessage: {} })).toBe('audio')
   })
 
-  test('documentMessage returns document', () => {
+  it('returns document for documentMessage', () => {
     expect(getMessageType({ documentMessage: {} })).toBe('document')
   })
 
-  test('stickerMessage returns sticker', () => {
+  it('returns sticker for stickerMessage', () => {
     expect(getMessageType({ stickerMessage: {} })).toBe('sticker')
   })
 
-  test('locationMessage returns location', () => {
+  it('returns location for locationMessage', () => {
     expect(getMessageType({ locationMessage: {} })).toBe('location')
   })
 
-  test('contactMessage returns contact', () => {
+  it('returns contact for contactMessage', () => {
     expect(getMessageType({ contactMessage: {} })).toBe('contact')
   })
 
-  test('reactionMessage returns reaction', () => {
+  it('returns reaction for reactionMessage', () => {
     expect(getMessageType({ reactionMessage: {} })).toBe('reaction')
   })
 
-  test('pollCreationMessage returns poll', () => {
+  it('returns poll for pollCreationMessage', () => {
     expect(getMessageType({ pollCreationMessage: {} })).toBe('poll')
   })
 
-  test('empty object returns unknown', () => {
+  it('returns unknown for empty object', () => {
     expect(getMessageType({})).toBe('unknown')
   })
 })

@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, spyOn, test } from 'bun:test'
+import { afterEach, beforeEach, describe, expect, spyOn, it } from 'bun:test'
 
 import type { WhatsAppClient } from '../client'
 import * as sharedModule from './shared'
@@ -32,7 +32,7 @@ describe('whoami command', () => {
     consoleLogSpy?.mockRestore()
   })
 
-  test('outputs profile information', async () => {
+  it('outputs profile information', async () => {
     await whoamiAction({})
 
     expect(consoleLogSpy).toHaveBeenCalledTimes(1)
@@ -42,7 +42,7 @@ describe('whoami command', () => {
     expect(output.phone_number).toBe('12025551234')
   })
 
-  test('outputs profile with null name', async () => {
+  it('outputs profile with null name', async () => {
     mockProfileData = {
       id: '12025551234@s.whatsapp.net',
       name: null,

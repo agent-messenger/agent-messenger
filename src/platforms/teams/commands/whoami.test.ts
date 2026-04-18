@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, expect, spyOn, test } from 'bun:test'
+import { afterEach, beforeEach, expect, spyOn, it } from 'bun:test'
 
 import { TeamsClient } from '@/platforms/teams/client'
 import { whoamiAction, whoamiCommand } from '@/platforms/teams/commands/whoami'
@@ -33,19 +33,19 @@ afterEach(() => {
   processExitSpy?.mockRestore()
 })
 
-test('whoami command is defined with correct name and description', () => {
+it('whoami command is defined with correct name and description', () => {
   expect(whoamiCommand).toBeDefined()
   expect(whoamiCommand.name()).toBe('whoami')
   expect(whoamiCommand.description()).toBe('Show current authenticated user')
 })
 
-test('whoami command has --pretty option', () => {
+it('whoami command has --pretty option', () => {
   const options = whoamiCommand.options
   const hasPretty = options.some((opt: { long?: string }) => opt.long === '--pretty')
   expect(hasPretty).toBe(true)
 })
 
-test('whoami outputs id and displayName', async () => {
+it('whoami outputs id and displayName', async () => {
   await whoamiAction({})
 
   expect(consoleLogSpy).toHaveBeenCalledWith(
@@ -56,7 +56,7 @@ test('whoami outputs id and displayName', async () => {
   )
 })
 
-test('whoami outputs pretty-printed JSON when pretty is true', async () => {
+it('whoami outputs pretty-printed JSON when pretty is true', async () => {
   await whoamiAction({ pretty: true })
 
   expect(consoleLogSpy).toHaveBeenCalledWith(
@@ -71,7 +71,7 @@ test('whoami outputs pretty-printed JSON when pretty is true', async () => {
   )
 })
 
-test('whoami exits with error when not authenticated', async () => {
+it('whoami exits with error when not authenticated', async () => {
   credManagerSpy.mockResolvedValue(null)
 
   await whoamiAction({})

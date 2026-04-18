@@ -1,4 +1,4 @@
-import { afterEach, beforeAll, describe, expect, test } from 'bun:test'
+import { afterEach, beforeAll, describe, expect, it } from 'bun:test'
 
 import { WHATSAPPBOT_TEST_PHONE_NUMBER, validateWhatsAppBotEnvironment } from './config'
 import { generateTestId, parseJSON, runCLI, waitForRateLimit } from './helpers'
@@ -15,7 +15,7 @@ describe('WhatsApp Bot E2E Tests', () => {
   })
 
   describe('auth', () => {
-    test('auth status returns valid credentials', async () => {
+    it('auth status returns valid credentials', async () => {
       if (!whatsappbotAvailable) return
 
       const result = await runCLI('whatsappbot', ['auth', 'status'])
@@ -25,7 +25,7 @@ describe('WhatsApp Bot E2E Tests', () => {
       expect(data?.valid).toBe(true)
     })
 
-    test('auth list returns accounts array', async () => {
+    it('auth list returns accounts array', async () => {
       if (!whatsappbotAvailable) return
 
       const result = await runCLI('whatsappbot', ['auth', 'list'])
@@ -37,7 +37,7 @@ describe('WhatsApp Bot E2E Tests', () => {
   })
 
   describe('message', () => {
-    test('message send delivers to test phone number', async () => {
+    it('message send delivers to test phone number', async () => {
       if (!whatsappbotAvailable) return
 
       const testId = generateTestId()
@@ -47,7 +47,7 @@ describe('WhatsApp Bot E2E Tests', () => {
   })
 
   describe('template', () => {
-    test('template list returns templates', async () => {
+    it('template list returns templates', async () => {
       if (!whatsappbotAvailable) return
 
       const result = await runCLI('whatsappbot', ['template', 'list', '--limit', '5'])
@@ -57,7 +57,7 @@ describe('WhatsApp Bot E2E Tests', () => {
       expect(data).toBeDefined()
     })
 
-    test('template get returns template details', async () => {
+    it('template get returns template details', async () => {
       if (!whatsappbotAvailable) return
 
       const listResult = await runCLI('whatsappbot', ['template', 'list', '--limit', '1'])

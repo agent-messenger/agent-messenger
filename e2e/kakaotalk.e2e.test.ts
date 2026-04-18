@@ -1,4 +1,4 @@
-import { afterEach, beforeAll, describe, expect, test } from 'bun:test'
+import { afterEach, beforeAll, describe, expect, it } from 'bun:test'
 
 import { KAKAOTALK_TEST_CHAT_ID, validateKakaoTalkEnvironment } from './config'
 import { generateTestId, parseJSON, runCLI, waitForRateLimit } from './helpers'
@@ -15,14 +15,14 @@ describe('KakaoTalk E2E Tests', () => {
   })
 
   describe('auth', () => {
-    test('auth status returns valid auth info', async () => {
+    it('auth status returns valid auth info', async () => {
       if (!kakaotalkAvailable) return
 
       const result = await runCLI('kakaotalk', ['auth', 'status'])
       expect(result.exitCode).toBe(0)
     })
 
-    test('auth list returns accounts array', async () => {
+    it('auth list returns accounts array', async () => {
       if (!kakaotalkAvailable) return
 
       const result = await runCLI('kakaotalk', ['auth', 'list'])
@@ -34,7 +34,7 @@ describe('KakaoTalk E2E Tests', () => {
   })
 
   describe('chat', () => {
-    test('chat list returns chats', async () => {
+    it('chat list returns chats', async () => {
       if (!kakaotalkAvailable) return
 
       const result = await runCLI('kakaotalk', ['chat', 'list'])
@@ -44,7 +44,7 @@ describe('KakaoTalk E2E Tests', () => {
       expect(data).toBeDefined()
     })
 
-    test('chat list with search filter returns chats', async () => {
+    it('chat list with search filter returns chats', async () => {
       if (!kakaotalkAvailable) return
 
       const result = await runCLI('kakaotalk', ['chat', 'list', '--search', 'test'])
@@ -53,7 +53,7 @@ describe('KakaoTalk E2E Tests', () => {
   })
 
   describe('message', () => {
-    test('message send sends a message to the test chat', async () => {
+    it('message send sends a message to the test chat', async () => {
       if (!kakaotalkAvailable) return
 
       const testId = generateTestId()
@@ -61,7 +61,7 @@ describe('KakaoTalk E2E Tests', () => {
       expect(result.exitCode).toBe(0)
     })
 
-    test('message list returns messages from the test chat', async () => {
+    it('message list returns messages from the test chat', async () => {
       if (!kakaotalkAvailable) return
 
       const result = await runCLI('kakaotalk', ['message', 'list', KAKAOTALK_TEST_CHAT_ID, '-n', '5'])

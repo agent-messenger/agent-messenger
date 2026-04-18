@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, mock, test } from 'bun:test'
+import { beforeEach, describe, expect, mock, it } from 'bun:test'
 
 import { SlackClient } from '@/platforms/slack/client'
 
@@ -35,7 +35,7 @@ describe('Sections Commands', () => {
   })
 
   describe('sections list', () => {
-    test('lists all channel sections', async () => {
+    it('lists all channel sections', async () => {
       // Given: SlackClient returns channel sections
       // When: Listing sections
       const sections = await mockClient.getChannelSections()
@@ -47,7 +47,7 @@ describe('Sections Commands', () => {
       expect(sections[2].name).toBe('Archive')
     })
 
-    test('returns sections with channel IDs', async () => {
+    it('returns sections with channel IDs', async () => {
       // Given: SlackClient returns sections with channels
       // When: Listing sections
       const sections = await mockClient.getChannelSections()
@@ -58,7 +58,7 @@ describe('Sections Commands', () => {
       expect(sections[1].channel_ids).toHaveLength(2)
     })
 
-    test('returns sections with timestamps', async () => {
+    it('returns sections with timestamps', async () => {
       // Given: SlackClient returns sections
       // When: Listing sections
       const sections = await mockClient.getChannelSections()
@@ -68,7 +68,7 @@ describe('Sections Commands', () => {
       expect(sections[0].date_updated).toBe(1234567900)
     })
 
-    test('handles empty sections', async () => {
+    it('handles empty sections', async () => {
       // Given: SlackClient returns section with no channels
       // When: Listing sections
       const sections = await mockClient.getChannelSections()

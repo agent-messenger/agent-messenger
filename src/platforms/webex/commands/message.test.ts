@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, expect, mock, spyOn, test } from 'bun:test'
+import { afterEach, beforeEach, expect, mock, spyOn, it } from 'bun:test'
 
 import { WebexError } from '../types'
 
@@ -77,7 +77,7 @@ afterEach(() => {
   consoleLogSpy.mockRestore()
 })
 
-test('send: calls sendMessage with correct args and outputs result', async () => {
+it('calls sendMessage with correct args and outputs result', async () => {
   await sendAction('space_456', 'Hello world', { pretty: false })
 
   expect(mockSendMessage).toHaveBeenCalledWith('space_456', 'Hello world', {
@@ -90,13 +90,13 @@ test('send: calls sendMessage with correct args and outputs result', async () =>
   expect(output).toContain('user@example.com')
 })
 
-test('send: with --markdown passes markdown option', async () => {
+it('passes markdown option when --markdown flag is set on send', async () => {
   await sendAction('space_456', '**bold**', { markdown: true, pretty: false })
 
   expect(mockSendMessage).toHaveBeenCalledWith('space_456', '**bold**', { markdown: true })
 })
 
-test('send: not authenticated shows error', async () => {
+it('throws when not authenticated on send', async () => {
   mockLogin.mockImplementation(async () => {
     throw new WebexError('No Webex credentials found.', 'no_credentials')
   })
@@ -106,7 +106,7 @@ test('send: not authenticated shows error', async () => {
   expect(mockHandleError).toHaveBeenCalledWith(expect.any(WebexError))
 })
 
-test('dm: calls sendDirectMessage with email and text', async () => {
+it('calls sendDirectMessage with email and text', async () => {
   await dmAction('alice@example.com', 'Hello!', { pretty: false })
 
   expect(mockSendDirectMessage).toHaveBeenCalledWith('alice@example.com', 'Hello!', {
@@ -117,7 +117,7 @@ test('dm: calls sendDirectMessage with email and text', async () => {
   expect(output).toContain('msg_123')
 })
 
-test('dm: with --markdown passes markdown option', async () => {
+it('passes markdown option to sendDirectMessage when --markdown flag is set', async () => {
   await dmAction('alice@example.com', '**bold**', { markdown: true, pretty: false })
 
   expect(mockSendDirectMessage).toHaveBeenCalledWith('alice@example.com', '**bold**', {
@@ -125,7 +125,7 @@ test('dm: with --markdown passes markdown option', async () => {
   })
 })
 
-test('list: calls listMessages with limit and outputs array', async () => {
+it('calls listMessages with limit and outputs array', async () => {
   await listAction('space_456', { limit: 50, pretty: false })
 
   expect(mockListMessages).toHaveBeenCalledWith('space_456', { max: 50 })
@@ -135,7 +135,7 @@ test('list: calls listMessages with limit and outputs array', async () => {
   expect(output).toContain('msg_124')
 })
 
-test('get: calls getMessage with correct id and outputs result', async () => {
+it('calls getMessage with correct id and outputs result', async () => {
   await getAction('msg_123', { pretty: false })
 
   expect(mockGetMessage).toHaveBeenCalledWith('msg_123')
@@ -145,7 +145,7 @@ test('get: calls getMessage with correct id and outputs result', async () => {
   expect(output).toContain('user@example.com')
 })
 
-test('delete: with --force calls deleteMessage and outputs deleted id', async () => {
+it('calls deleteMessage and outputs deleted id when --force flag is set', async () => {
   await deleteAction('msg_123', { force: true, pretty: false })
 
   expect(mockDeleteMessage).toHaveBeenCalledWith('msg_123')
@@ -155,7 +155,7 @@ test('delete: with --force calls deleteMessage and outputs deleted id', async ()
   expect(output).toContain('msg_123')
 })
 
-test('delete: without --force shows warning and does not delete', async () => {
+it('shows warning and does not delete without --force flag', async () => {
   try {
     await deleteAction('msg_123', { force: false, pretty: false })
   } catch {}
@@ -167,7 +167,7 @@ test('delete: without --force shows warning and does not delete', async () => {
   expect(output).toContain('--force')
 })
 
-test('edit: calls editMessage with roomId in args and outputs result', async () => {
+it('calls editMessage with roomId in args and outputs result', async () => {
   await editAction('msg_123', 'space_456', 'Updated message', { pretty: false })
 
   expect(mockEditMessage).toHaveBeenCalledWith('msg_123', 'space_456', 'Updated message', {
@@ -179,7 +179,7 @@ test('edit: calls editMessage with roomId in args and outputs result', async () 
   expect(output).toContain('Updated message')
 })
 
-test('edit: with --markdown passes markdown option', async () => {
+it('passes markdown option to editMessage when --markdown flag is set', async () => {
   await editAction('msg_123', 'space_456', '**updated**', { markdown: true, pretty: false })
 
   expect(mockEditMessage).toHaveBeenCalledWith('msg_123', 'space_456', '**updated**', {

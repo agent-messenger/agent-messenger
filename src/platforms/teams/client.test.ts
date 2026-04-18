@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
+import { afterEach, beforeEach, describe, expect, it } from 'bun:test'
 import { unlinkSync } from 'node:fs'
 
 import { TeamsClient } from './client'
@@ -54,17 +54,17 @@ describe('TeamsClient', () => {
   }
 
   describe('login', () => {
-    test('requires token', async () => {
+    it('requires token', async () => {
       await expect(new TeamsClient().login({ token: '', region: 'emea' })).rejects.toThrow(TeamsError)
       await expect(new TeamsClient().login({ token: '', region: 'emea' })).rejects.toThrow('Token is required')
     })
 
-    test('accepts valid token', async () => {
+    it('accepts valid token', async () => {
       const client = await new TeamsClient().login({ token: 'test-token', region: 'emea' })
       expect(client).toBeInstanceOf(TeamsClient)
     })
 
-    test('accepts token with expiry time', async () => {
+    it('accepts token with expiry time', async () => {
       const expiresAt = new Date(Date.now() + 3600000).toISOString()
       const client = await new TeamsClient().login({ token: 'test-token', tokenExpiresAt: expiresAt, region: 'emea' })
       expect(client).toBeInstanceOf(TeamsClient)
@@ -72,7 +72,7 @@ describe('TeamsClient', () => {
   })
 
   describe('token expiry', () => {
-    test('throws when token is expired', async () => {
+    it('throws when token is expired', async () => {
       const expiredAt = new Date(Date.now() - 1000).toISOString()
       const client = await new TeamsClient().login({
         token: 'expired-token',
@@ -84,7 +84,7 @@ describe('TeamsClient', () => {
       await expect(client.testAuth()).rejects.toThrow('Token has expired')
     })
 
-    test('works when token is not expired', async () => {
+    it('works when token is not expired', async () => {
       const expiresAt = new Date(Date.now() + 3600000).toISOString()
       mockResponse({
         userDetails: JSON.stringify({ name: 'Test User' }),
@@ -100,7 +100,7 @@ describe('TeamsClient', () => {
   })
 
   describe('testAuth', () => {
-    test('returns current user info', async () => {
+    it('returns current user info', async () => {
       mockResponse({
         userDetails: JSON.stringify({ name: 'Test User' }),
         locale: 'en-us',
@@ -118,7 +118,7 @@ describe('TeamsClient', () => {
       })
     })
 
-    test('throws TeamsError on API error', async () => {
+    it('throws TeamsError on API error', async () => {
       mockResponse({ message: 'Unauthorized', code: 'unauthorized' }, 401)
 
       const client = await new TeamsClient().login({ token: 'bad-token', region: 'emea' })
@@ -127,7 +127,7 @@ describe('TeamsClient', () => {
   })
 
   describe('listTeams', () => {
-    test('returns list of teams from conversations', async () => {
+    it('returns list of teams from conversations', async () => {
       mockResponse({
         conversations: [
           {
@@ -170,7 +170,7 @@ describe('TeamsClient', () => {
   })
 
   describe('getTeam', () => {
-    test('returns team info', async () => {
+    it('returns team info', async () => {
       mockResponse({ id: '111', name: 'Test Team', description: 'A test team' })
 
       const client = await new TeamsClient().login({ token: 'test-token', region: 'emea' })
@@ -183,7 +183,7 @@ describe('TeamsClient', () => {
   })
 
   describe('listChannels', () => {
-    test('returns list of channels for team', async () => {
+    it('returns list of channels for team', async () => {
       mockResponse([
         { id: 'ch1', team_id: '111', name: 'General', type: 'standard' },
         { id: 'ch2', team_id: '111', name: 'Random', type: 'standard' },
@@ -199,7 +199,7 @@ describe('TeamsClient', () => {
   })
 
   describe('getChannel', () => {
-    test('returns channel info', async () => {
+    it('returns channel info', async () => {
       mockResponse({ id: 'ch1', team_id: '111', name: 'General', type: 'standard' })
 
       const client = await new TeamsClient().login({ token: 'test-token', region: 'emea' })
@@ -212,7 +212,7 @@ describe('TeamsClient', () => {
   })
 
   describe('sendMessage', () => {
-    test('sends message to channel', async () => {
+    it('sends message to channel', async () => {
       mockResponse({
         id: 'msg1',
         channel_id: 'ch1',
@@ -232,7 +232,7 @@ describe('TeamsClient', () => {
   })
 
   describe('getMessages', () => {
-    test('returns messages from channel', async () => {
+    it('returns messages from channel', async () => {
       mockResponse([
         {
           id: 'msg1',
@@ -253,7 +253,7 @@ describe('TeamsClient', () => {
       )
     })
 
-    test('uses default limit of 50', async () => {
+    it('uses default limit of 50', async () => {
       mockResponse([])
 
       const client = await new TeamsClient().login({ token: 'test-token', region: 'emea' })
@@ -266,7 +266,7 @@ describe('TeamsClient', () => {
   })
 
   describe('getMessage', () => {
-    test('returns single message', async () => {
+    it('returns single message', async () => {
       mockResponse({
         id: 'msg1',
         channel_id: 'ch1',
@@ -286,7 +286,7 @@ describe('TeamsClient', () => {
   })
 
   describe('deleteMessage', () => {
-    test('deletes message', async () => {
+    it('deletes message', async () => {
       mockResponse(null, 204)
 
       const client = await new TeamsClient().login({ token: 'test-token', region: 'emea' })
@@ -300,7 +300,7 @@ describe('TeamsClient', () => {
   })
 
   describe('addReaction', () => {
-    test('adds reaction to message', async () => {
+    it('adds reaction to message', async () => {
       mockResponse(null, 204)
 
       const client = await new TeamsClient().login({ token: 'test-token', region: 'emea' })
@@ -315,7 +315,7 @@ describe('TeamsClient', () => {
   })
 
   describe('removeReaction', () => {
-    test('removes reaction from message', async () => {
+    it('removes reaction from message', async () => {
       mockResponse(null, 204)
 
       const client = await new TeamsClient().login({ token: 'test-token', region: 'emea' })
@@ -329,7 +329,7 @@ describe('TeamsClient', () => {
   })
 
   describe('listUsers', () => {
-    test('returns list of team members', async () => {
+    it('returns list of team members', async () => {
       mockResponse([
         { id: 'u1', displayName: 'User 1', email: 'user1@example.com' },
         { id: 'u2', displayName: 'User 2', email: 'user2@example.com' },
@@ -345,7 +345,7 @@ describe('TeamsClient', () => {
   })
 
   describe('getUser', () => {
-    test('returns user info', async () => {
+    it('returns user info', async () => {
       mockResponse({ id: 'u1', displayName: 'Test User', email: 'test@example.com' })
 
       const client = await new TeamsClient().login({ token: 'test-token', region: 'emea' })
@@ -358,7 +358,7 @@ describe('TeamsClient', () => {
   })
 
   describe('uploadFile', () => {
-    test('uploads file to channel', async () => {
+    it('uploads file to channel', async () => {
       const tempFile = '/tmp/test-teams-upload.txt'
       await Bun.write(tempFile, 'test content')
 
@@ -379,7 +379,7 @@ describe('TeamsClient', () => {
   })
 
   describe('listFiles', () => {
-    test('returns files from channel', async () => {
+    it('returns files from channel', async () => {
       mockResponse([
         { id: 'file1', name: 'doc.pdf', size: 1024, url: 'https://example.com/doc.pdf' },
         { id: 'file2', name: 'image.png', size: 2048, url: 'https://example.com/image.png' },
@@ -395,7 +395,7 @@ describe('TeamsClient', () => {
   })
 
   describe('rate limiting', () => {
-    test('waits when bucket is exhausted before making request', async () => {
+    it('waits when bucket is exhausted before making request', async () => {
       mockResponse({ userDetails: JSON.stringify({ name: 'User 1' }), locale: 'en-us' }, 200, {
         'X-RateLimit-Remaining': '0',
         'X-RateLimit-Reset': String(Date.now() / 1000 + 0.1),
@@ -416,7 +416,7 @@ describe('TeamsClient', () => {
       expect(fetchCalls.length).toBe(2)
     })
 
-    test('retries on 429 with Retry-After header', async () => {
+    it('retries on 429 with Retry-After header', async () => {
       mockResponse({ message: 'Rate limited' }, 429, { 'Retry-After': '0.1' })
       mockResponse({ userDetails: JSON.stringify({ name: 'User' }), locale: 'en-us' })
 
@@ -427,7 +427,7 @@ describe('TeamsClient', () => {
       expect(fetchCalls.length).toBe(2)
     })
 
-    test('throws after max retries exceeded', async () => {
+    it('throws after max retries exceeded', async () => {
       for (let i = 0; i <= 3; i++) {
         mockResponse({ message: 'Rate limited' }, 429, { 'Retry-After': '0.01' })
       }
@@ -439,7 +439,7 @@ describe('TeamsClient', () => {
   })
 
   describe('retry logic', () => {
-    test('retries on 500 server error', async () => {
+    it('retries on 500 server error', async () => {
       mockResponse({ message: 'Internal Server Error' }, 500)
       mockResponse({ userDetails: JSON.stringify({ name: 'User' }), locale: 'en-us' })
 
@@ -450,7 +450,7 @@ describe('TeamsClient', () => {
       expect(fetchCalls.length).toBe(2)
     })
 
-    test('does not retry on 4xx client errors (except 429)', async () => {
+    it('does not retry on 4xx client errors (except 429)', async () => {
       mockResponse({ message: 'Not Found' }, 404)
 
       const client = await new TeamsClient().login({ token: 'test-token', region: 'emea' })
@@ -458,7 +458,7 @@ describe('TeamsClient', () => {
       expect(fetchCalls.length).toBe(1)
     })
 
-    test('exponential backoff increases delay', async () => {
+    it('exponential backoff increases delay', async () => {
       mockResponse({ message: 'Error' }, 500)
       mockResponse({ message: 'Error' }, 500)
       mockResponse({ userDetails: JSON.stringify({ name: 'User' }), locale: 'en-us' })
@@ -474,7 +474,7 @@ describe('TeamsClient', () => {
   })
 
   describe('bucket key normalization', () => {
-    test('normalizes team and channel IDs in routes', async () => {
+    it('normalizes team and channel IDs in routes', async () => {
       mockResponse([])
       mockResponse([])
 

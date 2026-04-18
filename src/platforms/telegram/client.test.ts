@@ -1,4 +1,4 @@
-import { describe, expect, mock, test } from 'bun:test'
+import { describe, expect, mock, it } from 'bun:test'
 
 import { TelegramTdlibClient } from './client'
 import type { TelegramAccount, TelegramAccountPaths } from './types'
@@ -46,7 +46,7 @@ function pushAuthReady(events: any[], extra: string) {
 }
 
 describe('listChats', () => {
-  test('loads chats across multiple loadChats calls until 404', async () => {
+  it('loads chats across multiple loadChats calls until 404', async () => {
     let loadChatsCallCount = 0
     const allChatIds = [1, 2, 3, 4, 5]
 
@@ -116,7 +116,7 @@ describe('listChats', () => {
     expect(loadChatsCallCount).toBe(3)
   })
 
-  test('stops loading when enough chats are cached before 404', async () => {
+  it('stops loading when enough chats are cached before 404', async () => {
     let loadChatsCallCount = 0
 
     const { client } = createMockClient((request, events) => {
@@ -164,7 +164,7 @@ describe('listChats', () => {
 })
 
 describe('sendMessage confirmation', () => {
-  test('returns confirmed message id when updateMessageSendSucceeded arrives', async () => {
+  it('returns confirmed message id when updateMessageSendSucceeded arrives', async () => {
     const tempId = 100
     const serverId = 999
     const events: any[] = []

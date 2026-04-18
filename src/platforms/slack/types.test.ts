@@ -1,4 +1,4 @@
-import { expect, test } from 'bun:test'
+import { expect, it } from 'bun:test'
 
 import {
   ConfigSchema,
@@ -10,7 +10,7 @@ import {
   WorkspaceCredentialsSchema,
 } from '@/platforms/slack/types'
 
-test('SlackChannelSchema validates correct data', () => {
+it('SlackChannelSchema validates correct data', () => {
   const validChannel = {
     id: 'C123456',
     name: 'general',
@@ -22,7 +22,7 @@ test('SlackChannelSchema validates correct data', () => {
   expect(() => SlackChannelSchema.parse(validChannel)).not.toThrow()
 })
 
-test('SlackChannelSchema validates with optional fields', () => {
+it('SlackChannelSchema validates with optional fields', () => {
   const validChannel = {
     id: 'C123456',
     name: 'general',
@@ -44,7 +44,7 @@ test('SlackChannelSchema validates with optional fields', () => {
   expect(() => SlackChannelSchema.parse(validChannel)).not.toThrow()
 })
 
-test('SlackChannelSchema rejects missing required fields', () => {
+it('SlackChannelSchema rejects missing required fields', () => {
   const invalidChannel = {
     id: 'C123456',
     name: 'general',
@@ -52,7 +52,7 @@ test('SlackChannelSchema rejects missing required fields', () => {
   expect(() => SlackChannelSchema.parse(invalidChannel)).toThrow()
 })
 
-test('SlackMessageSchema validates correct data', () => {
+it('SlackMessageSchema validates correct data', () => {
   const validMessage = {
     ts: '1234567890.123456',
     text: 'Hello world',
@@ -61,7 +61,7 @@ test('SlackMessageSchema validates correct data', () => {
   expect(() => SlackMessageSchema.parse(validMessage)).not.toThrow()
 })
 
-test('SlackMessageSchema validates with optional fields', () => {
+it('SlackMessageSchema validates with optional fields', () => {
   const validMessage = {
     ts: '1234567890.123456',
     text: 'Hello world',
@@ -79,7 +79,7 @@ test('SlackMessageSchema validates with optional fields', () => {
   expect(() => SlackMessageSchema.parse(validMessage)).not.toThrow()
 })
 
-test('SlackMessageSchema validates with files', () => {
+it('SlackMessageSchema validates with files', () => {
   const validMessage = {
     ts: '1234567890.123456',
     text: 'Hello world',
@@ -102,14 +102,14 @@ test('SlackMessageSchema validates with files', () => {
   expect(() => SlackMessageSchema.parse(validMessage)).not.toThrow()
 })
 
-test('SlackMessageSchema rejects missing required fields', () => {
+it('SlackMessageSchema rejects missing required fields', () => {
   const invalidMessage = {
     ts: '1234567890.123456',
   }
   expect(() => SlackMessageSchema.parse(invalidMessage)).toThrow()
 })
 
-test('SlackUserSchema validates correct data', () => {
+it('SlackUserSchema validates correct data', () => {
   const validUser = {
     id: 'U123456',
     name: 'john',
@@ -122,7 +122,7 @@ test('SlackUserSchema validates correct data', () => {
   expect(() => SlackUserSchema.parse(validUser)).not.toThrow()
 })
 
-test('SlackUserSchema validates with optional profile', () => {
+it('SlackUserSchema validates with optional profile', () => {
   const validUser = {
     id: 'U123456',
     name: 'john',
@@ -141,7 +141,7 @@ test('SlackUserSchema validates with optional profile', () => {
   expect(() => SlackUserSchema.parse(validUser)).not.toThrow()
 })
 
-test('SlackUserSchema rejects missing required fields', () => {
+it('SlackUserSchema rejects missing required fields', () => {
   const invalidUser = {
     id: 'U123456',
     name: 'john',
@@ -149,7 +149,7 @@ test('SlackUserSchema rejects missing required fields', () => {
   expect(() => SlackUserSchema.parse(invalidUser)).toThrow()
 })
 
-test('SlackReactionSchema validates correct data', () => {
+it('SlackReactionSchema validates correct data', () => {
   const validReaction = {
     name: 'thumbsup',
     count: 3,
@@ -158,7 +158,7 @@ test('SlackReactionSchema validates correct data', () => {
   expect(() => SlackReactionSchema.parse(validReaction)).not.toThrow()
 })
 
-test('SlackReactionSchema rejects invalid data', () => {
+it('SlackReactionSchema rejects invalid data', () => {
   const invalidReaction = {
     name: 'thumbsup',
     count: 'three',
@@ -167,7 +167,7 @@ test('SlackReactionSchema rejects invalid data', () => {
   expect(() => SlackReactionSchema.parse(invalidReaction)).toThrow()
 })
 
-test('SlackFileSchema validates correct data', () => {
+it('SlackFileSchema validates correct data', () => {
   const validFile = {
     id: 'F123456',
     name: 'document.pdf',
@@ -181,7 +181,7 @@ test('SlackFileSchema validates correct data', () => {
   expect(() => SlackFileSchema.parse(validFile)).not.toThrow()
 })
 
-test('SlackFileSchema validates with optional channels', () => {
+it('SlackFileSchema validates with optional channels', () => {
   const validFile = {
     id: 'F123456',
     name: 'document.pdf',
@@ -196,7 +196,7 @@ test('SlackFileSchema validates with optional channels', () => {
   expect(() => SlackFileSchema.parse(validFile)).not.toThrow()
 })
 
-test('SlackFileSchema rejects missing required fields', () => {
+it('SlackFileSchema rejects missing required fields', () => {
   const invalidFile = {
     id: 'F123456',
     name: 'document.pdf',
@@ -204,7 +204,7 @@ test('SlackFileSchema rejects missing required fields', () => {
   expect(() => SlackFileSchema.parse(invalidFile)).toThrow()
 })
 
-test('WorkspaceCredentialsSchema validates correct data', () => {
+it('WorkspaceCredentialsSchema validates correct data', () => {
   const validCredentials = {
     workspace_id: 'T123456',
     workspace_name: 'my-workspace',
@@ -214,7 +214,7 @@ test('WorkspaceCredentialsSchema validates correct data', () => {
   expect(() => WorkspaceCredentialsSchema.parse(validCredentials)).not.toThrow()
 })
 
-test('WorkspaceCredentialsSchema rejects missing fields', () => {
+it('WorkspaceCredentialsSchema rejects missing fields', () => {
   const invalidCredentials = {
     workspace_id: 'T123456',
     workspace_name: 'my-workspace',
@@ -222,7 +222,7 @@ test('WorkspaceCredentialsSchema rejects missing fields', () => {
   expect(() => WorkspaceCredentialsSchema.parse(invalidCredentials)).toThrow()
 })
 
-test('ConfigSchema validates correct data', () => {
+it('ConfigSchema validates correct data', () => {
   const validConfig = {
     current_workspace: 'T123456',
     workspaces: {
@@ -237,7 +237,7 @@ test('ConfigSchema validates correct data', () => {
   expect(() => ConfigSchema.parse(validConfig)).not.toThrow()
 })
 
-test('ConfigSchema validates with null current_workspace', () => {
+it('ConfigSchema validates with null current_workspace', () => {
   const validConfig = {
     current_workspace: null,
     workspaces: {
@@ -252,7 +252,7 @@ test('ConfigSchema validates with null current_workspace', () => {
   expect(() => ConfigSchema.parse(validConfig)).not.toThrow()
 })
 
-test('ConfigSchema rejects invalid workspace credentials', () => {
+it('ConfigSchema rejects invalid workspace credentials', () => {
   const invalidConfig = {
     current_workspace: 'T123456',
     workspaces: {

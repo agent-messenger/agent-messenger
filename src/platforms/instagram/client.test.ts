@@ -1,4 +1,4 @@
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, test } from 'bun:test'
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'bun:test'
 import { generateKeyPairSync } from 'node:crypto'
 import { mkdirSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
@@ -82,14 +82,14 @@ async function loadedClient(): Promise<InstagramClient> {
 
 describe('InstagramClient', () => {
   describe('constructor', () => {
-    test('creates instance with default credential manager', () => {
+    it('creates instance with default credential manager', () => {
       const client = new InstagramClient()
       expect(client).toBeInstanceOf(InstagramClient)
     })
   })
 
   describe('login', () => {
-    test('throws when no account configured', async () => {
+    it('throws when no account configured', async () => {
       const mockManager = {
         getAccount: () => Promise.resolve(null),
       } as any
@@ -100,7 +100,7 @@ describe('InstagramClient', () => {
       await expect(client.login()).rejects.toThrow('No Instagram credentials found')
     })
 
-    test('loads session from disk when file exists', async () => {
+    it('loads session from disk when file exists', async () => {
       const mockManager = {
         getAccount: () =>
           Promise.resolve({ account_id: 'testuser', username: 'testuser', created_at: '', updated_at: '' }),
@@ -116,7 +116,7 @@ describe('InstagramClient', () => {
   })
 
   describe('plaintextPassword format', () => {
-    test('produces #PWD_INSTAGRAM:0:timestamp:rawpassword format', async () => {
+    it('produces #PWD_INSTAGRAM:0:timestamp:rawpassword format', async () => {
       fetchResponses.push(
         new Response(null, {
           status: 200,
@@ -142,7 +142,7 @@ describe('InstagramClient', () => {
   })
 
   describe('encryptPassword format', () => {
-    test('produces #PWD_INSTAGRAM:4:timestamp:base64 format when encryption key provided', async () => {
+    it('produces #PWD_INSTAGRAM:4:timestamp:base64 format when encryption key provided', async () => {
       fetchResponses.push(
         new Response(null, {
           status: 200,
@@ -173,7 +173,7 @@ describe('InstagramClient', () => {
   })
 
   describe('buildHeaders', () => {
-    test('includes required Instagram headers', async () => {
+    it('includes required Instagram headers', async () => {
       fetchResponses.push(new Response(null, { status: 200, headers: {} }))
       fetchResponses.push(jsonResponse({ status: 'ok', logged_in_user: { pk: '99' } }))
 
@@ -189,7 +189,7 @@ describe('InstagramClient', () => {
       expect(headers['Content-Type']).toContain('application/x-www-form-urlencoded')
     })
 
-    test('includes device headers when session is set', async () => {
+    it('includes device headers when session is set', async () => {
       fetchResponses.push(jsonResponse({ status: 'ok', inbox: { threads: [] } }))
 
       const client = await loadedClient()
@@ -204,7 +204,7 @@ describe('InstagramClient', () => {
   })
 
   describe('mapThread', () => {
-    test('maps API thread to InstagramChatSummary', async () => {
+    it('maps API thread to InstagramChatSummary', async () => {
       const thread = {
         thread_id: 'thread-42',
         thread_title: 'Team Chat',
@@ -231,7 +231,7 @@ describe('InstagramClient', () => {
       expect(chat.participant_count).toBe(3)
     })
 
-    test('falls back to user names when no thread_title', async () => {
+    it('falls back to user names when no thread_title', async () => {
       const thread = {
         thread_id: 't-1',
         thread_type: 'private',
@@ -250,7 +250,7 @@ describe('InstagramClient', () => {
   })
 
   describe('mapMessage', () => {
-    test('maps API item to InstagramMessageSummary with media_url', async () => {
+    it('maps API item to InstagramMessageSummary with media_url', async () => {
       const item = {
         item_id: 'msg-7',
         user_id: '10',
@@ -282,7 +282,7 @@ describe('InstagramClient', () => {
       expect(msg.media_url).toBe('https://cdn.example.com/photo.jpg')
     })
 
-    test('sets is_outgoing true when from matches userId', async () => {
+    it('sets is_outgoing true when from matches userId', async () => {
       const item = {
         item_id: 'msg-8',
         user_id: '42',
@@ -300,7 +300,7 @@ describe('InstagramClient', () => {
   })
 
   describe('request', () => {
-    test('throws rate_limited on 429', async () => {
+    it('throws rate_limited on 429', async () => {
       fetchResponses.push(new Response('Rate limited', { status: 429 }))
 
       const client = await loadedClient()
@@ -310,7 +310,7 @@ describe('InstagramClient', () => {
       expect((err as InstagramError).code).toBe('rate_limited')
     })
 
-    test('throws on JSON parse error', async () => {
+    it('throws on JSON parse error', async () => {
       fetchResponses.push(new Response('not json', { status: 200 }))
 
       const client = await loadedClient()
@@ -318,7 +318,7 @@ describe('InstagramClient', () => {
       await expect(client.listChats()).rejects.toThrow(InstagramError)
     })
 
-    test('returns parsed response on success', async () => {
+    it('returns parsed response on success', async () => {
       fetchResponses.push(jsonResponse({ status: 'ok', inbox: { threads: [] } }))
 
       const client = await loadedClient()
@@ -329,7 +329,7 @@ describe('InstagramClient', () => {
   })
 
   describe('searchUsers', () => {
-    test('maps response to user list', async () => {
+    it('maps response to user list', async () => {
       fetchResponses.push(
         jsonResponse({
           status: 'ok',
@@ -350,7 +350,7 @@ describe('InstagramClient', () => {
   })
 
   describe('sendMessage', () => {
-    test('sends correct body params', async () => {
+    it('sends correct body params', async () => {
       fetchResponses.push(
         jsonResponse({
           status: 'ok',
@@ -370,7 +370,7 @@ describe('InstagramClient', () => {
   })
 
   describe('sendMessageToUser', () => {
-    test('sends correct body params', async () => {
+    it('sends correct body params', async () => {
       fetchResponses.push(
         jsonResponse({
           status: 'ok',

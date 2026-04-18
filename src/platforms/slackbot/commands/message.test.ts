@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, mock, test } from 'bun:test'
+import { beforeEach, describe, expect, mock, it } from 'bun:test'
 
 const mockResolveChannel = mock((_channel: string) => Promise.resolve('C123456'))
 const mockPostMessage = mock(() =>
@@ -68,7 +68,7 @@ describe('message commands', () => {
   })
 
   describe('postMessage', () => {
-    test('sends message to channel', async () => {
+    it('sends message to channel', async () => {
       // given
       const client = await new SlackBotClient().login({ token: 'xoxb-test-token' })
 
@@ -81,7 +81,7 @@ describe('message commands', () => {
       expect(result.type).toBe('message')
     })
 
-    test('sends message with thread_ts', async () => {
+    it('sends message with thread_ts', async () => {
       // given
       const client = await new SlackBotClient().login({ token: 'xoxb-test-token' })
 
@@ -94,7 +94,7 @@ describe('message commands', () => {
   })
 
   describe('getConversationHistory', () => {
-    test('returns messages from channel', async () => {
+    it('returns messages from channel', async () => {
       // given
       const client = await new SlackBotClient().login({ token: 'xoxb-test-token' })
 
@@ -107,7 +107,7 @@ describe('message commands', () => {
       expect(messages[1].text).toBe('World')
     })
 
-    test('passes limit option', async () => {
+    it('passes limit option', async () => {
       // given
       const client = await new SlackBotClient().login({ token: 'xoxb-test-token' })
 
@@ -120,7 +120,7 @@ describe('message commands', () => {
   })
 
   describe('getMessage', () => {
-    test('returns single message by ts', async () => {
+    it('returns single message by ts', async () => {
       // given
       const client = await new SlackBotClient().login({ token: 'xoxb-test-token' })
 
@@ -133,7 +133,7 @@ describe('message commands', () => {
       expect(message?.text).toBe('Hello world')
     })
 
-    test('returns null when message not found', async () => {
+    it('returns null when message not found', async () => {
       // given
       mockGetMessage.mockResolvedValueOnce(null)
       const client = await new SlackBotClient().login({ token: 'xoxb-test-token' })
@@ -147,7 +147,7 @@ describe('message commands', () => {
   })
 
   describe('updateMessage', () => {
-    test('updates message text', async () => {
+    it('updates message text', async () => {
       // given
       const client = await new SlackBotClient().login({ token: 'xoxb-test-token' })
 
@@ -159,7 +159,7 @@ describe('message commands', () => {
       expect(result.text).toBe('Updated text')
     })
 
-    test('called with correct arguments', async () => {
+    it('passes correct arguments', async () => {
       // given
       const client = await new SlackBotClient().login({ token: 'xoxb-test-token' })
 
@@ -172,7 +172,7 @@ describe('message commands', () => {
   })
 
   describe('deleteMessage', () => {
-    test('deletes message by ts', async () => {
+    it('deletes message by ts', async () => {
       // given
       const client = await new SlackBotClient().login({ token: 'xoxb-test-token' })
 
@@ -185,7 +185,7 @@ describe('message commands', () => {
   })
 
   describe('getThreadReplies', () => {
-    test('returns thread replies', async () => {
+    it('returns thread replies', async () => {
       // given
       const client = await new SlackBotClient().login({ token: 'xoxb-test-token' })
 
@@ -198,7 +198,7 @@ describe('message commands', () => {
       expect(replies[1].text).toBe('Thread reply 2')
     })
 
-    test('passes limit option', async () => {
+    it('passes limit option', async () => {
       // given
       const client = await new SlackBotClient().login({ token: 'xoxb-test-token' })
 
@@ -211,7 +211,7 @@ describe('message commands', () => {
   })
 
   describe('resolveChannel', () => {
-    test('resolves channel name to ID', async () => {
+    it('resolves channel name to ID', async () => {
       // given
       const client = await new SlackBotClient().login({ token: 'xoxb-test-token' })
 

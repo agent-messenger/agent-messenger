@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, mock, test } from 'bun:test'
+import { afterEach, beforeEach, describe, expect, mock, it } from 'bun:test'
 import { existsSync, rmSync } from 'node:fs'
 import { mkdir } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
@@ -92,7 +92,7 @@ describe('chat commands', () => {
   })
 
   describe('listAction', () => {
-    test('lists opened chats by default', async () => {
+    it('lists opened chats by default', async () => {
       const manager = new ChannelBotCredentialManager(tempDir)
       const result = await listAction({ _credManager: manager })
 
@@ -102,14 +102,14 @@ describe('chat commands', () => {
       expect(capturedListArgs[0]).toMatchObject({ state: 'opened' })
     })
 
-    test('passes state filter to API', async () => {
+    it('passes state filter to API', async () => {
       const manager = new ChannelBotCredentialManager(tempDir)
       await listAction({ state: 'closed', _credManager: manager })
 
       expect(capturedListArgs[0]).toMatchObject({ state: 'closed' })
     })
 
-    test('passes pagination params', async () => {
+    it('passes pagination params', async () => {
       const manager = new ChannelBotCredentialManager(tempDir)
       await listAction({ limit: '10', sort: 'asc', since: 'cursor123', _credManager: manager })
 
@@ -118,7 +118,7 @@ describe('chat commands', () => {
   })
 
   describe('getAction', () => {
-    test('returns specific chat', async () => {
+    it('returns specific chat', async () => {
       const manager = new ChannelBotCredentialManager(tempDir)
       const result = await getAction('chat1', { _credManager: manager })
 
@@ -129,7 +129,7 @@ describe('chat commands', () => {
   })
 
   describe('closeAction', () => {
-    test('closes chat with bot name', async () => {
+    it('closes chat with bot name', async () => {
       const manager = new ChannelBotCredentialManager(tempDir)
       const result = await closeAction('chat1', { bot: 'my-bot', _credManager: manager })
 
@@ -138,7 +138,7 @@ describe('chat commands', () => {
       expect(capturedCloseArgs[1]).toBe('my-bot')
     })
 
-    test('returns error when no bot name provided', async () => {
+    it('returns error when no bot name provided', async () => {
       const manager = new ChannelBotCredentialManager(tempDir)
       const result = await closeAction('chat1', { _credManager: manager })
 
@@ -148,7 +148,7 @@ describe('chat commands', () => {
   })
 
   describe('deleteAction', () => {
-    test('deletes chat with --force flag', async () => {
+    it('deletes chat with --force flag', async () => {
       const manager = new ChannelBotCredentialManager(tempDir)
       const result = await deleteAction('chat1', { force: true, _credManager: manager })
 
@@ -157,7 +157,7 @@ describe('chat commands', () => {
       expect(result.deleted).toBe('chat1')
     })
 
-    test('returns error without --force flag', async () => {
+    it('returns error without --force flag', async () => {
       const manager = new ChannelBotCredentialManager(tempDir)
       const result = await deleteAction('chat1', { _credManager: manager })
 

@@ -1,4 +1,4 @@
-import { afterAll, beforeEach, describe, expect, mock, test } from 'bun:test'
+import { afterAll, beforeEach, describe, expect, mock, it } from 'bun:test'
 
 type WorkspaceEntry = {
   workspace_id: string
@@ -119,7 +119,7 @@ describe('channel auth commands', () => {
   })
 
   describe('extractAction', () => {
-    test('extracts fresh cookies and saves all workspaces', async () => {
+    it('extracts fresh cookies and saves all workspaces', async () => {
       const result = await extractAction()
 
       expect(mockExtract).toHaveBeenCalledTimes(1)
@@ -136,7 +136,7 @@ describe('channel auth commands', () => {
       expect(workspaceStore.get('ws-2')?.account_cookie).toBe('fresh-account')
     })
 
-    test('preserves current workspace if it still exists after re-extraction', async () => {
+    it('preserves current workspace if it still exists after re-extraction', async () => {
       workspaceStore.set('ws-2', {
         workspace_id: 'ws-2',
         workspace_name: 'Workspace 2',
@@ -157,7 +157,7 @@ describe('channel auth commands', () => {
       })
     })
 
-    test('switches to first workspace when previous current no longer exists', async () => {
+    it('switches to first workspace when previous current no longer exists', async () => {
       workspaceStore.set('ws-old', {
         workspace_id: 'ws-old',
         workspace_name: 'Old Workspace',
@@ -178,7 +178,7 @@ describe('channel auth commands', () => {
       })
     })
 
-    test('returns error when token extraction fails', async () => {
+    it('returns error when token extraction fails', async () => {
       mockExtract.mockImplementation(() => Promise.resolve([]))
 
       const result = await extractAction()
@@ -188,7 +188,7 @@ describe('channel auth commands', () => {
       })
     })
 
-    test('returns error when no workspaces found', async () => {
+    it('returns error when no workspaces found', async () => {
       mockListChannels.mockImplementation(() => Promise.resolve([]))
 
       const result = await extractAction()
@@ -200,14 +200,14 @@ describe('channel auth commands', () => {
   })
 
   describe('statusAction', () => {
-    test('returns an error when no credentials exist', async () => {
+    it('returns an error when no credentials exist', async () => {
       const result = await statusAction()
 
       expect(result.valid).toBe(false)
       expect(result.error).toBe('No credentials. Run "agent-channeltalk auth extract" first.')
     })
 
-    test('returns valid status for current workspace', async () => {
+    it('returns valid status for current workspace', async () => {
       workspaceStore.set('ws-1', {
         workspace_id: 'ws-1',
         workspace_name: 'Workspace 1',
@@ -228,7 +228,7 @@ describe('channel auth commands', () => {
       })
     })
 
-    test('returns invalid status with stored info when api validation fails', async () => {
+    it('returns invalid status with stored info when api validation fails', async () => {
       workspaceStore.set('ws-1', {
         workspace_id: 'ws-1',
         workspace_name: 'Workspace 1',
@@ -251,7 +251,7 @@ describe('channel auth commands', () => {
       })
     })
 
-    test('returns workspace-specific error for unknown workspace', async () => {
+    it('returns workspace-specific error for unknown workspace', async () => {
       const result = await statusAction({ workspace: 'missing' })
 
       expect(result).toEqual({
@@ -262,7 +262,7 @@ describe('channel auth commands', () => {
   })
 
   describe('clearAction', () => {
-    test('removes all stored credentials', async () => {
+    it('removes all stored credentials', async () => {
       workspaceStore.set('ws-1', {
         workspace_id: 'ws-1',
         workspace_name: 'Workspace 1',
@@ -280,7 +280,7 @@ describe('channel auth commands', () => {
   })
 
   describe('listAction', () => {
-    test('lists all workspaces with current flag', async () => {
+    it('lists all workspaces with current flag', async () => {
       workspaceStore.set('ws-1', {
         workspace_id: 'ws-1',
         workspace_name: 'Workspace 1',
@@ -305,7 +305,7 @@ describe('channel auth commands', () => {
   })
 
   describe('useAction', () => {
-    test('switches current workspace', async () => {
+    it('switches current workspace', async () => {
       workspaceStore.set('ws-1', {
         workspace_id: 'ws-1',
         workspace_name: 'Workspace 1',
@@ -326,7 +326,7 @@ describe('channel auth commands', () => {
       expect(currentWorkspaceId).toBe('ws-1')
     })
 
-    test('returns error for unknown workspace', async () => {
+    it('returns error for unknown workspace', async () => {
       const result = await useAction('missing')
 
       expect(result).toEqual({
@@ -336,7 +336,7 @@ describe('channel auth commands', () => {
   })
 
   describe('removeAction', () => {
-    test('removes a stored workspace', async () => {
+    it('removes a stored workspace', async () => {
       workspaceStore.set('ws-1', {
         workspace_id: 'ws-1',
         workspace_name: 'Workspace 1',
@@ -351,7 +351,7 @@ describe('channel auth commands', () => {
       expect(workspaceStore.has('ws-1')).toBe(false)
     })
 
-    test('returns error for unknown workspace', async () => {
+    it('returns error for unknown workspace', async () => {
       const result = await removeAction('missing')
 
       expect(result).toEqual({

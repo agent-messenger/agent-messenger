@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, expect, mock, spyOn, test } from 'bun:test'
+import { afterEach, beforeEach, expect, mock, spyOn, it } from 'bun:test'
 
 import { TeamsClient } from '../client'
 import { TeamsCredentialManager } from '../credential-manager'
@@ -55,7 +55,7 @@ afterEach(() => {
   console.log = originalConsoleLog
 })
 
-test('upload: sends multipart request and returns file info', async () => {
+it('upload: sends multipart request and returns file info', async () => {
   const consoleSpy = mock((_msg: string) => {})
   console.log = consoleSpy
 
@@ -67,7 +67,7 @@ test('upload: sends multipart request and returns file info', async () => {
   expect(output).toContain('test.pdf')
 })
 
-test('list: returns files in channel', async () => {
+it('list: returns files in channel', async () => {
   const consoleSpy = mock((_msg: string) => {})
   console.log = consoleSpy
 
@@ -79,7 +79,7 @@ test('list: returns files in channel', async () => {
   expect(output).toContain('file_124')
 })
 
-test('info: returns single file details', async () => {
+it('info: returns single file details', async () => {
   const consoleSpy = mock((_msg: string) => {})
   console.log = consoleSpy
 

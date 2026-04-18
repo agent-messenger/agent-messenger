@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, mock, test } from 'bun:test'
+import { afterEach, beforeEach, describe, expect, mock, it } from 'bun:test'
 import { existsSync, rmSync } from 'node:fs'
 import { mkdir } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
@@ -45,7 +45,7 @@ describe('whoami command', () => {
     process.env = originalEnv
   })
 
-  test('returns channel info for current workspace', async () => {
+  it('returns channel info for current workspace', async () => {
     const manager = new ChannelBotCredentialManager(tempDir)
     await manager.setCredentials({
       workspace_id: 'workspace1',
@@ -63,7 +63,7 @@ describe('whoami command', () => {
     expect(result.error).toBeUndefined()
   })
 
-  test('returns channel info for specific --workspace', async () => {
+  it('returns channel info for specific --workspace', async () => {
     const manager = new ChannelBotCredentialManager(tempDir)
     await manager.setCredentials({
       workspace_id: 'workspace1',
@@ -85,7 +85,7 @@ describe('whoami command', () => {
     expect(mockGetChannel).toHaveBeenCalledTimes(1)
   })
 
-  test('returns error when client throws', async () => {
+  it('returns error when client throws', async () => {
     mockGetChannel.mockImplementationOnce(() => Promise.reject(new Error('API Error')))
 
     const manager = new ChannelBotCredentialManager(tempDir)

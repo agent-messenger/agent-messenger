@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, mock, test } from 'bun:test'
+import { beforeEach, describe, expect, mock, it } from 'bun:test'
 
 const mockListManagers = mock(() =>
   Promise.resolve([
@@ -43,7 +43,7 @@ describe('manager commands', () => {
     )
   })
 
-  test('listAction lists managers', async () => {
+  it('listAction lists managers', async () => {
     const result = await listAction({ limit: '12' })
 
     expect(mockListManagers).toHaveBeenCalledWith('ws-1', { limit: 12 })

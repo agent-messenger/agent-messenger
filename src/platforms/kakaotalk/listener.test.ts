@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, mock, test } from 'bun:test'
+import { afterEach, describe, expect, mock, it } from 'bun:test'
 
 import { KakaoTalkListener } from '@/platforms/kakaotalk/listener'
 import type { LocoPacket } from '@/platforms/kakaotalk/protocol/types'
@@ -67,7 +67,7 @@ describe('KakaoTalkListener', () => {
   })
 
   describe('start', () => {
-    test('calls login on LocoSession', async () => {
+    it('calls login on LocoSession', async () => {
       const client = createMockClient()
       listener = new KakaoTalkListener(client)
 
@@ -77,7 +77,7 @@ describe('KakaoTalkListener', () => {
       expect(mockLogin).toHaveBeenCalledWith('token', 'user1', 'device1', undefined, 'tablet')
     })
 
-    test('is idempotent', async () => {
+    it('is idempotent', async () => {
       const client = createMockClient()
       listener = new KakaoTalkListener(client)
 
@@ -89,7 +89,7 @@ describe('KakaoTalkListener', () => {
   })
 
   describe('connected event', () => {
-    test('emits connected with userId after successful login', async () => {
+    it('emits connected with userId after successful login', async () => {
       const client = createMockClient()
       listener = new KakaoTalkListener(client)
 
@@ -104,7 +104,7 @@ describe('KakaoTalkListener', () => {
   })
 
   describe('message events', () => {
-    test('emits message on MSG push with parsed fields', async () => {
+    it('emits message on MSG push with parsed fields', async () => {
       const client = createMockClient()
       listener = new KakaoTalkListener(client)
 
@@ -135,7 +135,7 @@ describe('KakaoTalkListener', () => {
   })
 
   describe('member events', () => {
-    test('emits member_joined on NEWMEM push', async () => {
+    it('emits member_joined on NEWMEM push', async () => {
       const client = createMockClient()
       listener = new KakaoTalkListener(client)
 
@@ -154,7 +154,7 @@ describe('KakaoTalkListener', () => {
       expect(joined[0].member.user_id).toBe(42)
     })
 
-    test('emits member_left on DELMEM push', async () => {
+    it('emits member_left on DELMEM push', async () => {
       const client = createMockClient()
       listener = new KakaoTalkListener(client)
 
@@ -175,7 +175,7 @@ describe('KakaoTalkListener', () => {
   })
 
   describe('read events', () => {
-    test('emits read on DECUNREAD push with watermark', async () => {
+    it('emits read on DECUNREAD push with watermark', async () => {
       const client = createMockClient()
       listener = new KakaoTalkListener(client)
 
@@ -198,7 +198,7 @@ describe('KakaoTalkListener', () => {
   })
 
   describe('kakaotalk_event catch-all', () => {
-    test('emits kakaotalk_event for every push event', async () => {
+    it('emits kakaotalk_event for every push event', async () => {
       const client = createMockClient()
       listener = new KakaoTalkListener(client)
 
@@ -224,7 +224,7 @@ describe('KakaoTalkListener', () => {
   })
 
   describe('stop', () => {
-    test('closes session and prevents reconnection', async () => {
+    it('closes session and prevents reconnection', async () => {
       const client = createMockClient()
       listener = new KakaoTalkListener(client)
 
@@ -239,7 +239,7 @@ describe('KakaoTalkListener', () => {
   })
 
   describe('reconnection', () => {
-    test('reconnects on session close when still running', async () => {
+    it('reconnects on session close when still running', async () => {
       const client = createMockClient()
       listener = new KakaoTalkListener(client)
 
@@ -255,7 +255,7 @@ describe('KakaoTalkListener', () => {
       expect(mockLogin.mock.calls.length).toBeGreaterThanOrEqual(2)
     })
 
-    test('emits error and reconnects on login failure', async () => {
+    it('emits error and reconnects on login failure', async () => {
       let callCount = 0
       mockLogin.mockImplementation(() => {
         callCount++
@@ -280,7 +280,7 @@ describe('KakaoTalkListener', () => {
   })
 
   describe('CHANGESVR', () => {
-    test('resets reconnect attempts to 0 on CHANGESVR push', async () => {
+    it('resets reconnect attempts to 0 on CHANGESVR push', async () => {
       const client = createMockClient()
       listener = new KakaoTalkListener(client)
 
@@ -294,7 +294,7 @@ describe('KakaoTalkListener', () => {
   })
 
   describe('KICKOUT', () => {
-    test('emits error and stops without reconnecting', async () => {
+    it('emits error and stops without reconnecting', async () => {
       const client = createMockClient()
       listener = new KakaoTalkListener(client)
 
@@ -314,7 +314,7 @@ describe('KakaoTalkListener', () => {
   })
 
   describe('on/off/once', () => {
-    test('off removes listener', async () => {
+    it('off removes listener', async () => {
       const client = createMockClient()
       listener = new KakaoTalkListener(client)
 
@@ -338,7 +338,7 @@ describe('KakaoTalkListener', () => {
       expect(messages[0].message).toBe('first')
     })
 
-    test('once fires only once', async () => {
+    it('once fires only once', async () => {
       const client = createMockClient()
       listener = new KakaoTalkListener(client)
 
@@ -361,7 +361,7 @@ describe('KakaoTalkListener', () => {
   })
 
   describe('start after stop', () => {
-    test('resets reconnect attempts on fresh start', async () => {
+    it('resets reconnect attempts on fresh start', async () => {
       const client = createMockClient()
       listener = new KakaoTalkListener(client)
 

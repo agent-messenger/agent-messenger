@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, mock, test } from 'bun:test'
+import { afterEach, beforeEach, describe, expect, mock, it } from 'bun:test'
 import { existsSync, rmSync } from 'node:fs'
 import { mkdir } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
@@ -45,7 +45,7 @@ describe('whoami command', () => {
     process.env = originalEnv
   })
 
-  test('returns auth info for current bot', async () => {
+  it('returns auth info for current bot', async () => {
     const manager = new SlackBotCredentialManager(tempDir)
     await manager.setCredentials({
       token: 'xoxb-test-token',
@@ -65,7 +65,7 @@ describe('whoami command', () => {
     expect(result.error).toBeUndefined()
   })
 
-  test('returns auth info for specific --bot', async () => {
+  it('returns auth info for specific --bot', async () => {
     const manager = new SlackBotCredentialManager(tempDir)
     await manager.setCredentials({
       token: 'xoxb-test-token',
@@ -82,7 +82,7 @@ describe('whoami command', () => {
     expect(mockTestAuth).toHaveBeenCalledTimes(1)
   })
 
-  test('returns error when client throws', async () => {
+  it('returns error when client throws', async () => {
     mockTestAuth.mockImplementationOnce(() => Promise.reject(new Error('API Error')))
 
     const manager = new SlackBotCredentialManager(tempDir)

@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, mock, test } from 'bun:test'
+import { beforeEach, describe, expect, mock, it } from 'bun:test'
 
 import { SlackClient } from '@/platforms/slack/client'
 import type { SlackChannel, SlackUser } from '@/platforms/slack/types'
@@ -124,7 +124,7 @@ describe('Channel Commands', () => {
   })
 
   describe('channel list', () => {
-    test('lists all channels', async () => {
+    it('lists all channels', async () => {
       // Given: SlackClient returns channels
       // When: Listing channels
       const channels = await mockClient.listChannels()
@@ -136,7 +136,7 @@ describe('Channel Commands', () => {
       expect(channels[2].name).toBe('archived-channel')
     })
 
-    test('excludes archived channels by default', async () => {
+    it('excludes archived channels by default', async () => {
       // Given: SlackClient returns channels including archived
       const channels = await mockClient.listChannels()
 
@@ -148,7 +148,7 @@ describe('Channel Commands', () => {
       expect(activeChannels.every((c) => !c.is_archived)).toBe(true)
     })
 
-    test('includes archived channels when requested', async () => {
+    it('includes archived channels when requested', async () => {
       // Given: SlackClient returns channels including archived
       const channels = await mockClient.listChannels()
 
@@ -158,7 +158,7 @@ describe('Channel Commands', () => {
       expect(channels.some((c) => c.is_archived)).toBe(true)
     })
 
-    test('filters channels by type=public', async () => {
+    it('filters channels by type=public', async () => {
       // Given: SlackClient returns mixed channels
       // When: Filtering by public type
       const channels = await mockClient.listChannels()
@@ -169,7 +169,7 @@ describe('Channel Commands', () => {
       expect(publicChannels.every((c) => !c.is_private)).toBe(true)
     })
 
-    test('filters channels by type=private', async () => {
+    it('filters channels by type=private', async () => {
       // Given: SlackClient returns mixed channels
       // When: Filtering by private type
       const channels = await mockClient.listChannels()
@@ -182,7 +182,7 @@ describe('Channel Commands', () => {
   })
 
   describe('channel info', () => {
-    test('gets channel by ID', async () => {
+    it('gets channel by ID', async () => {
       // Given: Channel ID C001
       // When: Getting channel info
       const channel = await mockClient.getChannel('C001')
@@ -193,7 +193,7 @@ describe('Channel Commands', () => {
       expect(channel.is_private).toBe(false)
     })
 
-    test('throws error for non-existent channel', async () => {
+    it('throws error for non-existent channel', async () => {
       // Given: Non-existent channel ID
       // When: Getting channel info
       // Then: Should throw error
@@ -205,7 +205,7 @@ describe('Channel Commands', () => {
       }
     })
 
-    test('returns channel with topic and purpose', async () => {
+    it('returns channel with topic and purpose', async () => {
       // Given: Channel with topic and purpose
       // When: Getting channel info
       const channel = await mockClient.getChannel('C001')
@@ -217,7 +217,7 @@ describe('Channel Commands', () => {
   })
 
   describe('channel history (alias for message list)', () => {
-    test('history command should be alias for message list', () => {
+    it('history command should be alias for message list', () => {
       // Given: channel history command
       // When: Checking command structure
       // Then: Should be alias for message list
@@ -226,7 +226,7 @@ describe('Channel Commands', () => {
   })
 
   describe('channel open', () => {
-    test('opens a DM channel with a single user', async () => {
+    it('opens a DM channel with a single user', async () => {
       // Given: A user ID
       // When: Opening a conversation
       const result = await mockClient.openConversation('U001')
@@ -237,7 +237,7 @@ describe('Channel Commands', () => {
       expect(mockClient.openConversation).toHaveBeenCalledWith('U001')
     })
 
-    test('returns already_open when DM exists', async () => {
+    it('returns already_open when DM exists', async () => {
       // Given: An existing DM conversation
       ;(mockClient.openConversation as any).mockImplementation(async () => ({
         channel_id: 'D0ABC123',
@@ -252,7 +252,7 @@ describe('Channel Commands', () => {
       expect(result.already_open).toBe(true)
     })
 
-    test('opens a group DM with multiple users', async () => {
+    it('opens a group DM with multiple users', async () => {
       // Given: Multiple user IDs
       ;(mockClient.openConversation as any).mockImplementation(async () => ({
         channel_id: 'G0ABC123',
@@ -269,7 +269,7 @@ describe('Channel Commands', () => {
   })
 
   describe('channel users', () => {
-    test('lists members of a channel via listChannelMembers and getUser', async () => {
+    it('lists members of a channel via listChannelMembers and getUser', async () => {
       // Given: Channel C001 with 3 members
       const memberIds = await mockClient.listChannelMembers('C001')
 
@@ -285,7 +285,7 @@ describe('Channel Commands', () => {
       expect(mockClient.getUser).toHaveBeenCalledTimes(3)
     })
 
-    test('filters out bots by default', async () => {
+    it('filters out bots by default', async () => {
       // Given: Channel with human and bot members
       const memberIds = await mockClient.listChannelMembers('C001')
       const users = await Promise.all(memberIds.map((id) => mockClient.getUser(id)))
@@ -298,7 +298,7 @@ describe('Channel Commands', () => {
       expect(filtered.every((u) => !u.is_bot)).toBe(true)
     })
 
-    test('includes bots with --include-bots flag', async () => {
+    it('includes bots with --include-bots flag', async () => {
       // Given: Channel with human and bot members
       const memberIds = await mockClient.listChannelMembers('C001')
       const users = await Promise.all(memberIds.map((id) => mockClient.getUser(id)))
@@ -309,7 +309,7 @@ describe('Channel Commands', () => {
       expect(users.some((u) => u.is_bot)).toBe(true)
     })
 
-    test('returns user profiles with expected output shape', async () => {
+    it('returns user profiles with expected output shape', async () => {
       // Given: Channel member with profile
       const user = await mockClient.getUser('U001')
 

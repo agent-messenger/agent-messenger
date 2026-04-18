@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, expect, spyOn, test } from 'bun:test'
+import { afterEach, beforeEach, expect, spyOn, it } from 'bun:test'
 
 import { SlackClient } from '@/platforms/slack/client'
 import { snapshotCommand } from '@/platforms/slack/commands/snapshot'
@@ -6,35 +6,35 @@ import { CredentialManager } from '@/platforms/slack/credential-manager'
 import type { SlackChannel, SlackMessage, SlackUser } from '@/platforms/slack/types'
 
 // Test the command structure (no mocks needed)
-test('snapshot command exports correctly', () => {
+it('snapshot command exports correctly', () => {
   expect(snapshotCommand).toBeDefined()
   expect(typeof snapshotCommand).toBe('object')
 })
 
-test('snapshot command has correct structure', () => {
+it('snapshot command has correct structure', () => {
   expect(snapshotCommand.name()).toBe('snapshot')
   expect(snapshotCommand.description()).toContain('workspace')
 })
 
-test('snapshot command has --channels-only option', () => {
+it('snapshot command has --channels-only option', () => {
   const options = snapshotCommand.options
   const hasChannelsOnly = options.some((opt: any) => opt.long === '--channels-only')
   expect(hasChannelsOnly).toBe(true)
 })
 
-test('snapshot command has --users-only option', () => {
+it('snapshot command has --users-only option', () => {
   const options = snapshotCommand.options
   const hasUsersOnly = options.some((opt: any) => opt.long === '--users-only')
   expect(hasUsersOnly).toBe(true)
 })
 
-test('snapshot command has --limit option', () => {
+it('snapshot command has --limit option', () => {
   const options = snapshotCommand.options
   const hasLimit = options.some((opt: any) => opt.long === '--limit')
   expect(hasLimit).toBe(true)
 })
 
-test('snapshot command has --full option', () => {
+it('snapshot command has --full option', () => {
   const options = snapshotCommand.options
   const hasFull = options.some((opt: any) => opt.long === '--full')
   expect(hasFull).toBe(true)
@@ -153,7 +153,7 @@ afterEach(() => {
   clientGetMessagesSpy?.mockRestore()
 })
 
-test('brief snapshot (default) returns workspace, channels as {id, name}, and hint', async () => {
+it('brief snapshot (default) returns workspace, channels as {id, name}, and hint', async () => {
   const client = await new SlackClient().login({ token: 'xoxc-test', cookie: 'test-cookie' })
 
   const auth = await client.testAuth()
@@ -185,7 +185,7 @@ test('brief snapshot (default) returns workspace, channels as {id, name}, and hi
   expect(snapshot.hint).toContain('message list')
 })
 
-test('brief snapshot excludes archived channels', async () => {
+it('brief snapshot excludes archived channels', async () => {
   const channelsWithArchived: SlackChannel[] = [
     ...mockChannels,
     {
@@ -210,7 +210,7 @@ test('brief snapshot excludes archived channels', async () => {
   expect(active.every((ch) => !ch.is_archived)).toBe(true)
 })
 
-test('full snapshot returns workspace, channels, messages, and users', async () => {
+it('full snapshot returns workspace, channels, messages, and users', async () => {
   const client = await new SlackClient().login({ token: 'xoxc-test', cookie: 'test-cookie' })
 
   const auth = await client.testAuth()
@@ -278,7 +278,7 @@ test('full snapshot returns workspace, channels, messages, and users', async () 
   expect(snapshot.users[0].name).toBe('alice')
 })
 
-test('snapshot with --channels-only excludes messages and users', async () => {
+it('snapshot with --channels-only excludes messages and users', async () => {
   const client = await new SlackClient().login({ token: 'xoxc-test', cookie: 'test-cookie' })
 
   const auth = await client.testAuth()
@@ -307,7 +307,7 @@ test('snapshot with --channels-only excludes messages and users', async () => {
   expect((snapshot as any).users).toBeUndefined()
 })
 
-test('snapshot with --users-only excludes channels and messages', async () => {
+it('snapshot with --users-only excludes channels and messages', async () => {
   const client = await new SlackClient().login({ token: 'xoxc-test', cookie: 'test-cookie' })
 
   const auth = await client.testAuth()
@@ -335,7 +335,7 @@ test('snapshot with --users-only excludes channels and messages', async () => {
   expect((snapshot as any).recent_messages).toBeUndefined()
 })
 
-test('snapshot respects --limit option for messages', async () => {
+it('snapshot respects --limit option for messages', async () => {
   const client = await new SlackClient().login({ token: 'xoxc-test', cookie: 'test-cookie' })
 
   const auth = await client.testAuth()

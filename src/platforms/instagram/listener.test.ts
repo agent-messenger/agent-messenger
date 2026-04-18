@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, spyOn, test } from 'bun:test'
+import { afterEach, describe, expect, spyOn, it } from 'bun:test'
 
 import { InstagramListener } from '@/platforms/instagram/listener'
 import type { InstagramChatSummary } from '@/platforms/instagram/types'
@@ -38,7 +38,7 @@ describe('InstagramListener', () => {
     listener?.stop()
   })
 
-  test('emits connected on start', async () => {
+  it('emits connected on start', async () => {
     const client = makeMockClient([makeChat()])
     listener = new InstagramListener(client, { pollInterval: 60_000 })
 
@@ -51,7 +51,7 @@ describe('InstagramListener', () => {
     expect(result.userId).toBe('123')
   })
 
-  test('stop emits disconnected', async () => {
+  it('emits disconnected on stop', async () => {
     const client = makeMockClient([])
     listener = new InstagramListener(client, { pollInterval: 60_000 })
 
@@ -64,7 +64,7 @@ describe('InstagramListener', () => {
     await disconnected
   })
 
-  test('does not emit message for initial poll', async () => {
+  it('does not emit message for initial poll', async () => {
     const client = makeMockClient([makeChat()])
     listener = new InstagramListener(client, { pollInterval: 60_000 })
 
@@ -77,7 +77,7 @@ describe('InstagramListener', () => {
     expect(messages).toHaveLength(0)
   })
 
-  test('multiple start calls are idempotent', async () => {
+  it('multiple start calls are idempotent', async () => {
     const client = makeMockClient([])
     listener = new InstagramListener(client, { pollInterval: 60_000 })
 
@@ -87,7 +87,7 @@ describe('InstagramListener', () => {
     expect(client.listChats).toHaveBeenCalledTimes(1)
   })
 
-  test('emits error when listChats throws', async () => {
+  it('emits error when listChats throws', async () => {
     const client = makeMockClient()
     client.listChats.mockRejectedValueOnce(new Error('network error'))
     listener = new InstagramListener(client, { pollInterval: 60_000 })
@@ -101,7 +101,7 @@ describe('InstagramListener', () => {
     expect(err.message).toBe('network error')
   })
 
-  test('on/off registers and unregisters handlers', () => {
+  it('on/off registers and unregisters handlers', () => {
     const client = makeMockClient()
     listener = new InstagramListener(client, { pollInterval: 60_000 })
 
@@ -116,7 +116,7 @@ describe('InstagramListener', () => {
     expect(called).toBe(false)
   })
 
-  test('once fires handler only once', async () => {
+  it('once fires handler only once', async () => {
     const client = makeMockClient([])
     listener = new InstagramListener(client, { pollInterval: 60_000 })
 

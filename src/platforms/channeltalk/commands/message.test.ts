@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, mock, test } from 'bun:test'
+import { beforeEach, describe, expect, mock, it } from 'bun:test'
 
 const mockSendGroupMessage = mock(() =>
   Promise.resolve({
@@ -306,7 +306,7 @@ describe('message commands', () => {
     )
   })
 
-  test('sendAction sends a group message with wrapped blocks', async () => {
+  it('sendAction sends a group message with wrapped blocks', async () => {
     const result = await sendAction('group', 'grp-1', 'Hello group')
 
     expect(mockSendGroupMessage).toHaveBeenCalledWith('ws-1', 'grp-1', [{ type: 'text', value: 'Hello group' }])
@@ -319,7 +319,7 @@ describe('message commands', () => {
     })
   })
 
-  test('sendAction sends a user chat message with wrapped blocks', async () => {
+  it('sendAction sends a user chat message with wrapped blocks', async () => {
     const result = await sendAction('user-chat', 'chat-1', 'Hello user chat')
 
     expect(mockSendUserChatMessage).toHaveBeenCalledWith('ws-1', 'chat-1', [{ type: 'text', value: 'Hello user chat' }])
@@ -332,7 +332,7 @@ describe('message commands', () => {
     })
   })
 
-  test('sendAction sends a direct chat message with wrapped blocks', async () => {
+  it('sendAction sends a direct chat message with wrapped blocks', async () => {
     const result = await sendAction('direct-chat', 'dm-1', 'Hello direct chat')
 
     expect(mockSendDirectChatMessage).toHaveBeenCalledWith('ws-1', 'dm-1', [
@@ -347,7 +347,7 @@ describe('message commands', () => {
     })
   })
 
-  test('listAction lists group messages with limit and sort options', async () => {
+  it('listAction lists group messages with limit and sort options', async () => {
     const result = await listAction('group', 'grp-1', { limit: '10', sort: 'asc' })
 
     expect(mockGetGroupMessages).toHaveBeenCalledWith('ws-1', 'grp-1', { limit: 10, sortOrder: 'asc' })
@@ -365,7 +365,7 @@ describe('message commands', () => {
     ])
   })
 
-  test('listAction lists user chat messages', async () => {
+  it('listAction lists user chat messages', async () => {
     const result = await listAction('user-chat', 'chat-1')
 
     expect(mockGetUserChatMessages).toHaveBeenCalledWith('ws-1', 'chat-1', { limit: 25, sortOrder: 'desc' })
@@ -376,7 +376,7 @@ describe('message commands', () => {
     })
   })
 
-  test('listAction lists direct chat messages', async () => {
+  it('listAction lists direct chat messages', async () => {
     const result = await listAction('direct-chat', 'dm-1')
 
     expect(mockGetDirectChatMessages).toHaveBeenCalledWith('ws-1', 'dm-1', { limit: 25, sortOrder: 'desc' })
@@ -387,21 +387,21 @@ describe('message commands', () => {
     })
   })
 
-  test('getAction returns specific message by ID', async () => {
+  it('getAction returns specific message by ID', async () => {
     const result = await getAction('group', 'grp-1', 'msg-group-list-1')
 
     expect(result.error).toBeUndefined()
     expect(result.id).toBe('msg-group-list-1')
   })
 
-  test('getAction returns error when message not found', async () => {
+  it('getAction returns error when message not found', async () => {
     const result = await getAction('group', 'grp-1', 'nonexistent')
 
     expect(result.error).toBeDefined()
     expect(result.error).toContain('not found')
   })
 
-  test('searchAction searches team chat messages by default', async () => {
+  it('searchAction searches team chat messages by default', async () => {
     const result = await searchAction('search')
 
     expect(mockSearchTeamChatMessages).toHaveBeenCalledWith('ws-1', 'search', { limit: undefined })
@@ -420,7 +420,7 @@ describe('message commands', () => {
     ])
   })
 
-  test('searchAction searches user chat messages with scope option', async () => {
+  it('searchAction searches user chat messages with scope option', async () => {
     const result = await searchAction('search', { scope: 'user-chat' })
 
     expect(mockSearchUserChatMessages).toHaveBeenCalledWith('ws-1', 'search', { limit: undefined })
@@ -439,13 +439,13 @@ describe('message commands', () => {
     ])
   })
 
-  test('searchAction passes limit parameter', async () => {
+  it('searchAction passes limit parameter', async () => {
     await searchAction('test', { limit: '5' })
 
     expect(mockSearchTeamChatMessages).toHaveBeenCalledWith('ws-1', 'test', { limit: 5 })
   })
 
-  test('searchAction returns error on failure', async () => {
+  it('searchAction returns error on failure', async () => {
     mockSearchTeamChatMessages.mockImplementation(() => Promise.reject(new Error('Network error')))
 
     const result = await searchAction('test')
@@ -454,7 +454,7 @@ describe('message commands', () => {
     expect(result.results).toBeUndefined()
   })
 
-  test('searchAction returns error for invalid scope', async () => {
+  it('searchAction returns error for invalid scope', async () => {
     const result = await searchAction('test', { scope: 'invalid' })
 
     expect(result.error).toContain('Invalid --scope value')
@@ -462,7 +462,7 @@ describe('message commands', () => {
     expect(result.results).toBeUndefined()
   })
 
-  test('searchAction handles zero hits', async () => {
+  it('searchAction handles zero hits', async () => {
     mockSearchTeamChatMessages.mockImplementation(() =>
       Promise.resolve({ hits: [], bots: [], sessions: [], groups: [] }),
     )
@@ -473,7 +473,7 @@ describe('message commands', () => {
     expect(result.error).toBeUndefined()
   })
 
-  test('searchAction handles missing highlight plainText key', async () => {
+  it('searchAction handles missing highlight plainText key', async () => {
     mockSearchTeamChatMessages.mockImplementation(() =>
       Promise.resolve({
         hits: [
@@ -506,7 +506,7 @@ describe('message commands', () => {
     expect(result.results?.[0]?.plain_text).toBe('some message')
   })
 
-  test('searchAction uses extractText for block-only messages', async () => {
+  it('searchAction uses extractText for block-only messages', async () => {
     mockSearchTeamChatMessages.mockImplementation(() =>
       Promise.resolve({
         hits: [

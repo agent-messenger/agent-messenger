@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, mock, test } from 'bun:test'
+import { afterEach, beforeEach, describe, expect, mock, it } from 'bun:test'
 import { existsSync, rmSync } from 'node:fs'
 import { mkdir } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
@@ -38,7 +38,7 @@ describe('auth commands', () => {
   })
 
   describe('setAction', () => {
-    test('validates token and stores credentials', async () => {
+    it('validates token and stores credentials', async () => {
       const manager = new WhatsAppBotCredentialManager(tempDir)
 
       const result = await setAction('12345678901', 'EAAtest-token', { _credManager: manager })
@@ -52,7 +52,7 @@ describe('auth commands', () => {
       expect(creds?.access_token).toBe('EAAtest-token')
     })
 
-    test('returns error when client throws', async () => {
+    it('returns error when client throws', async () => {
       mockVerifyToken.mockImplementationOnce(() => Promise.reject(new Error('Invalid token')))
       const manager = new WhatsAppBotCredentialManager(tempDir)
 
@@ -64,7 +64,7 @@ describe('auth commands', () => {
   })
 
   describe('statusAction', () => {
-    test('returns invalid status when no credentials set', async () => {
+    it('returns invalid status when no credentials set', async () => {
       const manager = new WhatsAppBotCredentialManager(tempDir)
 
       const result = await statusAction({ _credManager: manager })
@@ -73,7 +73,7 @@ describe('auth commands', () => {
       expect(result.error).toBeDefined()
     })
 
-    test('returns valid status when credentials are set', async () => {
+    it('returns valid status when credentials are set', async () => {
       const manager = new WhatsAppBotCredentialManager(tempDir)
       await manager.setCredentials({
         phone_number_id: '12345678901',
@@ -88,7 +88,7 @@ describe('auth commands', () => {
       expect(result.account_name).toBe('Test Business')
     })
 
-    test('returns invalid status when verifyToken fails', async () => {
+    it('returns invalid status when verifyToken fails', async () => {
       mockVerifyToken.mockImplementationOnce(() => Promise.reject(new Error('Token expired')))
       const manager = new WhatsAppBotCredentialManager(tempDir)
       await manager.setCredentials({
@@ -103,7 +103,7 @@ describe('auth commands', () => {
       expect(result.phone_number_id).toBe('12345678901')
     })
 
-    test('returns error for unknown account', async () => {
+    it('returns error for unknown account', async () => {
       const manager = new WhatsAppBotCredentialManager(tempDir)
 
       const result = await statusAction({ account: 'nonexistent', _credManager: manager })
@@ -114,7 +114,7 @@ describe('auth commands', () => {
   })
 
   describe('clearAction', () => {
-    test('removes all stored credentials', async () => {
+    it('removes all stored credentials', async () => {
       const manager = new WhatsAppBotCredentialManager(tempDir)
       await manager.setCredentials({
         phone_number_id: '12345678901',
@@ -130,7 +130,7 @@ describe('auth commands', () => {
   })
 
   describe('listAction', () => {
-    test('returns empty accounts when none set', async () => {
+    it('returns empty accounts when none set', async () => {
       const manager = new WhatsAppBotCredentialManager(tempDir)
 
       const result = await listAction({ _credManager: manager })
@@ -138,7 +138,7 @@ describe('auth commands', () => {
       expect(result.accounts).toHaveLength(0)
     })
 
-    test('returns all stored accounts', async () => {
+    it('returns all stored accounts', async () => {
       const manager = new WhatsAppBotCredentialManager(tempDir)
       await manager.setCredentials({
         phone_number_id: '11111111111',
@@ -160,7 +160,7 @@ describe('auth commands', () => {
   })
 
   describe('useAction', () => {
-    test('switches current account', async () => {
+    it('switches current account', async () => {
       const manager = new WhatsAppBotCredentialManager(tempDir)
       await manager.setCredentials({
         phone_number_id: '11111111111',
@@ -180,7 +180,7 @@ describe('auth commands', () => {
       expect(result.account_name).toBe('Account A')
     })
 
-    test('returns error for unknown account', async () => {
+    it('returns error for unknown account', async () => {
       const manager = new WhatsAppBotCredentialManager(tempDir)
 
       const result = await useAction('nonexistent', { _credManager: manager })
@@ -191,7 +191,7 @@ describe('auth commands', () => {
   })
 
   describe('removeAction', () => {
-    test('removes a stored account', async () => {
+    it('removes a stored account', async () => {
       const manager = new WhatsAppBotCredentialManager(tempDir)
       await manager.setCredentials({
         phone_number_id: '12345678901',
@@ -205,7 +205,7 @@ describe('auth commands', () => {
       expect(await manager.getCredentials('12345678901')).toBeNull()
     })
 
-    test('returns error for unknown account', async () => {
+    it('returns error for unknown account', async () => {
       const manager = new WhatsAppBotCredentialManager(tempDir)
 
       const result = await removeAction('nonexistent', { _credManager: manager })

@@ -1,4 +1,4 @@
-import { describe, test, expect, beforeAll, afterEach } from 'bun:test'
+import { describe, it, expect, beforeAll, afterEach } from 'bun:test'
 
 import { SlackBotClient } from '../src/platforms/slackbot/client'
 import { SlackBotCredentialManager } from '../src/platforms/slackbot/credential-manager'
@@ -48,7 +48,7 @@ describe('SlackBot E2E Tests', () => {
   })
 
   describe('auth', () => {
-    test('auth status returns valid bot info', async () => {
+    it('auth status returns valid bot info', async () => {
       const result = await runCLI('slackbot', ['auth', 'status'])
       expect(result.exitCode).toBe(0)
 
@@ -67,7 +67,7 @@ describe('SlackBot E2E Tests', () => {
   })
 
   describe('message', () => {
-    test('message send creates message and returns ts', async () => {
+    it('message send creates message and returns ts', async () => {
       const testId = generateTestId()
       const result = await runCLI('slackbot', ['message', 'send', SLACKBOT_TEST_CHANNEL_ID, `Bot test ${testId}`])
       expect(result.exitCode).toBe(0)
@@ -79,7 +79,7 @@ describe('SlackBot E2E Tests', () => {
       if (data?.ts) testMessages.push(data.ts)
     })
 
-    test('message list returns messages array', async () => {
+    it('message list returns messages array', async () => {
       const result = await runCLI('slackbot', ['message', 'list', SLACKBOT_TEST_CHANNEL_ID, '--limit', '5'])
       expect(result.exitCode).toBe(0)
 
@@ -87,7 +87,7 @@ describe('SlackBot E2E Tests', () => {
       expect(Array.isArray(data)).toBe(true)
     })
 
-    test('message get retrieves specific message', async () => {
+    it('message get retrieves specific message', async () => {
       const testId = generateTestId()
       const sendResult = await runCLI('slackbot', ['message', 'send', SLACKBOT_TEST_CHANNEL_ID, `Get test ${testId}`])
       const sent = parseJSON<{ ts: string }>(sendResult.stdout)
@@ -104,7 +104,7 @@ describe('SlackBot E2E Tests', () => {
       expect(data?.ts).toBe(sent!.ts)
     })
 
-    test('message update modifies message', async () => {
+    it('message update modifies message', async () => {
       const testId = generateTestId()
       const sendResult = await runCLI('slackbot', ['message', 'send', SLACKBOT_TEST_CHANNEL_ID, `Original ${testId}`])
       const sent = parseJSON<{ ts: string }>(sendResult.stdout)
@@ -129,7 +129,7 @@ describe('SlackBot E2E Tests', () => {
       expect(data?.text).toContain('Updated')
     })
 
-    test('message delete removes message', async () => {
+    it('message delete removes message', async () => {
       const testId = generateTestId()
       const sendResult = await runCLI('slackbot', ['message', 'send', SLACKBOT_TEST_CHANNEL_ID, `Delete me ${testId}`])
       const sent = parseJSON<{ ts: string }>(sendResult.stdout)
@@ -144,7 +144,7 @@ describe('SlackBot E2E Tests', () => {
       expect(data?.deleted).toBe(sent!.ts)
     })
 
-    test('message send with --thread creates reply', async () => {
+    it('message send with --thread creates reply', async () => {
       const testId = generateTestId()
       const sendResult = await runCLI('slackbot', ['message', 'send', SLACKBOT_TEST_CHANNEL_ID, `Parent ${testId}`])
       const parent = parseJSON<{ ts: string }>(sendResult.stdout)
@@ -169,7 +169,7 @@ describe('SlackBot E2E Tests', () => {
       if (reply?.ts) testMessages.push(reply.ts)
     }, 30000)
 
-    test('message replies gets thread replies', async () => {
+    it('message replies gets thread replies', async () => {
       const testId = generateTestId()
       const sendResult = await runCLI('slackbot', [
         'message',
@@ -207,7 +207,7 @@ describe('SlackBot E2E Tests', () => {
   })
 
   describe('channel', () => {
-    test('channel list returns channels array', async () => {
+    it('channel list returns channels array', async () => {
       const result = await runCLI('slackbot', ['channel', 'list', '--limit', '10'])
       expect(result.exitCode).toBe(0)
 
@@ -216,7 +216,7 @@ describe('SlackBot E2E Tests', () => {
       expect(data!.length).toBeGreaterThan(0)
     })
 
-    test('channel info returns channel details', async () => {
+    it('channel info returns channel details', async () => {
       const result = await runCLI('slackbot', ['channel', 'info', SLACKBOT_TEST_CHANNEL_ID])
       expect(result.exitCode).toBe(0)
 
@@ -227,7 +227,7 @@ describe('SlackBot E2E Tests', () => {
   })
 
   describe('user', () => {
-    test('user list returns users array', async () => {
+    it('user list returns users array', async () => {
       const result = await runCLI('slackbot', ['user', 'list', '--limit', '10'])
       expect(result.exitCode).toBe(0)
 
@@ -236,7 +236,7 @@ describe('SlackBot E2E Tests', () => {
       expect(data!.length).toBeGreaterThan(0)
     })
 
-    test('user info returns user details', async () => {
+    it('user info returns user details', async () => {
       // given: get the bot's own user_id via auth status
       const statusResult = await runCLI('slackbot', ['auth', 'status'])
       const status = parseJSON<{ bot_id: string; user: string }>(statusResult.stdout)
@@ -262,7 +262,7 @@ describe('SlackBot E2E Tests', () => {
   })
 
   describe('reaction', () => {
-    test('reaction add and remove lifecycle', async () => {
+    it('reaction add and remove lifecycle', async () => {
       // given: a message to react to
       const testId = generateTestId()
       const sendResult = await runCLI('slackbot', [

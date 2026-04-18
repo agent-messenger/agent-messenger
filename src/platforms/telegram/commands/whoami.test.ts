@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, spyOn, test } from 'bun:test'
+import { afterEach, beforeEach, describe, expect, spyOn, it } from 'bun:test'
 
 import { TelegramTdlibClient } from '../client'
 import { TelegramCredentialManager } from '../credential-manager'
@@ -41,7 +41,7 @@ describe('whoami command', () => {
     consoleLogSpy?.mockRestore()
   })
 
-  test('outputs account info with user when authenticated', async () => {
+  it('outputs account info with user when authenticated', async () => {
     await whoamiAction({})
 
     expect(consoleLogSpy).toHaveBeenCalledTimes(1)
@@ -54,7 +54,7 @@ describe('whoami command', () => {
     expect(output.user.username).toBe('testuser')
   })
 
-  test('omits user field when not present', async () => {
+  it('omits user field when not present', async () => {
     getAuthStatusSpy.mockResolvedValue({
       account_id: 'plus-12025551234',
       phone_number: '+12025551234',

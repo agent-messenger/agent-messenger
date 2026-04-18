@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, mock, test } from 'bun:test'
+import { afterEach, beforeEach, describe, expect, mock, it } from 'bun:test'
 import { existsSync, rmSync } from 'node:fs'
 import { mkdir } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
@@ -35,7 +35,7 @@ describe('whoami command', () => {
     }
   })
 
-  test('returns phone number id, account name, and verified name', async () => {
+  it('returns phone number id, account name, and verified name', async () => {
     const manager = new WhatsAppBotCredentialManager(tempDir)
     await manager.setCredentials({
       phone_number_id: '12345678901',
@@ -51,7 +51,7 @@ describe('whoami command', () => {
     expect(result.error).toBeUndefined()
   })
 
-  test('returns info for specific --account', async () => {
+  it('returns info for specific --account', async () => {
     const manager = new WhatsAppBotCredentialManager(tempDir)
     await manager.setCredentials({
       phone_number_id: '11111111111',
@@ -71,7 +71,7 @@ describe('whoami command', () => {
     expect(result.verified_name).toBe('Test Business')
   })
 
-  test('returns error when verifyToken fails', async () => {
+  it('returns error when verifyToken fails', async () => {
     mockVerifyToken.mockImplementationOnce(() => Promise.reject(new Error('Invalid token')))
 
     const manager = new WhatsAppBotCredentialManager(tempDir)
@@ -87,7 +87,7 @@ describe('whoami command', () => {
     expect(result.error).toContain('Invalid token')
   })
 
-  test('returns error when no credentials', async () => {
+  it('returns error when no credentials', async () => {
     const manager = new WhatsAppBotCredentialManager(tempDir)
 
     const result = await whoamiAction({ _credManager: manager })

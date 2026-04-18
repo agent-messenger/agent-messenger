@@ -1,4 +1,4 @@
-import { expect, test } from 'bun:test'
+import { expect, it } from 'bun:test'
 
 import {
   ChannelBotBotSchema,
@@ -17,58 +17,58 @@ import {
   MessageBlockSchema,
 } from '@/platforms/channeltalkbot/index'
 
-test('ChannelBotClient is exported from barrel', () => {
+it('ChannelBotClient is exported from barrel', () => {
   expect(typeof ChannelBotClient).toBe('function')
 })
 
-test('ChannelBotError is exported from barrel', () => {
+it('ChannelBotError is exported from barrel', () => {
   expect(typeof ChannelBotError).toBe('function')
 })
 
-test('ChannelBotCredentialManager is exported from barrel', () => {
+it('ChannelBotCredentialManager is exported from barrel', () => {
   expect(typeof ChannelBotCredentialManager).toBe('function')
 })
 
-test('ChannelBotBotSchema is exported from barrel', () => {
+it('ChannelBotBotSchema is exported from barrel', () => {
   expect(typeof ChannelBotBotSchema.parse).toBe('function')
 })
 
-test('ChannelBotChannelSchema is exported from barrel', () => {
+it('ChannelBotChannelSchema is exported from barrel', () => {
   expect(typeof ChannelBotChannelSchema.parse).toBe('function')
 })
 
-test('ChannelBotConfigSchema is exported from barrel', () => {
+it('ChannelBotConfigSchema is exported from barrel', () => {
   expect(typeof ChannelBotConfigSchema.parse).toBe('function')
 })
 
-test('ChannelBotCredentialsSchema is exported from barrel', () => {
+it('ChannelBotCredentialsSchema is exported from barrel', () => {
   expect(typeof ChannelBotCredentialsSchema.parse).toBe('function')
 })
 
-test('ChannelBotGroupSchema is exported from barrel', () => {
+it('ChannelBotGroupSchema is exported from barrel', () => {
   expect(typeof ChannelBotGroupSchema.parse).toBe('function')
 })
 
-test('ChannelBotManagerSchema is exported from barrel', () => {
+it('ChannelBotManagerSchema is exported from barrel', () => {
   expect(typeof ChannelBotManagerSchema.parse).toBe('function')
 })
 
-test('ChannelBotMessageSchema is exported from barrel', () => {
+it('ChannelBotMessageSchema is exported from barrel', () => {
   expect(typeof ChannelBotMessageSchema.parse).toBe('function')
 })
 
-test('ChannelBotUserChatSchema is exported from barrel', () => {
+it('ChannelBotUserChatSchema is exported from barrel', () => {
   expect(typeof ChannelBotUserChatSchema.parse).toBe('function')
 })
 
-test('ChannelBotUserSchema is exported from barrel', () => {
+it('ChannelBotUserSchema is exported from barrel', () => {
   expect(typeof ChannelBotUserSchema.parse).toBe('function')
 })
 
-test('ChannelBotWorkspaceEntrySchema is exported from barrel', () => {
+it('ChannelBotWorkspaceEntrySchema is exported from barrel', () => {
   expect(typeof ChannelBotWorkspaceEntrySchema.parse).toBe('function')
 })
 
-test('MessageBlockSchema is exported from barrel', () => {
+it('MessageBlockSchema is exported from barrel', () => {
   expect(typeof MessageBlockSchema.parse).toBe('function')
 })

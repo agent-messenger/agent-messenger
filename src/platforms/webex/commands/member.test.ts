@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, mock, spyOn, test } from 'bun:test'
+import { afterEach, beforeEach, describe, expect, mock, spyOn, it } from 'bun:test'
 
 import { WebexError } from '../types'
 
@@ -59,7 +59,7 @@ describe('member commands', () => {
     consoleSpy.mockRestore()
   })
 
-  test('listAction calls listMemberships with spaceId and outputs mapped members', async () => {
+  it('calls listMemberships with spaceId and outputs mapped members', async () => {
     await listAction('room-1', {})
 
     expect(mockListMemberships).toHaveBeenCalledWith('room-1', { max: undefined })
@@ -85,13 +85,13 @@ describe('member commands', () => {
     )
   })
 
-  test('listAction passes limit option to listMemberships', async () => {
+  it('passes limit option to listMemberships', async () => {
     await listAction('room-1', { limit: 25 })
 
     expect(mockListMemberships).toHaveBeenCalledWith('room-1', { max: 25 })
   })
 
-  test('listAction handles not-authenticated case', async () => {
+  it('throws when not authenticated', async () => {
     mockLogin.mockImplementation(async () => {
       throw new WebexError('No Webex credentials found.', 'no_credentials')
     })
@@ -101,7 +101,7 @@ describe('member commands', () => {
     expect(mockHandleError).toHaveBeenCalledWith(expect.any(WebexError))
   })
 
-  test('listAction handles API error', async () => {
+  it('throws on API error', async () => {
     mockListMemberships.mockImplementation(async () => {
       throw new Error('API failure')
     })

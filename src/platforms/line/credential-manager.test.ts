@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
+import { afterEach, beforeEach, describe, expect, it } from 'bun:test'
 import { mkdir, rm, stat } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -29,12 +29,12 @@ afterEach(async () => {
 })
 
 describe('LineCredentialManager', () => {
-  test('load returns default config when file does not exist', async () => {
+  it('load returns default config when file does not exist', async () => {
     const config = await manager.load()
     expect(config).toEqual({ current_account: null, accounts: {} })
   })
 
-  test('save and load round trip', async () => {
+  it('saves and loads in a round trip', async () => {
     const account = makeAccount('alice')
     const config = { current_account: 'alice', accounts: { alice: account } }
 
@@ -44,14 +44,14 @@ describe('LineCredentialManager', () => {
     expect(loaded).toEqual(config)
   })
 
-  test('file is created with 0o600 permissions', async () => {
+  it('file is created with 0o600 permissions', async () => {
     await manager.save({ current_account: null, accounts: {} })
     const fileStat = await stat(join(tempDir, 'line-credentials.json'))
     // Check owner read/write only (0o600)
     expect(fileStat.mode & 0o777).toBe(0o600)
   })
 
-  test('setAccount adds account and sets as current if first', async () => {
+  it('setAccount adds account and sets as current if first', async () => {
     const account = makeAccount('alice')
     await manager.setAccount(account)
 
@@ -60,7 +60,7 @@ describe('LineCredentialManager', () => {
     expect(loaded.current_account).toBe('alice')
   })
 
-  test('setAccount does not change current if already set', async () => {
+  it('setAccount does not change current if already set', async () => {
     await manager.setAccount(makeAccount('alice'))
     await manager.setAccount(makeAccount('bob'))
 
@@ -68,12 +68,12 @@ describe('LineCredentialManager', () => {
     expect(loaded.current_account).toBe('alice')
   })
 
-  test('getAccount returns null when no accounts', async () => {
+  it('getAccount returns null when no accounts', async () => {
     const result = await manager.getAccount()
     expect(result).toBeNull()
   })
 
-  test('getAccount returns current account when no id given', async () => {
+  it('getAccount returns current account when no id given', async () => {
     const account = makeAccount('alice')
     await manager.setAccount(account)
 
@@ -81,7 +81,7 @@ describe('LineCredentialManager', () => {
     expect(result).toEqual(account)
   })
 
-  test('getAccount returns account by id', async () => {
+  it('getAccount returns account by id', async () => {
     await manager.setAccount(makeAccount('alice'))
     const bob = makeAccount('bob')
     await manager.setAccount(bob)
@@ -90,13 +90,13 @@ describe('LineCredentialManager', () => {
     expect(result).toEqual(bob)
   })
 
-  test('getAccount returns null for unknown id', async () => {
+  it('getAccount returns null for unknown id', async () => {
     await manager.setAccount(makeAccount('alice'))
     const result = await manager.getAccount('unknown')
     expect(result).toBeNull()
   })
 
-  test('removeAccount removes the account', async () => {
+  it('removeAccount removes the account', async () => {
     await manager.setAccount(makeAccount('alice'))
     await manager.removeAccount('alice')
 
@@ -104,7 +104,7 @@ describe('LineCredentialManager', () => {
     expect(loaded.accounts['alice']).toBeUndefined()
   })
 
-  test('removeAccount clears current if it was active', async () => {
+  it('removeAccount clears current if it was active', async () => {
     await manager.setAccount(makeAccount('alice'))
     await manager.removeAccount('alice')
 
@@ -112,7 +112,7 @@ describe('LineCredentialManager', () => {
     expect(loaded.current_account).toBeNull()
   })
 
-  test('removeAccount sets next account as current when active is removed', async () => {
+  it('removeAccount sets next account as current when active is removed', async () => {
     await manager.setAccount(makeAccount('alice'))
     await manager.setAccount(makeAccount('bob'))
     await manager.removeAccount('alice')
@@ -121,7 +121,7 @@ describe('LineCredentialManager', () => {
     expect(loaded.current_account).toBe('bob')
   })
 
-  test('setCurrentAccount updates current account', async () => {
+  it('setCurrentAccount updates current account', async () => {
     await manager.setAccount(makeAccount('alice'))
     await manager.setAccount(makeAccount('bob'))
     await manager.setCurrentAccount('bob')
@@ -130,7 +130,7 @@ describe('LineCredentialManager', () => {
     expect(loaded.current_account).toBe('bob')
   })
 
-  test('listAccounts returns correct format', async () => {
+  it('listAccounts returns correct format', async () => {
     await manager.setAccount(makeAccount('alice'))
     await manager.setAccount(makeAccount('bob'))
 
@@ -148,7 +148,7 @@ describe('LineCredentialManager', () => {
     expect(bob?.is_current).toBe(false)
   })
 
-  test('clearAll removes the credentials file', async () => {
+  it('clearAll removes the credentials file', async () => {
     await manager.setAccount(makeAccount('alice'))
     await manager.clearAll()
 
@@ -156,7 +156,7 @@ describe('LineCredentialManager', () => {
     expect(config).toEqual({ current_account: null, accounts: {} })
   })
 
-  test('clearAll does not throw if file does not exist', async () => {
+  it('clearAll does not throw if file does not exist', async () => {
     await expect(manager.clearAll()).resolves.toBeUndefined()
   })
 })

@@ -1,4 +1,4 @@
-import { expect, test } from 'bun:test'
+import { expect, it } from 'bun:test'
 
 import {
   TeamsChannelSchema,
@@ -13,7 +13,7 @@ import {
 } from './types'
 
 // TeamsTeamSchema tests
-test('TeamsTeamSchema validates correct team', () => {
+it('TeamsTeamSchema validates correct team', () => {
   const result = TeamsTeamSchema.safeParse({
     id: '19:abc123@thread.tacv2',
     name: 'Test Team',
@@ -21,7 +21,7 @@ test('TeamsTeamSchema validates correct team', () => {
   expect(result.success).toBe(true)
 })
 
-test('TeamsTeamSchema validates team with optional description', () => {
+it('TeamsTeamSchema validates team with optional description', () => {
   const result = TeamsTeamSchema.safeParse({
     id: '19:abc123@thread.tacv2',
     name: 'Test Team',
@@ -30,14 +30,14 @@ test('TeamsTeamSchema validates team with optional description', () => {
   expect(result.success).toBe(true)
 })
 
-test('TeamsTeamSchema rejects missing id', () => {
+it('TeamsTeamSchema rejects missing id', () => {
   const result = TeamsTeamSchema.safeParse({
     name: 'Test Team',
   })
   expect(result.success).toBe(false)
 })
 
-test('TeamsTeamSchema rejects missing name', () => {
+it('TeamsTeamSchema rejects missing name', () => {
   const result = TeamsTeamSchema.safeParse({
     id: '19:abc123@thread.tacv2',
   })
@@ -45,7 +45,7 @@ test('TeamsTeamSchema rejects missing name', () => {
 })
 
 // TeamsChannelSchema tests
-test('TeamsChannelSchema validates correct channel', () => {
+it('TeamsChannelSchema validates correct channel', () => {
   const result = TeamsChannelSchema.safeParse({
     id: '19:channel123@thread.tacv2',
     team_id: '19:abc123@thread.tacv2',
@@ -55,7 +55,7 @@ test('TeamsChannelSchema validates correct channel', () => {
   expect(result.success).toBe(true)
 })
 
-test('TeamsChannelSchema rejects missing required fields', () => {
+it('TeamsChannelSchema rejects missing required fields', () => {
   const result = TeamsChannelSchema.safeParse({
     id: '19:channel123@thread.tacv2',
     name: 'General',
@@ -64,7 +64,7 @@ test('TeamsChannelSchema rejects missing required fields', () => {
 })
 
 // TeamsMessageSchema tests
-test('TeamsMessageSchema validates correct message', () => {
+it('TeamsMessageSchema validates correct message', () => {
   const result = TeamsMessageSchema.safeParse({
     id: '1234567890123',
     channel_id: '19:channel123@thread.tacv2',
@@ -78,7 +78,7 @@ test('TeamsMessageSchema validates correct message', () => {
   expect(result.success).toBe(true)
 })
 
-test('TeamsMessageSchema rejects missing required fields', () => {
+it('TeamsMessageSchema rejects missing required fields', () => {
   const result = TeamsMessageSchema.safeParse({
     id: '1234567890123',
     channel_id: '19:channel123@thread.tacv2',
@@ -88,7 +88,7 @@ test('TeamsMessageSchema rejects missing required fields', () => {
 })
 
 // TeamsUserSchema tests
-test('TeamsUserSchema validates correct user', () => {
+it('TeamsUserSchema validates correct user', () => {
   const result = TeamsUserSchema.safeParse({
     id: 'user123',
     displayName: 'Test User',
@@ -96,7 +96,7 @@ test('TeamsUserSchema validates correct user', () => {
   expect(result.success).toBe(true)
 })
 
-test('TeamsUserSchema validates user with optional fields', () => {
+it('TeamsUserSchema validates user with optional fields', () => {
   const result = TeamsUserSchema.safeParse({
     id: 'user123',
     displayName: 'Test User',
@@ -106,7 +106,7 @@ test('TeamsUserSchema validates user with optional fields', () => {
   expect(result.success).toBe(true)
 })
 
-test('TeamsUserSchema rejects missing required fields', () => {
+it('TeamsUserSchema rejects missing required fields', () => {
   const result = TeamsUserSchema.safeParse({
     id: 'user123',
   })
@@ -114,7 +114,7 @@ test('TeamsUserSchema rejects missing required fields', () => {
 })
 
 // TeamsReactionSchema tests
-test('TeamsReactionSchema validates correct reaction', () => {
+it('TeamsReactionSchema validates correct reaction', () => {
   const result = TeamsReactionSchema.safeParse({
     emoji: 'like',
     count: 5,
@@ -122,7 +122,7 @@ test('TeamsReactionSchema validates correct reaction', () => {
   expect(result.success).toBe(true)
 })
 
-test('TeamsReactionSchema rejects missing required fields', () => {
+it('TeamsReactionSchema rejects missing required fields', () => {
   const result = TeamsReactionSchema.safeParse({
     emoji: 'like',
   })
@@ -130,7 +130,7 @@ test('TeamsReactionSchema rejects missing required fields', () => {
 })
 
 // TeamsFileSchema tests
-test('TeamsFileSchema validates correct file', () => {
+it('TeamsFileSchema validates correct file', () => {
   const result = TeamsFileSchema.safeParse({
     id: 'file123',
     name: 'document.pdf',
@@ -140,7 +140,7 @@ test('TeamsFileSchema validates correct file', () => {
   expect(result.success).toBe(true)
 })
 
-test('TeamsFileSchema validates file with optional contentType', () => {
+it('TeamsFileSchema validates file with optional contentType', () => {
   const result = TeamsFileSchema.safeParse({
     id: 'file123',
     name: 'document.pdf',
@@ -151,7 +151,7 @@ test('TeamsFileSchema validates file with optional contentType', () => {
   expect(result.success).toBe(true)
 })
 
-test('TeamsFileSchema rejects missing required fields', () => {
+it('TeamsFileSchema rejects missing required fields', () => {
   const result = TeamsFileSchema.safeParse({
     id: 'file123',
     name: 'document.pdf',
@@ -160,14 +160,14 @@ test('TeamsFileSchema rejects missing required fields', () => {
 })
 
 // TeamsCredentialsSchema tests
-test('TeamsCredentialsSchema validates correct credentials', () => {
+it('TeamsCredentialsSchema validates correct credentials', () => {
   const result = TeamsCredentialsSchema.safeParse({
     token: 'skypetoken_value',
   })
   expect(result.success).toBe(true)
 })
 
-test('TeamsCredentialsSchema validates credentials with cookie', () => {
+it('TeamsCredentialsSchema validates credentials with cookie', () => {
   const result = TeamsCredentialsSchema.safeParse({
     token: 'skypetoken_value',
     cookie: 'skypetoken_asm_value',
@@ -175,13 +175,13 @@ test('TeamsCredentialsSchema validates credentials with cookie', () => {
   expect(result.success).toBe(true)
 })
 
-test('TeamsCredentialsSchema rejects missing token', () => {
+it('TeamsCredentialsSchema rejects missing token', () => {
   const result = TeamsCredentialsSchema.safeParse({})
   expect(result.success).toBe(false)
 })
 
 // TeamsConfigSchema tests
-test('TeamsConfigSchema validates correct config', () => {
+it('TeamsConfigSchema validates correct config', () => {
   const result = TeamsConfigSchema.safeParse({
     current_account: 'work',
     accounts: {
@@ -196,7 +196,7 @@ test('TeamsConfigSchema validates correct config', () => {
   expect(result.success).toBe(true)
 })
 
-test('TeamsConfigSchema validates config with multiple accounts', () => {
+it('TeamsConfigSchema validates config with multiple accounts', () => {
   const result = TeamsConfigSchema.safeParse({
     current_account: 'work',
     accounts: {
@@ -225,7 +225,7 @@ test('TeamsConfigSchema validates config with multiple accounts', () => {
   expect(result.success).toBe(true)
 })
 
-test('TeamsConfigSchema rejects invalid region', () => {
+it('TeamsConfigSchema rejects invalid region', () => {
   const result = TeamsConfigSchema.safeParse({
     current_account: 'work',
     accounts: {
@@ -241,7 +241,7 @@ test('TeamsConfigSchema rejects invalid region', () => {
   expect(result.success).toBe(false)
 })
 
-test('TeamsConfigSchema rejects missing required fields', () => {
+it('TeamsConfigSchema rejects missing required fields', () => {
   const result = TeamsConfigSchema.safeParse({
     current_account: null,
   })
@@ -249,14 +249,14 @@ test('TeamsConfigSchema rejects missing required fields', () => {
 })
 
 // TeamsError tests
-test('TeamsError has correct name and code', () => {
+it('TeamsError has correct name and code', () => {
   const error = new TeamsError('Test error', 'TEST_CODE')
   expect(error.name).toBe('TeamsError')
   expect(error.message).toBe('Test error')
   expect(error.code).toBe('TEST_CODE')
 })
 
-test('TeamsError is instance of Error', () => {
+it('TeamsError is instance of Error', () => {
   const error = new TeamsError('Test error', 'TEST_CODE')
   expect(error instanceof Error).toBe(true)
 })

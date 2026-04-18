@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, spyOn, test } from 'bun:test'
+import { beforeEach, describe, expect, spyOn, it } from 'bun:test'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
 
@@ -12,7 +12,7 @@ describe('InstagramTokenExtractor', () => {
   })
 
   describe('getBrowserCookiesPaths', () => {
-    test('returns darwin paths for all browsers on macOS', () => {
+    it('returns darwin paths for all browsers on macOS', () => {
       const darwinExtractor = new InstagramTokenExtractor('darwin')
       const paths = darwinExtractor.getBrowserCookiesPaths()
 
@@ -26,7 +26,7 @@ describe('InstagramTokenExtractor', () => {
       expect(paths).toContain(join(base, 'Chromium', 'Default', 'Cookies'))
     })
 
-    test('returns linux paths for supported browsers', () => {
+    it('returns linux paths for supported browsers', () => {
       const linuxExtractor = new InstagramTokenExtractor('linux')
       const paths = linuxExtractor.getBrowserCookiesPaths()
 
@@ -38,7 +38,7 @@ describe('InstagramTokenExtractor', () => {
       expect(paths).toContain(join(base, 'chromium', 'Default', 'Cookies'))
     })
 
-    test('returns win32 paths for all browsers on Windows', () => {
+    it('returns win32 paths for all browsers on Windows', () => {
       const winExtractor = new InstagramTokenExtractor('win32')
       const paths = winExtractor.getBrowserCookiesPaths()
 
@@ -48,13 +48,13 @@ describe('InstagramTokenExtractor', () => {
       expect(paths).toContain(join(localAppData, 'BraveSoftware', 'Brave-Browser', 'User Data', 'Default', 'Cookies'))
     })
 
-    test('returns empty array for unsupported platform', () => {
+    it('returns empty array for unsupported platform', () => {
       const unsupportedExtractor = new InstagramTokenExtractor('freebsd' as NodeJS.Platform)
       const paths = unsupportedExtractor.getBrowserCookiesPaths()
       expect(paths).toEqual([])
     })
 
-    test('includes Network/Cookies variant paths', () => {
+    it('includes Network/Cookies variant paths', () => {
       const darwinExtractor = new InstagramTokenExtractor('darwin')
       const paths = darwinExtractor.getBrowserCookiesPaths()
 
@@ -64,7 +64,7 @@ describe('InstagramTokenExtractor', () => {
   })
 
   describe('getLocalStatePaths', () => {
-    test('returns darwin Local State paths for all browsers', () => {
+    it('returns darwin Local State paths for all browsers', () => {
       const darwinExtractor = new InstagramTokenExtractor('darwin')
       const paths = darwinExtractor.getLocalStatePaths()
 
@@ -74,7 +74,7 @@ describe('InstagramTokenExtractor', () => {
       expect(paths).toContain(join(base, 'BraveSoftware', 'Brave-Browser', 'Local State'))
     })
 
-    test('returns linux Local State paths for supported browsers', () => {
+    it('returns linux Local State paths for supported browsers', () => {
       const linuxExtractor = new InstagramTokenExtractor('linux')
       const paths = linuxExtractor.getLocalStatePaths()
 
@@ -83,7 +83,7 @@ describe('InstagramTokenExtractor', () => {
       expect(paths).toContain(join(base, 'microsoft-edge', 'Local State'))
     })
 
-    test('returns win32 Local State paths for all browsers', () => {
+    it('returns win32 Local State paths for all browsers', () => {
       const winExtractor = new InstagramTokenExtractor('win32')
       const paths = winExtractor.getLocalStatePaths()
 
@@ -94,7 +94,7 @@ describe('InstagramTokenExtractor', () => {
   })
 
   describe('getKeychainVariants', () => {
-    test('returns all Chromium browser keychain variants', () => {
+    it('returns all Chromium browser keychain variants', () => {
       expect(extractor.getKeychainVariants()).toEqual([
         { service: 'Chrome Safe Storage', account: 'Chrome' },
         { service: 'Chrome Canary Safe Storage', account: 'Chrome Canary' },
@@ -108,59 +108,59 @@ describe('InstagramTokenExtractor', () => {
   })
 
   describe('isEncryptedValue', () => {
-    test('detects v10 encrypted values', () => {
+    it('detects v10 encrypted values', () => {
       const encrypted = Buffer.from('v10encrypted_data')
       expect(extractor.isEncryptedValue(encrypted)).toBe(true)
     })
 
-    test('detects v11 encrypted values', () => {
+    it('detects v11 encrypted values', () => {
       const encrypted = Buffer.from('v11encrypted_data')
       expect(extractor.isEncryptedValue(encrypted)).toBe(true)
     })
 
-    test('rejects non-encrypted values', () => {
+    it('rejects non-encrypted values', () => {
       const plain = Buffer.from('plain_text')
       expect(extractor.isEncryptedValue(plain)).toBe(false)
     })
 
-    test('rejects empty buffers', () => {
+    it('rejects empty buffers', () => {
       const empty = Buffer.alloc(0)
       expect(extractor.isEncryptedValue(empty)).toBe(false)
     })
 
-    test('rejects short buffers under 4 bytes', () => {
+    it('rejects short buffers under 4 bytes', () => {
       const short = Buffer.from('v1')
       expect(extractor.isEncryptedValue(short)).toBe(false)
     })
   })
 
   describe('isValidSessionId', () => {
-    test('accepts session IDs of 20 or more chars', () => {
+    it('accepts session IDs of 20 or more chars', () => {
       const valid = 'abcdefghijklmnopqrstu'
       expect(extractor.isValidSessionId(valid)).toBe(true)
     })
 
-    test('accepts long session IDs', () => {
+    it('accepts long session IDs', () => {
       const valid = 'a'.repeat(100)
       expect(extractor.isValidSessionId(valid)).toBe(true)
     })
 
-    test('rejects session IDs shorter than 20 chars', () => {
+    it('rejects session IDs shorter than 20 chars', () => {
       expect(extractor.isValidSessionId('short')).toBe(false)
     })
 
-    test('rejects empty string', () => {
+    it('rejects empty string', () => {
       expect(extractor.isValidSessionId('')).toBe(false)
     })
 
-    test('rejects null and undefined', () => {
+    it('rejects null and undefined', () => {
       expect(extractor.isValidSessionId(null as unknown as string)).toBe(false)
       expect(extractor.isValidSessionId(undefined as unknown as string)).toBe(false)
     })
   })
 
   describe('extract', () => {
-    test('returns empty array when no cookie paths exist', async () => {
+    it('returns empty array when no cookie paths exist', async () => {
       const linuxExtractor = new InstagramTokenExtractor('linux')
       const spy = spyOn(linuxExtractor as any, 'copyAndExtract').mockResolvedValue(null)
 
@@ -170,7 +170,7 @@ describe('InstagramTokenExtractor', () => {
       spy.mockRestore()
     })
 
-    test('returns extracted cookies when found', async () => {
+    it('returns extracted cookies when found', async () => {
       const mockCookies = {
         sessionid: 'a'.repeat(25),
         ds_user_id: '12345678',
@@ -193,7 +193,7 @@ describe('InstagramTokenExtractor', () => {
       copyAndExtractSpy.mockRestore()
     })
 
-    test('tries next path when first fails', async () => {
+    it('tries next path when first fails', async () => {
       const mockCookies = {
         sessionid: 'a'.repeat(25),
         ds_user_id: '12345678',
@@ -219,7 +219,7 @@ describe('InstagramTokenExtractor', () => {
       copyAndExtractSpy.mockRestore()
     })
 
-    test('returns multiple entries when different ds_user_id values found across profiles', async () => {
+    it('returns multiple entries when different ds_user_id values found across profiles', async () => {
       const mockCookies1 = {
         sessionid: 'a'.repeat(25),
         ds_user_id: '11111111',
@@ -251,7 +251,7 @@ describe('InstagramTokenExtractor', () => {
       copyAndExtractSpy.mockRestore()
     })
 
-    test('deduplicates entries with the same ds_user_id across profiles', async () => {
+    it('deduplicates entries with the same ds_user_id across profiles', async () => {
       const mockCookies = {
         sessionid: 'a'.repeat(25),
         ds_user_id: '12345678',
@@ -277,7 +277,7 @@ describe('InstagramTokenExtractor', () => {
   })
 
   describe('copyAndExtract', () => {
-    test('returns null when copy fails due to locked database', async () => {
+    it('returns null when copy fails due to locked database', async () => {
       const darwinExtractor = new InstagramTokenExtractor('darwin')
       const copyFileSpy = spyOn(darwinExtractor as any, 'copyDatabaseToTemp').mockImplementation(() => {
         throw new Error('EBUSY: resource busy or locked')
@@ -289,7 +289,7 @@ describe('InstagramTokenExtractor', () => {
       copyFileSpy.mockRestore()
     })
 
-    test('cleans up temp file after extraction', async () => {
+    it('cleans up temp file after extraction', async () => {
       const darwinExtractor = new InstagramTokenExtractor('darwin')
       const copyFileSpy = spyOn(darwinExtractor as any, 'copyDatabaseToTemp').mockReturnValue('/tmp/test-cookies')
       const extractSpy = spyOn(darwinExtractor as any, 'extractFromSQLite').mockResolvedValue(null)
@@ -308,7 +308,7 @@ describe('InstagramTokenExtractor', () => {
 
   describe('decryption', () => {
     describe('decryptAESGCM', () => {
-      test('returns null for data too short for AES-GCM', () => {
+      it('returns null for data too short for AES-GCM', () => {
         const invalidData = Buffer.from('too_short')
         const key = Buffer.alloc(32, 0)
 
@@ -316,7 +316,7 @@ describe('InstagramTokenExtractor', () => {
         expect(result).toBeNull()
       })
 
-      test('returns null when AES-GCM decryption fails with wrong key', () => {
+      it('returns null when AES-GCM decryption fails with wrong key', () => {
         const fakeEncrypted = Buffer.concat([
           Buffer.from('v10'),
           Buffer.alloc(12, 1),
@@ -331,7 +331,7 @@ describe('InstagramTokenExtractor', () => {
     })
 
     describe('decryptAESCBC', () => {
-      test('strips 32-byte non-printable integrity hash prefix (Chromium v130+)', () => {
+      it('strips 32-byte non-printable integrity hash prefix (Chromium v130+)', () => {
         // given — AES-128-CBC encrypted buffer where decrypted result has a 32-byte non-printable prefix
         const { createCipheriv, pbkdf2Sync } = require('node:crypto')
         const key = pbkdf2Sync('peanuts', 'saltysalt', 1, 16, 'sha1')
@@ -351,7 +351,7 @@ describe('InstagramTokenExtractor', () => {
         expect(result).toBe(actualValue)
       })
 
-      test('returns plaintext as-is when no non-printable prefix detected', () => {
+      it('returns plaintext as-is when no non-printable prefix detected', () => {
         // given — AES-128-CBC encrypted buffer without integrity hash prefix
         const { createCipheriv, pbkdf2Sync } = require('node:crypto')
         const key = pbkdf2Sync('peanuts', 'saltysalt', 1, 16, 'sha1')
@@ -371,7 +371,7 @@ describe('InstagramTokenExtractor', () => {
     })
 
     describe('getKeychainPassword on macOS', () => {
-      test('tries multiple keychain variants until one succeeds', () => {
+      it('tries multiple keychain variants until one succeeds', () => {
         const darwinExtractor = new InstagramTokenExtractor('darwin')
         const execSyncSpy = spyOn(darwinExtractor as any, 'execSecurityCommand')
           .mockReturnValueOnce(null)
@@ -385,7 +385,7 @@ describe('InstagramTokenExtractor', () => {
         execSyncSpy.mockRestore()
       })
 
-      test('returns null when all keychain variants fail', () => {
+      it('returns null when all keychain variants fail', () => {
         const darwinExtractor = new InstagramTokenExtractor('darwin')
         const execSyncSpy = spyOn(darwinExtractor as any, 'execSecurityCommand').mockReturnValue(null)
 
@@ -399,12 +399,12 @@ describe('InstagramTokenExtractor', () => {
   })
 
   describe('SQLite extraction', () => {
-    test('returns null when database path does not exist', async () => {
+    it('returns null when database path does not exist', async () => {
       const result = await (extractor as any).extractFromSQLite('/nonexistent/path', '/nonexistent/path')
       expect(result).toBeNull()
     })
 
-    test('returns null when extraction throws', async () => {
+    it('returns null when extraction throws', async () => {
       const result = await (extractor as any).extractFromSQLite('/dev/null', '/dev/null')
       expect(result).toBeNull()
     })

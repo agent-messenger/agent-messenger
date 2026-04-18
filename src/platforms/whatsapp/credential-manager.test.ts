@@ -1,4 +1,4 @@
-import { afterAll, describe, expect, test } from 'bun:test'
+import { afterAll, describe, expect, it } from 'bun:test'
 import { existsSync, rmSync } from 'node:fs'
 import { join } from 'node:path'
 
@@ -35,7 +35,7 @@ afterAll(() => {
 
 describe('WhatsAppCredentialManager', () => {
   describe('loadConfig', () => {
-    test('returns default config when file does not exist', async () => {
+    it('returns default config when file does not exist', async () => {
       const manager = setup()
       const config = await manager.loadConfig()
 
@@ -44,7 +44,7 @@ describe('WhatsAppCredentialManager', () => {
   })
 
   describe('saveConfig', () => {
-    test('creates file and can be re-read via loadConfig', async () => {
+    it('creates file and can be re-read via loadConfig', async () => {
       const manager = setup()
       const config = {
         current: 'test-account',
@@ -61,14 +61,14 @@ describe('WhatsAppCredentialManager', () => {
   })
 
   describe('getAccount', () => {
-    test('returns null when no accounts exist', async () => {
+    it('returns null when no accounts exist', async () => {
       const manager = setup()
       const account = await manager.getAccount()
 
       expect(account).toBeNull()
     })
 
-    test('returns null for specific accountId when no accounts exist', async () => {
+    it('returns null for specific accountId when no accounts exist', async () => {
       const manager = setup()
       const account = await manager.getAccount('nonexistent')
 
@@ -77,7 +77,7 @@ describe('WhatsAppCredentialManager', () => {
   })
 
   describe('setAccount', () => {
-    test('round-trips: set then get returns same account', async () => {
+    it('round-trips: set then get returns same account', async () => {
       const manager = setup()
       const account = makeAccount()
 
@@ -87,7 +87,7 @@ describe('WhatsAppCredentialManager', () => {
       expect(retrieved).toEqual(account)
     })
 
-    test('sets first account as current automatically', async () => {
+    it('sets first account as current automatically', async () => {
       const manager = setup()
       const account = makeAccount()
 
@@ -97,7 +97,7 @@ describe('WhatsAppCredentialManager', () => {
       expect(current).toEqual(account)
     })
 
-    test('does not override current when it is already set', async () => {
+    it('does not override current when it is already set', async () => {
       const manager = setup()
       const first = makeAccount({ account_id: 'first-account' })
       const second = makeAccount({ account_id: 'second-account' })
@@ -109,7 +109,7 @@ describe('WhatsAppCredentialManager', () => {
       expect(current?.account_id).toBe('first-account')
     })
 
-    test('getAccount with normalized ID lookup via createAccountId', async () => {
+    it('looks up account by normalized ID via createAccountId', async () => {
       const manager = setup()
       const account = makeAccount({ account_id: 'plus-12025551234' })
 
@@ -121,14 +121,14 @@ describe('WhatsAppCredentialManager', () => {
   })
 
   describe('listAccounts', () => {
-    test('returns empty array when no accounts', async () => {
+    it('returns empty array when no accounts', async () => {
       const manager = setup()
       const accounts = await manager.listAccounts()
 
       expect(accounts).toEqual([])
     })
 
-    test('returns all accounts with is_current flag', async () => {
+    it('returns all accounts with is_current flag', async () => {
       const manager = setup()
       const first = makeAccount({ account_id: 'first-account' })
       const second = makeAccount({ account_id: 'second-account' })
@@ -147,7 +147,7 @@ describe('WhatsAppCredentialManager', () => {
   })
 
   describe('setCurrent', () => {
-    test('switches active account and returns true', async () => {
+    it('switches active account and returns true', async () => {
       const manager = setup()
       const first = makeAccount({ account_id: 'first-account' })
       const second = makeAccount({ account_id: 'second-account' })
@@ -162,7 +162,7 @@ describe('WhatsAppCredentialManager', () => {
       expect(current?.account_id).toBe('second-account')
     })
 
-    test('returns false for non-existent account', async () => {
+    it('returns false for non-existent account', async () => {
       const manager = setup()
 
       const result = await manager.setCurrent('nonexistent')
@@ -172,7 +172,7 @@ describe('WhatsAppCredentialManager', () => {
   })
 
   describe('removeAccount', () => {
-    test('removes account and adjusts current to next available', async () => {
+    it('removes account and adjusts current to next available', async () => {
       const manager = setup()
       const first = makeAccount({ account_id: 'first-account' })
       const second = makeAccount({ account_id: 'second-account' })
@@ -191,7 +191,7 @@ describe('WhatsAppCredentialManager', () => {
       expect(current?.account_id).toBe('second-account')
     })
 
-    test('returns false for non-existent account', async () => {
+    it('returns false for non-existent account', async () => {
       const manager = setup()
 
       const result = await manager.removeAccount('nonexistent')
@@ -199,7 +199,7 @@ describe('WhatsAppCredentialManager', () => {
       expect(result).toBe(false)
     })
 
-    test('deletes session directory even when account is not in config', async () => {
+    it('deletes session directory even when account is not in config', async () => {
       const manager = setup()
 
       const paths = await manager.ensureAccountPaths('orphan-account')
@@ -211,7 +211,7 @@ describe('WhatsAppCredentialManager', () => {
       expect(existsSync(paths.account_dir)).toBe(false)
     })
 
-    test('returns false when neither config entry nor directory exists', async () => {
+    it('returns false when neither config entry nor directory exists', async () => {
       const manager = setup()
 
       const result = await manager.removeAccount('ghost-account')
@@ -221,7 +221,7 @@ describe('WhatsAppCredentialManager', () => {
   })
 
   describe('clearCredentials', () => {
-    test('removes credentials file when it exists', async () => {
+    it('removes credentials file when it exists', async () => {
       const manager = setup()
       const account = makeAccount()
       await manager.setAccount(account)
@@ -235,7 +235,7 @@ describe('WhatsAppCredentialManager', () => {
       expect(existsSync(credentialsPath)).toBe(false)
     })
 
-    test('does not throw when credentials file does not exist', async () => {
+    it('does not throw when credentials file does not exist', async () => {
       const manager = setup()
 
       await expect(manager.clearCredentials()).resolves.toBeUndefined()
@@ -243,7 +243,7 @@ describe('WhatsAppCredentialManager', () => {
   })
 
   describe('getAccountPaths', () => {
-    test('returns correct paths structure for account ID', async () => {
+    it('returns correct paths structure for account ID', async () => {
       const testConfigDir = join(
         import.meta.dir,
         `.test-whatsapp-config-${Date.now()}-${Math.random().toString(36).slice(2)}`,
@@ -257,7 +257,7 @@ describe('WhatsAppCredentialManager', () => {
       expect(paths.auth_dir).toBe(join(testConfigDir, 'whatsapp', 'test-account', 'auth'))
     })
 
-    test('normalizes account ID via createAccountId', async () => {
+    it('normalizes account ID via createAccountId', async () => {
       const testConfigDir = join(
         import.meta.dir,
         `.test-whatsapp-config-${Date.now()}-${Math.random().toString(36).slice(2)}`,
@@ -273,7 +273,7 @@ describe('WhatsAppCredentialManager', () => {
   })
 
   describe('ensureAccountPaths', () => {
-    test('creates directories', async () => {
+    it('creates directories', async () => {
       const manager = setup()
 
       const paths = await manager.ensureAccountPaths('test-account')
@@ -281,7 +281,7 @@ describe('WhatsAppCredentialManager', () => {
       expect(existsSync(paths.auth_dir)).toBe(true)
     })
 
-    test('returns paths structure', async () => {
+    it('returns paths structure', async () => {
       const testConfigDir = join(
         import.meta.dir,
         `.test-whatsapp-config-${Date.now()}-${Math.random().toString(36).slice(2)}`,

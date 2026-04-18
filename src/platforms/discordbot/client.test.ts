@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
+import { afterEach, beforeEach, describe, expect, it } from 'bun:test'
 
 import { DiscordBotClient } from './client'
 import { DiscordBotError } from './types'
@@ -48,19 +48,19 @@ describe('DiscordBotClient', () => {
   }
 
   describe('constructor', () => {
-    test('requires token', async () => {
+    it('requires token', async () => {
       await expect(new DiscordBotClient().login({ token: '' })).rejects.toThrow(DiscordBotError)
       await expect(new DiscordBotClient().login({ token: '' })).rejects.toThrow('Token is required')
     })
 
-    test('accepts valid token', async () => {
+    it('accepts valid token', async () => {
       const client = await new DiscordBotClient().login({ token: 'bot-test-token' })
       expect(client).toBeInstanceOf(DiscordBotClient)
     })
   })
 
   describe('testAuth', () => {
-    test('returns current user and uses Bot auth header', async () => {
+    it('returns current user and uses Bot auth header', async () => {
       mockResponse({
         id: '123456789',
         username: 'testbot',
@@ -81,7 +81,7 @@ describe('DiscordBotClient', () => {
       expect(headers['User-Agent']).toContain('DiscordBot')
     })
 
-    test('throws DiscordBotError on API error', async () => {
+    it('throws DiscordBotError on API error', async () => {
       mockResponse({ message: 'Unauthorized', code: 401 }, 401)
 
       const client = await new DiscordBotClient().login({ token: 'bad-token' })
@@ -90,7 +90,7 @@ describe('DiscordBotClient', () => {
   })
 
   describe('listGuilds', () => {
-    test('returns list of guilds', async () => {
+    it('returns list of guilds', async () => {
       mockResponse([
         { id: '111', name: 'Guild One' },
         { id: '222', name: 'Guild Two' },
@@ -106,7 +106,7 @@ describe('DiscordBotClient', () => {
   })
 
   describe('getGuild', () => {
-    test('returns guild info', async () => {
+    it('returns guild info', async () => {
       mockResponse({ id: '111', name: 'Test Guild' })
 
       const client = await new DiscordBotClient().login({ token: 'bot-token' })
@@ -119,7 +119,7 @@ describe('DiscordBotClient', () => {
   })
 
   describe('listChannels', () => {
-    test('returns channels for guild', async () => {
+    it('returns channels for guild', async () => {
       mockResponse([
         { id: 'ch1', guild_id: '111', name: 'general', type: 0 },
         { id: 'ch2', guild_id: '111', name: 'random', type: 0 },
@@ -135,7 +135,7 @@ describe('DiscordBotClient', () => {
   })
 
   describe('sendMessage', () => {
-    test('sends message to channel', async () => {
+    it('sends message to channel', async () => {
       mockResponse({
         id: 'msg1',
         channel_id: 'ch1',
@@ -153,7 +153,7 @@ describe('DiscordBotClient', () => {
       expect(fetchCalls[0].options?.body).toBe(JSON.stringify({ content: 'Hello world' }))
     })
 
-    test('includes thread_id when provided', async () => {
+    it('includes thread_id when provided', async () => {
       mockResponse({
         id: 'msg1',
         channel_id: 'ch1',
@@ -170,7 +170,7 @@ describe('DiscordBotClient', () => {
   })
 
   describe('editMessage', () => {
-    test('edits message with PATCH', async () => {
+    it('edits message with PATCH', async () => {
       mockResponse({
         id: 'msg1',
         channel_id: 'ch1',
@@ -191,7 +191,7 @@ describe('DiscordBotClient', () => {
   })
 
   describe('deleteMessage', () => {
-    test('deletes message and returns void', async () => {
+    it('deletes message and returns void', async () => {
       mockResponse(null, 204)
 
       const client = await new DiscordBotClient().login({ token: 'bot-token' })
@@ -204,7 +204,7 @@ describe('DiscordBotClient', () => {
   })
 
   describe('addReaction', () => {
-    test('adds reaction with encoded emoji', async () => {
+    it('adds reaction with encoded emoji', async () => {
       mockResponse(null, 204)
 
       const client = await new DiscordBotClient().login({ token: 'bot-token' })
@@ -218,7 +218,7 @@ describe('DiscordBotClient', () => {
   })
 
   describe('removeReaction', () => {
-    test('removes reaction with DELETE', async () => {
+    it('removes reaction with DELETE', async () => {
       mockResponse(null, 204)
 
       const client = await new DiscordBotClient().login({ token: 'bot-token' })
@@ -232,7 +232,7 @@ describe('DiscordBotClient', () => {
   })
 
   describe('listUsers', () => {
-    test('maps guild members to users', async () => {
+    it('maps guild members to users', async () => {
       mockResponse([{ user: { id: 'u1', username: 'user1' } }, { user: { id: 'u2', username: 'user2' } }])
 
       const client = await new DiscordBotClient().login({ token: 'bot-token' })
@@ -245,7 +245,7 @@ describe('DiscordBotClient', () => {
   })
 
   describe('getUser', () => {
-    test('returns user info', async () => {
+    it('returns user info', async () => {
       mockResponse({ id: 'u1', username: 'testuser' })
 
       const client = await new DiscordBotClient().login({ token: 'bot-token' })
@@ -258,7 +258,7 @@ describe('DiscordBotClient', () => {
   })
 
   describe('uploadFile', () => {
-    test('uploads file to channel', async () => {
+    it('uploads file to channel', async () => {
       const { tmpdir } = await import('node:os')
       const { join } = await import('node:path')
       const tempFile = join(tmpdir(), 'test-discordbot-upload.txt')
@@ -293,7 +293,7 @@ describe('DiscordBotClient', () => {
   })
 
   describe('listFiles', () => {
-    test('returns files from recent messages', async () => {
+    it('returns files from recent messages', async () => {
       mockResponse([
         {
           id: 'msg1',
@@ -322,7 +322,7 @@ describe('DiscordBotClient', () => {
   })
 
   describe('createThread', () => {
-    test('creates thread in channel', async () => {
+    it('creates thread in channel', async () => {
       mockResponse({
         id: 'thread1',
         guild_id: '111',
@@ -342,7 +342,7 @@ describe('DiscordBotClient', () => {
   })
 
   describe('archiveThread', () => {
-    test('archives thread with PATCH', async () => {
+    it('archives thread with PATCH', async () => {
       mockResponse({
         id: 'thread1',
         guild_id: '111',
@@ -361,7 +361,7 @@ describe('DiscordBotClient', () => {
   })
 
   describe('resolveChannel', () => {
-    test('returns channel ID directly if all digits', async () => {
+    it('returns channel ID directly if all digits', async () => {
       const client = await new DiscordBotClient().login({ token: 'bot-token' })
       const id = await client.resolveChannel('111', '123456789')
 
@@ -369,7 +369,7 @@ describe('DiscordBotClient', () => {
       expect(fetchCalls.length).toBe(0)
     })
 
-    test('looks up channel by name', async () => {
+    it('looks up channel by name', async () => {
       mockResponse([
         { id: 'ch1', guild_id: '111', name: 'general', type: 0 },
         { id: 'ch2', guild_id: '111', name: 'random', type: 0 },
@@ -381,7 +381,7 @@ describe('DiscordBotClient', () => {
       expect(id).toBe('ch2')
     })
 
-    test('strips # prefix when looking up by name', async () => {
+    it('strips # prefix when looking up by name', async () => {
       mockResponse([{ id: 'ch1', guild_id: '111', name: 'general', type: 0 }])
 
       const client = await new DiscordBotClient().login({ token: 'bot-token' })
@@ -390,7 +390,7 @@ describe('DiscordBotClient', () => {
       expect(id).toBe('ch1')
     })
 
-    test('throws when channel name not found', async () => {
+    it('throws when channel name not found', async () => {
       mockResponse([{ id: 'ch1', guild_id: '111', name: 'general', type: 0 }])
 
       const client = await new DiscordBotClient().login({ token: 'bot-token' })
@@ -406,7 +406,7 @@ describe('DiscordBotClient', () => {
   })
 
   describe('rate limiting', () => {
-    test('waits when bucket is exhausted', async () => {
+    it('waits when bucket is exhausted', async () => {
       mockResponse({ id: '1', username: 'bot' }, 200, {
         'X-RateLimit-Remaining': '0',
         'X-RateLimit-Reset': String(Date.now() / 1000 + 0.1),
@@ -429,7 +429,7 @@ describe('DiscordBotClient', () => {
       expect(fetchCalls.length).toBe(2)
     })
 
-    test('retries on 429 with Retry-After header', async () => {
+    it('retries on 429 with Retry-After header', async () => {
       mockResponse({ message: 'Rate limited', retry_after: 0.1 }, 429, { 'Retry-After': '0.1' })
       mockResponse({ id: '123', username: 'bot' })
 
@@ -440,7 +440,7 @@ describe('DiscordBotClient', () => {
       expect(fetchCalls.length).toBe(2)
     })
 
-    test('handles global rate limit', async () => {
+    it('handles global rate limit', async () => {
       mockResponse({ message: 'Global rate limited', global: true }, 429, {
         'Retry-After': '0.1',
         'X-RateLimit-Global': 'true',
@@ -454,7 +454,7 @@ describe('DiscordBotClient', () => {
       expect(fetchCalls.length).toBe(2)
     })
 
-    test('throws after max retries exceeded', async () => {
+    it('throws after max retries exceeded', async () => {
       for (let i = 0; i <= 3; i++) {
         mockResponse({ message: 'Rate limited' }, 429, { 'Retry-After': '0.01' })
       }
@@ -466,7 +466,7 @@ describe('DiscordBotClient', () => {
   })
 
   describe('retry logic', () => {
-    test('retries on 500 server error', async () => {
+    it('retries on 500 server error', async () => {
       mockResponse({ message: 'Internal Server Error' }, 500)
       mockResponse({ id: '123', username: 'bot' })
 
@@ -477,7 +477,7 @@ describe('DiscordBotClient', () => {
       expect(fetchCalls.length).toBe(2)
     })
 
-    test('does not retry on 4xx client errors (except 429)', async () => {
+    it('does not retry on 4xx client errors (except 429)', async () => {
       mockResponse({ message: 'Not Found' }, 404)
 
       const client = await new DiscordBotClient().login({ token: 'bot-token' })
@@ -485,7 +485,7 @@ describe('DiscordBotClient', () => {
       expect(fetchCalls.length).toBe(1)
     })
 
-    test('exponential backoff increases delay', async () => {
+    it('exponential backoff increases delay', async () => {
       mockResponse({ message: 'Error' }, 500)
       mockResponse({ message: 'Error' }, 500)
       mockResponse({ id: '123', username: 'bot' })

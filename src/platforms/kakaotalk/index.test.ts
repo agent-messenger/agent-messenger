@@ -1,4 +1,4 @@
-import { expect, test } from 'bun:test'
+import { expect, it } from 'bun:test'
 
 import {
   CredentialManager,
@@ -17,58 +17,58 @@ import {
   KakaoTalkPushReadEventSchema,
 } from '@/platforms/kakaotalk/index'
 
-test('KakaoTalkClient is exported from barrel', () => {
+it('KakaoTalkClient is exported from barrel', () => {
   expect(typeof KakaoTalkClient).toBe('function')
 })
 
-test('KakaoTalkError is exported from barrel', () => {
+it('KakaoTalkError is exported from barrel', () => {
   expect(typeof KakaoTalkError).toBe('function')
 })
 
-test('CredentialManager is exported from barrel', () => {
+it('CredentialManager is exported from barrel', () => {
   expect(typeof CredentialManager).toBe('function')
 })
 
-test('KakaoCredentialManager is exported from barrel', () => {
+it('KakaoCredentialManager is exported from barrel', () => {
   expect(typeof KakaoCredentialManager).toBe('function')
 })
 
-test('KakaoTalkListener is exported from barrel', () => {
+it('KakaoTalkListener is exported from barrel', () => {
   expect(typeof KakaoTalkListener).toBe('function')
 })
 
-test('KakaoChatSchema is exported from barrel', () => {
+it('KakaoChatSchema is exported from barrel', () => {
   expect(typeof KakaoChatSchema.parse).toBe('function')
 })
 
-test('KakaoMessageSchema is exported from barrel', () => {
+it('KakaoMessageSchema is exported from barrel', () => {
   expect(typeof KakaoMessageSchema.parse).toBe('function')
 })
 
-test('KakaoSendResultSchema is exported from barrel', () => {
+it('KakaoSendResultSchema is exported from barrel', () => {
   expect(typeof KakaoSendResultSchema.parse).toBe('function')
 })
 
-test('KakaoAccountCredentialsSchema is exported from barrel', () => {
+it('KakaoAccountCredentialsSchema is exported from barrel', () => {
   expect(typeof KakaoAccountCredentialsSchema.parse).toBe('function')
 })
 
-test('KakaoConfigSchema is exported from barrel', () => {
+it('KakaoConfigSchema is exported from barrel', () => {
   expect(typeof KakaoConfigSchema.parse).toBe('function')
 })
 
-test('KakaoTalkPushMessageEventSchema is exported from barrel', () => {
+it('KakaoTalkPushMessageEventSchema is exported from barrel', () => {
   expect(typeof KakaoTalkPushMessageEventSchema.parse).toBe('function')
 })
 
-test('KakaoTalkPushMemberEventSchema is exported from barrel', () => {
+it('KakaoTalkPushMemberEventSchema is exported from barrel', () => {
   expect(typeof KakaoTalkPushMemberEventSchema.parse).toBe('function')
 })
 
-test('KakaoTalkPushReadEventSchema is exported from barrel', () => {
+it('KakaoTalkPushReadEventSchema is exported from barrel', () => {
   expect(typeof KakaoTalkPushReadEventSchema.parse).toBe('function')
 })
 
-test('KakaoProfileSchema is exported from barrel', () => {
+it('KakaoProfileSchema is exported from barrel', () => {
   expect(typeof KakaoProfileSchema.parse).toBe('function')
 })

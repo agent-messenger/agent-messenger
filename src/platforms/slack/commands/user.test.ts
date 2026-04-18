@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'bun:test'
+import { describe, expect, it } from 'bun:test'
 
 import { SlackClient } from '@/platforms/slack/client'
 import { userCommand } from '@/platforms/slack/commands/user'
@@ -44,7 +44,7 @@ const mockUsers: SlackUser[] = [
 
 describe('User Commands', () => {
   describe('user list', () => {
-    test('lists all users', async () => {
+    it('lists all users', async () => {
       // Given: SlackClient with users
       const _mockClient = {
         listUsers: async () => mockUsers,
@@ -57,14 +57,14 @@ describe('User Commands', () => {
       expect(result).toBeDefined()
     })
 
-    test('filters out bots by default', async () => {
+    it('filters out bots by default', async () => {
       // Given: Users including bots
       // When: Listing without --include-bots flag
       // Then: Should exclude bots (is_bot: true)
       expect(mockUsers.filter((u) => !u.is_bot)).toHaveLength(2)
     })
 
-    test('includes bots with --include-bots flag', async () => {
+    it('includes bots with --include-bots flag', async () => {
       // Given: Users including bots
       // When: Listing with --include-bots flag
       // Then: Should include all users
@@ -73,7 +73,7 @@ describe('User Commands', () => {
   })
 
   describe('user info', () => {
-    test('shows user details by ID', async () => {
+    it('shows user details by ID', async () => {
       // Given: User ID
       // When: Getting user info
       // Then: Should return user details
@@ -82,7 +82,7 @@ describe('User Commands', () => {
       expect(user.name).toBe('alice')
     })
 
-    test('returns error for invalid user ID', async () => {
+    it('returns error for invalid user ID', async () => {
       // Given: Invalid user ID
       // When: Getting user info
       // Then: Should return error
@@ -91,14 +91,14 @@ describe('User Commands', () => {
   })
 
   describe('user me', () => {
-    test('shows current authenticated user', async () => {
+    it('shows current authenticated user', async () => {
       // Given: Authenticated client
       // When: Running user me
       // Then: Should return current user info
       expect(true).toBe(true)
     })
 
-    test('includes user profile details', async () => {
+    it('includes user profile details', async () => {
       // Given: Current user
       const user = mockUsers[0]
 
@@ -110,7 +110,7 @@ describe('User Commands', () => {
   })
 
   describe('output format', () => {
-    test('returns JSON with user data', async () => {
+    it('returns JSON with user data', async () => {
       // Given: Users
       const user = mockUsers[0]
 
@@ -122,7 +122,7 @@ describe('User Commands', () => {
       expect(json).toContain('alice')
     })
 
-    test('supports --pretty flag for formatting', async () => {
+    it('supports --pretty flag for formatting', async () => {
       // Given: Output data
       const data = { users: mockUsers }
 

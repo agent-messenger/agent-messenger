@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, expect, mock, spyOn, test } from 'bun:test'
+import { afterEach, beforeEach, expect, mock, spyOn, it } from 'bun:test'
 
 const originalConsoleLog = console.log
 
@@ -55,7 +55,7 @@ afterEach(() => {
   console.log = originalConsoleLog
 })
 
-test('status: outputs account info when account exists', async () => {
+it('status: outputs account info when account exists', async () => {
   // when
   await authCommand.parseAsync(['node', 'auth', 'status'])
 
@@ -68,7 +68,7 @@ test('status: outputs account info when account exists', async () => {
   expect(output.device).toBe('ANDROIDSECONDARY')
 })
 
-test('status: outputs error when no account configured', async () => {
+it('status: outputs error when no account configured', async () => {
   // given
   getAccountSpy.mockResolvedValue(null)
 
@@ -81,7 +81,7 @@ test('status: outputs error when no account configured', async () => {
   expect(output.error).toBe('No LINE account configured')
 })
 
-test('list: outputs all accounts', async () => {
+it('list: outputs all accounts', async () => {
   // when
   await authCommand.parseAsync(['node', 'auth', 'list'])
 
@@ -94,7 +94,7 @@ test('list: outputs all accounts', async () => {
   expect(output[1].account_id).toBe('u456')
 })
 
-test('list: outputs empty array when no accounts', async () => {
+it('list: outputs empty array when no accounts', async () => {
   // given
   listAccountsSpy.mockResolvedValue([])
 
@@ -106,7 +106,7 @@ test('list: outputs empty array when no accounts', async () => {
   expect(output).toHaveLength(0)
 })
 
-test('use: sets current account and outputs result', async () => {
+it('use: sets current account and outputs result', async () => {
   // when
   await authCommand.parseAsync(['node', 'auth', 'use', 'u456'])
 
@@ -117,7 +117,7 @@ test('use: sets current account and outputs result', async () => {
   expect(output.current_account).toBe('u456')
 })
 
-test('logout: removes specific account when account-id provided', async () => {
+it('logout: removes specific account when account-id provided', async () => {
   // when
   await authCommand.parseAsync(['node', 'auth', 'logout', 'u123'])
 
@@ -129,7 +129,7 @@ test('logout: removes specific account when account-id provided', async () => {
   expect(output.message).toContain('u123')
 })
 
-test('logout: clears all accounts when no account-id provided', async () => {
+it('logout: clears all accounts when no account-id provided', async () => {
   // when
   await authCommand.parseAsync(['node', 'auth', 'logout'])
 

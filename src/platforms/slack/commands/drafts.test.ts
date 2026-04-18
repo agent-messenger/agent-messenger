@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, mock, test } from 'bun:test'
+import { beforeEach, describe, expect, mock, it } from 'bun:test'
 
 import { SlackClient } from '@/platforms/slack/client'
 
@@ -51,7 +51,7 @@ describe('Drafts Commands', () => {
   })
 
   describe('drafts list', () => {
-    test('returns drafts', async () => {
+    it('returns drafts', async () => {
       // Given: Client with drafts
       // When: Getting drafts
       const result = await mockClient.getDrafts()
@@ -62,7 +62,7 @@ describe('Drafts Commands', () => {
       expect(result.drafts[0].message?.text).toBe('Draft message 1')
     })
 
-    test('handles empty message content gracefully', async () => {
+    it('handles empty message content gracefully', async () => {
       // Given: Client with drafts including null/empty message
       // When: Getting drafts
       const result = await mockClient.getDrafts()
@@ -74,7 +74,7 @@ describe('Drafts Commands', () => {
       expect(result.drafts[3].message).toEqual({})
     })
 
-    test('pagination with cursor works', async () => {
+    it('pagination with cursor works', async () => {
       // Given: Client with pagination support
       // When: Getting first page
       const firstPage = await mockClient.getDrafts()
@@ -89,7 +89,7 @@ describe('Drafts Commands', () => {
       expect(secondPage.next_cursor).toBeUndefined()
     })
 
-    test('returns next_cursor for pagination', async () => {
+    it('returns next_cursor for pagination', async () => {
       // Given: Client with more drafts available
       // When: Getting drafts
       const result = await mockClient.getDrafts()
@@ -101,7 +101,7 @@ describe('Drafts Commands', () => {
   })
 
   describe('output formatting', () => {
-    test('formats draft output', async () => {
+    it('formats draft output', async () => {
       // Given: Drafts from API
       const result = await mockClient.getDrafts()
 
@@ -119,7 +119,7 @@ describe('Drafts Commands', () => {
       expect(output[0].text).toBe('Draft message 1')
     })
 
-    test('handles null message in output', async () => {
+    it('handles null message in output', async () => {
       // Given: Draft with null message
       const result = await mockClient.getDrafts()
 

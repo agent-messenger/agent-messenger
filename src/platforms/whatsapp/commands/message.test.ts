@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, mock, spyOn, test } from 'bun:test'
+import { afterEach, beforeEach, describe, expect, mock, spyOn, it } from 'bun:test'
 
 const originalConsoleLog = console.log
 
@@ -130,7 +130,7 @@ describe('message commands', () => {
   })
 
   describe('list', () => {
-    test('fetches messages for a chat', async () => {
+    it('fetches messages for a chat', async () => {
       await expect(messageCommand.parseAsync(['list', '12025551234@s.whatsapp.net'], { from: 'user' })).rejects.toThrow(
         'process.exit(0)',
       )
@@ -142,7 +142,7 @@ describe('message commands', () => {
       expect(output[0].text).toBe('Hello')
     })
 
-    test('respects --limit option', async () => {
+    it('respects --limit option', async () => {
       await expect(
         messageCommand.parseAsync(['list', '12025551234@s.whatsapp.net', '--limit', '10'], { from: 'user' }),
       ).rejects.toThrow('process.exit(0)')
@@ -150,7 +150,7 @@ describe('message commands', () => {
       expect(mockGetMessages).toHaveBeenCalledWith('12025551234@s.whatsapp.net', 10)
     })
 
-    test('passes account option to credential manager', async () => {
+    it('passes account option to credential manager', async () => {
       await expect(
         messageCommand.parseAsync(['list', '12025551234@s.whatsapp.net', '--account', 'my-account'], { from: 'user' }),
       ).rejects.toThrow('process.exit(0)')
@@ -158,7 +158,7 @@ describe('message commands', () => {
       expect(mockGetAccount).toHaveBeenCalledWith('my-account')
     })
 
-    test('exits with error when no account configured', async () => {
+    it('exits with error when no account configured', async () => {
       mockGetAccount.mockImplementation(() => Promise.resolve(null))
 
       await expect(messageCommand.parseAsync(['list', '12025551234@s.whatsapp.net'], { from: 'user' })).rejects.toThrow(
@@ -170,7 +170,7 @@ describe('message commands', () => {
   })
 
   describe('send', () => {
-    test('sends a message to a chat', async () => {
+    it('sends a message to a chat', async () => {
       await expect(
         messageCommand.parseAsync(['send', '12025551234@s.whatsapp.net', 'Hello world'], { from: 'user' }),
       ).rejects.toThrow('process.exit(0)')
@@ -181,7 +181,7 @@ describe('message commands', () => {
       expect(output.text).toBe('Hi there')
     })
 
-    test('passes account option to credential manager', async () => {
+    it('passes account option to credential manager', async () => {
       await expect(
         messageCommand.parseAsync(['send', '12025551234@s.whatsapp.net', 'Hi', '--account', 'my-account'], {
           from: 'user',
@@ -193,7 +193,7 @@ describe('message commands', () => {
   })
 
   describe('react', () => {
-    test('sends a reaction to a message', async () => {
+    it('sends a reaction to a message', async () => {
       await expect(
         messageCommand.parseAsync(['react', '12025551234@s.whatsapp.net', 'msg-1', '👍'], { from: 'user' }),
       ).rejects.toThrow('process.exit(0)')
@@ -206,7 +206,7 @@ describe('message commands', () => {
       expect(output.emoji).toBe('👍')
     })
 
-    test('passes --from-me flag to sendReaction', async () => {
+    it('passes --from-me flag to sendReaction', async () => {
       await expect(
         messageCommand.parseAsync(['react', '12025551234@s.whatsapp.net', 'msg-1', '❤️', '--from-me'], {
           from: 'user',
@@ -216,7 +216,7 @@ describe('message commands', () => {
       expect(mockSendReaction).toHaveBeenCalledWith('12025551234@s.whatsapp.net', 'msg-1', '❤️', true)
     })
 
-    test('passes account option to credential manager', async () => {
+    it('passes account option to credential manager', async () => {
       await expect(
         messageCommand.parseAsync(['react', '12025551234@s.whatsapp.net', 'msg-1', '👍', '--account', 'my-account'], {
           from: 'user',

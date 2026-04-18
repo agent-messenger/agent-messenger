@@ -1,4 +1,4 @@
-import { expect, mock, test } from 'bun:test'
+import { expect, mock, it } from 'bun:test'
 
 // Mock DiscordClient
 const mockClient = {
@@ -21,7 +21,7 @@ const mockClient = {
   }),
 }
 
-test('get returns note when it exists', async () => {
+it('get returns note when it exists', async () => {
   // given: user with a note
   const userId = 'user_with_note'
 
@@ -34,7 +34,7 @@ test('get returns note when it exists', async () => {
   expect(result?.note).toBe('This is a test note')
 })
 
-test('get returns null when note does not exist', async () => {
+it('get returns null when note does not exist', async () => {
   // given: user without a note
   const userId = 'user_without_note'
 
@@ -45,7 +45,7 @@ test('get returns null when note does not exist', async () => {
   expect(result).toBeNull()
 })
 
-test('set creates or updates note', async () => {
+it('set creates or updates note', async () => {
   // given: user id and note content
   const userId = 'user123'
   const noteContent = 'Important person to remember'
@@ -58,7 +58,7 @@ test('set creates or updates note', async () => {
   expect(result.note).toBe('Important person to remember')
 })
 
-test('set can update existing note', async () => {
+it('set can update existing note', async () => {
   // given: user with existing note
   const userId = 'user_with_note'
   const newNote = 'Updated note content'
@@ -71,7 +71,7 @@ test('set can update existing note', async () => {
   expect(result.note).toBe('Updated note content')
 })
 
-test('set can clear note with empty string', async () => {
+it('set can clear note with empty string', async () => {
   // given: user with existing note
   const userId = 'user_with_note'
 

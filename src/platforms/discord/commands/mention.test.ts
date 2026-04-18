@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, expect, spyOn, test } from 'bun:test'
+import { afterEach, beforeEach, expect, spyOn, it } from 'bun:test'
 
 import { DiscordClient } from '../client'
 import { DiscordCredentialManager } from '../credential-manager'
@@ -46,7 +46,7 @@ afterEach(() => {
   credManagerLoadSpy?.mockRestore()
 })
 
-test('getMentions: returns mentions', async () => {
+it('getMentions: returns mentions', async () => {
   // given: discord client
   const client = await new DiscordClient().login({ token: 'test-token' })
 
@@ -62,7 +62,7 @@ test('getMentions: returns mentions', async () => {
   expect(mentions[1].mention_everyone).toBe(true)
 })
 
-test('getMentions: respects limit option', async () => {
+it('getMentions: respects limit option', async () => {
   // given: discord client with limit option
   const client = await new DiscordClient().login({ token: 'test-token' })
   clientGetMentionsSpy.mockResolvedValue([
@@ -85,7 +85,7 @@ test('getMentions: respects limit option', async () => {
   expect(clientGetMentionsSpy).toHaveBeenCalledWith({ limit: 1 })
 })
 
-test('getMentions: respects guildId option', async () => {
+it('getMentions: respects guildId option', async () => {
   // given: discord client with guildId option
   const client = await new DiscordClient().login({ token: 'test-token' })
   clientGetMentionsSpy.mockResolvedValue([
@@ -110,7 +110,7 @@ test('getMentions: respects guildId option', async () => {
   expect(clientGetMentionsSpy).toHaveBeenCalledWith({ guildId: 'guild-1' })
 })
 
-test('getMentions: includes mention metadata', async () => {
+it('getMentions: includes mention metadata', async () => {
   // given: discord client with mentions
   const client = await new DiscordClient().login({ token: 'test-token' })
   const mentions = await client.getMentions()

@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, mock, spyOn, test } from 'bun:test'
+import { afterEach, beforeEach, describe, expect, mock, spyOn, it } from 'bun:test'
 
 const originalConsoleLog = console.log
 import type { Command } from 'commander'
@@ -55,7 +55,7 @@ describe('auth commands', () => {
   })
 
   describe('status', () => {
-    test('outputs error and exits when no account found', async () => {
+    it('outputs error and exits when no account found', async () => {
       mockGetAccount.mockImplementation(() => Promise.resolve(null))
 
       await expect(authCommand.parseAsync(['status'], { from: 'user' })).rejects.toThrow('process.exit called')
@@ -65,7 +65,7 @@ describe('auth commands', () => {
       expect(output.error).toContain('No Instagram account configured')
     })
 
-    test('outputs account info when account exists', async () => {
+    it('outputs account info when account exists', async () => {
       mockGetAccount.mockImplementation(() =>
         Promise.resolve({
           account_id: 'user_testuser',
@@ -84,7 +84,7 @@ describe('auth commands', () => {
       expect(output.pk).toBe('12345')
     })
 
-    test('outputs error for specific account not found', async () => {
+    it('outputs error for specific account not found', async () => {
       mockGetAccount.mockImplementation(() => Promise.resolve(null))
 
       await expect(
@@ -97,7 +97,7 @@ describe('auth commands', () => {
   })
 
   describe('list', () => {
-    test('outputs empty array when no accounts', async () => {
+    it('outputs empty array when no accounts', async () => {
       mockListAccounts.mockImplementation(() => Promise.resolve([]))
 
       await authCommand.parseAsync(['list'], { from: 'user' })
@@ -106,7 +106,7 @@ describe('auth commands', () => {
       expect(output).toEqual([])
     })
 
-    test('outputs accounts list', async () => {
+    it('outputs accounts list', async () => {
       mockListAccounts.mockImplementation(() =>
         Promise.resolve([
           {
@@ -140,7 +140,7 @@ describe('auth commands', () => {
   })
 
   describe('use', () => {
-    test('switches to specified account', async () => {
+    it('switches to specified account', async () => {
       mockSetCurrent.mockImplementation(() => Promise.resolve(true))
       mockGetAccount.mockImplementation(() =>
         Promise.resolve({
@@ -160,7 +160,7 @@ describe('auth commands', () => {
       expect(output.account_id).toBe('user_alice')
     })
 
-    test('outputs error when account not found', async () => {
+    it('outputs error when account not found', async () => {
       mockSetCurrent.mockImplementation(() => Promise.resolve(false))
 
       await expect(authCommand.parseAsync(['use', 'missing_account'], { from: 'user' })).rejects.toThrow(
@@ -173,7 +173,7 @@ describe('auth commands', () => {
   })
 
   describe('logout', () => {
-    test('removes account and outputs success', async () => {
+    it('removes account and outputs success', async () => {
       mockGetAccount.mockImplementation(() =>
         Promise.resolve({
           account_id: 'user_alice',
@@ -194,7 +194,7 @@ describe('auth commands', () => {
       expect(output.account_id).toBe('user_alice')
     })
 
-    test('outputs error when no account configured', async () => {
+    it('outputs error when no account configured', async () => {
       mockGetAccount.mockImplementation(() => Promise.resolve(null))
 
       await expect(authCommand.parseAsync(['logout'], { from: 'user' })).rejects.toThrow('process.exit called')
@@ -203,7 +203,7 @@ describe('auth commands', () => {
       expect(output.error).toContain('No Instagram account configured')
     })
 
-    test('outputs error for specific account not found', async () => {
+    it('outputs error for specific account not found', async () => {
       mockGetAccount.mockImplementation(() => Promise.resolve(null))
 
       await expect(

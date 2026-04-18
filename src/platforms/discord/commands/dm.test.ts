@@ -66,7 +66,7 @@ afterEach(() => {
 
 describe('dm commands', () => {
   describe('listAction', () => {
-    it('should list DM channels', async () => {
+    it('lists DM channels', async () => {
       const consoleSpy = mock(() => {})
       const originalLog = console.log
       console.log = consoleSpy
@@ -79,7 +79,7 @@ describe('dm commands', () => {
       expect(clientListDMChannelsSpy).toHaveBeenCalled()
     })
 
-    it('should handle authentication error', async () => {
+    it('handles authentication error', async () => {
       credManagerLoadSpy.mockResolvedValue({
         token: '',
         current_server: null,
@@ -105,7 +105,7 @@ describe('dm commands', () => {
   })
 
   describe('createAction', () => {
-    it('should create a DM channel', async () => {
+    it('creates a DM channel', async () => {
       const consoleSpy = mock(() => {})
       const originalLog = console.log
       console.log = consoleSpy
@@ -118,7 +118,7 @@ describe('dm commands', () => {
       expect(clientCreateDMSpy).toHaveBeenCalledWith('456')
     })
 
-    it('should handle authentication error', async () => {
+    it('handles authentication error', async () => {
       credManagerLoadSpy.mockResolvedValue({
         token: '',
         current_server: null,

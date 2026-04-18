@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, expect, spyOn, test } from 'bun:test'
+import { afterEach, beforeEach, expect, spyOn, it } from 'bun:test'
 
 import * as clientModule from '../client'
 import { WebexError } from '../types'
@@ -42,19 +42,19 @@ afterEach(() => {
   processExitSpy?.mockRestore()
 })
 
-test('whoami command is defined with correct name and description', () => {
+it('whoami command is defined with correct name and description', () => {
   expect(whoamiCommand).toBeDefined()
   expect(whoamiCommand.name()).toBe('whoami')
   expect(whoamiCommand.description()).toBe('Show current authenticated user')
 })
 
-test('whoami command has --pretty option', () => {
+it('whoami command has --pretty option', () => {
   const options = whoamiCommand.options
   const hasPretty = options.some((opt: { long?: string }) => opt.long === '--pretty')
   expect(hasPretty).toBe(true)
 })
 
-test('whoami calls testAuth and outputs user fields', async () => {
+it('whoami calls testAuth and outputs user fields', async () => {
   // given: authenticated webex user
   // when: running whoami
   await whoamiCommand.parseAsync([], { from: 'user' })
@@ -75,7 +75,7 @@ test('whoami calls testAuth and outputs user fields', async () => {
   )
 })
 
-test('whoami outputs pretty-printed JSON when --pretty flag is passed', async () => {
+it('whoami outputs pretty-printed JSON when --pretty flag is passed', async () => {
   // given: authenticated webex user
   // when: running whoami with --pretty
   await whoamiCommand.parseAsync(['--pretty'], { from: 'user' })
@@ -100,7 +100,7 @@ test('whoami outputs pretty-printed JSON when --pretty flag is passed', async ()
   )
 })
 
-test('whoami exits with code 1 when not authenticated', async () => {
+it('whoami exits with code 1 when not authenticated', async () => {
   // given: no credentials
   webexClientSpy.mockImplementation(
     () =>

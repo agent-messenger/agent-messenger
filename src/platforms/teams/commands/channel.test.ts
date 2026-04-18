@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, expect, spyOn, test } from 'bun:test'
+import { afterEach, beforeEach, expect, spyOn, it } from 'bun:test'
 
 import { TeamsClient } from '../client'
 import { TeamsCredentialManager } from '../credential-manager'
@@ -65,7 +65,7 @@ afterEach(() => {
   credManagerLoadConfigSpy?.mockRestore()
 })
 
-test('list: returns channels from team', async () => {
+it('list: returns channels from team', async () => {
   // given
   const client = await new TeamsClient().login({ token: 'test-token', region: 'emea' })
 
@@ -78,7 +78,7 @@ test('list: returns channels from team', async () => {
   expect(channels[1].name).toBe('Announcements')
 })
 
-test('list: includes channel metadata', async () => {
+it('list: includes channel metadata', async () => {
   // given
   const client = await new TeamsClient().login({ token: 'test-token', region: 'emea' })
   const channels = await client.listChannels('team-1')
@@ -93,7 +93,7 @@ test('list: includes channel metadata', async () => {
   expect(channel.team_id).toBe('team-1')
 })
 
-test('info: returns channel details', async () => {
+it('info: returns channel details', async () => {
   // given
   const client = await new TeamsClient().login({ token: 'test-token', region: 'emea' })
 
@@ -106,7 +106,7 @@ test('info: returns channel details', async () => {
   expect(channel.type).toBe('standard')
 })
 
-test('info: throws error for non-existent channel', async () => {
+it('info: throws error for non-existent channel', async () => {
   // given
   const client = await new TeamsClient().login({ token: 'test-token', region: 'emea' })
 
@@ -119,7 +119,7 @@ test('info: throws error for non-existent channel', async () => {
   }
 })
 
-test('history: returns messages', async () => {
+it('history: returns messages', async () => {
   // given
   const client = await new TeamsClient().login({ token: 'test-token', region: 'emea' })
 
@@ -134,7 +134,7 @@ test('history: returns messages', async () => {
   expect(messages[1].author.displayName).toBe('Bob')
 })
 
-test('history: includes message metadata', async () => {
+it('history: includes message metadata', async () => {
   // given
   const client = await new TeamsClient().login({ token: 'test-token', region: 'emea' })
   const messages = await client.getMessages('team-1', 'ch-1', 50)

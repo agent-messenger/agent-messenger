@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, mock, test } from 'bun:test'
+import { afterEach, beforeEach, describe, expect, mock, it } from 'bun:test'
 import { existsSync, rmSync } from 'node:fs'
 import { mkdir } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
@@ -86,7 +86,7 @@ describe('group commands', () => {
   })
 
   describe('listAction', () => {
-    test('lists all groups', async () => {
+    it('lists all groups', async () => {
       const manager = new ChannelBotCredentialManager(tempDir)
       const result = await listAction({ _credManager: manager })
 
@@ -97,7 +97,7 @@ describe('group commands', () => {
   })
 
   describe('getAction', () => {
-    test('resolves group by ID', async () => {
+    it('resolves group by ID', async () => {
       const manager = new ChannelBotCredentialManager(tempDir)
       const result = await getAction('grp1', { _credManager: manager })
 
@@ -106,7 +106,7 @@ describe('group commands', () => {
       expect(capturedResolveArg).toBe('grp1')
     })
 
-    test('resolves group by @name', async () => {
+    it('resolves group by @name', async () => {
       const manager = new ChannelBotCredentialManager(tempDir)
       const result = await getAction('@team-alpha', { _credManager: manager })
 
@@ -116,7 +116,7 @@ describe('group commands', () => {
   })
 
   describe('messagesAction', () => {
-    test('gets messages from group', async () => {
+    it('gets messages from group', async () => {
       const manager = new ChannelBotCredentialManager(tempDir)
       const result = await messagesAction('grp1', { _credManager: manager })
 
@@ -125,7 +125,7 @@ describe('group commands', () => {
       expect(result.messages?.[0].id).toBe('msg1')
     })
 
-    test('resolves group by @name before fetching messages', async () => {
+    it('resolves group by @name before fetching messages', async () => {
       const manager = new ChannelBotCredentialManager(tempDir)
       await messagesAction('@team-alpha', { _credManager: manager })
 

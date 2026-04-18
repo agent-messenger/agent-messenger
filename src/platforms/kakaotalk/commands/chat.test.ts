@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, mock, test } from 'bun:test'
+import { afterEach, beforeEach, describe, expect, mock, it } from 'bun:test'
 
 const originalConsoleLog = console.log
 
@@ -49,7 +49,7 @@ describe('chat commands', () => {
   })
 
   describe('list', () => {
-    test('lists chat rooms', async () => {
+    it('lists chat rooms', async () => {
       await chatCommand.parseAsync(['list'], { from: 'user' })
 
       expect(mockGetChats).toHaveBeenCalled()
@@ -59,21 +59,21 @@ describe('chat commands', () => {
       expect(output[0].name).toBe('General')
     })
 
-    test('passes --search option to getChats', async () => {
+    it('passes --search option to getChats', async () => {
       await chatCommand.parseAsync(['list', '--search', 'General'], { from: 'user' })
 
       const call = mockGetChats.mock.calls[0][0] as { all?: boolean; search?: string }
       expect(call.search).toBe('General')
     })
 
-    test('passes --all flag to getChats', async () => {
+    it('passes --all flag to getChats', async () => {
       await chatCommand.parseAsync(['list', '--all'], { from: 'user' })
 
       const call = mockGetChats.mock.calls[0][0] as { all?: boolean; search?: string }
       expect(call.all).toBe(true)
     })
 
-    test('passes account option to withKakaoClient', async () => {
+    it('passes account option to withKakaoClient', async () => {
       await chatCommand.parseAsync(['list', '--account', 'my-account'], { from: 'user' })
 
       expect(mockWithKakaoClient).toHaveBeenCalledWith(
@@ -82,7 +82,7 @@ describe('chat commands', () => {
       )
     })
 
-    test('outputs empty array when no chats', async () => {
+    it('outputs empty array when no chats', async () => {
       mockGetChats.mockImplementation(() => Promise.resolve([]))
 
       await chatCommand.parseAsync(['list'], { from: 'user' })

@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, mock, test } from 'bun:test'
+import { afterEach, describe, expect, mock, it } from 'bun:test'
 
 import { SlackListener } from '@/platforms/slack/listener'
 import type { SlackRTMMessageEvent, SlackRTMReactionEvent } from '@/platforms/slack/types'
@@ -79,7 +79,7 @@ describe('SlackListener', () => {
   })
 
   describe('start', () => {
-    test('calls rtmConnect and opens WebSocket', async () => {
+    it('calls rtmConnect and opens WebSocket', async () => {
       const client = createMockClient()
       listener = new SlackListener(client)
 
@@ -89,7 +89,7 @@ describe('SlackListener', () => {
       expect(client.rtmConnect).toHaveBeenCalledTimes(1)
     })
 
-    test('is idempotent', async () => {
+    it('is idempotent', async () => {
       const client = createMockClient()
       listener = new SlackListener(client)
 
@@ -101,7 +101,7 @@ describe('SlackListener', () => {
   })
 
   describe('connected event', () => {
-    test('emits connected with self/team on hello', async () => {
+    it('emits connected with self/team on hello', async () => {
       const client = createMockClient()
       listener = new SlackListener(client)
 
@@ -119,7 +119,7 @@ describe('SlackListener', () => {
   })
 
   describe('message events', () => {
-    test('emits message events', async () => {
+    it('emits message events', async () => {
       const client = createMockClient()
       listener = new SlackListener(client)
 
@@ -145,7 +145,7 @@ describe('SlackListener', () => {
   })
 
   describe('reaction events', () => {
-    test('emits reaction_added events', async () => {
+    it('emits reaction_added events', async () => {
       const client = createMockClient()
       listener = new SlackListener(client)
 
@@ -168,7 +168,7 @@ describe('SlackListener', () => {
   })
 
   describe('slack_event catch-all', () => {
-    test('emits slack_event for every non-hello event', async () => {
+    it('emits slack_event for every non-hello event', async () => {
       const client = createMockClient()
       listener = new SlackListener(client)
 
@@ -188,7 +188,7 @@ describe('SlackListener', () => {
   })
 
   describe('ping/pong', () => {
-    test('does not treat pong reply as an event', async () => {
+    it('does not treat pong reply as an event', async () => {
       const client = createMockClient()
       listener = new SlackListener(client)
 
@@ -205,7 +205,7 @@ describe('SlackListener', () => {
   })
 
   describe('stop', () => {
-    test('closes WebSocket and prevents reconnection', async () => {
+    it('closes WebSocket and prevents reconnection', async () => {
       const client = createMockClient()
       listener = new SlackListener(client)
 
@@ -220,7 +220,7 @@ describe('SlackListener', () => {
   })
 
   describe('reconnection', () => {
-    test('reconnects on WebSocket close when still running', async () => {
+    it('reconnects on WebSocket close when still running', async () => {
       const client = createMockClient()
       listener = new SlackListener(client)
 
@@ -237,7 +237,7 @@ describe('SlackListener', () => {
       expect(client.rtmConnect.mock.calls.length).toBeGreaterThanOrEqual(2)
     })
 
-    test('emits error and reconnects on rtmConnect failure', async () => {
+    it('emits error and reconnects on rtmConnect failure', async () => {
       let callCount = 0
       const client = createMockClient({
         rtmConnect: mock(() => {
@@ -268,7 +268,7 @@ describe('SlackListener', () => {
   })
 
   describe('on/off/once', () => {
-    test('off removes listener', async () => {
+    it('off removes listener', async () => {
       const client = createMockClient()
       listener = new SlackListener(client)
 
@@ -287,7 +287,7 @@ describe('SlackListener', () => {
       expect(messages[0].text).toBe('a')
     })
 
-    test('once fires only once', async () => {
+    it('once fires only once', async () => {
       const client = createMockClient()
       listener = new SlackListener(client)
 
@@ -305,7 +305,7 @@ describe('SlackListener', () => {
   })
 
   describe('goodbye / team_migration_started', () => {
-    test('goodbye triggers immediate reconnect without backoff', async () => {
+    it('goodbye triggers immediate reconnect without backoff', async () => {
       const client = createMockClient()
       listener = new SlackListener(client)
 
@@ -322,7 +322,7 @@ describe('SlackListener', () => {
       expect((listener as any).reconnectAttempts).toBe(0)
     })
 
-    test('team_migration_started triggers immediate reconnect', async () => {
+    it('team_migration_started triggers immediate reconnect', async () => {
       const client = createMockClient()
       listener = new SlackListener(client)
 
@@ -336,7 +336,7 @@ describe('SlackListener', () => {
       expect((listener as any).reconnectAttempts).toBe(0)
     })
 
-    test('goodbye and team_migration_started are not emitted as events', async () => {
+    it('goodbye and team_migration_started are not emitted as events', async () => {
       const client = createMockClient()
       listener = new SlackListener(client)
 
@@ -356,7 +356,7 @@ describe('SlackListener', () => {
   })
 
   describe('start after stop', () => {
-    test('resets reconnect attempts on fresh start', async () => {
+    it('resets reconnect attempts on fresh start', async () => {
       const client = createMockClient()
       listener = new SlackListener(client)
 

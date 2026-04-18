@@ -1,4 +1,4 @@
-import { afterEach, beforeAll, describe, expect, test } from 'bun:test'
+import { afterEach, beforeAll, describe, expect, it } from 'bun:test'
 
 import { CHANNELBOT_TEST_WORKSPACE_ID, CHANNELBOT_TEST_WORKSPACE_NAME, validateChannelBotEnvironment } from './config'
 import { generateTestId, parseJSON, runCLI, waitForRateLimit } from './helpers'
@@ -22,7 +22,7 @@ describe('ChannelBot E2E Tests', () => {
   })
 
   describe('auth', () => {
-    test('auth status returns valid workspace info', async () => {
+    it('auth status returns valid workspace info', async () => {
       if (!channelbotAvailable) return
 
       const result = await runCLI('channeltalkbot', ['auth', 'status'])
@@ -38,7 +38,7 @@ describe('ChannelBot E2E Tests', () => {
   })
 
   describe('group', () => {
-    test('group list returns groups array', async () => {
+    it('group list returns groups array', async () => {
       if (!channelbotAvailable) return
 
       const result = await runCLI('channeltalkbot', ['group', 'list', '--limit', '10'])
@@ -49,7 +49,7 @@ describe('ChannelBot E2E Tests', () => {
       expect(data!.groups.length).toBeGreaterThan(0)
     })
 
-    test('group get by id returns the target group', async () => {
+    it('group get by id returns the target group', async () => {
       if (!channelbotAvailable) return
 
       const result = await runCLI('channeltalkbot', ['group', 'get', testGroupId])
@@ -60,7 +60,7 @@ describe('ChannelBot E2E Tests', () => {
       expect(data?.name).toBe(testGroupName)
     })
 
-    test('group get by @name returns the target group', async () => {
+    it('group get by @name returns the target group', async () => {
       if (!channelbotAvailable) return
 
       const result = await runCLI('channeltalkbot', ['group', 'get', `@${testGroupName}`])
@@ -71,7 +71,7 @@ describe('ChannelBot E2E Tests', () => {
       expect(data?.name).toBe(testGroupName)
     })
 
-    test('group messages returns messages array', async () => {
+    it('group messages returns messages array', async () => {
       if (!channelbotAvailable) return
 
       const result = await runCLI('channeltalkbot', ['group', 'messages', testGroupId, '--limit', '5'])
@@ -83,7 +83,7 @@ describe('ChannelBot E2E Tests', () => {
   })
 
   describe('message', () => {
-    test('message send creates a group message', async () => {
+    it('message send creates a group message', async () => {
       if (!channelbotAvailable) return
 
       const testId = generateTestId()
@@ -96,7 +96,7 @@ describe('ChannelBot E2E Tests', () => {
       expect(data?.plain_text).toContain(testId)
     })
 
-    test('message list returns messages array', async () => {
+    it('message list returns messages array', async () => {
       if (!channelbotAvailable) return
 
       const result = await runCLI('channeltalkbot', ['message', 'list', `@${testGroupName}`, '--limit', '5'])
@@ -106,7 +106,7 @@ describe('ChannelBot E2E Tests', () => {
       expect(Array.isArray(data?.messages)).toBe(true)
     })
 
-    test('message get retrieves a specific group message', async () => {
+    it('message get retrieves a specific group message', async () => {
       if (!channelbotAvailable) return
 
       const testId = generateTestId()
@@ -128,7 +128,7 @@ describe('ChannelBot E2E Tests', () => {
   })
 
   describe('manager', () => {
-    test('manager list returns managers array', async () => {
+    it('manager list returns managers array', async () => {
       if (!channelbotAvailable) return
 
       const result = await runCLI('channeltalkbot', ['manager', 'list', '--limit', '10'])
@@ -139,7 +139,7 @@ describe('ChannelBot E2E Tests', () => {
       expect(data!.managers.length).toBeGreaterThan(0)
     })
 
-    test('manager get returns manager details', async () => {
+    it('manager get returns manager details', async () => {
       if (!channelbotAvailable) return
 
       const listResult = await runCLI('channeltalkbot', ['manager', 'list', '--limit', '1'])
@@ -157,7 +157,7 @@ describe('ChannelBot E2E Tests', () => {
   })
 
   describe('bot', () => {
-    test('bot list returns bots array', async () => {
+    it('bot list returns bots array', async () => {
       if (!channelbotAvailable) return
 
       const result = await runCLI('channeltalkbot', ['bot', 'list', '--limit', '10'])
@@ -170,7 +170,7 @@ describe('ChannelBot E2E Tests', () => {
   })
 
   describe('snapshot', () => {
-    test('snapshot returns workspace overview', async () => {
+    it('snapshot returns workspace overview', async () => {
       if (!channelbotAvailable) return
 
       const result = await runCLI('channeltalkbot', ['snapshot', '--limit', '2'])

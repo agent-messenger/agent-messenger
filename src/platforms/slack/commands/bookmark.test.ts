@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, mock, test } from 'bun:test'
+import { beforeEach, describe, expect, mock, it } from 'bun:test'
 
 import { SlackClient } from '@/platforms/slack/client'
 import type { SlackBookmark } from '@/platforms/slack/types'
@@ -27,13 +27,13 @@ describe('Bookmark Commands', () => {
   })
 
   describe('bookmark add', () => {
-    test('adds a bookmark successfully', async () => {
+    it('adds a bookmark successfully', async () => {
       const result = await (mockClient as SlackClient).addBookmark('C001', 'Test Bookmark', 'https://example.com')
       expect(result.id).toBe('Bm001')
       expect(result.title).toBe('Test Bookmark')
     })
 
-    test('throws error when API fails', async () => {
+    it('throws error when API fails', async () => {
       mockClient.addBookmark = mock(async () => {
         throw new Error('channel_not_found')
       })
@@ -44,12 +44,12 @@ describe('Bookmark Commands', () => {
   })
 
   describe('bookmark edit', () => {
-    test('edits a bookmark successfully', async () => {
+    it('edits a bookmark successfully', async () => {
       const result = await (mockClient as SlackClient).editBookmark('C001', 'Bm001', { title: 'Updated Title' })
       expect(result.title).toBe('Updated Title')
     })
 
-    test('throws error when API fails', async () => {
+    it('throws error when API fails', async () => {
       mockClient.editBookmark = mock(async () => {
         throw new Error('bookmark_not_found')
       })
@@ -60,12 +60,12 @@ describe('Bookmark Commands', () => {
   })
 
   describe('bookmark remove', () => {
-    test('removes a bookmark successfully', async () => {
+    it('removes a bookmark successfully', async () => {
       await (mockClient as SlackClient).removeBookmark('C001', 'Bm001')
       expect(mockClient.removeBookmark).toHaveBeenCalledWith('C001', 'Bm001')
     })
 
-    test('throws error when API fails', async () => {
+    it('throws error when API fails', async () => {
       mockClient.removeBookmark = mock(async () => {
         throw new Error('bookmark_not_found')
       })
@@ -74,14 +74,14 @@ describe('Bookmark Commands', () => {
   })
 
   describe('bookmark list', () => {
-    test('lists bookmarks in a channel', async () => {
+    it('lists bookmarks in a channel', async () => {
       const bookmarks = await (mockClient as SlackClient).listBookmarks('C001')
       expect(bookmarks).toHaveLength(1)
       expect(bookmarks[0].title).toBe('Test Bookmark')
       expect(bookmarks[0].link).toBe('https://example.com')
     })
 
-    test('throws error when API fails', async () => {
+    it('throws error when API fails', async () => {
       mockClient.listBookmarks = mock(async () => {
         throw new Error('channel_not_found')
       })

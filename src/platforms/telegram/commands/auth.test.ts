@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
+import { afterEach, beforeEach, describe, expect, it } from 'bun:test'
 
 import { getNonInteractiveLoginMessage, promptNextLoginInput } from './auth'
 
@@ -19,37 +19,37 @@ describe('promptNextLoginInput non-interactive', () => {
     Object.defineProperty(process.stdout, 'isTTY', { value: originalStdoutTTY, writable: true, configurable: true })
   })
 
-  test('returns null for provide_phone_number', async () => {
+  it('returns null for provide_phone_number', async () => {
     const result = await promptNextLoginInput({ next_action: 'provide_phone_number' }, {})
     expect(result).toBeNull()
   })
 
-  test('returns null for provide_code', async () => {
+  it('returns null for provide_code', async () => {
     const result = await promptNextLoginInput({ next_action: 'provide_code' }, {})
     expect(result).toBeNull()
   })
 
-  test('returns null for provide_password', async () => {
+  it('returns null for provide_password', async () => {
     const result = await promptNextLoginInput({ next_action: 'provide_password' }, {})
     expect(result).toBeNull()
   })
 
-  test('returns null for provide_email', async () => {
+  it('returns null for provide_email', async () => {
     const result = await promptNextLoginInput({ next_action: 'provide_email' }, {})
     expect(result).toBeNull()
   })
 
-  test('returns null for provide_email_code', async () => {
+  it('returns null for provide_email_code', async () => {
     const result = await promptNextLoginInput({ next_action: 'provide_email_code' }, {})
     expect(result).toBeNull()
   })
 
-  test('returns null for provide_registration', async () => {
+  it('returns null for provide_registration', async () => {
     const result = await promptNextLoginInput({ next_action: 'provide_registration' }, {})
     expect(result).toBeNull()
   })
 
-  test('returns options unchanged for unknown next_action', async () => {
+  it('returns options unchanged for unknown next_action', async () => {
     const options = { phone: '+14155551234' }
     const result = await promptNextLoginInput({ next_action: undefined }, options)
 
@@ -59,56 +59,56 @@ describe('promptNextLoginInput non-interactive', () => {
 })
 
 describe('getNonInteractiveLoginMessage', () => {
-  test('maps provide_phone_number to provide_phone with --phone hint', () => {
+  it('maps provide_phone_number to provide_phone with --phone hint', () => {
     const msg = getNonInteractiveLoginMessage('provide_phone_number')
     expect(msg).not.toBeNull()
     expect(msg!.next_action).toBe('provide_phone')
     expect(msg!.message).toContain('--phone')
   })
 
-  test('maps provide_code with --code hint', () => {
+  it('maps provide_code with --code hint', () => {
     const msg = getNonInteractiveLoginMessage('provide_code')
     expect(msg).not.toBeNull()
     expect(msg!.next_action).toBe('provide_code')
     expect(msg!.message).toContain('--code')
   })
 
-  test('maps provide_password with --password hint', () => {
+  it('maps provide_password with --password hint', () => {
     const msg = getNonInteractiveLoginMessage('provide_password')
     expect(msg).not.toBeNull()
     expect(msg!.next_action).toBe('provide_password')
     expect(msg!.message).toContain('--password')
   })
 
-  test('maps provide_email with --email hint', () => {
+  it('maps provide_email with --email hint', () => {
     const msg = getNonInteractiveLoginMessage('provide_email')
     expect(msg).not.toBeNull()
     expect(msg!.next_action).toBe('provide_email')
     expect(msg!.message).toContain('--email')
   })
 
-  test('maps provide_email_code with --email-code hint', () => {
+  it('maps provide_email_code with --email-code hint', () => {
     const msg = getNonInteractiveLoginMessage('provide_email_code')
     expect(msg).not.toBeNull()
     expect(msg!.next_action).toBe('provide_email_code')
     expect(msg!.message).toContain('--email-code')
   })
 
-  test('maps provide_registration with --first-name hint', () => {
+  it('maps provide_registration with --first-name hint', () => {
     const msg = getNonInteractiveLoginMessage('provide_registration')
     expect(msg).not.toBeNull()
     expect(msg!.next_action).toBe('provide_registration')
     expect(msg!.message).toContain('--first-name')
   })
 
-  test('maps provide_provisioning_code with --provisioning-code hint', () => {
+  it('maps provide_provisioning_code with --provisioning-code hint', () => {
     const msg = getNonInteractiveLoginMessage('provide_provisioning_code')
     expect(msg).not.toBeNull()
     expect(msg!.next_action).toBe('provide_provisioning_code')
     expect(msg!.message).toContain('--provisioning-code')
   })
 
-  test('returns null for unknown action', () => {
+  it('returns null for unknown action', () => {
     expect(getNonInteractiveLoginMessage('unknown_action')).toBeNull()
   })
 })

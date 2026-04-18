@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, mock, test } from 'bun:test'
+import { beforeEach, describe, expect, mock, it } from 'bun:test'
 
 import { SlackClient } from '@/platforms/slack/client'
 import type { SlackFile } from '@/platforms/slack/types'
@@ -72,7 +72,7 @@ describe('File Commands', () => {
   })
 
   describe('file upload', () => {
-    test('uploads file to channel', async () => {
+    it('uploads file to channel', async () => {
       const channel = 'C123'
       const fileBuffer = Buffer.from('test content')
       const filename = 'test.txt'
@@ -85,7 +85,7 @@ describe('File Commands', () => {
       expect(result.channels).toContain(channel)
     })
 
-    test('supports --filename override', async () => {
+    it('supports --filename override', async () => {
       const channel = 'C123'
       const fileBuffer = Buffer.from('content')
       const customFilename = 'custom-name.txt'
@@ -95,7 +95,7 @@ describe('File Commands', () => {
       expect(result.name).toBe(customFilename)
     })
 
-    test('returns file with metadata', () => {
+    it('returns file with metadata', () => {
       const file: SlackFile = {
         id: 'F123',
         name: 'test.txt',
@@ -115,7 +115,7 @@ describe('File Commands', () => {
   })
 
   describe('file list', () => {
-    test('lists all files in workspace', async () => {
+    it('lists all files in workspace', async () => {
       const files = await mockClient.listFiles()
 
       expect(files).toHaveLength(2)
@@ -123,7 +123,7 @@ describe('File Commands', () => {
       expect(files[1].name).toBe('document.pdf')
     })
 
-    test('filters files by channel', async () => {
+    it('filters files by channel', async () => {
       const channel = 'C123'
 
       const files = await mockClient.listFiles(channel)
@@ -132,7 +132,7 @@ describe('File Commands', () => {
       expect(files.length).toBeGreaterThan(0)
     })
 
-    test('returns files with metadata', () => {
+    it('returns files with metadata', () => {
       const files: SlackFile[] = [
         {
           id: 'F123',
@@ -165,7 +165,7 @@ describe('File Commands', () => {
   })
 
   describe('file info', () => {
-    test('shows file details', async () => {
+    it('shows file details', async () => {
       const fileId = 'F123'
 
       const files = await mockClient.listFiles()
@@ -178,7 +178,7 @@ describe('File Commands', () => {
   })
 
   describe('file download', () => {
-    test('downloads file by ID', async () => {
+    it('downloads file by ID', async () => {
       const fileId = 'F123'
       const result = await mockClient.downloadFile(fileId)
 
@@ -187,7 +187,7 @@ describe('File Commands', () => {
       expect(result.buffer.toString()).toBe('downloaded content')
     })
 
-    test('sanitizes filename to prevent path traversal', () => {
+    it('sanitizes filename to prevent path traversal', () => {
       const { basename } = require('node:path')
       const sanitize = (name: string) => basename(name.replace(/\\/g, '/'))
 
@@ -199,7 +199,7 @@ describe('File Commands', () => {
   })
 
   describe('output formatting', () => {
-    test('includes file fields in output', () => {
+    it('includes file fields in output', () => {
       const file: SlackFile = {
         id: 'F123',
         name: 'test.txt',
@@ -217,7 +217,7 @@ describe('File Commands', () => {
       expect(output.name).toBe('test.txt')
     })
 
-    test('formats multiple files', () => {
+    it('formats multiple files', () => {
       const files: SlackFile[] = [
         {
           id: 'F123',

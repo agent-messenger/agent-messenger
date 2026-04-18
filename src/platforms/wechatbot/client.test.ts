@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
+import { afterEach, beforeEach, describe, expect, it } from 'bun:test'
 
 import { WeChatBotClient } from '@/platforms/wechatbot/client'
 import { WeChatBotError } from '@/platforms/wechatbot/types'
@@ -48,28 +48,28 @@ describe('WeChatBotClient', () => {
   const tokenResponse = () => mockResponse({ access_token: 'test-token', expires_in: 7200 })
 
   describe('login', () => {
-    test('throws on empty appId', async () => {
+    it('throws on empty appId', async () => {
       await expect(new WeChatBotClient().login({ appId: '', appSecret: 'secret' })).rejects.toThrow(WeChatBotError)
       await expect(new WeChatBotClient().login({ appId: '', appSecret: 'secret' })).rejects.toThrow(
         'App ID is required',
       )
     })
 
-    test('throws on empty appSecret', async () => {
+    it('throws on empty appSecret', async () => {
       await expect(new WeChatBotClient().login({ appId: 'wx123', appSecret: '' })).rejects.toThrow(WeChatBotError)
       await expect(new WeChatBotClient().login({ appId: 'wx123', appSecret: '' })).rejects.toThrow(
         'App Secret is required',
       )
     })
 
-    test('accepts valid credentials and returns client', async () => {
+    it('accepts valid credentials and returns client', async () => {
       const client = await new WeChatBotClient().login({ appId: 'wx123', appSecret: 'secret123' })
       expect(client).toBeInstanceOf(WeChatBotClient)
     })
   })
 
   describe('verifyCredentials', () => {
-    test('calls token endpoint and returns true on success', async () => {
+    it('calls token endpoint and returns true on success', async () => {
       tokenResponse()
 
       const client = await new WeChatBotClient().login({ appId: 'wx123', appSecret: 'secret123' })
@@ -82,7 +82,7 @@ describe('WeChatBotClient', () => {
       expect(fetchCalls[0].url).toContain('secret=secret123')
     })
 
-    test('returns false on token error', async () => {
+    it('returns false on token error', async () => {
       mockResponse({ errcode: 40125, errmsg: 'invalid appsecret' })
 
       const client = await new WeChatBotClient().login({ appId: 'wx123', appSecret: 'bad-secret' })
@@ -91,7 +91,7 @@ describe('WeChatBotClient', () => {
       expect(result).toBe(false)
     })
 
-    test('returns false on network error', async () => {
+    it('returns false on network error', async () => {
       fetchResponses = []
       Object.defineProperty(globalThis, 'fetch', {
         value: async (): Promise<Response> => {
@@ -109,7 +109,7 @@ describe('WeChatBotClient', () => {
   })
 
   describe('sendTextMessage', () => {
-    test('sends POST to /cgi-bin/message/custom/send with token in query', async () => {
+    it('sends POST to /cgi-bin/message/custom/send with token in query', async () => {
       tokenResponse()
       mockResponse({ errcode: 0, errmsg: 'ok' })
 
@@ -123,7 +123,7 @@ describe('WeChatBotClient', () => {
       expect(call.options?.method).toBe('POST')
     })
 
-    test('sends correct body shape', async () => {
+    it('sends correct body shape', async () => {
       tokenResponse()
       mockResponse({ errcode: 0, errmsg: 'ok' })
 
@@ -140,7 +140,7 @@ describe('WeChatBotClient', () => {
   })
 
   describe('sendImageMessage', () => {
-    test('sends POST with image payload', async () => {
+    it('sends POST with image payload', async () => {
       tokenResponse()
       mockResponse({ errcode: 0, errmsg: 'ok' })
 
@@ -157,7 +157,7 @@ describe('WeChatBotClient', () => {
   })
 
   describe('sendNewsMessage', () => {
-    test('sends POST with news/articles payload', async () => {
+    it('sends POST with news/articles payload', async () => {
       tokenResponse()
       mockResponse({ errcode: 0, errmsg: 'ok' })
 
@@ -182,7 +182,7 @@ describe('WeChatBotClient', () => {
   })
 
   describe('sendTemplateMessage', () => {
-    test('sends POST to /cgi-bin/message/template/send and returns msgid', async () => {
+    it('sends POST to /cgi-bin/message/template/send and returns msgid', async () => {
       tokenResponse()
       mockResponse({ errcode: 0, errmsg: 'ok', msgid: 12345 })
 
@@ -208,7 +208,7 @@ describe('WeChatBotClient', () => {
   })
 
   describe('listTemplates', () => {
-    test('sends GET and unwraps template_list from response', async () => {
+    it('sends GET and unwraps template_list from response', async () => {
       tokenResponse()
       mockResponse({
         errcode: 0,
@@ -236,7 +236,7 @@ describe('WeChatBotClient', () => {
   })
 
   describe('deleteTemplate', () => {
-    test('sends POST with template_id body', async () => {
+    it('sends POST with template_id body', async () => {
       tokenResponse()
       mockResponse({ errcode: 0, errmsg: 'ok' })
 
@@ -250,7 +250,7 @@ describe('WeChatBotClient', () => {
   })
 
   describe('getFollowers', () => {
-    test('sends GET to /cgi-bin/user/get and returns openids array', async () => {
+    it('sends GET to /cgi-bin/user/get and returns openids array', async () => {
       tokenResponse()
       mockResponse({
         errcode: 0,
@@ -270,7 +270,7 @@ describe('WeChatBotClient', () => {
       expect(fetchCalls[1].url).toContain('/cgi-bin/user/get')
     })
 
-    test('passes next_openid parameter when provided', async () => {
+    it('passes next_openid parameter when provided', async () => {
       tokenResponse()
       mockResponse({
         total: 1,
@@ -285,7 +285,7 @@ describe('WeChatBotClient', () => {
       expect(fetchCalls[1].url).toContain('next_openid=openid-2')
     })
 
-    test('returns empty openids when data is missing', async () => {
+    it('returns empty openids when data is missing', async () => {
       tokenResponse()
       mockResponse({
         total: 0,
@@ -301,7 +301,7 @@ describe('WeChatBotClient', () => {
   })
 
   describe('getUserInfo', () => {
-    test('sends GET with openid and lang params', async () => {
+    it('sends GET with openid and lang params', async () => {
       tokenResponse()
       mockResponse({
         subscribe: 1,
@@ -325,7 +325,7 @@ describe('WeChatBotClient', () => {
       expect(fetchCalls[1].url).toContain('lang=zh_CN')
     })
 
-    test('defaults to zh_CN lang', async () => {
+    it('defaults to zh_CN lang', async () => {
       tokenResponse()
       mockResponse({
         subscribe: 1,
@@ -347,7 +347,7 @@ describe('WeChatBotClient', () => {
   })
 
   describe('token caching', () => {
-    test('second call does not re-fetch token if not expired', async () => {
+    it('second call does not re-fetch token if not expired', async () => {
       tokenResponse()
       mockResponse({ errcode: 0, errmsg: 'ok' })
       mockResponse({ errcode: 0, errmsg: 'ok' })
@@ -364,7 +364,7 @@ describe('WeChatBotClient', () => {
   })
 
   describe('token auto-refresh on 40001', () => {
-    test('fetches new token and retries on errcode 40001', async () => {
+    it('fetches new token and retries on errcode 40001', async () => {
       tokenResponse()
       mockResponse({ errcode: 40001, errmsg: 'invalid credential' })
       mockResponse({ access_token: 'new-token', expires_in: 7200 })
@@ -381,7 +381,7 @@ describe('WeChatBotClient', () => {
   })
 
   describe('retry on system busy (errcode -1)', () => {
-    test('retries with backoff on errcode -1', async () => {
+    it('retries with backoff on errcode -1', async () => {
       tokenResponse()
       mockResponse({ errcode: -1, errmsg: 'system busy' })
       mockResponse({ errcode: -1, errmsg: 'system busy' })
@@ -401,7 +401,7 @@ describe('WeChatBotClient', () => {
   })
 
   describe('network error retry', () => {
-    test('GET retries on fetch throw', async () => {
+    it('GET retries on fetch throw', async () => {
       let callCount = 0
       Object.defineProperty(globalThis, 'fetch', {
         value: async (url: string | URL | Request, options?: RequestInit): Promise<Response> => {
@@ -434,7 +434,7 @@ describe('WeChatBotClient', () => {
       expect(callCount).toBe(4)
     })
 
-    test('POST does not retry on fetch throw', async () => {
+    it('POST does not retry on fetch throw', async () => {
       let callCount = 0
       Object.defineProperty(globalThis, 'fetch', {
         value: async (url: string | URL | Request, options?: RequestInit): Promise<Response> => {
@@ -456,7 +456,7 @@ describe('WeChatBotClient', () => {
   })
 
   describe('errcode handling', () => {
-    test('non-zero errcode throws WeChatBotError with correct code', async () => {
+    it('non-zero errcode throws WeChatBotError with correct code', async () => {
       tokenResponse()
       mockResponse({ errcode: 48001, errmsg: 'api unauthorized' })
 
@@ -472,7 +472,7 @@ describe('WeChatBotClient', () => {
       }
     })
 
-    test('errcode 0 does not throw', async () => {
+    it('errcode 0 does not throw', async () => {
       tokenResponse()
       mockResponse({ errcode: 0, errmsg: 'ok' })
 
@@ -482,7 +482,7 @@ describe('WeChatBotClient', () => {
   })
 
   describe('rate limit (errcode 45009)', () => {
-    test('throws WeChatBotError with code 45009 and appropriate message', async () => {
+    it('throws WeChatBotError with code 45009 and appropriate message', async () => {
       tokenResponse()
       mockResponse({ errcode: 45009, errmsg: 'reach max api daily quota limit' })
 

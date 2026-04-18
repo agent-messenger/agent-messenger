@@ -1,4 +1,4 @@
-import { afterAll, describe, expect, test } from 'bun:test'
+import { afterAll, describe, expect, it } from 'bun:test'
 import { existsSync, rmSync } from 'node:fs'
 import { join } from 'node:path'
 
@@ -22,7 +22,7 @@ afterAll(() => {
 })
 
 describe('WeChatBotCredentialManager', () => {
-  test('load returns default config when file does not exist', async () => {
+  it('load returns default config when file does not exist', async () => {
     const manager = setup()
     const config = await manager.load()
 
@@ -32,7 +32,7 @@ describe('WeChatBotCredentialManager', () => {
     })
   })
 
-  test('save creates file with correct content', async () => {
+  it('save creates file with correct content', async () => {
     const testConfigDir = join(
       import.meta.dir,
       `.test-wechatbot-config-${Date.now()}-${Math.random().toString(36).slice(2)}`,
@@ -61,13 +61,13 @@ describe('WeChatBotCredentialManager', () => {
     expect(loaded).toEqual(config)
   })
 
-  test('getCredentials returns null when not configured', async () => {
+  it('getCredentials returns null when not configured', async () => {
     const manager = setup()
     const creds = await manager.getCredentials()
     expect(creds).toBeNull()
   })
 
-  test('getCredentials returns credentials from env vars when E2E env vars are set', async () => {
+  it('getCredentials returns credentials from env vars when E2E env vars are set', async () => {
     const originalAppId = process.env.E2E_WECHATBOT_APP_ID
     const originalAppSecret = process.env.E2E_WECHATBOT_APP_SECRET
 
@@ -96,7 +96,7 @@ describe('WeChatBotCredentialManager', () => {
     }
   })
 
-  test('getCredentials ignores env vars when accountId is provided', async () => {
+  it('getCredentials ignores env vars when accountId is provided', async () => {
     const originalAppId = process.env.E2E_WECHATBOT_APP_ID
     const originalAppSecret = process.env.E2E_WECHATBOT_APP_SECRET
 
@@ -121,7 +121,7 @@ describe('WeChatBotCredentialManager', () => {
     }
   })
 
-  test('getCredentials returns specific account by accountId', async () => {
+  it('getCredentials returns specific account by accountId', async () => {
     const manager = setup()
     await manager.setCredentials({ app_id: 'wx-a', app_secret: 'secret-a', account_name: 'Account A' })
     await manager.setCredentials({ app_id: 'wx-b', app_secret: 'secret-b', account_name: 'Account B' })
@@ -134,13 +134,13 @@ describe('WeChatBotCredentialManager', () => {
     })
   })
 
-  test('getCredentials returns null for nonexistent accountId', async () => {
+  it('getCredentials returns null for nonexistent accountId', async () => {
     const manager = setup()
     const creds = await manager.getCredentials('nonexistent')
     expect(creds).toBeNull()
   })
 
-  test('setCredentials saves and sets as current', async () => {
+  it('setCredentials saves and sets as current', async () => {
     const manager = setup()
     await manager.setCredentials({ app_id: 'wx123', app_secret: 'secret123', account_name: 'My Account' })
 
@@ -155,7 +155,7 @@ describe('WeChatBotCredentialManager', () => {
     expect(config.current).toEqual({ account_id: 'wx123' })
   })
 
-  test('removeAccount deletes account and adjusts current', async () => {
+  it('removeAccount deletes account and adjusts current', async () => {
     const manager = setup()
     await manager.setCredentials({ app_id: 'wx123', app_secret: 'secret123', account_name: 'My Account' })
 
@@ -170,13 +170,13 @@ describe('WeChatBotCredentialManager', () => {
     expect(config.accounts['wx123']).toBeUndefined()
   })
 
-  test('removeAccount returns false for non-existent account', async () => {
+  it('removeAccount returns false for non-existent account', async () => {
     const manager = setup()
     const removed = await manager.removeAccount('nonexistent')
     expect(removed).toBe(false)
   })
 
-  test('removeAccount does not clear current when a different account is removed', async () => {
+  it('removeAccount does not clear current when a different account is removed', async () => {
     const manager = setup()
     await manager.setCredentials({ app_id: 'wx-a', app_secret: 'secret-a', account_name: 'Account A' })
     await manager.setCredentials({ app_id: 'wx-b', app_secret: 'secret-b', account_name: 'Account B' })
@@ -188,7 +188,7 @@ describe('WeChatBotCredentialManager', () => {
     expect(config.current).toEqual({ account_id: 'wx-b' })
   })
 
-  test('setCurrent switches active account', async () => {
+  it('setCurrent switches active account', async () => {
     const manager = setup()
     await manager.setCredentials({ app_id: 'wx-a', app_secret: 'secret-a', account_name: 'Account A' })
     await manager.setCredentials({ app_id: 'wx-b', app_secret: 'secret-b', account_name: 'Account B' })
@@ -200,13 +200,13 @@ describe('WeChatBotCredentialManager', () => {
     expect(config.current).toEqual({ account_id: 'wx-a' })
   })
 
-  test('setCurrent returns false for non-existent account', async () => {
+  it('setCurrent returns false for non-existent account', async () => {
     const manager = setup()
     const result = await manager.setCurrent('nonexistent')
     expect(result).toBe(false)
   })
 
-  test('listAll returns all accounts with is_current flag', async () => {
+  it('listAll returns all accounts with is_current flag', async () => {
     const manager = setup()
     await manager.setCredentials({ app_id: 'wx-a', app_secret: 'secret-a', account_name: 'Account A' })
     await manager.setCredentials({ app_id: 'wx-b', app_secret: 'secret-b', account_name: 'Account B' })
@@ -221,13 +221,13 @@ describe('WeChatBotCredentialManager', () => {
     expect(acctB?.is_current).toBe(true)
   })
 
-  test('listAll returns empty array when no accounts', async () => {
+  it('listAll returns empty array when no accounts', async () => {
     const manager = setup()
     const accounts = await manager.listAll()
     expect(accounts).toHaveLength(0)
   })
 
-  test('clearCredentials resets everything', async () => {
+  it('clearCredentials resets everything', async () => {
     const manager = setup()
     await manager.setCredentials({ app_id: 'wx123', app_secret: 'secret123', account_name: 'My Account' })
 
@@ -238,7 +238,7 @@ describe('WeChatBotCredentialManager', () => {
     expect(config.accounts).toEqual({})
   })
 
-  test('round-trip: set → get → remove → get null', async () => {
+  it('supports round-trip: set, get, remove, then returns null', async () => {
     const manager = setup()
 
     await manager.setCredentials({ app_id: 'wx123', app_secret: 'secret123', account_name: 'My Account' })

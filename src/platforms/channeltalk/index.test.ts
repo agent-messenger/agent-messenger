@@ -1,4 +1,4 @@
-import { expect, test } from 'bun:test'
+import { expect, it } from 'bun:test'
 
 import {
   BlockInlineAttrsSchema,
@@ -25,90 +25,90 @@ import {
   MessageBlockSchema,
 } from '@/platforms/channeltalk/index'
 
-test('ChannelClient is exported from barrel', () => {
+it('ChannelClient is exported from barrel', () => {
   expect(typeof ChannelClient).toBe('function')
 })
 
-test('ChannelError is exported from barrel', () => {
+it('ChannelError is exported from barrel', () => {
   expect(typeof ChannelError).toBe('function')
 })
 
-test('ChannelCredentialManager is exported from barrel', () => {
+it('ChannelCredentialManager is exported from barrel', () => {
   expect(typeof ChannelCredentialManager).toBe('function')
 })
 
-test('ChannelSchema is exported from barrel', () => {
+it('ChannelSchema is exported from barrel', () => {
   expect(typeof ChannelSchema.parse).toBe('function')
 })
 
-test('ChannelAccountSchema is exported from barrel', () => {
+it('ChannelAccountSchema is exported from barrel', () => {
   expect(typeof ChannelAccountSchema.parse).toBe('function')
 })
 
-test('ChannelBotSchema is exported from barrel', () => {
+it('ChannelBotSchema is exported from barrel', () => {
   expect(typeof ChannelBotSchema.parse).toBe('function')
 })
 
-test('ChannelConfigSchema is exported from barrel', () => {
+it('ChannelConfigSchema is exported from barrel', () => {
   expect(typeof ChannelConfigSchema.parse).toBe('function')
 })
 
-test('ChannelCredentialsSchema is exported from barrel', () => {
+it('ChannelCredentialsSchema is exported from barrel', () => {
   expect(typeof ChannelCredentialsSchema.parse).toBe('function')
 })
 
-test('ChannelDirectChatSchema is exported from barrel', () => {
+it('ChannelDirectChatSchema is exported from barrel', () => {
   expect(typeof ChannelDirectChatSchema.parse).toBe('function')
 })
 
-test('ChannelGroupSchema is exported from barrel', () => {
+it('ChannelGroupSchema is exported from barrel', () => {
   expect(typeof ChannelGroupSchema.parse).toBe('function')
 })
 
-test('ChannelManagerSchema is exported from barrel', () => {
+it('ChannelManagerSchema is exported from barrel', () => {
   expect(typeof ChannelManagerSchema.parse).toBe('function')
 })
 
-test('ChannelMessageSchema is exported from barrel', () => {
+it('ChannelMessageSchema is exported from barrel', () => {
   expect(typeof ChannelMessageSchema.parse).toBe('function')
 })
 
-test('ChannelSessionSchema is exported from barrel', () => {
+it('ChannelSessionSchema is exported from barrel', () => {
   expect(typeof ChannelSessionSchema.parse).toBe('function')
 })
 
-test('ChannelUserChatSchema is exported from barrel', () => {
+it('ChannelUserChatSchema is exported from barrel', () => {
   expect(typeof ChannelUserChatSchema.parse).toBe('function')
 })
 
-test('ChannelWorkspaceEntrySchema is exported from barrel', () => {
+it('ChannelWorkspaceEntrySchema is exported from barrel', () => {
   expect(typeof ChannelWorkspaceEntrySchema.parse).toBe('function')
 })
 
-test('ChannelSearchHighlightSchema is exported from barrel', () => {
+it('ChannelSearchHighlightSchema is exported from barrel', () => {
   expect(typeof ChannelSearchHighlightSchema.parse).toBe('function')
 })
 
-test('ChannelSearchHitSchema is exported from barrel', () => {
+it('ChannelSearchHitSchema is exported from barrel', () => {
   expect(typeof ChannelSearchHitSchema.parse).toBe('function')
 })
 
-test('ChannelSearchResponseSchema is exported from barrel', () => {
+it('ChannelSearchResponseSchema is exported from barrel', () => {
   expect(typeof ChannelSearchResponseSchema.parse).toBe('function')
 })
 
-test('ExtractedChannelTokenSchema is exported from barrel', () => {
+it('ExtractedChannelTokenSchema is exported from barrel', () => {
   expect(typeof ExtractedChannelTokenSchema.parse).toBe('function')
 })
 
-test('MessageBlockSchema is exported from barrel', () => {
+it('MessageBlockSchema is exported from barrel', () => {
   expect(typeof MessageBlockSchema.parse).toBe('function')
 })
 
-test('BlockInlineSchema is exported from barrel', () => {
+it('BlockInlineSchema is exported from barrel', () => {
   expect(typeof BlockInlineSchema.parse).toBe('function')
 })
 
-test('BlockInlineAttrsSchema is exported from barrel', () => {
+it('BlockInlineAttrsSchema is exported from barrel', () => {
   expect(typeof BlockInlineAttrsSchema.parse).toBe('function')
 })

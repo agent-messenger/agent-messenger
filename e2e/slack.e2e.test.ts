@@ -1,4 +1,4 @@
-import { describe, test, expect, beforeAll, afterEach } from 'bun:test'
+import { describe, it, expect, beforeAll, afterEach } from 'bun:test'
 
 import { WebClient } from '@slack/web-api'
 
@@ -32,7 +32,7 @@ describe('Slack E2E Tests', () => {
   })
 
   describe('auth', () => {
-    test('auth status returns authenticated workspace info', async () => {
+    it('auth status returns authenticated workspace info', async () => {
       const result = await runCLI('slack', ['auth', 'status'])
       expect(result.exitCode).toBe(0)
 
@@ -44,7 +44,7 @@ describe('Slack E2E Tests', () => {
   })
 
   describe('workspace', () => {
-    test('workspace list returns array', async () => {
+    it('workspace list returns array', async () => {
       const result = await runCLI('slack', ['workspace', 'list'])
       expect(result.exitCode).toBe(0)
 
@@ -52,7 +52,7 @@ describe('Slack E2E Tests', () => {
       expect(Array.isArray(data)).toBe(true)
     })
 
-    test('workspace current returns current workspace', async () => {
+    it('workspace current returns current workspace', async () => {
       const result = await runCLI('slack', ['workspace', 'current'])
       expect(result.exitCode).toBe(0)
 
@@ -62,7 +62,7 @@ describe('Slack E2E Tests', () => {
   })
 
   describe('message', () => {
-    test('message send creates message and returns ts', async () => {
+    it('message send creates message and returns ts', async () => {
       const testId = generateTestId()
       const result = await runCLI('slack', ['message', 'send', SLACK_TEST_CHANNEL_ID, `Test message ${testId}`])
       expect(result.exitCode).toBe(0)
@@ -73,7 +73,7 @@ describe('Slack E2E Tests', () => {
       if (data?.ts) testMessages.push(data.ts)
     })
 
-    test('message list returns messages array', async () => {
+    it('message list returns messages array', async () => {
       const result = await runCLI('slack', ['message', 'list', SLACK_TEST_CHANNEL_ID, '--limit', '5'])
       expect(result.exitCode).toBe(0)
 
@@ -81,7 +81,7 @@ describe('Slack E2E Tests', () => {
       expect(Array.isArray(data)).toBe(true)
     })
 
-    test('message get retrieves specific message', async () => {
+    it('message get retrieves specific message', async () => {
       const testId = generateTestId()
       const { id: ts } = await createTestMessage('slack', SLACK_TEST_CHANNEL_ID, `Get test ${testId}`)
       testMessages.push(ts)
@@ -95,7 +95,7 @@ describe('Slack E2E Tests', () => {
       expect(data?.text).toContain(testId)
     })
 
-    test('message update modifies message', async () => {
+    it('message update modifies message', async () => {
       const testId = generateTestId()
       const { id: ts } = await createTestMessage('slack', SLACK_TEST_CHANNEL_ID, `Original ${testId}`)
       testMessages.push(ts)
@@ -111,7 +111,7 @@ describe('Slack E2E Tests', () => {
       expect(data?.text).toContain('Updated')
     })
 
-    test('message search finds messages', async () => {
+    it('message search finds messages', async () => {
       const result = await runCLI('slack', ['message', 'search', 'test', '--limit', '5'])
       expect(result.exitCode).toBe(0)
 
@@ -119,7 +119,7 @@ describe('Slack E2E Tests', () => {
       expect(Array.isArray(data)).toBe(true)
     })
 
-    test('message send with thread creates reply', async () => {
+    it('message send with thread creates reply', async () => {
       const testId = generateTestId()
       const { id: parentTs } = await createTestMessage('slack', SLACK_TEST_CHANNEL_ID, `Parent ${testId}`)
       testMessages.push(parentTs)
@@ -142,7 +142,7 @@ describe('Slack E2E Tests', () => {
       if (data?.ts) testMessages.push(data.ts)
     }, 30000)
 
-    test('message replies gets thread replies', async () => {
+    it('message replies gets thread replies', async () => {
       const testId = generateTestId()
       const { id: parentTs } = await createTestMessage('slack', SLACK_TEST_CHANNEL_ID, `Thread parent ${testId}`)
       testMessages.push(parentTs)
@@ -161,7 +161,7 @@ describe('Slack E2E Tests', () => {
       expect(data?.length).toBeGreaterThanOrEqual(1)
     })
 
-    test('message delete removes message', async () => {
+    it('message delete removes message', async () => {
       const testId = generateTestId()
       const { id: ts } = await createTestMessage('slack', SLACK_TEST_CHANNEL_ID, `Delete me ${testId}`)
 
@@ -173,7 +173,7 @@ describe('Slack E2E Tests', () => {
   })
 
   describe('message files', () => {
-    test('message get includes files when message has file attachment', async () => {
+    it('message get includes files when message has file attachment', async () => {
       // Upload file directly via Slack WebClient (bypasses CLI file upload mapping issue)
       const credManager = new CredentialManager()
       const workspace = await credManager.getWorkspace()
@@ -222,7 +222,7 @@ describe('Slack E2E Tests', () => {
       expect(getMessage?.files![0].id).toBe(file.id)
     }, 30000)
 
-    test('message get omits files for plain text message', async () => {
+    it('message get omits files for plain text message', async () => {
       const testId = generateTestId()
       const { id: ts } = await createTestMessage('slack', SLACK_TEST_CHANNEL_ID, `No files ${testId}`)
       testMessages.push(ts)
@@ -239,7 +239,7 @@ describe('Slack E2E Tests', () => {
   })
 
   describe('channel', () => {
-    test('channel list returns channels array', async () => {
+    it('channel list returns channels array', async () => {
       const result = await runCLI('slack', ['channel', 'list'])
       expect(result.exitCode).toBe(0)
 
@@ -248,7 +248,7 @@ describe('Slack E2E Tests', () => {
       expect(data?.length).toBeGreaterThan(0)
     })
 
-    test('channel list --type public filters channels', async () => {
+    it('channel list --type public filters channels', async () => {
       const result = await runCLI('slack', ['channel', 'list', '--type', 'public'])
       expect(result.exitCode).toBe(0)
 
@@ -256,7 +256,7 @@ describe('Slack E2E Tests', () => {
       expect(Array.isArray(data)).toBe(true)
     })
 
-    test('channel info returns channel details', async () => {
+    it('channel info returns channel details', async () => {
       const result = await runCLI('slack', ['channel', 'info', SLACK_TEST_CHANNEL_ID])
       expect(result.exitCode).toBe(0)
 
@@ -267,7 +267,7 @@ describe('Slack E2E Tests', () => {
   })
 
   describe('user', () => {
-    test('user list returns users array', async () => {
+    it('user list returns users array', async () => {
       const result = await runCLI('slack', ['user', 'list'])
       expect(result.exitCode).toBe(0)
 
@@ -275,7 +275,7 @@ describe('Slack E2E Tests', () => {
       expect(Array.isArray(data)).toBe(true)
     })
 
-    test('user me returns current user', async () => {
+    it('user me returns current user', async () => {
       const result = await runCLI('slack', ['user', 'me'])
       expect(result.exitCode).toBe(0)
 
@@ -284,7 +284,7 @@ describe('Slack E2E Tests', () => {
       expect(data?.name).toBeTruthy()
     })
 
-    test('user info returns user details', async () => {
+    it('user info returns user details', async () => {
       // First get current user ID
       const meResult = await runCLI('slack', ['user', 'me'])
       const me = parseJSON<{ id: string }>(meResult.stdout)
@@ -302,7 +302,7 @@ describe('Slack E2E Tests', () => {
   })
 
   describe('reaction', () => {
-    test('reaction add/list/remove lifecycle', async () => {
+    it('reaction add/list/remove lifecycle', async () => {
       const testId = generateTestId()
       const { id: ts } = await createTestMessage('slack', SLACK_TEST_CHANNEL_ID, `Reaction test ${testId}`)
       testMessages.push(ts)
@@ -328,7 +328,7 @@ describe('Slack E2E Tests', () => {
   })
 
   describe('file', () => {
-    test('file list returns files array', async () => {
+    it('file list returns files array', async () => {
       const result = await runCLI('slack', ['file', 'list'])
       expect(result.exitCode).toBe(0)
 
@@ -336,7 +336,7 @@ describe('Slack E2E Tests', () => {
       expect(Array.isArray(data)).toBe(true)
     })
 
-    test.skip('file upload uploads file', async () => {
+    it.skip('file upload uploads file', async () => {
       const testId = generateTestId()
       const testFilePath = `/tmp/slack-e2e-${testId}.txt`
       await Bun.write(testFilePath, `E2E test file content ${testId}`)
@@ -358,7 +358,7 @@ describe('Slack E2E Tests', () => {
       }
     })
 
-    test('file download downloads a file', async () => {
+    it('file download downloads a file', async () => {
       const testId = generateTestId()
       const testContent = `E2E download test ${testId}`
       const testFilePath = `/tmp/slack-e2e-upload-${testId}.txt`
@@ -408,7 +408,7 @@ describe('Slack E2E Tests', () => {
   })
 
   describe('channel history', () => {
-    test('channel history returns messages', async () => {
+    it('channel history returns messages', async () => {
       const result = await runCLI('slack', ['channel', 'history', SLACK_TEST_CHANNEL_ID, '--limit', '5'])
       expect(result.exitCode).toBe(0)
 
@@ -418,7 +418,7 @@ describe('Slack E2E Tests', () => {
   })
 
   describe('unread', () => {
-    test('unread counts returns unread summary', async () => {
+    it('unread counts returns unread summary', async () => {
       const result = await runCLI('slack', ['unread', 'counts'])
       expect(result.exitCode).toBe(0)
 
@@ -427,7 +427,7 @@ describe('Slack E2E Tests', () => {
       expect(Array.isArray(data?.channels)).toBe(true)
     })
 
-    test('unread mark marks channel as read', async () => {
+    it('unread mark marks channel as read', async () => {
       const testId = generateTestId()
       const { id: ts } = await createTestMessage('slack', SLACK_TEST_CHANNEL_ID, `Unread mark test ${testId}`)
       testMessages.push(ts)
@@ -443,7 +443,7 @@ describe('Slack E2E Tests', () => {
   })
 
   describe('activity', () => {
-    test('activity list returns activity items', async () => {
+    it('activity list returns activity items', async () => {
       const result = await runCLI('slack', ['activity', 'list', '--limit', '5'])
       expect(result.exitCode).toBe(0)
 
@@ -454,7 +454,7 @@ describe('Slack E2E Tests', () => {
   })
 
   describe('saved', () => {
-    test('saved list returns saved items', async () => {
+    it('saved list returns saved items', async () => {
       const result = await runCLI('slack', ['saved', 'list'])
       expect(result.exitCode).toBe(0)
 
@@ -465,7 +465,7 @@ describe('Slack E2E Tests', () => {
   })
 
   describe('drafts', () => {
-    test('drafts list returns drafts', async () => {
+    it('drafts list returns drafts', async () => {
       const result = await runCLI('slack', ['drafts', 'list'])
       expect(result.exitCode).toBe(0)
 
@@ -475,7 +475,7 @@ describe('Slack E2E Tests', () => {
   })
 
   describe('sections', () => {
-    test('sections list returns channel sections', async () => {
+    it('sections list returns channel sections', async () => {
       const result = await runCLI('slack', ['sections', 'list'])
       expect(result.exitCode).toBe(0)
 
@@ -485,7 +485,7 @@ describe('Slack E2E Tests', () => {
   })
 
   describe('snapshot', () => {
-    test('snapshot returns full workspace data', async () => {
+    it('snapshot returns full workspace data', async () => {
       const result = await runCLI('slack', ['snapshot', '--limit', '2'])
       expect(result.exitCode).toBe(0)
 
@@ -494,7 +494,7 @@ describe('Slack E2E Tests', () => {
       expect(data?.users).toBeDefined()
     })
 
-    test('snapshot --channels-only returns only channels', async () => {
+    it('snapshot --channels-only returns only channels', async () => {
       const result = await runCLI('slack', ['snapshot', '--channels-only'])
       expect(result.exitCode).toBe(0)
 
@@ -502,7 +502,7 @@ describe('Slack E2E Tests', () => {
       expect(data?.channels).toBeDefined()
     })
 
-    test('snapshot --users-only returns only users', async () => {
+    it('snapshot --users-only returns only users', async () => {
       const result = await runCLI('slack', ['snapshot', '--users-only'])
       expect(result.exitCode).toBe(0)
 

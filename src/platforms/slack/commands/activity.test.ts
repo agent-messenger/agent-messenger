@@ -1,4 +1,4 @@
-import { describe, expect, mock, test } from 'bun:test'
+import { describe, expect, mock, it } from 'bun:test'
 
 import { Command } from 'commander'
 
@@ -6,7 +6,7 @@ import { activityCommand } from '@/platforms/slack/commands/activity'
 
 describe('activity command', () => {
   describe('list subcommand', () => {
-    test('returns activity items', async () => {
+    it('returns activity items', async () => {
       const mockActivityItems = [
         {
           id: 'act_1',
@@ -36,7 +36,7 @@ describe('activity command', () => {
       expect(result[1].type).toBe('message_reaction')
     })
 
-    test('respects limit option', async () => {
+    it('respects limit option', async () => {
       const mockActivityItems = [
         {
           id: 'act_1',
@@ -56,7 +56,7 @@ describe('activity command', () => {
       expect(result).toHaveLength(1)
     })
 
-    test('respects unread-only mode', async () => {
+    it('respects unread-only mode', async () => {
       const mockActivityItems = [
         {
           id: 'act_1',
@@ -76,7 +76,7 @@ describe('activity command', () => {
       expect(result).toHaveLength(1)
     })
 
-    test('respects types filter', async () => {
+    it('respects types filter', async () => {
       const mockActivityItems = [
         {
           id: 'act_1',
@@ -96,7 +96,7 @@ describe('activity command', () => {
       expect(result).toHaveLength(1)
     })
 
-    test('handles empty activity feed', async () => {
+    it('handles empty activity feed', async () => {
       const mockGetActivityFeed = mock(() => Promise.resolve([]))
       const result = await mockGetActivityFeed()
 
@@ -105,36 +105,36 @@ describe('activity command', () => {
   })
 
   describe('command structure', () => {
-    test('activity command exists', () => {
+    it('activity command exists', () => {
       expect(activityCommand).toBeInstanceOf(Command)
     })
 
-    test('activity command has correct name', () => {
+    it('activity command has correct name', () => {
       expect(activityCommand.name()).toBe('activity')
     })
 
-    test('activity command has description', () => {
+    it('activity command has description', () => {
       expect(activityCommand.description()).toBe('Activity feed commands')
     })
 
-    test('list subcommand exists', () => {
+    it('list subcommand exists', () => {
       const listCmd = activityCommand.commands.find((cmd) => cmd.name() === 'list')
       expect(listCmd).toBeDefined()
     })
 
-    test('list subcommand has --unread option', () => {
+    it('list subcommand has --unread option', () => {
       const listCmd = activityCommand.commands.find((cmd) => cmd.name() === 'list')
       const unreadOption = listCmd?.options.find((opt) => opt.long === '--unread')
       expect(unreadOption).toBeDefined()
     })
 
-    test('list subcommand has --limit option', () => {
+    it('list subcommand has --limit option', () => {
       const listCmd = activityCommand.commands.find((cmd) => cmd.name() === 'list')
       const limitOption = listCmd?.options.find((opt) => opt.long === '--limit')
       expect(limitOption).toBeDefined()
     })
 
-    test('list subcommand has --types option', () => {
+    it('list subcommand has --types option', () => {
       const listCmd = activityCommand.commands.find((cmd) => cmd.name() === 'list')
       const typesOption = listCmd?.options.find((opt) => opt.long === '--types')
       expect(typesOption).toBeDefined()

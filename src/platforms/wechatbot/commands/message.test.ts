@@ -1,4 +1,4 @@
-import { afterAll, describe, expect, mock, test } from 'bun:test'
+import { afterAll, describe, expect, mock, it } from 'bun:test'
 import { rmSync } from 'node:fs'
 import { join } from 'node:path'
 
@@ -43,7 +43,7 @@ afterAll(() => {
 })
 
 describe('sendAction', () => {
-  test('sends text message and returns success', async () => {
+  it('sends text message and returns success', async () => {
     const credManager = await makeCredManagerWithCreds()
     const result = await sendAction('openid-123', 'Hello world', { _credManager: credManager })
 
@@ -51,7 +51,7 @@ describe('sendAction', () => {
     expect(sendTextMessageMock).toHaveBeenCalledWith('openid-123', 'Hello world')
   })
 
-  test('returns error when client throws', async () => {
+  it('returns error when client throws', async () => {
     mock.module('../client', () => ({
       WeChatBotClient: class MockWeChatBotClient {
         async login() {
@@ -71,7 +71,7 @@ describe('sendAction', () => {
 })
 
 describe('sendImageAction', () => {
-  test('sends image message and returns success', async () => {
+  it('sends image message and returns success', async () => {
     mock.module('../client', () => ({
       WeChatBotClient: class MockWeChatBotClient {
         async login() {
@@ -88,7 +88,7 @@ describe('sendImageAction', () => {
     expect(result.success).toBe(true)
   })
 
-  test('returns error when client throws', async () => {
+  it('returns error when client throws', async () => {
     mock.module('../client', () => ({
       WeChatBotClient: class MockWeChatBotClient {
         async login() {
@@ -107,7 +107,7 @@ describe('sendImageAction', () => {
 })
 
 describe('sendNewsAction', () => {
-  test('returns error when required options are missing', async () => {
+  it('returns error when required options are missing', async () => {
     const credManager = await makeCredManagerWithCreds()
     const result = await sendNewsAction('openid-123', { _credManager: credManager })
 
@@ -115,7 +115,7 @@ describe('sendNewsAction', () => {
     expect(result.success).toBeUndefined()
   })
 
-  test('returns error when title is missing', async () => {
+  it('returns error when title is missing', async () => {
     const credManager = await makeCredManagerWithCreds()
     const result = await sendNewsAction('openid-123', {
       description: 'Test desc',
@@ -127,7 +127,7 @@ describe('sendNewsAction', () => {
     expect(result.error).toContain('--title')
   })
 
-  test('sends news message with all required options', async () => {
+  it('sends news message with all required options', async () => {
     mock.module('../client', () => ({
       WeChatBotClient: class MockWeChatBotClient {
         async login() {

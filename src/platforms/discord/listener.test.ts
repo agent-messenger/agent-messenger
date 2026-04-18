@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, mock, test } from 'bun:test'
+import { afterEach, describe, expect, mock, it } from 'bun:test'
 
 import { DiscordListener } from '@/platforms/discord/listener'
 import type {
@@ -111,7 +111,7 @@ describe('DiscordListener', () => {
   })
 
   describe('start', () => {
-    test('calls gatewayConnect and opens WebSocket', async () => {
+    it('calls gatewayConnect and opens WebSocket', async () => {
       const client = createMockClient()
       listener = new DiscordListener(client)
 
@@ -121,7 +121,7 @@ describe('DiscordListener', () => {
       expect(client.gatewayConnect).toHaveBeenCalledTimes(1)
     })
 
-    test('is idempotent', async () => {
+    it('is idempotent', async () => {
       const client = createMockClient()
       listener = new DiscordListener(client)
 
@@ -133,7 +133,7 @@ describe('DiscordListener', () => {
   })
 
   describe('connected event', () => {
-    test('emits connected with user/sessionId on READY', async () => {
+    it('emits connected with user/sessionId on READY', async () => {
       const client = createMockClient()
       listener = new DiscordListener(client)
 
@@ -152,7 +152,7 @@ describe('DiscordListener', () => {
   })
 
   describe('identify', () => {
-    test('sends Identify after Hello', async () => {
+    it('sends Identify after Hello', async () => {
       const client = createMockClient()
       listener = new DiscordListener(client)
 
@@ -167,7 +167,7 @@ describe('DiscordListener', () => {
       expect(identifyMsg.d.token).toBe('fake-token')
     })
 
-    test('sends Identify with custom intents', async () => {
+    it('sends Identify with custom intents', async () => {
       const client = createMockClient()
       const customIntents = 1 << 9
       listener = new DiscordListener(client, { intents: customIntents })
@@ -185,7 +185,7 @@ describe('DiscordListener', () => {
   })
 
   describe('message events', () => {
-    test('emits message_create events', async () => {
+    it('emits message_create events', async () => {
       const client = createMockClient()
       listener = new DiscordListener(client)
 
@@ -213,7 +213,7 @@ describe('DiscordListener', () => {
       expect(messages[0].channel_id).toBe('C123')
     })
 
-    test('emits message_update events', async () => {
+    it('emits message_update events', async () => {
       const client = createMockClient()
       listener = new DiscordListener(client)
 
@@ -235,7 +235,7 @@ describe('DiscordListener', () => {
       expect(updates[0].content).toBe('edited')
     })
 
-    test('emits message_delete events', async () => {
+    it('emits message_delete events', async () => {
       const client = createMockClient()
       listener = new DiscordListener(client)
 
@@ -254,7 +254,7 @@ describe('DiscordListener', () => {
   })
 
   describe('reaction events', () => {
-    test('emits message_reaction_add events', async () => {
+    it('emits message_reaction_add events', async () => {
       const client = createMockClient()
       listener = new DiscordListener(client)
 
@@ -283,7 +283,7 @@ describe('DiscordListener', () => {
   })
 
   describe('discord_event catch-all', () => {
-    test('emits discord_event for every dispatch (not READY)', async () => {
+    it('emits discord_event for every dispatch (not READY)', async () => {
       const client = createMockClient()
       listener = new DiscordListener(client)
 
@@ -308,7 +308,7 @@ describe('DiscordListener', () => {
   })
 
   describe('heartbeat', () => {
-    test('sends heartbeat after Hello (with jitter)', async () => {
+    it('sends heartbeat after Hello (with jitter)', async () => {
       const originalRandom = Math.random
       Math.random = () => 0
 
@@ -331,7 +331,7 @@ describe('DiscordListener', () => {
       }
     })
 
-    test('heartbeat ACK not emitted as user event', async () => {
+    it('heartbeat ACK not emitted as user event', async () => {
       const client = createMockClient()
       listener = new DiscordListener(client)
 
@@ -347,7 +347,7 @@ describe('DiscordListener', () => {
       expect(events.length).toBe(0)
     })
 
-    test('zombie connection triggers reconnect (no ACK received)', async () => {
+    it('zombie connection triggers reconnect (no ACK received)', async () => {
       const originalRandom = Math.random
       Math.random = () => 0
 
@@ -372,7 +372,7 @@ describe('DiscordListener', () => {
   })
 
   describe('stop', () => {
-    test('closes WebSocket and prevents reconnection', async () => {
+    it('closes WebSocket and prevents reconnection', async () => {
       const client = createMockClient()
       listener = new DiscordListener(client)
 
@@ -387,7 +387,7 @@ describe('DiscordListener', () => {
   })
 
   describe('reconnection', () => {
-    test('reconnects on WebSocket close when running', async () => {
+    it('reconnects on WebSocket close when running', async () => {
       const client = createMockClient()
       listener = new DiscordListener(client)
 
@@ -404,7 +404,7 @@ describe('DiscordListener', () => {
       expect(client.gatewayConnect.mock.calls.length).toBeGreaterThanOrEqual(2)
     })
 
-    test('emits error and reconnects on gatewayConnect failure', async () => {
+    it('emits error and reconnects on gatewayConnect failure', async () => {
       let callCount = 0
       const client = createMockClient({
         gatewayConnect: mock(() => {
@@ -430,7 +430,7 @@ describe('DiscordListener', () => {
   })
 
   describe('on/off/once', () => {
-    test('off removes listener', async () => {
+    it('off removes listener', async () => {
       const client = createMockClient()
       listener = new DiscordListener(client)
 
@@ -459,7 +459,7 @@ describe('DiscordListener', () => {
       expect(messages[0].content).toBe('a')
     })
 
-    test('once fires only once', async () => {
+    it('once fires only once', async () => {
       const client = createMockClient()
       listener = new DiscordListener(client)
 
@@ -487,7 +487,7 @@ describe('DiscordListener', () => {
   })
 
   describe('opcode 7 Reconnect', () => {
-    test('triggers immediate reconnect without backoff', async () => {
+    it('triggers immediate reconnect without backoff', async () => {
       const client = createMockClient()
       listener = new DiscordListener(client)
 
@@ -504,7 +504,7 @@ describe('DiscordListener', () => {
   })
 
   describe('opcode 9 InvalidSession', () => {
-    test('d=false clears session state, reconnects with fresh identify', async () => {
+    it('d=false clears session state, reconnects with fresh identify', async () => {
       const client = createMockClient()
       listener = new DiscordListener(client)
 
@@ -522,7 +522,7 @@ describe('DiscordListener', () => {
       expect((listener as any).resumeGatewayUrl).toBeNull()
     })
 
-    test('d=true allows resume on reconnect', async () => {
+    it('d=true allows resume on reconnect', async () => {
       const client = createMockClient()
       listener = new DiscordListener(client)
 
@@ -540,7 +540,7 @@ describe('DiscordListener', () => {
   })
 
   describe('resume', () => {
-    test('sends Resume instead of Identify when session exists', async () => {
+    it('sends Resume instead of Identify when session exists', async () => {
       const client = createMockClient()
       listener = new DiscordListener(client)
 
@@ -565,7 +565,7 @@ describe('DiscordListener', () => {
   })
 
   describe('non-recoverable close codes', () => {
-    test('emits error and stops on code 4004', async () => {
+    it('emits error and stops on code 4004', async () => {
       const client = createMockClient()
       listener = new DiscordListener(client)
 
@@ -585,7 +585,7 @@ describe('DiscordListener', () => {
   })
 
   describe('session reset close codes', () => {
-    test('4007 clears session and reconnects with fresh identify', async () => {
+    it('4007 clears session and reconnects with fresh identify', async () => {
       const client = createMockClient()
       listener = new DiscordListener(client)
 
@@ -615,7 +615,7 @@ describe('DiscordListener', () => {
       expect(resumeMsg).toBeUndefined()
     })
 
-    test('4009 clears session and reconnects with fresh identify', async () => {
+    it('4009 clears session and reconnects with fresh identify', async () => {
       const client = createMockClient()
       listener = new DiscordListener(client)
 
@@ -631,7 +631,7 @@ describe('DiscordListener', () => {
   })
 
   describe('duplicate Hello', () => {
-    test('does not stack heartbeat timers on second Hello', async () => {
+    it('does not stack heartbeat timers on second Hello', async () => {
       const originalRandom = Math.random
       Math.random = () => 0
 
@@ -659,7 +659,7 @@ describe('DiscordListener', () => {
   })
 
   describe('InvalidSession timer safety', () => {
-    test('stop cancels pending InvalidSession d=true timeout', async () => {
+    it('stop cancels pending InvalidSession d=true timeout', async () => {
       const originalRandom = Math.random
       Math.random = () => 0
 
@@ -682,7 +682,7 @@ describe('DiscordListener', () => {
       }
     })
 
-    test('InvalidSession d=false sends fresh identify on reconnect', async () => {
+    it('InvalidSession d=false sends fresh identify on reconnect', async () => {
       const client = createMockClient()
       listener = new DiscordListener(client)
 
@@ -708,7 +708,7 @@ describe('DiscordListener', () => {
   })
 
   describe('server-requested heartbeat', () => {
-    test('responds to opcode 1 with heartbeat', async () => {
+    it('responds to opcode 1 with heartbeat', async () => {
       const client = createMockClient()
       listener = new DiscordListener(client)
 
@@ -728,7 +728,7 @@ describe('DiscordListener', () => {
   })
 
   describe('sequence tracking', () => {
-    test('tracks sequence from dispatch events', async () => {
+    it('tracks sequence from dispatch events', async () => {
       const client = createMockClient()
       listener = new DiscordListener(client)
 
@@ -746,7 +746,7 @@ describe('DiscordListener', () => {
       expect((listener as any).sequence).toBe(5)
     })
 
-    test('ignores null sequence values', async () => {
+    it('ignores null sequence values', async () => {
       const client = createMockClient()
       listener = new DiscordListener(client)
 
@@ -773,7 +773,7 @@ describe('DiscordListener', () => {
   })
 
   describe('start after stop', () => {
-    test('resets reconnect attempts on fresh start', async () => {
+    it('resets reconnect attempts on fresh start', async () => {
       const client = createMockClient()
       listener = new DiscordListener(client)
 

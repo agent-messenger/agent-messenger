@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, mock, test } from 'bun:test'
+import { beforeEach, describe, expect, mock, it } from 'bun:test'
 
 import { SlackBotClient } from './client'
 import { SlackBotError } from './types'
@@ -123,30 +123,30 @@ describe('SlackBotClient', () => {
   })
 
   describe('login', () => {
-    test('accepts bot tokens (xoxb-)', async () => {
+    it('accepts bot tokens (xoxb-)', async () => {
       // when/then: should not throw
       const client = await new SlackBotClient().login({ token: 'xoxb-test-token' })
       expect(client).toBeDefined()
     })
 
-    test('rejects user tokens (xoxp-)', async () => {
+    it('rejects user tokens (xoxp-)', async () => {
       // when/then
       await expect(new SlackBotClient().login({ token: 'xoxp-user-token' })).rejects.toThrow(SlackBotError)
     })
 
-    test('rejects empty token', async () => {
+    it('rejects empty token', async () => {
       // when/then
       await expect(new SlackBotClient().login({ token: '' })).rejects.toThrow(SlackBotError)
     })
 
-    test('rejects non-bot tokens', async () => {
+    it('rejects non-bot tokens', async () => {
       // when/then
       await expect(new SlackBotClient().login({ token: 'invalid-token' })).rejects.toThrow(SlackBotError)
     })
   })
 
   describe('testAuth', () => {
-    test('returns auth info for valid token', async () => {
+    it('returns auth info for valid token', async () => {
       // given
       const client = await new SlackBotClient().login({ token: 'xoxb-test-token' })
 
@@ -161,7 +161,7 @@ describe('SlackBotClient', () => {
   })
 
   describe('postMessage', () => {
-    test('sends message and returns timestamp', async () => {
+    it('sends message and returns timestamp', async () => {
       // given
       const client = await new SlackBotClient().login({ token: 'xoxb-test-token' })
 
@@ -175,7 +175,7 @@ describe('SlackBotClient', () => {
   })
 
   describe('getConversationHistory', () => {
-    test('returns messages', async () => {
+    it('returns messages', async () => {
       // given
       const client = await new SlackBotClient().login({ token: 'xoxb-test-token' })
 
@@ -189,7 +189,7 @@ describe('SlackBotClient', () => {
   })
 
   describe('getMessage', () => {
-    test('returns single message', async () => {
+    it('returns single message', async () => {
       // given
       const client = await new SlackBotClient().login({ token: 'xoxb-test-token' })
 
@@ -203,7 +203,7 @@ describe('SlackBotClient', () => {
   })
 
   describe('addReaction', () => {
-    test('adds reaction to message', async () => {
+    it('adds reaction to message', async () => {
       // given
       const client = await new SlackBotClient().login({ token: 'xoxb-test-token' })
 
@@ -214,7 +214,7 @@ describe('SlackBotClient', () => {
   })
 
   describe('removeReaction', () => {
-    test('removes reaction from message', async () => {
+    it('removes reaction from message', async () => {
       // given
       const client = await new SlackBotClient().login({ token: 'xoxb-test-token' })
 
@@ -225,7 +225,7 @@ describe('SlackBotClient', () => {
   })
 
   describe('listChannels', () => {
-    test('returns list of channels', async () => {
+    it('returns list of channels', async () => {
       // given
       const client = await new SlackBotClient().login({ token: 'xoxb-test-token' })
 
@@ -240,7 +240,7 @@ describe('SlackBotClient', () => {
   })
 
   describe('getChannelInfo', () => {
-    test('returns channel details', async () => {
+    it('returns channel details', async () => {
       // given
       const client = await new SlackBotClient().login({ token: 'xoxb-test-token' })
 
@@ -254,7 +254,7 @@ describe('SlackBotClient', () => {
   })
 
   describe('resolveChannel', () => {
-    test('returns channel ID unchanged when it starts with C', async () => {
+    it('returns channel ID unchanged when it starts with C', async () => {
       // given
       const client = await new SlackBotClient().login({ token: 'xoxb-test-token' })
 
@@ -266,7 +266,7 @@ describe('SlackBotClient', () => {
       expect(mockConversations.list).not.toHaveBeenCalled()
     })
 
-    test('returns channel ID unchanged when it starts with D', async () => {
+    it('returns channel ID unchanged when it starts with D', async () => {
       // given
       const client = await new SlackBotClient().login({ token: 'xoxb-test-token' })
 
@@ -278,7 +278,7 @@ describe('SlackBotClient', () => {
       expect(mockConversations.list).not.toHaveBeenCalled()
     })
 
-    test('returns channel ID unchanged when it starts with G', async () => {
+    it('returns channel ID unchanged when it starts with G', async () => {
       // given
       const client = await new SlackBotClient().login({ token: 'xoxb-test-token' })
 
@@ -290,7 +290,7 @@ describe('SlackBotClient', () => {
       expect(mockConversations.list).not.toHaveBeenCalled()
     })
 
-    test('resolves channel name to ID', async () => {
+    it('resolves channel name to ID', async () => {
       // given
       const client = await new SlackBotClient().login({ token: 'xoxb-test-token' })
 
@@ -302,7 +302,7 @@ describe('SlackBotClient', () => {
       expect(mockConversations.list).toHaveBeenCalled()
     })
 
-    test('strips leading # from channel name', async () => {
+    it('strips leading # from channel name', async () => {
       // given
       const client = await new SlackBotClient().login({ token: 'xoxb-test-token' })
 
@@ -314,7 +314,7 @@ describe('SlackBotClient', () => {
       expect(mockConversations.list).toHaveBeenCalled()
     })
 
-    test('returns channel ID unchanged when input is #C prefixed ID', async () => {
+    it('returns channel ID unchanged when input is #C prefixed ID', async () => {
       // given
       const client = await new SlackBotClient().login({ token: 'xoxb-test-token' })
 
@@ -325,7 +325,7 @@ describe('SlackBotClient', () => {
       expect(channel).toBe('C123ABC')
     })
 
-    test('throws channel_not_found error when name is not found', async () => {
+    it('throws channel_not_found error when name is not found', async () => {
       // given
       const client = await new SlackBotClient().login({ token: 'xoxb-test-token' })
 
@@ -341,7 +341,7 @@ describe('SlackBotClient', () => {
   })
 
   describe('listUsers', () => {
-    test('returns list of users', async () => {
+    it('returns list of users', async () => {
       // given
       const client = await new SlackBotClient().login({ token: 'xoxb-test-token' })
 
@@ -355,7 +355,7 @@ describe('SlackBotClient', () => {
   })
 
   describe('getUserInfo', () => {
-    test('returns user details', async () => {
+    it('returns user details', async () => {
       // given
       const client = await new SlackBotClient().login({ token: 'xoxb-test-token' })
 

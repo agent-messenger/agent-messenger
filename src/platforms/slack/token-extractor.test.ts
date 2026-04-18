@@ -1,5 +1,5 @@
 import { Database } from 'bun:sqlite'
-import { afterEach, describe, expect, spyOn, test } from 'bun:test'
+import { afterEach, describe, expect, spyOn, it } from 'bun:test'
 import { createCipheriv, randomBytes } from 'node:crypto'
 import * as fs from 'node:fs'
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
@@ -33,7 +33,7 @@ function createCookiesDb(
 }
 
 describe('TokenExtractor token deduplication', () => {
-  test('keeps first token per team and upgrades unknown team name', async () => {
+  it('keeps first token per team and upgrades unknown team name', async () => {
     // given — two .log entries for the same team: first has unknown name, second has a name
     const slackDir = mkdtempSync(join(tmpdir(), 'slack-dedup-'))
     tempDirs.push(slackDir)
@@ -59,7 +59,7 @@ describe('TokenExtractor token deduplication', () => {
     expect(result[0].workspace_name).toBe('workspace-name')
   })
 
-  test('prefers Local Storage token over IndexedDB token for same team', async () => {
+  it('prefers Local Storage token over IndexedDB token for same team', async () => {
     // given — same team in Local Storage (valid) and IndexedDB (stale)
     const slackDir = mkdtempSync(join(tmpdir(), 'slack-dedup-tier-'))
     tempDirs.push(slackDir)
@@ -87,7 +87,7 @@ describe('TokenExtractor token deduplication', () => {
     expect(result[0].workspace_name).toBe('valid-workspace')
   })
 
-  test('prefers IndexedDB token when Local Storage has no token for team', async () => {
+  it('prefers IndexedDB token when Local Storage has no token for team', async () => {
     // given — token only in IndexedDB
     const slackDir = mkdtempSync(join(tmpdir(), 'slack-dedup-idb-only-'))
     tempDirs.push(slackDir)
@@ -108,7 +108,7 @@ describe('TokenExtractor token deduplication', () => {
     expect(result[0].token).toBe(token)
   })
 
-  test('prefers storage dir token over IndexedDB token for same team', async () => {
+  it('prefers storage dir token over IndexedDB token for same team', async () => {
     // given — structured JSON in storage dir vs raw token in IndexedDB
     const slackDir = mkdtempSync(join(tmpdir(), 'slack-dedup-storage-'))
     tempDirs.push(slackDir)
@@ -136,7 +136,7 @@ describe('TokenExtractor token deduplication', () => {
     expect(result[0].workspace_name).toBe('storage-workspace')
   })
 
-  test('prefers .log tokens over .ldb tokens for same team', async () => {
+  it('prefers .log tokens over .ldb tokens for same team', async () => {
     // given — same team ID in both .log (fresh) and .ldb (stale)
     const slackDir = mkdtempSync(join(tmpdir(), 'slack-dedup-order-'))
     tempDirs.push(slackDir)
@@ -160,7 +160,7 @@ describe('TokenExtractor token deduplication', () => {
     expect(result[0].token).toBe(freshToken)
   })
 
-  test('keeps all tokens with unknown teamId instead of merging them', async () => {
+  it('keeps all tokens with unknown teamId instead of merging them', async () => {
     // given — two different tokens without team ID context (no T[A-Z0-9] nearby)
     const slackDir = mkdtempSync(join(tmpdir(), 'slack-dedup-unknown-'))
     tempDirs.push(slackDir)
@@ -203,7 +203,7 @@ describe('TokenExtractor LevelDB fragmentation markers', () => {
     return Buffer.concat([prefix, segments[0] ? Buffer.concat(segments) : Buffer.alloc(0), suffix])
   }
 
-  test('extracts token with old fragmentation marker [19 0d f0 NN]', async () => {
+  it('extracts token with old fragmentation marker [19 0d f0 NN]', async () => {
     // given
     const slackDir = mkdtempSync(join(tmpdir(), 'slack-marker-old-'))
     tempDirs.push(slackDir)
@@ -225,7 +225,7 @@ describe('TokenExtractor LevelDB fragmentation markers', () => {
     expect(result[0].token).toBe(`xoxc-1111111111-2222222222-3333333333-${hex64}`)
   })
 
-  test('extracts token with new fragmentation marker [15 0b f0 43]', async () => {
+  it('extracts token with new fragmentation marker [15 0b f0 43]', async () => {
     // given — marker whose 4th byte (0x43 = "C") is a valid hex char
     const slackDir = mkdtempSync(join(tmpdir(), 'slack-marker-new-'))
     tempDirs.push(slackDir)
@@ -248,7 +248,7 @@ describe('TokenExtractor LevelDB fragmentation markers', () => {
     expect(result[0].token).not.toContain('C')
   })
 
-  test('extracts token with new fragmentation marker [15 0b f0 58]', async () => {
+  it('extracts token with new fragmentation marker [15 0b f0 58]', async () => {
     // given — marker whose 4th byte (0x58 = "X") is not a valid hex char
     const slackDir = mkdtempSync(join(tmpdir(), 'slack-marker-58-'))
     tempDirs.push(slackDir)
@@ -272,7 +272,7 @@ describe('TokenExtractor LevelDB fragmentation markers', () => {
 })
 
 describe('TokenExtractor Linux cookie decryption', () => {
-  test('decrypts v10 cookie using peanuts password on Linux', async () => {
+  it('decrypts v10 cookie using peanuts password on Linux', async () => {
     // given — LevelDB with valid token + v10-encrypted cookie using Linux key
     const slackDir = mkdtempSync(join(tmpdir(), 'slack-linux-'))
     tempDirs.push(slackDir)
@@ -311,7 +311,7 @@ describe('TokenExtractor Linux cookie decryption', () => {
 })
 
 describe('TokenExtractor Linux v11 cookie decryption', () => {
-  test('decrypts v11 cookie using gnome-keyring password on Linux', () => {
+  it('decrypts v11 cookie using gnome-keyring password on Linux', () => {
     // given — v11-prefixed cookie encrypted with a known keyring password
     const { createCipheriv, pbkdf2Sync } = require('node:crypto')
     const testPassword = 'test-gnome-keyring-password'
@@ -338,7 +338,7 @@ describe('TokenExtractor Linux v11 cookie decryption', () => {
     keyringPasswordSpy.mockRestore()
   })
 
-  test('falls back to peanuts key when keyring is unavailable for v11 cookie', () => {
+  it('falls back to peanuts key when keyring is unavailable for v11 cookie', () => {
     // given — v11-prefixed cookie encrypted with peanuts (tests fallback code path)
     const { createCipheriv, pbkdf2Sync } = require('node:crypto')
     const key = pbkdf2Sync('peanuts', 'saltysalt', 1, 16, 'sha1')
@@ -363,7 +363,7 @@ describe('TokenExtractor Linux v11 cookie decryption', () => {
 })
 
 describe('TokenExtractor debug logging', () => {
-  test('calls debugLog callback during extraction', async () => {
+  it('calls debugLog callback during extraction', async () => {
     // given
     const slackDir = mkdtempSync(join(tmpdir(), 'slack-debug-'))
     tempDirs.push(slackDir)
@@ -380,7 +380,7 @@ describe('TokenExtractor debug logging', () => {
     expect(messages.length).toBeGreaterThan(0)
   })
 
-  test('does not throw when debugLog is not provided', async () => {
+  it('does not throw when debugLog is not provided', async () => {
     // given
     const slackDir = mkdtempSync(join(tmpdir(), 'slack-no-debug-'))
     tempDirs.push(slackDir)
@@ -394,12 +394,12 @@ describe('TokenExtractor debug logging', () => {
 })
 
 describe('TokenExtractor Windows DPAPI', () => {
-  test('decryptDPAPI returns null on non-win32 platform', () => {
+  it('decryptDPAPI returns null on non-win32 platform', () => {
     const extractor = new TokenExtractor('darwin', '/tmp/slack-test')
     expect(extractor.decryptDPAPI(Buffer.from('test'))).toBeNull()
   })
 
-  test('decryptV10CookieWindows decrypts AES-256-GCM with master key from Local State', () => {
+  it('decryptV10CookieWindows decrypts AES-256-GCM with master key from Local State', () => {
     // given — known master key and AES-256-GCM encrypted cookie
     const masterKey = randomBytes(32)
 
@@ -423,7 +423,7 @@ describe('TokenExtractor Windows DPAPI', () => {
     expect(extractor.tryDecryptCookie(encrypted)).toBe(plaintext)
   })
 
-  test('decryptV10CookieWindows falls back to direct DPAPI when no Local State', () => {
+  it('decryptV10CookieWindows falls back to direct DPAPI when no Local State', () => {
     class TestTokenExtractor extends TokenExtractor {
       override getWindowsMasterKey(): null {
         return null
@@ -439,7 +439,7 @@ describe('TokenExtractor Windows DPAPI', () => {
     expect(extractor.tryDecryptCookie(encrypted)).toBe('xoxd-dpapiDirectCookie%2B')
   })
 
-  test('tryDecryptCookie handles Windows pre-v80 cookies without version prefix', () => {
+  it('tryDecryptCookie handles Windows pre-v80 cookies without version prefix', () => {
     class TestTokenExtractor extends TokenExtractor {
       override decryptDPAPI(_encrypted: Buffer): Buffer | null {
         return Buffer.from('xoxd-preV80Cookie%2B')
@@ -452,7 +452,7 @@ describe('TokenExtractor Windows DPAPI', () => {
     expect(extractor.tryDecryptCookie(encrypted)).toBe('xoxd-preV80Cookie%2B')
   })
 
-  test('getWindowsMasterKey reads and decrypts key from Local State file', () => {
+  it('getWindowsMasterKey reads and decrypts key from Local State file', () => {
     // given
     const slackDir = mkdtempSync(join(tmpdir(), 'slack-win-'))
     tempDirs.push(slackDir)
@@ -477,7 +477,7 @@ describe('TokenExtractor Windows DPAPI', () => {
     expect(extractor.getWindowsMasterKey()).toEqual(fakeDecryptedKey)
   })
 
-  test('getWindowsMasterKey returns null when Local State is missing', () => {
+  it('getWindowsMasterKey returns null when Local State is missing', () => {
     const slackDir = mkdtempSync(join(tmpdir(), 'slack-no-ls-'))
     tempDirs.push(slackDir)
 
@@ -485,7 +485,7 @@ describe('TokenExtractor Windows DPAPI', () => {
     expect(extractor.getWindowsMasterKey()).toBeNull()
   })
 
-  test('getWindowsMasterKey returns null when encrypted_key has no DPAPI prefix', () => {
+  it('getWindowsMasterKey returns null when encrypted_key has no DPAPI prefix', () => {
     const slackDir = mkdtempSync(join(tmpdir(), 'slack-bad-ls-'))
     tempDirs.push(slackDir)
 
@@ -496,7 +496,7 @@ describe('TokenExtractor Windows DPAPI', () => {
     expect(extractor.getWindowsMasterKey()).toBeNull()
   })
 
-  test('extract throws descriptive error when cookie file is locked (EBUSY)', async () => {
+  it('extract throws descriptive error when cookie file is locked (EBUSY)', async () => {
     // given — LevelDB with a valid token but Cookies file locked by Slack
     const slackDir = mkdtempSync(join(tmpdir(), 'slack-ebusy-'))
     tempDirs.push(slackDir)
@@ -523,7 +523,7 @@ describe('TokenExtractor Windows DPAPI', () => {
     }
   })
 
-  test('extract decrypts Windows v10 cookies end-to-end with mocked DPAPI', async () => {
+  it('extract decrypts Windows v10 cookies end-to-end with mocked DPAPI', async () => {
     // given — SQLite DB with v10-encrypted cookie, Local State with master key, LevelDB with token
     const slackDir = mkdtempSync(join(tmpdir(), 'slack-win-e2e-'))
     tempDirs.push(slackDir)
@@ -582,7 +582,7 @@ describe('TokenExtractor Windows DPAPI', () => {
 })
 
 describe('TokenExtractor IndexedDB blob files', () => {
-  test('extracts token from blob file when not in LevelDB', async () => {
+  it('extracts token from blob file when not in LevelDB', async () => {
     // given — token only exists in an IndexedDB blob file, not in LevelDB
     const slackDir = mkdtempSync(join(tmpdir(), 'slack-blob-'))
     tempDirs.push(slackDir)
@@ -604,7 +604,7 @@ describe('TokenExtractor IndexedDB blob files', () => {
     expect(result[0].workspace_id).toBe('T12345678')
   })
 
-  test('extracts tokens from both LevelDB and blob files for different teams', async () => {
+  it('extracts tokens from both LevelDB and blob files for different teams', async () => {
     // given — one workspace token in LevelDB, another in blob file
     const slackDir = mkdtempSync(join(tmpdir(), 'slack-blob-multi-'))
     tempDirs.push(slackDir)
@@ -632,7 +632,7 @@ describe('TokenExtractor IndexedDB blob files', () => {
     expect(teamIds).toEqual(['TAAAAAAAA', 'TBBBBBBBBB'])
   })
 
-  test('LevelDB token wins over blob file token for same team', async () => {
+  it('LevelDB token wins over blob file token for same team', async () => {
     // given — same team in both LevelDB (.log = highest raw priority) and blob file
     const slackDir = mkdtempSync(join(tmpdir(), 'slack-blob-dedup-'))
     tempDirs.push(slackDir)
@@ -659,7 +659,7 @@ describe('TokenExtractor IndexedDB blob files', () => {
     expect(result[0].token).toBe(ldbToken)
   })
 
-  test('merges same token from LDB and blob with different teamIds', async () => {
+  it('merges same token from LDB and blob with different teamIds', async () => {
     // given — same token in LevelDB (correct teamId) and blob file (false-positive teamId from binary)
     const slackDir = mkdtempSync(join(tmpdir(), 'slack-blob-dup-'))
     tempDirs.push(slackDir)
@@ -685,7 +685,7 @@ describe('TokenExtractor IndexedDB blob files', () => {
     expect(result[0].token).toBe(token)
   })
 
-  test('skips blob files larger than 10MB', async () => {
+  it('skips blob files larger than 10MB', async () => {
     // given — blob file exceeds size limit
     const slackDir = mkdtempSync(join(tmpdir(), 'slack-blob-large-'))
     tempDirs.push(slackDir)
@@ -710,7 +710,7 @@ describe('TokenExtractor IndexedDB blob files', () => {
 })
 
 describe('TokenExtractor getWorkspaceDomains', () => {
-  test('reads workspace domains from root-state.json', () => {
+  it('reads workspace domains from root-state.json', () => {
     // given
     const slackDir = mkdtempSync(join(tmpdir(), 'slack-domains-'))
     tempDirs.push(slackDir)
@@ -735,7 +735,7 @@ describe('TokenExtractor getWorkspaceDomains', () => {
     expect(domains).toEqual({ T111: 'acme-corp', T222: 'devteam' })
   })
 
-  test('returns empty when root-state.json is missing', () => {
+  it('returns empty when root-state.json is missing', () => {
     // given
     const slackDir = mkdtempSync(join(tmpdir(), 'slack-no-rootstate-'))
     tempDirs.push(slackDir)
@@ -748,7 +748,7 @@ describe('TokenExtractor getWorkspaceDomains', () => {
     expect(domains).toEqual({})
   })
 
-  test('returns empty when root-state.json has no workspaces', () => {
+  it('returns empty when root-state.json has no workspaces', () => {
     // given
     const slackDir = mkdtempSync(join(tmpdir(), 'slack-empty-rootstate-'))
     tempDirs.push(slackDir)
@@ -765,7 +765,7 @@ describe('TokenExtractor getWorkspaceDomains', () => {
     expect(domains).toEqual({})
   })
 
-  test('skips workspaces without domain field', () => {
+  it('skips workspaces without domain field', () => {
     // given
     const slackDir = mkdtempSync(join(tmpdir(), 'slack-partial-rootstate-'))
     tempDirs.push(slackDir)
@@ -792,7 +792,7 @@ describe('TokenExtractor getWorkspaceDomains', () => {
 })
 
 describe('TokenExtractor browser fallback', () => {
-  test('extractFromBrowsers returns empty array when no browser profiles have tokens', async () => {
+  it('extractFromBrowsers returns empty array when no browser profiles have tokens', async () => {
     const slackDir = mkdtempSync(join(tmpdir(), 'slack-nonexistent-'))
     tempDirs.push(slackDir)
     rmSync(slackDir, { recursive: true, force: true })
@@ -802,7 +802,7 @@ describe('TokenExtractor browser fallback', () => {
     expect(result).toEqual([])
   })
 
-  test('extract tries desktop before browser profiles', async () => {
+  it('extract tries desktop before browser profiles', async () => {
     // given — slackDir with LevelDB token data
     const slackDir = mkdtempSync(join(tmpdir(), 'slack-fallback-desktop-'))
     tempDirs.push(slackDir)
@@ -826,7 +826,7 @@ describe('TokenExtractor browser fallback', () => {
     extractFromBrowsersSpy.mockRestore()
   })
 
-  test('extract falls back to browser profiles when desktop has no tokens', async () => {
+  it('extract falls back to browser profiles when desktop has no tokens', async () => {
     // given — empty slackDir (no tokens)
     const slackDir = mkdtempSync(join(tmpdir(), 'slack-fallback-browser-'))
     tempDirs.push(slackDir)
@@ -855,7 +855,7 @@ describe('TokenExtractor browser fallback', () => {
     extractFromBrowsersSpy.mockRestore()
   })
 
-  test('extract falls back to browser when slackDir does not exist', async () => {
+  it('extract falls back to browser when slackDir does not exist', async () => {
     // given — non-existent slackDir
     const slackDir = '/nonexistent/slack/dir'
     const hex64 = 'c'.repeat(64)

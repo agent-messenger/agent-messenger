@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, mock, spyOn, test } from 'bun:test'
+import { afterEach, beforeEach, describe, expect, mock, spyOn, it } from 'bun:test'
 
 import { WebexError } from '../types'
 
@@ -74,7 +74,7 @@ afterEach(() => {
 })
 
 describe('listAction', () => {
-  test('calls listSpaces and outputs mapped array', async () => {
+  it('calls listSpaces and outputs mapped array', async () => {
     await listAction({})
 
     expect(mockListSpaces).toHaveBeenCalled()
@@ -98,19 +98,19 @@ describe('listAction', () => {
     )
   })
 
-  test('passes type and limit options to listSpaces', async () => {
+  it('passes type and limit options to listSpaces', async () => {
     await listAction({ type: 'group', limit: 10 })
 
     expect(mockListSpaces).toHaveBeenCalledWith({ type: 'group', max: 10 })
   })
 
-  test('passes undefined type and limit when not provided', async () => {
+  it('passes undefined type and limit when not provided', async () => {
     await listAction({})
 
     expect(mockListSpaces).toHaveBeenCalledWith({ type: undefined, max: undefined })
   })
 
-  test('outputs pretty-printed JSON when pretty is true', async () => {
+  it('outputs pretty-printed JSON when pretty is true', async () => {
     await listAction({ pretty: true })
 
     expect(consoleLogSpy).toHaveBeenCalledWith(
@@ -137,7 +137,7 @@ describe('listAction', () => {
     )
   })
 
-  test('not authenticated: outputs error and exits', async () => {
+  it('throws when not authenticated', async () => {
     mockLogin.mockImplementation(async () => {
       throw new WebexError('No Webex credentials found.', 'no_credentials')
     })
@@ -150,7 +150,7 @@ describe('listAction', () => {
 })
 
 describe('infoAction', () => {
-  test('calls getSpace with spaceId and outputs space details', async () => {
+  it('calls getSpace with spaceId and outputs space details', async () => {
     await infoAction('space-1', {})
 
     expect(mockGetSpace).toHaveBeenCalledWith('space-1')
@@ -168,7 +168,7 @@ describe('infoAction', () => {
     )
   })
 
-  test('outputs null for teamId when not present', async () => {
+  it('outputs null for teamId when not present', async () => {
     mockGetSpace.mockImplementation(() => Promise.resolve({ ...mockSpace, teamId: undefined }))
 
     await infoAction('space-1', {})
@@ -179,7 +179,7 @@ describe('infoAction', () => {
     expect(output.teamId).toBeNull()
   })
 
-  test('outputs pretty-printed JSON when pretty is true', async () => {
+  it('outputs pretty-printed JSON when pretty is true', async () => {
     await infoAction('space-1', { pretty: true })
 
     expect(consoleLogSpy).toHaveBeenCalledWith(
@@ -200,7 +200,7 @@ describe('infoAction', () => {
     )
   })
 
-  test('not authenticated: outputs error and exits', async () => {
+  it('throws when not authenticated', async () => {
     mockLogin.mockImplementation(async () => {
       throw new WebexError('No Webex credentials found.', 'no_credentials')
     })

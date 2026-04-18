@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, mock, test } from 'bun:test'
+import { beforeEach, describe, expect, mock, it } from 'bun:test'
 
 const mockSendTextMessage = mock(() =>
   Promise.resolve({
@@ -64,7 +64,7 @@ describe('message commands', () => {
   })
 
   describe('sendAction', () => {
-    test('sends a text message and returns result', async () => {
+    it('sends a text message and returns result', async () => {
       const result = await sendAction('+1234567890', 'Hello!', {})
 
       expect(result.messaging_product).toBe('whatsapp')
@@ -73,7 +73,7 @@ describe('message commands', () => {
       expect(mockSendTextMessage).toHaveBeenCalledWith('+1234567890', 'Hello!')
     })
 
-    test('returns error when client throws', async () => {
+    it('returns error when client throws', async () => {
       mockSendTextMessage.mockImplementationOnce(() => Promise.reject(new Error('Network error')))
 
       const result = await sendAction('+1234567890', 'Hello!', {})
@@ -83,7 +83,7 @@ describe('message commands', () => {
   })
 
   describe('sendTemplateAction', () => {
-    test('sends a template message with default language', async () => {
+    it('sends a template message with default language', async () => {
       const result = await sendTemplateAction('+1234567890', 'hello_world', {})
 
       expect(result.messaging_product).toBe('whatsapp')
@@ -91,14 +91,14 @@ describe('message commands', () => {
       expect(mockSendTemplateMessage).toHaveBeenCalledWith('+1234567890', 'hello_world', 'en_US', undefined)
     })
 
-    test('sends a template message with custom language', async () => {
+    it('sends a template message with custom language', async () => {
       const result = await sendTemplateAction('+1234567890', 'hello_world', { language: 'pt_BR' })
 
       expect(mockSendTemplateMessage).toHaveBeenCalledWith('+1234567890', 'hello_world', 'pt_BR', undefined)
       expect(result.error).toBeUndefined()
     })
 
-    test('parses and passes components JSON', async () => {
+    it('parses and passes components JSON', async () => {
       const components = [{ type: 'body', parameters: [{ type: 'text', text: 'World' }] }]
       const result = await sendTemplateAction('+1234567890', 'hello_world', {
         components: JSON.stringify(components),
@@ -108,7 +108,7 @@ describe('message commands', () => {
       expect(result.error).toBeUndefined()
     })
 
-    test('returns error for invalid components JSON', async () => {
+    it('returns error for invalid components JSON', async () => {
       const result = await sendTemplateAction('+1234567890', 'hello_world', {
         components: 'not-valid-json',
       })
@@ -116,7 +116,7 @@ describe('message commands', () => {
       expect(result.error).toBe('Invalid --components JSON')
     })
 
-    test('returns error when client throws', async () => {
+    it('returns error when client throws', async () => {
       mockSendTemplateMessage.mockImplementationOnce(() => Promise.reject(new Error('Template not found')))
 
       const result = await sendTemplateAction('+1234567890', 'missing_template', {})
@@ -126,7 +126,7 @@ describe('message commands', () => {
   })
 
   describe('sendReactionAction', () => {
-    test('sends a reaction and returns result', async () => {
+    it('sends a reaction and returns result', async () => {
       const result = await sendReactionAction('+1234567890', 'wamid.msg123', '👍', {})
 
       expect(result.messaging_product).toBe('whatsapp')
@@ -134,7 +134,7 @@ describe('message commands', () => {
       expect(mockSendReaction).toHaveBeenCalledWith('+1234567890', 'wamid.msg123', '👍')
     })
 
-    test('returns error when client throws', async () => {
+    it('returns error when client throws', async () => {
       mockSendReaction.mockImplementationOnce(() => Promise.reject(new Error('Message not found')))
 
       const result = await sendReactionAction('+1234567890', 'wamid.bad', '👍', {})
@@ -144,7 +144,7 @@ describe('message commands', () => {
   })
 
   describe('sendImageAction', () => {
-    test('sends an image message and returns result', async () => {
+    it('sends an image message and returns result', async () => {
       const result = await sendImageAction('+1234567890', 'https://example.com/image.jpg', {})
 
       expect(result.messaging_product).toBe('whatsapp')
@@ -152,14 +152,14 @@ describe('message commands', () => {
       expect(mockSendImageMessage).toHaveBeenCalledWith('+1234567890', 'https://example.com/image.jpg', undefined)
     })
 
-    test('passes caption when provided', async () => {
+    it('passes caption when provided', async () => {
       const result = await sendImageAction('+1234567890', 'https://example.com/image.jpg', { caption: 'My photo' })
 
       expect(mockSendImageMessage).toHaveBeenCalledWith('+1234567890', 'https://example.com/image.jpg', 'My photo')
       expect(result.error).toBeUndefined()
     })
 
-    test('returns error when client throws', async () => {
+    it('returns error when client throws', async () => {
       mockSendImageMessage.mockImplementationOnce(() => Promise.reject(new Error('Invalid URL')))
 
       const result = await sendImageAction('+1234567890', 'bad-url', {})
@@ -169,7 +169,7 @@ describe('message commands', () => {
   })
 
   describe('sendDocumentAction', () => {
-    test('sends a document message and returns result', async () => {
+    it('sends a document message and returns result', async () => {
       const result = await sendDocumentAction('+1234567890', 'https://example.com/doc.pdf', {})
 
       expect(result.messaging_product).toBe('whatsapp')
@@ -182,7 +182,7 @@ describe('message commands', () => {
       )
     })
 
-    test('passes filename and caption when provided', async () => {
+    it('passes filename and caption when provided', async () => {
       const result = await sendDocumentAction('+1234567890', 'https://example.com/doc.pdf', {
         filename: 'report.pdf',
         caption: 'Monthly report',
@@ -197,7 +197,7 @@ describe('message commands', () => {
       expect(result.error).toBeUndefined()
     })
 
-    test('returns error when client throws', async () => {
+    it('returns error when client throws', async () => {
       mockSendDocumentMessage.mockImplementationOnce(() => Promise.reject(new Error('Upload failed')))
 
       const result = await sendDocumentAction('+1234567890', 'https://example.com/doc.pdf', {})

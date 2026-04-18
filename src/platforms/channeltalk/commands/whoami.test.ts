@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, mock, test } from 'bun:test'
+import { beforeEach, describe, expect, mock, it } from 'bun:test'
 
 const mockGetAccount = mock(() =>
   Promise.resolve({
@@ -37,7 +37,7 @@ describe('whoami command', () => {
     )
   })
 
-  test('whoamiAction returns account info', async () => {
+  it('returns account info', async () => {
     const result = await whoamiAction({})
 
     expect(mockGetAccount).toHaveBeenCalled()
@@ -53,7 +53,7 @@ describe('whoami command', () => {
     expect(result.error).toBeUndefined()
   })
 
-  test('whoamiAction returns error when getAccount fails', async () => {
+  it('returns error when getAccount fails', async () => {
     mockGetAccount.mockImplementation(() => Promise.reject(new Error('Not authenticated')))
 
     const result = await whoamiAction({})

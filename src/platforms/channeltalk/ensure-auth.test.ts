@@ -1,4 +1,4 @@
-import { afterAll, beforeEach, describe, expect, mock, test } from 'bun:test'
+import { afterAll, beforeEach, describe, expect, mock, it } from 'bun:test'
 
 import {
   ensureChannelAuth,
@@ -62,7 +62,7 @@ describe('ensureChannelAuth', () => {
     mockListChannels.mockImplementation(() => Promise.resolve([{ id: 'ws-1', name: 'Workspace 1' }]))
   })
 
-  test('extracts and saves workspaces when no credentials exist', async () => {
+  it('extracts and saves workspaces when no credentials exist', async () => {
     mockExtract.mockImplementation(() =>
       Promise.resolve([
         {
@@ -101,7 +101,7 @@ describe('ensureChannelAuth', () => {
     expect(mockSetCurrent).toHaveBeenCalledWith('ws-1')
   })
 
-  test('returns early when stored credentials are valid', async () => {
+  it('returns early when stored credentials are valid', async () => {
     mockGetCredentials.mockImplementation(() =>
       Promise.resolve({
         workspace_id: 'ws-1',
@@ -118,7 +118,7 @@ describe('ensureChannelAuth', () => {
     expect(mockSetCredentials).not.toHaveBeenCalled()
   })
 
-  test('re-extracts when stored credentials are invalid', async () => {
+  it('re-extracts when stored credentials are invalid', async () => {
     mockGetCredentials.mockImplementation(() =>
       Promise.resolve({
         workspace_id: 'ws-1',
@@ -148,7 +148,7 @@ describe('ensureChannelAuth', () => {
     expect(mockSetCurrent).toHaveBeenCalledWith('ws-1')
   })
 
-  test('returns gracefully when extractor yields no cookies', async () => {
+  it('returns gracefully when extractor yields no cookies', async () => {
     await ensureChannelAuth()
 
     expect(mockExtract).toHaveBeenCalledTimes(1)

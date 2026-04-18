@@ -1,4 +1,4 @@
-import { afterAll, afterEach, beforeEach, describe, expect, test } from 'bun:test'
+import { afterAll, afterEach, beforeEach, describe, expect, it } from 'bun:test'
 import { existsSync, rmSync } from 'node:fs'
 import { join } from 'node:path'
 
@@ -39,7 +39,7 @@ afterAll(() => {
 })
 
 describe('DiscordCredentialManager', () => {
-  test('load returns default config when file does not exist', async () => {
+  it('load returns default config when file does not exist', async () => {
     const manager = setup()
     const config = await manager.load()
 
@@ -50,7 +50,7 @@ describe('DiscordCredentialManager', () => {
     })
   })
 
-  test('save creates config file with correct permissions', async () => {
+  it('save creates config file with correct permissions', async () => {
     const testConfigDir = join(
       import.meta.dir,
       `.test-discord-config-${Date.now()}-${Math.random().toString(36).slice(2)}`,
@@ -76,13 +76,13 @@ describe('DiscordCredentialManager', () => {
     expect(loaded).toEqual(config)
   })
 
-  test('getToken returns null when not authenticated', async () => {
+  it('getToken returns null when not authenticated', async () => {
     const manager = setup()
     const token = await manager.getToken()
     expect(token).toBeNull()
   })
 
-  test('setToken saves token to config', async () => {
+  it('setToken saves token to config', async () => {
     const manager = setup()
     await manager.setToken('test-token-123')
 
@@ -90,7 +90,7 @@ describe('DiscordCredentialManager', () => {
     expect(token).toBe('test-token-123')
   })
 
-  test('getToken returns previously set token', async () => {
+  it('getToken returns previously set token', async () => {
     const manager = setup()
     await manager.setToken('my-token')
 
@@ -98,7 +98,7 @@ describe('DiscordCredentialManager', () => {
     expect(token).toBe('my-token')
   })
 
-  test('clearToken removes token from config', async () => {
+  it('clearToken removes token from config', async () => {
     const manager = setup()
     await manager.setToken('test-token')
     await manager.clearToken()
@@ -107,13 +107,13 @@ describe('DiscordCredentialManager', () => {
     expect(token).toBeNull()
   })
 
-  test('getCurrentServer returns null when not set', async () => {
+  it('getCurrentServer returns null when not set', async () => {
     const manager = setup()
     const server = await manager.getCurrentServer()
     expect(server).toBeNull()
   })
 
-  test('setCurrentServer saves server id', async () => {
+  it('setCurrentServer saves server id', async () => {
     const manager = setup()
     await manager.setCurrentServer('server-456')
 
@@ -121,13 +121,13 @@ describe('DiscordCredentialManager', () => {
     expect(server).toBe('server-456')
   })
 
-  test('getServers returns empty object when no servers set', async () => {
+  it('getServers returns empty object when no servers set', async () => {
     const manager = setup()
     const servers = await manager.getServers()
     expect(servers).toEqual({})
   })
 
-  test('setServers saves servers to config', async () => {
+  it('setServers saves servers to config', async () => {
     const manager = setup()
     const servers = {
       'server-1': { server_id: 'server-1', server_name: 'Server One' },
@@ -140,13 +140,13 @@ describe('DiscordCredentialManager', () => {
     expect(loaded).toEqual(servers)
   })
 
-  test('getCredentials returns null when not authenticated', async () => {
+  it('getCredentials returns null when not authenticated', async () => {
     const manager = setup()
     const creds = await manager.getCredentials()
     expect(creds).toBeNull()
   })
 
-  test('getCredentials returns null when token exists but no server selected', async () => {
+  it('getCredentials returns null when token exists but no server selected', async () => {
     const manager = setup()
     await manager.setToken('test-token')
 
@@ -154,7 +154,7 @@ describe('DiscordCredentialManager', () => {
     expect(creds).toBeNull()
   })
 
-  test('getCredentials returns null when server selected but no token', async () => {
+  it('getCredentials returns null when server selected but no token', async () => {
     const manager = setup()
     await manager.setCurrentServer('server-123')
 
@@ -162,7 +162,7 @@ describe('DiscordCredentialManager', () => {
     expect(creds).toBeNull()
   })
 
-  test('getCredentials returns token and serverId when both are set', async () => {
+  it('getCredentials returns token and serverId when both are set', async () => {
     const manager = setup()
     await manager.setToken('test-token-xyz')
     await manager.setCurrentServer('server-789')
@@ -174,7 +174,7 @@ describe('DiscordCredentialManager', () => {
     })
   })
 
-  test('multiple operations preserve existing data', async () => {
+  it('multiple operations preserve existing data', async () => {
     const manager = setup()
     await manager.setToken('token-1')
     await manager.setCurrentServer('server-1')

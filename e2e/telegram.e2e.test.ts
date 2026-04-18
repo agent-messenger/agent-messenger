@@ -1,4 +1,4 @@
-import { afterEach, beforeAll, describe, expect, test } from 'bun:test'
+import { afterEach, beforeAll, describe, expect, it } from 'bun:test'
 
 import { TELEGRAM_TEST_CHAT_ID, validateTelegramEnvironment } from './config'
 import { generateTestId, parseJSON, runCLI, waitForRateLimit } from './helpers'
@@ -15,14 +15,14 @@ describe('Telegram E2E Tests', () => {
   })
 
   describe('auth', () => {
-    test('auth status returns exit code 0', async () => {
+    it('auth status returns exit code 0', async () => {
       if (!telegramAvailable) return
 
       const result = await runCLI('telegram', ['auth', 'status'])
       expect(result.exitCode).toBe(0)
     })
 
-    test('auth list returns accounts array', async () => {
+    it('auth list returns accounts array', async () => {
       if (!telegramAvailable) return
 
       const result = await runCLI('telegram', ['auth', 'list'])
@@ -34,7 +34,7 @@ describe('Telegram E2E Tests', () => {
   })
 
   describe('chat', () => {
-    test('chat list returns chats', async () => {
+    it('chat list returns chats', async () => {
       if (!telegramAvailable) return
 
       const result = await runCLI('telegram', ['chat', 'list', '--limit', '5'])
@@ -44,14 +44,14 @@ describe('Telegram E2E Tests', () => {
       expect(data).toBeTruthy()
     })
 
-    test('chat search returns results', async () => {
+    it('chat search returns results', async () => {
       if (!telegramAvailable) return
 
       const result = await runCLI('telegram', ['chat', 'search', 'test', '--limit', '5'])
       expect(result.exitCode).toBe(0)
     })
 
-    test('chat get returns chat with id', async () => {
+    it('chat get returns chat with id', async () => {
       if (!telegramAvailable) return
 
       const result = await runCLI('telegram', ['chat', 'get', TELEGRAM_TEST_CHAT_ID])
@@ -63,7 +63,7 @@ describe('Telegram E2E Tests', () => {
   })
 
   describe('message', () => {
-    test('message send delivers message to chat', async () => {
+    it('message send delivers message to chat', async () => {
       if (!telegramAvailable) return
 
       const testId = generateTestId()
@@ -71,7 +71,7 @@ describe('Telegram E2E Tests', () => {
       expect(result.exitCode).toBe(0)
     })
 
-    test('message list returns messages', async () => {
+    it('message list returns messages', async () => {
       if (!telegramAvailable) return
 
       const result = await runCLI('telegram', ['message', 'list', TELEGRAM_TEST_CHAT_ID, '--limit', '5'])

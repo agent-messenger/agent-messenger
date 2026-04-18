@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
+import { afterEach, beforeEach, describe, expect, it } from 'bun:test'
 import { existsSync, mkdirSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -22,12 +22,12 @@ describe('DerivedKeyCache', () => {
   })
 
   describe('get', () => {
-    test('returns null when no cached key exists', async () => {
+    it('returns null when no cached key exists', async () => {
       const result = await cache.get('slack')
       expect(result).toBeNull()
     })
 
-    test('returns cached key when it exists', async () => {
+    it('returns cached key when it exists', async () => {
       // given
       const key = Buffer.from('test-key-16bytes')
       await cache.set('slack', key)
@@ -39,7 +39,7 @@ describe('DerivedKeyCache', () => {
       expect(result).toEqual(key)
     })
 
-    test('returns different keys for different platforms', async () => {
+    it('returns different keys for different platforms', async () => {
       // given
       const slackKey = Buffer.from('slack-key-16byte')
       const discordKey = Buffer.from('discord-key-16by')
@@ -53,7 +53,7 @@ describe('DerivedKeyCache', () => {
   })
 
   describe('set', () => {
-    test('creates cache directory if it does not exist', async () => {
+    it('creates cache directory if it does not exist', async () => {
       // given
       const nestedDir = join(testDir, 'nested', 'cache')
       const nestedCache = new DerivedKeyCache(nestedDir)
@@ -65,7 +65,7 @@ describe('DerivedKeyCache', () => {
       expect(existsSync(nestedDir)).toBe(true)
     })
 
-    test('overwrites existing cached key', async () => {
+    it('overwrites existing cached key', async () => {
       // given
       const oldKey = Buffer.from('old-key-16bytes!')
       const newKey = Buffer.from('new-key-16bytes!')
@@ -80,7 +80,7 @@ describe('DerivedKeyCache', () => {
   })
 
   describe('clear', () => {
-    test('removes cached key for platform', async () => {
+    it('removes cached key for platform', async () => {
       // given
       await cache.set('slack', Buffer.from('test-key'))
 
@@ -91,7 +91,7 @@ describe('DerivedKeyCache', () => {
       expect(await cache.get('slack')).toBeNull()
     })
 
-    test('does not affect other platforms', async () => {
+    it('does not affect other platforms', async () => {
       // given
       const discordKey = Buffer.from('discord-key')
       await cache.set('slack', Buffer.from('slack-key'))
@@ -105,13 +105,13 @@ describe('DerivedKeyCache', () => {
       expect(await cache.get('discord')).toEqual(discordKey)
     })
 
-    test('does not throw when key does not exist', async () => {
+    it('does not throw when key does not exist', async () => {
       await expect(cache.clear('slack')).resolves.toBeUndefined()
     })
   })
 
   describe('clearAll', () => {
-    test('removes all cached keys', async () => {
+    it('removes all cached keys', async () => {
       // given
       await cache.set('slack', Buffer.from('slack-key'))
       await cache.set('discord', Buffer.from('discord-key'))
@@ -126,7 +126,7 @@ describe('DerivedKeyCache', () => {
       expect(await cache.get('teams')).toBeNull()
     })
 
-    test('does not throw when cache directory does not exist', async () => {
+    it('does not throw when cache directory does not exist', async () => {
       // given
       const emptyCache = new DerivedKeyCache(join(testDir, 'nonexistent'))
 

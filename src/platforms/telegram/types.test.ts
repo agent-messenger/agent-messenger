@@ -1,14 +1,14 @@
-import { describe, expect, test } from 'bun:test'
+import { describe, expect, it } from 'bun:test'
 
 import { findFuzzyChats, normalizeChatSearchText } from './chat-utils'
 import { createAccountId, simplifyChat, simplifyMessage, summarizeAuthorizationState } from './types'
 
 describe('telegram type helpers', () => {
-  test('createAccountId normalizes phone numbers', () => {
+  it('createAccountId normalizes phone numbers', () => {
     expect(createAccountId('+82 10 1234 5678')).toBe('plus-82-10-1234-5678')
   })
 
-  test('summarizeAuthorizationState returns next action for wait code', () => {
+  it('summarizeAuthorizationState returns next action for wait code', () => {
     const summary = summarizeAuthorizationState({
       '@type': 'authorizationStateWaitCode',
       code_info: {
@@ -23,7 +23,7 @@ describe('telegram type helpers', () => {
     expect(summary.code_info?.type).toBe('authenticationCodeTypeSms')
   })
 
-  test('simplifyMessage extracts message text', () => {
+  it('simplifyMessage extracts message text', () => {
     const message = simplifyMessage({
       id: 42,
       chat_id: 1001,
@@ -43,7 +43,7 @@ describe('telegram type helpers', () => {
     expect(message.sender.type).toBe('user')
   })
 
-  test('simplifyChat normalizes chat type', () => {
+  it('simplifyChat normalizes chat type', () => {
     const chat = simplifyChat({
       id: 1001,
       title: 'General',
@@ -66,7 +66,7 @@ describe('telegram type helpers', () => {
     expect(chat.last_message?.text).toBe('latest')
   })
 
-  test('normalize and fuzzy search logic can match titles despite spacing differences', () => {
+  it('normalizes and fuzzy-matches titles despite spacing differences', () => {
     expect(normalizeChatSearchText('Project Room')).toBe('projectroom')
     expect(
       findFuzzyChats([{ id: 1, title: 'ProjectRoom', type: 'private', unread_count: 0 }], 'Project Room', 10),

@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, expect, spyOn, test } from 'bun:test'
+import { afterEach, beforeEach, expect, spyOn, it } from 'bun:test'
 
 import { DiscordClient } from '../client'
 import { DiscordCredentialManager } from '../credential-manager'
@@ -52,40 +52,40 @@ afterEach(() => {
   credManagerClearTokenSpy?.mockRestore()
 })
 
-test('extract: calls DiscordTokenExtractor', async () => {
+it('extract: calls DiscordTokenExtractor', async () => {
   const extractor = new DiscordTokenExtractor()
   const result = await extractor.extract()
   expect(result).toBeDefined()
   expect(result[0]?.token).toBe('test-token-123')
 })
 
-test('extract: validates token with DiscordClient', async () => {
+it('extract: validates token with DiscordClient', async () => {
   const client = await new DiscordClient().login({ token: 'test-token-123' })
   const authInfo = await client.testAuth()
   expect(authInfo).toBeDefined()
   expect(authInfo.id).toBe('user-123')
 })
 
-test('extract: discovers servers', async () => {
+it('extract: discovers servers', async () => {
   const client = await new DiscordClient().login({ token: 'test-token-123' })
   const servers = await client.listServers()
   expect(servers).toHaveLength(2)
   expect(servers[0].id).toBe('server-1')
 })
 
-test('logout: clears credentials', async () => {
+it('logout: clears credentials', async () => {
   const credManager = new DiscordCredentialManager()
   await credManager.clearToken()
   expect(credManager.clearToken).toHaveBeenCalled()
 })
 
-test('status: returns auth state', async () => {
+it('status: returns auth state', async () => {
   const credManager = new DiscordCredentialManager()
   const config = await credManager.load()
   expect(config.token).toBeNull()
   expect(config.current_server).toBeNull()
 })
 
-test('no-token message mentions desktop app and browser fallback', () => {
+it('no-token message mentions desktop app and browser fallback', () => {
   expect(getNoDiscordTokenFoundMessage()).toContain('desktop app or a supported Chromium browser')
 })

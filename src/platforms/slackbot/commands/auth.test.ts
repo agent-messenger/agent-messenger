@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, mock, test } from 'bun:test'
+import { afterEach, beforeEach, describe, expect, mock, it } from 'bun:test'
 import { existsSync, rmSync } from 'node:fs'
 import { mkdir } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
@@ -46,7 +46,7 @@ describe('auth commands', () => {
   })
 
   describe('setAction', () => {
-    test('validates and stores bot token with default bot_id from auth', async () => {
+    it('validates and stores bot token with default bot_id from auth', async () => {
       const manager = new SlackBotCredentialManager(tempDir)
 
       const result = await setAction('xoxb-test-token', { _credManager: manager })
@@ -60,7 +60,7 @@ describe('auth commands', () => {
       expect(creds?.bot_id).toBe('B789')
     })
 
-    test('uses --bot flag as bot_id', async () => {
+    it('uses --bot flag as bot_id', async () => {
       const manager = new SlackBotCredentialManager(tempDir)
 
       const result = await setAction('xoxb-test-token', { bot: 'deploy', _credManager: manager })
@@ -70,7 +70,7 @@ describe('auth commands', () => {
       expect(creds?.token).toBe('xoxb-test-token')
     })
 
-    test('rejects user tokens', async () => {
+    it('rejects user tokens', async () => {
       const manager = new SlackBotCredentialManager(tempDir)
 
       const result = await setAction('xoxp-user-token', { _credManager: manager })
@@ -79,7 +79,7 @@ describe('auth commands', () => {
       expect(result.error).toContain('bot token')
     })
 
-    test('rejects invalid token format', async () => {
+    it('rejects invalid token format', async () => {
       const manager = new SlackBotCredentialManager(tempDir)
 
       const result = await setAction('invalid-token', { _credManager: manager })
@@ -89,7 +89,7 @@ describe('auth commands', () => {
   })
 
   describe('clearAction', () => {
-    test('removes all stored credentials', async () => {
+    it('removes all stored credentials', async () => {
       const manager = new SlackBotCredentialManager(tempDir)
       await manager.setCredentials({
         token: 'xoxb-token',
@@ -107,7 +107,7 @@ describe('auth commands', () => {
   })
 
   describe('statusAction', () => {
-    test('returns no credentials when none set', async () => {
+    it('returns no credentials when none set', async () => {
       const manager = new SlackBotCredentialManager(tempDir)
 
       const result = await statusAction({ _credManager: manager })
@@ -116,7 +116,7 @@ describe('auth commands', () => {
       expect(result.error).toBeDefined()
     })
 
-    test('returns valid status for current bot', async () => {
+    it('returns valid status for current bot', async () => {
       const manager = new SlackBotCredentialManager(tempDir)
       await manager.setCredentials({
         token: 'xoxb-token',
@@ -133,7 +133,7 @@ describe('auth commands', () => {
       expect(result.bot_id).toBe('mybot')
     })
 
-    test('returns status for specific --bot', async () => {
+    it('returns status for specific --bot', async () => {
       const manager = new SlackBotCredentialManager(tempDir)
       await manager.setCredentials({
         token: 'xoxb-token',
@@ -158,7 +158,7 @@ describe('auth commands', () => {
   })
 
   describe('listAction', () => {
-    test('returns all stored bots', async () => {
+    it('returns all stored bots', async () => {
       const manager = new SlackBotCredentialManager(tempDir)
       await manager.setCredentials({
         token: 'xoxb-a',
@@ -183,7 +183,7 @@ describe('auth commands', () => {
   })
 
   describe('useAction', () => {
-    test('switches current bot', async () => {
+    it('switches current bot', async () => {
       const manager = new SlackBotCredentialManager(tempDir)
       await manager.setCredentials({
         token: 'xoxb-a',
@@ -206,7 +206,7 @@ describe('auth commands', () => {
       expect(result.bot_id).toBe('deploy')
     })
 
-    test('returns error for unknown bot', async () => {
+    it('returns error for unknown bot', async () => {
       const manager = new SlackBotCredentialManager(tempDir)
 
       const result = await useAction('nonexistent', { _credManager: manager })
@@ -216,7 +216,7 @@ describe('auth commands', () => {
   })
 
   describe('removeAction', () => {
-    test('removes a stored bot', async () => {
+    it('removes a stored bot', async () => {
       const manager = new SlackBotCredentialManager(tempDir)
       await manager.setCredentials({
         token: 'xoxb-a',
@@ -232,7 +232,7 @@ describe('auth commands', () => {
       expect(await manager.getCredentials('deploy')).toBeNull()
     })
 
-    test('returns error for unknown bot', async () => {
+    it('returns error for unknown bot', async () => {
       const manager = new SlackBotCredentialManager(tempDir)
 
       const result = await removeAction('nonexistent', { _credManager: manager })

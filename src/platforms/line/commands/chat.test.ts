@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, expect, mock, spyOn, test } from 'bun:test'
+import { afterEach, beforeEach, expect, mock, spyOn, it } from 'bun:test'
 
 const originalConsoleLog = console.log
 
@@ -48,7 +48,7 @@ afterEach(() => {
   console.log = originalConsoleLog
 })
 
-test('list: fetches and outputs chats', async () => {
+it('list: fetches and outputs chats', async () => {
   // when
   await chatCommand.parseAsync(['node', 'chat', 'list'])
 
@@ -62,7 +62,7 @@ test('list: fetches and outputs chats', async () => {
   expect(output[1].chat_id).toBe('c222')
 })
 
-test('list: uses default limit of 50 when no limit provided', async () => {
+it('list: uses default limit of 50 when no limit provided', async () => {
   // when
   await chatCommand.parseAsync(['node', 'chat', 'list'])
 
@@ -70,7 +70,7 @@ test('list: uses default limit of 50 when no limit provided', async () => {
   expect(getChatsSpy).toHaveBeenCalledWith({ limit: 50 })
 })
 
-test('list: uses custom limit when --limit option provided', async () => {
+it('list: uses custom limit when --limit option provided', async () => {
   // when
   await chatCommand.parseAsync(['node', 'chat', 'list', '--limit', '10'])
 
@@ -78,7 +78,7 @@ test('list: uses custom limit when --limit option provided', async () => {
   expect(getChatsSpy).toHaveBeenCalledWith({ limit: 10 })
 })
 
-test('list: closes client after fetching chats', async () => {
+it('list: closes client after fetching chats', async () => {
   // when
   await chatCommand.parseAsync(['node', 'chat', 'list'])
 
@@ -86,7 +86,7 @@ test('list: closes client after fetching chats', async () => {
   expect(closeSpy).toHaveBeenCalledTimes(1)
 })
 
-test('list: outputs chat metadata', async () => {
+it('list: outputs chat metadata', async () => {
   // when
   await chatCommand.parseAsync(['node', 'chat', 'list'])
 
@@ -98,7 +98,7 @@ test('list: outputs chat metadata', async () => {
   expect(chat.display_name).toBeDefined()
 })
 
-test('list: includes different chat types', async () => {
+it('list: includes different chat types', async () => {
   // when
   await chatCommand.parseAsync(['node', 'chat', 'list'])
 

@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, mock, test } from 'bun:test'
+import { beforeEach, describe, expect, mock, it } from 'bun:test'
 
 const mockGetChannel = mock(() => Promise.resolve({ id: 'ws-1', name: 'Workspace One' }))
 const mockListManagers = mock(() =>
@@ -81,7 +81,7 @@ describe('snapshot command', () => {
     mockListUserChats.mockClear()
   })
 
-  test('brief snapshot returns workspace, groups (name only), chat counts, and hint', async () => {
+  it('brief snapshot returns workspace, groups (name only), chat counts, and hint', async () => {
     const result = await snapshotAction()
 
     expect(result.error).toBeUndefined()
@@ -100,7 +100,7 @@ describe('snapshot command', () => {
     expect(mockGetGroupMessages).not.toHaveBeenCalled()
   })
 
-  test('brief groups-only returns group names without messages', async () => {
+  it('brief groups-only returns group names without messages', async () => {
     const result = await snapshotAction({ groupsOnly: true })
 
     expect(result.workspace).toEqual({ id: 'ws-1', name: 'Workspace One' })
@@ -112,7 +112,7 @@ describe('snapshot command', () => {
     expect(mockListUserChats).not.toHaveBeenCalled()
   })
 
-  test('brief chats-only returns counts without recent details', async () => {
+  it('brief chats-only returns counts without recent details', async () => {
     const result = await snapshotAction({ chatsOnly: true })
 
     expect(result.workspace).toEqual({ id: 'ws-1', name: 'Workspace One' })
@@ -126,7 +126,7 @@ describe('snapshot command', () => {
     expect(mockGetGroupMessages).not.toHaveBeenCalled()
   })
 
-  test('full snapshot returns workspace, managers, bots, groups, and user chats', async () => {
+  it('full snapshot returns workspace, managers, bots, groups, and user chats', async () => {
     const result = await snapshotAction({ full: true })
 
     expect(result.error).toBeUndefined()
@@ -201,7 +201,7 @@ describe('snapshot command', () => {
     })
   })
 
-  test('full groups-only includes messages', async () => {
+  it('full groups-only includes messages', async () => {
     const result = await snapshotAction({ full: true, groupsOnly: true, limit: 3 })
 
     expect(mockGetGroupMessages).toHaveBeenCalledWith('ws-1', 'grp-1', { limit: 3, sortOrder: 'desc' })
@@ -214,7 +214,7 @@ describe('snapshot command', () => {
     })
   })
 
-  test('full chats-only includes recent details', async () => {
+  it('full chats-only includes recent details', async () => {
     const result = await snapshotAction({ full: true, chatsOnly: true, limit: 1 })
 
     expect(result.workspace).toEqual({ id: 'ws-1', name: 'Workspace One' })

@@ -1,4 +1,4 @@
-import { describe, test, expect, beforeAll, afterEach } from 'bun:test'
+import { describe, it, expect, beforeAll, afterEach } from 'bun:test'
 
 import { DiscordBotClient } from '../src/platforms/discordbot/client'
 import { DiscordBotCredentialManager } from '../src/platforms/discordbot/credential-manager'
@@ -55,7 +55,7 @@ describe('DiscordBot E2E Tests', () => {
   })
 
   describe('auth', () => {
-    test('auth status returns valid bot info', async () => {
+    it('auth status returns valid bot info', async () => {
       const result = await runCLI('discordbot', ['auth', 'status'])
       expect(result.exitCode).toBe(0)
 
@@ -72,7 +72,7 @@ describe('DiscordBot E2E Tests', () => {
   })
 
   describe('message', () => {
-    test('message send creates message and returns id', async () => {
+    it('message send creates message and returns id', async () => {
       const testId = generateTestId()
       const result = await runCLI('discordbot', ['message', 'send', DISCORDBOT_TEST_CHANNEL_ID, `Bot test ${testId}`])
       expect(result.exitCode).toBe(0)
@@ -84,7 +84,7 @@ describe('DiscordBot E2E Tests', () => {
       if (data?.id) trackMessage(data.id)
     })
 
-    test('message list returns messages array', async () => {
+    it('message list returns messages array', async () => {
       const result = await runCLI('discordbot', ['message', 'list', DISCORDBOT_TEST_CHANNEL_ID, '--limit', '5'])
       expect(result.exitCode).toBe(0)
 
@@ -92,7 +92,7 @@ describe('DiscordBot E2E Tests', () => {
       expect(Array.isArray(data?.messages)).toBe(true)
     })
 
-    test('message get retrieves specific message', async () => {
+    it('message get retrieves specific message', async () => {
       const testId = generateTestId()
       const sendResult = await runCLI('discordbot', [
         'message',
@@ -114,7 +114,7 @@ describe('DiscordBot E2E Tests', () => {
       expect(data?.id).toBe(sent!.id)
     })
 
-    test('message update modifies message', async () => {
+    it('message update modifies message', async () => {
       const testId = generateTestId()
       const sendResult = await runCLI('discordbot', [
         'message',
@@ -144,7 +144,7 @@ describe('DiscordBot E2E Tests', () => {
       expect(data?.content).toContain('Updated')
     })
 
-    test('message delete removes message', async () => {
+    it('message delete removes message', async () => {
       const testId = generateTestId()
       const sendResult = await runCLI('discordbot', [
         'message',
@@ -161,7 +161,7 @@ describe('DiscordBot E2E Tests', () => {
       expect(result.exitCode).toBe(0)
     })
 
-    test('message send with --thread creates reply', async () => {
+    it('message send with --thread creates reply', async () => {
       const testId = generateTestId()
       const sendResult = await runCLI('discordbot', ['message', 'send', DISCORDBOT_TEST_CHANNEL_ID, `Parent ${testId}`])
       const parent = parseJSON<{ id: string }>(sendResult.stdout)
@@ -187,7 +187,7 @@ describe('DiscordBot E2E Tests', () => {
       if (reply?.id) trackMessage(reply.id, replyChannel)
     }, 30000)
 
-    test('message replies gets thread messages', async () => {
+    it('message replies gets thread messages', async () => {
       const testId = generateTestId()
 
       // given: create a real thread channel
@@ -226,7 +226,7 @@ describe('DiscordBot E2E Tests', () => {
   })
 
   describe('channel', () => {
-    test('channel list returns channels array', async () => {
+    it('channel list returns channels array', async () => {
       const result = await runCLI('discordbot', ['channel', 'list'])
       expect(result.exitCode).toBe(0)
 
@@ -235,7 +235,7 @@ describe('DiscordBot E2E Tests', () => {
       expect(data!.channels.length).toBeGreaterThan(0)
     })
 
-    test('channel info returns channel details', async () => {
+    it('channel info returns channel details', async () => {
       const result = await runCLI('discordbot', ['channel', 'info', DISCORDBOT_TEST_CHANNEL_ID])
       expect(result.exitCode).toBe(0)
 
@@ -246,7 +246,7 @@ describe('DiscordBot E2E Tests', () => {
   })
 
   describe('user', () => {
-    test('user list returns users array', async () => {
+    it('user list returns users array', async () => {
       const result = await runCLI('discordbot', ['user', 'list'])
       expect(result.exitCode).toBe(0)
 
@@ -255,7 +255,7 @@ describe('DiscordBot E2E Tests', () => {
       expect(data!.users.length).toBeGreaterThan(0)
     })
 
-    test('user info returns user details', async () => {
+    it('user info returns user details', async () => {
       // given: get the bot's own user_id via auth status
       const statusResult = await runCLI('discordbot', ['auth', 'status'])
       const status = parseJSON<{ bot_id: string }>(statusResult.stdout)
@@ -273,7 +273,7 @@ describe('DiscordBot E2E Tests', () => {
   })
 
   describe('reaction', () => {
-    test('reaction add and remove lifecycle', async () => {
+    it('reaction add and remove lifecycle', async () => {
       // given: a message to react to
       const testId = generateTestId()
       const sendResult = await runCLI('discordbot', [
@@ -313,7 +313,7 @@ describe('DiscordBot E2E Tests', () => {
   })
 
   describe('server', () => {
-    test('server list returns servers array', async () => {
+    it('server list returns servers array', async () => {
       const result = await runCLI('discordbot', ['server', 'list'])
       expect(result.exitCode).toBe(0)
 
@@ -322,7 +322,7 @@ describe('DiscordBot E2E Tests', () => {
       expect(data!.servers.length).toBeGreaterThan(0)
     })
 
-    test('server current returns current server', async () => {
+    it('server current returns current server', async () => {
       const result = await runCLI('discordbot', ['server', 'current'])
       expect(result.exitCode).toBe(0)
 

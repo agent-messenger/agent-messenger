@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, spyOn, test } from 'bun:test'
+import { afterEach, beforeEach, describe, expect, spyOn, it } from 'bun:test'
 
 import { DiscordClient } from './client'
 import { DiscordCredentialManager } from './credential-manager'
@@ -42,7 +42,7 @@ afterEach(() => {
 })
 
 describe('ensureDiscordAuth', () => {
-  test('skips extraction when token already exists', async () => {
+  it('skips extraction when token already exists', async () => {
     // given
     getTokenSpy.mockResolvedValue('existing-token')
 
@@ -53,7 +53,7 @@ describe('ensureDiscordAuth', () => {
     expect(extractSpy).not.toHaveBeenCalled()
   })
 
-  test('extracts and saves credentials when no token', async () => {
+  it('extracts and saves credentials when no token', async () => {
     // when
     await ensureDiscordAuth()
 
@@ -71,7 +71,7 @@ describe('ensureDiscordAuth', () => {
     })
   })
 
-  test('sets first server as current', async () => {
+  it('sets first server as current', async () => {
     // when
     await ensureDiscordAuth()
 
@@ -79,7 +79,7 @@ describe('ensureDiscordAuth', () => {
     expect(saveSpy).toHaveBeenCalledWith(expect.objectContaining({ current_server: 'server-1' }))
   })
 
-  test('handles no servers with null current_server', async () => {
+  it('handles no servers with null current_server', async () => {
     // given
     listServersSpy.mockResolvedValue([])
 
@@ -90,7 +90,7 @@ describe('ensureDiscordAuth', () => {
     expect(saveSpy).toHaveBeenCalledWith(expect.objectContaining({ current_server: null, servers: {} }))
   })
 
-  test('does not save when extraction returns null', async () => {
+  it('does not save when extraction returns null', async () => {
     // given
     extractSpy.mockResolvedValue([])
 
@@ -102,7 +102,7 @@ describe('ensureDiscordAuth', () => {
     expect(saveSpy).not.toHaveBeenCalled()
   })
 
-  test('silently handles extraction failure', async () => {
+  it('silently handles extraction failure', async () => {
     // given
     extractSpy.mockRejectedValue(new Error('Discord not found'))
 
@@ -113,7 +113,7 @@ describe('ensureDiscordAuth', () => {
     expect(saveSpy).not.toHaveBeenCalled()
   })
 
-  test('silently handles auth validation failure', async () => {
+  it('silently handles auth validation failure', async () => {
     // given
     testAuthSpy.mockRejectedValue(new Error('401 Unauthorized'))
 

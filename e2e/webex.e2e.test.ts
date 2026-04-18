@@ -1,4 +1,4 @@
-import { afterEach, beforeAll, describe, expect, test } from 'bun:test'
+import { afterEach, beforeAll, describe, expect, it } from 'bun:test'
 
 import { WEBEX_TEST_SPACE_ID, WEBEX_TEST_DM_EMAIL, validateWebexEnvironment } from './config'
 import { generateTestId, parseJSON, runCLI, waitForRateLimit } from './helpers'
@@ -31,7 +31,7 @@ describe('Webex E2E Tests', () => {
   })
 
   describe('auth', () => {
-    test('auth status returns authenticated', async () => {
+    it('auth status returns authenticated', async () => {
       if (!webexAvailable) return
 
       const result = await runCLI('webex', ['auth', 'status'])
@@ -43,7 +43,7 @@ describe('Webex E2E Tests', () => {
   })
 
   describe('message', () => {
-    test('message send creates a message', async () => {
+    it('message send creates a message', async () => {
       if (!webexAvailable) return
 
       const testId = generateTestId()
@@ -56,7 +56,7 @@ describe('Webex E2E Tests', () => {
       if (data?.id) testMessages.push(data.id)
     })
 
-    test('message list returns messages array', async () => {
+    it('message list returns messages array', async () => {
       if (!webexAvailable) return
 
       const result = await runCLI('webex', ['message', 'list', WEBEX_TEST_SPACE_ID, '--limit', '5'])
@@ -66,7 +66,7 @@ describe('Webex E2E Tests', () => {
       expect(Array.isArray(data)).toBe(true)
     })
 
-    test('message get retrieves specific message', async () => {
+    it('message get retrieves specific message', async () => {
       if (!webexAvailable) return
 
       const testId = generateTestId()
@@ -86,7 +86,7 @@ describe('Webex E2E Tests', () => {
       expect(data?.text).toContain(testId)
     }, 30000)
 
-    test('message delete removes message', async () => {
+    it('message delete removes message', async () => {
       if (!webexAvailable) return
 
       const testId = generateTestId()
@@ -102,7 +102,7 @@ describe('Webex E2E Tests', () => {
       expect(result.exitCode).toBe(0)
     }, 30000)
 
-    test('message edit updates message content', async () => {
+    it('message edit updates message content', async () => {
       if (!webexAvailable) return
 
       const testId = generateTestId()
@@ -139,7 +139,7 @@ describe('Webex E2E Tests', () => {
       return runCLI('webex', args)
     }
 
-    test('message edit survives second edit and markdown edit (regression for silent failure)', async () => {
+    it('message edit survives second edit and markdown edit (regression for silent failure)', async () => {
       if (!webexAvailable) return
 
       const testId = generateTestId()
@@ -178,7 +178,7 @@ describe('Webex E2E Tests', () => {
   })
 
   describe('space', () => {
-    test('space list returns spaces array', async () => {
+    it('space list returns spaces array', async () => {
       if (!webexAvailable) return
 
       const result = await runCLI('webex', ['space', 'list', '--limit', '5'])
@@ -188,7 +188,7 @@ describe('Webex E2E Tests', () => {
       expect(Array.isArray(data)).toBe(true)
     })
 
-    test('space info returns space details', async () => {
+    it('space info returns space details', async () => {
       if (!webexAvailable) return
 
       const result = await runCLI('webex', ['space', 'info', WEBEX_TEST_SPACE_ID])
@@ -200,7 +200,7 @@ describe('Webex E2E Tests', () => {
   })
 
   describe('member', () => {
-    test('member list returns members array', async () => {
+    it('member list returns members array', async () => {
       if (!webexAvailable) return
 
       const result = await runCLI('webex', ['member', 'list', WEBEX_TEST_SPACE_ID, '--limit', '5'])
@@ -212,7 +212,7 @@ describe('Webex E2E Tests', () => {
   })
 
   describe('snapshot', () => {
-    test('snapshot returns spaces and members', async () => {
+    it('snapshot returns spaces and members', async () => {
       if (!webexAvailable) return
 
       const result = await runCLI('webex', ['snapshot', '--limit', '2'])
@@ -224,7 +224,7 @@ describe('Webex E2E Tests', () => {
       expect(data?.recent_messages).toBeDefined()
     }, 30000)
 
-    test('snapshot --spaces-only returns only spaces', async () => {
+    it('snapshot --spaces-only returns only spaces', async () => {
       if (!webexAvailable) return
 
       const result = await runCLI('webex', ['snapshot', '--spaces-only'])
@@ -234,7 +234,7 @@ describe('Webex E2E Tests', () => {
       expect(data?.spaces).toBeDefined()
     })
 
-    test('snapshot --members-only returns only members', async () => {
+    it('snapshot --members-only returns only members', async () => {
       if (!webexAvailable) return
 
       const result = await runCLI('webex', ['snapshot', '--members-only'])

@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, mock, test } from 'bun:test'
+import { beforeEach, describe, expect, mock, it } from 'bun:test'
 
 import { SlackClient } from '@/platforms/slack/client'
 import type { SlackSavedItem } from '@/platforms/slack/types'
@@ -73,7 +73,7 @@ describe('Saved Commands', () => {
   })
 
   describe('saved list', () => {
-    test('lists saved items', async () => {
+    it('lists saved items', async () => {
       // Given: SlackClient returns saved items
       // When: Listing saved items
       const result = await mockClient.getSavedItems()
@@ -86,7 +86,7 @@ describe('Saved Commands', () => {
       expect(result.next_cursor).toBe('next_page')
     })
 
-    test('supports pagination with cursor', async () => {
+    it('supports pagination with cursor', async () => {
       // Given: SlackClient returns paginated results
       // When: Fetching with cursor
       const result = await mockClient.getSavedItems('next_page')
@@ -97,7 +97,7 @@ describe('Saved Commands', () => {
       expect(result.has_more).toBe(false)
     })
 
-    test('returns channel information with saved items', async () => {
+    it('returns channel information with saved items', async () => {
       // Given: SlackClient returns saved items with channel info
       // When: Listing saved items
       const result = await mockClient.getSavedItems()
@@ -109,7 +109,7 @@ describe('Saved Commands', () => {
       expect(result.items[1].channel.name).toBe('random')
     })
 
-    test('includes date_created timestamp', async () => {
+    it('includes date_created timestamp', async () => {
       // Given: SlackClient returns saved items
       // When: Listing saved items
       const result = await mockClient.getSavedItems()
@@ -121,14 +121,14 @@ describe('Saved Commands', () => {
   })
 
   describe('CLI command: saved list', () => {
-    test('supports --limit option', async () => {
+    it('supports --limit option', async () => {
       // Given: CLI command with --limit 50
       // When: Executing saved list --limit 50
       // Then: Should pass limit to API (tested via integration)
       expect(true).toBe(true)
     })
 
-    test('supports --cursor option for pagination', async () => {
+    it('supports --cursor option for pagination', async () => {
       // Given: CLI command with --cursor next_page
       // When: Executing saved list --cursor next_page
       const result = await mockClient.getSavedItems('next_page')

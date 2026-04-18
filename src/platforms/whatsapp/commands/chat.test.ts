@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, mock, spyOn, test } from 'bun:test'
+import { afterEach, beforeEach, describe, expect, mock, spyOn, it } from 'bun:test'
 
 const originalConsoleLog = console.log
 
@@ -130,7 +130,7 @@ describe('chat commands', () => {
   })
 
   describe('list', () => {
-    test('lists chats with default limit', async () => {
+    it('lists chats with default limit', async () => {
       await expect(chatCommand.parseAsync(['list'], { from: 'user' })).rejects.toThrow('process.exit(0)')
 
       expect(mockListChats).toHaveBeenCalledWith(20)
@@ -140,7 +140,7 @@ describe('chat commands', () => {
       expect(output[0].name).toBe('Alice')
     })
 
-    test('respects --limit option', async () => {
+    it('respects --limit option', async () => {
       await expect(chatCommand.parseAsync(['list', '--limit', '5'], { from: 'user' })).rejects.toThrow(
         'process.exit(0)',
       )
@@ -148,7 +148,7 @@ describe('chat commands', () => {
       expect(mockListChats).toHaveBeenCalledWith(5)
     })
 
-    test('passes account option to credential manager', async () => {
+    it('passes account option to credential manager', async () => {
       await expect(chatCommand.parseAsync(['list', '--account', 'my-account'], { from: 'user' })).rejects.toThrow(
         'process.exit(0)',
       )
@@ -156,7 +156,7 @@ describe('chat commands', () => {
       expect(mockGetAccount).toHaveBeenCalledWith('my-account')
     })
 
-    test('exits with error when no account configured', async () => {
+    it('exits with error when no account configured', async () => {
       mockGetAccount.mockImplementation(() => Promise.resolve(null))
 
       await expect(chatCommand.parseAsync(['list'], { from: 'user' })).rejects.toThrow('process.exit(1)')
@@ -166,7 +166,7 @@ describe('chat commands', () => {
   })
 
   describe('search', () => {
-    test('searches chats by query', async () => {
+    it('searches chats by query', async () => {
       await expect(chatCommand.parseAsync(['search', 'Bob'], { from: 'user' })).rejects.toThrow('process.exit(0)')
 
       expect(mockSearchChats).toHaveBeenCalledWith('Bob', 20)
@@ -176,7 +176,7 @@ describe('chat commands', () => {
       expect(output[0].name).toBe('Bob')
     })
 
-    test('respects --limit option', async () => {
+    it('respects --limit option', async () => {
       await expect(chatCommand.parseAsync(['search', 'Alice', '--limit', '3'], { from: 'user' })).rejects.toThrow(
         'process.exit(0)',
       )
@@ -184,7 +184,7 @@ describe('chat commands', () => {
       expect(mockSearchChats).toHaveBeenCalledWith('Alice', 3)
     })
 
-    test('passes account option to credential manager', async () => {
+    it('passes account option to credential manager', async () => {
       await expect(
         chatCommand.parseAsync(['search', 'test', '--account', 'my-account'], { from: 'user' }),
       ).rejects.toThrow('process.exit(0)')

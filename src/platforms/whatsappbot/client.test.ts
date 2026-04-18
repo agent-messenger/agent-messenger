@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
+import { afterEach, beforeEach, describe, expect, it } from 'bun:test'
 
 import { WhatsAppBotClient } from '@/platforms/whatsappbot/client'
 import { WhatsAppBotError } from '@/platforms/whatsappbot/types'
@@ -50,7 +50,7 @@ describe('WhatsAppBotClient', () => {
   }
 
   describe('login', () => {
-    test('throws on empty phoneNumberId', async () => {
+    it('throws on empty phoneNumberId', async () => {
       await expect(new WhatsAppBotClient().login({ phoneNumberId: '', accessToken: 'access-token' })).rejects.toThrow(
         WhatsAppBotError,
       )
@@ -59,7 +59,7 @@ describe('WhatsAppBotClient', () => {
       )
     })
 
-    test('throws on empty accessToken', async () => {
+    it('throws on empty accessToken', async () => {
       await expect(new WhatsAppBotClient().login({ phoneNumberId: 'phone-123', accessToken: '' })).rejects.toThrow(
         WhatsAppBotError,
       )
@@ -68,14 +68,14 @@ describe('WhatsAppBotClient', () => {
       )
     })
 
-    test('accepts valid phoneNumberId and accessToken', async () => {
+    it('accepts valid phoneNumberId and accessToken', async () => {
       const client = await new WhatsAppBotClient().login({ phoneNumberId: 'phone-123', accessToken: 'access-token' })
       expect(client).toBeInstanceOf(WhatsAppBotClient)
     })
   })
 
   describe('verifyToken', () => {
-    test('sends GET request with correct URL and auth header', async () => {
+    it('sends GET request with correct URL and auth header', async () => {
       mockResponse({ verified_name: 'Test Business' })
 
       const client = await new WhatsAppBotClient().login({ phoneNumberId: 'phone-123', accessToken: 'my-token' })
@@ -89,7 +89,7 @@ describe('WhatsAppBotClient', () => {
       })
     })
 
-    test('throws WhatsAppBotError on API error', async () => {
+    it('throws WhatsAppBotError on API error', async () => {
       mockResponse({ error: { message: 'Invalid token', code: 190 } }, 401)
 
       const client = await new WhatsAppBotClient().login({ phoneNumberId: 'phone-123', accessToken: 'bad-token' })
@@ -98,7 +98,7 @@ describe('WhatsAppBotClient', () => {
   })
 
   describe('sendTextMessage', () => {
-    test('sends POST request with correct body shape', async () => {
+    it('sends POST request with correct body shape', async () => {
       mockResponse({
         messaging_product: 'whatsapp',
         contacts: [{ input: '+15551234567', wa_id: '15551234567' }],
@@ -121,7 +121,7 @@ describe('WhatsAppBotClient', () => {
       })
     })
 
-    test('sends correct Authorization header', async () => {
+    it('sends correct Authorization header', async () => {
       mockResponse({
         messaging_product: 'whatsapp',
         contacts: [],
@@ -136,7 +136,7 @@ describe('WhatsAppBotClient', () => {
       })
     })
 
-    test('returns WhatsAppBotMessageResponse', async () => {
+    it('returns WhatsAppBotMessageResponse', async () => {
       mockResponse({
         messaging_product: 'whatsapp',
         contacts: [{ input: '+15551234567', wa_id: '15551234567' }],
@@ -153,7 +153,7 @@ describe('WhatsAppBotClient', () => {
   })
 
   describe('sendTemplateMessage', () => {
-    test('sends POST with template payload', async () => {
+    it('sends POST with template payload', async () => {
       mockResponse({
         messaging_product: 'whatsapp',
         contacts: [{ input: '+15551234567', wa_id: '15551234567' }],
@@ -172,7 +172,7 @@ describe('WhatsAppBotClient', () => {
       })
     })
 
-    test('includes components when provided', async () => {
+    it('includes components when provided', async () => {
       mockResponse({
         messaging_product: 'whatsapp',
         contacts: [],
@@ -189,7 +189,7 @@ describe('WhatsAppBotClient', () => {
   })
 
   describe('sendReaction', () => {
-    test('sends POST with reaction payload', async () => {
+    it('sends POST with reaction payload', async () => {
       mockResponse({
         messaging_product: 'whatsapp',
         contacts: [],
@@ -210,7 +210,7 @@ describe('WhatsAppBotClient', () => {
   })
 
   describe('sendImageMessage', () => {
-    test('sends POST with image payload', async () => {
+    it('sends POST with image payload', async () => {
       mockResponse({
         messaging_product: 'whatsapp',
         contacts: [],
@@ -231,7 +231,7 @@ describe('WhatsAppBotClient', () => {
   })
 
   describe('sendDocumentMessage', () => {
-    test('sends POST with document payload', async () => {
+    it('sends POST with document payload', async () => {
       mockResponse({
         messaging_product: 'whatsapp',
         contacts: [],
@@ -252,7 +252,7 @@ describe('WhatsAppBotClient', () => {
   })
 
   describe('listTemplates', () => {
-    test('sends GET and unwraps data key from response', async () => {
+    it('sends GET and unwraps data key from response', async () => {
       mockResponse({
         data: [
           { name: 'hello_world', status: 'APPROVED', category: 'UTILITY', language: 'en_US', components: [] },
@@ -270,7 +270,7 @@ describe('WhatsAppBotClient', () => {
       expect(fetchCalls[0].options?.method).toBe('GET')
     })
 
-    test('passes limit parameter in URL', async () => {
+    it('passes limit parameter in URL', async () => {
       mockResponse({ data: [] })
 
       const client = await new WhatsAppBotClient().login({ phoneNumberId: 'phone-123', accessToken: 'my-token' })
@@ -281,7 +281,7 @@ describe('WhatsAppBotClient', () => {
   })
 
   describe('getTemplate', () => {
-    test('sends GET with name filter and returns first match', async () => {
+    it('sends GET with name filter and returns first match', async () => {
       mockResponse({
         data: [{ name: 'hello_world', status: 'APPROVED', category: 'UTILITY', language: 'en_US', components: [] }],
       })
@@ -293,7 +293,7 @@ describe('WhatsAppBotClient', () => {
       expect(fetchCalls[0].url).toContain('name=hello_world')
     })
 
-    test('throws WhatsAppBotError with not_found code when template not found', async () => {
+    it('throws WhatsAppBotError with not_found code when template not found', async () => {
       mockResponse({ data: [] })
 
       const client = await new WhatsAppBotClient().login({ phoneNumberId: 'phone-123', accessToken: 'my-token' })
@@ -309,7 +309,7 @@ describe('WhatsAppBotClient', () => {
   })
 
   describe('rate limiting', () => {
-    test('waits when x-business-use-case-usage indicates throttle', async () => {
+    it('waits when x-business-use-case-usage indicates throttle', async () => {
       const usageHeader = JSON.stringify({
         '123456789': [
           {
@@ -336,7 +336,7 @@ describe('WhatsAppBotClient', () => {
       expect(fetchCalls.length).toBe(2)
     })
 
-    test('retries on 429 with Retry-After header', async () => {
+    it('retries on 429 with Retry-After header', async () => {
       mockResponse({ error: { message: 'Rate limited', code: 613 } }, 429, { 'Retry-After': '0.1' })
       mockResponse({ verified_name: 'Test Business' })
 
@@ -347,7 +347,7 @@ describe('WhatsAppBotClient', () => {
       expect(fetchCalls.length).toBe(2)
     })
 
-    test('throws after max retries exceeded', async () => {
+    it('throws after max retries exceeded', async () => {
       for (let i = 0; i <= 3; i++) {
         mockResponse({ error: { message: 'Rate limited', code: 613 } }, 429, { 'Retry-After': '0.01' })
       }
@@ -359,7 +359,7 @@ describe('WhatsAppBotClient', () => {
   })
 
   describe('retry logic', () => {
-    test('retries on 500 server error for GET requests', async () => {
+    it('retries on 500 server error for GET requests', async () => {
       mockResponse({ error: { message: 'Internal Server Error' } }, 500)
       mockResponse({ verified_name: 'Test Business' })
 
@@ -370,7 +370,7 @@ describe('WhatsAppBotClient', () => {
       expect(fetchCalls.length).toBe(2)
     })
 
-    test('does not retry on 500 for POST requests', async () => {
+    it('does not retry on 500 for POST requests', async () => {
       mockResponse({ error: { message: 'Internal Server Error' } }, 500)
 
       const client = await new WhatsAppBotClient().login({ phoneNumberId: 'phone-123', accessToken: 'my-token' })
@@ -378,7 +378,7 @@ describe('WhatsAppBotClient', () => {
       expect(fetchCalls.length).toBe(1)
     })
 
-    test('does not retry on 4xx client errors (except 429)', async () => {
+    it('does not retry on 4xx client errors (except 429)', async () => {
       mockResponse({ error: { message: 'Not Found', code: 100 } }, 404)
 
       const client = await new WhatsAppBotClient().login({ phoneNumberId: 'phone-123', accessToken: 'my-token' })
@@ -386,7 +386,7 @@ describe('WhatsAppBotClient', () => {
       expect(fetchCalls.length).toBe(1)
     })
 
-    test('does not retry on 403 forbidden', async () => {
+    it('does not retry on 403 forbidden', async () => {
       mockResponse({ error: { message: 'Forbidden', code: 200 } }, 403)
 
       const client = await new WhatsAppBotClient().login({ phoneNumberId: 'phone-123', accessToken: 'my-token' })
@@ -396,7 +396,7 @@ describe('WhatsAppBotClient', () => {
   })
 
   describe('request URL construction', () => {
-    test('all requests go to https://graph.facebook.com/v23.0/...', async () => {
+    it('all requests go to https://graph.facebook.com/v23.0/...', async () => {
       mockResponse({ verified_name: 'Test' })
       const client = await new WhatsAppBotClient().login({ phoneNumberId: 'my-phone', accessToken: 'my-token' })
       await client.verifyToken()
@@ -404,7 +404,7 @@ describe('WhatsAppBotClient', () => {
       expect(fetchCalls[0].url.startsWith('https://graph.facebook.com/v23.0/')).toBe(true)
     })
 
-    test('Authorization header is Bearer <token>', async () => {
+    it('Authorization header is Bearer <token>', async () => {
       mockResponse({ verified_name: 'Test' })
       const client = await new WhatsAppBotClient().login({ phoneNumberId: 'phone-123', accessToken: 'my-secret-token' })
       await client.verifyToken()

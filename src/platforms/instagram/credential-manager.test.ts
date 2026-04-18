@@ -1,4 +1,4 @@
-import { afterAll, describe, expect, test } from 'bun:test'
+import { afterAll, describe, expect, it } from 'bun:test'
 import { existsSync, rmSync } from 'node:fs'
 import { join } from 'node:path'
 
@@ -34,7 +34,7 @@ afterAll(() => {
 
 describe('InstagramCredentialManager', () => {
   describe('loadConfig', () => {
-    test('returns default config when file does not exist', async () => {
+    it('returns default config when file does not exist', async () => {
       const manager = setup()
       const config = await manager.loadConfig()
 
@@ -43,7 +43,7 @@ describe('InstagramCredentialManager', () => {
   })
 
   describe('saveConfig', () => {
-    test('creates file and can be re-read via loadConfig', async () => {
+    it('creates file and can be re-read via loadConfig', async () => {
       const manager = setup()
       const config = {
         current: 'test-account',
@@ -60,14 +60,14 @@ describe('InstagramCredentialManager', () => {
   })
 
   describe('getAccount', () => {
-    test('returns null when no accounts exist', async () => {
+    it('returns null when no accounts exist', async () => {
       const manager = setup()
       const account = await manager.getAccount()
 
       expect(account).toBeNull()
     })
 
-    test('returns null for specific accountId when no accounts exist', async () => {
+    it('returns null for specific accountId when no accounts exist', async () => {
       const manager = setup()
       const account = await manager.getAccount('nonexistent')
 
@@ -76,7 +76,7 @@ describe('InstagramCredentialManager', () => {
   })
 
   describe('setAccount', () => {
-    test('round-trips: set then get returns same account', async () => {
+    it('round-trips: set then get returns same account', async () => {
       const manager = setup()
       const account = makeAccount()
 
@@ -86,7 +86,7 @@ describe('InstagramCredentialManager', () => {
       expect(retrieved).toEqual(account)
     })
 
-    test('sets first account as current automatically', async () => {
+    it('sets first account as current automatically', async () => {
       const manager = setup()
       const account = makeAccount()
 
@@ -96,7 +96,7 @@ describe('InstagramCredentialManager', () => {
       expect(current).toEqual(account)
     })
 
-    test('does not override current when it is already set', async () => {
+    it('does not override current when it is already set', async () => {
       const manager = setup()
       const first = makeAccount({ account_id: 'first-account' })
       const second = makeAccount({ account_id: 'second-account' })
@@ -108,7 +108,7 @@ describe('InstagramCredentialManager', () => {
       expect(current?.account_id).toBe('first-account')
     })
 
-    test('getAccount with normalized ID lookup via createAccountId', async () => {
+    it('getAccount looks up account by normalized ID via createAccountId', async () => {
       const manager = setup()
       const account = makeAccount({ account_id: 'my-username' })
 
@@ -120,14 +120,14 @@ describe('InstagramCredentialManager', () => {
   })
 
   describe('listAccounts', () => {
-    test('returns empty array when no accounts', async () => {
+    it('returns empty array when no accounts', async () => {
       const manager = setup()
       const accounts = await manager.listAccounts()
 
       expect(accounts).toEqual([])
     })
 
-    test('returns all accounts with is_current flag', async () => {
+    it('returns all accounts with is_current flag', async () => {
       const manager = setup()
       const first = makeAccount({ account_id: 'first-account' })
       const second = makeAccount({ account_id: 'second-account' })
@@ -146,7 +146,7 @@ describe('InstagramCredentialManager', () => {
   })
 
   describe('setCurrent', () => {
-    test('switches active account and returns true', async () => {
+    it('switches active account and returns true', async () => {
       const manager = setup()
       const first = makeAccount({ account_id: 'first-account' })
       const second = makeAccount({ account_id: 'second-account' })
@@ -161,7 +161,7 @@ describe('InstagramCredentialManager', () => {
       expect(current?.account_id).toBe('second-account')
     })
 
-    test('returns false for non-existent account', async () => {
+    it('returns false for non-existent account', async () => {
       const manager = setup()
 
       const result = await manager.setCurrent('nonexistent')
@@ -171,7 +171,7 @@ describe('InstagramCredentialManager', () => {
   })
 
   describe('removeAccount', () => {
-    test('removes account and adjusts current to next available', async () => {
+    it('removes account and adjusts current to next available', async () => {
       const manager = setup()
       const first = makeAccount({ account_id: 'first-account' })
       const second = makeAccount({ account_id: 'second-account' })
@@ -190,7 +190,7 @@ describe('InstagramCredentialManager', () => {
       expect(current?.account_id).toBe('second-account')
     })
 
-    test('returns false for non-existent account', async () => {
+    it('returns false for non-existent account', async () => {
       const manager = setup()
 
       const result = await manager.removeAccount('nonexistent')
@@ -200,7 +200,7 @@ describe('InstagramCredentialManager', () => {
   })
 
   describe('clearCredentials', () => {
-    test('removes credentials file when it exists', async () => {
+    it('removes credentials file when it exists', async () => {
       const manager = setup()
       const account = makeAccount()
       await manager.setAccount(account)
@@ -214,7 +214,7 @@ describe('InstagramCredentialManager', () => {
       expect(existsSync(credentialsPath)).toBe(false)
     })
 
-    test('does not throw when credentials file does not exist', async () => {
+    it('does not throw when credentials file does not exist', async () => {
       const manager = setup()
 
       await expect(manager.clearCredentials()).resolves.toBeUndefined()
@@ -222,7 +222,7 @@ describe('InstagramCredentialManager', () => {
   })
 
   describe('getAccountPaths', () => {
-    test('returns correct paths structure for account ID', async () => {
+    it('returns correct paths structure for account ID', async () => {
       const testConfigDir = join(
         import.meta.dir,
         `.test-instagram-config-${Date.now()}-${Math.random().toString(36).slice(2)}`,
@@ -236,7 +236,7 @@ describe('InstagramCredentialManager', () => {
       expect(paths.session_path).toBe(join(testConfigDir, 'instagram', 'test-account', 'session.json'))
     })
 
-    test('normalizes account ID via createAccountId', async () => {
+    it('normalizes account ID via createAccountId', async () => {
       const testConfigDir = join(
         import.meta.dir,
         `.test-instagram-config-${Date.now()}-${Math.random().toString(36).slice(2)}`,
@@ -252,7 +252,7 @@ describe('InstagramCredentialManager', () => {
   })
 
   describe('ensureAccountPaths', () => {
-    test('creates directories', async () => {
+    it('creates directories', async () => {
       const manager = setup()
 
       const paths = await manager.ensureAccountPaths('test-account')
@@ -260,7 +260,7 @@ describe('InstagramCredentialManager', () => {
       expect(existsSync(paths.account_dir)).toBe(true)
     })
 
-    test('returns paths structure', async () => {
+    it('returns paths structure', async () => {
       const testConfigDir = join(
         import.meta.dir,
         `.test-instagram-config-${Date.now()}-${Math.random().toString(36).slice(2)}`,

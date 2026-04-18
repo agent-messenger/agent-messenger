@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, mock, test } from 'bun:test'
+import { beforeEach, describe, expect, mock, it } from 'bun:test'
 
 import type { WhatsAppBotTemplate } from '../types'
 
@@ -46,7 +46,7 @@ describe('template commands', () => {
   })
 
   describe('listAction', () => {
-    test('returns all templates', async () => {
+    it('returns all templates', async () => {
       const result = await listAction({})
 
       expect(result.templates).toHaveLength(2)
@@ -55,28 +55,28 @@ describe('template commands', () => {
       expect(mockListTemplates).toHaveBeenCalledWith(undefined)
     })
 
-    test('passes limit when provided', async () => {
+    it('passes limit when provided', async () => {
       const result = await listAction({ limit: '1' })
 
       expect(mockListTemplates).toHaveBeenCalledWith({ limit: 1 })
       expect(result.error).toBeUndefined()
     })
 
-    test('returns error for invalid limit', async () => {
+    it('returns error for invalid limit', async () => {
       const result = await listAction({ limit: 'abc' })
 
       expect(result.error).toBeDefined()
       expect(result.error).toContain('Invalid --limit')
     })
 
-    test('returns error for zero limit', async () => {
+    it('returns error for zero limit', async () => {
       const result = await listAction({ limit: '0' })
 
       expect(result.error).toBeDefined()
       expect(result.error).toContain('Invalid --limit')
     })
 
-    test('returns error when client throws', async () => {
+    it('returns error when client throws', async () => {
       mockListTemplates.mockImplementationOnce(() => Promise.reject(new Error('API error')))
 
       const result = await listAction({})
@@ -86,7 +86,7 @@ describe('template commands', () => {
   })
 
   describe('getAction', () => {
-    test('returns a specific template by name', async () => {
+    it('returns a specific template by name', async () => {
       const result = await getAction('hello_world', {})
 
       expect(result.template).toBeDefined()
@@ -95,13 +95,13 @@ describe('template commands', () => {
       expect(mockGetTemplate).toHaveBeenCalledWith('hello_world')
     })
 
-    test('returns error when template not found', async () => {
+    it('returns error when template not found', async () => {
       const result = await getAction('nonexistent_template', {})
 
       expect(result.error).toContain('nonexistent_template')
     })
 
-    test('returns error when client throws', async () => {
+    it('returns error when client throws', async () => {
       mockGetTemplate.mockImplementationOnce(() => Promise.reject(new Error('Network error')))
 
       const result = await getAction('hello_world', {})

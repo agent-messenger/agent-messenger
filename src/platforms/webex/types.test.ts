@@ -1,4 +1,4 @@
-import { expect, test } from 'bun:test'
+import { expect, it } from 'bun:test'
 
 import {
   WebexConfigSchema,
@@ -9,7 +9,7 @@ import {
   WebexSpaceSchema,
 } from './types'
 
-test('WebexSpaceSchema validates valid space', () => {
+it('WebexSpaceSchema validates valid space', () => {
   const result = WebexSpaceSchema.safeParse({
     id: 'Y2lzY29zcGFyazovL3VzL1JPT00vYWJj',
     title: 'Project Alpha',
@@ -22,7 +22,7 @@ test('WebexSpaceSchema validates valid space', () => {
   expect(result.success).toBe(true)
 })
 
-test('WebexSpaceSchema validates space with optional teamId', () => {
+it('WebexSpaceSchema validates space with optional teamId', () => {
   const result = WebexSpaceSchema.safeParse({
     id: 'Y2lzY29zcGFyazovL3VzL1JPT00vYWJj',
     title: 'Project Alpha',
@@ -36,7 +36,7 @@ test('WebexSpaceSchema validates space with optional teamId', () => {
   expect(result.success).toBe(true)
 })
 
-test('WebexSpaceSchema validates direct space type', () => {
+it('WebexSpaceSchema validates direct space type', () => {
   const result = WebexSpaceSchema.safeParse({
     id: 'Y2lzY29zcGFyazovL3VzL1JPT00vZGlyZWN0',
     title: 'Direct Message',
@@ -49,7 +49,7 @@ test('WebexSpaceSchema validates direct space type', () => {
   expect(result.success).toBe(true)
 })
 
-test('WebexSpaceSchema rejects missing required fields', () => {
+it('WebexSpaceSchema rejects missing required fields', () => {
   const result = WebexSpaceSchema.safeParse({
     id: 'Y2lzY29zcGFyazovL3VzL1JPT00vYWJj',
     title: 'Project Alpha',
@@ -57,7 +57,7 @@ test('WebexSpaceSchema rejects missing required fields', () => {
   expect(result.success).toBe(false)
 })
 
-test('WebexSpaceSchema rejects invalid type', () => {
+it('WebexSpaceSchema rejects invalid type', () => {
   const result = WebexSpaceSchema.safeParse({
     id: 'Y2lzY29zcGFyazovL3VzL1JPT00vYWJj',
     title: 'Project Alpha',
@@ -70,7 +70,7 @@ test('WebexSpaceSchema rejects invalid type', () => {
   expect(result.success).toBe(false)
 })
 
-test('WebexMessageSchema validates valid message', () => {
+it('WebexMessageSchema validates valid message', () => {
   const result = WebexMessageSchema.safeParse({
     id: 'Y2lzY29zcGFyazovL3VzL01FU1NBR0UvbXNn',
     roomId: 'Y2lzY29zcGFyazovL3VzL1JPT00vYWJj',
@@ -83,7 +83,7 @@ test('WebexMessageSchema validates valid message', () => {
   expect(result.success).toBe(true)
 })
 
-test('WebexMessageSchema validates message with optional fields', () => {
+it('WebexMessageSchema validates message with optional fields', () => {
   const result = WebexMessageSchema.safeParse({
     id: 'Y2lzY29zcGFyazovL3VzL01FU1NBR0UvbXNn',
     roomId: 'Y2lzY29zcGFyazovL3VzL1JPT00vYWJj',
@@ -101,7 +101,7 @@ test('WebexMessageSchema validates message with optional fields', () => {
   expect(result.success).toBe(true)
 })
 
-test('WebexMessageSchema rejects missing required fields', () => {
+it('WebexMessageSchema rejects missing required fields', () => {
   const result = WebexMessageSchema.safeParse({
     id: 'Y2lzY29zcGFyazovL3VzL01FU1NBR0UvbXNn',
     roomId: 'Y2lzY29zcGFyazovL3VzL1JPT00vYWJj',
@@ -110,7 +110,7 @@ test('WebexMessageSchema rejects missing required fields', () => {
   expect(result.success).toBe(false)
 })
 
-test('WebexMessageSchema rejects invalid roomType', () => {
+it('WebexMessageSchema rejects invalid roomType', () => {
   const result = WebexMessageSchema.safeParse({
     id: 'Y2lzY29zcGFyazovL3VzL01FU1NBR0UvbXNn',
     roomId: 'Y2lzY29zcGFyazovL3VzL1JPT00vYWJj',
@@ -122,7 +122,7 @@ test('WebexMessageSchema rejects invalid roomType', () => {
   expect(result.success).toBe(false)
 })
 
-test('WebexPersonSchema validates valid person', () => {
+it('WebexPersonSchema validates valid person', () => {
   const result = WebexPersonSchema.safeParse({
     id: 'Y2lzY29zcGFyazovL3VzL1BFT1BMRS9hYmM',
     emails: ['user@example.com'],
@@ -134,7 +134,7 @@ test('WebexPersonSchema validates valid person', () => {
   expect(result.success).toBe(true)
 })
 
-test('WebexPersonSchema validates person with optional fields', () => {
+it('WebexPersonSchema validates person with optional fields', () => {
   const result = WebexPersonSchema.safeParse({
     id: 'Y2lzY29zcGFyazovL3VzL1BFT1BMRS9hYmM',
     emails: ['user@example.com', 'user@work.com'],
@@ -150,7 +150,7 @@ test('WebexPersonSchema validates person with optional fields', () => {
   expect(result.success).toBe(true)
 })
 
-test('WebexPersonSchema validates bot type', () => {
+it('WebexPersonSchema validates bot type', () => {
   const result = WebexPersonSchema.safeParse({
     id: 'Y2lzY29zcGFyazovL3VzL1BFT1BMRS9ib3Q',
     emails: ['bot@webex.bot'],
@@ -162,7 +162,7 @@ test('WebexPersonSchema validates bot type', () => {
   expect(result.success).toBe(true)
 })
 
-test('WebexPersonSchema rejects missing required fields', () => {
+it('WebexPersonSchema rejects missing required fields', () => {
   const result = WebexPersonSchema.safeParse({
     id: 'Y2lzY29zcGFyazovL3VzL1BFT1BMRS9hYmM',
     displayName: 'Test User',
@@ -170,7 +170,7 @@ test('WebexPersonSchema rejects missing required fields', () => {
   expect(result.success).toBe(false)
 })
 
-test('WebexPersonSchema rejects invalid type', () => {
+it('WebexPersonSchema rejects invalid type', () => {
   const result = WebexPersonSchema.safeParse({
     id: 'Y2lzY29zcGFyazovL3VzL1BFT1BMRS9hYmM',
     emails: ['user@example.com'],
@@ -182,7 +182,7 @@ test('WebexPersonSchema rejects invalid type', () => {
   expect(result.success).toBe(false)
 })
 
-test('WebexMembershipSchema validates valid membership', () => {
+it('WebexMembershipSchema validates valid membership', () => {
   const result = WebexMembershipSchema.safeParse({
     id: 'Y2lzY29zcGFyazovL3VzL01FTUJFUlNISVAvbWVt',
     roomId: 'Y2lzY29zcGFyazovL3VzL1JPT00vYWJj',
@@ -195,7 +195,7 @@ test('WebexMembershipSchema validates valid membership', () => {
   expect(result.success).toBe(true)
 })
 
-test('WebexMembershipSchema validates moderator membership', () => {
+it('WebexMembershipSchema validates moderator membership', () => {
   const result = WebexMembershipSchema.safeParse({
     id: 'Y2lzY29zcGFyazovL3VzL01FTUJFUlNISVAvbWVt',
     roomId: 'Y2lzY29zcGFyazovL3VzL1JPT00vYWJj',
@@ -208,7 +208,7 @@ test('WebexMembershipSchema validates moderator membership', () => {
   expect(result.success).toBe(true)
 })
 
-test('WebexMembershipSchema rejects missing required fields', () => {
+it('WebexMembershipSchema rejects missing required fields', () => {
   const result = WebexMembershipSchema.safeParse({
     id: 'Y2lzY29zcGFyazovL3VzL01FTUJFUlNISVAvbWVt',
     roomId: 'Y2lzY29zcGFyazovL3VzL1JPT00vYWJj',
@@ -216,7 +216,7 @@ test('WebexMembershipSchema rejects missing required fields', () => {
   expect(result.success).toBe(false)
 })
 
-test('WebexConfigSchema validates valid OAuth config', () => {
+it('WebexConfigSchema validates valid OAuth config', () => {
   const result = WebexConfigSchema.safeParse({
     accessToken: 'test',
     refreshToken: 'test',
@@ -225,7 +225,7 @@ test('WebexConfigSchema validates valid OAuth config', () => {
   expect(result.success).toBe(true)
 })
 
-test('WebexConfigSchema validates config with clientId and clientSecret', () => {
+it('WebexConfigSchema validates config with clientId and clientSecret', () => {
   const result = WebexConfigSchema.safeParse({
     accessToken: 'test',
     refreshToken: 'test',
@@ -240,7 +240,7 @@ test('WebexConfigSchema validates config with clientId and clientSecret', () => 
   }
 })
 
-test('WebexConfigSchema validates config with tokenType oauth', () => {
+it('WebexConfigSchema validates config with tokenType oauth', () => {
   const result = WebexConfigSchema.safeParse({
     accessToken: 'test',
     refreshToken: 'test',
@@ -253,7 +253,7 @@ test('WebexConfigSchema validates config with tokenType oauth', () => {
   }
 })
 
-test('WebexConfigSchema validates config with tokenType manual', () => {
+it('WebexConfigSchema validates config with tokenType manual', () => {
   const result = WebexConfigSchema.safeParse({
     accessToken: 'test',
     refreshToken: '',
@@ -266,7 +266,7 @@ test('WebexConfigSchema validates config with tokenType manual', () => {
   }
 })
 
-test('WebexConfigSchema rejects invalid tokenType', () => {
+it('WebexConfigSchema rejects invalid tokenType', () => {
   const result = WebexConfigSchema.safeParse({
     accessToken: 'test',
     refreshToken: 'test',
@@ -276,7 +276,7 @@ test('WebexConfigSchema rejects invalid tokenType', () => {
   expect(result.success).toBe(false)
 })
 
-test('WebexConfigSchema accepts config without clientId/clientSecret (backward compat)', () => {
+it('WebexConfigSchema accepts config without clientId/clientSecret (backward compat)', () => {
   const result = WebexConfigSchema.safeParse({
     accessToken: 'test',
     refreshToken: 'test',
@@ -289,19 +289,19 @@ test('WebexConfigSchema accepts config without clientId/clientSecret (backward c
   }
 })
 
-test('WebexConfigSchema rejects missing fields', () => {
+it('WebexConfigSchema rejects missing fields', () => {
   const result = WebexConfigSchema.safeParse({})
   expect(result.success).toBe(false)
 })
 
-test('WebexError has correct name and code', () => {
+it('WebexError has correct name and code', () => {
   const error = new WebexError('Not found', 'NOT_FOUND')
   expect(error.name).toBe('WebexError')
   expect(error.message).toBe('Not found')
   expect(error.code).toBe('NOT_FOUND')
 })
 
-test('WebexError is instance of Error', () => {
+it('WebexError is instance of Error', () => {
   const error = new WebexError('Unauthorized', 'UNAUTHORIZED')
   expect(error instanceof Error).toBe(true)
 })

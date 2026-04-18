@@ -19,7 +19,7 @@ describe('reaction commands', () => {
   })
 
   describe('addAction', () => {
-    it('should add reaction successfully', async () => {
+    it('adds reaction successfully', async () => {
       const result = await addAction('general', 'msg-456', '👍', {
         ...options,
         _credManager: mockCredManager,
@@ -28,14 +28,14 @@ describe('reaction commands', () => {
       expect(result).toBeDefined()
     })
 
-    it('should return error when channel resolution fails', async () => {
+    it('returns error when channel resolution fails', async () => {
       const result = await addAction('nonexistent', 'msg-456', '👍', options)
       expect(result.error).toBeDefined()
     })
   })
 
   describe('removeAction', () => {
-    it('should remove reaction successfully', async () => {
+    it('removes reaction successfully', async () => {
       const result = await removeAction('general', 'msg-456', '👍', {
         ...options,
         _credManager: mockCredManager,
@@ -44,14 +44,14 @@ describe('reaction commands', () => {
       expect(result).toBeDefined()
     })
 
-    it('should return error when channel resolution fails', async () => {
+    it('returns error when channel resolution fails', async () => {
       const result = await removeAction('nonexistent', 'msg-456', '👍', options)
       expect(result.error).toBeDefined()
     })
   })
 
   describe('action result structure', () => {
-    it('addAction should return success result with channel, messageId, emoji', async () => {
+    it('returns success result with channel, messageId, and emoji for addAction', async () => {
       const result = await addAction('general', 'msg-456', '👍', {
         ...options,
         _credManager: mockCredManager,
@@ -64,7 +64,7 @@ describe('reaction commands', () => {
       }
     })
 
-    it('removeAction should return success result with channel, messageId, emoji', async () => {
+    it('returns success result with channel, messageId, and emoji for removeAction', async () => {
       const result = await removeAction('general', 'msg-456', '👍', {
         ...options,
         _credManager: mockCredManager,

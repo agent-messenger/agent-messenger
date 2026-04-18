@@ -1,4 +1,4 @@
-import { expect, test } from 'bun:test'
+import { expect, it } from 'bun:test'
 
 import {
   DiscordChannelSchema,
@@ -12,7 +12,7 @@ import {
   DiscordUserSchema,
 } from './types'
 
-test('DiscordGuildSchema validates correct guild', () => {
+it('DiscordGuildSchema validates correct guild', () => {
   const result = DiscordGuildSchema.safeParse({
     id: '123456789012345678',
     name: 'Test Guild',
@@ -20,21 +20,21 @@ test('DiscordGuildSchema validates correct guild', () => {
   expect(result.success).toBe(true)
 })
 
-test('DiscordGuildSchema rejects missing id', () => {
+it('DiscordGuildSchema rejects missing id', () => {
   const result = DiscordGuildSchema.safeParse({
     name: 'Test Guild',
   })
   expect(result.success).toBe(false)
 })
 
-test('DiscordGuildSchema rejects missing name', () => {
+it('DiscordGuildSchema rejects missing name', () => {
   const result = DiscordGuildSchema.safeParse({
     id: '123456789012345678',
   })
   expect(result.success).toBe(false)
 })
 
-test('DiscordChannelSchema validates correct channel', () => {
+it('DiscordChannelSchema validates correct channel', () => {
   const result = DiscordChannelSchema.safeParse({
     id: '987654321098765432',
     guild_id: '123456789012345678',
@@ -44,7 +44,7 @@ test('DiscordChannelSchema validates correct channel', () => {
   expect(result.success).toBe(true)
 })
 
-test('DiscordChannelSchema validates channel with optional fields', () => {
+it('DiscordChannelSchema validates channel with optional fields', () => {
   const result = DiscordChannelSchema.safeParse({
     id: '987654321098765432',
     guild_id: '123456789012345678',
@@ -56,7 +56,7 @@ test('DiscordChannelSchema validates channel with optional fields', () => {
   expect(result.success).toBe(true)
 })
 
-test('DiscordChannelSchema rejects missing required fields', () => {
+it('DiscordChannelSchema rejects missing required fields', () => {
   const result = DiscordChannelSchema.safeParse({
     id: '987654321098765432',
     name: 'general',
@@ -64,7 +64,7 @@ test('DiscordChannelSchema rejects missing required fields', () => {
   expect(result.success).toBe(false)
 })
 
-test('DiscordMessageSchema validates correct message', () => {
+it('DiscordMessageSchema validates correct message', () => {
   const result = DiscordMessageSchema.safeParse({
     id: '111222333444555666',
     channel_id: '987654321098765432',
@@ -78,7 +78,7 @@ test('DiscordMessageSchema validates correct message', () => {
   expect(result.success).toBe(true)
 })
 
-test('DiscordMessageSchema validates message with optional fields', () => {
+it('DiscordMessageSchema validates message with optional fields', () => {
   const result = DiscordMessageSchema.safeParse({
     id: '111222333444555666',
     channel_id: '987654321098765432',
@@ -94,7 +94,7 @@ test('DiscordMessageSchema validates message with optional fields', () => {
   expect(result.success).toBe(true)
 })
 
-test('DiscordMessageSchema rejects missing required fields', () => {
+it('DiscordMessageSchema rejects missing required fields', () => {
   const result = DiscordMessageSchema.safeParse({
     id: '111222333444555666',
     channel_id: '987654321098765432',
@@ -103,7 +103,7 @@ test('DiscordMessageSchema rejects missing required fields', () => {
   expect(result.success).toBe(false)
 })
 
-test('DiscordUserSchema validates correct user', () => {
+it('DiscordUserSchema validates correct user', () => {
   const result = DiscordUserSchema.safeParse({
     id: '222333444555666777',
     username: 'testuser',
@@ -111,7 +111,7 @@ test('DiscordUserSchema validates correct user', () => {
   expect(result.success).toBe(true)
 })
 
-test('DiscordUserSchema validates user with optional fields', () => {
+it('DiscordUserSchema validates user with optional fields', () => {
   const result = DiscordUserSchema.safeParse({
     id: '222333444555666777',
     username: 'testuser',
@@ -122,14 +122,14 @@ test('DiscordUserSchema validates user with optional fields', () => {
   expect(result.success).toBe(true)
 })
 
-test('DiscordUserSchema rejects missing required fields', () => {
+it('DiscordUserSchema rejects missing required fields', () => {
   const result = DiscordUserSchema.safeParse({
     id: '222333444555666777',
   })
   expect(result.success).toBe(false)
 })
 
-test('DiscordReactionSchema validates correct reaction', () => {
+it('DiscordReactionSchema validates correct reaction', () => {
   const result = DiscordReactionSchema.safeParse({
     emoji: {
       name: 'thumbsup',
@@ -139,7 +139,7 @@ test('DiscordReactionSchema validates correct reaction', () => {
   expect(result.success).toBe(true)
 })
 
-test('DiscordReactionSchema validates reaction with custom emoji', () => {
+it('DiscordReactionSchema validates reaction with custom emoji', () => {
   const result = DiscordReactionSchema.safeParse({
     emoji: {
       id: '123456789012345678',
@@ -150,7 +150,7 @@ test('DiscordReactionSchema validates reaction with custom emoji', () => {
   expect(result.success).toBe(true)
 })
 
-test('DiscordReactionSchema rejects missing required fields', () => {
+it('DiscordReactionSchema rejects missing required fields', () => {
   const result = DiscordReactionSchema.safeParse({
     emoji: {
       name: 'thumbsup',
@@ -159,7 +159,7 @@ test('DiscordReactionSchema rejects missing required fields', () => {
   expect(result.success).toBe(false)
 })
 
-test('DiscordFileSchema validates correct file', () => {
+it('DiscordFileSchema validates correct file', () => {
   const result = DiscordFileSchema.safeParse({
     id: '444555666777888999',
     filename: 'document.pdf',
@@ -169,7 +169,7 @@ test('DiscordFileSchema validates correct file', () => {
   expect(result.success).toBe(true)
 })
 
-test('DiscordFileSchema validates file with optional fields', () => {
+it('DiscordFileSchema validates file with optional fields', () => {
   const result = DiscordFileSchema.safeParse({
     id: '444555666777888999',
     filename: 'document.pdf',
@@ -182,7 +182,7 @@ test('DiscordFileSchema validates file with optional fields', () => {
   expect(result.success).toBe(true)
 })
 
-test('DiscordFileSchema rejects missing required fields', () => {
+it('DiscordFileSchema rejects missing required fields', () => {
   const result = DiscordFileSchema.safeParse({
     id: '444555666777888999',
     filename: 'document.pdf',
@@ -190,19 +190,19 @@ test('DiscordFileSchema rejects missing required fields', () => {
   expect(result.success).toBe(false)
 })
 
-test('DiscordCredentialsSchema validates correct credentials', () => {
+it('DiscordCredentialsSchema validates correct credentials', () => {
   const result = DiscordCredentialsSchema.safeParse({
     token: 'token_value',
   })
   expect(result.success).toBe(true)
 })
 
-test('DiscordCredentialsSchema rejects missing token', () => {
+it('DiscordCredentialsSchema rejects missing token', () => {
   const result = DiscordCredentialsSchema.safeParse({})
   expect(result.success).toBe(false)
 })
 
-test('DiscordConfigSchema validates correct config', () => {
+it('DiscordConfigSchema validates correct config', () => {
   const result = DiscordConfigSchema.safeParse({
     current_server: null,
     token: 'token_value',
@@ -211,7 +211,7 @@ test('DiscordConfigSchema validates correct config', () => {
   expect(result.success).toBe(true)
 })
 
-test('DiscordConfigSchema validates config with servers', () => {
+it('DiscordConfigSchema validates config with servers', () => {
   const result = DiscordConfigSchema.safeParse({
     current_server: '123456789012345678',
     token: 'token_value',
@@ -225,7 +225,7 @@ test('DiscordConfigSchema validates config with servers', () => {
   expect(result.success).toBe(true)
 })
 
-test('DiscordConfigSchema rejects missing required fields', () => {
+it('DiscordConfigSchema rejects missing required fields', () => {
   const result = DiscordConfigSchema.safeParse({
     current_server: null,
     token: 'token_value',
@@ -233,14 +233,14 @@ test('DiscordConfigSchema rejects missing required fields', () => {
   expect(result.success).toBe(false)
 })
 
-test('DiscordError has correct name and code', () => {
+it('DiscordError has correct name and code', () => {
   const error = new DiscordError('Test error', 'TEST_CODE')
   expect(error.name).toBe('DiscordError')
   expect(error.message).toBe('Test error')
   expect(error.code).toBe('TEST_CODE')
 })
 
-test('DiscordError is instance of Error', () => {
+it('DiscordError is instance of Error', () => {
   const error = new DiscordError('Test error', 'TEST_CODE')
   expect(error instanceof Error).toBe(true)
 })

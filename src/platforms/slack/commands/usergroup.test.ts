@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, mock, test } from 'bun:test'
+import { beforeEach, describe, expect, mock, it } from 'bun:test'
 
 import { SlackClient } from '@/platforms/slack/client'
 import type { SlackUsergroup } from '@/platforms/slack/types'
@@ -39,14 +39,14 @@ describe('Usergroup Commands', () => {
   })
 
   describe('usergroup list', () => {
-    test('lists all user groups', async () => {
+    it('lists all user groups', async () => {
       const usergroups = await (mockClient as SlackClient).listUsergroups()
       expect(usergroups).toHaveLength(1)
       expect(usergroups[0].name).toBe('Marketing Team')
       expect(usergroups[0].handle).toBe('marketing-team')
     })
 
-    test('throws error when API fails', async () => {
+    it('throws error when API fails', async () => {
       mockClient.listUsergroups = mock(async () => {
         throw new Error('invalid_auth')
       })
@@ -55,7 +55,7 @@ describe('Usergroup Commands', () => {
   })
 
   describe('usergroup create', () => {
-    test('creates a user group successfully', async () => {
+    it('creates a user group successfully', async () => {
       const result = await (mockClient as SlackClient).createUsergroup('Marketing Team', {
         handle: 'marketing-team',
         description: 'Marketing gurus, PR experts and product advocates.',
@@ -64,7 +64,7 @@ describe('Usergroup Commands', () => {
       expect(result.name).toBe('Marketing Team')
     })
 
-    test('throws error when API fails', async () => {
+    it('throws error when API fails', async () => {
       mockClient.createUsergroup = mock(async () => {
         throw new Error('name_already_exists')
       })
@@ -73,7 +73,7 @@ describe('Usergroup Commands', () => {
   })
 
   describe('usergroup update', () => {
-    test('updates a user group successfully', async () => {
+    it('updates a user group successfully', async () => {
       const result = await (mockClient as SlackClient).updateUsergroup('S0616NG6M', {
         name: 'Marketing Team',
         handle: 'marketing-team',
@@ -82,7 +82,7 @@ describe('Usergroup Commands', () => {
       expect(result.name).toBe('Marketing Team')
     })
 
-    test('throws error when API fails', async () => {
+    it('throws error when API fails', async () => {
       mockClient.updateUsergroup = mock(async () => {
         throw new Error('no_such_subteam')
       })
@@ -93,13 +93,13 @@ describe('Usergroup Commands', () => {
   })
 
   describe('usergroup enable', () => {
-    test('enables a user group successfully', async () => {
+    it('enables a user group successfully', async () => {
       const result = await (mockClient as SlackClient).enableUsergroup('S0616NG6M')
       expect(result.id).toBe('S0616NG6M')
       expect(result.date_delete).toBe(0)
     })
 
-    test('throws error when API fails', async () => {
+    it('throws error when API fails', async () => {
       mockClient.enableUsergroup = mock(async () => {
         throw new Error('no_such_subteam')
       })
@@ -108,13 +108,13 @@ describe('Usergroup Commands', () => {
   })
 
   describe('usergroup disable', () => {
-    test('disables a user group successfully', async () => {
+    it('disables a user group successfully', async () => {
       const result = await (mockClient as SlackClient).disableUsergroup('S0616NG6M')
       expect(result.id).toBe('S0616NG6M')
       expect(result.date_delete).toBeGreaterThan(0)
     })
 
-    test('throws error when API fails', async () => {
+    it('throws error when API fails', async () => {
       mockClient.disableUsergroup = mock(async () => {
         throw new Error('no_such_subteam')
       })
@@ -123,14 +123,14 @@ describe('Usergroup Commands', () => {
   })
 
   describe('usergroup members', () => {
-    test('lists members of a user group', async () => {
+    it('lists members of a user group', async () => {
       const users = await (mockClient as SlackClient).listUsergroupMembers('S0616NG6M')
       expect(users).toHaveLength(2)
       expect(users).toContain('U060R4BJ4')
       expect(users).toContain('U060RNRCZ')
     })
 
-    test('throws error when API fails', async () => {
+    it('throws error when API fails', async () => {
       mockClient.listUsergroupMembers = mock(async () => {
         throw new Error('no_such_subteam')
       })
@@ -139,13 +139,13 @@ describe('Usergroup Commands', () => {
   })
 
   describe('usergroup members-update', () => {
-    test('updates members of a user group', async () => {
+    it('updates members of a user group', async () => {
       const result = await (mockClient as SlackClient).updateUsergroupMembers('S0616NG6M', ['U060R4BJ4', 'U060RNRCZ'])
       expect(result.id).toBe('S0616NG6M')
       expect(result.users).toHaveLength(2)
     })
 
-    test('throws error when no users provided', async () => {
+    it('throws error when no users provided', async () => {
       mockClient.updateUsergroupMembers = mock(async () => {
         throw new Error('no_users_provided')
       })

@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, expect, spyOn, test } from 'bun:test'
+import { afterEach, beforeEach, expect, spyOn, it } from 'bun:test'
 
 import { DiscordClient } from '../client'
 import { DiscordCredentialManager } from '../credential-manager'
@@ -44,7 +44,7 @@ afterEach(() => {
   credManagerLoadSpy?.mockRestore()
 })
 
-test('createThread: creates thread with name', async () => {
+it('createThread: creates thread with name', async () => {
   // given: discord client
   const client = await new DiscordClient().login({ token: 'test-token' })
 
@@ -59,7 +59,7 @@ test('createThread: creates thread with name', async () => {
   expect(thread.parent_id).toBe('ch-1')
 })
 
-test('createThread: creates thread with auto_archive_duration', async () => {
+it('createThread: creates thread with auto_archive_duration', async () => {
   // given: discord client
   const client = await new DiscordClient().login({ token: 'test-token' })
 
@@ -72,7 +72,7 @@ test('createThread: creates thread with auto_archive_duration', async () => {
   })
 })
 
-test('createThread: creates thread with rate_limit_per_user', async () => {
+it('createThread: creates thread with rate_limit_per_user', async () => {
   // given: discord client
   const client = await new DiscordClient().login({ token: 'test-token' })
 
@@ -85,7 +85,7 @@ test('createThread: creates thread with rate_limit_per_user', async () => {
   })
 })
 
-test('archiveThread: archives thread', async () => {
+it('archiveThread: archives thread', async () => {
   // given: discord client
   const client = await new DiscordClient().login({ token: 'test-token' })
 
@@ -98,7 +98,7 @@ test('archiveThread: archives thread', async () => {
   expect(thread.thread_metadata?.archived).toBe(true)
 })
 
-test('archiveThread: unarchives thread when archived=false', async () => {
+it('archiveThread: unarchives thread when archived=false', async () => {
   // given: discord client with unarchive mock
   clientArchiveThreadSpy.mockResolvedValue({
     id: 'thread-1',

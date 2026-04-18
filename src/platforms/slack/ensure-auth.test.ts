@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, spyOn, test } from 'bun:test'
+import { afterEach, beforeEach, describe, expect, spyOn, it } from 'bun:test'
 
 import { SlackClient } from './client'
 import { CredentialManager } from './credential-manager'
@@ -63,7 +63,7 @@ afterEach(() => {
 })
 
 describe('ensureSlackAuth', () => {
-  test('skips extraction when stored credentials are valid', async () => {
+  it('skips extraction when stored credentials are valid', async () => {
     // given
     getWorkspaceSpy.mockResolvedValue({
       workspace_id: 'T123',
@@ -80,7 +80,7 @@ describe('ensureSlackAuth', () => {
     expect(extractSpy).not.toHaveBeenCalled()
   })
 
-  test('refreshes cookie when stored credentials are stale', async () => {
+  it('refreshes cookie when stored credentials are stale', async () => {
     // given
     getWorkspaceSpy.mockResolvedValue({
       workspace_id: 'T123',
@@ -110,7 +110,7 @@ describe('ensureSlackAuth', () => {
     expect(setWorkspaceSpy).toHaveBeenCalledWith(expect.objectContaining({ cookie: 'xoxd-fresh-cookie' }))
   })
 
-  test('falls through to full extraction when cookie refresh fails', async () => {
+  it('falls through to full extraction when cookie refresh fails', async () => {
     // given
     getWorkspaceSpy.mockResolvedValue({
       workspace_id: 'T123',
@@ -128,7 +128,7 @@ describe('ensureSlackAuth', () => {
     expect(extractSpy).toHaveBeenCalled()
   })
 
-  test('extracts and saves credentials when none exist', async () => {
+  it('extracts and saves credentials when none exist', async () => {
     // when
     await ensureSlackAuth()
 
@@ -145,7 +145,7 @@ describe('ensureSlackAuth', () => {
     )
   })
 
-  test('sets first workspace as current when none set', async () => {
+  it('sets first workspace as current when none set', async () => {
     // when
     await ensureSlackAuth()
 
@@ -153,7 +153,7 @@ describe('ensureSlackAuth', () => {
     expect(setCurrentWorkspaceSpy).toHaveBeenCalledWith('T123')
   })
 
-  test('does not override existing current workspace', async () => {
+  it('does not override existing current workspace', async () => {
     // given
     loadSpy.mockResolvedValue({
       current_workspace: 'T999',
@@ -167,7 +167,7 @@ describe('ensureSlackAuth', () => {
     expect(setCurrentWorkspaceSpy).not.toHaveBeenCalled()
   })
 
-  test('handles multiple workspaces', async () => {
+  it('handles multiple workspaces', async () => {
     // given
     extractSpy.mockResolvedValue([
       { workspace_id: 'T1', workspace_name: 'ws1', token: 'xoxc-1', cookie: 'xoxd-1' },
@@ -191,7 +191,7 @@ describe('ensureSlackAuth', () => {
     expect(setCurrentWorkspaceSpy).toHaveBeenCalledWith('T1')
   })
 
-  test('skips invalid workspaces during validation', async () => {
+  it('skips invalid workspaces during validation', async () => {
     // given
     extractSpy.mockResolvedValue([
       { workspace_id: 'T-bad', workspace_name: 'bad', token: 'xoxc-bad', cookie: 'xoxd-bad' },
@@ -213,7 +213,7 @@ describe('ensureSlackAuth', () => {
     expect(setCurrentWorkspaceSpy).toHaveBeenCalledWith('T-good')
   })
 
-  test('silently handles extraction failure', async () => {
+  it('silently handles extraction failure', async () => {
     // given
     extractSpy.mockRejectedValue(new Error('Slack directory not found'))
 
@@ -224,7 +224,7 @@ describe('ensureSlackAuth', () => {
     expect(setWorkspaceSpy).not.toHaveBeenCalled()
   })
 
-  test('propagates cookie lock error when Slack app is running', async () => {
+  it('propagates cookie lock error when Slack app is running', async () => {
     // given
     const error = new Error(
       'Failed to read Slack cookies. The Slack app is currently running and locking the cookie database. ' +
@@ -237,7 +237,7 @@ describe('ensureSlackAuth', () => {
     await expect(ensureSlackAuth()).rejects.toThrow('locking the cookie')
   })
 
-  test('does not save when no workspaces extracted', async () => {
+  it('does not save when no workspaces extracted', async () => {
     // given
     extractSpy.mockResolvedValue([])
 
@@ -249,7 +249,7 @@ describe('ensureSlackAuth', () => {
     expect(setCurrentWorkspaceSpy).not.toHaveBeenCalled()
   })
 
-  test('refreshes token from web when local token is invalid', async () => {
+  it('refreshes token from web when local token is invalid', async () => {
     // given — local token is stale, but cookie is valid and domain is known
     extractSpy.mockResolvedValue([
       { workspace_id: 'T-stale', workspace_name: 'stale-ws', token: 'xoxc-stale', cookie: 'xoxd-valid' },
@@ -278,7 +278,7 @@ describe('ensureSlackAuth', () => {
     )
   })
 
-  test('skips web refresh when no domain is known for workspace', async () => {
+  it('skips web refresh when no domain is known for workspace', async () => {
     // given — domain mapping is empty
     extractSpy.mockResolvedValue([
       { workspace_id: 'T-stale', workspace_name: 'stale-ws', token: 'xoxc-stale', cookie: 'xoxd-valid' },
@@ -294,7 +294,7 @@ describe('ensureSlackAuth', () => {
     expect(setWorkspaceSpy).not.toHaveBeenCalled()
   })
 
-  test('skips web refresh when workspace has no cookie', async () => {
+  it('skips web refresh when workspace has no cookie', async () => {
     // given — cookie is empty
     extractSpy.mockResolvedValue([
       { workspace_id: 'T-stale', workspace_name: 'stale-ws', token: 'xoxc-stale', cookie: '' },
@@ -310,7 +310,7 @@ describe('ensureSlackAuth', () => {
     expect(setWorkspaceSpy).not.toHaveBeenCalled()
   })
 
-  test('updates workspace_name from auth response', async () => {
+  it('updates workspace_name from auth response', async () => {
     // given
     extractSpy.mockResolvedValue([
       { workspace_id: 'T1', workspace_name: 'old-name', token: 'xoxc-1', cookie: 'xoxd-1' },
@@ -329,7 +329,7 @@ describe('ensureSlackAuth', () => {
     expect(setWorkspaceSpy).toHaveBeenCalledWith(expect.objectContaining({ workspace_name: 'New Team Name' }))
   })
 
-  test('resolves unknown workspace_id from testAuth before saving', async () => {
+  it('resolves unknown workspace_id from testAuth before saving', async () => {
     // given — extractor returns unknown workspace_id
     extractSpy.mockResolvedValue([
       { workspace_id: 'unknown', workspace_name: 'unknown', token: 'xoxc-1', cookie: 'xoxd-1' },
@@ -352,7 +352,7 @@ describe('ensureSlackAuth', () => {
 })
 
 describe('refreshTokenFromWeb', () => {
-  test('extracts token from ssb/redirect HTML response', async () => {
+  it('extracts token from ssb/redirect HTML response', async () => {
     // given
     fetchSpy.mockResolvedValue(
       new Response(
@@ -372,7 +372,7 @@ describe('refreshTokenFromWeb', () => {
     })
   })
 
-  test('returns null when response has no token', async () => {
+  it('returns null when response has no token', async () => {
     // given
     fetchSpy.mockResolvedValue(new Response('<html>no token here</html>', { status: 200 }))
 
@@ -383,7 +383,7 @@ describe('refreshTokenFromWeb', () => {
     expect(token).toBeNull()
   })
 
-  test('returns null on HTTP error', async () => {
+  it('returns null on HTTP error', async () => {
     // given
     fetchSpy.mockResolvedValue(new Response('', { status: 403 }))
 
@@ -394,7 +394,7 @@ describe('refreshTokenFromWeb', () => {
     expect(token).toBeNull()
   })
 
-  test('returns null on network error', async () => {
+  it('returns null on network error', async () => {
     // given
     fetchSpy.mockRejectedValue(new Error('network timeout'))
 

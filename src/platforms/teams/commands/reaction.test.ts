@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, expect, spyOn, test } from 'bun:test'
+import { afterEach, beforeEach, expect, spyOn, it } from 'bun:test'
 
 import { TeamsClient } from '../client'
 import { TeamsCredentialManager } from '../credential-manager'
@@ -31,7 +31,7 @@ afterEach(() => {
   processExitSpy.mockRestore()
 })
 
-test('add: sends correct POST request with emoji', async () => {
+it('add: sends correct POST request with emoji', async () => {
   try {
     await addAction('team123', 'ch123', 'msg123', 'like', { pretty: false })
   } catch {}
@@ -45,7 +45,7 @@ test('add: sends correct POST request with emoji', async () => {
   expect(output.emoji).toBe('like')
 })
 
-test('remove: sends correct DELETE request with emoji', async () => {
+it('remove: sends correct DELETE request with emoji', async () => {
   try {
     await removeAction('team123', 'ch123', 'msg123', 'like', { pretty: false })
   } catch {}
@@ -59,7 +59,7 @@ test('remove: sends correct DELETE request with emoji', async () => {
   expect(output.emoji).toBe('like')
 })
 
-test('add: handles missing token gracefully', async () => {
+it('add: handles missing token gracefully', async () => {
   getTokenWithExpirySpy.mockImplementation(() => Promise.resolve(null))
 
   try {

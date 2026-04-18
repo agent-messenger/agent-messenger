@@ -1,5 +1,5 @@
 import { Database } from 'bun:sqlite'
-import { afterEach, describe, expect, test } from 'bun:test'
+import { afterEach, describe, expect, it } from 'bun:test'
 import { existsSync, mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -31,7 +31,7 @@ describe('ChromiumCookieReader', () => {
   })
 
   describe('queryAll', () => {
-    test('returns all matching rows from a real SQLite database', async () => {
+    it('returns all matching rows from a real SQLite database', async () => {
       // given
       const tempDir = mkdtempSync(join(tmpdir(), 'chromium-cookie-reader-'))
       tempDirs.push(tempDir)
@@ -55,7 +55,7 @@ describe('ChromiumCookieReader', () => {
       ])
     })
 
-    test('returns empty array when database file does not exist', async () => {
+    it('returns empty array when database file does not exist', async () => {
       // given
       const tempDir = mkdtempSync(join(tmpdir(), 'chromium-cookie-reader-'))
       tempDirs.push(tempDir)
@@ -69,7 +69,7 @@ describe('ChromiumCookieReader', () => {
       expect(result).toEqual([])
     })
 
-    test('returns empty array when query matches no rows', async () => {
+    it('returns empty array when query matches no rows', async () => {
       // given
       const tempDir = mkdtempSync(join(tmpdir(), 'chromium-cookie-reader-'))
       tempDirs.push(tempDir)
@@ -86,7 +86,7 @@ describe('ChromiumCookieReader', () => {
       expect(result).toEqual([])
     })
 
-    test('supports parameterized queries with params', async () => {
+    it('supports parameterized queries with params', async () => {
       // given
       const tempDir = mkdtempSync(join(tmpdir(), 'chromium-cookie-reader-'))
       tempDirs.push(tempDir)
@@ -108,7 +108,7 @@ describe('ChromiumCookieReader', () => {
       expect(result).toEqual([{ name: 'token', value: 'xyz789' }])
     })
 
-    test('cleans up temp file after query', async () => {
+    it('cleans up temp file after query', async () => {
       // given
       const tempDir = mkdtempSync(join(tmpdir(), 'chromium-cookie-reader-'))
       tempDirs.push(tempDir)
@@ -135,7 +135,7 @@ describe('ChromiumCookieReader', () => {
   })
 
   describe('queryFirst', () => {
-    test('returns first matching row from a real SQLite database', async () => {
+    it('returns first matching row from a real SQLite database', async () => {
       // given
       const tempDir = mkdtempSync(join(tmpdir(), 'chromium-cookie-reader-'))
       tempDirs.push(tempDir)
@@ -156,7 +156,7 @@ describe('ChromiumCookieReader', () => {
       expect(result).toEqual({ name: 'session', value: 'abc123' })
     })
 
-    test('returns null when database file does not exist', async () => {
+    it('returns null when database file does not exist', async () => {
       // given
       const tempDir = mkdtempSync(join(tmpdir(), 'chromium-cookie-reader-'))
       tempDirs.push(tempDir)
@@ -170,7 +170,7 @@ describe('ChromiumCookieReader', () => {
       expect(result).toBeNull()
     })
 
-    test('returns null when query matches no rows', async () => {
+    it('returns null when query matches no rows', async () => {
       // given
       const tempDir = mkdtempSync(join(tmpdir(), 'chromium-cookie-reader-'))
       tempDirs.push(tempDir)
@@ -187,7 +187,7 @@ describe('ChromiumCookieReader', () => {
       expect(result).toBeNull()
     })
 
-    test('supports parameterized queries with params', async () => {
+    it('supports parameterized queries with params', async () => {
       // given
       const tempDir = mkdtempSync(join(tmpdir(), 'chromium-cookie-reader-'))
       tempDirs.push(tempDir)
@@ -211,7 +211,7 @@ describe('ChromiumCookieReader', () => {
   })
 
   describe('edge cases', () => {
-    test('handles multiple calls to same reader instance', async () => {
+    it('handles multiple calls to same reader instance', async () => {
       // given
       const tempDir = mkdtempSync(join(tmpdir(), 'chromium-cookie-reader-'))
       tempDirs.push(tempDir)
@@ -241,7 +241,7 @@ describe('ChromiumCookieReader', () => {
       expect(firstRow).toEqual({ name: 'token', value: 'xyz789' })
     })
 
-    test('returns empty array for malformed SQL without throwing', async () => {
+    it('returns empty array for malformed SQL without throwing', async () => {
       // given
       const tempDir = mkdtempSync(join(tmpdir(), 'chromium-cookie-reader-'))
       tempDirs.push(tempDir)
@@ -256,7 +256,7 @@ describe('ChromiumCookieReader', () => {
       expect(result).toEqual([])
     })
 
-    test('returns null for malformed SQL without throwing', async () => {
+    it('returns null for malformed SQL without throwing', async () => {
       // given
       const tempDir = mkdtempSync(join(tmpdir(), 'chromium-cookie-reader-'))
       tempDirs.push(tempDir)

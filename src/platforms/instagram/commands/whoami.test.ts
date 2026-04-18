@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, spyOn, test } from 'bun:test'
+import { afterEach, beforeEach, describe, expect, spyOn, it } from 'bun:test'
 
 import { InstagramClient } from '../client'
 import * as sharedModule from './shared'
@@ -29,7 +29,7 @@ describe('whoami command', () => {
     consoleLogSpy?.mockRestore()
   })
 
-  test('outputs profile information', async () => {
+  it('outputs profile information', async () => {
     await whoamiAction({})
 
     expect(consoleLogSpy).toHaveBeenCalledTimes(1)
@@ -40,7 +40,7 @@ describe('whoami command', () => {
     expect(output.profile_pic_url).toBe('https://example.com/pic.jpg')
   })
 
-  test('outputs profile with null optional fields', async () => {
+  it('outputs profile with null optional fields', async () => {
     getProfileSpy.mockResolvedValue({
       user_id: '987654321',
       username: 'testuser',

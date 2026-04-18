@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, expect, mock, spyOn, test } from 'bun:test'
+import { afterEach, beforeEach, expect, mock, spyOn, it } from 'bun:test'
 
 import { DiscordClient } from '../client'
 import { DiscordCredentialManager } from '../credential-manager'
@@ -48,7 +48,7 @@ afterEach(() => {
   credManagerLoadSpy?.mockRestore()
 })
 
-test('add: sends correct PUT request with emoji', async () => {
+it('add: sends correct PUT request with emoji', async () => {
   const consoleSpy = mock((_msg: string) => {})
   const originalLog = console.log
   console.log = consoleSpy
@@ -66,7 +66,7 @@ test('add: sends correct PUT request with emoji', async () => {
   }
 })
 
-test('remove: sends correct DELETE request with emoji', async () => {
+it('remove: sends correct DELETE request with emoji', async () => {
   const consoleSpy = mock((_msg: string) => {})
   const originalLog = console.log
   console.log = consoleSpy
@@ -84,7 +84,7 @@ test('remove: sends correct DELETE request with emoji', async () => {
   }
 })
 
-test('list: extracts reactions from message', async () => {
+it('list: extracts reactions from message', async () => {
   const consoleSpy = mock((_msg: string) => {})
   const originalLog = console.log
   console.log = consoleSpy
@@ -104,7 +104,7 @@ test('list: extracts reactions from message', async () => {
   }
 })
 
-test('add: handles missing token gracefully', async () => {
+it('add: handles missing token gracefully', async () => {
   // Temporarily override the credential manager spy to return null token
   credManagerLoadSpy?.mockResolvedValue({
     token: null,

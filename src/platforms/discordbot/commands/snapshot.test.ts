@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, mock, test } from 'bun:test'
+import { afterEach, beforeEach, describe, expect, mock, it } from 'bun:test'
 import { existsSync, rmSync } from 'node:fs'
 import { mkdir } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
@@ -87,7 +87,7 @@ describe('snapshot command', () => {
   })
 
   describe('default (brief)', () => {
-    test('returns channels with id and name only', async () => {
+    it('returns channels with id and name only', async () => {
       const manager = await setupManager(tempDir)
 
       const result = await snapshotAction({ _credManager: manager })
@@ -99,7 +99,7 @@ describe('snapshot command', () => {
       expect(result.hint).toBeDefined()
     })
 
-    test('filters out non-text channels', async () => {
+    it('filters out non-text channels', async () => {
       const manager = await setupManager(tempDir)
 
       const result = await snapshotAction({ _credManager: manager })
@@ -108,7 +108,7 @@ describe('snapshot command', () => {
       expect(channelNames).not.toContain('voice')
     })
 
-    test('does not fetch messages', async () => {
+    it('does not fetch messages', async () => {
       const manager = await setupManager(tempDir)
 
       await snapshotAction({ _credManager: manager })
@@ -118,7 +118,7 @@ describe('snapshot command', () => {
   })
 
   describe('--full (channels + messages)', () => {
-    test('returns channels with recent messages', async () => {
+    it('returns channels with recent messages', async () => {
       const manager = await setupManager(tempDir)
 
       const result = await snapshotAction({ _credManager: manager, full: true })
@@ -136,7 +136,7 @@ describe('snapshot command', () => {
       })
     })
 
-    test('fetches messages in parallel for all text channels', async () => {
+    it('fetches messages in parallel for all text channels', async () => {
       const manager = await setupManager(tempDir)
 
       await snapshotAction({ _credManager: manager, full: true })
@@ -146,7 +146,7 @@ describe('snapshot command', () => {
       expect(mockGetMessages).toHaveBeenCalledWith('ch2', 5)
     })
 
-    test('respects --limit option', async () => {
+    it('respects --limit option', async () => {
       const manager = await setupManager(tempDir)
 
       await snapshotAction({ _credManager: manager, full: true, limit: 10 })
@@ -155,7 +155,7 @@ describe('snapshot command', () => {
       expect(mockGetMessages).toHaveBeenCalledWith('ch2', 10)
     })
 
-    test('defaults limit to 5', async () => {
+    it('defaults limit to 5', async () => {
       const manager = await setupManager(tempDir)
 
       await snapshotAction({ _credManager: manager, full: true })
@@ -165,7 +165,7 @@ describe('snapshot command', () => {
   })
 
   describe('--full --channels-only', () => {
-    test('returns only channel list without messages', async () => {
+    it('returns only channel list without messages', async () => {
       const manager = await setupManager(tempDir)
 
       const result = await snapshotAction({ _credManager: manager, full: true, channelsOnly: true })
@@ -179,7 +179,7 @@ describe('snapshot command', () => {
   })
 
   describe('--full --users-only', () => {
-    test('returns only user list', async () => {
+    it('returns only user list', async () => {
       const manager = await setupManager(tempDir)
 
       const result = await snapshotAction({ _credManager: manager, full: true, usersOnly: true })
@@ -195,7 +195,7 @@ describe('snapshot command', () => {
   })
 
   describe('--server option', () => {
-    test('uses explicit server ID', async () => {
+    it('uses explicit server ID', async () => {
       const manager = await setupManager(tempDir)
 
       const result = await snapshotAction({ _credManager: manager, server: 'other-guild' })
@@ -206,7 +206,7 @@ describe('snapshot command', () => {
   })
 
   describe('error handling', () => {
-    test('returns error when no server set', async () => {
+    it('returns error when no server set', async () => {
       const manager = new DiscordBotCredentialManager(tempDir)
       await manager.setCredentials({
         token: 'token123',
@@ -219,7 +219,7 @@ describe('snapshot command', () => {
       expect(result.error).toBeDefined()
     })
 
-    test('returns error on API failure', async () => {
+    it('returns error on API failure', async () => {
       mockListChannels.mockImplementationOnce(() => Promise.reject(new Error('API Error')))
       const manager = await setupManager(tempDir)
 

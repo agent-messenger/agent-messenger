@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, mock, test } from 'bun:test'
+import { afterEach, beforeEach, describe, expect, mock, it } from 'bun:test'
 import { existsSync, rmSync } from 'node:fs'
 import { mkdir } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
@@ -55,7 +55,7 @@ describe('auth commands', () => {
   })
 
   describe('setAction', () => {
-    test('validates and stores bot token with default bot_id from auth', async () => {
+    it('validates and stores bot token with default bot_id from auth', async () => {
       const manager = new DiscordBotCredentialManager(tempDir)
 
       const result = await setAction('token123', { _credManager: manager })
@@ -71,7 +71,7 @@ describe('auth commands', () => {
       expect(creds?.bot_id).toBe('bot123')
     })
 
-    test('uses --bot flag as bot_id', async () => {
+    it('uses --bot flag as bot_id', async () => {
       const manager = new DiscordBotCredentialManager(tempDir)
 
       const result = await setAction('token123', { bot: 'mybot', _credManager: manager })
@@ -81,7 +81,7 @@ describe('auth commands', () => {
       expect(creds?.token).toBe('token123')
     })
 
-    test('rejects user tokens (bot: false)', async () => {
+    it('rejects user tokens (bot: false)', async () => {
       mockTestAuth.mockImplementationOnce(() =>
         Promise.resolve({
           id: 'user123',
@@ -98,7 +98,7 @@ describe('auth commands', () => {
       expect(result.error).toContain('not a bot token')
     })
 
-    test('rejects user tokens (bot: undefined)', async () => {
+    it('rejects user tokens (bot: undefined)', async () => {
       mockTestAuth.mockImplementationOnce(() =>
         Promise.resolve({
           id: 'user123',
@@ -114,7 +114,7 @@ describe('auth commands', () => {
       expect(result.error).toContain('not a bot token')
     })
 
-    test('handles client errors', async () => {
+    it('handles client errors', async () => {
       mockTestAuth.mockImplementationOnce(() => Promise.reject(new Error('Invalid token')))
 
       const manager = new DiscordBotCredentialManager(tempDir)
@@ -127,7 +127,7 @@ describe('auth commands', () => {
   })
 
   describe('clearAction', () => {
-    test('removes all stored credentials', async () => {
+    it('removes all stored credentials', async () => {
       const manager = new DiscordBotCredentialManager(tempDir)
       await manager.setCredentials({
         token: 'token123',
@@ -143,7 +143,7 @@ describe('auth commands', () => {
   })
 
   describe('statusAction', () => {
-    test('returns no credentials when none set', async () => {
+    it('returns no credentials when none set', async () => {
       const manager = new DiscordBotCredentialManager(tempDir)
 
       const result = await statusAction({ _credManager: manager })
@@ -152,7 +152,7 @@ describe('auth commands', () => {
       expect(result.error).toBeDefined()
     })
 
-    test('returns valid status for current bot', async () => {
+    it('returns valid status for current bot', async () => {
       const manager = new DiscordBotCredentialManager(tempDir)
       await manager.setCredentials({
         token: 'token123',
@@ -169,7 +169,7 @@ describe('auth commands', () => {
       expect(result.bot_name).toBe('testbot')
     })
 
-    test('returns status for specific --bot', async () => {
+    it('returns status for specific --bot', async () => {
       const manager = new DiscordBotCredentialManager(tempDir)
       await manager.setCredentials({
         token: 'token1',
@@ -188,7 +188,7 @@ describe('auth commands', () => {
       expect(result.bot_id).toBe('bot123')
     })
 
-    test('returns invalid when token test fails', async () => {
+    it('returns invalid when token test fails', async () => {
       mockTestAuth.mockImplementationOnce(() => Promise.reject(new Error('Unauthorized')))
 
       const manager = new DiscordBotCredentialManager(tempDir)
@@ -203,7 +203,7 @@ describe('auth commands', () => {
       expect(result.valid).toBe(false)
     })
 
-    test('returns invalid when bot field is false', async () => {
+    it('returns invalid when bot field is false', async () => {
       mockTestAuth.mockImplementationOnce(() =>
         Promise.resolve({
           id: 'user123',
@@ -226,7 +226,7 @@ describe('auth commands', () => {
   })
 
   describe('listAction', () => {
-    test('returns all stored bots', async () => {
+    it('returns all stored bots', async () => {
       const manager = new DiscordBotCredentialManager(tempDir)
       await manager.setCredentials({
         token: 'token1',
@@ -245,7 +245,7 @@ describe('auth commands', () => {
       expect(result.bots?.find((b) => b.bot_id === 'bot2')?.is_current).toBe(true)
     })
 
-    test('returns empty list when no bots stored', async () => {
+    it('returns empty list when no bots stored', async () => {
       const manager = new DiscordBotCredentialManager(tempDir)
 
       const result = await listAction({ _credManager: manager })
@@ -255,7 +255,7 @@ describe('auth commands', () => {
   })
 
   describe('useAction', () => {
-    test('switches current bot', async () => {
+    it('switches current bot', async () => {
       const manager = new DiscordBotCredentialManager(tempDir)
       await manager.setCredentials({
         token: 'token1',
@@ -274,7 +274,7 @@ describe('auth commands', () => {
       expect(result.bot_id).toBe('bot1')
     })
 
-    test('returns error for unknown bot', async () => {
+    it('returns error for unknown bot', async () => {
       const manager = new DiscordBotCredentialManager(tempDir)
 
       const result = await useAction('nonexistent', { _credManager: manager })
@@ -284,7 +284,7 @@ describe('auth commands', () => {
   })
 
   describe('removeAction', () => {
-    test('removes a stored bot', async () => {
+    it('removes a stored bot', async () => {
       const manager = new DiscordBotCredentialManager(tempDir)
       await manager.setCredentials({
         token: 'token1',
@@ -298,7 +298,7 @@ describe('auth commands', () => {
       expect(await manager.getCredentials('bot1')).toBeNull()
     })
 
-    test('returns error for unknown bot', async () => {
+    it('returns error for unknown bot', async () => {
       const manager = new DiscordBotCredentialManager(tempDir)
 
       const result = await removeAction('nonexistent', { _credManager: manager })

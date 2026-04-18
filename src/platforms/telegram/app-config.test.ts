@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, test } from 'bun:test'
+import { beforeEach, describe, expect, it } from 'bun:test'
 
 import { getTelegramAppCredentials } from './app-config'
 
@@ -16,7 +16,7 @@ describe('telegram app config', () => {
     }
   })
 
-  test('returns env credentials when provided', () => {
+  it('returns env credentials when provided', () => {
     process.env.AGENT_TELEGRAM_API_ID = '12345'
     process.env.AGENT_TELEGRAM_API_HASH = 'secret'
 
@@ -27,11 +27,11 @@ describe('telegram app config', () => {
     })
   })
 
-  test('returns none when nothing is configured', () => {
+  it('returns none when nothing is configured', () => {
     expect(getTelegramAppCredentials()).toEqual({ source: 'none' })
   })
 
-  test('rejects malformed api_id like "123abc"', () => {
+  it('rejects malformed api_id like "123abc"', () => {
     const prev = process.env.AGENT_TELEGRAM_API_ID
     process.env.AGENT_TELEGRAM_API_ID = '123abc'
     process.env.AGENT_TELEGRAM_API_HASH = 'abc123'

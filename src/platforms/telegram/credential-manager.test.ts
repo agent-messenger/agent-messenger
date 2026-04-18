@@ -1,4 +1,4 @@
-import { afterAll, describe, expect, test } from 'bun:test'
+import { afterAll, describe, expect, it } from 'bun:test'
 import { existsSync, rmSync } from 'node:fs'
 import { join } from 'node:path'
 
@@ -22,7 +22,7 @@ afterAll(() => {
 })
 
 describe('TelegramCredentialManager', () => {
-  test('stores and retrieves accounts', async () => {
+  it('stores and retrieves accounts', async () => {
     const manager = setup()
 
     await manager.setAccount({
@@ -39,7 +39,7 @@ describe('TelegramCredentialManager', () => {
     expect(account?.phone_number).toBe('+821012345678')
   })
 
-  test('switches current account', async () => {
+  it('switches current account', async () => {
     const manager = setup()
 
     await manager.setAccount({
@@ -64,7 +64,7 @@ describe('TelegramCredentialManager', () => {
     expect(current?.account_id).toBe('second')
   })
 
-  test('creates account directories', async () => {
+  it('creates account directories', async () => {
     const manager = setup()
     const paths = await manager.ensureAccountPaths('+82 10 1234 5678')
 
@@ -74,7 +74,7 @@ describe('TelegramCredentialManager', () => {
     expect(paths.account_dir.endsWith('plus-82-10-1234-5678')).toBe(true)
   })
 
-  test('saves and loads provisioning state', async () => {
+  it('saves and loads provisioning state', async () => {
     const manager = setup()
     const state = {
       phone: '+14155551234',
@@ -90,7 +90,7 @@ describe('TelegramCredentialManager', () => {
     expect(loaded!.random_hash).toBe('abc123')
   })
 
-  test('returns null for expired provisioning state', async () => {
+  it('returns null for expired provisioning state', async () => {
     const manager = setup()
     const expiredDate = new Date(Date.now() - 11 * 60 * 1000).toISOString()
 
@@ -104,7 +104,7 @@ describe('TelegramCredentialManager', () => {
     expect(loaded).toBeNull()
   })
 
-  test('clears provisioning state', async () => {
+  it('clears provisioning state', async () => {
     const manager = setup()
 
     await manager.saveProvisioningState({
@@ -118,13 +118,13 @@ describe('TelegramCredentialManager', () => {
     expect(loaded).toBeNull()
   })
 
-  test('returns null when no provisioning state exists', async () => {
+  it('returns null when no provisioning state exists', async () => {
     const manager = setup()
     const loaded = await manager.loadProvisioningState()
     expect(loaded).toBeNull()
   })
 
-  test('returns null for corrupted created_at in provisioning state', async () => {
+  it('returns null for corrupted created_at in provisioning state', async () => {
     const manager = setup()
 
     await manager.saveProvisioningState({
@@ -137,7 +137,7 @@ describe('TelegramCredentialManager', () => {
     expect(loaded).toBeNull()
   })
 
-  test('clearCredentials also clears provisioning state', async () => {
+  it('clearCredentials also clears provisioning state', async () => {
     const manager = setup()
 
     await manager.saveProvisioningState({

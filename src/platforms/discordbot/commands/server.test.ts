@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, mock, test } from 'bun:test'
+import { afterEach, beforeEach, describe, expect, mock, it } from 'bun:test'
 import { existsSync, rmSync } from 'node:fs'
 import { mkdir } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
@@ -56,7 +56,7 @@ describe('server commands', () => {
   })
 
   describe('listAction', () => {
-    test('lists all servers from client', async () => {
+    it('lists all servers from client', async () => {
       const manager = new DiscordBotCredentialManager(tempDir)
       await manager.setCredentials({
         token: 'token123',
@@ -79,7 +79,7 @@ describe('server commands', () => {
       })
     })
 
-    test('marks current server in list', async () => {
+    it('marks current server in list', async () => {
       const manager = new DiscordBotCredentialManager(tempDir)
       await manager.setCredentials({
         token: 'token123',
@@ -94,7 +94,7 @@ describe('server commands', () => {
       expect(result.servers?.[1].current).toBe(false)
     })
 
-    test('handles client errors', async () => {
+    it('handles client errors', async () => {
       mockListGuilds.mockImplementationOnce(() => Promise.reject(new Error('API Error')))
 
       const manager = new DiscordBotCredentialManager(tempDir)
@@ -112,7 +112,7 @@ describe('server commands', () => {
   })
 
   describe('currentAction', () => {
-    test('returns current server info', async () => {
+    it('returns current server info', async () => {
       const manager = new DiscordBotCredentialManager(tempDir)
       await manager.setCredentials({
         token: 'token123',
@@ -127,7 +127,7 @@ describe('server commands', () => {
       expect(result.name).toBe('Test Guild')
     })
 
-    test('returns error when no server set', async () => {
+    it('returns error when no server set', async () => {
       const manager = new DiscordBotCredentialManager(tempDir)
       await manager.setCredentials({
         token: 'token123',
@@ -141,7 +141,7 @@ describe('server commands', () => {
       expect(result.error).toContain('No server set')
     })
 
-    test('handles client errors', async () => {
+    it('handles client errors', async () => {
       mockGetGuild.mockImplementationOnce(() => Promise.reject(new Error('Guild not found')))
 
       const manager = new DiscordBotCredentialManager(tempDir)
@@ -160,7 +160,7 @@ describe('server commands', () => {
   })
 
   describe('switchAction', () => {
-    test('switches to a new server', async () => {
+    it('switches to a new server', async () => {
       const manager = new DiscordBotCredentialManager(tempDir)
       await manager.setCredentials({
         token: 'token123',
@@ -177,7 +177,7 @@ describe('server commands', () => {
       expect(currentServer).toBe('guild2')
     })
 
-    test('updates server name in credential manager', async () => {
+    it('updates server name in credential manager', async () => {
       const manager = new DiscordBotCredentialManager(tempDir)
       await manager.setCredentials({
         token: 'token123',
@@ -194,7 +194,7 @@ describe('server commands', () => {
       })
     })
 
-    test('handles client errors', async () => {
+    it('handles client errors', async () => {
       mockGetGuild.mockImplementationOnce(() => Promise.reject(new Error('Unauthorized')))
 
       const manager = new DiscordBotCredentialManager(tempDir)
@@ -212,7 +212,7 @@ describe('server commands', () => {
   })
 
   describe('infoAction', () => {
-    test('returns server info', async () => {
+    it('returns server info', async () => {
       const manager = new DiscordBotCredentialManager(tempDir)
       await manager.setCredentials({
         token: 'token123',
@@ -228,7 +228,7 @@ describe('server commands', () => {
       expect(result.owner).toBe(true)
     })
 
-    test('handles client errors', async () => {
+    it('handles client errors', async () => {
       mockGetGuild.mockImplementationOnce(() => Promise.reject(new Error('Guild not found')))
 
       const manager = new DiscordBotCredentialManager(tempDir)

@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, expect, spyOn, test } from 'bun:test'
+import { afterEach, beforeEach, expect, spyOn, it } from 'bun:test'
 
 import { DiscordClient } from '../client'
 import { DiscordCredentialManager } from '../credential-manager'
@@ -72,7 +72,7 @@ afterEach(() => {
   credManagerLoadSpy?.mockRestore()
 })
 
-test('list: returns text channels (type=0) from server', async () => {
+it('list: returns text channels (type=0) from server', async () => {
   // given: discord client with channels
   const client = await new DiscordClient().login({ token: 'test-token' })
   const channels = await client.listChannels('server-1')
@@ -86,7 +86,7 @@ test('list: returns text channels (type=0) from server', async () => {
   expect(textChannels[1].name).toBe('announcements')
 })
 
-test('list: includes channel metadata', async () => {
+it('list: includes channel metadata', async () => {
   // given: discord client with channels
   const client = await new DiscordClient().login({ token: 'test-token' })
   const channels = await client.listChannels('server-1')
@@ -102,7 +102,7 @@ test('list: includes channel metadata', async () => {
   expect(channel.topic).toBeDefined()
 })
 
-test('info: returns channel details', async () => {
+it('info: returns channel details', async () => {
   // given: discord client with channel data
   const client = await new DiscordClient().login({ token: 'test-token' })
   const channel = await client.getChannel('ch-1')
@@ -117,7 +117,7 @@ test('info: returns channel details', async () => {
   expect(channel.topic).toBe('General discussion')
 })
 
-test('info: throws error for non-existent channel', async () => {
+it('info: throws error for non-existent channel', async () => {
   // given: discord client
   const client = await new DiscordClient().login({ token: 'test-token' })
 
@@ -131,7 +131,7 @@ test('info: throws error for non-existent channel', async () => {
   }
 })
 
-test('history: returns messages in reverse chronological order', async () => {
+it('history: returns messages in reverse chronological order', async () => {
   // given: discord client with messages
   const client = await new DiscordClient().login({ token: 'test-token' })
   const messages = await client.getMessages('ch-1', 50)
@@ -147,7 +147,7 @@ test('history: returns messages in reverse chronological order', async () => {
   expect(messages[1].author.username).toBe('bob')
 })
 
-test('history: includes message metadata', async () => {
+it('history: includes message metadata', async () => {
   // given: discord client with messages
   const client = await new DiscordClient().login({ token: 'test-token' })
   const messages = await client.getMessages('ch-1', 50)

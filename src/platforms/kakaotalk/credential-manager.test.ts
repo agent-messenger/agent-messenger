@@ -1,4 +1,4 @@
-import { afterAll, describe, expect, test } from 'bun:test'
+import { afterAll, describe, expect, it } from 'bun:test'
 import { rmSync } from 'node:fs'
 import { join } from 'node:path'
 
@@ -35,7 +35,7 @@ afterAll(() => {
 
 describe('KakaoCredentialManager', () => {
   describe('load', () => {
-    test('returns default config when file does not exist', async () => {
+    it('returns default config when file does not exist', async () => {
       const manager = setup()
       const config = await manager.load()
 
@@ -44,7 +44,7 @@ describe('KakaoCredentialManager', () => {
   })
 
   describe('save/load round-trip', () => {
-    test('creates file and can be re-read via load', async () => {
+    it('creates file and can be re-read via load', async () => {
       const manager = setup()
       const account = makeAccount()
       const config = {
@@ -62,21 +62,21 @@ describe('KakaoCredentialManager', () => {
   })
 
   describe('getAccount', () => {
-    test('returns null when no accounts exist', async () => {
+    it('returns null when no accounts exist', async () => {
       const manager = setup()
       const account = await manager.getAccount()
 
       expect(account).toBeNull()
     })
 
-    test('returns null for nonexistent account ID', async () => {
+    it('returns null for nonexistent account ID', async () => {
       const manager = setup()
       const account = await manager.getAccount('nonexistent')
 
       expect(account).toBeNull()
     })
 
-    test('returns account by explicit ID', async () => {
+    it('returns account by explicit ID', async () => {
       const manager = setup()
       const account = makeAccount()
 
@@ -86,7 +86,7 @@ describe('KakaoCredentialManager', () => {
       expect(retrieved).toEqual(account)
     })
 
-    test('returns current account when no ID given', async () => {
+    it('returns current account when no ID given', async () => {
       const manager = setup()
       const account = makeAccount()
 
@@ -98,7 +98,7 @@ describe('KakaoCredentialManager', () => {
   })
 
   describe('setAccount', () => {
-    test('stores account and auto-sets current_account if null', async () => {
+    it('stores account and auto-sets current_account if null', async () => {
       const manager = setup()
       const account = makeAccount()
 
@@ -109,7 +109,7 @@ describe('KakaoCredentialManager', () => {
       expect(config.accounts['test-account']).toEqual(account)
     })
 
-    test('does NOT override existing current_account', async () => {
+    it('does NOT override existing current_account', async () => {
       const manager = setup()
       const first = makeAccount({ account_id: 'first-account' })
       const second = makeAccount({ account_id: 'second-account' })
@@ -123,14 +123,14 @@ describe('KakaoCredentialManager', () => {
   })
 
   describe('listAccounts', () => {
-    test('returns empty array for empty config', async () => {
+    it('returns empty array for empty config', async () => {
       const manager = setup()
       const accounts = await manager.listAccounts()
 
       expect(accounts).toEqual([])
     })
 
-    test('returns all accounts with correct is_current flag', async () => {
+    it('returns all accounts with correct is_current flag', async () => {
       const manager = setup()
       const first = makeAccount({ account_id: 'first-account' })
       const second = makeAccount({ account_id: 'second-account' })
@@ -149,7 +149,7 @@ describe('KakaoCredentialManager', () => {
   })
 
   describe('setCurrentAccount', () => {
-    test('switches active account', async () => {
+    it('switches active account', async () => {
       const manager = setup()
       const first = makeAccount({ account_id: 'first-account' })
       const second = makeAccount({ account_id: 'second-account' })
@@ -164,7 +164,7 @@ describe('KakaoCredentialManager', () => {
   })
 
   describe('removeAccount', () => {
-    test('removes and rotates current to next available', async () => {
+    it('removes and rotates current to next available', async () => {
       const manager = setup()
       const first = makeAccount({ account_id: 'first-account' })
       const second = makeAccount({ account_id: 'second-account' })
@@ -181,7 +181,7 @@ describe('KakaoCredentialManager', () => {
       expect(current?.account_id).toBe('second-account')
     })
 
-    test('handles removing non-current account', async () => {
+    it('handles removing non-current account', async () => {
       const manager = setup()
       const first = makeAccount({ account_id: 'first-account' })
       const second = makeAccount({ account_id: 'second-account' })
@@ -201,7 +201,7 @@ describe('KakaoCredentialManager', () => {
   })
 
   describe('savePendingLogin/loadPendingLogin/clearPendingLogin', () => {
-    test('full lifecycle: save, load, clear', async () => {
+    it('handles full save, load, and clear lifecycle', async () => {
       const manager = setup()
       const state = {
         device_uuid: 'uuid-abc',

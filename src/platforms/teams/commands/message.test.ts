@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, expect, mock, spyOn, test } from 'bun:test'
+import { afterEach, beforeEach, expect, mock, spyOn, it } from 'bun:test'
 
 import { TeamsClient } from '../client'
 import { TeamsCredentialManager } from '../credential-manager'
@@ -69,7 +69,7 @@ afterEach(() => {
   console.log = originalConsoleLog
 })
 
-test('send: returns message with id', async () => {
+it('send: returns message with id', async () => {
   const consoleSpy = mock((_msg: string) => {})
   console.log = consoleSpy
 
@@ -80,7 +80,7 @@ test('send: returns message with id', async () => {
   expect(output).toContain('msg_123')
 })
 
-test('list: returns array of messages', async () => {
+it('list: returns array of messages', async () => {
   const consoleSpy = mock((_msg: string) => {})
   console.log = consoleSpy
 
@@ -92,7 +92,7 @@ test('list: returns array of messages', async () => {
   expect(output).toContain('msg_124')
 })
 
-test('get: returns single message', async () => {
+it('get: returns single message', async () => {
   const consoleSpy = mock((_msg: string) => {})
   console.log = consoleSpy
 
@@ -103,7 +103,7 @@ test('get: returns single message', async () => {
   expect(output).toContain('msg_123')
 })
 
-test('delete: returns success', async () => {
+it('delete: returns success', async () => {
   const consoleSpy = mock((_msg: string) => {})
   console.log = consoleSpy
 

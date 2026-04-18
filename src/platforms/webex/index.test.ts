@@ -1,21 +1,21 @@
-import { describe, expect, test } from 'bun:test'
+import { describe, expect, it } from 'bun:test'
 
 import * as webex from './index'
 
 describe('webex barrel exports', () => {
-  test('exports WebexClient', () => {
+  it('exports WebexClient', () => {
     expect(webex.WebexClient).toBeDefined()
   })
 
-  test('exports WebexCredentialManager', () => {
+  it('exports WebexCredentialManager', () => {
     expect(webex.WebexCredentialManager).toBeDefined()
   })
 
-  test('exports WebexError', () => {
+  it('exports WebexError', () => {
     expect(webex.WebexError).toBeDefined()
   })
 
-  test('exports Zod schemas', () => {
+  it('exports Zod schemas', () => {
     expect(webex.WebexSpaceSchema).toBeDefined()
     expect(webex.WebexMessageSchema).toBeDefined()
     expect(webex.WebexPersonSchema).toBeDefined()

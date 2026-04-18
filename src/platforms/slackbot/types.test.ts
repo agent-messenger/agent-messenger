@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'bun:test'
+import { describe, expect, it } from 'bun:test'
 
 import {
   type SlackBotConfig,
@@ -9,7 +9,7 @@ import {
 } from './types'
 
 describe('SlackBotError', () => {
-  test('creates error with message and code', () => {
+  it('creates error with message and code', () => {
     const error = new SlackBotError('Token is invalid', 'invalid_auth')
 
     expect(error.message).toBe('Token is invalid')
@@ -20,7 +20,7 @@ describe('SlackBotError', () => {
 })
 
 describe('SlackBotCredentialsSchema', () => {
-  test('validates correct bot token credentials', () => {
+  it('validates correct bot token credentials', () => {
     const creds: SlackBotCredentials = {
       token: 'xoxb-123456789-abcdef',
       workspace_id: 'T12345678',
@@ -33,7 +33,7 @@ describe('SlackBotCredentialsSchema', () => {
     expect(result.success).toBe(true)
   })
 
-  test('rejects user tokens (xoxp-)', () => {
+  it('rejects user tokens (xoxp-)', () => {
     const creds = {
       token: 'xoxp-123456789-abcdef',
       workspace_id: 'T12345678',
@@ -46,7 +46,7 @@ describe('SlackBotCredentialsSchema', () => {
     expect(result.success).toBe(false)
   })
 
-  test('rejects missing fields', () => {
+  it('rejects missing fields', () => {
     const creds = {
       token: 'xoxb-123456789-abcdef',
     }
@@ -57,7 +57,7 @@ describe('SlackBotCredentialsSchema', () => {
 })
 
 describe('SlackBotConfigSchema', () => {
-  test('validates correct config', () => {
+  it('validates correct config', () => {
     const config: SlackBotConfig = {
       current: { workspace_id: 'T12345678', bot_id: 'deploy' },
       workspaces: {
@@ -79,7 +79,7 @@ describe('SlackBotConfigSchema', () => {
     expect(result.success).toBe(true)
   })
 
-  test('validates config with null current', () => {
+  it('validates config with null current', () => {
     const config: SlackBotConfig = {
       current: null,
       workspaces: {},

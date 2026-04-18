@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, expect, mock, spyOn, test } from 'bun:test'
+import { afterEach, beforeEach, expect, mock, spyOn, it } from 'bun:test'
 
 import { DiscordClient } from '../client'
 import { DiscordCredentialManager } from '../credential-manager'
@@ -49,7 +49,7 @@ afterEach(() => {
   credManagerLoadSpy?.mockRestore()
 })
 
-test('upload: sends multipart request and returns file info', async () => {
+it('upload: sends multipart request and returns file info', async () => {
   const consoleSpy = mock((_msg: string) => {})
   console.log = consoleSpy
 
@@ -61,7 +61,7 @@ test('upload: sends multipart request and returns file info', async () => {
   expect(output).toContain('test.pdf')
 })
 
-test('list: filters messages with attachments', async () => {
+it('list: filters messages with attachments', async () => {
   const consoleSpy = mock((_msg: string) => {})
   console.log = consoleSpy
 
@@ -73,7 +73,7 @@ test('list: filters messages with attachments', async () => {
   expect(output).toContain('file_124')
 })
 
-test('info: returns single file details', async () => {
+it('info: returns single file details', async () => {
   const consoleSpy = mock((_msg: string) => {})
   console.log = consoleSpy
 

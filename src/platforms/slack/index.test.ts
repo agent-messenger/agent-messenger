@@ -1,4 +1,4 @@
-import { expect, test } from 'bun:test'
+import { expect, it } from 'bun:test'
 
 import {
   CredentialManager,
@@ -14,46 +14,46 @@ import {
   ConfigSchema,
 } from '@/platforms/slack/index'
 
-test('SlackClient is exported from barrel', () => {
+it('SlackClient is exported from barrel', () => {
   expect(typeof SlackClient).toBe('function')
 })
 
-test('SlackError is exported from barrel', () => {
+it('SlackError is exported from barrel', () => {
   expect(typeof SlackError).toBe('function')
 })
 
-test('CredentialManager is exported from barrel', () => {
+it('CredentialManager is exported from barrel', () => {
   expect(typeof CredentialManager).toBe('function')
 })
 
-test('SlackCredentialManager is exported from barrel', () => {
+it('SlackCredentialManager is exported from barrel', () => {
   expect(typeof SlackCredentialManager).toBe('function')
 })
 
-test('SlackChannelSchema is exported from barrel', () => {
+it('SlackChannelSchema is exported from barrel', () => {
   expect(typeof SlackChannelSchema.parse).toBe('function')
 })
 
-test('SlackReactionSchema is exported from barrel', () => {
+it('SlackReactionSchema is exported from barrel', () => {
   expect(typeof SlackReactionSchema.parse).toBe('function')
 })
 
-test('SlackFileSchema is exported from barrel', () => {
+it('SlackFileSchema is exported from barrel', () => {
   expect(typeof SlackFileSchema.parse).toBe('function')
 })
 
-test('SlackMessageSchema is exported from barrel', () => {
+it('SlackMessageSchema is exported from barrel', () => {
   expect(typeof SlackMessageSchema.parse).toBe('function')
 })
 
-test('SlackUserSchema is exported from barrel', () => {
+it('SlackUserSchema is exported from barrel', () => {
   expect(typeof SlackUserSchema.parse).toBe('function')
 })
 
-test('WorkspaceCredentialsSchema is exported from barrel', () => {
+it('WorkspaceCredentialsSchema is exported from barrel', () => {
   expect(typeof WorkspaceCredentialsSchema.parse).toBe('function')
 })
 
-test('ConfigSchema is exported from barrel', () => {
+it('ConfigSchema is exported from barrel', () => {
   expect(typeof ConfigSchema.parse).toBe('function')
 })

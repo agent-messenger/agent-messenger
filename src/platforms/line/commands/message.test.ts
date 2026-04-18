@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, expect, mock, spyOn, test } from 'bun:test'
+import { afterEach, beforeEach, expect, mock, spyOn, it } from 'bun:test'
 
 const originalConsoleLog = console.log
 
@@ -55,7 +55,7 @@ afterEach(() => {
   console.log = originalConsoleLog
 })
 
-test('list: fetches and outputs messages for a chat', async () => {
+it('list: fetches and outputs messages for a chat', async () => {
   // when
   await messageCommand.parseAsync(['node', 'message', 'list', 'chat-1'])
 
@@ -69,7 +69,7 @@ test('list: fetches and outputs messages for a chat', async () => {
   expect(output[0].text).toBe('Hello world')
 })
 
-test('list: uses custom count when --count option provided', async () => {
+it('list: uses custom count when --count option provided', async () => {
   // when
   await messageCommand.parseAsync(['node', 'message', 'list', 'chat-1', '--count', '5'])
 
@@ -77,7 +77,7 @@ test('list: uses custom count when --count option provided', async () => {
   expect(getMessagesSpy).toHaveBeenCalledWith('chat-1', { count: 5 })
 })
 
-test('list: closes client after fetching messages', async () => {
+it('list: closes client after fetching messages', async () => {
   // when
   await messageCommand.parseAsync(['node', 'message', 'list', 'chat-1'])
 
@@ -85,7 +85,7 @@ test('list: closes client after fetching messages', async () => {
   expect(closeSpy).toHaveBeenCalledTimes(1)
 })
 
-test('send: sends message and outputs result', async () => {
+it('send: sends message and outputs result', async () => {
   // when
   await messageCommand.parseAsync(['node', 'message', 'send', 'chat-1', 'Hello!'])
 
@@ -98,7 +98,7 @@ test('send: sends message and outputs result', async () => {
   expect(output.message_id).toBe('msg-new')
 })
 
-test('send: closes client after sending message', async () => {
+it('send: closes client after sending message', async () => {
   // when
   await messageCommand.parseAsync(['node', 'message', 'send', 'chat-1', 'Hello!'])
 
@@ -106,7 +106,7 @@ test('send: closes client after sending message', async () => {
   expect(closeSpy).toHaveBeenCalledTimes(1)
 })
 
-test('list: outputs messages with metadata', async () => {
+it('list: outputs messages with metadata', async () => {
   // when
   await messageCommand.parseAsync(['node', 'message', 'list', 'chat-1'])
 
