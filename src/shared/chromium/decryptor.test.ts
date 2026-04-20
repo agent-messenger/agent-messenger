@@ -307,6 +307,71 @@ describe('ChromiumCookieDecryptor', () => {
     })
   })
 
+  describe('extractDPAPIPayload', () => {
+    it('extracts payload wrapped in markers', () => {
+      // given
+      const b64 = Buffer.from('hello').toString('base64')
+      const stdout = `<<<B64>>>${b64}<<<END>>>\r\n`
+
+      // when
+      const result = ChromiumCookieDecryptor.extractDPAPIPayload(stdout)
+
+      // then
+      expect(result).toBe(b64)
+    })
+
+    it('strips CLIXML progress-stream contamination before the payload', () => {
+      // given: PowerShell emits CLIXML on first module auto-load
+      const b64 = Buffer.from('secret-token').toString('base64')
+      const stdout =
+        '#< CLIXML\r\n' +
+        '<Objs Version="1.1.0.1" xmlns="http://schemas.microsoft.com/powershell/2004/04">' +
+        '<Obj S="progress" RefId="0"><TN RefId="0"><T>System.Management.Automation.PSCustomObject</T>' +
+        '<T>System.Object</T></TN><MS><I64 N="SourceId">1</I64><PR N="Record">' +
+        '<AV>Preparing modules for first use.</AV><AI>0</AI><Nil /><PI>-1</PI><PC>-1</PC>' +
+        '<T>Completed</T><SR>-1</SR><SD> </SD></PR></MS></Obj></Objs>' +
+        `<<<B64>>>${b64}<<<END>>>\r\n`
+
+      // when
+      const result = ChromiumCookieDecryptor.extractDPAPIPayload(stdout)
+
+      // then
+      expect(result).toBe(b64)
+    })
+
+    it('tolerates whitespace and line breaks inside the payload', () => {
+      // given
+      const b64 = Buffer.from('hello').toString('base64')
+      const chunked = b64.slice(0, 3) + '\r\n' + b64.slice(3)
+      const stdout = `<<<B64>>>${chunked}<<<END>>>`
+
+      // when
+      const result = ChromiumCookieDecryptor.extractDPAPIPayload(stdout)
+
+      // then
+      expect(result).toBe(b64)
+    })
+
+    it('returns null when markers are missing', () => {
+      // given: stdout contains only CLIXML noise, no real payload
+      const stdout = '#< CLIXML\r\n<Objs></Objs>\r\n'
+
+      // when
+      const result = ChromiumCookieDecryptor.extractDPAPIPayload(stdout)
+
+      // then
+      expect(result).toBeNull()
+    })
+
+    it('returns null when payload between markers is empty', () => {
+      // when
+      const result = ChromiumCookieDecryptor.extractDPAPIPayload('<<<B64>>><<<END>>>')
+
+      // then
+      expect(result).toBeNull()
+    })
+  })
+
   describe('stripIntegrityHash', () => {
     it('returns input unchanged when length <= 32', () => {
       // given

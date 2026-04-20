@@ -189,8 +189,13 @@ export class TeamsTokenExtractor {
   }
 
   isValidSkypeToken(token: string): boolean {
-    if (!token || token.length === 0) return false
-    return token.length >= 50
+    if (!token || token.length < 50) return false
+    // Real skype tokens are JWT-shaped or long base64url-ish strings. Reject anything
+    // containing XML/CLIXML artifacts (e.g. leaked PowerShell progress stream) or
+    // other non-token characters up front to stop garbage from being reported as valid.
+    if (/[<>{}\s"'`]/.test(token)) return false
+    if (token.startsWith('eyJ')) return /^[A-Za-z0-9._-]+$/.test(token)
+    return /^[A-Za-z0-9._~+/=-]+$/.test(token)
   }
 
   isEncryptedValue(value: Buffer): boolean {
