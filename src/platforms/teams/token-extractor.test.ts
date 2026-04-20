@@ -271,6 +271,28 @@ describe('TeamsTokenExtractor', () => {
       expect(extractor.isValidSkypeToken(null as unknown as string)).toBe(false)
       expect(extractor.isValidSkypeToken(undefined as unknown as string)).toBe(false)
     })
+
+    // Regression for #156: PowerShell CLIXML leaks into DPAPI output on Windows.
+    it('rejects CLIXML progress-stream contamination', () => {
+      // given: the exact shape of the leak reported in #156
+      const clixml =
+        '#< CLIXML\r\n<Objs Version="1.1.0.1" xmlns="http://schemas.microsoft.com/powershell/2004/04">' +
+        '<Obj S="progress" RefId="0"><TN RefId="0"><T>System.Management.Automation.PSCustomObject</T>' +
+        '<T>System.Object</T></TN><MS><I64 N="SourceId">1</I64></MS></Obj></Objs>'
+
+      // then
+      expect(extractor.isValidSkypeToken(clixml)).toBe(false)
+    })
+
+    it('rejects anything containing angle brackets or whitespace', () => {
+      expect(extractor.isValidSkypeToken('a'.repeat(60) + '<div>')).toBe(false)
+      expect(extractor.isValidSkypeToken('a'.repeat(40) + ' ' + 'b'.repeat(40))).toBe(false)
+      expect(extractor.isValidSkypeToken('a'.repeat(40) + '\n' + 'b'.repeat(40))).toBe(false)
+    })
+
+    it('rejects a bare 36-char UUID', () => {
+      expect(extractor.isValidSkypeToken('12345678-1234-1234-1234-123456789012')).toBe(false)
+    })
   })
 
   describe('isEncryptedValue', () => {
@@ -377,6 +399,44 @@ describe('TeamsTokenExtractor', () => {
       // the Network/Cookies sibling was tried, and the token was returned.
       expect(tried).toEqual([networkCookiesPath])
       expect(results).toEqual([{ token: mockToken, accountType: 'personal' }])
+
+      getPathsSpy.mockRestore()
+      copyAndExtractSpy.mockRestore()
+      cleanup()
+    })
+
+    // Regression for #156: CLIXML-contaminated decrypt output must not short-circuit
+    // the work account, leaving other valid paths unvisited.
+    it('does not mark accountType seen when the first path yields CLIXML garbage', async () => {
+      // given: first work path returns CLIXML garbage, second work path returns a real token
+      const clixmlGarbage =
+        '#< CLIXML\r\n<Objs xmlns="http://schemas.microsoft.com/powershell/2004/04">' +
+        '<Obj S="progress"><TN><T>Progress</T></TN></Obj></Objs>\r\n' +
+        'a'.repeat(80)
+      const realToken = 'eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.signature_here'
+
+      const winExtractor = new TeamsTokenExtractor('win32')
+      const firstPath = join(workDir, 'WV2Profile_tfw', 'Cookies')
+      const secondPath = join(workDir, 'Default', 'Network', 'Cookies')
+      const getPathsSpy = spyOn(winExtractor, 'getTeamsCookiesPaths').mockReturnValue([
+        { path: firstPath, accountType: 'work' },
+        { path: secondPath, accountType: 'work' },
+      ])
+      mkdirSync(join(workDir, 'WV2Profile_tfw'), { recursive: true })
+      mkdirSync(join(workDir, 'Default', 'Network'), { recursive: true })
+      writeFileSync(firstPath, '')
+      writeFileSync(secondPath, '')
+
+      const copyAndExtractSpy = spyOn(winExtractor as any, 'copyAndExtract')
+        .mockResolvedValueOnce(clixmlGarbage)
+        .mockResolvedValueOnce(realToken)
+
+      // when
+      const results = await (winExtractor as any).extractFromCookiesDB()
+
+      // then: garbage was rejected, loop continued to the real token
+      expect(copyAndExtractSpy).toHaveBeenCalledTimes(2)
+      expect(results).toEqual([{ token: realToken, accountType: 'work' }])
 
       getPathsSpy.mockRestore()
       copyAndExtractSpy.mockRestore()

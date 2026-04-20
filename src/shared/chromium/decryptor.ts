@@ -187,20 +187,41 @@ export class ChromiumCookieDecryptor {
     if (this.platform !== 'win32') return null
     try {
       const b64Input = encrypted.toString('base64')
+      // Silence progress/information/warning streams so PowerShell doesn't emit CLIXML
+      // ("#< CLIXML ...") alongside our base64 payload when modules auto-load on first use.
+      // Wrap the payload in explicit markers so we can recover it even if stray output leaks in.
       const script = [
+        "$ProgressPreference='SilentlyContinue'",
+        "$InformationPreference='SilentlyContinue'",
+        "$WarningPreference='SilentlyContinue'",
         'Add-Type -AssemblyName System.Security',
         `$d=[System.Security.Cryptography.ProtectedData]::Unprotect([Convert]::FromBase64String("${b64Input}"),$null,[System.Security.Cryptography.DataProtectionScope]::CurrentUser)`,
-        '[Convert]::ToBase64String($d)',
+        "Write-Host ('<<<B64>>>'+[Convert]::ToBase64String($d)+'<<<END>>>')",
       ].join(';')
       const encodedCommand = Buffer.from(script, 'utf16le').toString('base64')
-      const result = execSync(`powershell -NoProfile -NonInteractive -EncodedCommand ${encodedCommand}`, {
-        encoding: 'utf8',
-        timeout: 10000,
-      }).trim()
-      return Buffer.from(result, 'base64')
+      const rawResult = execSync(
+        `powershell -NoProfile -NonInteractive -OutputFormat Text -EncodedCommand ${encodedCommand}`,
+        { encoding: 'utf8', timeout: 10000 },
+      )
+      const b64 = ChromiumCookieDecryptor.extractDPAPIPayload(rawResult)
+      if (!b64) return null
+      return Buffer.from(b64, 'base64')
     } catch {
       return null
     }
+  }
+
+  /**
+   * Extract the base64-encoded DPAPI payload from PowerShell stdout, stripping any
+   * CLIXML progress-stream contamination or other stray output. Returns null if
+   * no valid payload is found.
+   */
+  static extractDPAPIPayload(stdout: string): string | null {
+    const match = stdout.match(/<<<B64>>>([A-Za-z0-9+/=\r\n]*)<<<END>>>/)
+    if (!match) return null
+    const b64 = match[1].replace(/\s+/g, '')
+    if (!b64) return null
+    return b64
   }
 
   static stripIntegrityHash(decrypted: Buffer): Buffer {
