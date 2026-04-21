@@ -20,11 +20,17 @@ import type { TeamsAccountType } from './types'
 export interface ExtractedTeamsToken {
   token: string
   accountType: TeamsAccountType
+  // False when the account type was guessed from the cookie path and needs to be
+  // confirmed against the Teams API (e.g. browser profiles, which don't encode
+  // work vs personal in the path). True for desktop paths that reliably encode
+  // the account type (WV2Profile_tfw vs WV2Profile_tfl).
+  accountTypeKnown: boolean
 }
 
 interface TeamsCookiePath {
   path: string
   accountType: TeamsAccountType
+  accountTypeKnown: boolean
 }
 
 const TEAMS_PROCESS_NAMES: Record<string, string> = {
@@ -91,15 +97,28 @@ export class TeamsTokenExtractor {
           'EBWebView',
         )
         return [
-          { path: join(ebWebViewBase, 'WV2Profile_tfw', 'Cookies'), accountType: 'work' },
-          { path: join(ebWebViewBase, 'WV2Profile_tfw', 'Network', 'Cookies'), accountType: 'work' },
-          { path: join(ebWebViewBase, 'WV2Profile_tfl', 'Cookies'), accountType: 'personal' },
-          { path: join(ebWebViewBase, 'WV2Profile_tfl', 'Network', 'Cookies'), accountType: 'personal' },
-          { path: join(ebWebViewBase, 'Default', 'Cookies'), accountType: 'work' },
-          { path: join(ebWebViewBase, 'Default', 'Network', 'Cookies'), accountType: 'work' },
+          { path: join(ebWebViewBase, 'WV2Profile_tfw', 'Cookies'), accountType: 'work', accountTypeKnown: true },
+          {
+            path: join(ebWebViewBase, 'WV2Profile_tfw', 'Network', 'Cookies'),
+            accountType: 'work',
+            accountTypeKnown: true,
+          },
+          {
+            path: join(ebWebViewBase, 'WV2Profile_tfl', 'Cookies'),
+            accountType: 'personal',
+            accountTypeKnown: true,
+          },
+          {
+            path: join(ebWebViewBase, 'WV2Profile_tfl', 'Network', 'Cookies'),
+            accountType: 'personal',
+            accountTypeKnown: true,
+          },
+          { path: join(ebWebViewBase, 'Default', 'Cookies'), accountType: 'work', accountTypeKnown: false },
+          { path: join(ebWebViewBase, 'Default', 'Network', 'Cookies'), accountType: 'work', accountTypeKnown: false },
           {
             path: join(homedir(), 'Library', 'Application Support', 'Microsoft', 'Teams', 'Cookies'),
             accountType: 'work',
+            accountTypeKnown: false,
           },
         ]
       }
@@ -108,6 +127,7 @@ export class TeamsTokenExtractor {
           {
             path: join(homedir(), '.config', 'Microsoft', 'Microsoft Teams', 'Cookies'),
             accountType: 'work',
+            accountTypeKnown: false,
           },
         ]
       case 'win32': {
@@ -123,13 +143,25 @@ export class TeamsTokenExtractor {
           'EBWebView',
         )
         return [
-          { path: join(ebWebViewBase, 'WV2Profile_tfw', 'Cookies'), accountType: 'work' },
-          { path: join(ebWebViewBase, 'WV2Profile_tfw', 'Network', 'Cookies'), accountType: 'work' },
-          { path: join(ebWebViewBase, 'WV2Profile_tfl', 'Cookies'), accountType: 'personal' },
-          { path: join(ebWebViewBase, 'WV2Profile_tfl', 'Network', 'Cookies'), accountType: 'personal' },
-          { path: join(ebWebViewBase, 'Default', 'Cookies'), accountType: 'work' },
-          { path: join(ebWebViewBase, 'Default', 'Network', 'Cookies'), accountType: 'work' },
-          { path: join(appdata, 'Microsoft', 'Teams', 'Cookies'), accountType: 'work' },
+          { path: join(ebWebViewBase, 'WV2Profile_tfw', 'Cookies'), accountType: 'work', accountTypeKnown: true },
+          {
+            path: join(ebWebViewBase, 'WV2Profile_tfw', 'Network', 'Cookies'),
+            accountType: 'work',
+            accountTypeKnown: true,
+          },
+          {
+            path: join(ebWebViewBase, 'WV2Profile_tfl', 'Cookies'),
+            accountType: 'personal',
+            accountTypeKnown: true,
+          },
+          {
+            path: join(ebWebViewBase, 'WV2Profile_tfl', 'Network', 'Cookies'),
+            accountType: 'personal',
+            accountTypeKnown: true,
+          },
+          { path: join(ebWebViewBase, 'Default', 'Cookies'), accountType: 'work', accountTypeKnown: false },
+          { path: join(ebWebViewBase, 'Default', 'Network', 'Cookies'), accountType: 'work', accountTypeKnown: false },
+          { path: join(appdata, 'Microsoft', 'Teams', 'Cookies'), accountType: 'work', accountTypeKnown: false },
         ]
       }
       default:
@@ -145,8 +177,8 @@ export class TeamsTokenExtractor {
       if (!browserBase) continue
 
       for (const profileDir of discoverBrowserProfileDirs(browserBase)) {
-        paths.push({ path: join(profileDir, 'Cookies'), accountType: 'work' })
-        paths.push({ path: join(profileDir, 'Network', 'Cookies'), accountType: 'work' })
+        paths.push({ path: join(profileDir, 'Cookies'), accountType: 'work', accountTypeKnown: false })
+        paths.push({ path: join(profileDir, 'Network', 'Cookies'), accountType: 'work', accountTypeKnown: false })
       }
     }
 
@@ -213,12 +245,13 @@ export class TeamsTokenExtractor {
 
   private async extractFromCookiesDB(): Promise<ExtractedTeamsToken[]> {
     const results: ExtractedTeamsToken[] = []
-    const seenAccountTypes = new Set<TeamsAccountType>()
+    const seenKnownAccountTypes = new Set<TeamsAccountType>()
+    const seenTokens = new Set<string>()
     const allPaths = this.getTeamsCookiesPaths()
 
     this.debug(`Scanning ${allPaths.length} candidate cookie path(s)`)
 
-    for (const { path: dbPath, accountType } of allPaths) {
+    for (const { path: dbPath, accountType, accountTypeKnown } of allPaths) {
       if (!dbPath) continue
 
       if (!existsSync(dbPath)) {
@@ -226,22 +259,34 @@ export class TeamsTokenExtractor {
         continue
       }
 
-      if (seenAccountTypes.has(accountType)) {
+      if (accountTypeKnown && seenKnownAccountTypes.has(accountType)) {
         this.debug(`  [skip] ${dbPath} (already have ${accountType} account)`)
         continue
       }
 
-      this.debug(`  [try]  ${dbPath} (${accountType})`)
+      const typeLabel = accountTypeKnown ? accountType : `${accountType}?`
+      this.debug(`  [try]  ${dbPath} (${typeLabel})`)
 
       const token = await this.copyAndExtract(dbPath)
-      if (token && this.isValidSkypeToken(token)) {
-        this.debug(`  [ok]   Extracted valid token (${token.length} chars)`)
-        results.push({ token, accountType })
-        seenAccountTypes.add(accountType)
-      } else if (token) {
-        this.debug(`  [fail] Token too short (${token.length} chars, need >=50)`)
-      } else {
-        this.debug(`  [fail] No token extracted`)
+      if (!token || !this.isValidSkypeToken(token)) {
+        if (token) {
+          this.debug(`  [fail] Token too short (${token.length} chars, need >=50)`)
+        } else {
+          this.debug(`  [fail] No token extracted`)
+        }
+        continue
+      }
+
+      if (seenTokens.has(token)) {
+        this.debug(`  [skip] Duplicate token (already extracted from another path)`)
+        continue
+      }
+
+      this.debug(`  [ok]   Extracted valid token (${token.length} chars)`)
+      results.push({ token, accountType, accountTypeKnown })
+      seenTokens.add(token)
+      if (accountTypeKnown) {
+        seenKnownAccountTypes.add(accountType)
       }
     }
 

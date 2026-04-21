@@ -16,7 +16,7 @@ beforeEach(() => {
   loadConfigSpy = spyOn(TeamsCredentialManager.prototype, 'loadConfig').mockResolvedValue(null)
 
   extractSpy = spyOn(TeamsTokenExtractor.prototype, 'extract').mockResolvedValue([
-    { token: 'test-teams-token', accountType: 'work' },
+    { token: 'test-teams-token', accountType: 'work', accountTypeKnown: true },
   ])
 
   testAuthSpy = spyOn(TeamsClient.prototype, 'testAuth').mockResolvedValue({
@@ -199,8 +199,8 @@ describe('ensureTeamsAuth', () => {
   it('extracts and saves multiple accounts', async () => {
     // given
     extractSpy.mockResolvedValue([
-      { token: 'work-token', accountType: 'work' },
-      { token: 'personal-token', accountType: 'personal' },
+      { token: 'work-token', accountType: 'work', accountTypeKnown: true },
+      { token: 'personal-token', accountType: 'personal', accountTypeKnown: true },
     ])
 
     testAuthSpy
@@ -229,8 +229,8 @@ describe('ensureTeamsAuth', () => {
   it('skips failed account but saves successful ones', async () => {
     // given
     extractSpy.mockResolvedValue([
-      { token: 'work-token', accountType: 'work' },
-      { token: 'bad-token', accountType: 'personal' },
+      { token: 'work-token', accountType: 'work', accountTypeKnown: true },
+      { token: 'bad-token', accountType: 'personal', accountTypeKnown: true },
     ])
 
     testAuthSpy
@@ -246,6 +246,57 @@ describe('ensureTeamsAuth', () => {
     const savedConfig = saveConfigSpy.mock.calls[0][0]
     expect(savedConfig.accounts.work).toBeDefined()
     expect(savedConfig.accounts.personal).toBeUndefined()
+  })
+
+  // Regression for #163: browser-sourced tokens arrive with accountTypeKnown=false and
+  // a guessed accountType of 'work'. If the work endpoint rejects them, we must probe
+  // the personal endpoint before giving up — otherwise personal accounts logged in via
+  // browser would always fail validation.
+  it('reclassifies browser-sourced token from work to personal when work probe fails', async () => {
+    // given: extractor returns a token guessed as work but with unknown flag
+    extractSpy.mockResolvedValue([{ token: 'browser-token', accountType: 'work', accountTypeKnown: false }])
+
+    // first testAuth call (work) fails, second (personal) succeeds
+    testAuthSpy
+      .mockRejectedValueOnce(new Error('HTTP 403'))
+      .mockResolvedValueOnce({ id: 'user-p', displayName: 'Personal User' })
+
+    listTeamsSpy.mockResolvedValueOnce([{ id: 'team-p', name: 'Personal Chat' }])
+
+    // when
+    await ensureTeamsAuth()
+
+    // then: saved under 'personal', not 'work'
+    const savedConfig = saveConfigSpy.mock.calls[0][0]
+    expect(savedConfig.accounts.personal).toBeDefined()
+    expect(savedConfig.accounts.personal.account_type).toBe('personal')
+    expect(savedConfig.accounts.personal.token).toBe('browser-token')
+    expect(savedConfig.accounts.work).toBeUndefined()
+  })
+
+  // Regression for #163: when a known-type desktop token and an unknown-type browser
+  // token are both extracted, the loop must not overwrite the desktop account's data.
+  it('does not overwrite existing account when a later token reclassifies to same type', async () => {
+    // given: desktop personal token and browser token that probes to personal
+    extractSpy.mockResolvedValue([
+      { token: 'desktop-personal-token', accountType: 'personal', accountTypeKnown: true },
+      { token: 'browser-token', accountType: 'work', accountTypeKnown: false },
+    ])
+
+    testAuthSpy
+      .mockResolvedValueOnce({ id: 'user-p', displayName: 'Desktop Personal' })
+      .mockRejectedValueOnce(new Error('HTTP 403'))
+      .mockResolvedValueOnce({ id: 'user-p', displayName: 'Browser Personal' })
+
+    listTeamsSpy.mockResolvedValueOnce([{ id: 'team-p', name: 'Personal' }])
+
+    // when
+    await ensureTeamsAuth()
+
+    // then: desktop token wins; browser token is skipped because personal already exists
+    const savedConfig = saveConfigSpy.mock.calls[0][0]
+    expect(savedConfig.accounts.personal.token).toBe('desktop-personal-token')
+    expect(savedConfig.accounts.work).toBeUndefined()
   })
 
   it('re-extracts when token is empty string', async () => {
