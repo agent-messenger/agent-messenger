@@ -3,7 +3,7 @@ import { warn } from '@/shared/utils/stderr'
 import { TeamsClient } from './client'
 import { TeamsCredentialManager } from './credential-manager'
 import { TeamsTokenExtractor } from './token-extractor'
-import type { TeamsAccount, TeamsConfig } from './types'
+import type { TeamsAccount, TeamsAccountType, TeamsConfig } from './types'
 
 export async function ensureTeamsAuth(): Promise<void> {
   try {
@@ -20,15 +20,14 @@ export async function ensureTeamsAuth(): Promise<void> {
       current_account: config?.current_account ?? null,
       accounts: { ...config?.accounts },
     }
+    const addedTypes = new Set<TeamsAccountType>()
 
-    for (const { token, accountType } of extracted) {
+    for (const { token, accountType: extractedType, accountTypeKnown } of extracted) {
       try {
-        const client = await new TeamsClient().login({
-          token,
-          accountType,
-          region: config?.accounts[accountType]?.region,
-        })
-        await client.testAuth()
+        const resolved = await resolveAccountType(token, extractedType, accountTypeKnown, config)
+        const { client, accountType } = resolved
+
+        if (addedTypes.has(accountType)) continue
 
         const teams = await client.listTeams()
         if (accountType !== 'personal' && teams.length === 0) continue
@@ -38,23 +37,24 @@ export async function ensureTeamsAuth(): Promise<void> {
           teamMap[team.id] = { team_id: team.id, team_name: team.name }
         }
 
-        const existing = newConfig.accounts[accountType]
+        const existing: TeamsAccount | undefined = newConfig.accounts[accountType]
         const account: TeamsAccount = {
           token,
           token_expires_at: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
           region: client.getRegion(),
           account_type: accountType,
           user_name: existing?.user_name,
-          current_team: existing?.current_team ?? teams[0].id,
+          current_team: existing?.current_team ?? teams[0]?.id ?? null,
           teams: teamMap,
         }
 
         newConfig.accounts[accountType] = account
+        addedTypes.add(accountType)
         if (!newConfig.current_account) {
           newConfig.current_account = accountType
         }
       } catch (error) {
-        warn(`[agent-teams] Skipping ${accountType} account: ${(error as Error).message}`)
+        warn(`[agent-teams] Skipping ${extractedType} account: ${(error as Error).message}`)
       }
     }
 
@@ -62,6 +62,34 @@ export async function ensureTeamsAuth(): Promise<void> {
       await credManager.saveConfig(newConfig)
     }
   } catch {}
+}
+
+async function resolveAccountType(
+  token: string,
+  extractedType: TeamsAccountType,
+  accountTypeKnown: boolean,
+  config: TeamsConfig | null,
+): Promise<{ client: TeamsClient; accountType: TeamsAccountType }> {
+  const candidates: TeamsAccountType[] = [extractedType]
+  if (!accountTypeKnown) {
+    candidates.push(extractedType === 'work' ? 'personal' : 'work')
+  }
+
+  let lastError: Error | null = null
+  for (const candidate of candidates) {
+    try {
+      const client = await new TeamsClient().login({
+        token,
+        accountType: candidate,
+        region: config?.accounts[candidate]?.region,
+      })
+      await client.testAuth()
+      return { client, accountType: candidate }
+    } catch (error) {
+      lastError = error as Error
+    }
+  }
+  throw lastError ?? new Error('Token validation failed')
 }
 
 function hasValidToken(config: TeamsConfig): boolean {

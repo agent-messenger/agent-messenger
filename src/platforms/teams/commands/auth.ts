@@ -9,6 +9,40 @@ import { TeamsCredentialManager } from '../credential-manager'
 import { TeamsTokenExtractor } from '../token-extractor'
 import type { TeamsAccount, TeamsAccountType, TeamsConfig } from '../types'
 
+interface ValidatedTeamsToken {
+  client: TeamsClient
+  accountType: TeamsAccountType
+  authInfo: { id: string; displayName: string }
+}
+
+async function validateTokenWithProbe(
+  token: string,
+  accountType: TeamsAccountType,
+  accountTypeKnown: boolean,
+  debugLog?: (msg: string) => void,
+): Promise<ValidatedTeamsToken> {
+  const primaryTypes: TeamsAccountType[] = [accountType]
+  if (!accountTypeKnown) {
+    primaryTypes.push(accountType === 'work' ? 'personal' : 'work')
+  }
+
+  let lastError: Error | null = null
+  for (const candidateType of primaryTypes) {
+    try {
+      const client = await new TeamsClient().login({ token, accountType: candidateType })
+      const authInfo = await client.testAuth()
+      if (candidateType !== accountType) {
+        debugLog?.(`[debug] Reclassified ${accountType} → ${candidateType} via API probe`)
+      }
+      return { client, accountType: candidateType, authInfo }
+    } catch (error) {
+      lastError = error as Error
+      debugLog?.(`[debug] Probe ${candidateType} failed: ${lastError.message}`)
+    }
+  }
+  throw lastError ?? new Error('Token validation failed')
+}
+
 export async function extractAction(options: { pretty?: boolean; debug?: boolean; token?: string }): Promise<void> {
   try {
     if (options.token) {
@@ -67,18 +101,31 @@ export async function extractAction(options: { pretty?: boolean; debug?: boolean
       teams: string[]
     }> = []
 
-    for (const { token, accountType } of extracted) {
+    for (const { token, accountType: extractedType, accountTypeKnown } of extracted) {
       if (options.debug) {
-        debug(`[debug] Validating ${accountType} account token...`)
+        const label = accountTypeKnown ? extractedType : `${extractedType} (probing)`
+        debug(`[debug] Validating ${label} account token...`)
       }
 
       try {
-        const client = await new TeamsClient().login({ token, accountType })
-        const authInfo = await client.testAuth()
+        const debugLog = options.debug ? (msg: string) => debug(msg) : undefined
+        const { client, accountType, authInfo } = await validateTokenWithProbe(
+          token,
+          extractedType,
+          accountTypeKnown,
+          debugLog,
+        )
         const teams = await client.listTeams()
 
         if (options.debug) {
           debug(`[debug] ✓ ${accountType}: ${authInfo.displayName} (${teams.length} team(s))`)
+        }
+
+        if (config.accounts[accountType]) {
+          if (options.debug) {
+            debug(`[debug] Skipping duplicate ${accountType} account`)
+          }
+          continue
         }
 
         const teamMap: Record<string, { team_id: string; team_name: string }> = {}
@@ -110,7 +157,7 @@ export async function extractAction(options: { pretty?: boolean; debug?: boolean
         const errorMessage = (error as Error).message
         const is401 = errorMessage.includes('401') || errorMessage.includes('Unauthorized')
         if (options.debug) {
-          debug(`[debug] ✗ ${accountType}: ${errorMessage}`)
+          debug(`[debug] ✗ ${extractedType}: ${errorMessage}`)
         }
         if (extracted.length === 1) {
           console.log(

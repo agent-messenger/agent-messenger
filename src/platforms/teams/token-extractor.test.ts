@@ -30,15 +30,28 @@ describe('TeamsTokenExtractor', () => {
         'EBWebView',
       )
       expect(paths).toEqual([
-        { path: join(darwinEbWebView, 'WV2Profile_tfw', 'Cookies'), accountType: 'work' },
-        { path: join(darwinEbWebView, 'WV2Profile_tfw', 'Network', 'Cookies'), accountType: 'work' },
-        { path: join(darwinEbWebView, 'WV2Profile_tfl', 'Cookies'), accountType: 'personal' },
-        { path: join(darwinEbWebView, 'WV2Profile_tfl', 'Network', 'Cookies'), accountType: 'personal' },
-        { path: join(darwinEbWebView, 'Default', 'Cookies'), accountType: 'work' },
-        { path: join(darwinEbWebView, 'Default', 'Network', 'Cookies'), accountType: 'work' },
+        { path: join(darwinEbWebView, 'WV2Profile_tfw', 'Cookies'), accountType: 'work', accountTypeKnown: true },
+        {
+          path: join(darwinEbWebView, 'WV2Profile_tfw', 'Network', 'Cookies'),
+          accountType: 'work',
+          accountTypeKnown: true,
+        },
+        {
+          path: join(darwinEbWebView, 'WV2Profile_tfl', 'Cookies'),
+          accountType: 'personal',
+          accountTypeKnown: true,
+        },
+        {
+          path: join(darwinEbWebView, 'WV2Profile_tfl', 'Network', 'Cookies'),
+          accountType: 'personal',
+          accountTypeKnown: true,
+        },
+        { path: join(darwinEbWebView, 'Default', 'Cookies'), accountType: 'work', accountTypeKnown: false },
+        { path: join(darwinEbWebView, 'Default', 'Network', 'Cookies'), accountType: 'work', accountTypeKnown: false },
         {
           path: join(homedir(), 'Library', 'Application Support', 'Microsoft', 'Teams', 'Cookies'),
           accountType: 'work',
+          accountTypeKnown: false,
         },
       ])
     })
@@ -51,6 +64,7 @@ describe('TeamsTokenExtractor', () => {
         {
           path: join(homedir(), '.config', 'Microsoft', 'Microsoft Teams', 'Cookies'),
           accountType: 'work',
+          accountTypeKnown: false,
         },
       ])
     })
@@ -71,13 +85,21 @@ describe('TeamsTokenExtractor', () => {
         'EBWebView',
       )
       expect(paths).toEqual([
-        { path: join(winEbWebView, 'WV2Profile_tfw', 'Cookies'), accountType: 'work' },
-        { path: join(winEbWebView, 'WV2Profile_tfw', 'Network', 'Cookies'), accountType: 'work' },
-        { path: join(winEbWebView, 'WV2Profile_tfl', 'Cookies'), accountType: 'personal' },
-        { path: join(winEbWebView, 'WV2Profile_tfl', 'Network', 'Cookies'), accountType: 'personal' },
-        { path: join(winEbWebView, 'Default', 'Cookies'), accountType: 'work' },
-        { path: join(winEbWebView, 'Default', 'Network', 'Cookies'), accountType: 'work' },
-        { path: join(appdata, 'Microsoft', 'Teams', 'Cookies'), accountType: 'work' },
+        { path: join(winEbWebView, 'WV2Profile_tfw', 'Cookies'), accountType: 'work', accountTypeKnown: true },
+        {
+          path: join(winEbWebView, 'WV2Profile_tfw', 'Network', 'Cookies'),
+          accountType: 'work',
+          accountTypeKnown: true,
+        },
+        { path: join(winEbWebView, 'WV2Profile_tfl', 'Cookies'), accountType: 'personal', accountTypeKnown: true },
+        {
+          path: join(winEbWebView, 'WV2Profile_tfl', 'Network', 'Cookies'),
+          accountType: 'personal',
+          accountTypeKnown: true,
+        },
+        { path: join(winEbWebView, 'Default', 'Cookies'), accountType: 'work', accountTypeKnown: false },
+        { path: join(winEbWebView, 'Default', 'Network', 'Cookies'), accountType: 'work', accountTypeKnown: false },
+        { path: join(appdata, 'Microsoft', 'Teams', 'Cookies'), accountType: 'work', accountTypeKnown: false },
       ])
     })
 
@@ -96,10 +118,12 @@ describe('TeamsTokenExtractor', () => {
       expect(paths).toContainEqual({
         path: join(chromeBase, 'Default', 'Cookies'),
         accountType: 'work',
+        accountTypeKnown: false,
       })
       expect(paths).toContainEqual({
         path: join(chromeBase, 'Default', 'Network', 'Cookies'),
         accountType: 'work',
+        accountTypeKnown: false,
       })
     })
 
@@ -111,6 +135,7 @@ describe('TeamsTokenExtractor', () => {
       expect(paths).toContainEqual({
         path: join(chromeBase, 'Default', 'Cookies'),
         accountType: 'work',
+        accountTypeKnown: false,
       })
     })
 
@@ -123,6 +148,7 @@ describe('TeamsTokenExtractor', () => {
       expect(paths).toContainEqual({
         path: join(chromeBase, 'Default', 'Cookies'),
         accountType: 'work',
+        accountTypeKnown: false,
       })
     })
 
@@ -131,10 +157,14 @@ describe('TeamsTokenExtractor', () => {
       expect(unsupportedExtractor.getBrowserCookiesPaths()).toEqual([])
     })
 
-    it('all browser paths have accountType work', () => {
+    // Regression for #163: browser paths must not assert accountType confidently because
+    // Chromium profile paths don't encode work vs personal. Desktop WV2Profile_tfw/_tfl
+    // paths are authoritative; browsers must be probed at validation time.
+    it('browser paths have accountTypeKnown=false so they get probed at validation', () => {
       const darwinExtractor = new TeamsTokenExtractor('darwin')
       const paths = darwinExtractor.getBrowserCookiesPaths()
-      expect(paths.every((p) => p.accountType === 'work')).toBe(true)
+      expect(paths.length).toBeGreaterThan(0)
+      expect(paths.every((p) => p.accountTypeKnown === false)).toBe(true)
     })
   })
 
@@ -166,6 +196,7 @@ describe('TeamsTokenExtractor', () => {
         {
           path: join(homedir(), '.config', 'Microsoft', 'Microsoft Teams', 'Cookies'),
           accountType: 'work',
+          accountTypeKnown: false,
         },
       ])
       expect(paths.length).toBeGreaterThan(desktopPaths.length)
@@ -338,7 +369,7 @@ describe('TeamsTokenExtractor', () => {
 
       const linuxExtractor = new TeamsTokenExtractor('linux')
       const extractFromCookiesDBSpy = spyOn(linuxExtractor as any, 'extractFromCookiesDB').mockResolvedValue([
-        { token: mockToken, accountType: 'work' },
+        { token: mockToken, accountType: 'work', accountTypeKnown: true },
       ])
 
       const result = await linuxExtractor.extract()
@@ -382,8 +413,8 @@ describe('TeamsTokenExtractor', () => {
 
       const winExtractor = new TeamsTokenExtractor('win32')
       const getPathsSpy = spyOn(winExtractor, 'getTeamsCookiesPaths').mockReturnValue([
-        { path: cookiesPath, accountType: 'personal' },
-        { path: networkCookiesPath, accountType: 'personal' },
+        { path: cookiesPath, accountType: 'personal', accountTypeKnown: true },
+        { path: networkCookiesPath, accountType: 'personal', accountTypeKnown: true },
       ])
       const tried: string[] = []
       const copyAndExtractSpy = spyOn(winExtractor as any, 'copyAndExtract').mockImplementation(async (...args) => {
@@ -398,7 +429,7 @@ describe('TeamsTokenExtractor', () => {
       // then: the Cookies path was skipped (never passed to copyAndExtract),
       // the Network/Cookies sibling was tried, and the token was returned.
       expect(tried).toEqual([networkCookiesPath])
-      expect(results).toEqual([{ token: mockToken, accountType: 'personal' }])
+      expect(results).toEqual([{ token: mockToken, accountType: 'personal', accountTypeKnown: true }])
 
       getPathsSpy.mockRestore()
       copyAndExtractSpy.mockRestore()
@@ -419,8 +450,8 @@ describe('TeamsTokenExtractor', () => {
       const firstPath = join(workDir, 'WV2Profile_tfw', 'Cookies')
       const secondPath = join(workDir, 'Default', 'Network', 'Cookies')
       const getPathsSpy = spyOn(winExtractor, 'getTeamsCookiesPaths').mockReturnValue([
-        { path: firstPath, accountType: 'work' },
-        { path: secondPath, accountType: 'work' },
+        { path: firstPath, accountType: 'work', accountTypeKnown: true },
+        { path: secondPath, accountType: 'work', accountTypeKnown: true },
       ])
       mkdirSync(join(workDir, 'WV2Profile_tfw'), { recursive: true })
       mkdirSync(join(workDir, 'Default', 'Network'), { recursive: true })
@@ -436,7 +467,98 @@ describe('TeamsTokenExtractor', () => {
 
       // then: garbage was rejected, loop continued to the real token
       expect(copyAndExtractSpy).toHaveBeenCalledTimes(2)
-      expect(results).toEqual([{ token: realToken, accountType: 'work' }])
+      expect(results).toEqual([{ token: realToken, accountType: 'work', accountTypeKnown: true }])
+
+      getPathsSpy.mockRestore()
+      copyAndExtractSpy.mockRestore()
+      cleanup()
+    })
+
+    // Regression for #163: browser-sourced tokens carry accountTypeKnown=false so that
+    // the auth command can probe both endpoints. The extraction loop must preserve the
+    // flag and must not dedupe an unknown-type browser token by its guessed accountType.
+    it('propagates accountTypeKnown=false for browser-sourced tokens', async () => {
+      // given: a browser Cookies path returning a valid token, guessed as work
+      const browserPath = join(workDir, 'Chrome', 'Default', 'Cookies')
+      mkdirSync(join(workDir, 'Chrome', 'Default'), { recursive: true })
+      writeFileSync(browserPath, '')
+
+      const winExtractor = new TeamsTokenExtractor('win32')
+      const getPathsSpy = spyOn(winExtractor, 'getTeamsCookiesPaths').mockReturnValue([
+        { path: browserPath, accountType: 'work', accountTypeKnown: false },
+      ])
+      const copyAndExtractSpy = spyOn(winExtractor as any, 'copyAndExtract').mockResolvedValue(mockToken)
+
+      // when
+      const results = await (winExtractor as any).extractFromCookiesDB()
+
+      // then: the flag is passed through so callers can probe
+      expect(results).toEqual([{ token: mockToken, accountType: 'work', accountTypeKnown: false }])
+
+      getPathsSpy.mockRestore()
+      copyAndExtractSpy.mockRestore()
+      cleanup()
+    })
+
+    // Regression for #163: when a desktop path (known=true) for 'work' already succeeded,
+    // a subsequent browser path (known=false) guessed as 'work' must still be explored —
+    // it might be a personal account misguessed as work. The dedup only kicks in for
+    // confidently labeled paths.
+    it('does not skip unknown-type path just because a known-type same-label succeeded', async () => {
+      const desktopPath = join(workDir, 'WV2Profile_tfw', 'Network', 'Cookies')
+      const browserPath = join(workDir, 'Chrome', 'Default', 'Cookies')
+      mkdirSync(join(workDir, 'WV2Profile_tfw', 'Network'), { recursive: true })
+      mkdirSync(join(workDir, 'Chrome', 'Default'), { recursive: true })
+      writeFileSync(desktopPath, '')
+      writeFileSync(browserPath, '')
+
+      const desktopToken = mockToken
+      const browserToken = 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJicm93c2VyIn0.different_signature_here_abc'
+
+      const winExtractor = new TeamsTokenExtractor('win32')
+      const getPathsSpy = spyOn(winExtractor, 'getTeamsCookiesPaths').mockReturnValue([
+        { path: desktopPath, accountType: 'work', accountTypeKnown: true },
+        { path: browserPath, accountType: 'work', accountTypeKnown: false },
+      ])
+      const copyAndExtractSpy = spyOn(winExtractor as any, 'copyAndExtract')
+        .mockResolvedValueOnce(desktopToken)
+        .mockResolvedValueOnce(browserToken)
+
+      // when
+      const results = await (winExtractor as any).extractFromCookiesDB()
+
+      // then: both tokens returned; browser token keeps accountTypeKnown=false for probing
+      expect(results).toEqual([
+        { token: desktopToken, accountType: 'work', accountTypeKnown: true },
+        { token: browserToken, accountType: 'work', accountTypeKnown: false },
+      ])
+
+      getPathsSpy.mockRestore()
+      copyAndExtractSpy.mockRestore()
+      cleanup()
+    })
+
+    it('dedupes identical tokens extracted from multiple paths', async () => {
+      const path1 = join(workDir, 'Chrome', 'Default', 'Cookies')
+      const path2 = join(workDir, 'Edge', 'Default', 'Cookies')
+      mkdirSync(join(workDir, 'Chrome', 'Default'), { recursive: true })
+      mkdirSync(join(workDir, 'Edge', 'Default'), { recursive: true })
+      writeFileSync(path1, '')
+      writeFileSync(path2, '')
+
+      const winExtractor = new TeamsTokenExtractor('win32')
+      const getPathsSpy = spyOn(winExtractor, 'getTeamsCookiesPaths').mockReturnValue([
+        { path: path1, accountType: 'work', accountTypeKnown: false },
+        { path: path2, accountType: 'work', accountTypeKnown: false },
+      ])
+      const copyAndExtractSpy = spyOn(winExtractor as any, 'copyAndExtract').mockResolvedValue(mockToken)
+
+      // when
+      const results = await (winExtractor as any).extractFromCookiesDB()
+
+      // then: only one result despite two paths returning the same token
+      expect(results).toHaveLength(1)
+      expect(results[0].token).toBe(mockToken)
 
       getPathsSpy.mockRestore()
       copyAndExtractSpy.mockRestore()
@@ -454,8 +576,8 @@ describe('TeamsTokenExtractor', () => {
 
       const winExtractor = new TeamsTokenExtractor('win32')
       const getPathsSpy = spyOn(winExtractor, 'getTeamsCookiesPaths').mockReturnValue([
-        { path: workCookies, accountType: 'work' },
-        { path: workNetworkCookies, accountType: 'work' },
+        { path: workCookies, accountType: 'work', accountTypeKnown: true },
+        { path: workNetworkCookies, accountType: 'work', accountTypeKnown: true },
       ])
       const copyAndExtractSpy = spyOn(winExtractor as any, 'copyAndExtract').mockResolvedValue(mockToken)
 

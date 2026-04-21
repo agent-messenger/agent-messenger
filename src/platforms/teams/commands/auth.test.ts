@@ -16,7 +16,7 @@ let clientGetRegionSpy: ReturnType<typeof spyOn>
 
 beforeEach(() => {
   extractorExtractSpy = spyOn(TeamsTokenExtractor.prototype, 'extract').mockResolvedValue([
-    { token: 'test-skype-token-123', accountType: 'work' as const },
+    { token: 'test-skype-token-123', accountType: 'work' as const, accountTypeKnown: true },
   ])
 
   clientTestAuthSpy = spyOn(TeamsClient.prototype, 'testAuth').mockResolvedValue({
