@@ -1,19 +1,88 @@
 import blessed from 'blessed'
 
-import { ChannelTalkAdapter } from './adapters/channeltalk-adapter'
-import { DiscordAdapter } from './adapters/discord-adapter'
-import { InstagramAdapter } from './adapters/instagram-adapter'
-import { KakaoTalkAdapter } from './adapters/kakaotalk-adapter'
-import { LineAdapter } from './adapters/line-adapter'
-import { SlackAdapter } from './adapters/slack-adapter'
-import { TeamsAdapter } from './adapters/teams-adapter'
-import { TelegramAdapter } from './adapters/telegram-adapter'
 import type { AuthIO, PlatformAdapter, UnifiedChannel, UnifiedMessage, Workspace } from './adapters/types'
-import { WebexAdapter } from './adapters/webex-adapter'
-import { WhatsAppAdapter } from './adapters/whatsapp-adapter'
 import { formatTimestamp } from './utils'
 import { ChannelPicker } from './views/channel-picker'
 import { WorkspacePicker } from './views/workspace-picker'
+
+type PlatformAdapterFactory = () => Promise<PlatformAdapter>
+
+class LazyPlatformAdapter implements PlatformAdapter {
+  readonly name: string
+  private adapter: PlatformAdapter | null = null
+  private loadPromise: Promise<PlatformAdapter> | null = null
+
+  constructor(
+    name: string,
+    private readonly fallbackAuthHint: string,
+    private readonly factory: PlatformAdapterFactory,
+  ) {
+    this.name = name
+  }
+
+  private async load(): Promise<PlatformAdapter> {
+    if (this.adapter) return this.adapter
+    this.loadPromise ??= this.factory()
+      .then((adapter) => {
+        this.adapter = adapter
+        return adapter
+      })
+      .catch((error: unknown) => {
+        this.loadPromise = null
+        throw error
+      })
+    return this.loadPromise
+  }
+
+  async login(): Promise<void> {
+    await (await this.load()).login()
+  }
+
+  async getChannels(): Promise<UnifiedChannel[]> {
+    return (await this.load()).getChannels()
+  }
+
+  async getMessages(channelId: string, limit?: number): Promise<UnifiedMessage[]> {
+    return (await this.load()).getMessages(channelId, limit)
+  }
+
+  async sendMessage(channelId: string, text: string): Promise<void> {
+    await (await this.load()).sendMessage(channelId, text)
+  }
+
+  async startListening(onMessage: (msg: UnifiedMessage) => void): Promise<void> {
+    const adapter = await this.load()
+    await adapter.startListening?.(onMessage)
+  }
+
+  stopListening(): void {
+    this.adapter?.stopListening?.()
+  }
+
+  async getWorkspaces(): Promise<Workspace[]> {
+    return (await this.load()).getWorkspaces?.() ?? []
+  }
+
+  async switchWorkspace(workspaceId: string): Promise<void> {
+    await (await this.load()).switchWorkspace?.(workspaceId)
+  }
+
+  getCurrentWorkspace(): Workspace | null {
+    return this.adapter?.getCurrentWorkspace?.() ?? null
+  }
+
+  getAuthHint() {
+    return this.adapter?.getAuthHint() ?? { command: this.fallbackAuthHint, description: `Authenticate ${this.name}` }
+  }
+
+  async authenticate(io: AuthIO): Promise<void> {
+    await (await this.load()).authenticate(io)
+  }
+}
+
+function lazyAdapter(name: string, fallbackAuthHint: string, factory: PlatformAdapterFactory): PlatformAdapter {
+  return new LazyPlatformAdapter(name, fallbackAuthHint, factory)
+}
 
 type AppMode = 'selection' | 'read' | 'write' | 'auth'
 type NavLevel = 'platform' | 'workspace' | 'channel'
@@ -36,7 +105,11 @@ export async function createApp(): Promise<void> {
 
   const platformStates: PlatformState[] = [
     {
-      adapter: new SlackAdapter(),
+      adapter: lazyAdapter(
+        'Slack',
+        'agent-slack auth extract',
+        async () => new (await import('./adapters/slack-adapter')).SlackAdapter(),
+      ),
       label: 'Slack',
       enabled: false,
       channels: null,
@@ -45,7 +118,11 @@ export async function createApp(): Promise<void> {
       lastChannelId: null,
     },
     {
-      adapter: new DiscordAdapter(),
+      adapter: lazyAdapter(
+        'Discord',
+        'agent-discord auth extract',
+        async () => new (await import('./adapters/discord-adapter')).DiscordAdapter(),
+      ),
       label: 'Discord',
       enabled: false,
       channels: null,
@@ -54,7 +131,11 @@ export async function createApp(): Promise<void> {
       lastChannelId: null,
     },
     {
-      adapter: new TeamsAdapter(),
+      adapter: lazyAdapter(
+        'Teams',
+        'agent-teams auth extract',
+        async () => new (await import('./adapters/teams-adapter')).TeamsAdapter(),
+      ),
       label: 'Teams',
       enabled: false,
       channels: null,
@@ -63,7 +144,11 @@ export async function createApp(): Promise<void> {
       lastChannelId: null,
     },
     {
-      adapter: new WebexAdapter(),
+      adapter: lazyAdapter(
+        'Webex',
+        'agent-webex auth extract',
+        async () => new (await import('./adapters/webex-adapter')).WebexAdapter(),
+      ),
       label: 'Webex',
       enabled: false,
       channels: null,
@@ -72,7 +157,11 @@ export async function createApp(): Promise<void> {
       lastChannelId: null,
     },
     {
-      adapter: new TelegramAdapter(),
+      adapter: lazyAdapter(
+        'Telegram',
+        'agent-telegram auth login',
+        async () => new (await import('./adapters/telegram-adapter')).TelegramAdapter(),
+      ),
       label: 'Telegram',
       enabled: false,
       channels: null,
@@ -81,7 +170,11 @@ export async function createApp(): Promise<void> {
       lastChannelId: null,
     },
     {
-      adapter: new WhatsAppAdapter(),
+      adapter: lazyAdapter(
+        'WhatsApp',
+        'agent-whatsapp auth login',
+        async () => new (await import('./adapters/whatsapp-adapter')).WhatsAppAdapter(),
+      ),
       label: 'WhatsApp',
       enabled: false,
       channels: null,
@@ -90,7 +183,11 @@ export async function createApp(): Promise<void> {
       lastChannelId: null,
     },
     {
-      adapter: new LineAdapter(),
+      adapter: lazyAdapter(
+        'LINE',
+        'agent-line auth login',
+        async () => new (await import('./adapters/line-adapter')).LineAdapter(),
+      ),
       label: 'LINE',
       enabled: false,
       channels: null,
@@ -99,7 +196,11 @@ export async function createApp(): Promise<void> {
       lastChannelId: null,
     },
     {
-      adapter: new InstagramAdapter(),
+      adapter: lazyAdapter(
+        'Instagram',
+        'agent-instagram auth login',
+        async () => new (await import('./adapters/instagram-adapter')).InstagramAdapter(),
+      ),
       label: 'Instagram',
       enabled: false,
       channels: null,
@@ -108,7 +209,11 @@ export async function createApp(): Promise<void> {
       lastChannelId: null,
     },
     {
-      adapter: new KakaoTalkAdapter(),
+      adapter: lazyAdapter(
+        'KakaoTalk',
+        'agent-kakaotalk auth extract',
+        async () => new (await import('./adapters/kakaotalk-adapter')).KakaoTalkAdapter(),
+      ),
       label: 'KakaoTalk',
       enabled: false,
       channels: null,
@@ -117,7 +222,11 @@ export async function createApp(): Promise<void> {
       lastChannelId: null,
     },
     {
-      adapter: new ChannelTalkAdapter(),
+      adapter: lazyAdapter(
+        'Channel Talk',
+        'agent-channeltalk auth extract',
+        async () => new (await import('./adapters/channeltalk-adapter')).ChannelTalkAdapter(),
+      ),
       label: 'Channel Talk',
       enabled: false,
       channels: null,
