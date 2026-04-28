@@ -82,7 +82,7 @@ while true; do
 done
 ```
 
-**Limitations**: Polling-based, not real-time. For production bots, use Discord's Gateway API.
+**Limitations**: This CLI pattern is polling-based. For real-time event delivery, the SDK exposes `DiscordBotListener` (Discord Gateway WebSocket) — `import { DiscordBotListener } from 'agent-messenger/discordbot'`.
 
 ## Pattern 4: Reaction-Based Workflow
 

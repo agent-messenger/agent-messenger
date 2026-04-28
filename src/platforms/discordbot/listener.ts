@@ -2,8 +2,8 @@ import { EventEmitter } from 'events'
 
 import WebSocket from 'ws'
 
-import type { DiscordClient } from './client'
-import type { DiscordListenerEventMap, DiscordGatewayGenericEvent } from './types'
+import type { DiscordBotClient } from './client'
+import type { DiscordBotListenerEventMap, DiscordGatewayGenericEvent } from './types'
 import { DiscordGatewayOpcode, DiscordIntent } from './types'
 
 const GATEWAY_URL = 'wss://gateway.discord.gg/?v=10&encoding=json'
@@ -22,10 +22,10 @@ const DEFAULT_INTENTS =
   DiscordIntent.DirectMessageReactions |
   DiscordIntent.DirectMessageTyping
 
-type EventKey = keyof DiscordListenerEventMap
+type EventKey = keyof DiscordBotListenerEventMap
 
-export class DiscordListener {
-  private client: DiscordClient
+export class DiscordBotListener {
+  private client: DiscordBotClient
   private intents: number
   private running = false
   private ws: WebSocket | null = null
@@ -43,7 +43,7 @@ export class DiscordListener {
   private cachedUser: { id: string; username: string } | null = null
   private generation = 0
 
-  constructor(client: DiscordClient, options?: { intents?: number }) {
+  constructor(client: DiscordBotClient, options?: { intents?: number }) {
     this.client = client
     this.intents = options?.intents ?? DEFAULT_INTENTS
   }
@@ -71,17 +71,17 @@ export class DiscordListener {
     this.cachedUser = null
   }
 
-  on<K extends EventKey>(event: K, listener: (...args: DiscordListenerEventMap[K]) => void): this {
+  on<K extends EventKey>(event: K, listener: (...args: DiscordBotListenerEventMap[K]) => void): this {
     this.emitter.on(event, listener as (...args: any[]) => void)
     return this
   }
 
-  off<K extends EventKey>(event: K, listener: (...args: DiscordListenerEventMap[K]) => void): this {
+  off<K extends EventKey>(event: K, listener: (...args: DiscordBotListenerEventMap[K]) => void): this {
     this.emitter.off(event, listener as (...args: any[]) => void)
     return this
   }
 
-  once<K extends EventKey>(event: K, listener: (...args: DiscordListenerEventMap[K]) => void): this {
+  once<K extends EventKey>(event: K, listener: (...args: DiscordBotListenerEventMap[K]) => void): this {
     this.emitter.once(event, listener as (...args: any[]) => void)
     return this
   }

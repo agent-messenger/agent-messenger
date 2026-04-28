@@ -371,7 +371,7 @@ Credentials stored in `~/.config/agent-messenger/discordbot-credentials.json` (0
 
 ## Limitations
 
-- No real-time events / Gateway connection
+- No real-time events in the CLI (real-time Gateway events are available via the SDK — `import { DiscordBotListener } from 'agent-messenger/discordbot'`)
 - No voice channel support
 - No server management (create/delete channels, roles)
 - No slash commands

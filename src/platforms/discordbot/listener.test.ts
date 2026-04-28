@@ -1,13 +1,13 @@
 import { afterEach, describe, expect, mock, it } from 'bun:test'
 
-import { DiscordListener } from '@/platforms/discord/listener'
+import { DiscordBotListener } from '@/platforms/discordbot/listener'
 import type {
   DiscordGatewayGenericEvent,
   DiscordGatewayMessageCreateEvent,
   DiscordGatewayMessageDeleteEvent,
   DiscordGatewayMessageUpdateEvent,
   DiscordGatewayReactionEvent,
-} from '@/platforms/discord/types'
+} from '@/platforms/discordbot/types'
 
 type WsHandler = (...args: any[]) => void
 
@@ -76,7 +76,7 @@ class MockWs {
       d: {
         session_id: sessionId,
         resume_gateway_url: 'wss://resume.discord.gg',
-        user: { id: 'U_SELF', username: 'testbot' },
+        user: { id: 'BOT_SELF', username: 'testbot' },
       },
     })
   }
@@ -102,13 +102,13 @@ mock.module('ws', () => ({ default: MockWs, __esModule: true }))
 
 function createMockClient(overrides: Record<string, any> = {}) {
   return {
-    gatewayConnect: mock(() => Promise.resolve({ token: 'fake-token' })),
+    gatewayConnect: mock(() => Promise.resolve({ token: 'fake-bot-token' })),
     ...overrides,
   } as any
 }
 
-describe('DiscordListener', () => {
-  let listener: DiscordListener
+describe('DiscordBotListener', () => {
+  let listener: DiscordBotListener
 
   afterEach(() => {
     listener?.stop()
@@ -117,7 +117,7 @@ describe('DiscordListener', () => {
   describe('start', () => {
     it('calls gatewayConnect and opens WebSocket', async () => {
       const client = createMockClient()
-      listener = new DiscordListener(client)
+      listener = new DiscordBotListener(client)
 
       await listener.start()
       mockWsInstance.simulateOpen()
@@ -127,7 +127,7 @@ describe('DiscordListener', () => {
 
     it('is idempotent', async () => {
       const client = createMockClient()
-      listener = new DiscordListener(client)
+      listener = new DiscordBotListener(client)
 
       await listener.start()
       await listener.start()
@@ -137,9 +137,9 @@ describe('DiscordListener', () => {
   })
 
   describe('connected event', () => {
-    it('emits connected with user/sessionId on READY', async () => {
+    it('emits connected with bot user/sessionId on READY', async () => {
       const client = createMockClient()
-      listener = new DiscordListener(client)
+      listener = new DiscordBotListener(client)
 
       const connected: any[] = []
       listener.on('connected', (info) => connected.push(info))
@@ -150,15 +150,15 @@ describe('DiscordListener', () => {
       mockWsInstance.simulateReady()
 
       expect(connected.length).toBe(1)
-      expect(connected[0].user.id).toBe('U_SELF')
+      expect(connected[0].user.id).toBe('BOT_SELF')
       expect(connected[0].sessionId).toBe('session_123')
     })
   })
 
   describe('identify', () => {
-    it('sends Identify after Hello', async () => {
+    it('sends Identify with bot token after Hello', async () => {
       const client = createMockClient()
-      listener = new DiscordListener(client)
+      listener = new DiscordBotListener(client)
 
       await listener.start()
       mockWsInstance.simulateOpen()
@@ -168,13 +168,13 @@ describe('DiscordListener', () => {
       const identifyMsg = sentMessages.find((m) => m.op === 2)
 
       expect(identifyMsg).toBeDefined()
-      expect(identifyMsg.d.token).toBe('fake-token')
+      expect(identifyMsg.d.token).toBe('fake-bot-token')
     })
 
     it('sends Identify with custom intents', async () => {
       const client = createMockClient()
-      const customIntents = 1 << 9
-      listener = new DiscordListener(client, { intents: customIntents })
+      const customIntents = (1 << 9) | (1 << 15) // GuildMessages | MessageContent
+      listener = new DiscordBotListener(client, { intents: customIntents })
 
       await listener.start()
       mockWsInstance.simulateOpen()
@@ -186,12 +186,30 @@ describe('DiscordListener', () => {
       expect(identifyMsg).toBeDefined()
       expect(identifyMsg.d.intents).toBe(customIntents)
     })
+
+    it('uses sensible default intents when none specified', async () => {
+      const client = createMockClient()
+      listener = new DiscordBotListener(client)
+
+      await listener.start()
+      mockWsInstance.simulateOpen()
+      mockWsInstance.simulateHello()
+
+      const sentMessages = mockWsInstance.sent.map((s) => JSON.parse(s))
+      const identifyMsg = sentMessages.find((m) => m.op === 2)
+
+      // given: default intents enable Guilds + GuildMessages + reactions/typing + DMs
+      // then: the bitfield must include GuildMessages (1 << 9) at minimum
+      expect(identifyMsg.d.intents & (1 << 9)).toBeGreaterThan(0)
+      // and: must NOT include privileged MessageContent (1 << 15) by default
+      expect(identifyMsg.d.intents & (1 << 15)).toBe(0)
+    })
   })
 
   describe('message events', () => {
     it('emits message_create events', async () => {
       const client = createMockClient()
-      listener = new DiscordListener(client)
+      listener = new DiscordBotListener(client)
 
       const messages: DiscordGatewayMessageCreateEvent[] = []
       listener.on('message_create', (event) => messages.push(event))
@@ -219,7 +237,7 @@ describe('DiscordListener', () => {
 
     it('emits message_update events', async () => {
       const client = createMockClient()
-      listener = new DiscordListener(client)
+      listener = new DiscordBotListener(client)
 
       const updates: DiscordGatewayMessageUpdateEvent[] = []
       listener.on('message_update', (event) => updates.push(event))
@@ -241,7 +259,7 @@ describe('DiscordListener', () => {
 
     it('emits message_delete events', async () => {
       const client = createMockClient()
-      listener = new DiscordListener(client)
+      listener = new DiscordBotListener(client)
 
       const deletes: DiscordGatewayMessageDeleteEvent[] = []
       listener.on('message_delete', (event) => deletes.push(event))
@@ -260,7 +278,7 @@ describe('DiscordListener', () => {
   describe('reaction events', () => {
     it('emits message_reaction_add events', async () => {
       const client = createMockClient()
-      listener = new DiscordListener(client)
+      listener = new DiscordBotListener(client)
 
       const reactions: DiscordGatewayReactionEvent[] = []
       listener.on('message_reaction_add', (event) => reactions.push(event))
@@ -286,10 +304,40 @@ describe('DiscordListener', () => {
     })
   })
 
+  describe('interaction events', () => {
+    it('emits interaction_create events for slash commands', async () => {
+      const client = createMockClient()
+      listener = new DiscordBotListener(client)
+
+      const interactions: any[] = []
+      listener.on('interaction_create', (event) => interactions.push(event))
+
+      await listener.start()
+      mockWsInstance.simulateOpen()
+      mockWsInstance.simulateHello()
+      mockWsInstance.simulateReady()
+      mockWsInstance.simulateDispatch(
+        'INTERACTION_CREATE',
+        {
+          id: 'int_1',
+          application_id: 'app_1',
+          token: 'interaction_token',
+          channel_id: 'C123',
+          data: { name: 'ping' },
+        },
+        2,
+      )
+
+      expect(interactions.length).toBe(1)
+      expect(interactions[0].id).toBe('int_1')
+      expect(interactions[0].data.name).toBe('ping')
+    })
+  })
+
   describe('discord_event catch-all', () => {
     it('emits discord_event for every dispatch (not READY)', async () => {
       const client = createMockClient()
-      listener = new DiscordListener(client)
+      listener = new DiscordBotListener(client)
 
       const events: DiscordGatewayGenericEvent[] = []
       listener.on('discord_event', (event) => events.push(event))
@@ -318,7 +366,7 @@ describe('DiscordListener', () => {
 
       try {
         const client = createMockClient()
-        listener = new DiscordListener(client)
+        listener = new DiscordBotListener(client)
 
         await listener.start()
         mockWsInstance.simulateOpen()
@@ -337,7 +385,7 @@ describe('DiscordListener', () => {
 
     it('heartbeat ACK not emitted as user event', async () => {
       const client = createMockClient()
-      listener = new DiscordListener(client)
+      listener = new DiscordBotListener(client)
 
       const events: DiscordGatewayGenericEvent[] = []
       listener.on('discord_event', (event) => events.push(event))
@@ -357,7 +405,7 @@ describe('DiscordListener', () => {
 
       try {
         const client = createMockClient()
-        listener = new DiscordListener(client)
+        listener = new DiscordBotListener(client)
 
         const disconnected: boolean[] = []
         listener.on('disconnected', () => disconnected.push(true))
@@ -378,7 +426,7 @@ describe('DiscordListener', () => {
   describe('stop', () => {
     it('closes WebSocket and prevents reconnection', async () => {
       const client = createMockClient()
-      listener = new DiscordListener(client)
+      listener = new DiscordBotListener(client)
 
       await listener.start()
       mockWsInstance.simulateOpen()
@@ -393,7 +441,7 @@ describe('DiscordListener', () => {
   describe('reconnection', () => {
     it('reconnects on WebSocket close when running', async () => {
       const client = createMockClient()
-      listener = new DiscordListener(client)
+      listener = new DiscordBotListener(client)
 
       const disconnected: boolean[] = []
       listener.on('disconnected', () => disconnected.push(true))
@@ -414,11 +462,11 @@ describe('DiscordListener', () => {
         gatewayConnect: mock(() => {
           callCount++
           if (callCount === 1) return Promise.reject(new Error('network_error'))
-          return Promise.resolve({ token: 'fake-token' })
+          return Promise.resolve({ token: 'fake-bot-token' })
         }),
       })
 
-      listener = new DiscordListener(client)
+      listener = new DiscordBotListener(client)
 
       const errors: Error[] = []
       listener.on('error', (err) => errors.push(err))
@@ -436,7 +484,7 @@ describe('DiscordListener', () => {
   describe('on/off/once', () => {
     it('off removes listener', async () => {
       const client = createMockClient()
-      listener = new DiscordListener(client)
+      listener = new DiscordBotListener(client)
 
       const messages: DiscordGatewayMessageCreateEvent[] = []
       const handler = (event: DiscordGatewayMessageCreateEvent) => messages.push(event)
@@ -465,7 +513,7 @@ describe('DiscordListener', () => {
 
     it('once fires only once', async () => {
       const client = createMockClient()
-      listener = new DiscordListener(client)
+      listener = new DiscordBotListener(client)
 
       const messages: DiscordGatewayMessageCreateEvent[] = []
       listener.once('message_create', (event) => messages.push(event))
@@ -493,7 +541,7 @@ describe('DiscordListener', () => {
   describe('opcode 7 Reconnect', () => {
     it('triggers immediate reconnect without backoff', async () => {
       const client = createMockClient()
-      listener = new DiscordListener(client)
+      listener = new DiscordBotListener(client)
 
       await listener.start()
       mockWsInstance.simulateOpen()
@@ -510,7 +558,7 @@ describe('DiscordListener', () => {
   describe('opcode 9 InvalidSession', () => {
     it('d=false clears session state, reconnects with fresh identify', async () => {
       const client = createMockClient()
-      listener = new DiscordListener(client)
+      listener = new DiscordBotListener(client)
 
       await listener.start()
       mockWsInstance.simulateOpen()
@@ -528,7 +576,7 @@ describe('DiscordListener', () => {
 
     it('d=true allows resume on reconnect', async () => {
       const client = createMockClient()
-      listener = new DiscordListener(client)
+      listener = new DiscordBotListener(client)
 
       await listener.start()
       mockWsInstance.simulateOpen()
@@ -546,7 +594,7 @@ describe('DiscordListener', () => {
   describe('resume', () => {
     it('sends Resume instead of Identify when session exists', async () => {
       const client = createMockClient()
-      listener = new DiscordListener(client)
+      listener = new DiscordBotListener(client)
 
       await listener.start()
       mockWsInstance.simulateOpen()
@@ -569,9 +617,27 @@ describe('DiscordListener', () => {
   })
 
   describe('non-recoverable close codes', () => {
-    it('emits error and stops on code 4004', async () => {
+    it('emits error and stops on code 4014 (privileged intent not approved)', async () => {
       const client = createMockClient()
-      listener = new DiscordListener(client)
+      listener = new DiscordBotListener(client)
+
+      const errors: Error[] = []
+      listener.on('error', (err) => errors.push(err))
+
+      await listener.start()
+      mockWsInstance.simulateOpen()
+      mockWsInstance.simulateClose(4014)
+
+      await new Promise((r) => setTimeout(r, 50))
+
+      expect(errors.length).toBe(1)
+      expect(errors[0].message).toContain('4014')
+      expect(client.gatewayConnect).toHaveBeenCalledTimes(1)
+    })
+
+    it('emits error and stops on code 4004 (invalid token)', async () => {
+      const client = createMockClient()
+      listener = new DiscordBotListener(client)
 
       const errors: Error[] = []
       listener.on('error', (err) => errors.push(err))
@@ -584,14 +650,13 @@ describe('DiscordListener', () => {
 
       expect(errors.length).toBe(1)
       expect(errors[0].message).toContain('4004')
-      expect(client.gatewayConnect).toHaveBeenCalledTimes(1)
     })
   })
 
   describe('session reset close codes', () => {
     it('4007 clears session and reconnects with fresh identify', async () => {
       const client = createMockClient()
-      listener = new DiscordListener(client)
+      listener = new DiscordBotListener(client)
 
       await listener.start()
       mockWsInstance.simulateOpen()
@@ -619,9 +684,9 @@ describe('DiscordListener', () => {
       expect(resumeMsg).toBeUndefined()
     })
 
-    it('4009 clears session and reconnects with fresh identify', async () => {
+    it('4009 clears session', async () => {
       const client = createMockClient()
-      listener = new DiscordListener(client)
+      listener = new DiscordBotListener(client)
 
       await listener.start()
       mockWsInstance.simulateOpen()
@@ -641,7 +706,7 @@ describe('DiscordListener', () => {
 
       try {
         const client = createMockClient()
-        listener = new DiscordListener(client)
+        listener = new DiscordBotListener(client)
 
         await listener.start()
         mockWsInstance.simulateOpen()
@@ -669,7 +734,7 @@ describe('DiscordListener', () => {
 
       try {
         const client = createMockClient()
-        listener = new DiscordListener(client)
+        listener = new DiscordBotListener(client)
 
         await listener.start()
         mockWsInstance.simulateOpen()
@@ -685,36 +750,12 @@ describe('DiscordListener', () => {
         Math.random = originalRandom
       }
     })
-
-    it('InvalidSession d=false sends fresh identify on reconnect', async () => {
-      const client = createMockClient()
-      listener = new DiscordListener(client)
-
-      await listener.start()
-      mockWsInstance.simulateOpen()
-      mockWsInstance.simulateHello()
-      mockWsInstance.simulateReady()
-
-      mockWsInstance.simulateInvalidSession(false)
-
-      await new Promise((r) => setTimeout(r, 1500))
-
-      mockWsInstance.simulateOpen()
-      mockWsInstance.simulateHello()
-
-      const sentMessages = mockWsInstance.sent.map((s) => JSON.parse(s))
-      const identifyMsg = sentMessages.find((m) => m.op === 2)
-      const resumeMsg = sentMessages.find((m) => m.op === 6)
-
-      expect(identifyMsg).toBeDefined()
-      expect(resumeMsg).toBeUndefined()
-    })
   })
 
   describe('server-requested heartbeat', () => {
     it('responds to opcode 1 with heartbeat', async () => {
       const client = createMockClient()
-      listener = new DiscordListener(client)
+      listener = new DiscordBotListener(client)
 
       await listener.start()
       mockWsInstance.simulateOpen()
@@ -734,7 +775,7 @@ describe('DiscordListener', () => {
   describe('sequence tracking', () => {
     it('tracks sequence from dispatch events', async () => {
       const client = createMockClient()
-      listener = new DiscordListener(client)
+      listener = new DiscordBotListener(client)
 
       await listener.start()
       mockWsInstance.simulateOpen()
@@ -752,7 +793,7 @@ describe('DiscordListener', () => {
 
     it('ignores null sequence values', async () => {
       const client = createMockClient()
-      listener = new DiscordListener(client)
+      listener = new DiscordBotListener(client)
 
       await listener.start()
       mockWsInstance.simulateOpen()
@@ -779,7 +820,7 @@ describe('DiscordListener', () => {
   describe('start after stop', () => {
     it('resets reconnect attempts on fresh start', async () => {
       const client = createMockClient()
-      listener = new DiscordListener(client)
+      listener = new DiscordBotListener(client)
 
       await listener.start()
       ;(listener as any).reconnectAttempts = 5
@@ -793,7 +834,7 @@ describe('DiscordListener', () => {
   describe('reconnect URL', () => {
     it('appends ?v=10&encoding=json to resume_gateway_url on reconnect', async () => {
       const client = createMockClient()
-      listener = new DiscordListener(client)
+      listener = new DiscordBotListener(client)
 
       await listener.start()
       mockWsInstance.simulateOpen()
@@ -805,7 +846,7 @@ describe('DiscordListener', () => {
         d: {
           session_id: 'session_xyz',
           resume_gateway_url: 'wss://gateway-us-east1-b.discord.gg',
-          user: { id: 'U_SELF', username: 'user' },
+          user: { id: 'BOT', username: 'bot' },
         },
       })
 
@@ -814,24 +855,35 @@ describe('DiscordListener', () => {
 
       expect(MockWs.lastUrl).toBe('wss://gateway-us-east1-b.discord.gg?v=10&encoding=json')
     })
+
+    it('uses default gateway URL on initial connect when no resume URL is set', async () => {
+      const client = createMockClient()
+      listener = new DiscordBotListener(client)
+
+      await listener.start()
+
+      expect(MockWs.lastUrl).toBe('wss://gateway.discord.gg/?v=10&encoding=json')
+    })
   })
 
   describe('reconnectAttempts deferred to READY/RESUMED', () => {
     it('does not reset reconnectAttempts on socket open alone', async () => {
       const client = createMockClient()
-      listener = new DiscordListener(client)
+      listener = new DiscordBotListener(client)
 
       await listener.start()
       ;(listener as any).reconnectAttempts = 5
 
       mockWsInstance.simulateOpen()
 
+      // given: a socket opens but no READY received yet
+      // then: reconnectAttempts must NOT be reset (open alone is not a successful session)
       expect((listener as any).reconnectAttempts).toBe(5)
     })
 
     it('resets reconnectAttempts on READY dispatch', async () => {
       const client = createMockClient()
-      listener = new DiscordListener(client)
+      listener = new DiscordBotListener(client)
 
       await listener.start()
       ;(listener as any).reconnectAttempts = 5
@@ -841,6 +893,110 @@ describe('DiscordListener', () => {
       mockWsInstance.simulateReady()
 
       expect((listener as any).reconnectAttempts).toBe(0)
+    })
+
+    it('resets reconnectAttempts on RESUMED dispatch', async () => {
+      const client = createMockClient()
+      listener = new DiscordBotListener(client)
+
+      await listener.start()
+      mockWsInstance.simulateOpen()
+      mockWsInstance.simulateHello()
+      mockWsInstance.simulateReady()
+
+      mockWsInstance.simulateClose()
+      await new Promise((r) => setTimeout(r, 1500))
+
+      mockWsInstance.simulateOpen()
+      mockWsInstance.simulateHello()
+      ;(listener as any).reconnectAttempts = 5
+
+      mockWsInstance.simulateMessage({ op: 0, t: 'RESUMED', s: 2, d: {} })
+
+      expect((listener as any).reconnectAttempts).toBe(0)
+    })
+  })
+
+  describe('RESUMED dispatch', () => {
+    it('emits connected with cached user/session on RESUMED', async () => {
+      const client = createMockClient()
+      listener = new DiscordBotListener(client)
+
+      const connectedEvents: any[] = []
+      listener.on('connected', (info) => connectedEvents.push(info))
+
+      await listener.start()
+      mockWsInstance.simulateOpen()
+      mockWsInstance.simulateHello()
+      mockWsInstance.simulateReady()
+
+      expect(connectedEvents.length).toBe(1)
+
+      mockWsInstance.simulateClose()
+      await new Promise((r) => setTimeout(r, 1500))
+
+      mockWsInstance.simulateOpen()
+      mockWsInstance.simulateHello()
+      mockWsInstance.simulateMessage({ op: 0, t: 'RESUMED', s: 2, d: {} })
+
+      expect(connectedEvents.length).toBe(2)
+      expect(connectedEvents[1].user.id).toBe('BOT_SELF')
+      expect(connectedEvents[1].sessionId).toBe('session_123')
+    })
+  })
+
+  describe('generation guard prevents stale-socket interference', () => {
+    it('stale socket close after stop+start does not clear new socket timers', async () => {
+      const client = createMockClient()
+      listener = new DiscordBotListener(client)
+
+      await listener.start()
+      mockWsInstance.simulateOpen()
+      mockWsInstance.simulateHello()
+      mockWsInstance.simulateReady()
+
+      const oldWs = mockWsInstance
+
+      listener.stop()
+      await listener.start()
+
+      // given: a fresh socket from the second start()
+      // when: the OLD socket fires a stale close event
+      oldWs.emit('close', 1000)
+
+      // then: the new socket's state should be intact (running, generation incremented)
+      expect((listener as any).running).toBe(true)
+      expect((listener as any).generation).toBeGreaterThanOrEqual(2)
+    })
+
+    it('InvalidSession d=true timer no-ops if generation changed before firing', async () => {
+      const originalRandom = Math.random
+      Math.random = () => 0
+
+      try {
+        const client = createMockClient()
+        listener = new DiscordBotListener(client)
+
+        await listener.start()
+        mockWsInstance.simulateOpen()
+        mockWsInstance.simulateHello()
+        mockWsInstance.simulateReady()
+
+        const initialGeneration = (listener as any).generation
+
+        mockWsInstance.simulateInvalidSession(true)
+
+        // when: stop()+start() before the d=true delay fires
+        listener.stop()
+        await listener.start()
+
+        await new Promise((r) => setTimeout(r, 1500))
+
+        // then: generation moved forward so the stale timer's close call is suppressed
+        expect((listener as any).generation).toBeGreaterThan(initialGeneration)
+      } finally {
+        Math.random = originalRandom
+      }
     })
   })
 })

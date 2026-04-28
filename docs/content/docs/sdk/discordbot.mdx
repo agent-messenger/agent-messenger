@@ -1,0 +1,463 @@
+---
+title: Discord Bot
+description: TypeScript SDK reference for Discord Bot — client, real-time Gateway listener, credential management, and types.
+---
+
+## Installation
+
+```bash
+npm install agent-messenger
+```
+
+```typescript
+import {
+  DiscordBotClient,
+  DiscordBotCredentialManager,
+  DiscordBotError,
+  DiscordBotListener,
+} from 'agent-messenger/discordbot'
+```
+
+## DiscordBotClient
+
+The main client for interacting with Discord's REST API using a bot token. All methods include automatic rate-limit handling with per-bucket and global rate-limit tracking.
+
+```typescript
+import { DiscordBotClient } from 'agent-messenger/discordbot'
+
+const client = await new DiscordBotClient().login({ token: 'YOUR_BOT_TOKEN' })
+```
+
+Or use stored credentials — credentials are read from `~/.config/agent-messenger/discordbot-credentials.json` (managed by `agent-discordbot auth set`):
+
+```typescript
+const client = await new DiscordBotClient().login()
+```
+
+### Authentication
+
+```typescript
+// Verify bot credentials and get the bot's identity
+const me = await client.testAuth()
+// → DiscordUser { id, username, global_name?, avatar?, bot? }
+```
+
+### Servers (Guilds)
+
+```typescript
+// List all servers the bot has been added to
+const guilds = await client.listGuilds()
+// → DiscordGuild[]
+
+// Get a specific server by ID
+const guild = await client.getGuild(guildId)
+// → DiscordGuild { id, name, icon?, owner? }
+```
+
+### Channels
+
+```typescript
+// List all channels in a server
+const channels = await client.listChannels(guildId)
+// → DiscordChannel[]
+
+// Get a specific channel by ID
+const channel = await client.getChannel(channelId)
+// → DiscordChannel { id, guild_id, name, type, topic?, position?, parent_id?, thread_metadata? }
+
+// Resolve a channel by name or ID — returns the channel ID
+const channelId = await client.resolveChannel(guildId, '#general')
+const sameId = await client.resolveChannel(guildId, '1234567890123456789')
+```
+
+### Messages
+
+```typescript
+// Send a message to a channel
+const msg = await client.sendMessage(channelId, 'Hello world')
+
+// Send a message in a thread
+const reply = await client.sendMessage(channelId, 'Reply', { thread_id: threadId })
+// → DiscordMessage { id, channel_id, author, content, timestamp }
+
+// Get recent messages from a channel (default limit: 50)
+const messages = await client.getMessages(channelId)
+const limited = await client.getMessages(channelId, 25)
+// → DiscordMessage[]
+
+// Get a single message by ID
+const message = await client.getMessage(channelId, messageId)
+// → DiscordMessage
+
+// Edit a message (bot can only edit its own messages)
+const edited = await client.editMessage(channelId, messageId, 'Updated content')
+// → DiscordMessage
+
+// Delete a message (bot can delete its own messages or any with Manage Messages permission)
+await client.deleteMessage(channelId, messageId)
+```
+
+### Reactions
+
+```typescript
+// Add a reaction (use a standard emoji or `name:id` for custom emojis)
+await client.addReaction(channelId, messageId, '👍')
+await client.addReaction(channelId, messageId, 'custom_emoji_name:123456789')
+
+// Remove the bot's own reaction
+await client.removeReaction(channelId, messageId, '👍')
+```
+
+### Users
+
+```typescript
+// List members in a server (up to 1000 at a time)
+const users = await client.listUsers(guildId)
+// → DiscordUser[]
+
+// Get a user by ID
+const user = await client.getUser(userId)
+// → DiscordUser { id, username, global_name?, avatar?, bot? }
+```
+
+### Files
+
+```typescript
+// Upload a file to a channel (by file path)
+const file = await client.uploadFile(channelId, '/path/to/report.pdf')
+// → DiscordFile { id, filename, size, url, content_type?, height?, width? }
+
+// List file attachments from recent messages in a channel
+const files = await client.listFiles(channelId)
+// → DiscordFile[]
+```
+
+### Threads
+
+```typescript
+// Create a thread in a channel
+const thread = await client.createThread(channelId, 'Bug Report: Login Issue')
+const configured = await client.createThread(channelId, 'Design Review', {
+  auto_archive_duration: 1440, // minutes: 60, 1440, 4320, or 10080
+  rate_limit_per_user: 5, // seconds between messages (slow mode)
+})
+// → DiscordChannel (with thread_metadata)
+
+// Archive (or unarchive) a thread
+await client.archiveThread(threadId)
+await client.archiveThread(threadId, false) // unarchive
+// → DiscordChannel
+```
+
+## Real-Time Events
+
+`DiscordBotListener` connects to Discord's [Gateway WebSocket](https://discord.com/developers/docs/topics/gateway) for instant event streaming — messages, reactions, slash command interactions, member changes, and more. No webhook server required.
+
+```typescript
+import { DiscordBotClient, DiscordBotListener } from 'agent-messenger/discordbot'
+
+const client = await new DiscordBotClient().login({ token })
+const listener = new DiscordBotListener(client)
+
+listener.on('connected', (info) => {
+  console.log(`Connected as ${info.user.username} (session ${info.sessionId})`)
+})
+
+listener.on('message_create', (event) => {
+  if (event.author.bot) return
+  console.log(`#${event.channel_id} <${event.author.username}>: ${event.content}`)
+})
+
+listener.on('interaction_create', (event) => {
+  console.log(`Slash command: ${(event.data as { name?: string } | undefined)?.name}`)
+})
+
+listener.on('error', (err) => console.error(err))
+
+await listener.start() // connects via Gateway WebSocket
+// listener.stop()      // clean shutdown
+```
+
+### Intents
+
+Discord Gateway requires [intents](https://discord.com/developers/docs/topics/gateway#gateway-intents) — a bitfield that opts the bot into specific event categories. The default set includes safe, non-privileged intents for messages, reactions, and typing in guilds and DMs.
+
+To customize intents, pass `DiscordIntent` flags:
+
+```typescript
+import { DiscordIntent } from 'agent-messenger/discordbot'
+
+const listener = new DiscordBotListener(client, {
+  intents:
+    DiscordIntent.Guilds |
+    DiscordIntent.GuildMessages |
+    DiscordIntent.GuildMessageReactions |
+    DiscordIntent.DirectMessages |
+    DiscordIntent.MessageContent, // privileged — must enable in Developer Portal
+})
+```
+
+> **Privileged intents** (`MessageContent`, `GuildMembers`, `GuildPresences`) must be explicitly enabled in the [Discord Developer Portal](https://discord.com/developers/applications) under your bot's settings before they can be requested. Connecting with a privileged intent that is not enabled will close the Gateway with code `4014`.
+>
+> Without `MessageContent`, the `content` field on `message_create` events will be empty for messages that don't mention the bot or arrive in DMs.
+
+### Available Events
+
+| Event                                                  | Description                                         |
+| ------------------------------------------------------ | --------------------------------------------------- |
+| `message_create`                                       | New message in a guild channel or DM                |
+| `message_update`                                       | Message content edited                              |
+| `message_delete`                                       | Message deleted                                     |
+| `message_reaction_add` / `message_reaction_remove`     | Reaction added or removed                           |
+| `guild_member_add` / `guild_member_remove`             | Member joins or leaves a server                     |
+| `presence_update`                                      | User status changed (requires `GuildPresences`)     |
+| `typing_start`                                         | Typing indicator                                    |
+| `channel_create` / `channel_update` / `channel_delete` | Channel lifecycle                                   |
+| `guild_create` / `guild_update` / `guild_delete`       | Bot added to / updated in / removed from a server   |
+| `interaction_create`                                   | Slash command, button, modal, or context menu fired |
+| `discord_event`                                        | Catch-all — fires for every Gateway dispatch        |
+| `connected` / `disconnected`                           | Connection lifecycle                                |
+| `error`                                                | Connection or protocol error                        |
+
+### Lifecycle Features
+
+- **Auto-reconnect** with exponential backoff (1s → 30s, capped) and jitter on heartbeats.
+- **Session resume** — reconnects use Discord's `resume_gateway_url` to replay missed events without re-identifying.
+- **Heartbeat keepalive** with zombie connection detection — if Discord doesn't acknowledge a heartbeat, the connection is closed and re-established.
+- **Non-recoverable close detection** — connections close cleanly on close codes `4004` (invalid token), `4010`–`4014` (sharding/intents misconfiguration). The listener emits `error` and stops.
+- **Session reset** on close codes `4007` (invalid sequence) and `4009` (session timed out) — clears local session state and reconnects fresh.
+- **Stale-socket safety** — every async callback is generation-guarded so a stop+start cycle cannot leave the new connection in a broken state.
+
+## DiscordBotCredentialManager
+
+Manages bot credentials stored at `~/.config/agent-messenger/discordbot-credentials.json` with `0o600` permissions. Supports multiple bot identities (e.g., a deploy bot and an alerts bot in the same config). The environment variables `E2E_DISCORDBOT_TOKEN`, `E2E_DISCORDBOT_SERVER_ID`, and `E2E_DISCORDBOT_SERVER_NAME` take precedence over file-based credentials.
+
+```typescript
+import { DiscordBotCredentialManager } from 'agent-messenger/discordbot'
+
+const manager = new DiscordBotCredentialManager()
+// Custom path: new DiscordBotCredentialManager('/custom/config/dir')
+```
+
+```typescript
+// Load full config from disk (returns defaults if file doesn't exist)
+const config = await manager.load()
+// → DiscordBotConfig { current, bots, current_server, servers }
+
+// Save full config to disk
+await manager.save(config)
+
+// Get the credentials for the current bot (or a specific bot ID)
+const creds = await manager.getCredentials()
+const specific = await manager.getCredentials('deploy')
+// → DiscordBotCredentials | null
+
+// Store credentials for a bot (also marks it as current)
+await manager.setCredentials({
+  token: 'YOUR_BOT_TOKEN',
+  bot_id: 'deploy',
+  bot_name: 'Deploy Bot',
+})
+
+// Switch the active bot
+await manager.setCurrent('alerts')
+
+// List all stored bots with current marker
+const bots = await manager.listAll()
+// → Array<DiscordBotCredentials & { is_current: boolean }>
+
+// Remove a stored bot
+await manager.removeBot('alerts')
+
+// Clear all stored credentials
+await manager.clearCredentials()
+
+// Server preference helpers
+const serverId = await manager.getCurrentServer()
+await manager.setCurrentServer('1234567890123456789', 'My Server')
+```
+
+## Types
+
+```typescript
+import type {
+  DiscordBotConfig,
+  DiscordBotCredentials,
+  DiscordBotEntry,
+  DiscordBotListenerEventMap,
+  DiscordChannel,
+  DiscordFile,
+  DiscordGatewayChannelEvent,
+  DiscordGatewayEvent,
+  DiscordGatewayGenericEvent,
+  DiscordGatewayGuildEvent,
+  DiscordGatewayInteractionEvent,
+  DiscordGatewayMemberEvent,
+  DiscordGatewayMessageCreateEvent,
+  DiscordGatewayMessageDeleteEvent,
+  DiscordGatewayMessageUpdateEvent,
+  DiscordGatewayPresenceEvent,
+  DiscordGatewayReactionEvent,
+  DiscordGatewayTypingEvent,
+  DiscordGuild,
+  DiscordMessage,
+  DiscordReaction,
+  DiscordUser,
+} from 'agent-messenger/discordbot'
+```
+
+### Zod Schemas
+
+Runtime-validated schemas for parsing API responses:
+
+```typescript
+import {
+  DiscordBotConfigSchema,
+  DiscordBotCredentialsSchema,
+  DiscordBotEntrySchema,
+  DiscordChannelSchema,
+  DiscordFileSchema,
+  DiscordGuildSchema,
+  DiscordMessageSchema,
+  DiscordReactionSchema,
+  DiscordUserSchema,
+} from 'agent-messenger/discordbot'
+```
+
+### Constants
+
+```typescript
+import { DiscordGatewayOpcode, DiscordIntent } from 'agent-messenger/discordbot'
+
+DiscordGatewayOpcode.Identify // 2
+DiscordGatewayOpcode.Hello // 10
+
+DiscordIntent.Guilds // 1
+DiscordIntent.GuildMessages // 1 << 9
+DiscordIntent.MessageContent // 1 << 15 (privileged)
+```
+
+## Examples
+
+### Auto-Reply Bot
+
+Listen for messages mentioning the bot and reply with a help message.
+
+```typescript
+import { DiscordBotClient, DiscordBotListener, DiscordIntent } from 'agent-messenger/discordbot'
+
+const client = await new DiscordBotClient().login({ token })
+const me = await client.testAuth()
+
+const listener = new DiscordBotListener(client, {
+  intents:
+    DiscordIntent.Guilds | DiscordIntent.GuildMessages | DiscordIntent.DirectMessages | DiscordIntent.MessageContent,
+})
+
+listener.on('message_create', async (event) => {
+  if (event.author.bot) return
+
+  const mentioned = event.content.includes(`<@${me.id}>`)
+  if (!mentioned) return
+
+  await client.sendMessage(event.channel_id, `👋 Hey <@${event.author.id}>! Try \`/help\` for a list of commands.`)
+})
+
+await listener.start()
+```
+
+### Reaction-Driven Approval Workflow
+
+Post a request, then watch for ✅ or ❌ reactions to advance state.
+
+```typescript
+import { DiscordBotClient, DiscordBotListener } from 'agent-messenger/discordbot'
+
+const client = await new DiscordBotClient().login({ token })
+const listener = new DiscordBotListener(client)
+
+const post = await client.sendMessage(channelId, '🚀 Deploy v2.1.0 to production?')
+await client.addReaction(channelId, post.id, '✅')
+await client.addReaction(channelId, post.id, '❌')
+
+listener.on('message_reaction_add', async (event) => {
+  if (event.message_id !== post.id) return
+  if (event.user_id === me.id) return
+
+  if (event.emoji.name === '✅') {
+    await client.editMessage(channelId, post.id, '🚀 Deploy v2.1.0 — **approved**')
+  } else if (event.emoji.name === '❌') {
+    await client.editMessage(channelId, post.id, '🚀 Deploy v2.1.0 — **rejected**')
+  }
+})
+
+await listener.start()
+```
+
+### Slash Command Handler
+
+React to slash command interactions in real time. (The bot must register slash commands separately via Discord's REST API.)
+
+```typescript
+import { DiscordBotClient, DiscordBotListener } from 'agent-messenger/discordbot'
+
+const client = await new DiscordBotClient().login({ token })
+const listener = new DiscordBotListener(client)
+
+listener.on('interaction_create', async (event) => {
+  const name = (event.data as { name?: string } | undefined)?.name
+  if (name !== 'ping') return
+
+  if (event.channel_id) {
+    await client.sendMessage(event.channel_id, '🏓 Pong!')
+  }
+})
+
+await listener.start()
+```
+
+### CI Status Notifier
+
+Post a status message at the start and finish of a CI job, with a reaction to indicate state.
+
+```typescript
+import { DiscordBotClient } from 'agent-messenger/discordbot'
+
+const client = await new DiscordBotClient().login({ token })
+
+const start = await client.sendMessage(channelId, `🛠️ Build #${runId} started`)
+await client.addReaction(channelId, start.id, '⏳')
+
+try {
+  await runBuild()
+  await client.removeReaction(channelId, start.id, '⏳')
+  await client.addReaction(channelId, start.id, '✅')
+  await client.sendMessage(channelId, `✅ Build #${runId} succeeded`)
+} catch (err) {
+  await client.removeReaction(channelId, start.id, '⏳')
+  await client.addReaction(channelId, start.id, '❌')
+  await client.sendMessage(channelId, `❌ Build #${runId} failed: ${(err as Error).message}`)
+  throw err
+}
+```
+
+### Multi-Bot Configuration
+
+Use `DiscordBotCredentialManager` to switch between multiple bots stored in the same config (e.g., separate deploy and alerts bots).
+
+```typescript
+import { DiscordBotClient, DiscordBotCredentialManager } from 'agent-messenger/discordbot'
+
+const manager = new DiscordBotCredentialManager()
+
+// Store credentials for two bots
+await manager.setCredentials({ token: 'TOKEN_A', bot_id: 'deploy', bot_name: 'Deploy Bot' })
+await manager.setCredentials({ token: 'TOKEN_B', bot_id: 'alerts', bot_name: 'Alerts Bot' })
+
+// Switch to the alerts bot and use it
+await manager.setCurrent('alerts')
+const creds = await manager.getCredentials()
+const client = await new DiscordBotClient().login({ token: creds!.token })
+
+await client.sendMessage(channelId, '🚨 Error rate above threshold')
+```

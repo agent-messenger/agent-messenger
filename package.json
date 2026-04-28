@@ -36,6 +36,9 @@
       "discord": [
         "./src/platforms/discord/index.ts"
       ],
+      "discordbot": [
+        "./src/platforms/discordbot/index.ts"
+      ],
       "teams": [
         "./src/platforms/teams/index.ts"
       ],
@@ -81,6 +84,10 @@
     "./discord": {
       "types": "./src/platforms/discord/index.ts",
       "default": "./src/platforms/discord/index.ts"
+    },
+    "./discordbot": {
+      "types": "./src/platforms/discordbot/index.ts",
+      "default": "./src/platforms/discordbot/index.ts"
     },
     "./teams": {
       "types": "./src/platforms/teams/index.ts",
