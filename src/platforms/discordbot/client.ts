@@ -347,6 +347,10 @@ export class DiscordBotClient {
     return this.request<DiscordChannel>('PATCH', `/channels/${threadId}`, { archived })
   }
 
+  async gatewayConnect(): Promise<{ token: string }> {
+    return { token: this.ensureAuth() }
+  }
+
   async resolveChannel(guildId: string, channel: string): Promise<string> {
     if (/^\d+$/.test(channel)) return channel
 

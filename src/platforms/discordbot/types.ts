@@ -187,3 +187,156 @@ export const DiscordFileSchema = z.object({
   height: z.number().optional(),
   width: z.number().optional(),
 })
+
+export const DiscordGatewayOpcode = {
+  Dispatch: 0,
+  Heartbeat: 1,
+  Identify: 2,
+  PresenceUpdate: 3,
+  VoiceStateUpdate: 4,
+  Resume: 6,
+  Reconnect: 7,
+  RequestGuildMembers: 8,
+  InvalidSession: 9,
+  Hello: 10,
+  HeartbeatACK: 11,
+} as const
+
+export const DiscordIntent = {
+  Guilds: 1 << 0,
+  GuildMembers: 1 << 1, // privileged
+  GuildModeration: 1 << 2,
+  GuildEmojisAndStickers: 1 << 3,
+  GuildIntegrations: 1 << 4,
+  GuildWebhooks: 1 << 5,
+  GuildInvites: 1 << 6,
+  GuildVoiceStates: 1 << 7,
+  GuildPresences: 1 << 8, // privileged
+  GuildMessages: 1 << 9,
+  GuildMessageReactions: 1 << 10,
+  GuildMessageTyping: 1 << 11,
+  DirectMessages: 1 << 12,
+  DirectMessageReactions: 1 << 13,
+  DirectMessageTyping: 1 << 14,
+  MessageContent: 1 << 15, // privileged
+  GuildScheduledEvents: 1 << 16,
+  AutoModerationConfiguration: 1 << 20,
+  AutoModerationExecution: 1 << 21,
+} as const
+
+export interface DiscordGatewayMessageCreateEvent {
+  type: 'MESSAGE_CREATE'
+  id: string
+  channel_id: string
+  guild_id?: string
+  author: { id: string; username: string; bot?: boolean }
+  content: string
+  timestamp: string
+  edited_timestamp?: string
+  mentions?: DiscordUser[]
+  attachments?: DiscordFile[]
+}
+
+export interface DiscordGatewayMessageUpdateEvent {
+  type: 'MESSAGE_UPDATE'
+  id: string
+  channel_id: string
+  guild_id?: string
+  content?: string
+  edited_timestamp?: string
+}
+
+export interface DiscordGatewayMessageDeleteEvent {
+  type: 'MESSAGE_DELETE'
+  id: string
+  channel_id: string
+  guild_id?: string
+}
+
+export interface DiscordGatewayReactionEvent {
+  type: 'MESSAGE_REACTION_ADD' | 'MESSAGE_REACTION_REMOVE'
+  user_id: string
+  channel_id: string
+  message_id: string
+  guild_id?: string
+  emoji: { id?: string; name: string }
+}
+
+export interface DiscordGatewayMemberEvent {
+  type: 'GUILD_MEMBER_ADD' | 'GUILD_MEMBER_REMOVE'
+  guild_id: string
+  user: { id: string; username: string }
+}
+
+export interface DiscordGatewayTypingEvent {
+  type: 'TYPING_START'
+  user_id: string
+  channel_id: string
+  guild_id?: string
+  timestamp: number
+}
+
+export interface DiscordGatewayChannelEvent {
+  type: 'CHANNEL_CREATE' | 'CHANNEL_UPDATE' | 'CHANNEL_DELETE'
+  id: string
+  guild_id?: string
+  name?: string
+}
+
+export interface DiscordGatewayGuildEvent {
+  type: 'GUILD_CREATE' | 'GUILD_UPDATE' | 'GUILD_DELETE'
+  id: string
+  name?: string
+  unavailable?: boolean
+}
+
+export interface DiscordGatewayInteractionEvent {
+  type: 'INTERACTION_CREATE'
+  id: string
+  application_id: string
+  token: string
+  data?: Record<string, unknown>
+  channel_id?: string
+  guild_id?: string
+  member?: Record<string, unknown>
+  user?: { id: string; username: string }
+}
+
+export interface DiscordGatewayGenericEvent {
+  type: string
+  [key: string]: unknown
+}
+
+export type DiscordGatewayEvent =
+  | DiscordGatewayMessageCreateEvent
+  | DiscordGatewayMessageUpdateEvent
+  | DiscordGatewayMessageDeleteEvent
+  | DiscordGatewayReactionEvent
+  | DiscordGatewayMemberEvent
+  | DiscordGatewayTypingEvent
+  | DiscordGatewayChannelEvent
+  | DiscordGatewayGuildEvent
+  | DiscordGatewayInteractionEvent
+  | DiscordGatewayGenericEvent
+
+export interface DiscordBotListenerEventMap {
+  message_create: [event: DiscordGatewayMessageCreateEvent]
+  message_update: [event: DiscordGatewayMessageUpdateEvent]
+  message_delete: [event: DiscordGatewayMessageDeleteEvent]
+  message_reaction_add: [event: DiscordGatewayReactionEvent]
+  message_reaction_remove: [event: DiscordGatewayReactionEvent]
+  guild_member_add: [event: DiscordGatewayMemberEvent]
+  guild_member_remove: [event: DiscordGatewayMemberEvent]
+  typing_start: [event: DiscordGatewayTypingEvent]
+  channel_create: [event: DiscordGatewayChannelEvent]
+  channel_update: [event: DiscordGatewayChannelEvent]
+  channel_delete: [event: DiscordGatewayChannelEvent]
+  guild_create: [event: DiscordGatewayGuildEvent]
+  guild_update: [event: DiscordGatewayGuildEvent]
+  guild_delete: [event: DiscordGatewayGuildEvent]
+  interaction_create: [event: DiscordGatewayInteractionEvent]
+  discord_event: [event: DiscordGatewayGenericEvent]
+  connected: [info: { user: { id: string; username: string }; sessionId: string }]
+  disconnected: []
+  error: [error: Error]
+}

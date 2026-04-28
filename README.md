@@ -225,6 +225,31 @@ listener.on('message', (event) => {
 await listener.start()
 ```
 
+### Real-time Events (Discord Bot)
+
+Stream messages, reactions, and slash command interactions directly from Discord's Gateway WebSocket — no public HTTP endpoint required.
+
+```typescript
+import { DiscordBotClient, DiscordBotListener, DiscordIntent } from 'agent-messenger/discordbot'
+
+const client = await new DiscordBotClient().login({ token: 'YOUR_BOT_TOKEN' })
+const listener = new DiscordBotListener(client, {
+  // Privileged intents (MessageContent, GuildMembers, GuildPresences) must be enabled
+  // in the Discord Developer Portal before they can be used.
+  intents: DiscordIntent.Guilds | DiscordIntent.GuildMessages | DiscordIntent.MessageContent,
+})
+
+listener.on('message_create', (event) => {
+  console.log(`New message in ${event.channel_id}: ${event.content}`)
+})
+
+listener.on('interaction_create', (event) => {
+  console.log(`Slash command received: ${(event.data as any)?.name}`)
+})
+
+await listener.start()
+```
+
 ## TUI (Experimental)
 
 A unified terminal interface for all your messaging platforms in one screen. Navigate between Slack, Discord, Teams, Webex, Telegram, WhatsApp, LINE, Instagram, KakaoTalk, and Channel Talk — all from your terminal.
