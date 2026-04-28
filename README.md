@@ -251,6 +251,30 @@ listener.on('interaction_create', (event) => {
 await listener.start()
 ```
 
+### Real-time Events (Slack Bot)
+
+Stream Events API events, slash commands, and interactive components over Slack's Socket Mode WebSocket — no public HTTP endpoint required. Requires an app-level token (`xapp-...`) with the `connections:write` scope, separate from your bot token.
+
+```typescript
+import { SlackBotClient, SlackBotListener } from 'agent-messenger/slackbot'
+
+const client = await new SlackBotClient().login({ token: 'xoxb-...' })
+const listener = new SlackBotListener(client, {
+  appToken: process.env.SLACK_APP_TOKEN!, // xapp-...
+})
+
+listener.on('message', ({ ack, event }) => {
+  ack()
+  console.log(`New message in ${event.channel}: ${event.text}`)
+})
+
+listener.on('slash_commands', ({ ack, body }) => {
+  ack({ text: `Got \`${body.command} ${body.text}\`` })
+})
+
+await listener.start()
+```
+
 ## TUI (Experimental)
 
 A unified terminal interface for all your messaging platforms in one screen. Navigate between Slack, Discord, Teams, Webex, Telegram, WhatsApp, LINE, Instagram, KakaoTalk, and Channel Talk — all from your terminal.

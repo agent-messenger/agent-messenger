@@ -464,4 +464,22 @@ export class SlackBotClient {
       this.checkResponse(response)
     })
   }
+
+  async appsConnectionsOpen(appToken: string): Promise<{ url: string }> {
+    if (!appToken) {
+      throw new SlackBotError('App-level token is required for Socket Mode', 'missing_app_token')
+    }
+    if (!appToken.startsWith('xapp-')) {
+      throw new SlackBotError(
+        'Token must be an app-level token (xapp-) with connections:write scope',
+        'invalid_app_token_type',
+      )
+    }
+
+    return this.withRetry(async () => {
+      const response = await new WebClient(appToken).apps.connections.open()
+      this.checkResponse(response)
+      return { url: (response as { url: string }).url }
+    })
+  }
 }

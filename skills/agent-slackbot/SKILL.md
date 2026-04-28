@@ -306,7 +306,7 @@ Credentials stored in `~/.config/agent-messenger/slackbot-credentials.json` (060
 
 ## Limitations
 
-- No real-time events / Socket Mode
+- No real-time events in the CLI (real-time Socket Mode events are available via the SDK — see the README's "Real-time Events (Slack Bot)" section)
 - No message search (requires user token scope)
 - No file upload/download
 - No workspace snapshot
