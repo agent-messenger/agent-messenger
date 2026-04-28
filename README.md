@@ -244,7 +244,8 @@ listener.on('message_create', (event) => {
 })
 
 listener.on('interaction_create', (event) => {
-  console.log(`Slash command received: ${(event.data as any)?.name}`)
+  const name = (event.data as { name?: string } | undefined)?.name
+  console.log(`Slash command received: ${name}`)
 })
 
 await listener.start()

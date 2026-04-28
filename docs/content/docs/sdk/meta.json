@@ -3,6 +3,7 @@
   "pages": [
     "slack",
     "discord",
+    "discordbot",
     "teams",
     "webex",
     "whatsapp",
