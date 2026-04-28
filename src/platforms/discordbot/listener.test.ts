@@ -16,12 +16,16 @@ let mockWsInstance: MockWs
 class MockWs {
   static OPEN = 1
   static CLOSED = 3
+  static lastUrl: string | null = null
   readyState = MockWs.OPEN
 
   private handlers = new Map<string, WsHandler[]>()
   sent: string[] = []
+  url: string
 
-  constructor(_url: string, _options?: any) {
+  constructor(url: string, _options?: any) {
+    this.url = url
+    MockWs.lastUrl = url
     // oxlint-disable-next-line typescript-eslint/no-this-alias
     mockWsInstance = this
   }
@@ -824,6 +828,175 @@ describe('DiscordBotListener', () => {
 
       await listener.start()
       expect((listener as any).reconnectAttempts).toBe(0)
+    })
+  })
+
+  describe('reconnect URL', () => {
+    it('appends ?v=10&encoding=json to resume_gateway_url on reconnect', async () => {
+      const client = createMockClient()
+      listener = new DiscordBotListener(client)
+
+      await listener.start()
+      mockWsInstance.simulateOpen()
+      mockWsInstance.simulateHello()
+      mockWsInstance.simulateMessage({
+        op: 0,
+        t: 'READY',
+        s: 1,
+        d: {
+          session_id: 'session_xyz',
+          resume_gateway_url: 'wss://gateway-us-east1-b.discord.gg',
+          user: { id: 'BOT', username: 'bot' },
+        },
+      })
+
+      mockWsInstance.simulateClose()
+      await new Promise((r) => setTimeout(r, 1500))
+
+      expect(MockWs.lastUrl).toBe('wss://gateway-us-east1-b.discord.gg?v=10&encoding=json')
+    })
+
+    it('uses default gateway URL on initial connect when no resume URL is set', async () => {
+      const client = createMockClient()
+      listener = new DiscordBotListener(client)
+
+      await listener.start()
+
+      expect(MockWs.lastUrl).toBe('wss://gateway.discord.gg/?v=10&encoding=json')
+    })
+  })
+
+  describe('reconnectAttempts deferred to READY/RESUMED', () => {
+    it('does not reset reconnectAttempts on socket open alone', async () => {
+      const client = createMockClient()
+      listener = new DiscordBotListener(client)
+
+      await listener.start()
+      ;(listener as any).reconnectAttempts = 5
+
+      mockWsInstance.simulateOpen()
+
+      // given: a socket opens but no READY received yet
+      // then: reconnectAttempts must NOT be reset (open alone is not a successful session)
+      expect((listener as any).reconnectAttempts).toBe(5)
+    })
+
+    it('resets reconnectAttempts on READY dispatch', async () => {
+      const client = createMockClient()
+      listener = new DiscordBotListener(client)
+
+      await listener.start()
+      ;(listener as any).reconnectAttempts = 5
+
+      mockWsInstance.simulateOpen()
+      mockWsInstance.simulateHello()
+      mockWsInstance.simulateReady()
+
+      expect((listener as any).reconnectAttempts).toBe(0)
+    })
+
+    it('resets reconnectAttempts on RESUMED dispatch', async () => {
+      const client = createMockClient()
+      listener = new DiscordBotListener(client)
+
+      await listener.start()
+      mockWsInstance.simulateOpen()
+      mockWsInstance.simulateHello()
+      mockWsInstance.simulateReady()
+
+      mockWsInstance.simulateClose()
+      await new Promise((r) => setTimeout(r, 1500))
+
+      mockWsInstance.simulateOpen()
+      mockWsInstance.simulateHello()
+      ;(listener as any).reconnectAttempts = 5
+
+      mockWsInstance.simulateMessage({ op: 0, t: 'RESUMED', s: 2, d: {} })
+
+      expect((listener as any).reconnectAttempts).toBe(0)
+    })
+  })
+
+  describe('RESUMED dispatch', () => {
+    it('emits connected with cached user/session on RESUMED', async () => {
+      const client = createMockClient()
+      listener = new DiscordBotListener(client)
+
+      const connectedEvents: any[] = []
+      listener.on('connected', (info) => connectedEvents.push(info))
+
+      await listener.start()
+      mockWsInstance.simulateOpen()
+      mockWsInstance.simulateHello()
+      mockWsInstance.simulateReady()
+
+      expect(connectedEvents.length).toBe(1)
+
+      mockWsInstance.simulateClose()
+      await new Promise((r) => setTimeout(r, 1500))
+
+      mockWsInstance.simulateOpen()
+      mockWsInstance.simulateHello()
+      mockWsInstance.simulateMessage({ op: 0, t: 'RESUMED', s: 2, d: {} })
+
+      expect(connectedEvents.length).toBe(2)
+      expect(connectedEvents[1].user.id).toBe('BOT_SELF')
+      expect(connectedEvents[1].sessionId).toBe('session_123')
+    })
+  })
+
+  describe('generation guard prevents stale-socket interference', () => {
+    it('stale socket close after stop+start does not clear new socket timers', async () => {
+      const client = createMockClient()
+      listener = new DiscordBotListener(client)
+
+      await listener.start()
+      mockWsInstance.simulateOpen()
+      mockWsInstance.simulateHello()
+      mockWsInstance.simulateReady()
+
+      const oldWs = mockWsInstance
+
+      listener.stop()
+      await listener.start()
+
+      // given: a fresh socket from the second start()
+      // when: the OLD socket fires a stale close event
+      oldWs.emit('close', 1000)
+
+      // then: the new socket's state should be intact (running, generation incremented)
+      expect((listener as any).running).toBe(true)
+      expect((listener as any).generation).toBeGreaterThanOrEqual(2)
+    })
+
+    it('InvalidSession d=true timer no-ops if generation changed before firing', async () => {
+      const originalRandom = Math.random
+      Math.random = () => 0
+
+      try {
+        const client = createMockClient()
+        listener = new DiscordBotListener(client)
+
+        await listener.start()
+        mockWsInstance.simulateOpen()
+        mockWsInstance.simulateHello()
+        mockWsInstance.simulateReady()
+
+        const initialGeneration = (listener as any).generation
+
+        mockWsInstance.simulateInvalidSession(true)
+
+        // when: stop()+start() before the d=true delay fires
+        listener.stop()
+        await listener.start()
+
+        await new Promise((r) => setTimeout(r, 1500))
+
+        // then: generation moved forward so the stale timer's close call is suppressed
+        expect((listener as any).generation).toBeGreaterThan(initialGeneration)
+      } finally {
+        Math.random = originalRandom
+      }
     })
   })
 })

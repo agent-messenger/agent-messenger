@@ -17,6 +17,7 @@ export type {
   DiscordGatewayMessageCreateEvent,
   DiscordGatewayMessageDeleteEvent,
   DiscordGatewayMessageUpdateEvent,
+  DiscordGatewayPresenceEvent,
   DiscordGatewayReactionEvent,
   DiscordGatewayTypingEvent,
   DiscordGuild,

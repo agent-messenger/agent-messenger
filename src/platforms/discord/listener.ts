@@ -7,6 +7,7 @@ import type { DiscordListenerEventMap, DiscordGatewayGenericEvent } from './type
 import { DiscordGatewayOpcode, DiscordIntent } from './types'
 
 const GATEWAY_URL = 'wss://gateway.discord.gg/?v=10&encoding=json'
+const GATEWAY_QUERY = '?v=10&encoding=json'
 const RECONNECT_BASE_DELAY = 1_000
 const RECONNECT_MAX_DELAY = 30_000
 const NON_RECOVERABLE_CLOSE_CODES = [4004, 4010, 4011, 4012, 4013, 4014]
@@ -40,6 +41,7 @@ export class DiscordListener {
   private resumeGatewayUrl: string | null = null
   private token: string | null = null
   private cachedUser: { id: string; username: string } | null = null
+  private generation = 0
 
   constructor(client: DiscordClient, options?: { intents?: number }) {
     this.client = client
@@ -50,11 +52,13 @@ export class DiscordListener {
     if (this.running) return
     this.running = true
     this.reconnectAttempts = 0
-    await this.connect()
+    this.generation++
+    await this.connect(this.generation)
   }
 
   stop(): void {
     this.running = false
+    this.generation++
     this.clearTimers()
     if (this.ws) {
       this.ws.close()
@@ -82,39 +86,46 @@ export class DiscordListener {
     return this
   }
 
-  private async connect(): Promise<void> {
-    if (!this.running) return
+  private isCurrent(generation: number, ws?: WebSocket): boolean {
+    if (generation !== this.generation || !this.running) return false
+    if (ws !== undefined && this.ws !== ws) return false
+    return true
+  }
+
+  private async connect(generation: number): Promise<void> {
+    if (!this.isCurrent(generation)) return
 
     try {
       const { token } = await this.client.gatewayConnect()
-      if (!this.running) return
+      if (!this.isCurrent(generation)) return
 
       this.token = token
 
-      const url = this.resumeGatewayUrl ?? GATEWAY_URL
+      const url = this.resumeGatewayUrl ? `${this.resumeGatewayUrl}${GATEWAY_QUERY}` : GATEWAY_URL
       const ws = new WebSocket(url)
       this.ws = ws
 
       ws.on('open', () => {
-        if (!this.running) {
+        if (!this.isCurrent(generation, ws)) {
           ws.close()
           return
         }
-        this.reconnectAttempts = 0
       })
 
       ws.on('message', (raw) => {
+        if (!this.isCurrent(generation, ws)) return
         try {
           const data = JSON.parse(raw.toString())
-          this.handleMessage(data)
+          this.handleMessage(data, generation, ws)
         } catch {
-          // malformed message, ignore
+          // malformed gateway frame; ignore and let heartbeat handle liveness
         }
       })
 
       ws.on('close', (code) => {
+        if (!this.isCurrent(generation, ws)) return
         this.clearTimers()
-        if (this.ws === ws) this.ws = null
+        this.ws = null
         if (NON_RECOVERABLE_CLOSE_CODES.includes(code)) {
           this.emitter.emit('error', new Error(`Discord gateway closed with non-recoverable code ${code}`))
           this.running = false
@@ -132,9 +143,11 @@ export class DiscordListener {
       })
 
       ws.on('error', (err) => {
+        if (!this.isCurrent(generation, ws)) return
         this.emitter.emit('error', err instanceof Error ? err : new Error(String(err)))
       })
     } catch (error) {
+      if (!this.isCurrent(generation)) return
       this.emitter.emit('error', error instanceof Error ? error : new Error(String(error)))
       if (this.running) {
         this.scheduleReconnect()
@@ -142,12 +155,13 @@ export class DiscordListener {
     }
   }
 
-  private handleMessage(data: { op: number; d: any; s?: number; t?: string }): void {
+  private handleMessage(data: { op: number; d: any; s?: number; t?: string }, generation: number, ws: WebSocket): void {
+    if (!this.isCurrent(generation, ws)) return
     const { op, d, s, t } = data
 
     switch (op) {
       case DiscordGatewayOpcode.Hello:
-        this.startHeartbeat(d.heartbeat_interval)
+        this.startHeartbeat(d.heartbeat_interval, generation, ws)
         if (this.sessionId) {
           this.sendResume()
         } else {
@@ -166,22 +180,21 @@ export class DiscordListener {
 
       case DiscordGatewayOpcode.Reconnect:
         this.reconnectAttempts = 0
-        this.ws?.close()
+        ws.close()
         break
 
       case DiscordGatewayOpcode.InvalidSession: {
-        const currentWs = this.ws
         if (d === true) {
           const delay = 1000 + Math.random() * 4000
           this.invalidSessionTimer = setTimeout(() => {
             this.invalidSessionTimer = null
-            if (currentWs && currentWs === this.ws) currentWs.close()
+            if (this.isCurrent(generation, ws)) ws.close()
           }, delay)
         } else {
           this.sequence = null
           this.sessionId = null
           this.resumeGatewayUrl = null
-          currentWs?.close()
+          ws.close()
         }
         break
       }
@@ -197,11 +210,13 @@ export class DiscordListener {
       this.sessionId = d.session_id
       this.resumeGatewayUrl = d.resume_gateway_url
       this.cachedUser = d.user
+      this.reconnectAttempts = 0
       this.emitter.emit('connected', { user: d.user, sessionId: d.session_id })
       return
     }
 
     if (t === 'RESUMED') {
+      this.reconnectAttempts = 0
       this.emitter.emit('connected', { user: this.cachedUser!, sessionId: this.sessionId! })
       return
     }
@@ -246,18 +261,23 @@ export class DiscordListener {
     this.ws?.send(JSON.stringify({ op: DiscordGatewayOpcode.Heartbeat, d: this.sequence }))
   }
 
-  private startHeartbeat(interval: number): void {
+  private startHeartbeat(interval: number, generation: number, ws: WebSocket): void {
     this.clearHeartbeatTimers()
     this.heartbeatAckReceived = true
 
     this.heartbeatJitterTimer = setTimeout(() => {
       this.heartbeatJitterTimer = null
+      if (!this.isCurrent(generation, ws)) return
       this.heartbeatAckReceived = false
       this.sendHeartbeat()
 
       this.heartbeatTimer = setInterval(() => {
+        if (!this.isCurrent(generation, ws)) {
+          this.clearHeartbeatTimers()
+          return
+        }
         if (!this.heartbeatAckReceived) {
-          this.ws?.close()
+          ws.close()
           return
         }
         this.heartbeatAckReceived = false
@@ -269,7 +289,11 @@ export class DiscordListener {
   private scheduleReconnect(): void {
     const delay = Math.min(RECONNECT_BASE_DELAY * 2 ** this.reconnectAttempts, RECONNECT_MAX_DELAY)
     this.reconnectAttempts++
-    this.reconnectTimer = setTimeout(() => this.connect(), delay)
+    const generation = this.generation
+    this.reconnectTimer = setTimeout(() => {
+      this.reconnectTimer = null
+      this.connect(generation)
+    }, delay)
   }
 
   private clearHeartbeatTimers(): void {

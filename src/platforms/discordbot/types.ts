@@ -276,6 +276,14 @@ export interface DiscordGatewayTypingEvent {
   timestamp: number
 }
 
+export interface DiscordGatewayPresenceEvent {
+  type: 'PRESENCE_UPDATE'
+  user: { id: string }
+  guild_id: string
+  status: 'online' | 'idle' | 'dnd' | 'offline'
+  activities?: Array<{ name: string; type: number }>
+}
+
 export interface DiscordGatewayChannelEvent {
   type: 'CHANNEL_CREATE' | 'CHANNEL_UPDATE' | 'CHANNEL_DELETE'
   id: string
@@ -314,6 +322,7 @@ export type DiscordGatewayEvent =
   | DiscordGatewayReactionEvent
   | DiscordGatewayMemberEvent
   | DiscordGatewayTypingEvent
+  | DiscordGatewayPresenceEvent
   | DiscordGatewayChannelEvent
   | DiscordGatewayGuildEvent
   | DiscordGatewayInteractionEvent
@@ -327,6 +336,7 @@ export interface DiscordBotListenerEventMap {
   message_reaction_remove: [event: DiscordGatewayReactionEvent]
   guild_member_add: [event: DiscordGatewayMemberEvent]
   guild_member_remove: [event: DiscordGatewayMemberEvent]
+  presence_update: [event: DiscordGatewayPresenceEvent]
   typing_start: [event: DiscordGatewayTypingEvent]
   channel_create: [event: DiscordGatewayChannelEvent]
   channel_update: [event: DiscordGatewayChannelEvent]

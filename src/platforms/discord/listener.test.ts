@@ -16,12 +16,16 @@ let mockWsInstance: MockWs
 class MockWs {
   static OPEN = 1
   static CLOSED = 3
+  static lastUrl: string | null = null
   readyState = MockWs.OPEN
 
   private handlers = new Map<string, WsHandler[]>()
   sent: string[] = []
+  url: string
 
-  constructor(_url: string, _options?: any) {
+  constructor(url: string, _options?: any) {
+    this.url = url
+    MockWs.lastUrl = url
     // oxlint-disable-next-line typescript-eslint/no-this-alias
     mockWsInstance = this
   }
@@ -782,6 +786,60 @@ describe('DiscordListener', () => {
       listener.stop()
 
       await listener.start()
+      expect((listener as any).reconnectAttempts).toBe(0)
+    })
+  })
+
+  describe('reconnect URL', () => {
+    it('appends ?v=10&encoding=json to resume_gateway_url on reconnect', async () => {
+      const client = createMockClient()
+      listener = new DiscordListener(client)
+
+      await listener.start()
+      mockWsInstance.simulateOpen()
+      mockWsInstance.simulateHello()
+      mockWsInstance.simulateMessage({
+        op: 0,
+        t: 'READY',
+        s: 1,
+        d: {
+          session_id: 'session_xyz',
+          resume_gateway_url: 'wss://gateway-us-east1-b.discord.gg',
+          user: { id: 'U_SELF', username: 'user' },
+        },
+      })
+
+      mockWsInstance.simulateClose()
+      await new Promise((r) => setTimeout(r, 1500))
+
+      expect(MockWs.lastUrl).toBe('wss://gateway-us-east1-b.discord.gg?v=10&encoding=json')
+    })
+  })
+
+  describe('reconnectAttempts deferred to READY/RESUMED', () => {
+    it('does not reset reconnectAttempts on socket open alone', async () => {
+      const client = createMockClient()
+      listener = new DiscordListener(client)
+
+      await listener.start()
+      ;(listener as any).reconnectAttempts = 5
+
+      mockWsInstance.simulateOpen()
+
+      expect((listener as any).reconnectAttempts).toBe(5)
+    })
+
+    it('resets reconnectAttempts on READY dispatch', async () => {
+      const client = createMockClient()
+      listener = new DiscordListener(client)
+
+      await listener.start()
+      ;(listener as any).reconnectAttempts = 5
+
+      mockWsInstance.simulateOpen()
+      mockWsInstance.simulateHello()
+      mockWsInstance.simulateReady()
+
       expect((listener as any).reconnectAttempts).toBe(0)
     })
   })
