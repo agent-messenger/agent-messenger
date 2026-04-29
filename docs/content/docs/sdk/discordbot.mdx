@@ -354,8 +354,8 @@ try {
 
     if (err.code === 'rate_limited') {
       // Discord returned 429 — back off and retry
-    } else if (err.code === 'unauthorized') {
-      // Token is invalid or revoked
+    } else if (err.code === 'missing_token' || err.code === 'no_credentials') {
+      // Token is missing — re-run auth set
     }
   } else {
     throw err
@@ -363,14 +363,17 @@ try {
 }
 ```
 
-Common error codes:
+Error codes thrown by the client:
 
-- `unauthorized` — Bot token is missing, invalid, or revoked
-- `rate_limited` — Discord 429 response; check `Retry-After` header
-- `forbidden` — Bot lacks the permission/intent for this action
-- `not_found` — Channel, guild, or message does not exist
-- `bad_request` — Invalid payload (e.g. message too long)
-- `gateway_error` — Real-time Gateway connection failure
+- `missing_token` — `login()` called with an empty token
+- `no_credentials` — `login()` called without args and no stored bot token was found
+- `not_authenticated` — Method called before `login()` resolved
+- `rate_limited` — Discord 429 response; the client retries automatically with `Retry-After`, then surfaces this if retries are exhausted
+- `network_error` — Fetch failed (DNS, connection refused, timeout)
+- `channel_not_found` — `resolveChannel()` could not find the named channel in the current guild
+- `no_attachments` — File upload returned 200 but the response had no attachments
+- `http_<status>` — Discord returned an unexpected status (e.g., `http_500`) without a structured `code` in the error body
+- Discord API error codes (numeric, as strings) — When Discord's response body includes a `code` field (e.g., `"50001"` for "Missing Access"), it is propagated as-is. See the [Discord JSON Error Codes reference](https://discord.com/developers/docs/topics/opcodes-and-status-codes#json-json-error-codes).
 
 ## Examples
 

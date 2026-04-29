@@ -289,10 +289,10 @@ try {
   if (err instanceof ChannelBotError) {
     console.error(`[${err.code}] ${err.message}`)
 
-    if (err.code === 'unauthorized') {
-      // Access key/secret is invalid or revoked
-    } else if (err.code === 'not_found') {
-      // Group, chat, or bot does not exist
+    if (err.code === 'rate_limited') {
+      // Back off and retry
+    } else if (err.code === 'missing_access_key' || err.code === 'missing_access_secret') {
+      // Re-run auth set with valid credentials
     }
   } else {
     throw err
@@ -300,14 +300,15 @@ try {
 }
 ```
 
-Common error codes:
+Error codes thrown by the client:
 
-- `unauthorized` — Access key or secret is missing, invalid, or revoked
-- `forbidden` — Credentials lack permission for this workspace or action
-- `not_found` — Workspace, group, chat, manager, or bot does not exist
-- `bad_request` — Invalid payload (e.g. malformed message blocks)
-- `rate_limited` — Channel Talk API rate limit exceeded
-- `network_error` — Connection failure to the Channel Talk API
+- `missing_access_key` — `login()` called without an access key
+- `missing_access_secret` — `login()` called without an access secret
+- `not_authenticated` — Method called before `login()` resolved
+- `rate_limited` — Channel Talk returned 429; the client retries with backoff, then surfaces this if retries are exhausted
+- `network_error` — Fetch failed (DNS, connection refused, timeout)
+- `http_<status>` — Channel Talk returned an unexpected status (e.g., `http_500`) without a structured `code` in the error body
+- Channel Talk API error codes (string) — When the response body includes a `code` field, it is propagated as-is. See the [Channel Talk Open API error reference](https://developers.channel.io/reference/error-handling) for codes such as `WorkspaceNotFoundException`, `BotNotFoundException`, etc.
 
 ## Examples
 
