@@ -333,7 +333,7 @@ When triggering manually, you can select which platform to test:
 | `bot`         | list                              |
 | `snapshot`    | default                           |
 
-> ⚠️ Channel Talk Bot tests require `E2E_CHANNELBOT_WORKSPACE_ID`.
+> ⚠️ Channel Talk Bot tests require `E2E_CHANNELTALKBOT_WORKSPACE_ID` (legacy `E2E_CHANNELBOT_WORKSPACE_ID` still accepted as fallback).
 
 ## Troubleshooting
 
