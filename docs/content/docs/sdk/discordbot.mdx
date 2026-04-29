@@ -337,6 +337,41 @@ DiscordIntent.GuildMessages // 1 << 9
 DiscordIntent.MessageContent // 1 << 15 (privileged)
 ```
 
+## DiscordBotError
+
+All client methods throw `DiscordBotError` on failure. The error includes a `code` field describing the failure category — useful for retry logic and structured error reporting.
+
+```typescript
+import { DiscordBotClient, DiscordBotError } from 'agent-messenger/discordbot'
+
+const client = await new DiscordBotClient().login({ token: 'YOUR_BOT_TOKEN' })
+
+try {
+  await client.sendMessage('1234567890123456789', 'Hello!')
+} catch (err) {
+  if (err instanceof DiscordBotError) {
+    console.error(`[${err.code}] ${err.message}`)
+
+    if (err.code === 'rate_limited') {
+      // Discord returned 429 — back off and retry
+    } else if (err.code === 'unauthorized') {
+      // Token is invalid or revoked
+    }
+  } else {
+    throw err
+  }
+}
+```
+
+Common error codes:
+
+- `unauthorized` — Bot token is missing, invalid, or revoked
+- `rate_limited` — Discord 429 response; check `Retry-After` header
+- `forbidden` — Bot lacks the permission/intent for this action
+- `not_found` — Channel, guild, or message does not exist
+- `bad_request` — Invalid payload (e.g. message too long)
+- `gateway_error` — Real-time Gateway connection failure
+
 ## Examples
 
 ### Auto-Reply Bot

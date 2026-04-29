@@ -297,31 +297,31 @@ See the [TUI docs](https://agent-messenger.dev/docs/tui) for keybindings, archit
 
 ## Supported Platforms
 
-| Feature                    | Slack | Discord | Teams | Webex | Telegram | WhatsApp | LINE  | Instagram | KakaoTalk | Channel Talk (beta) |
-| -------------------------- | :---: | :-----: | :---: | :---: | :------: | :------: | :---: | :-------: | :-------: | :-----------------: |
-| Auto credential extraction |  ✅   |   ✅    |  ✅   |  ✅   |    —     |    —     |   —   |    ✅     |    ✅     |         ✅          |
-| Send & list messages       |  ✅   |   ✅    |  ✅   |  ✅   |    ✅     |    ✅     |  ✅   |    ✅     |    ✅     |         ✅          |
-| Direct messages            |  ✅   |   ✅    |  ✅   |  ✅   |    ✅     |    ✅     |  ✅   |    ✅     |    ✅     |         ✅          |
-| Search messages            |  ✅   |   ✅    |   —   |   —   |    —     |    ✅     |   —   |    ✅     |    —      |         ✅          |
-| Threads                    |  ✅   |   ✅    |   —   |   —   |    —     |    —     |   —   |     —     |    —      |         —           |
-| Channels & Users           |  ✅   |   ✅    |  ✅   |  ✅   | partial  |    —     |  ✅   |     —     |    —      |         ✅          |
-| Reactions                  |  ✅   |   ✅    |  ✅   |   —   |    —     |    ✅     |   —   |     —     |    —      |         —           |
-| File uploads               |  ✅   |   ✅    |  ✅   |   —   |    —     |    —     |   —   |     —     |    —      |         —           |
-| File downloads             |  ✅   |    —    |   —   |   —   |    —     |    —     |   —   |     —     |    —      |         —           |
-| Workspace snapshots        |  ✅   |   ✅    |  ✅   |  ✅   |    —     |    —     |   —   |     —     |    —      |         ✅          |
-| Multi-workspace / account  |  ✅   |   ✅    |  ✅   |   —   |    ✅     |    ✅     |  ✅   |    ✅     |    ✅     |         ✅          |
-| Activity feed              |  ✅   |    —    |   —   |   —   |    —     |    —     |   —   |     —     |    —      |         —           |
-| Drafts                     |  ✅   |    —    |   —   |   —   |    —     |    —     |   —   |     —     |    —      |         —           |
-| Saved items                |  ✅   |    —    |   —   |   —   |    —     |    —     |   —   |     —     |    —      |         —           |
-| Unread messages            |  ✅   |    —    |   —   |   —   |    —     |    —     |   —   |     —     |    —      |         —           |
-| Sidebar sections           |  ✅   |    —    |   —   |   —   |    —     |    —     |   —   |     —     |    —      |         —           |
-| Pins & bookmarks           |  ✅   |    —    |   —   |   —   |    —     |    —     |   —   |     —     |    —      |         —           |
-| Scheduled messages         |  ✅   |    —    |   —   |   —   |    —     |    —     |   —   |     —     |    —      |         —           |
-| Channel management         |  ✅   |    —    |   —   |   —   |    —     |    —     |   —   |     —     |    —      |         —           |
-| Reminders                  |  ✅   |    —    |   —   |   —   |    —     |    —     |   —   |     —     |    —      |         —           |
-| User groups                |  ✅   |    —    |   —   |   —   |    —     |    —     |   —   |     —     |    —      |         —           |
-| Real-time events (SDK)     |  ✅   |    ✅    |   —   |   —   |    —     |    —     |  ✅   |    ✅     |    ✅      |         —           |
-| Bot support                |  ✅   |   ✅    |   —   |   —   |    —     |    ✅     |   —   |     —     |    —      |         ✅          |
+| Feature                    | Slack | Discord | Teams | Webex | Telegram | WhatsApp | LINE  | WeChat | Instagram | KakaoTalk | Channel Talk (beta) |
+| -------------------------- | :---: | :-----: | :---: | :---: | :------: | :------: | :---: | :----: | :-------: | :-------: | :-----------------: |
+| Auto credential extraction |  ✅   |   ✅    |  ✅   |  ✅   |    —     |    —     |   —   |   —    |    ✅     |    ✅     |         ✅          |
+| Send & list messages       |  ✅   |   ✅    |  ✅   |  ✅   |    ✅     |    ✅     |  ✅   |   —    |    ✅     |    ✅     |         ✅          |
+| Direct messages            |  ✅   |   ✅    |  ✅   |  ✅   |    ✅     |    ✅     |  ✅   |   ✅    |    ✅     |    ✅     |         ✅          |
+| Search messages            |  ✅   |   ✅    |   —   |   —   |    —     |    ✅     |   —   |   —    |    ✅     |    —      |         ✅          |
+| Threads                    |  ✅   |   ✅    |   —   |   —   |    —     |    —     |   —   |   —    |     —     |    —      |         —           |
+| Channels & Users           |  ✅   |   ✅    |  ✅   |  ✅   | partial  |    —     |  ✅   |   ✅    |     —     |    —      |         ✅          |
+| Reactions                  |  ✅   |   ✅    |  ✅   |   —   |    —     |    ✅     |   —   |   —    |     —     |    —      |         —           |
+| File uploads               |  ✅   |   ✅    |  ✅   |   —   |    —     |    —     |   —   |   —    |     —     |    —      |         —           |
+| File downloads             |  ✅   |    —    |   —   |   —   |    —     |    —     |   —   |   —    |     —     |    —      |         —           |
+| Workspace snapshots        |  ✅   |   ✅    |  ✅   |  ✅   |    —     |    —     |   —   |   —    |     —     |    —      |         ✅          |
+| Multi-workspace / account  |  ✅   |   ✅    |  ✅   |   —   |    ✅     |    ✅     |  ✅   |   ✅    |    ✅     |    ✅     |         ✅          |
+| Activity feed              |  ✅   |    —    |   —   |   —   |    —     |    —     |   —   |   —    |     —     |    —      |         —           |
+| Drafts                     |  ✅   |    —    |   —   |   —   |    —     |    —     |   —   |   —    |     —     |    —      |         —           |
+| Saved items                |  ✅   |    —    |   —   |   —   |    —     |    —     |   —   |   —    |     —     |    —      |         —           |
+| Unread messages            |  ✅   |    —    |   —   |   —   |    —     |    —     |   —   |   —    |     —     |    —      |         —           |
+| Sidebar sections           |  ✅   |    —    |   —   |   —   |    —     |    —     |   —   |   —    |     —     |    —      |         —           |
+| Pins & bookmarks           |  ✅   |    —    |   —   |   —   |    —     |    —     |   —   |   —    |     —     |    —      |         —           |
+| Scheduled messages         |  ✅   |    —    |   —   |   —   |    —     |    —     |   —   |   —    |     —     |    —      |         —           |
+| Channel management         |  ✅   |    —    |   —   |   —   |    —     |    —     |   —   |   —    |     —     |    —      |         —           |
+| Reminders                  |  ✅   |    —    |   —   |   —   |    —     |    —     |   —   |   —    |     —     |    —      |         —           |
+| User groups                |  ✅   |    —    |   —   |   —   |    —     |    —     |   —   |   —    |     —     |    —      |         —           |
+| Real-time events (SDK)     |  ✅   |    ✅    |   —   |   —   |    —     |    —     |  ✅   |   —    |    ✅     |    ✅      |         —           |
+| Bot support                |  ✅   |   ✅    |   —   |   —   |    —     |    ✅     |   —   |   ✅    |     —     |    —      |         ✅          |
 
 > ⚠️ **Teams tokens expire in 60-90 minutes.** Re-run `agent-teams auth extract` to refresh. See [Teams Guide](skills/agent-teams/SKILL.md) for details.
 

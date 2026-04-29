@@ -180,7 +180,7 @@ const blocks = ChannelBotClient.wrapTextInBlocks('Hello, world!')
 
 ## ChannelBotCredentialManager
 
-Manages Channel Talk Bot credentials stored at `~/.config/agent-messenger/channelbot-credentials.json`. Files are written with `0o600` permissions. The environment variables `E2E_CHANNELBOT_ACCESS_KEY` and `E2E_CHANNELBOT_ACCESS_SECRET` take precedence when calling `getCredentials()` without a `workspaceId`.
+Manages Channel Talk Bot credentials stored at `~/.config/agent-messenger/channeltalkbot-credentials.json`. Files are written with `0o600` permissions. If a legacy `channelbot-credentials.json` exists from an older version, it is migrated automatically on first load. The environment variables `E2E_CHANNELTALKBOT_ACCESS_KEY` and `E2E_CHANNELTALKBOT_ACCESS_SECRET` (or legacy `E2E_CHANNELBOT_*`) take precedence when calling `getCredentials()` without a `workspaceId`.
 
 ```typescript
 import { ChannelBotCredentialManager } from 'agent-messenger/channeltalkbot'
@@ -272,6 +272,42 @@ import {
   MessageBlockSchema,
 } from 'agent-messenger/channeltalkbot'
 ```
+
+## ChannelBotError
+
+All client methods throw `ChannelBotError` on failure. The error includes a `code` field describing the failure category — useful for retry logic and structured error reporting.
+
+```typescript
+import { ChannelBotClient, ChannelBotError } from 'agent-messenger/channeltalkbot'
+
+const client = await new ChannelBotClient().login({ accessKey, accessSecret })
+
+try {
+  const blocks = ChannelBotClient.wrapTextInBlocks('Hello!')
+  await client.sendGroupMessage('group_id', blocks, 'My Bot')
+} catch (err) {
+  if (err instanceof ChannelBotError) {
+    console.error(`[${err.code}] ${err.message}`)
+
+    if (err.code === 'unauthorized') {
+      // Access key/secret is invalid or revoked
+    } else if (err.code === 'not_found') {
+      // Group, chat, or bot does not exist
+    }
+  } else {
+    throw err
+  }
+}
+```
+
+Common error codes:
+
+- `unauthorized` — Access key or secret is missing, invalid, or revoked
+- `forbidden` — Credentials lack permission for this workspace or action
+- `not_found` — Workspace, group, chat, manager, or bot does not exist
+- `bad_request` — Invalid payload (e.g. malformed message blocks)
+- `rate_limited` — Channel Talk API rate limit exceeded
+- `network_error` — Connection failure to the Channel Talk API
 
 ## Examples
 
