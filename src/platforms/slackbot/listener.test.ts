@@ -748,5 +748,265 @@ describe('SlackBotListener', () => {
 
       expect(messages.length).toBe(0)
     })
+
+    it('ignores stale close events after stop+start (does not double-schedule reconnect)', async () => {
+      const client = createMockClient()
+      listener = new SlackBotListener(client, { appToken: APP_TOKEN })
+
+      await listener.start()
+      const staleWs = mockWsInstance
+      staleWs.simulateOpen()
+
+      listener.stop()
+      await listener.start()
+      const callsAfterRestart = client.appsConnectionsOpen.mock.calls.length
+
+      staleWs.simulateClose()
+      await new Promise((r) => setTimeout(r, 1500))
+
+      expect(client.appsConnectionsOpen.mock.calls.length).toBe(callsAfterRestart)
+    })
+
+    it('stale ack after reconnect targets the new socket guard, not the old socket', async () => {
+      const client = createMockClient()
+      listener = new SlackBotListener(client, { appToken: APP_TOKEN })
+
+      let captured: SlackSocketModeEventsApiArgs<SlackSocketModeMessageEvent> | null = null
+      listener.on('message', (a) => {
+        captured = a
+      })
+
+      await listener.start()
+      const staleWs = mockWsInstance
+      staleWs.simulateOpen()
+      staleWs.simulateHello()
+      staleWs.simulateEventsApi('env_stale', { type: 'message', channel: 'C', ts: '1' })
+
+      listener.stop()
+      await listener.start()
+
+      const newWs = mockWsInstance
+      expect(newWs).not.toBe(staleWs)
+
+      captured!.ack()
+
+      expect(newWs.sent.length).toBe(0)
+      expect(staleWs.sent.length).toBe(0)
+    })
+  })
+
+  describe('start after stop', () => {
+    it('resets reconnect attempts on fresh start', async () => {
+      const client = createMockClient()
+      listener = new SlackBotListener(client, { appToken: APP_TOKEN })
+
+      await listener.start()
+      ;(listener as any).reconnectAttempts = 5
+      listener.stop()
+
+      await listener.start()
+      expect((listener as any).reconnectAttempts).toBe(0)
+    })
+
+    it('clears retryAfter floor on fresh start', async () => {
+      const client = createMockClient()
+      listener = new SlackBotListener(client, { appToken: APP_TOKEN })
+
+      await listener.start()
+      ;(listener as any).nextReconnectFloorMs = 5000
+      listener.stop()
+
+      await listener.start()
+      expect((listener as any).nextReconnectFloorMs).toBe(0)
+    })
+  })
+
+  describe('zombie connection', () => {
+    it('closes the WebSocket when no pong arrives within the timeout', async () => {
+      const client = createMockClient()
+      listener = new SlackBotListener(client, { appToken: APP_TOKEN })
+
+      await listener.start()
+      mockWsInstance.simulateOpen()
+      mockWsInstance.simulateHello()
+
+      const ws = mockWsInstance
+
+      const pingTimer = (listener as any).pingTimer
+      if (pingTimer) clearInterval(pingTimer)
+      ws.ping()
+      ;(listener as any).pongTimer = setTimeout(() => {
+        if (!(listener as any).isCurrent((listener as any).generation, ws)) return
+        ws.close()
+      }, 5)
+
+      await new Promise((r) => setTimeout(r, 30))
+
+      expect(ws.readyState).toBe(MockWs.CLOSED)
+    })
+  })
+
+  describe('disconnect envelope reason handling', () => {
+    it('resets reconnectAttempts on non-terminal disconnect (refresh_requested)', async () => {
+      const client = createMockClient()
+      listener = new SlackBotListener(client, { appToken: APP_TOKEN })
+
+      await listener.start()
+      mockWsInstance.simulateOpen()
+      mockWsInstance.simulateHello()
+
+      ;(listener as any).reconnectAttempts = 5
+      mockWsInstance.simulateDisconnect('refresh_requested')
+
+      expect((listener as any).reconnectAttempts).toBe(0)
+    })
+
+    it('resets reconnectAttempts on warning disconnect', async () => {
+      const client = createMockClient()
+      listener = new SlackBotListener(client, { appToken: APP_TOKEN })
+
+      await listener.start()
+      mockWsInstance.simulateOpen()
+      mockWsInstance.simulateHello()
+
+      ;(listener as any).reconnectAttempts = 3
+      mockWsInstance.simulateDisconnect('warning')
+
+      expect((listener as any).reconnectAttempts).toBe(0)
+    })
+
+    it('treats link_disabled as terminal: emits error, stops, no reconnect', async () => {
+      const client = createMockClient()
+      listener = new SlackBotListener(client, { appToken: APP_TOKEN })
+
+      const errors: Error[] = []
+      listener.on('error', (e) => errors.push(e))
+
+      await listener.start()
+      mockWsInstance.simulateOpen()
+      mockWsInstance.simulateHello()
+
+      const callsBeforeDisconnect = client.appsConnectionsOpen.mock.calls.length
+      mockWsInstance.simulateDisconnect('link_disabled')
+      await new Promise((r) => setTimeout(r, 1500))
+
+      expect(errors.length).toBe(1)
+      expect(errors[0].message).toMatch(/link_disabled/)
+      expect(client.appsConnectionsOpen.mock.calls.length).toBe(callsBeforeDisconnect)
+    })
+  })
+
+  describe('hello timeout', () => {
+    it('closes the socket if hello does not arrive within HELLO_TIMEOUT', async () => {
+      const client = createMockClient()
+      listener = new SlackBotListener(client, { appToken: APP_TOKEN })
+
+      await listener.start()
+      mockWsInstance.simulateOpen()
+      const ws = mockWsInstance
+
+      const helloTimer = (listener as any).helloTimer
+      expect(helloTimer).not.toBeNull()
+
+      ;(listener as any).clearHelloTimer()
+      ;(listener as any).helloTimer = setTimeout(() => {
+        if (!(listener as any).isCurrent((listener as any).generation, ws)) return
+        ws.close()
+      }, 5)
+
+      await new Promise((r) => setTimeout(r, 30))
+
+      expect(ws.readyState).toBe(MockWs.CLOSED)
+    })
+
+    it('clears the hello timer once hello arrives', async () => {
+      const client = createMockClient()
+      listener = new SlackBotListener(client, { appToken: APP_TOKEN })
+
+      await listener.start()
+      mockWsInstance.simulateOpen()
+      expect((listener as any).helloTimer).not.toBeNull()
+
+      mockWsInstance.simulateHello()
+      expect((listener as any).helloTimer).toBeNull()
+    })
+  })
+
+  describe('retryAfter floor', () => {
+    it('uses retryAfter as a floor on the next reconnect delay', async () => {
+      const rateLimited: any = new Error('rate limited')
+      rateLimited.code = 'slack_webapi_rate_limited_error'
+      rateLimited.retryAfter = 5
+
+      const client = createMockClient({
+        appsConnectionsOpen: mock(() => Promise.reject(rateLimited)),
+      })
+
+      listener = new SlackBotListener(client, { appToken: APP_TOKEN })
+      listener.on('error', () => {})
+
+      const setTimeoutSpy = mock<typeof setTimeout>()
+      const realSetTimeout = globalThis.setTimeout
+      globalThis.setTimeout = ((fn: () => void, ms?: number) => {
+        setTimeoutSpy(fn, ms)
+        return realSetTimeout(() => {}, 1_000_000) as any
+      }) as any
+
+      try {
+        await listener.start()
+      } finally {
+        globalThis.setTimeout = realSetTimeout
+      }
+
+      const reconnectCalls = setTimeoutSpy.mock.calls.filter((call) => {
+        const ms = call[1] as number | undefined
+        return typeof ms === 'number' && ms >= 1000
+      })
+      expect(reconnectCalls.length).toBeGreaterThanOrEqual(1)
+      expect(reconnectCalls[0][1]).toBe(5000)
+    })
+
+    it('does not set floor when retryAfter is absent (uses base exponential delay)', async () => {
+      const networkErr: any = new Error('boom')
+      const client = createMockClient({
+        appsConnectionsOpen: mock(() => Promise.reject(networkErr)),
+      })
+
+      listener = new SlackBotListener(client, { appToken: APP_TOKEN })
+      listener.on('error', () => {})
+
+      const setTimeoutSpy = mock<typeof setTimeout>()
+      const realSetTimeout = globalThis.setTimeout
+      globalThis.setTimeout = ((fn: () => void, ms?: number) => {
+        setTimeoutSpy(fn, ms)
+        return realSetTimeout(() => {}, 1_000_000) as any
+      }) as any
+
+      try {
+        await listener.start()
+      } finally {
+        globalThis.setTimeout = realSetTimeout
+      }
+
+      const reconnectCalls = setTimeoutSpy.mock.calls.filter((call) => {
+        const ms = call[1] as number | undefined
+        return typeof ms === 'number' && ms >= 1000
+      })
+      expect(reconnectCalls.length).toBeGreaterThanOrEqual(1)
+      expect(reconnectCalls[0][1]).toBe(1000)
+    })
+
+    it('clears floor after applying it once', async () => {
+      const client = createMockClient()
+      listener = new SlackBotListener(client, { appToken: APP_TOKEN })
+
+      ;(listener as any).running = true
+      ;(listener as any).generation = 1
+      ;(listener as any).nextReconnectFloorMs = 7000
+      ;(listener as any).scheduleReconnect()
+
+      expect((listener as any).nextReconnectFloorMs).toBe(0)
+      clearTimeout((listener as any).reconnectTimer)
+    })
   })
 })

@@ -21,6 +21,7 @@ const RECONNECT_BASE_DELAY = 1_000
 const RECONNECT_MAX_DELAY = 30_000
 const PING_INTERVAL = 30_000
 const PONG_TIMEOUT = 10_000
+const HELLO_TIMEOUT = 10_000
 
 const FATAL_ERROR_CODES = new Set([
   'not_authed',
@@ -32,6 +33,8 @@ const FATAL_ERROR_CODES = new Set([
   'missing_app_token',
   'invalid_app_token_type',
 ])
+
+const TERMINAL_DISCONNECT_REASONS = new Set(['link_disabled'])
 
 type EventKey = keyof SlackBotListenerEventMap
 
@@ -49,8 +52,10 @@ export class SlackBotListener {
   private emitter = new EventEmitter()
   private pingTimer: ReturnType<typeof setInterval> | null = null
   private pongTimer: ReturnType<typeof setTimeout> | null = null
+  private helloTimer: ReturnType<typeof setTimeout> | null = null
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null
   private reconnectAttempts = 0
+  private nextReconnectFloorMs = 0
   private generation = 0
 
   constructor(client: SlackBotClient, options: SlackBotListenerOptions) {
@@ -66,6 +71,7 @@ export class SlackBotListener {
     if (this.running) return
     this.running = true
     this.reconnectAttempts = 0
+    this.nextReconnectFloorMs = 0
     this.generation++
     await this.connect(this.generation)
   }
@@ -118,6 +124,7 @@ export class SlackBotListener {
           return
         }
         this.startPing(generation, ws)
+        this.armHelloTimeout(generation, ws)
       })
 
       ws.on('message', (raw) => {
@@ -160,6 +167,11 @@ export class SlackBotListener {
         return
       }
 
+      const retryAfter = (error as { retryAfter?: number })?.retryAfter
+      if (typeof retryAfter === 'number' && retryAfter > 0) {
+        this.nextReconnectFloorMs = retryAfter * 1000
+      }
+
       if (this.running) {
         this.scheduleReconnect()
       }
@@ -172,6 +184,7 @@ export class SlackBotListener {
     switch (envelope.type) {
       case 'hello': {
         const hello = envelope as { connection_info?: { app_id?: string }; num_connections?: number }
+        this.clearHelloTimer()
         this.reconnectAttempts = 0
         this.emitter.emit('connected', {
           app_id: hello.connection_info?.app_id,
@@ -181,8 +194,20 @@ export class SlackBotListener {
       }
 
       case 'disconnect': {
-        // Slack tells us to reconnect (warning, refresh_requested, link_disabled).
-        // Closing the socket triggers our `close` handler which schedules a reconnect.
+        // Server-requested reconnect (warning, refresh_requested) — analogous to
+        // Discord opcode 7, so reset backoff. `link_disabled` is terminal: the app
+        // was disabled, reconnecting would loop forever.
+        const reason = (envelope as { reason?: string }).reason
+        if (reason && TERMINAL_DISCONNECT_REASONS.has(reason)) {
+          this.emitter.emit(
+            'error',
+            new SlackBotError(`Slack closed the Socket Mode session: ${reason}`, 'disconnect_terminal'),
+          )
+          this.running = false
+          ws.close()
+          return
+        }
+        this.reconnectAttempts = 0
         ws.close()
         return
       }
@@ -264,6 +289,22 @@ export class SlackBotListener {
     }
   }
 
+  private armHelloTimeout(generation: number, ws: WebSocket): void {
+    this.clearHelloTimer()
+    this.helloTimer = setTimeout(() => {
+      this.helloTimer = null
+      if (!this.isCurrent(generation, ws)) return
+      ws.close()
+    }, HELLO_TIMEOUT)
+  }
+
+  private clearHelloTimer(): void {
+    if (this.helloTimer) {
+      clearTimeout(this.helloTimer)
+      this.helloTimer = null
+    }
+  }
+
   private startPing(generation: number, ws: WebSocket): void {
     this.clearPingTimers()
     this.pingTimer = setInterval(() => {
@@ -284,7 +325,9 @@ export class SlackBotListener {
   }
 
   private scheduleReconnect(): void {
-    const delay = Math.min(RECONNECT_BASE_DELAY * 2 ** this.reconnectAttempts, RECONNECT_MAX_DELAY)
+    const exponential = Math.min(RECONNECT_BASE_DELAY * 2 ** this.reconnectAttempts, RECONNECT_MAX_DELAY)
+    const delay = Math.max(exponential, this.nextReconnectFloorMs)
+    this.nextReconnectFloorMs = 0
     this.reconnectAttempts++
     const generation = this.generation
     this.reconnectTimer = setTimeout(() => {
@@ -310,6 +353,7 @@ export class SlackBotListener {
 
   private clearTimers(): void {
     this.clearPingTimers()
+    this.clearHelloTimer()
     if (this.reconnectTimer) {
       clearTimeout(this.reconnectTimer)
       this.reconnectTimer = null

@@ -52,7 +52,9 @@ export class SlackBotClient {
         break
       }
     }
-    throw new SlackBotError(lastError?.message || 'Unknown error', (lastError as any)?.code || 'unknown_error')
+    const code = (lastError as any)?.code || 'unknown_error'
+    const retryAfter = code === RATE_LIMIT_ERROR_CODE ? (lastError as any)?.retryAfter : undefined
+    throw new SlackBotError(lastError?.message || 'Unknown error', code, retryAfter)
   }
 
   private sleep(ms: number): Promise<void> {

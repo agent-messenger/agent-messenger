@@ -30,11 +30,13 @@ export interface SlackBotConfig {
 // Error class for SlackBot operations
 export class SlackBotError extends Error {
   code: string
+  retryAfter?: number
 
-  constructor(message: string, code: string) {
+  constructor(message: string, code: string, retryAfter?: number) {
     super(message)
     this.name = 'SlackBotError'
     this.code = code
+    if (retryAfter !== undefined) this.retryAfter = retryAfter
   }
 }
 
