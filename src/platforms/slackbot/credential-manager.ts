@@ -28,10 +28,29 @@ export class SlackBotCredentialManager {
       return { current: null, workspaces: {} }
     }
     const parsed = SlackBotConfigSchema.safeParse(json)
-    if (!parsed.success) {
+    if (parsed.success) {
+      return parsed.data
+    }
+    // Schema validation failed (e.g., a stored token from a third-party tool does not
+    // start with xoxb-, or a future schema added new required fields). Fall back to the
+    // raw object to preserve existing entries; the runtime will surface real auth errors
+    // when the token is actually used. This matches pre-validation behavior so upgrades
+    // never silently empty a user's credentials file.
+    process.stderr.write(
+      `[agent-slackbot] Warning: credentials file at ${this.credentialsPath} did not match the expected schema. Using raw values; run "auth set" to fix.\n`,
+    )
+    return this.coerceLooseConfig(json)
+  }
+
+  private coerceLooseConfig(raw: unknown): SlackBotConfig {
+    if (!raw || typeof raw !== 'object') {
       return { current: null, workspaces: {} }
     }
-    return parsed.data
+    const obj = raw as Partial<SlackBotConfig>
+    return {
+      current: obj.current ?? null,
+      workspaces: obj.workspaces ?? {},
+    }
   }
 
   async save(config: SlackBotConfig): Promise<void> {
