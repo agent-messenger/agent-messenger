@@ -24,14 +24,14 @@ This command:
 1. Validates the credentials against the Channel Talk API
 2. Retrieves the workspace ID and name
 3. Sets this workspace as the current active workspace
-4. Saves credentials to `~/.config/agent-messenger/channelbot-credentials.json`
+4. Saves credentials to `~/.config/agent-messenger/channeltalkbot-credentials.json`
 
 ## Credential Storage
 
 ### Location
 
 ```
-~/.config/agent-messenger/channelbot-credentials.json
+~/.config/agent-messenger/channeltalkbot-credentials.json
 ```
 
 ### Format

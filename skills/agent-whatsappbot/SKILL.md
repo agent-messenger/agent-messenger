@@ -245,6 +245,8 @@ agent-whatsappbot template list --pretty
 
 ## Common Patterns
 
+See `references/common-patterns.md` for additional workflows.
+
 ### Send a notification outside the 24h window
 
 Template messages are required when the customer hasn't messaged you in the last 24 hours. Always check your available templates first:
@@ -286,6 +288,14 @@ agent-whatsappbot message send-template 15559876543 deployment_alert \
   --components '[{"type":"body","parameters":[{"type":"text","text":"v2.1.0"},{"type":"text","text":"production"},{"type":"text","text":"success"}]}]'
 ```
 
+## Templates
+
+See `templates/` directory for runnable examples:
+
+- `post-message.sh` - Send messages with error handling and retries
+- `account-summary.sh` - Generate account and template summary
+- `send-template.sh` - Send a template message with parameters
+
 ## Error Handling
 
 All commands return consistent error format:
@@ -317,6 +327,20 @@ Config format:
   }
 }
 ```
+
+## Key Differences from agent-whatsapp
+
+| Feature           | agent-whatsapp                       | agent-whatsappbot                  |
+| ----------------- | ------------------------------------ | ---------------------------------- |
+| Auth type         | User account (Baileys, QR/pairing)   | Cloud API (Phone Number ID + Token) |
+| Token source      | Pairing flow with phone number       | Meta Business Manager              |
+| Read messages     | Yes                                  | No (webhook-only inbound)          |
+| Group chats       | Yes                                  | No                                 |
+| Template messages | No                                   | Yes (required outside 24h window)  |
+| Free-form text    | Anytime                              | Only within 24h customer window    |
+| Media uploads     | Direct (local files)                 | URL only                           |
+| Multi-account     | Multi-phone, single CLI session      | Multi-account by Phone Number ID   |
+| CI/CD friendly    | Requires phone, pairing flow         | Yes (just set token)               |
 
 ## Limitations
 
@@ -378,3 +402,8 @@ WhatsApp enforces rate limits based on your business tier. The CLI automatically
 - Use full international format without `+` prefix (e.g., `15551234567` not `+1-555-123-4567`)
 - If outside the 24h window, use `message send-template` instead of `message send`
 - Check that your WhatsApp Business account is active and not restricted
+
+## References
+
+- [Authentication Guide](references/authentication.md)
+- [Common Patterns](references/common-patterns.md)

@@ -255,6 +255,8 @@ agent-wechatbot template list --pretty
 
 ## Common Patterns
 
+See `references/common-patterns.md` for additional workflows.
+
 ### Send a customer service message within 48h window
 
 Customer service messages can be sent to users who have interacted with your account within the last 48 hours:
@@ -304,6 +306,14 @@ agent-wechatbot user get oABCD1234 --pretty
 agent-wechatbot template send oABCD1234 deployment_alert \
   --data '{"version":{"value":"v2.1.0"},"environment":{"value":"production"},"status":{"value":"success"}}'
 ```
+
+## Templates
+
+See `templates/` directory for runnable examples:
+
+- `post-message.sh` - Send a customer service message with error handling and retries
+- `account-summary.sh` - Generate account, template, and follower summary
+- `send-template.sh` - Send a template message with parameters
 
 ## Error Handling
 
@@ -392,3 +402,8 @@ These indicate an expired or invalid access token. The CLI handles automatic tok
 ### Rate limiting (45009)
 
 WeChat enforces API call frequency limits. If you hit error `45009`, wait before retrying. For bulk operations, add delays between requests.
+
+## References
+
+- [Authentication Guide](references/authentication.md)
+- [Common Patterns](references/common-patterns.md)
