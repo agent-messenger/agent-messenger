@@ -52,7 +52,9 @@ export class SlackBotClient {
         break
       }
     }
-    throw new SlackBotError(lastError?.message || 'Unknown error', (lastError as any)?.code || 'unknown_error')
+    const code = (lastError as any)?.code || 'unknown_error'
+    const retryAfter = code === RATE_LIMIT_ERROR_CODE ? (lastError as any)?.retryAfter : undefined
+    throw new SlackBotError(lastError?.message || 'Unknown error', code, retryAfter)
   }
 
   private sleep(ms: number): Promise<void> {
@@ -462,6 +464,24 @@ export class SlackBotClient {
     return this.withRetry(async () => {
       const response = await this.ensureAuth().chat.delete({ channel, ts })
       this.checkResponse(response)
+    })
+  }
+
+  async appsConnectionsOpen(appToken: string): Promise<{ url: string }> {
+    if (!appToken) {
+      throw new SlackBotError('App-level token is required for Socket Mode', 'missing_app_token')
+    }
+    if (!appToken.startsWith('xapp-')) {
+      throw new SlackBotError(
+        'Token must be an app-level token (xapp-) with connections:write scope',
+        'invalid_app_token_type',
+      )
+    }
+
+    return this.withRetry(async () => {
+      const response = await new WebClient(appToken).apps.connections.open()
+      this.checkResponse(response)
+      return { url: (response as { url: string }).url }
     })
   }
 }
