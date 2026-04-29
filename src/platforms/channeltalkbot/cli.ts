@@ -23,6 +23,15 @@ program
   .option('--pretty', 'Pretty-print JSON output')
   .option('--workspace <id>', 'Workspace ID to use')
   .option('--bot <name>', 'Bot name to use for sending messages')
+  .hook('preAction', (thisCmd, actionCmd) => {
+    for (const [key, value] of Object.entries(thisCmd.opts())) {
+      if (value === undefined) continue
+      const source = actionCmd.getOptionValueSource(key)
+      if (source === undefined || source === 'default') {
+        actionCmd.setOptionValue(key, value)
+      }
+    }
+  })
 
 program.addCommand(authCommand)
 program.addCommand(whoamiCommand)
