@@ -18,6 +18,17 @@ metadata:
 
 A TypeScript CLI tool that enables AI agents and humans to interact with Slack workspaces using bot tokens (xoxb-). Unlike agent-slack which extracts user tokens from the desktop app, agent-slackbot uses standard Slack Bot tokens for server-side and CI/CD integrations.
 
+## Key Concepts
+
+Before diving in, a few things about Slack Bot integration:
+
+- **Bot tokens (xoxb-)** — Issued from the Slack App config (api.slack.com/apps). Bots act as the bot user, not as you. Different name, different permissions, different identity.
+- **Workspace + Bot hierarchy** — Each workspace can have multiple bot tokens (one per Slack App). The CLI stores bots under their workspace and lets you switch between them.
+- **Channel access requires invitation** — Bots must be invited to private channels with `/invite @YourBotName` before they can read or post.
+- **Bot scopes are immutable per-token** — Token capabilities are baked in at App creation. Adding a new scope means re-installing the App and refreshing the token.
+- **Edit/delete is bot-scoped** — A bot can only edit/delete messages it sent. It cannot modify other users' messages.
+- **Real-time events** — Available via the SDK's Socket Mode listener (separate `xapp-` app-level token required), not via the CLI.
+
 ## Quick Start
 
 ```bash
@@ -257,6 +268,13 @@ Use `--pretty` flag for formatted output:
 ```bash
 agent-slackbot channel list --pretty
 ```
+
+## Global Options
+
+| Option       | Description                                          |
+| ------------ | ---------------------------------------------------- |
+| `--pretty`   | Human-readable output instead of compact JSON        |
+| `--bot <id>` | Use a specific bot for this command (workspace/bot)  |
 
 ## Common Patterns
 

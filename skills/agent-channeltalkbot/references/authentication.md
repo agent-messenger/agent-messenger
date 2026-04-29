@@ -24,14 +24,14 @@ This command:
 1. Validates the credentials against the Channel Talk API
 2. Retrieves the workspace ID and name
 3. Sets this workspace as the current active workspace
-4. Saves credentials to `~/.config/agent-messenger/channelbot-credentials.json`
+4. Saves credentials to `~/.config/agent-messenger/channeltalkbot-credentials.json`
 
 ## Credential Storage
 
 ### Location
 
 ```
-~/.config/agent-messenger/channelbot-credentials.json
+~/.config/agent-messenger/channeltalkbot-credentials.json
 ```
 
 ### Format
@@ -155,10 +155,12 @@ agent-channeltalkbot auth status
 
 For CI/CD and testing, credentials can be set via environment variables:
 
-- `E2E_CHANNELBOT_ACCESS_KEY` - Access key
-- `E2E_CHANNELBOT_ACCESS_SECRET` - Access secret
+- `E2E_CHANNELTALKBOT_ACCESS_KEY` - Access key (preferred)
+- `E2E_CHANNELTALKBOT_ACCESS_SECRET` - Access secret (preferred)
+- `E2E_CHANNELBOT_ACCESS_KEY` - Legacy fallback, still accepted
+- `E2E_CHANNELBOT_ACCESS_SECRET` - Legacy fallback, still accepted
 
-Environment variables take precedence over stored credentials when no specific workspace is requested.
+Environment variables take precedence over stored credentials when no specific workspace is requested. The newer `E2E_CHANNELTALKBOT_*` names are preferred and override the legacy `E2E_CHANNELBOT_*` names when both are set.
 
 ## Troubleshooting
 

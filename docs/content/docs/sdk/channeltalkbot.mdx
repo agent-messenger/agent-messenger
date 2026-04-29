@@ -180,7 +180,7 @@ const blocks = ChannelBotClient.wrapTextInBlocks('Hello, world!')
 
 ## ChannelBotCredentialManager
 
-Manages Channel Talk Bot credentials stored at `~/.config/agent-messenger/channelbot-credentials.json`. Files are written with `0o600` permissions. The environment variables `E2E_CHANNELBOT_ACCESS_KEY` and `E2E_CHANNELBOT_ACCESS_SECRET` take precedence when calling `getCredentials()` without a `workspaceId`.
+Manages Channel Talk Bot credentials stored at `~/.config/agent-messenger/channeltalkbot-credentials.json`. Files are written with `0o600` permissions. If a legacy `channelbot-credentials.json` exists from an older version, it is migrated automatically on first load. The environment variables `E2E_CHANNELTALKBOT_ACCESS_KEY` and `E2E_CHANNELTALKBOT_ACCESS_SECRET` (or legacy `E2E_CHANNELBOT_*`) take precedence when calling `getCredentials()` without a `workspaceId`.
 
 ```typescript
 import { ChannelBotCredentialManager } from 'agent-messenger/channeltalkbot'
@@ -272,6 +272,43 @@ import {
   MessageBlockSchema,
 } from 'agent-messenger/channeltalkbot'
 ```
+
+## ChannelBotError
+
+All client methods throw `ChannelBotError` on failure. The error includes a `code` field describing the failure category — useful for retry logic and structured error reporting.
+
+```typescript
+import { ChannelBotClient, ChannelBotError } from 'agent-messenger/channeltalkbot'
+
+const client = await new ChannelBotClient().login({ accessKey, accessSecret })
+
+try {
+  const blocks = ChannelBotClient.wrapTextInBlocks('Hello!')
+  await client.sendGroupMessage('group_id', blocks, 'My Bot')
+} catch (err) {
+  if (err instanceof ChannelBotError) {
+    console.error(`[${err.code}] ${err.message}`)
+
+    if (err.code === 'rate_limited') {
+      // Back off and retry
+    } else if (err.code === 'missing_access_key' || err.code === 'missing_access_secret') {
+      // Re-run auth set with valid credentials
+    }
+  } else {
+    throw err
+  }
+}
+```
+
+Error codes thrown by the client:
+
+- `missing_access_key` — `login()` called without an access key
+- `missing_access_secret` — `login()` called without an access secret
+- `not_authenticated` — Method called before `login()` resolved
+- `rate_limited` — Channel Talk returned 429; the client retries with backoff, then surfaces this if retries are exhausted
+- `network_error` — Fetch failed (DNS, connection refused, timeout)
+- `http_<status>` — Channel Talk returned an unexpected status (e.g., `http_500`) without a structured `code` in the error body
+- Channel Talk API error codes (string) — When the response body includes a `code` field, it is propagated as-is. See the [Channel Talk Open API error reference](https://developers.channel.io/reference/error-handling) for codes such as `WorkspaceNotFoundException`, `BotNotFoundException`, etc.
 
 ## Examples
 

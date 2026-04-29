@@ -13,6 +13,15 @@ program
   .version(pkg.version)
   .option('--pretty', 'Pretty-print JSON output')
   .option('--account <id>', 'Account ID to use')
+  .hook('preAction', (thisCmd, actionCmd) => {
+    for (const [key, value] of Object.entries(thisCmd.opts())) {
+      if (value === undefined) continue
+      const source = actionCmd.getOptionValueSource(key)
+      if (source === undefined || source === 'default') {
+        actionCmd.setOptionValue(key, value)
+      }
+    }
+  })
 
 program.addCommand(authCommand)
 program.addCommand(whoamiCommand)

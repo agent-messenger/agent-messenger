@@ -1,6 +1,6 @@
 import { Command } from 'commander'
 
-import { formatOutput } from '@/shared/utils/output'
+import { cliOutput } from '@/shared/utils/cli-output'
 
 import type { WeChatBotUserInfo } from '../types'
 import type { AccountOption } from './shared'
@@ -43,11 +43,6 @@ export async function getAction(openId: string, options: UserOptions): Promise<U
   } catch (error) {
     return { error: (error as Error).message }
   }
-}
-
-function cliOutput(result: UserResult, pretty?: boolean): void {
-  console.log(formatOutput(result, pretty))
-  if (result.error) process.exit(1)
 }
 
 export const userCommand = new Command('user')

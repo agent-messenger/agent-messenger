@@ -18,6 +18,17 @@ metadata:
 
 A TypeScript CLI tool that enables AI agents and humans to interact with Discord servers using bot tokens. Unlike agent-discord which extracts user tokens from the desktop app, agent-discordbot uses standard Discord Bot tokens for server-side and CI/CD integrations.
 
+## Key Concepts
+
+Before diving in, a few things about Discord Bot integration:
+
+- **Bot tokens** — Issued from the Discord Developer Portal (discord.com/developers/applications). Bots act as the bot application's user, with their own ID and presence.
+- **Server (Guild) preference** — A bot can be in many servers. Use `server switch <id>` to set the active server, or pass `--server <id>` per command.
+- **Privileged intents** — `MessageContent`, `GuildMembers`, and `GuildPresences` are privileged and must be enabled in the Developer Portal before they can be used by the SDK listener.
+- **Permission gates** — Bot capabilities depend on the role's permission flags in each server. Missing permissions return 403 errors.
+- **Real-time events** — Available via the SDK's Gateway listener, not via the CLI.
+- **Channel resolution** — Use channel IDs (snowflake numbers) directly. The CLI does not resolve `#channel-name` syntax.
+
 ## Quick Start
 
 ```bash

@@ -22,8 +22,18 @@ program
   .name('agent-discordbot')
   .description('CLI tool for Discord bot integration using bot tokens')
   .version(pkg.version)
+  .option('--pretty', 'Pretty-print JSON output')
   .option('--bot <id>', 'Bot ID to use')
   .option('--server <id>', 'Server ID to use')
+  .hook('preAction', (thisCmd, actionCmd) => {
+    for (const [key, value] of Object.entries(thisCmd.opts())) {
+      if (value === undefined) continue
+      const source = actionCmd.getOptionValueSource(key)
+      if (source === undefined || source === 'default') {
+        actionCmd.setOptionValue(key, value)
+      }
+    }
+  })
 
 program.addCommand(authCommand)
 program.addCommand(whoamiCommand)

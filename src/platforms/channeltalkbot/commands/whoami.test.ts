@@ -35,6 +35,8 @@ describe('whoami command', () => {
     originalEnv = { ...process.env }
     delete process.env.E2E_CHANNELBOT_ACCESS_KEY
     delete process.env.E2E_CHANNELBOT_ACCESS_SECRET
+    delete process.env.E2E_CHANNELTALKBOT_ACCESS_KEY
+    delete process.env.E2E_CHANNELTALKBOT_ACCESS_SECRET
     mockGetChannel.mockClear()
   })
 

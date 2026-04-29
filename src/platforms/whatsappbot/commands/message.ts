@@ -1,6 +1,6 @@
 import { Command } from 'commander'
 
-import { formatOutput } from '@/shared/utils/output'
+import { cliOutput } from '@/shared/utils/cli-output'
 
 import type { AccountOption } from './shared'
 import { getClient } from './shared'
@@ -89,11 +89,6 @@ export async function sendDocumentAction(
   } catch (error) {
     return { error: (error as Error).message }
   }
-}
-
-function cliOutput(result: MessageResult, pretty?: boolean): void {
-  console.log(formatOutput(result, pretty))
-  if (result.error) process.exit(1)
 }
 
 export const messageCommand = new Command('message')

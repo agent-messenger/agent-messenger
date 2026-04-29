@@ -4,6 +4,7 @@ import { homedir } from 'node:os'
 import { join } from 'node:path'
 
 import type { SlackBotConfig, SlackBotCredentials, SlackBotWorkspace } from './types'
+import { SlackBotConfigSchema } from './types'
 
 export class SlackBotCredentialManager {
   private configDir: string
@@ -20,12 +21,41 @@ export class SlackBotCredentialManager {
     }
 
     const content = await readFile(this.credentialsPath, 'utf-8')
-    return JSON.parse(content) as SlackBotConfig
+    let json: unknown
+    try {
+      json = JSON.parse(content)
+    } catch {
+      return { current: null, workspaces: {} }
+    }
+    const parsed = SlackBotConfigSchema.safeParse(json)
+    if (parsed.success) {
+      return parsed.data
+    }
+    // Schema validation failed (e.g., a stored token from a third-party tool does not
+    // start with xoxb-, or a future schema added new required fields). Fall back to the
+    // raw object to preserve existing entries; the runtime will surface real auth errors
+    // when the token is actually used. This matches pre-validation behavior so upgrades
+    // never silently empty a user's credentials file.
+    process.stderr.write(
+      `[agent-slackbot] Warning: credentials file at ${this.credentialsPath} did not match the expected schema. Using raw values; run "auth set" to fix.\n`,
+    )
+    return this.coerceLooseConfig(json)
+  }
+
+  private coerceLooseConfig(raw: unknown): SlackBotConfig {
+    if (!raw || typeof raw !== 'object') {
+      return { current: null, workspaces: {} }
+    }
+    const obj = raw as Partial<SlackBotConfig>
+    return {
+      current: obj.current ?? null,
+      workspaces: obj.workspaces ?? {},
+    }
   }
 
   async save(config: SlackBotConfig): Promise<void> {
     await mkdir(this.configDir, { recursive: true })
-    await writeFile(this.credentialsPath, JSON.stringify(config, null, 2))
+    await writeFile(this.credentialsPath, JSON.stringify(config, null, 2), { mode: 0o600 })
     await chmod(this.credentialsPath, 0o600)
   }
 

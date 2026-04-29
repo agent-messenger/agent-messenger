@@ -1,6 +1,6 @@
-import { afterEach, beforeEach, describe, expect, it } from 'bun:test'
+import { afterEach, beforeEach, describe, expect, it, mock } from 'bun:test'
 import { existsSync, rmSync } from 'node:fs'
-import { mkdir, stat } from 'node:fs/promises'
+import { mkdir, stat, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
@@ -260,6 +260,66 @@ describe('SlackBotCredentialManager', () => {
       const stats = await stat(credPath)
 
       expect(stats.mode & 0o777).toBe(0o600)
+    })
+  })
+
+  describe('schema validation', () => {
+    let stderrSpy: ReturnType<typeof mock>
+    let originalWrite: typeof process.stderr.write
+
+    beforeEach(() => {
+      originalWrite = process.stderr.write
+      stderrSpy = mock(() => true)
+      process.stderr.write = stderrSpy as unknown as typeof process.stderr.write
+    })
+
+    afterEach(() => {
+      process.stderr.write = originalWrite
+    })
+
+    it('returns empty config on invalid JSON', async () => {
+      const credPath = join(tempDir, 'slackbot-credentials.json')
+      await writeFile(credPath, '{not valid json')
+
+      const config = await manager.load()
+
+      expect(config.current).toBeNull()
+      expect(config.workspaces).toEqual({})
+    })
+
+    it('preserves entries when stored token does not match xoxb- prefix and warns to stderr', async () => {
+      const credPath = join(tempDir, 'slackbot-credentials.json')
+      await writeFile(
+        credPath,
+        JSON.stringify({
+          current: { workspace_id: 'T123', bot_id: 'deploy' },
+          workspaces: {
+            T123: {
+              workspace_id: 'T123',
+              workspace_name: 'Acme',
+              bots: {
+                deploy: { bot_id: 'deploy', bot_name: 'Deploy Bot', token: 'legacy-token-without-prefix' },
+              },
+            },
+          },
+        }),
+      )
+
+      const config = await manager.load()
+
+      expect(config.current).toEqual({ workspace_id: 'T123', bot_id: 'deploy' })
+      expect(config.workspaces['T123']?.bots['deploy']?.token).toBe('legacy-token-without-prefix')
+      expect(stderrSpy).toHaveBeenCalled()
+    })
+
+    it('returns empty config when JSON is valid but not an object', async () => {
+      const credPath = join(tempDir, 'slackbot-credentials.json')
+      await writeFile(credPath, JSON.stringify(['not', 'an', 'object']))
+
+      const config = await manager.load()
+
+      expect(config.current).toBeNull()
+      expect(config.workspaces).toEqual({})
     })
   })
 })
