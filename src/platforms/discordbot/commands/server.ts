@@ -1,6 +1,6 @@
 import { Command } from 'commander'
 
-import { formatOutput } from '@/shared/utils/output'
+import { cliOutput } from '@/shared/utils/cli-output'
 
 import { DiscordBotCredentialManager } from '../credential-manager'
 import type { BotOption } from './shared'
@@ -80,10 +80,6 @@ export async function infoAction(serverId: string, options: BotOption): Promise<
   } catch (error) {
     return { error: (error as Error).message }
   }
-}
-
-const cliOutput = (result: ActionResult, pretty?: boolean) => {
-  console.log(formatOutput(result, pretty))
 }
 
 export const serverCommand = new Command('server')

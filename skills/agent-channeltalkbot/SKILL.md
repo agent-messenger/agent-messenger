@@ -14,7 +14,7 @@ metadata:
         bins: [agent-channeltalkbot]
 ---
 
-# Agent ChannelBot
+# Agent ChannelTalkBot
 
 A TypeScript CLI tool that enables AI agents and humans to interact with Channel Talk workspaces using API credentials (Access Key + Access Secret). Designed for customer support automation, team inbox management, and CI/CD integrations.
 
