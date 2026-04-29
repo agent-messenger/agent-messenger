@@ -345,6 +345,35 @@ describe('ChannelBotCredentialManager', () => {
       expect(config.workspaces['stale']).toBeUndefined()
       expect(existsSync(legacyPath)).toBe(true)
     })
+
+    it('does not write back to legacy path when migration fails (no split-brain)', async () => {
+      const legacyPath = join(tempDir, 'channelbot-credentials.json')
+      const newPath = join(tempDir, 'channeltalkbot-credentials.json')
+      await writeFile(legacyPath, JSON.stringify({ workspaces: {}, default_bot: null }))
+
+      // Inject a rename that fails on first call to simulate a concurrent migration losing the race.
+      class FailingMigrationManager extends ChannelBotCredentialManager {
+        constructor(dir: string) {
+          super(dir)
+          let called = false
+          this.renameFile = async () => {
+            if (!called) {
+              called = true
+              throw new Error('ENOENT: simulated concurrent rename winner')
+            }
+          }
+        }
+      }
+      const failingManager = new FailingMigrationManager(tempDir)
+
+      await failingManager.load()
+      await failingManager.setCredentials(WORKSPACE_A)
+
+      // After failure, the manager must write to the NEW path, never re-create the legacy file.
+      expect(existsSync(newPath)).toBe(true)
+      const persisted = JSON.parse(await readFile(newPath, 'utf-8'))
+      expect(persisted.workspaces[WORKSPACE_A.workspace_id]).toEqual(WORKSPACE_A)
+    })
   })
 
   describe('env var prefix compatibility', () => {

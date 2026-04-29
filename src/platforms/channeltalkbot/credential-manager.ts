@@ -14,6 +14,7 @@ export class ChannelBotCredentialManager {
   private credentialsPath: string
   private legacyPath: string
   private migratedLegacyFile = false
+  protected renameFile: typeof rename = rename
 
   constructor(configDir?: string) {
     this.configDir = configDir ?? join(homedir(), '.config', 'agent-messenger')
@@ -53,13 +54,15 @@ export class ChannelBotCredentialManager {
       return
     }
     try {
-      await rename(this.legacyPath, this.credentialsPath)
+      await this.renameFile(this.legacyPath, this.credentialsPath)
       process.stderr.write(
         `[agent-channeltalkbot] Migrated credentials: ${LEGACY_FILENAME} -> ${CREDENTIALS_FILENAME}\n`,
       )
     } catch {
-      // Migration is best-effort. If rename fails (e.g., permissions), fall back to legacy path.
-      this.credentialsPath = this.legacyPath
+      // Rename failed. If a concurrent process succeeded, the new file now exists — use it.
+      // Otherwise (real failure: permissions, etc.) keep the new path; load() will return
+      // empty config and the user can re-run `auth set`. Never fall back to writing the
+      // legacy path, which would resurrect the split-brain we are migrating away from.
     }
     this.migratedLegacyFile = true
   }
