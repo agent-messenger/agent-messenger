@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from 'bun:test'
 import { existsSync, rmSync } from 'node:fs'
-import { mkdir, stat } from 'node:fs/promises'
+import { mkdir, readFile, stat, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
@@ -36,6 +36,8 @@ describe('ChannelBotCredentialManager', () => {
     }
     delete process.env.E2E_CHANNELBOT_ACCESS_KEY
     delete process.env.E2E_CHANNELBOT_ACCESS_SECRET
+    delete process.env.E2E_CHANNELTALKBOT_ACCESS_KEY
+    delete process.env.E2E_CHANNELTALKBOT_ACCESS_SECRET
   })
 
   describe('load', () => {
@@ -299,10 +301,73 @@ describe('ChannelBotCredentialManager', () => {
     it('saves file with secure permissions (600)', async () => {
       await manager.setCredentials(WORKSPACE_A)
 
-      const credPath = join(tempDir, 'channelbot-credentials.json')
+      const credPath = join(tempDir, 'channeltalkbot-credentials.json')
       const stats = await stat(credPath)
 
       expect(stats.mode & 0o777).toBe(0o600)
+    })
+  })
+
+  describe('legacy filename migration', () => {
+    it('renames channelbot-credentials.json to channeltalkbot-credentials.json on load', async () => {
+      const legacyPath = join(tempDir, 'channelbot-credentials.json')
+      const newPath = join(tempDir, 'channeltalkbot-credentials.json')
+      const legacyConfig = {
+        current: { workspace_id: WORKSPACE_A.workspace_id },
+        workspaces: { [WORKSPACE_A.workspace_id]: WORKSPACE_A },
+        default_bot: null,
+      }
+      await writeFile(legacyPath, JSON.stringify(legacyConfig))
+
+      const config = await manager.load()
+
+      expect(config.workspaces[WORKSPACE_A.workspace_id]).toEqual(WORKSPACE_A)
+      expect(existsSync(legacyPath)).toBe(false)
+      expect(existsSync(newPath)).toBe(true)
+      const migrated = JSON.parse(await readFile(newPath, 'utf-8'))
+      expect(migrated.workspaces[WORKSPACE_A.workspace_id]).toEqual(WORKSPACE_A)
+    })
+
+    it('does not overwrite an existing channeltalkbot-credentials.json', async () => {
+      const legacyPath = join(tempDir, 'channelbot-credentials.json')
+      const newPath = join(tempDir, 'channeltalkbot-credentials.json')
+      await writeFile(legacyPath, JSON.stringify({ workspaces: { stale: WORKSPACE_A } }))
+      const newConfig = {
+        current: { workspace_id: WORKSPACE_B.workspace_id },
+        workspaces: { [WORKSPACE_B.workspace_id]: WORKSPACE_B },
+        default_bot: null,
+      }
+      await writeFile(newPath, JSON.stringify(newConfig))
+
+      const config = await manager.load()
+
+      expect(config.workspaces[WORKSPACE_B.workspace_id]).toEqual(WORKSPACE_B)
+      expect(config.workspaces['stale']).toBeUndefined()
+      expect(existsSync(legacyPath)).toBe(true)
+    })
+  })
+
+  describe('env var prefix compatibility', () => {
+    it('prefers E2E_CHANNELTALKBOT_* over E2E_CHANNELBOT_*', async () => {
+      process.env.E2E_CHANNELBOT_ACCESS_KEY = 'old-key'
+      process.env.E2E_CHANNELBOT_ACCESS_SECRET = 'old-secret'
+      process.env.E2E_CHANNELTALKBOT_ACCESS_KEY = 'new-key'
+      process.env.E2E_CHANNELTALKBOT_ACCESS_SECRET = 'new-secret'
+
+      const creds = await manager.getCredentials()
+
+      expect(creds?.access_key).toBe('new-key')
+      expect(creds?.access_secret).toBe('new-secret')
+    })
+
+    it('falls back to E2E_CHANNELBOT_* when E2E_CHANNELTALKBOT_* is unset', async () => {
+      process.env.E2E_CHANNELBOT_ACCESS_KEY = 'legacy-key'
+      process.env.E2E_CHANNELBOT_ACCESS_SECRET = 'legacy-secret'
+
+      const creds = await manager.getCredentials()
+
+      expect(creds?.access_key).toBe('legacy-key')
+      expect(creds?.access_secret).toBe('legacy-secret')
     })
   })
 })

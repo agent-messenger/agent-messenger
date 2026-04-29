@@ -1,6 +1,6 @@
 import { Command } from 'commander'
 
-import { formatOutput } from '@/shared/utils/output'
+import { cliOutput } from '@/shared/utils/cli-output'
 
 import type { WorkspaceOption } from './shared'
 import { getClient } from './shared'
@@ -26,11 +26,6 @@ export async function whoamiAction(options: WorkspaceOption): Promise<WhoamiResu
   } catch (error) {
     return { error: (error as Error).message }
   }
-}
-
-function cliOutput(result: WhoamiResult, pretty?: boolean): void {
-  console.log(formatOutput(result, pretty))
-  if (result.error) process.exit(1)
 }
 
 export const whoamiCommand = new Command('whoami')

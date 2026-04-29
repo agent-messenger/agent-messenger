@@ -1,21 +1,29 @@
 import { existsSync } from 'node:fs'
-import { chmod, mkdir, readFile, writeFile } from 'node:fs/promises'
+import { chmod, mkdir, readFile, rename, writeFile } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
 
 import type { ChannelBotConfig, ChannelBotCredentials, ChannelBotWorkspaceEntry } from './types'
 import { ChannelBotConfigSchema } from './types'
 
+const LEGACY_FILENAME = 'channelbot-credentials.json'
+const CREDENTIALS_FILENAME = 'channeltalkbot-credentials.json'
+
 export class ChannelBotCredentialManager {
   private configDir: string
   private credentialsPath: string
+  private legacyPath: string
+  private migratedLegacyFile = false
 
   constructor(configDir?: string) {
     this.configDir = configDir ?? join(homedir(), '.config', 'agent-messenger')
-    this.credentialsPath = join(this.configDir, 'channelbot-credentials.json')
+    this.credentialsPath = join(this.configDir, CREDENTIALS_FILENAME)
+    this.legacyPath = join(this.configDir, LEGACY_FILENAME)
   }
 
   async load(): Promise<ChannelBotConfig> {
+    await this.migrateLegacyFileIfNeeded()
+
     if (!existsSync(this.credentialsPath)) {
       return { current: null, workspaces: {}, default_bot: null }
     }
@@ -34,6 +42,28 @@ export class ChannelBotCredentialManager {
     return parsed.data
   }
 
+  private async migrateLegacyFileIfNeeded(): Promise<void> {
+    if (this.migratedLegacyFile) return
+    if (existsSync(this.credentialsPath)) {
+      this.migratedLegacyFile = true
+      return
+    }
+    if (!existsSync(this.legacyPath)) {
+      this.migratedLegacyFile = true
+      return
+    }
+    try {
+      await rename(this.legacyPath, this.credentialsPath)
+      process.stderr.write(
+        `[agent-channeltalkbot] Migrated credentials: ${LEGACY_FILENAME} -> ${CREDENTIALS_FILENAME}\n`,
+      )
+    } catch {
+      // Migration is best-effort. If rename fails (e.g., permissions), fall back to legacy path.
+      this.credentialsPath = this.legacyPath
+    }
+    this.migratedLegacyFile = true
+  }
+
   async save(config: ChannelBotConfig): Promise<void> {
     await mkdir(this.configDir, { recursive: true })
     await writeFile(this.credentialsPath, JSON.stringify(config, null, 2), { mode: 0o600 })
@@ -41,8 +71,8 @@ export class ChannelBotCredentialManager {
   }
 
   async getCredentials(workspaceId?: string): Promise<ChannelBotCredentials | null> {
-    const envAccessKey = process.env.E2E_CHANNELBOT_ACCESS_KEY
-    const envAccessSecret = process.env.E2E_CHANNELBOT_ACCESS_SECRET
+    const envAccessKey = process.env.E2E_CHANNELTALKBOT_ACCESS_KEY ?? process.env.E2E_CHANNELBOT_ACCESS_KEY
+    const envAccessSecret = process.env.E2E_CHANNELTALKBOT_ACCESS_SECRET ?? process.env.E2E_CHANNELBOT_ACCESS_SECRET
 
     if (envAccessKey && envAccessSecret && !workspaceId) {
       return {

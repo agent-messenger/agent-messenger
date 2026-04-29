@@ -1,5 +1,6 @@
 import { Command } from 'commander'
 
+import { cliOutput } from '@/shared/utils/cli-output'
 import { formatOutput } from '@/shared/utils/output'
 
 import { DiscordBotClient } from '../client'
@@ -161,11 +162,6 @@ export async function removeAction(botId: string, options: ActionOptions): Promi
   } catch (error: any) {
     return { error: error.message }
   }
-}
-
-function cliOutput(result: ActionResult, pretty?: boolean, exitOnError = true): void {
-  console.log(formatOutput(result, pretty))
-  if (result.error && exitOnError) process.exit(1)
 }
 
 export const authCommand = new Command('auth')

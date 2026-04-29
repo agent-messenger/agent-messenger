@@ -1,6 +1,6 @@
 import { Command } from 'commander'
 
-import { formatOutput } from '@/shared/utils/output'
+import { cliOutput } from '@/shared/utils/cli-output'
 
 import { WhatsAppBotClient } from '../client'
 import { WhatsAppBotCredentialManager } from '../credential-manager'
@@ -41,11 +41,6 @@ export async function whoamiAction(options: WhoamiOptions): Promise<WhoamiResult
   } catch (error) {
     return { error: (error as Error).message }
   }
-}
-
-function cliOutput(result: WhoamiResult, pretty?: boolean): void {
-  console.log(formatOutput(result, pretty))
-  if (result.error) process.exit(1)
 }
 
 export const whoamiCommand = new Command('whoami')

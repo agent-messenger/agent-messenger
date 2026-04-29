@@ -4,6 +4,7 @@ import { homedir } from 'node:os'
 import { join } from 'node:path'
 
 import type { SlackBotConfig, SlackBotCredentials, SlackBotWorkspace } from './types'
+import { SlackBotConfigSchema } from './types'
 
 export class SlackBotCredentialManager {
   private configDir: string
@@ -20,12 +21,22 @@ export class SlackBotCredentialManager {
     }
 
     const content = await readFile(this.credentialsPath, 'utf-8')
-    return JSON.parse(content) as SlackBotConfig
+    let json: unknown
+    try {
+      json = JSON.parse(content)
+    } catch {
+      return { current: null, workspaces: {} }
+    }
+    const parsed = SlackBotConfigSchema.safeParse(json)
+    if (!parsed.success) {
+      return { current: null, workspaces: {} }
+    }
+    return parsed.data
   }
 
   async save(config: SlackBotConfig): Promise<void> {
     await mkdir(this.configDir, { recursive: true })
-    await writeFile(this.credentialsPath, JSON.stringify(config, null, 2))
+    await writeFile(this.credentialsPath, JSON.stringify(config, null, 2), { mode: 0o600 })
     await chmod(this.credentialsPath, 0o600)
   }
 

@@ -1,6 +1,6 @@
 import { Command } from 'commander'
 
-import { formatOutput } from '@/shared/utils/output'
+import { cliOutput } from '@/shared/utils/cli-output'
 
 import type { WorkspaceOption } from './shared'
 import { getClient, getDefaultBotName } from './shared'
@@ -118,11 +118,6 @@ export async function deleteAction(chatId: string, options: ChatOptions): Promis
   } catch (error) {
     return { error: (error as Error).message }
   }
-}
-
-function cliOutput(result: ChatResult, pretty?: boolean): void {
-  console.log(formatOutput(result, pretty))
-  if (result.error) process.exit(1)
 }
 
 export const chatCommand = new Command('chat')

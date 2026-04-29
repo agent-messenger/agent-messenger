@@ -1,6 +1,6 @@
 import { Command } from 'commander'
 
-import { formatOutput } from '@/shared/utils/output'
+import { cliOutput } from '@/shared/utils/cli-output'
 
 import type { WhatsAppBotTemplate } from '../types'
 import type { AccountOption } from './shared'
@@ -38,11 +38,6 @@ export async function getAction(templateName: string, options: TemplateOptions):
   } catch (error) {
     return { error: (error as Error).message }
   }
-}
-
-function cliOutput(result: TemplateResult, pretty?: boolean): void {
-  console.log(formatOutput(result, pretty))
-  if (result.error) process.exit(1)
 }
 
 export const templateCommand = new Command('template')

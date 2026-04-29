@@ -1,6 +1,6 @@
 import { Command } from 'commander'
 
-import { formatOutput } from '@/shared/utils/output'
+import { cliOutput } from '@/shared/utils/cli-output'
 
 import { wrapTextInBlocks } from '../message-utils'
 import type { WorkspaceOption } from './shared'
@@ -138,11 +138,6 @@ export async function getAction(target: string, messageId: string, options: Mess
 function detectTargetType(target: string): 'userchat' | 'group' {
   if (target.startsWith('@')) return 'group'
   return 'userchat'
-}
-
-function cliOutput(result: MessageResult, pretty?: boolean): void {
-  console.log(formatOutput(result, pretty))
-  if (result.error) process.exit(1)
 }
 
 export const messageCommand = new Command('message')
