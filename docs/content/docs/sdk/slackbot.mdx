@@ -1,0 +1,536 @@
+---
+title: Slack Bot
+description: TypeScript SDK reference for Slack Bot — client, real-time Socket Mode listener, credential management, and types.
+---
+
+## Installation
+
+```bash
+npm install agent-messenger
+```
+
+```typescript
+import { SlackBotClient, SlackBotCredentialManager, SlackBotError, SlackBotListener } from 'agent-messenger/slackbot'
+```
+
+## Slack vs. Slack Bot
+
+`agent-messenger/slack` and `agent-messenger/slackbot` are two distinct entry points for two distinct authentication models:
+
+| Module                     | Token type     | Source                          | Use when                              |
+| -------------------------- | -------------- | ------------------------------- | ------------------------------------- |
+| `agent-messenger/slack`    | User (`xoxc-`) | Auto-extracted from desktop app | Acting as yourself, all features      |
+| `agent-messenger/slackbot` | Bot (`xoxb-`)  | Slack App config (manual)       | Server-side, CI/CD, multi-tenant bots |
+
+This page documents `agent-messenger/slackbot`. For the user-token client, see the [Slack SDK reference](./slack).
+
+## SlackBotClient
+
+The main client for interacting with Slack's Web API using a bot token. Built on `@slack/web-api`. All methods include automatic retry with exponential backoff on `slack_webapi_rate_limited_error` (up to 3 retries, honoring Slack's `retryAfter` hint).
+
+```typescript
+import { SlackBotClient } from 'agent-messenger/slackbot'
+
+const client = await new SlackBotClient().login({ token: 'xoxb-...' })
+```
+
+Or use stored credentials — credentials are read from `~/.config/agent-messenger/slackbot-credentials.json` (managed by `agent-slackbot auth set`):
+
+```typescript
+const client = await new SlackBotClient().login()
+```
+
+### Authentication
+
+```typescript
+// Verify bot credentials and resolve the bot's identity in the workspace
+const me = await client.testAuth()
+// → { user_id, team_id, bot_id?, user?, team? }
+```
+
+### Messages
+
+```typescript
+// Send a message to a channel
+const msg = await client.postMessage('C0ACZKTDDC0', 'Hello world')
+
+// Reply in a thread
+const reply = await client.postMessage('C0ACZKTDDC0', 'Reply', { thread_ts: '1234567890.123456' })
+// → SlackMessage { ts, text, type, user?, thread_ts? }
+
+// Read a channel's recent messages (default limit: 20, supports cursor pagination)
+const history = await client.getConversationHistory('C0ACZKTDDC0')
+const limited = await client.getConversationHistory('C0ACZKTDDC0', { limit: 50 })
+const next = await client.getConversationHistory('C0ACZKTDDC0', { cursor: 'dXNlcjpVMD...' })
+// → SlackMessage[]
+
+// Get a single message by timestamp
+const message = await client.getMessage('C0ACZKTDDC0', '1234567890.123456')
+// → SlackMessage | null
+
+// Get all replies in a thread (parent message included as the first entry)
+const replies = await client.getThreadReplies('C0ACZKTDDC0', '1234567890.123456')
+const paginated = await client.getThreadReplies('C0ACZKTDDC0', '1234567890.123456', { limit: 100 })
+// → SlackMessage[]
+
+// Update a message (bot can only edit its own messages)
+const edited = await client.updateMessage('C0ACZKTDDC0', '1234567890.123456', 'Updated text')
+// → SlackMessage
+
+// Delete a message (bot can only delete its own messages)
+await client.deleteMessage('C0ACZKTDDC0', '1234567890.123456')
+```
+
+### Reactions
+
+```typescript
+// Add a reaction (emoji can be wrapped in colons or bare)
+await client.addReaction('C0ACZKTDDC0', '1234567890.123456', 'thumbsup')
+await client.addReaction('C0ACZKTDDC0', '1234567890.123456', ':white_check_mark:')
+
+// Remove a reaction the bot added
+await client.removeReaction('C0ACZKTDDC0', '1234567890.123456', 'thumbsup')
+```
+
+### Channels
+
+```typescript
+// List channels the bot can see (auto-paginates unless a `limit` is given)
+const channels = await client.listChannels()
+const firstPage = await client.listChannels({ limit: 50 })
+const next = await client.listChannels({ limit: 50, cursor: 'dGVhbTpD...' })
+// → SlackChannel[]
+
+// Get a specific channel
+const channel = await client.getChannelInfo('C0ACZKTDDC0')
+// → SlackChannel { id, name, is_private, is_archived, created, creator, topic?, purpose? }
+
+// Resolve a channel by ID or name — returns the channel ID
+const id = await client.resolveChannel('C0ACZKTDDC0')
+const sameId = await client.resolveChannel('#general')
+const fromName = await client.resolveChannel('general')
+
+// Join a public channel (required before posting in some workspaces)
+await client.joinChannel('C0ACZKTDDC0')
+```
+
+### Users
+
+```typescript
+// List workspace members (auto-paginates unless a `limit` is given)
+const users = await client.listUsers()
+const firstPage = await client.listUsers({ limit: 100 })
+// → SlackUser[]
+
+// Get a single user
+const user = await client.getUserInfo('U012ABC3DE')
+// → SlackUser { id, name, real_name, is_admin, is_owner, is_bot, is_app_user, profile? }
+```
+
+## Real-Time Events
+
+`SlackBotListener` connects to Slack's [Socket Mode](https://api.slack.com/apis/socket-mode) WebSocket for instant event streaming — Events API events, slash commands, and interactive components — without running an HTTP webhook server.
+
+```typescript
+import { SlackBotClient, SlackBotListener } from 'agent-messenger/slackbot'
+
+const client = await new SlackBotClient().login({ token: 'xoxb-...' })
+const listener = new SlackBotListener(client, {
+  appToken: process.env.SLACK_APP_TOKEN!, // xapp-...
+})
+
+listener.on('connected', (info) => {
+  console.log(`Connected to Slack (app ${info.app_id})`)
+})
+
+listener.on('message', ({ ack, event }) => {
+  ack()
+  if (event.subtype || event.bot_id) return
+  console.log(`#${event.channel} <${event.user}>: ${event.text}`)
+})
+
+listener.on('slash_commands', ({ ack, body }) => {
+  ack({ text: `Got \`${body.command} ${body.text}\`` })
+})
+
+listener.on('error', (err) => console.error(err))
+
+await listener.start() // opens the Socket Mode WebSocket
+// listener.stop()      // clean shutdown
+```
+
+### Two tokens
+
+Slack Socket Mode is the only place in this SDK where you need **two separate tokens** for one bot:
+
+| Token            | Purpose                                                                | Where to get it                                                                                 |
+| ---------------- | ---------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| Bot (`xoxb-...`) | Web API calls — `chat.postMessage`, `conversations.list`, etc.         | Slack App config → **OAuth & Permissions** → Bot User OAuth Token                               |
+| App (`xapp-...`) | Socket Mode WebSocket — opens `apps.connections.open`, receives events | Slack App config → **Basic Information** → App-Level Tokens, with the `connections:write` scope |
+
+The bot token is passed to `SlackBotClient` (or stored via `agent-slackbot auth set`); the app token is passed to `SlackBotListener` via the `appToken` option. The two tokens are not interchangeable — calling `apps.connections.open` with a bot token returns `not_allowed_token_type`.
+
+You also need to enable **Socket Mode** in the Slack App config (Settings → Socket Mode → On) and subscribe the app to the [Events API events](https://api.slack.com/apis/connections/events-api) you want to receive.
+
+### Acknowledging envelopes
+
+Every Socket Mode envelope except `hello` and `disconnect` carries an `envelope_id` that the client **must** acknowledge — otherwise Slack will retry delivery. The handler arguments include an `ack` callback for that purpose:
+
+```typescript
+listener.on('message', ({ ack, event }) => {
+  // Always ack first so Slack stops retrying. Do this even if you decide to
+  // ignore the event — failure to ack causes duplicate deliveries.
+  ack()
+  // ...your work
+})
+
+// Slash commands and interactive components support a response payload that
+// becomes the immediate user-visible reply (when accepts_response_payload is
+// true on the envelope).
+listener.on('slash_commands', ({ ack, body }) => {
+  ack({ text: 'Working on it...' })
+})
+
+listener.on('interactive', ({ ack, body }) => {
+  if (body.type === 'view_submission') {
+    ack({ response_action: 'clear' })
+  } else {
+    ack()
+  }
+})
+```
+
+The `ack` callback is **idempotent** (only the first call hits the wire) and a **no-op after the listener stops or reconnects** — so it is safe to hold across async work. Calling `ack()` with no argument sends `{ envelope_id }`; calling with a payload sends `{ envelope_id, payload }`.
+
+### Available Events
+
+| Event                                                                                              | Description                                                                     |
+| -------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| `message`                                                                                          | New message in a channel or DM                                                  |
+| `app_mention`                                                                                      | Message that mentions the bot                                                   |
+| `reaction_added` / `reaction_removed`                                                              | Reaction added or removed                                                       |
+| `member_joined_channel` / `member_left_channel`                                                    | Member joins or leaves a channel                                                |
+| `channel_created` / `channel_deleted` / `channel_rename` / `channel_archive` / `channel_unarchive` | Channel lifecycle                                                               |
+| `slash_commands`                                                                                   | Slash command invoked (envelope-level event, not Events API)                    |
+| `interactive`                                                                                      | Block action, view submission, shortcut, or other interactive component         |
+| `slack_event`                                                                                      | Catch-all — fires for every Events API dispatch and every unknown envelope type |
+| `connected` / `disconnected`                                                                       | Socket Mode connection lifecycle                                                |
+| `error`                                                                                            | Connection or protocol error                                                    |
+
+Any inner Events API event type that Slack delivers is forwarded by name (e.g., `team_join`, `user_change`, `pin_added`) and is also delivered to `slack_event`.
+
+### Lifecycle Features
+
+- **Auto-reconnect** with exponential backoff (1s → 30s, capped). On every reconnect the listener calls `apps.connections.open` to fetch a fresh single-use Socket Mode URL.
+- **Server-requested reconnect** — when Slack sends a `disconnect` envelope with reason `warning` or `refresh_requested`, the listener reconnects immediately and resets backoff.
+- **Terminal disconnect detection** — when the disconnect reason is `link_disabled`, the listener emits `error` and stops; reconnecting against a disabled app would loop forever.
+- **`hello` timeout** — if the WebSocket opens but Slack does not send `hello` within 10 seconds, the listener force-closes the socket and reconnects.
+- **WebSocket-level keepalive** — RFC 6455 ping/pong every 30 seconds; if no pong arrives within 10 seconds the connection is closed and re-established.
+- **Rate-limit awareness** — if `apps.connections.open` returns a rate-limit error, the listener uses the server's `retryAfter` value as a floor on the next reconnect delay.
+- **Stale-socket safety** — every async callback is generation-guarded so a stop+start cycle cannot leave the new connection in a broken state.
+- **Fatal-error short-circuit** — `apps.connections.open` errors that indicate a permanently broken state (`not_authed`, `invalid_auth`, `account_inactive`, `user_removed_from_team`, `team_disabled`, `not_allowed_token_type`) emit `error` and stop without retrying.
+
+### Debugging reconnects
+
+To force frequent reconnects during development (Slack closes the socket every ~360s instead of the usual ~12 hours), enable `debugReconnects`:
+
+```typescript
+const listener = new SlackBotListener(client, {
+  appToken: process.env.SLACK_APP_TOKEN!,
+  debugReconnects: true,
+})
+```
+
+This appends `&debug_reconnects=true` to the WebSocket URL returned by `apps.connections.open`.
+
+## SlackBotCredentialManager
+
+Manages bot credentials stored at `~/.config/agent-messenger/slackbot-credentials.json` with `0o600` permissions. Supports multiple bots per workspace and multiple workspaces in the same config (e.g., a deploy bot and an alerts bot in two different workspaces). The environment variables `E2E_SLACKBOT_TOKEN`, `E2E_SLACKBOT_WORKSPACE_ID`, and `E2E_SLACKBOT_WORKSPACE_NAME` take precedence over file-based credentials.
+
+```typescript
+import { SlackBotCredentialManager } from 'agent-messenger/slackbot'
+
+const manager = new SlackBotCredentialManager()
+// Custom path: new SlackBotCredentialManager('/custom/config/dir')
+```
+
+```typescript
+// Load full config from disk (returns defaults if file doesn't exist)
+const config = await manager.load()
+// → SlackBotConfig { current, workspaces }
+
+// Save full config to disk (also enforces 0o600 permissions)
+await manager.save(config)
+
+// Get the credentials for the current bot, a specific bot ID, or
+// "workspace_id/bot_id" to disambiguate a bot ID that exists in multiple
+// workspaces.
+const creds = await manager.getCredentials()
+const specific = await manager.getCredentials('deploy')
+const disambiguated = await manager.getCredentials('T0ABCDE/deploy')
+// → SlackBotCredentials | null
+
+// Store credentials for a bot (also marks it as the current bot)
+await manager.setCredentials({
+  token: 'xoxb-...',
+  workspace_id: 'T0ABCDE',
+  workspace_name: 'Acme Corp',
+  bot_id: 'deploy',
+  bot_name: 'Deploy Bot',
+})
+
+// Switch the active bot — accepts the same lookup formats as getCredentials
+await manager.setCurrent('alerts')
+
+// List all stored bots (across workspaces) with current marker
+const bots = await manager.listAll()
+// → Array<SlackBotCredentials & { is_current: boolean }>
+
+// Remove a stored bot (drops the workspace too if it was the last bot in it)
+await manager.removeBot('alerts')
+
+// Clear all stored credentials
+await manager.clearCredentials()
+```
+
+## Types
+
+```typescript
+import type {
+  SlackBotConfig,
+  SlackBotCredentials,
+  SlackBotListenerEventMap,
+  SlackBotListenerOptions,
+  SlackChannel,
+  SlackFile,
+  SlackMessage,
+  SlackReaction,
+  SlackSocketModeAck,
+  SlackSocketModeAppMentionEvent,
+  SlackSocketModeChannelEvent,
+  SlackSocketModeDisconnectEnvelope,
+  SlackSocketModeDisconnectReason,
+  SlackSocketModeEnvelope,
+  SlackSocketModeEvent,
+  SlackSocketModeEventsApiArgs,
+  SlackSocketModeEventsApiEnvelope,
+  SlackSocketModeGenericEnvelope,
+  SlackSocketModeGenericEvent,
+  SlackSocketModeHelloEnvelope,
+  SlackSocketModeInteractiveArgs,
+  SlackSocketModeInteractiveEnvelope,
+  SlackSocketModeMemberChannelEvent,
+  SlackSocketModeMessageEvent,
+  SlackSocketModeReactionEvent,
+  SlackSocketModeSlashCommandArgs,
+  SlackSocketModeSlashCommandEnvelope,
+  SlackUser,
+} from 'agent-messenger/slackbot'
+```
+
+### Zod Schemas
+
+Runtime-validated schemas for parsing API responses and config files:
+
+```typescript
+import {
+  SlackBotConfigSchema,
+  SlackBotCredentialsSchema,
+  SlackChannelSchema,
+  SlackFileSchema,
+  SlackMessageSchema,
+  SlackReactionSchema,
+  SlackUserSchema,
+} from 'agent-messenger/slackbot'
+```
+
+### Errors
+
+`SlackBotError` carries a stable `code` (e.g., `not_authed`, `missing_app_token`, `slack_webapi_rate_limited_error`, `disconnect_terminal`) and an optional `retryAfter` (seconds) when Slack rate-limits a request:
+
+```typescript
+import { SlackBotError } from 'agent-messenger/slackbot'
+
+try {
+  await client.postMessage('C0ACZKTDDC0', 'Hello')
+} catch (err) {
+  if (err instanceof SlackBotError && err.code === 'slack_webapi_rate_limited_error') {
+    console.log(`Rate limited; retry after ${err.retryAfter}s`)
+  }
+}
+```
+
+## Examples
+
+### Auto-Reply Bot
+
+Listen for `app_mention` events and reply in the same thread.
+
+```typescript
+import { SlackBotClient, SlackBotListener } from 'agent-messenger/slackbot'
+
+const client = await new SlackBotClient().login()
+const listener = new SlackBotListener(client, { appToken: process.env.SLACK_APP_TOKEN! })
+
+listener.on('app_mention', async ({ ack, event }) => {
+  ack()
+  await client.postMessage(event.channel, `👋 Hi <@${event.user}>! How can I help?`, {
+    thread_ts: event.thread_ts ?? event.ts,
+  })
+})
+
+await listener.start()
+```
+
+### Reaction-Driven Approval Workflow
+
+Post a request and watch for ✅ or ❌ reactions to advance state.
+
+```typescript
+import { SlackBotClient, SlackBotListener } from 'agent-messenger/slackbot'
+
+const client = await new SlackBotClient().login()
+const me = await client.testAuth()
+const listener = new SlackBotListener(client, { appToken: process.env.SLACK_APP_TOKEN! })
+
+const post = await client.postMessage('C0DEPLOY', '🚀 Deploy v2.1.0 to production?')
+await client.addReaction('C0DEPLOY', post.ts, 'white_check_mark')
+await client.addReaction('C0DEPLOY', post.ts, 'x')
+
+listener.on('reaction_added', async ({ ack, event }) => {
+  ack()
+  if (event.item.channel !== 'C0DEPLOY' || event.item.ts !== post.ts) return
+  if (event.user === me.user_id) return
+
+  if (event.reaction === 'white_check_mark') {
+    await client.updateMessage('C0DEPLOY', post.ts, '🚀 Deploy v2.1.0 — *approved*')
+  } else if (event.reaction === 'x') {
+    await client.updateMessage('C0DEPLOY', post.ts, '🚀 Deploy v2.1.0 — *rejected*')
+  }
+})
+
+await listener.start()
+```
+
+### Slash Command Handler
+
+React to `/deploy` slash command invocations in real time. The slash command must be registered in the Slack App config first.
+
+```typescript
+import { SlackBotClient, SlackBotListener } from 'agent-messenger/slackbot'
+
+const client = await new SlackBotClient().login()
+const listener = new SlackBotListener(client, { appToken: process.env.SLACK_APP_TOKEN! })
+
+listener.on('slash_commands', async ({ ack, body }) => {
+  if (body.command !== '/deploy') {
+    ack()
+    return
+  }
+
+  // Reply immediately so Slack shows feedback to the user.
+  ack({ text: `Queued deploy of \`${body.text}\`...` })
+
+  // Then do the long-running work and post a follow-up.
+  await runDeploy(body.text)
+  await client.postMessage(body.channel_id, `✅ Deploy of \`${body.text}\` complete`)
+})
+
+await listener.start()
+```
+
+### Interactive Block Action Handler
+
+Handle a button click from a Block Kit message.
+
+```typescript
+import { SlackBotClient, SlackBotListener } from 'agent-messenger/slackbot'
+
+const client = await new SlackBotClient().login()
+const listener = new SlackBotListener(client, { appToken: process.env.SLACK_APP_TOKEN! })
+
+listener.on('interactive', async ({ ack, body }) => {
+  ack()
+
+  if (body.type !== 'block_actions') return
+  const action = body.actions?.[0] as { action_id?: string; value?: string } | undefined
+  if (action?.action_id !== 'approve_pr') return
+
+  await client.postMessage(
+    (body as { channel?: { id: string } }).channel!.id,
+    `<@${body.user!.id}> approved PR ${action.value}`,
+  )
+})
+
+await listener.start()
+```
+
+### CI Status Notifier
+
+Post a status message at the start and finish of a CI job, with a reaction to indicate state.
+
+```typescript
+import { SlackBotClient } from 'agent-messenger/slackbot'
+
+const client = await new SlackBotClient().login()
+const channel = 'C0BUILDS'
+
+const start = await client.postMessage(channel, `🛠️ Build #${runId} started`)
+await client.addReaction(channel, start.ts, 'hourglass_flowing_sand')
+
+try {
+  await runBuild()
+  await client.removeReaction(channel, start.ts, 'hourglass_flowing_sand')
+  await client.addReaction(channel, start.ts, 'white_check_mark')
+  await client.postMessage(channel, `✅ Build #${runId} succeeded`, { thread_ts: start.ts })
+} catch (err) {
+  await client.removeReaction(channel, start.ts, 'hourglass_flowing_sand')
+  await client.addReaction(channel, start.ts, 'x')
+  await client.postMessage(channel, `❌ Build #${runId} failed: ${(err as Error).message}`, {
+    thread_ts: start.ts,
+  })
+  throw err
+}
+```
+
+### Multi-Workspace, Multi-Bot Configuration
+
+Use `SlackBotCredentialManager` to store and switch between bots across multiple workspaces.
+
+```typescript
+import { SlackBotClient, SlackBotCredentialManager } from 'agent-messenger/slackbot'
+
+const manager = new SlackBotCredentialManager()
+
+// Two bots in the same workspace
+await manager.setCredentials({
+  token: 'xoxb-DEPLOY',
+  workspace_id: 'T0ACME',
+  workspace_name: 'Acme Corp',
+  bot_id: 'deploy',
+  bot_name: 'Deploy Bot',
+})
+await manager.setCredentials({
+  token: 'xoxb-ALERTS',
+  workspace_id: 'T0ACME',
+  workspace_name: 'Acme Corp',
+  bot_id: 'alerts',
+  bot_name: 'Alerts Bot',
+})
+
+// A bot in a second workspace, with the same bot_id
+await manager.setCredentials({
+  token: 'xoxb-DEPLOY-2',
+  workspace_id: 'T0WIDGET',
+  workspace_name: 'Widget Co',
+  bot_id: 'deploy',
+  bot_name: 'Widget Deploy Bot',
+})
+
+// Switch using "workspace_id/bot_id" to disambiguate
+await manager.setCurrent('T0WIDGET/deploy')
+const creds = await manager.getCredentials()
+const client = await new SlackBotClient().login({ token: creds!.token })
+
+await client.postMessage('C0RELEASES', '🚀 Widget Co release v3.0.0 deployed')
+```

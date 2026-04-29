@@ -2,6 +2,7 @@
   "title": "TypeScript SDK",
   "pages": [
     "slack",
+    "slackbot",
     "discord",
     "discordbot",
     "teams",
