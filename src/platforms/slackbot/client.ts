@@ -453,6 +453,17 @@ export class SlackBotClient {
     })
   }
 
+  async setAssistantStatus(channel: string, threadTs: string, status: string): Promise<void> {
+    return this.withRetry(async () => {
+      const response = await this.ensureAuth().assistant.threads.setStatus({
+        channel_id: channel,
+        thread_ts: threadTs,
+        status,
+      })
+      this.checkResponse(response)
+    })
+  }
+
   async joinChannel(channel: string): Promise<void> {
     return this.withRetry(async () => {
       const response = await this.ensureAuth().conversations.join({ channel })

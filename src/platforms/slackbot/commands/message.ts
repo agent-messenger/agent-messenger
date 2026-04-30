@@ -98,6 +98,18 @@ async function deleteAction(channelInput: string, ts: string, options: BotOption
   }
 }
 
+async function typingAction(channelInput: string, threadTs: string, status: string, options: BotOption): Promise<void> {
+  try {
+    const client = await getClient(options)
+    const channel = await client.resolveChannel(channelInput)
+    await client.setAssistantStatus(channel, threadTs, status)
+
+    console.log(formatOutput({ channel, thread_ts: threadTs, status }, options.pretty))
+  } catch (error) {
+    handleError(error as Error)
+  }
+}
+
 async function repliesAction(
   channelInput: string,
   threadTs: string,
@@ -164,6 +176,16 @@ export const messageCommand = new Command('message')
       .option('--bot <id>', 'Use specific bot')
       .option('--pretty', 'Pretty print JSON output')
       .action(deleteAction),
+  )
+  .addCommand(
+    new Command('typing')
+      .description('Set typing status in an AI Assistant thread (e.g. "is typing...")')
+      .argument('<channel>', 'Channel ID or name')
+      .argument('<thread_ts>', 'Thread timestamp')
+      .argument('[status]', 'Status text (pass empty string to clear)', 'is typing...')
+      .option('--bot <id>', 'Use specific bot')
+      .option('--pretty', 'Pretty print JSON output')
+      .action(typingAction),
   )
   .addCommand(
     new Command('replies')
