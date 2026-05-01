@@ -65,6 +65,11 @@ const mockReactions = {
   add: mock(() => Promise.resolve({ ok: true })),
   remove: mock(() => Promise.resolve({ ok: true })),
 }
+const mockAssistant = {
+  threads: {
+    setStatus: mock(() => Promise.resolve({ ok: true })),
+  },
+}
 const mockUsers = {
   list: mock(() =>
     Promise.resolve({
@@ -105,6 +110,7 @@ mock.module('@slack/web-api', () => ({
     chat = mockChat
     reactions = mockReactions
     users = mockUsers
+    assistant = mockAssistant
   },
 }))
 
@@ -120,6 +126,7 @@ describe('SlackBotClient', () => {
     mockReactions.remove.mockClear()
     mockUsers.list.mockClear()
     mockUsers.info.mockClear()
+    mockAssistant.threads.setStatus.mockClear()
   })
 
   describe('login', () => {
@@ -221,6 +228,38 @@ describe('SlackBotClient', () => {
       // when/then: should not throw
       await client.removeReaction('C123', '1234567890.123456', 'thumbsup')
       expect(mockReactions.remove).toHaveBeenCalled()
+    })
+  })
+
+  describe('setAssistantStatus', () => {
+    it('sets assistant typing status with channel_id and thread_ts', async () => {
+      // given
+      const client = await new SlackBotClient().login({ token: 'xoxb-test-token' })
+
+      // when
+      await client.setAssistantStatus('C123', '1234567890.123456', 'is typing...')
+
+      // then
+      expect(mockAssistant.threads.setStatus).toHaveBeenCalledWith({
+        channel_id: 'C123',
+        thread_ts: '1234567890.123456',
+        status: 'is typing...',
+      })
+    })
+
+    it('clears status when given empty string', async () => {
+      // given
+      const client = await new SlackBotClient().login({ token: 'xoxb-test-token' })
+
+      // when
+      await client.setAssistantStatus('C123', '1234567890.123456', '')
+
+      // then
+      expect(mockAssistant.threads.setStatus).toHaveBeenCalledWith({
+        channel_id: 'C123',
+        thread_ts: '1234567890.123456',
+        status: '',
+      })
     })
   })
 

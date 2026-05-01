@@ -79,6 +79,14 @@ const edited = await client.updateMessage('C0ACZKTDDC0', '1234567890.123456', 'U
 
 // Delete a message (bot can only delete its own messages)
 await client.deleteMessage('C0ACZKTDDC0', '1234567890.123456')
+
+// Show a typing/status indicator in an AI Assistant thread (e.g. "Bot is typing...")
+await client.setAssistantStatus('C0ACZKTDDC0', '1234567890.123456', 'is typing...')
+await client.setAssistantStatus('C0ACZKTDDC0', '1234567890.123456', 'is analyzing your code...')
+
+// Clear the status manually (status also auto-clears when the bot posts a message,
+// or after a 2-minute timeout). Only works inside AI Assistant threads — requires `chat:write`.
+await client.setAssistantStatus('C0ACZKTDDC0', '1234567890.123456', '')
 ```
 
 ### Reactions
@@ -460,6 +468,38 @@ listener.on('interactive', async ({ ack, body }) => {
     (body as { channel?: { id: string } }).channel!.id,
     `<@${body.user!.id}> approved PR ${action.value}`,
   )
+})
+
+await listener.start()
+```
+
+### AI Assistant Thread with Typing Indicator
+
+Show a "Bot is typing..." status while your agent is processing, then reply. Slack auto-clears the status when the bot posts its message. Requires the app to be configured as an AI Assistant (`assistant` scope, `assistant_thread_started` event) and a `chat:write` bot scope.
+
+```typescript
+import { SlackBotClient, SlackBotListener } from 'agent-messenger/slackbot'
+
+const client = await new SlackBotClient().login()
+const listener = new SlackBotListener(client, { appToken: process.env.SLACK_APP_TOKEN! })
+
+listener.on('message', async ({ ack, event }) => {
+  ack()
+  // Only handle messages inside an AI Assistant thread (skip top-level posts and bot echoes).
+  if (!event.thread_ts || event.subtype === 'bot_message') return
+
+  // Show "Bot is typing..." while the agent thinks.
+  await client.setAssistantStatus(event.channel, event.thread_ts, 'is typing...')
+
+  try {
+    const reply = await runAgent(event.text ?? '')
+    // Posting a reply auto-clears the status indicator.
+    await client.postMessage(event.channel, reply, { thread_ts: event.thread_ts })
+  } catch (err) {
+    // Clear the status on failure so it doesn't linger until the 2-minute timeout.
+    await client.setAssistantStatus(event.channel, event.thread_ts, '')
+    throw err
+  }
 })
 
 await listener.start()

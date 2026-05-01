@@ -211,7 +211,14 @@ agent-slackbot message update <channel> <ts> <new-text>
 
 # Delete a message (bot's own messages only)
 agent-slackbot message delete <channel> <ts> --force
+
+# Show typing/status indicator in an AI Assistant thread
+agent-slackbot message typing <channel> <thread_ts>
+agent-slackbot message typing <channel> <thread_ts> "is analyzing..."
+agent-slackbot message typing <channel> <thread_ts> ""   # clear status
 ```
+
+> **Typing indicators**: `message typing` calls Slack's `assistant.threads.setStatus` API. It only works inside **AI Assistant threads** (not regular channels/DMs) and requires the `chat:write` bot scope. The status auto-clears when your bot posts the next message, or after 2 minutes if no message is sent. Pass an empty string `""` to clear the status manually.
 
 ### Channel Commands
 
