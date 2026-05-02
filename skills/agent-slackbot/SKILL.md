@@ -254,6 +254,33 @@ agent-slackbot reaction add C0ACZKTDDC0 1234567890.123456 thumbsup
 agent-slackbot reaction remove <channel> <ts> <emoji>
 ```
 
+### File Commands
+
+```bash
+# Upload a file to a channel (requires files:write scope)
+agent-slackbot file upload <channel> <path>
+agent-slackbot file upload C0ACZKTDDC0 ./report.pdf
+agent-slackbot file upload C0ACZKTDDC0 ./log.txt --filename build-log.txt
+agent-slackbot file upload C0ACZKTDDC0 ./screenshot.png --thread 1234567890.123456 --comment "FYI"
+
+# List files visible to the bot (requires files:read scope)
+agent-slackbot file list
+agent-slackbot file list --channel C0ACZKTDDC0
+agent-slackbot file list --user U123 --limit 50
+
+# Show file details
+agent-slackbot file info <file-id>
+
+# Download a file by ID (saves to current dir or given path)
+agent-slackbot file download <file-id>
+agent-slackbot file download F0123ABC ./downloads/
+
+# Delete a file (bot's own files only)
+agent-slackbot file delete <file-id> --force
+```
+
+> **File scopes**: `file upload` requires `files:write`; `file list`, `file info`, and `file download` require `files:read`. Add these to your Slack App's bot token scopes and reinstall the app. The bot can only delete files it uploaded.
+
 ## Output Format
 
 ### JSON (Default)
@@ -323,7 +350,7 @@ Credentials stored in `~/.config/agent-messenger/slackbot-credentials.json` (060
 | Token type           | User token (xoxc-)              | Bot token (xoxb-)            |
 | Token source         | Auto-extracted from desktop app | Manual from Slack App config |
 | Message search       | Yes                             | No (requires user token)     |
-| File operations      | Yes                             | No                           |
+| File operations      | Yes                             | Upload/list/info/download/delete (with scopes) |
 | Snapshot             | Yes                             | No                           |
 | Edit/delete messages | Any message                     | Bot's own messages only      |
 | Workspace management | Multi-workspace                 | Multi-bot, multi-workspace   |
@@ -333,7 +360,7 @@ Credentials stored in `~/.config/agent-messenger/slackbot-credentials.json` (060
 
 - No real-time events in the CLI (real-time Socket Mode events are available via the SDK — see the README's "Real-time Events (Slack Bot)" section)
 - No message search (requires user token scope)
-- No file upload/download
+- File operations require `files:read` / `files:write` scopes; bot can only delete files it uploaded
 - No workspace snapshot
 - Bot can only edit/delete its own messages
 - Bot must be invited to private channels

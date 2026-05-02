@@ -1,13 +1,28 @@
 import { WebClient } from '@slack/web-api'
 
 import { SlackBotCredentialManager } from './credential-manager'
-import { SlackBotError, type SlackChannel, type SlackMessage, type SlackUser } from './types'
+import { SlackBotError, type SlackChannel, type SlackFile, type SlackMessage, type SlackUser } from './types'
 
 const MAX_RETRIES = 3
 const RATE_LIMIT_ERROR_CODE = 'slack_webapi_rate_limited_error'
 
+function mapSlackFile(f: any): SlackFile {
+  return {
+    id: f?.id || '',
+    name: f?.name || '',
+    title: f?.title || f?.name || '',
+    mimetype: f?.mimetype || 'application/octet-stream',
+    size: f?.size || 0,
+    url_private: f?.url_private || '',
+    created: f?.created || 0,
+    user: f?.user || '',
+    channels: f?.channels,
+  }
+}
+
 export class SlackBotClient {
   private client: WebClient | null = null
+  private token: string | null = null
 
   async login(credentials?: { token: string }): Promise<this> {
     if (credentials) {
@@ -18,6 +33,7 @@ export class SlackBotClient {
       if (!token.startsWith('xoxb-')) {
         throw new SlackBotError('Token must be a bot token (xoxb-)', 'invalid_token_type')
       }
+      this.token = token
       this.client = new WebClient(token)
     } else {
       const credManager = new SlackBotCredentialManager()
@@ -474,6 +490,87 @@ export class SlackBotClient {
   async deleteMessage(channel: string, ts: string): Promise<void> {
     return this.withRetry(async () => {
       const response = await this.ensureAuth().chat.delete({ channel, ts })
+      this.checkResponse(response)
+    })
+  }
+
+  async uploadFile(
+    channel: string,
+    file: Buffer,
+    filename: string,
+    options?: { thread_ts?: string; title?: string; initial_comment?: string },
+  ): Promise<SlackFile> {
+    return this.withRetry(async () => {
+      const response = await this.ensureAuth().files.uploadV2({
+        channel_id: channel,
+        file,
+        filename,
+        thread_ts: options?.thread_ts,
+        title: options?.title,
+        initial_comment: options?.initial_comment,
+      })
+      this.checkResponse(response)
+
+      const completionFiles = (response as any).files?.[0]?.files
+      const f = completionFiles?.[0]
+      if (!f) {
+        throw new SlackBotError('No file returned in upload response', 'file_not_found')
+      }
+      return mapSlackFile(f)
+    })
+  }
+
+  async listFiles(options?: { channel?: string; user?: string; limit?: number }): Promise<SlackFile[]> {
+    return this.withRetry(async () => {
+      const response = await this.ensureAuth().files.list({
+        channel: options?.channel,
+        user: options?.user,
+        count: options?.limit,
+      })
+      this.checkResponse(response)
+
+      return (response.files || []).map((f) => mapSlackFile(f))
+    })
+  }
+
+  async getFileInfo(fileId: string): Promise<SlackFile> {
+    return this.withRetry(async () => {
+      const response = await this.ensureAuth().files.info({ file: fileId })
+      this.checkResponse(response)
+
+      return mapSlackFile(response.file)
+    })
+  }
+
+  async downloadFile(fileId: string): Promise<{ buffer: Buffer; file: SlackFile }> {
+    const file = await this.getFileInfo(fileId)
+
+    if (!file.url_private) {
+      throw new SlackBotError('File has no download URL', 'no_download_url')
+    }
+
+    if (!this.token) {
+      throw new SlackBotError('Not authenticated. Call .login() first.', 'not_authenticated')
+    }
+
+    const response = await fetch(file.url_private, {
+      headers: { Authorization: `Bearer ${this.token}` },
+    })
+
+    if (!response.ok) {
+      throw new SlackBotError(`Failed to download file: ${response.statusText}`, 'download_failed')
+    }
+
+    const arrayBuffer = await response.arrayBuffer()
+    return {
+      buffer: Buffer.from(arrayBuffer),
+      file,
+    }
+  }
+
+  async deleteFile(fileId: string): Promise<void> {
+    return this.withRetry(async () => {
+      const response = await this.ensureAuth().files.delete({ file: fileId })
       this.checkResponse(response)
     })
   }

@@ -54,6 +54,8 @@ oauth_config:
       - users:read.email
       - reactions:write
       - reactions:read
+      - files:read
+      - files:write
 
 settings:
   org_deploy_enabled: false
@@ -108,18 +110,20 @@ agent-slackbot auth remove deploy
 
 ### Scopes Reference
 
-| Scope              | Used For                         |
-| ------------------ | -------------------------------- |
-| `chat:write`       | Sending and updating messages    |
-| `channels:history` | Reading public channel messages  |
-| `channels:read`    | Listing public channels          |
-| `channels:join`    | Joining public channels          |
-| `groups:history`   | Reading private channel messages |
-| `groups:read`      | Listing private channels         |
-| `users:read`       | Listing users                    |
-| `users:read.email` | Reading user emails              |
-| `reactions:write`  | Adding/removing reactions        |
-| `reactions:read`   | Listing reactions                |
+| Scope              | Used For                             |
+| ------------------ | ------------------------------------ |
+| `chat:write`       | Sending and updating messages        |
+| `channels:history` | Reading public channel messages      |
+| `channels:read`    | Listing public channels              |
+| `channels:join`    | Joining public channels              |
+| `groups:history`   | Reading private channel messages     |
+| `groups:read`      | Listing private channels             |
+| `users:read`       | Listing users                        |
+| `users:read.email` | Reading user emails                  |
+| `reactions:write`  | Adding/removing reactions            |
+| `reactions:read`   | Listing reactions                    |
+| `files:read`       | Listing/inspecting/downloading files |
+| `files:write`      | Uploading and deleting files         |
 
 ### Environment Variables (CI/CD)
 
@@ -209,18 +213,45 @@ agent-slackbot reaction add C0ACZKTDDC0 1234567890.123456 thumbsup
 agent-slackbot reaction remove <channel> <ts> <emoji>
 ```
 
+### File Commands
+
+```bash
+# Upload a file to a channel
+agent-slackbot file upload <channel> <path>
+agent-slackbot file upload C0ACZKTDDC0 ./report.pdf
+agent-slackbot file upload C0ACZKTDDC0 ./log.txt --filename build-log.txt
+agent-slackbot file upload C0ACZKTDDC0 ./screenshot.png --thread 1234567890.123456 --comment "FYI"
+
+# List files visible to the bot
+agent-slackbot file list
+agent-slackbot file list --channel C0ACZKTDDC0
+agent-slackbot file list --user U123 --limit 50
+
+# Show file details
+agent-slackbot file info <file-id>
+
+# Download a file by ID
+agent-slackbot file download <file-id>
+agent-slackbot file download F0123ABC ./downloads/
+
+# Delete a file (bot's own files only)
+agent-slackbot file delete <file-id> --force
+```
+
+`file upload` requires the `files:write` scope; the read commands (`list`, `info`, `download`) require `files:read`. The bot can only delete files it uploaded.
+
 ## Key Differences from agent-slack
 
-| Feature              | agent-slack                     | agent-slackbot               |
-| -------------------- | ------------------------------- | ---------------------------- |
-| Token type           | User token (xoxc-)              | Bot token (xoxb-)            |
-| Token source         | Auto-extracted from desktop app | Manual from Slack App config |
-| Message search       | Yes                             | No                           |
-| File operations      | Yes                             | No                           |
-| Snapshot             | Yes                             | No                           |
-| Edit/delete messages | Any message                     | Bot's own only               |
-| Multi-bot support    | N/A                             | Yes (`--bot` flag)           |
-| CI/CD friendly       | Requires desktop app            | Yes                          |
+| Feature              | agent-slack                     | agent-slackbot                                 |
+| -------------------- | ------------------------------- | ---------------------------------------------- |
+| Token type           | User token (xoxc-)              | Bot token (xoxb-)                              |
+| Token source         | Auto-extracted from desktop app | Manual from Slack App config                   |
+| Message search       | Yes                             | No                                             |
+| File operations      | Yes                             | Upload/list/info/download/delete (with scopes) |
+| Snapshot             | Yes                             | No                                             |
+| Edit/delete messages | Any message                     | Bot's own only                                 |
+| Multi-bot support    | N/A                             | Yes (`--bot` flag)                             |
+| CI/CD friendly       | Requires desktop app            | Yes                                            |
 
 ## AI Agent Integration
 

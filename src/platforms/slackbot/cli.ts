@@ -6,6 +6,7 @@ import pkg from '../../../package.json' with { type: 'json' }
 import {
   authCommand,
   channelCommand,
+  fileCommand,
   messageCommand,
   reactionCommand,
   userCommand,
@@ -36,6 +37,7 @@ program.addCommand(messageCommand)
 program.addCommand(channelCommand)
 program.addCommand(userCommand)
 program.addCommand(reactionCommand)
+program.addCommand(fileCommand)
 
 program.parseAsync(process.argv)
 
