@@ -29,6 +29,8 @@ Add these **Bot Token Scopes**:
 | `users:read.email` | Access user email addresses            |
 | `reactions:write`  | Add and remove emoji reactions         |
 | `reactions:read`   | List reactions on messages             |
+| `files:read`       | List, inspect, and download files      |
+| `files:write`      | Upload and delete files                |
 
 ### Installing the App
 
@@ -246,6 +248,8 @@ oauth_config:
       - users:read.email
       - reactions:write
       - reactions:read
+      - files:read
+      - files:write
 
 settings:
   org_deploy_enabled: false
