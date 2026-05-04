@@ -18,12 +18,16 @@ This triggers the extraction flow behind the scenes. You can also extract manual
 
 ```bash
 agent-channeltalk auth extract
+agent-channeltalk auth extract --browser-profile ~/browser-data
+agent-channeltalk auth extract --browser-profile ~/work-profile,~/personal-profile
 ```
+
+Use `--browser-profile <path>` for agent-browser profiles, custom Chrome user data dirs, or portable browser profiles. The option can be repeated or given comma-separated paths.
 
 ### How It Works
 
 1. Locates the Channel Talk desktop app's SQLite cookie database
-2. If the desktop app isn't found, scans Chromium browser profiles for Channel Talk cookies
+2. Scans Chromium browser profiles for Channel Talk cookies when the desktop app isn't found, or when custom `--browser-profile` paths are provided
 3. Copies the database to a temp file (avoids locking the original)
 4. Reads `x-account` and `ch-session-1` cookies for `*.channel.io`
 5. Decrypts encrypted cookies if needed (macOS Keychain, Linux peanuts, Windows DPAPI)

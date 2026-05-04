@@ -28,9 +28,15 @@ agent-webex auth extract
 
 # With debug output
 agent-webex auth extract --debug
+
+# Scan custom Chromium profile/user-data dirs (repeatable or comma-separated)
+agent-webex auth extract --browser-profile ~/browser-data
+agent-webex auth extract --browser-profile ~/work-profile,~/personal-profile
 ```
 
 **Requirements**: You must be logged into web.webex.com in a supported Chromium browser. The browser does not need to be running — the CLI reads directly from on-disk LevelDB files.
+
+Use `--browser-profile <path>` for agent-browser profiles, custom Chrome user data dirs, or portable browser profiles. The option can be repeated or given comma-separated paths.
 
 **Limitations**: Direct messages (`message dm`) require an existing conversation with the recipient. The extracted token cannot create new 1:1 conversations — start one from the Webex app first, then use the CLI.
 

@@ -23,7 +23,13 @@ agent-instagram auth extract
 
 # With debug output
 agent-instagram auth extract --debug
+
+# Scan custom Chromium profile/user-data dirs (repeatable or comma-separated)
+agent-instagram auth extract --browser-profile ~/browser-data
+agent-instagram auth extract --browser-profile ~/work-profile --browser-profile ~/personal-profile
 ```
+
+Use `--browser-profile <path>` for agent-browser profiles, custom Chrome user data dirs, or portable browser profiles. The option can be repeated or given comma-separated paths.
 
 ### Auto-Extraction
 
