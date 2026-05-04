@@ -30,9 +30,11 @@ export class ChannelTokenExtractor {
   private platform: NodeJS.Platform
   private decryptor: ChromiumCookieDecryptor
   private cookieReader: ChromiumCookieReader
+  private customBrowserProfileDirs: string[]
 
-  constructor(platform?: NodeJS.Platform) {
+  constructor(platform?: NodeJS.Platform, customBrowserProfileDirs?: string[]) {
     this.platform = platform ?? process.platform
+    this.customBrowserProfileDirs = customBrowserProfileDirs ?? []
     this.cookieReader = new ChromiumCookieReader()
     this.decryptor = new ChromiumCookieDecryptor({ platform: this.platform })
   }
@@ -95,7 +97,7 @@ export class ChannelTokenExtractor {
       }
     }
 
-    for (const profileDir of getAgentBrowserProfileDirs()) {
+    for (const profileDir of getAgentBrowserProfileDirs({ customProfileDirs: this.customBrowserProfileDirs })) {
       paths.push(join(profileDir, 'Cookies'))
       paths.push(join(profileDir, 'Network', 'Cookies'))
     }
@@ -111,16 +113,27 @@ export class ChannelTokenExtractor {
     const results: ExtractedChannelToken[] = []
     const seenAccounts = new Set<string>()
 
+    if (this.customBrowserProfileDirs.length > 0) {
+      for (const browserResult of await this.extractAllFromBrowserPaths()) {
+        if (!seenAccounts.has(browserResult.accountCookie)) {
+          seenAccounts.add(browserResult.accountCookie)
+          results.push(browserResult)
+        }
+      }
+    }
+
     const desktopResult = await this.extractFromDesktopApp()
     if (desktopResult && !seenAccounts.has(desktopResult.accountCookie)) {
       seenAccounts.add(desktopResult.accountCookie)
       results.push(desktopResult)
     }
 
-    for (const browserResult of await this.extractAllFromBrowserPaths()) {
-      if (!seenAccounts.has(browserResult.accountCookie)) {
-        seenAccounts.add(browserResult.accountCookie)
-        results.push(browserResult)
+    if (this.customBrowserProfileDirs.length === 0) {
+      for (const browserResult of await this.extractAllFromBrowserPaths()) {
+        if (!seenAccounts.has(browserResult.accountCookie)) {
+          seenAccounts.add(browserResult.accountCookie)
+          results.push(browserResult)
+        }
       }
     }
 
