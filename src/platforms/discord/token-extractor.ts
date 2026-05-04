@@ -75,12 +75,20 @@ export class DiscordTokenExtractor {
   private keyCache: DerivedKeyCache
   private cachedKey: Buffer | null = null
   private decryptor: ChromiumCookieDecryptor
+  private customBrowserProfileDirs: string[]
 
-  constructor(platform?: NodeJS.Platform, startupWait?: number, killWait?: number, keyCache?: DerivedKeyCache) {
+  constructor(
+    platform?: NodeJS.Platform,
+    startupWait?: number,
+    killWait?: number,
+    keyCache?: DerivedKeyCache,
+    customBrowserProfileDirs?: string[],
+  ) {
     this.platform = platform ?? process.platform
     this.startupWait = startupWait ?? DISCORD_STARTUP_WAIT
     this.killWait = killWait ?? 1000
     this.keyCache = keyCache ?? new DerivedKeyCache()
+    this.customBrowserProfileDirs = customBrowserProfileDirs ?? []
     this.decryptor = new ChromiumCookieDecryptor({
       platform: this.platform,
       appKeychainVariants: DISCORD_APP_KEYCHAIN_VARIANTS,
@@ -126,7 +134,7 @@ export class DiscordTokenExtractor {
       }
     }
 
-    for (const profileDir of getAgentBrowserProfileDirs()) {
+    for (const profileDir of getAgentBrowserProfileDirs({ customProfileDirs: this.customBrowserProfileDirs })) {
       dirs.push(join(profileDir, 'Local Storage', 'leveldb'))
     }
 
@@ -169,6 +177,15 @@ export class DiscordTokenExtractor {
     const results: ExtractedDiscordToken[] = []
     const seenTokens = new Set<string>()
 
+    if (this.customBrowserProfileDirs.length > 0) {
+      for (const t of await this.extractFromBrowserLevelDB()) {
+        if (!seenTokens.has(t.token)) {
+          seenTokens.add(t.token)
+          results.push(t)
+        }
+      }
+    }
+
     for (const t of await this.extractFromLevelDB()) {
       if (!seenTokens.has(t.token)) {
         seenTokens.add(t.token)
@@ -176,10 +193,12 @@ export class DiscordTokenExtractor {
       }
     }
 
-    for (const t of await this.extractFromBrowserLevelDB()) {
-      if (!seenTokens.has(t.token)) {
-        seenTokens.add(t.token)
-        results.push(t)
+    if (this.customBrowserProfileDirs.length === 0) {
+      for (const t of await this.extractFromBrowserLevelDB()) {
+        if (!seenTokens.has(t.token)) {
+          seenTokens.add(t.token)
+          results.push(t)
+        }
       }
     }
 
