@@ -12,6 +12,7 @@ import {
   discoverBrowserProfileDirs,
   findLocalStatePath,
   getBrowserBasePath,
+  getAgentBrowserProfileDirs,
 } from '@/shared/chromium'
 import type { KeychainVariant } from '@/shared/chromium'
 
@@ -92,6 +93,11 @@ export class ChannelTokenExtractor {
         paths.push(join(profileDir, 'Cookies'))
         paths.push(join(profileDir, 'Network', 'Cookies'))
       }
+    }
+
+    for (const profileDir of getAgentBrowserProfileDirs()) {
+      paths.push(join(profileDir, 'Cookies'))
+      paths.push(join(profileDir, 'Network', 'Cookies'))
     }
 
     return paths

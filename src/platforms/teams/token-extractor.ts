@@ -11,6 +11,7 @@ import {
   discoverBrowserProfileDirs,
   findLocalStatePath,
   getBrowserBasePath,
+  getAgentBrowserProfileDirs,
 } from '@/shared/chromium'
 import type { KeychainVariant } from '@/shared/chromium'
 import { DerivedKeyCache } from '@/shared/utils/derived-key-cache'
@@ -180,6 +181,11 @@ export class TeamsTokenExtractor {
         paths.push({ path: join(profileDir, 'Cookies'), accountType: 'work', accountTypeKnown: false })
         paths.push({ path: join(profileDir, 'Network', 'Cookies'), accountType: 'work', accountTypeKnown: false })
       }
+    }
+
+    for (const profileDir of getAgentBrowserProfileDirs()) {
+      paths.push({ path: join(profileDir, 'Cookies'), accountType: 'work', accountTypeKnown: false })
+      paths.push({ path: join(profileDir, 'Network', 'Cookies'), accountType: 'work', accountTypeKnown: false })
     }
 
     return paths
