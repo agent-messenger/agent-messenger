@@ -881,6 +881,47 @@ describe('TokenExtractor browser fallback', () => {
     extractFromBrowsersSpy.mockRestore()
   })
 
+  it('custom browser profile can upgrade desktop token with a cookie', async () => {
+    // given
+    const slackDir = mkdtempSync(join(tmpdir(), 'slack-custom-cookie-upgrade-'))
+    tempDirs.push(slackDir)
+
+    const hex64 = 'd'.repeat(64)
+    const token = `xoxc-1111111111-2222222222-3333333333-${hex64}`
+    const leveldbDir = join(slackDir, 'Local Storage', 'leveldb')
+    mkdirSync(leveldbDir, { recursive: true })
+    writeFileSync(join(leveldbDir, '000001.log'), `"${token}"T12345678"name":"desktop-workspace"`)
+
+    const browserWorkspace: ExtractedWorkspace = {
+      workspace_id: 'T12345678',
+      workspace_name: 'browser-workspace',
+      token,
+      cookie: 'xoxd-browser-cookie',
+    }
+    const extractFromBrowsersSpy = spyOn(TokenExtractor.prototype as any, 'extractFromBrowsers').mockResolvedValue([
+      browserWorkspace,
+    ])
+
+    try {
+      // when
+      const extractor = new TokenExtractor('darwin', slackDir, undefined, undefined, ['/tmp/custom-profile'])
+      const result = await extractor.extract()
+
+      // then
+      expect(extractFromBrowsersSpy).toHaveBeenCalled()
+      expect(result).toEqual([
+        {
+          workspace_id: 'T12345678',
+          workspace_name: 'desktop-workspace',
+          token,
+          cookie: 'xoxd-browser-cookie',
+        },
+      ])
+    } finally {
+      extractFromBrowsersSpy.mockRestore()
+    }
+  })
+
   it('extract falls back to browser profiles when desktop has no tokens', async () => {
     // given — empty slackDir (no tokens)
     const slackDir = mkdtempSync(join(tmpdir(), 'slack-fallback-browser-'))

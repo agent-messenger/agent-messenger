@@ -227,7 +227,13 @@ export class TokenExtractor {
     seenTokens: Set<string>,
   ): Promise<ExtractedWorkspace[]> {
     for (const workspace of await this.extractFromBrowsers()) {
-      if (seenTokens.has(workspace.token)) continue
+      const existing = results.find((item) => item.token === workspace.token)
+      if (existing) {
+        if (!existing.cookie && workspace.cookie) {
+          existing.cookie = workspace.cookie
+        }
+        continue
+      }
       seenTokens.add(workspace.token)
       results.push(workspace)
     }
