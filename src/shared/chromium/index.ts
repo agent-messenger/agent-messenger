@@ -10,3 +10,5 @@ export {
 export { ChromiumCookieDecryptor } from './decryptor'
 export type { ChromiumDecryptorOptions } from './decryptor'
 export { ChromiumCookieReader } from './cookie-reader'
+export { collectBrowserProfileOption } from './cli-options'
+export type { BrowserProfileOption } from './cli-options'

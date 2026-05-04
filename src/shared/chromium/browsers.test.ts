@@ -218,10 +218,15 @@ describe('browsers', () => {
           AGENT_BROWSER_PROFILE: join(projectDir, 'env-profile'),
         },
         homeDir,
+        customProfileDirs: ['./cli-profile', join(projectDir, 'second-cli-profile')],
       })
 
       // then
       expect(dirs).toEqual([
+        join(projectDir, 'cli-profile'),
+        join(projectDir, 'cli-profile', 'Default'),
+        join(projectDir, 'second-cli-profile'),
+        join(projectDir, 'second-cli-profile', 'Default'),
         join(projectDir, 'env-profile'),
         join(projectDir, 'env-profile', 'Default'),
         join(homeDir, '.agent-browser', 'global-profile'),
