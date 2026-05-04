@@ -137,6 +137,10 @@ If a memorized ID returns an error (channel not found, server not found), remove
 # Extract token from Discord desktop app or browser (usually automatic)
 agent-discord auth extract
 agent-discord auth extract --debug
+agent-discord auth extract --browser-profile ~/browser-data
+agent-discord auth extract --browser-profile ~/work-profile,~/personal-profile
+
+# --browser-profile accepts repeatable or comma-separated Chromium profile/user-data dirs
 
 # Check auth status
 agent-discord auth status
