@@ -4,6 +4,7 @@ export {
   CHROMIUM_BROWSERS,
   discoverBrowserProfileDirs,
   findLocalStatePath,
+  getAgentBrowserProfileDirs,
   getBrowserBasePath,
 } from './browsers'
 export { ChromiumCookieDecryptor } from './decryptor'

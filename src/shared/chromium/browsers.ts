@@ -1,6 +1,6 @@
-import { existsSync, readdirSync } from 'node:fs'
+import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { homedir } from 'node:os'
-import { join } from 'node:path'
+import { dirname, isAbsolute, join, resolve } from 'node:path'
 
 import type { BrowserConfig, KeychainVariant } from './types'
 
@@ -39,6 +39,16 @@ export const BROWSER_KEYCHAIN_VARIANTS: KeychainVariant[] = [
   { service: 'Chromium Safe Storage', account: 'Chromium' },
 ]
 
+interface AgentBrowserProfileDiscoveryOptions {
+  cwd?: string
+  env?: NodeJS.ProcessEnv
+  homeDir?: string
+}
+
+type AgentBrowserConfig = {
+  profile?: unknown
+}
+
 export function getBrowserBasePath(browser: BrowserConfig, platform: NodeJS.Platform): string | null {
   let relative: string
   switch (platform) {
@@ -70,8 +80,35 @@ export function discoverBrowserProfileDirs(browserBase: string): string[] {
       if (!/^Profile \d+$/i.test(entry.name)) continue
       dirs.push(join(browserBase, entry.name))
     }
-  } catch {}
+  } catch {
+    return dirs
+  }
   return dirs
+}
+
+export function getAgentBrowserProfileDirs(options: AgentBrowserProfileDiscoveryOptions = {}): string[] {
+  const cwd = options.cwd ?? process.cwd()
+  const env = options.env ?? process.env
+  const homeDir = options.homeDir ?? homedir()
+  if (env.AGENT_MESSENGER_DISABLE_AGENT_BROWSER_PROFILE_DISCOVERY === '1') return []
+
+  const profileDirs: string[] = []
+
+  addAgentBrowserProfileDir(profileDirs, env.AGENT_BROWSER_PROFILE, cwd)
+
+  const configPaths = [
+    join(homeDir, '.agent-browser', 'config.json'),
+    join(cwd, 'agent-browser.json'),
+    env.AGENT_BROWSER_CONFIG,
+  ]
+
+  for (const configPath of configPaths) {
+    if (!configPath) continue
+    const config = readAgentBrowserConfig(configPath)
+    addAgentBrowserProfileDir(profileDirs, config?.profile, dirname(configPath))
+  }
+
+  return dedupePaths(profileDirs.flatMap((profileDir) => [profileDir, ...discoverBrowserProfileDirs(profileDir)]))
 }
 
 export function findLocalStatePath(cookieOrProfilePath: string): string | null {
@@ -83,4 +120,31 @@ export function findLocalStatePath(cookieOrProfilePath: string): string | null {
     if (existsSync(candidate)) return candidate
   }
   return null
+}
+
+function readAgentBrowserConfig(configPath: string): AgentBrowserConfig | null {
+  if (!existsSync(configPath)) return null
+  try {
+    const parsed = JSON.parse(readFileSync(configPath, 'utf8')) as unknown
+    if (!parsed || typeof parsed !== 'object') return null
+    return parsed as AgentBrowserConfig
+  } catch {
+    return null
+  }
+}
+
+function addAgentBrowserProfileDir(dirs: string[], profile: unknown, baseDir: string): void {
+  if (typeof profile !== 'string' || profile.length === 0) return
+  dirs.push(isAbsolute(profile) ? profile : resolve(baseDir, profile))
+}
+
+function dedupePaths(paths: string[]): string[] {
+  const seen = new Set<string>()
+  const result: string[] = []
+  for (const path of paths) {
+    if (seen.has(path)) continue
+    seen.add(path)
+    result.push(path)
+  }
+  return result
 }
