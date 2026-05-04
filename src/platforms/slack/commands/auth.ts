@@ -1,5 +1,7 @@
 import { Command } from 'commander'
 
+import { collectBrowserProfileOption } from '@/shared/chromium'
+import type { BrowserProfileOption } from '@/shared/chromium'
 import { handleError } from '@/shared/utils/error-handler'
 import { formatOutput } from '@/shared/utils/output'
 import { debug } from '@/shared/utils/stderr'
@@ -19,13 +21,14 @@ async function extractAction(options: {
   pretty?: boolean
   debug?: boolean
   unsafelyShowSecrets?: boolean
+  browserProfile?: string[]
 }): Promise<void> {
   try {
     if (options.unsafelyShowSecrets) {
       options.debug = true
     }
     const debugLog = options.debug ? (msg: string) => debug(`[debug] ${msg}`) : undefined
-    const extractor = new TokenExtractor(undefined, undefined, undefined, debugLog)
+    const extractor = new TokenExtractor(undefined, undefined, undefined, debugLog, options.browserProfile)
 
     if (process.platform === 'darwin') {
       console.log('')
@@ -246,8 +249,14 @@ export const authCommand = new Command('auth')
       .description('Extract tokens from Slack desktop app or a supported Chromium browser')
       .option('--pretty', 'Pretty print JSON output')
       .option('--debug', 'Show debug output for troubleshooting')
+      .option(
+        '--browser-profile <path>',
+        'Additional Chromium profile/user-data directory to scan (repeatable, comma-separated supported)',
+        collectBrowserProfileOption,
+        [],
+      )
       .option('--unsafely-show-secrets', 'Show full token and cookie values in debug output')
-      .action(extractAction),
+      .action((options: BrowserProfileOption & Parameters<typeof extractAction>[0]) => extractAction(options)),
   )
   .addCommand(
     new Command('logout')

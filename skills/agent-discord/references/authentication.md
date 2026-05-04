@@ -15,6 +15,10 @@ agent-discord auth extract
 
 # Use --debug for troubleshooting extraction issues
 agent-discord auth extract --debug
+
+# Scan custom Chromium profile/user-data dirs (repeatable or comma-separated)
+agent-discord auth extract --browser-profile ~/browser-data
+agent-discord auth extract --browser-profile ~/work-profile --browser-profile ~/personal-profile
 ```
 
 This command:
@@ -22,11 +26,13 @@ This command:
 1. Detects your operating system (macOS, Linux, Windows)
 2. Locates the Discord desktop app data directory
 3. Reads the LevelDB storage containing session data
-4. If the desktop app isn't found, scans Chromium browser profiles for Discord tokens
+4. Scans Chromium browser profiles for Discord tokens when the desktop app isn't found, or when custom `--browser-profile` paths are provided
 5. Extracts user token (handles encrypted tokens on all platforms)
 6. Validates token against Discord API before saving
 7. Discovers ALL joined servers
 8. Stores credentials securely in `~/.config/agent-messenger/discord-credentials.json`
+
+Use `--browser-profile <path>` for agent-browser profiles, custom Chrome user data dirs, or portable browser profiles. The option can be repeated or given comma-separated paths; explicit paths are prioritized so they are not masked by default desktop/browser locations.
 
 ### Platform-Specific Paths
 

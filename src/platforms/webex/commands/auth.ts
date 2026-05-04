@@ -1,5 +1,6 @@
 import { Command } from 'commander'
 
+import { collectBrowserProfileOption } from '@/shared/chromium'
 import { handleError } from '@/shared/utils/error-handler'
 import { formatOutput } from '@/shared/utils/output'
 import { info, debug } from '@/shared/utils/stderr'
@@ -141,10 +142,14 @@ export async function statusAction(options: { pretty?: boolean }): Promise<void>
   }
 }
 
-export async function extractAction(options: { pretty?: boolean; debug?: boolean }): Promise<void> {
+export async function extractAction(options: {
+  pretty?: boolean
+  debug?: boolean
+  browserProfile?: string[]
+}): Promise<void> {
   try {
     const debugLog = options.debug ? (msg: string) => debug(`[debug] ${msg}`) : undefined
-    const extractor = new WebexTokenExtractor(undefined, debugLog)
+    const extractor = new WebexTokenExtractor(undefined, debugLog, undefined, options.browserProfile)
 
     if (options.debug) {
       debug('[debug] Searching browser profiles for Webex tokens...')
@@ -283,6 +288,12 @@ export const authCommand = new Command('auth')
       .description('Extract Webex token from browser (Chrome, Edge, Arc, Brave)')
       .option('--pretty', 'Pretty print JSON output')
       .option('--debug', 'Show debug output')
+      .option(
+        '--browser-profile <path>',
+        'Additional Chromium profile/user-data directory to scan (repeatable, comma-separated supported)',
+        collectBrowserProfileOption,
+        [],
+      )
       .action(extractAction),
   )
   .addCommand(

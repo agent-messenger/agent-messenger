@@ -49,6 +49,10 @@ agent-teams auth extract
 
 # Use --debug for troubleshooting extraction issues
 agent-teams auth extract --debug
+
+# Scan custom Chromium profile/user-data dirs (repeatable or comma-separated)
+agent-teams auth extract --browser-profile ~/browser-data
+agent-teams auth extract --browser-profile "$HOME/work-profile,$HOME/personal-profile"
 ```
 
 This command:
@@ -56,11 +60,13 @@ This command:
 1. Detects your operating system (macOS, Linux, Windows)
 2. Locates the Teams desktop app data directory
 3. Reads the **Cookies SQLite database** containing session data
-4. If the desktop app isn't found, scans Chromium browser profiles for Teams cookies
+4. Scans Chromium browser profiles for Teams cookies when the desktop app isn't found, or when custom `--browser-profile` paths are provided
 5. Extracts `skypetoken_asm` cookie value
 6. Validates token against Teams API before saving
 7. Discovers ALL joined teams
 8. Stores credentials securely in `~/.config/agent-messenger/teams-credentials.json`
+
+Use `--browser-profile <path>` for agent-browser profiles, custom Chrome user data dirs, or portable browser profiles. The option can be repeated or given comma-separated paths.
 
 ### Platform-Specific Paths
 

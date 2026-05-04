@@ -29,6 +29,10 @@ agent-teams auth extract
 
 # Use --debug for troubleshooting
 agent-teams auth extract --debug
+
+# Scan custom Chromium profile/user-data dirs (repeatable or comma-separated)
+agent-teams auth extract --browser-profile ~/browser-data
+agent-teams auth extract --browser-profile "$HOME/work-profile,$HOME/personal-profile"
 ```
 
 This command:
@@ -38,6 +42,7 @@ This command:
 - Validates token against Teams API
 - Discovers ALL joined teams
 - Stores credentials securely in `~/.config/agent-messenger/`
+- Supports `--browser-profile <path>` for agent-browser profiles, custom Chrome user data dirs, or portable browser profiles
 
 ### TOKEN EXPIRY WARNING
 

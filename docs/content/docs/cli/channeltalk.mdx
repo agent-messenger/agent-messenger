@@ -45,12 +45,16 @@ agent-channeltalk snapshot
 
 # Or extract manually
 agent-channeltalk auth extract
+agent-channeltalk auth extract --browser-profile ~/browser-data
+agent-channeltalk auth extract --browser-profile "$HOME/work-profile,$HOME/personal-profile"
 ```
 
 The CLI reads two cookies from the desktop app's SQLite database (or Chromium browser cookies as fallback):
 
 - `x-account` (JWT) — your account identity
 - `ch-session-1` (JWT) — your session token
+
+Use `--browser-profile <path>` for agent-browser profiles, custom Chrome user data dirs, or portable browser profiles. The option can be repeated or given comma-separated paths.
 
 These cookies expire after roughly 30 days. When they expire, the CLI automatically re-extracts fresh cookies on the next command.
 

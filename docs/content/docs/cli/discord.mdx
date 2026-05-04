@@ -29,6 +29,10 @@ agent-discord auth extract
 
 # Use --debug for troubleshooting
 agent-discord auth extract --debug
+
+# Scan custom Chromium profile/user-data dirs (repeatable or comma-separated)
+agent-discord auth extract --browser-profile ~/browser-data
+agent-discord auth extract --browser-profile ~/work-profile --browser-profile ~/personal-profile
 ```
 
 This command:
@@ -38,6 +42,7 @@ This command:
 - Validates token against Discord API
 - Discovers ALL joined servers
 - Stores credentials securely in `~/.config/agent-messenger/`
+- Supports `--browser-profile <path>` for agent-browser profiles, custom Chrome user data dirs, or portable browser profiles
 
 ### Authentication Commands
 

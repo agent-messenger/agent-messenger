@@ -20,6 +20,9 @@ const mockListChannels = mock(() =>
   ]),
 )
 const mockExtract = mock(() => Promise.resolve([{ accountCookie: 'fresh-account', sessionCookie: 'fresh-session' }]))
+const mockCreateTokenExtractor = mock((_browserProfile?: string[]) => ({
+  extract: mockExtract,
+}))
 
 import {
   clearAction,
@@ -89,9 +92,7 @@ setChannelAuthCommandDependenciesForTesting({
       return true
     },
   }),
-  createTokenExtractor: () => ({
-    extract: mockExtract,
-  }),
+  createTokenExtractor: mockCreateTokenExtractor,
 })
 
 describe('channel auth commands', () => {
@@ -105,6 +106,7 @@ describe('channel auth commands', () => {
     mockGetAccount.mockReset()
     mockListChannels.mockReset()
     mockExtract.mockReset()
+    mockCreateTokenExtractor.mockReset()
 
     mockGetAccount.mockImplementation(() => Promise.resolve({ id: 'acct-1', name: 'Alice' }))
     mockListChannels.mockImplementation(() =>
@@ -116,6 +118,9 @@ describe('channel auth commands', () => {
     mockExtract.mockImplementation(() =>
       Promise.resolve([{ accountCookie: 'fresh-account', sessionCookie: 'fresh-session' }]),
     )
+    mockCreateTokenExtractor.mockImplementation((_browserProfile?: string[]) => ({
+      extract: mockExtract,
+    }))
   })
 
   describe('extractAction', () => {
@@ -134,6 +139,13 @@ describe('channel auth commands', () => {
 
       expect(workspaceStore.get('ws-1')?.account_cookie).toBe('fresh-account')
       expect(workspaceStore.get('ws-2')?.account_cookie).toBe('fresh-account')
+    })
+
+    it('passes custom browser profile paths to the token extractor', async () => {
+      await extractAction({ browserProfile: ['/tmp/profile-a', '/tmp/profile-b'] })
+
+      expect(mockCreateTokenExtractor).toHaveBeenCalledWith(['/tmp/profile-a', '/tmp/profile-b'])
+      expect(mockExtract).toHaveBeenCalledTimes(1)
     })
 
     it('preserves current workspace if it still exists after re-extraction', async () => {

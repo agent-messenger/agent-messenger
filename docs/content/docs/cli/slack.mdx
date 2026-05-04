@@ -29,6 +29,10 @@ agent-slack auth extract
 
 # Use --debug for troubleshooting
 agent-slack auth extract --debug
+
+# Scan custom Chromium profile/user-data dirs (repeatable or comma-separated)
+agent-slack auth extract --browser-profile ~/browser-data
+agent-slack auth extract --browser-profile "$HOME/work-profile,$HOME/personal-profile"
 ```
 
 This command:
@@ -39,6 +43,7 @@ This command:
 - Validates tokens against Slack API
 - Discovers ALL logged-in workspaces
 - Stores credentials securely in `~/.config/agent-messenger/`
+- Supports `--browser-profile <path>` for agent-browser profiles, custom Chrome user data dirs, or portable browser profiles
 
 ### Multi-Workspace Management
 

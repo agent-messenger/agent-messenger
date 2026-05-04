@@ -140,6 +140,10 @@ If a memorized ID returns an error (channel not found, user not found), remove i
 # Extract tokens from Slack desktop app or browser (usually automatic)
 agent-slack auth extract
 agent-slack auth extract --debug
+agent-slack auth extract --browser-profile ~/browser-data
+agent-slack auth extract --browser-profile ~/work-profile --browser-profile ~/personal-profile
+
+# --browser-profile accepts repeatable or comma-separated Chromium profile/user-data dirs
 
 # Check auth status
 agent-slack auth status

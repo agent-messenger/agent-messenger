@@ -43,6 +43,7 @@ interface AgentBrowserProfileDiscoveryOptions {
   cwd?: string
   env?: NodeJS.ProcessEnv
   homeDir?: string
+  customProfileDirs?: string[]
 }
 
 type AgentBrowserConfig = {
@@ -93,6 +94,10 @@ export function getAgentBrowserProfileDirs(options: AgentBrowserProfileDiscovery
   if (env.AGENT_MESSENGER_DISABLE_AGENT_BROWSER_PROFILE_DISCOVERY === '1') return []
 
   const profileDirs: string[] = []
+
+  for (const profileDir of options.customProfileDirs ?? []) {
+    addAgentBrowserProfileDir(profileDirs, profileDir, cwd)
+  }
 
   addAgentBrowserProfileDir(profileDirs, env.AGENT_BROWSER_PROFILE, cwd)
 

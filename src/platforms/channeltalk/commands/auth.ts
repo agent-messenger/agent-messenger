@@ -1,5 +1,6 @@
 import { Command } from 'commander'
 
+import { collectBrowserProfileOption } from '@/shared/chromium'
 import { formatOutput } from '@/shared/utils/output'
 
 import { ChannelClient } from '../client'
@@ -9,6 +10,7 @@ import { ChannelTokenExtractor } from '../token-extractor'
 interface ActionOptions {
   workspace?: string
   pretty?: boolean
+  browserProfile?: string[]
   _credManager?: ChannelCredentialManager
 }
 
@@ -60,7 +62,8 @@ let createChannelClient: (
 
 let createCredentialManager = (): ChannelCredentialManagerLike => new ChannelCredentialManager()
 
-let createTokenExtractor = (): ChannelTokenExtractorLike => new ChannelTokenExtractor()
+let createTokenExtractor = (browserProfile?: string[]): ChannelTokenExtractorLike =>
+  new ChannelTokenExtractor(undefined, browserProfile)
 
 export function setChannelAuthCommandDependenciesForTesting(dependencies: {
   createChannelClient?: (
@@ -68,7 +71,7 @@ export function setChannelAuthCommandDependenciesForTesting(dependencies: {
     sessionCookie?: string,
   ) => ChannelClientLike | Promise<ChannelClientLike>
   createCredentialManager?: () => ChannelCredentialManagerLike
-  createTokenExtractor?: () => ChannelTokenExtractorLike
+  createTokenExtractor?: (browserProfile?: string[]) => ChannelTokenExtractorLike
 }): void {
   if (dependencies.createChannelClient) createChannelClient = dependencies.createChannelClient
   if (dependencies.createCredentialManager) createCredentialManager = dependencies.createCredentialManager
@@ -79,13 +82,14 @@ export function resetChannelAuthCommandDependenciesForTesting(): void {
   createChannelClient = async (accountCookie: string, sessionCookie?: string): Promise<ChannelClientLike> =>
     new ChannelClient().login({ accountCookie, sessionCookie })
   createCredentialManager = (): ChannelCredentialManagerLike => new ChannelCredentialManager()
-  createTokenExtractor = (): ChannelTokenExtractorLike => new ChannelTokenExtractor()
+  createTokenExtractor = (browserProfile?: string[]): ChannelTokenExtractorLike =>
+    new ChannelTokenExtractor(undefined, browserProfile)
 }
 
 export async function extractAction(options: ActionOptions = {}): Promise<ExtractResult | ErrorResult> {
   try {
     const credManager = options._credManager ?? createCredentialManager()
-    const extractor = createTokenExtractor()
+    const extractor = createTokenExtractor(options.browserProfile)
     const extracted = await extractor.extract()
 
     if (extracted.length === 0) {
@@ -270,7 +274,13 @@ export function createAuthCommand(): Command {
       new Command('extract')
         .description('Extract cookies from Channel Talk desktop app or a supported Chromium browser')
         .option('--pretty', 'Pretty print JSON output')
-        .action(async (opts: { pretty?: boolean }) => {
+        .option(
+          '--browser-profile <path>',
+          'Additional Chromium profile/user-data directory to scan (repeatable, comma-separated supported)',
+          collectBrowserProfileOption,
+          [],
+        )
+        .action(async (opts: { pretty?: boolean; browserProfile?: string[] }) => {
           cliOutput(await extractAction(opts), opts.pretty)
         }),
     )

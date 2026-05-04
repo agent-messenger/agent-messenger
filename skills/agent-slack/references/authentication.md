@@ -15,6 +15,10 @@ agent-slack auth extract
 
 # Use --debug for troubleshooting extraction issues
 agent-slack auth extract --debug
+
+# Scan custom Chromium profile/user-data dirs (repeatable or comma-separated)
+agent-slack auth extract --browser-profile ~/browser-data
+agent-slack auth extract --browser-profile "$HOME/work-profile,$HOME/personal-profile"
 ```
 
 This command:
@@ -22,11 +26,13 @@ This command:
 1. Detects your operating system (macOS, Linux, Windows)
 2. Locates the Slack desktop app data directory (supports both direct download and App Store versions on macOS)
 3. Reads the LevelDB storage containing session data
-4. If the desktop app isn't found, scans Chromium browser profiles for Slack tokens in `localStorage.localConfig_v2` and `d` cookie
+4. Scans Chromium browser profiles for Slack tokens in `localStorage.localConfig_v2` and `d` cookie when the desktop app isn't found, or when custom `--browser-profile` paths are provided
 5. Decrypts cookies using macOS Keychain, Linux keyring, or Windows DPAPI
 6. Validates tokens against Slack API before saving
 7. Extracts xoxc token and xoxd cookie for ALL logged-in workspaces
 8. Stores credentials securely in `~/.config/agent-messenger/slack-credentials.json`
+
+Use `--browser-profile <path>` for agent-browser profiles, custom Chrome user data dirs, or portable browser profiles. The option can be repeated or given comma-separated paths, and explicit paths are included even when desktop credentials are also present.
 
 ### Platform-Specific Paths
 
