@@ -1,7 +1,7 @@
 ---
 name: agent-whatsapp
 description: Interact with WhatsApp - send messages, read chats, manage conversations
-version: 2.10.2
+version: 2.11.0
 allowed-tools: Bash(agent-whatsapp:*)
 metadata:
   openclaw:
