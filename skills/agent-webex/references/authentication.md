@@ -31,7 +31,7 @@ agent-webex auth extract --debug
 
 # Scan custom Chromium profile/user-data dirs (repeatable or comma-separated)
 agent-webex auth extract --browser-profile ~/browser-data
-agent-webex auth extract --browser-profile ~/work-profile,~/personal-profile
+agent-webex auth extract --browser-profile "$HOME/work-profile,$HOME/personal-profile"
 ```
 
 **Requirements**: You must be logged into web.webex.com in a supported Chromium browser. The browser does not need to be running — the CLI reads directly from on-disk LevelDB files.

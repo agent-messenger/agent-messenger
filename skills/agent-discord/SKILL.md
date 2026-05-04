@@ -138,7 +138,7 @@ If a memorized ID returns an error (channel not found, server not found), remove
 agent-discord auth extract
 agent-discord auth extract --debug
 agent-discord auth extract --browser-profile ~/browser-data
-agent-discord auth extract --browser-profile ~/work-profile,~/personal-profile
+agent-discord auth extract --browser-profile "$HOME/work-profile,$HOME/personal-profile"
 
 # --browser-profile accepts repeatable or comma-separated Chromium profile/user-data dirs
 

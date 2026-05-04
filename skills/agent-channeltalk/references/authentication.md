@@ -19,7 +19,7 @@ This triggers the extraction flow behind the scenes. You can also extract manual
 ```bash
 agent-channeltalk auth extract
 agent-channeltalk auth extract --browser-profile ~/browser-data
-agent-channeltalk auth extract --browser-profile ~/work-profile,~/personal-profile
+agent-channeltalk auth extract --browser-profile "$HOME/work-profile,$HOME/personal-profile"
 ```
 
 Use `--browser-profile <path>` for agent-browser profiles, custom Chrome user data dirs, or portable browser profiles. The option can be repeated or given comma-separated paths.

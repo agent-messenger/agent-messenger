@@ -69,7 +69,7 @@ agent-instagram auth extract --debug
 
 # Scan custom Chromium profile/user-data dirs
 agent-instagram auth extract --browser-profile ~/browser-data
-agent-instagram auth extract --browser-profile ~/work-profile,~/personal-profile
+agent-instagram auth extract --browser-profile "$HOME/work-profile,$HOME/personal-profile"
 ```
 
 `--browser-profile` accepts repeatable or comma-separated Chromium profile/user-data directories. Use it for agent-browser profiles, custom Chrome user data dirs, or portable browser profiles.

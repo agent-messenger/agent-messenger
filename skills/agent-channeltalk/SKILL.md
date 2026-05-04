@@ -169,7 +169,7 @@ If a memorized ID returns an error (chat not found, group not found), remove it 
 # Extract cookies from Channel Talk desktop app or browser (usually automatic)
 agent-channeltalk auth extract
 agent-channeltalk auth extract --browser-profile ~/browser-data
-agent-channeltalk auth extract --browser-profile ~/work-profile,~/personal-profile
+agent-channeltalk auth extract --browser-profile "$HOME/work-profile,$HOME/personal-profile"
 
 # --browser-profile accepts repeatable or comma-separated Chromium profile/user-data dirs
 

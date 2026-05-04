@@ -32,7 +32,7 @@ agent-slack auth extract --debug
 
 # Scan custom Chromium profile/user-data dirs (repeatable or comma-separated)
 agent-slack auth extract --browser-profile ~/browser-data
-agent-slack auth extract --browser-profile ~/work-profile,~/personal-profile
+agent-slack auth extract --browser-profile "$HOME/work-profile,$HOME/personal-profile"
 ```
 
 This command:
