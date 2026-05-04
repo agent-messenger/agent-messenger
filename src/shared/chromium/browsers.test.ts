@@ -8,6 +8,7 @@ import {
   CHROMIUM_BROWSERS,
   discoverBrowserProfileDirs,
   findLocalStatePath,
+  getAgentBrowserProfileDirs,
   getBrowserBasePath,
 } from './browsers'
 
@@ -192,6 +193,80 @@ describe('browsers', () => {
 
       // then
       expect(dirs).toEqual([join(browserBase, 'Default')])
+    })
+  })
+
+  describe('getAgentBrowserProfileDirs', () => {
+    it('includes profile dirs from env and config files', () => {
+      // given
+      const homeDir = mkdtempSync(join(tmpdir(), 'agent-browser-home-'))
+      const projectDir = mkdtempSync(join(tmpdir(), 'agent-browser-project-'))
+      const customConfigDir = mkdtempSync(join(tmpdir(), 'agent-browser-custom-'))
+      tempDirs.push(homeDir, projectDir, customConfigDir)
+
+      mkdirSync(join(homeDir, '.agent-browser'))
+      writeFileSync(join(homeDir, '.agent-browser', 'config.json'), JSON.stringify({ profile: './global-profile' }))
+      writeFileSync(join(projectDir, 'agent-browser.json'), JSON.stringify({ profile: './project-profile' }))
+      const customConfigPath = join(customConfigDir, 'custom-agent-browser.json')
+      writeFileSync(customConfigPath, JSON.stringify({ profile: './custom-profile' }))
+
+      // when
+      const dirs = getAgentBrowserProfileDirs({
+        cwd: projectDir,
+        env: {
+          AGENT_BROWSER_CONFIG: customConfigPath,
+          AGENT_BROWSER_PROFILE: join(projectDir, 'env-profile'),
+        },
+        homeDir,
+      })
+
+      // then
+      expect(dirs).toEqual([
+        join(projectDir, 'env-profile'),
+        join(projectDir, 'env-profile', 'Default'),
+        join(homeDir, '.agent-browser', 'global-profile'),
+        join(homeDir, '.agent-browser', 'global-profile', 'Default'),
+        join(projectDir, 'project-profile'),
+        join(projectDir, 'project-profile', 'Default'),
+        join(customConfigDir, 'custom-profile'),
+        join(customConfigDir, 'custom-profile', 'Default'),
+      ])
+    })
+
+    it('expands existing agent-browser profile bases with numbered Chromium profiles', () => {
+      // given
+      const homeDir = mkdtempSync(join(tmpdir(), 'agent-browser-expand-home-'))
+      const projectDir = mkdtempSync(join(tmpdir(), 'agent-browser-expand-project-'))
+      const profileBase = join(projectDir, 'browser-data')
+      tempDirs.push(homeDir, projectDir)
+      mkdirSync(join(profileBase, 'Profile 1'), { recursive: true })
+      mkdirSync(join(profileBase, 'Profile 2'))
+      writeFileSync(join(projectDir, 'agent-browser.json'), JSON.stringify({ profile: './browser-data' }))
+
+      // when
+      const dirs = getAgentBrowserProfileDirs({ cwd: projectDir, env: {}, homeDir })
+
+      // then
+      expect(dirs).toEqual([
+        profileBase,
+        join(profileBase, 'Default'),
+        join(profileBase, 'Profile 1'),
+        join(profileBase, 'Profile 2'),
+      ])
+    })
+
+    it('ignores malformed agent-browser configs', () => {
+      // given
+      const homeDir = mkdtempSync(join(tmpdir(), 'agent-browser-malformed-home-'))
+      const projectDir = mkdtempSync(join(tmpdir(), 'agent-browser-malformed-project-'))
+      tempDirs.push(homeDir, projectDir)
+      writeFileSync(join(projectDir, 'agent-browser.json'), '{')
+
+      // when
+      const dirs = getAgentBrowserProfileDirs({ cwd: projectDir, env: {}, homeDir })
+
+      // then
+      expect(dirs).toEqual([])
     })
   })
 

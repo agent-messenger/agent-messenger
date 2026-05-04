@@ -6,11 +6,20 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
+import { ChromiumCookieDecryptor } from '@/shared/chromium'
+
 import { ExtractedWorkspace, TokenExtractor } from './token-extractor'
 
 const tempDirs: string[] = []
+const originalAgentBrowserProfile = process.env.AGENT_BROWSER_PROFILE
 
 afterEach(() => {
+  if (originalAgentBrowserProfile) {
+    process.env.AGENT_BROWSER_PROFILE = originalAgentBrowserProfile
+  } else {
+    delete process.env.AGENT_BROWSER_PROFILE
+  }
+
   for (const dir of tempDirs) {
     rmSync(dir, { recursive: true, force: true })
   }
@@ -800,6 +809,52 @@ describe('TokenExtractor browser fallback', () => {
     const extractor = new TokenExtractor('darwin', slackDir)
     const result = await extractor.extractFromBrowsers()
     expect(result).toEqual([])
+  })
+
+  it('resolves Local State from agent-browser profile root for encrypted cookies', async () => {
+    // given
+    const agentBrowserProfile = mkdtempSync(join(tmpdir(), 'agent-browser-slack-profile-'))
+    tempDirs.push(agentBrowserProfile)
+    process.env.AGENT_BROWSER_PROFILE = agentBrowserProfile
+
+    const hex64 = 'c'.repeat(64)
+    const token = `xoxc-1111111111-2222222222-3333333333-${hex64}`
+    const profileDir = join(agentBrowserProfile, 'Default')
+    const leveldbDir = join(profileDir, 'Local Storage', 'leveldb')
+    const networkDir = join(profileDir, 'Network')
+    mkdirSync(leveldbDir, { recursive: true })
+    mkdirSync(networkDir, { recursive: true })
+    writeFileSync(join(leveldbDir, '000001.log'), `"${token}"T12345678"name":"agent-browser-workspace"`)
+    writeFileSync(join(agentBrowserProfile, 'Local State'), '{}')
+    createCookiesDb(join(networkDir, 'Cookies'), [
+      {
+        name: 'd',
+        value: '',
+        encrypted_value: new Uint8Array([1, 2, 3]),
+        host_key: '.slack.com',
+        last_access_utc: 1,
+      },
+    ])
+    const decryptSpy = spyOn(ChromiumCookieDecryptor.prototype, 'decryptCookie').mockReturnValue('xoxd-AgentBrowser')
+
+    try {
+      // when
+      const extractor = new TokenExtractor('darwin', join(agentBrowserProfile, 'missing-desktop'))
+      const result = await extractor.extractFromBrowsers()
+
+      // then
+      expect(result).toEqual([
+        {
+          workspace_id: 'T12345678',
+          workspace_name: 'agent-browser-workspace',
+          token,
+          cookie: 'xoxd-AgentBrowser',
+        },
+      ])
+      expect(decryptSpy).toHaveBeenCalledWith(Buffer.from([1, 2, 3]), join(agentBrowserProfile, 'Local State'))
+    } finally {
+      decryptSpy.mockRestore()
+    }
   })
 
   it('extract tries desktop before browser profiles', async () => {

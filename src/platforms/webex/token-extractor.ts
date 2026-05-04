@@ -4,6 +4,8 @@ import { join } from 'node:path'
 
 import { ClassicLevel } from 'classic-level'
 
+import { getAgentBrowserProfileDirs } from '@/shared/chromium'
+
 export interface ExtractedWebexToken {
   accessToken: string
   refreshToken?: string
@@ -98,6 +100,13 @@ export class WebexTokenExtractor {
 
       const profileDirs = this.discoverProfileDirs(browserBase)
       dirs.push(...profileDirs)
+    }
+
+    for (const profileDir of getAgentBrowserProfileDirs()) {
+      const leveldb = join(profileDir, 'Local Storage', 'leveldb')
+      if (existsSync(leveldb)) {
+        dirs.push(leveldb)
+      }
     }
 
     return dirs

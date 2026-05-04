@@ -10,6 +10,7 @@ import {
   ChromiumCookieDecryptor,
   discoverBrowserProfileDirs,
   getBrowserBasePath,
+  getAgentBrowserProfileDirs,
 } from '@/shared/chromium'
 import type { KeychainVariant } from '@/shared/chromium'
 import { DerivedKeyCache } from '@/shared/utils/derived-key-cache'
@@ -123,6 +124,10 @@ export class DiscordTokenExtractor {
       for (const profileDir of profileDirs) {
         dirs.push(join(profileDir, 'Local Storage', 'leveldb'))
       }
+    }
+
+    for (const profileDir of getAgentBrowserProfileDirs()) {
+      dirs.push(join(profileDir, 'Local Storage', 'leveldb'))
     }
 
     return dirs

@@ -10,6 +10,7 @@ import {
   discoverBrowserProfileDirs,
   findLocalStatePath,
   getBrowserBasePath,
+  getAgentBrowserProfileDirs,
 } from '@/shared/chromium'
 import type { KeychainVariant } from '@/shared/chromium'
 
@@ -52,6 +53,11 @@ export class InstagramTokenExtractor {
       }
     }
 
+    for (const profileDir of getAgentBrowserProfileDirs()) {
+      paths.push(join(profileDir, 'Cookies'))
+      paths.push(join(profileDir, 'Network', 'Cookies'))
+    }
+
     return paths
   }
 
@@ -63,6 +69,10 @@ export class InstagramTokenExtractor {
       if (!browserBase) continue
 
       paths.push(join(browserBase, 'Local State'))
+    }
+
+    for (const profileDir of getAgentBrowserProfileDirs()) {
+      paths.push(join(profileDir, 'Local State'))
     }
 
     return paths

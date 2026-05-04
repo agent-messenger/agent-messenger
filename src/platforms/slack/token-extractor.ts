@@ -12,7 +12,9 @@ import {
   ChromiumCookieDecryptor,
   ChromiumCookieReader,
   discoverBrowserProfileDirs,
+  findLocalStatePath,
   getBrowserBasePath,
+  getAgentBrowserProfileDirs,
 } from '@/shared/chromium'
 import { DerivedKeyCache } from '@/shared/utils/derived-key-cache'
 import { lookupLinuxKeyringPassword } from '@/shared/utils/linux-keyring'
@@ -259,6 +261,33 @@ export class TokenExtractor {
       }
     }
 
+    for (const profileDir of getAgentBrowserProfileDirs()) {
+      const leveldbDir = join(profileDir, 'Local Storage', 'leveldb')
+      if (!existsSync(leveldbDir)) continue
+
+      let tokenInfos: TokenInfo[]
+      try {
+        tokenInfos = await this.extractFromLevelDB(leveldbDir, 'local-storage')
+      } catch {
+        continue
+      }
+
+      if (tokenInfos.length === 0) continue
+
+      const cookie = await this.extractCookieFromBrowserProfile(profileDir, profileDir)
+
+      for (const t of tokenInfos) {
+        if (seenTokens.has(t.token)) continue
+        seenTokens.add(t.token)
+        results.push({
+          workspace_id: t.teamId,
+          workspace_name: t.teamName,
+          token: t.token,
+          cookie,
+        })
+      }
+    }
+
     return results
   }
 
@@ -293,7 +322,7 @@ export class TokenExtractor {
     if (row.value?.startsWith('xoxd-')) return row.value
 
     if (row.encrypted_value && row.encrypted_value.length > 0) {
-      const localStatePath = join(browserBase, 'Local State')
+      const localStatePath = findLocalStatePath(cookiesPath) ?? join(browserBase, 'Local State')
       const decrypted = this.browserDecryptor.decryptCookie(
         Buffer.from(row.encrypted_value),
         existsSync(localStatePath) ? localStatePath : undefined,
