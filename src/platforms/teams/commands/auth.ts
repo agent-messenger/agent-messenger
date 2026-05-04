@@ -1,5 +1,6 @@
 import { Command } from 'commander'
 
+import { collectBrowserProfileOption } from '@/shared/chromium'
 import { handleError } from '@/shared/utils/error-handler'
 import { formatOutput } from '@/shared/utils/output'
 import { debug } from '@/shared/utils/stderr'
@@ -43,7 +44,12 @@ async function validateTokenWithProbe(
   throw lastError ?? new Error('Token validation failed')
 }
 
-export async function extractAction(options: { pretty?: boolean; debug?: boolean; token?: string }): Promise<void> {
+export async function extractAction(options: {
+  pretty?: boolean
+  debug?: boolean
+  token?: string
+  browserProfile?: string[]
+}): Promise<void> {
   try {
     if (options.token) {
       await extractManualToken(options.token, options)
@@ -51,7 +57,7 @@ export async function extractAction(options: { pretty?: boolean; debug?: boolean
     }
 
     const debugLog = options.debug ? (msg: string) => debug(`[debug] ${msg}`) : undefined
-    const extractor = new TeamsTokenExtractor(undefined, undefined, debugLog)
+    const extractor = new TeamsTokenExtractor(undefined, undefined, debugLog, options.browserProfile)
 
     if (process.platform === 'darwin') {
       console.log('')
@@ -427,6 +433,12 @@ export const authCommand = new Command('auth')
       .option('--pretty', 'Pretty print JSON output')
       .option('--debug', 'Show debug output for troubleshooting')
       .option('--token <token>', 'Manually provide a token (bypasses auto-extraction)')
+      .option(
+        '--browser-profile <path>',
+        'Additional Chromium profile/user-data directory to scan (repeatable, comma-separated supported)',
+        collectBrowserProfileOption,
+        [],
+      )
       .action(extractAction),
   )
   .addCommand(
