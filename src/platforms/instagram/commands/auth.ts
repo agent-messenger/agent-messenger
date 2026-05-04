@@ -4,6 +4,7 @@ import { Writable } from 'node:stream'
 
 import { Command } from 'commander'
 
+import { collectBrowserProfileOption } from '@/shared/chromium'
 import { handleError } from '@/shared/utils/error-handler'
 import { formatOutput } from '@/shared/utils/output'
 import { info, warn, error as stderrError, debug } from '@/shared/utils/stderr'
@@ -385,11 +386,12 @@ async function useAction(accountId: string, options: { pretty?: boolean }): Prom
   }
 }
 
-async function extractAction(options: { pretty?: boolean; debug?: boolean }): Promise<void> {
+async function extractAction(options: { pretty?: boolean; debug?: boolean; browserProfile?: string[] }): Promise<void> {
   try {
     const extractor = new InstagramTokenExtractor(
       undefined,
       options.debug ? (msg) => debug(`[debug] ${msg}`) : undefined,
+      options.browserProfile,
     )
 
     if (options.debug) {
@@ -536,6 +538,12 @@ export const authCommand = new Command('auth')
       .description('Extract Instagram cookies from browser (Chrome, Edge, Arc, Brave)')
       .option('--pretty', 'Pretty print JSON output')
       .option('--debug', 'Show debug output')
+      .option(
+        '--browser-profile <path>',
+        'Additional Chromium profile/user-data directory to scan (repeatable, comma-separated supported)',
+        collectBrowserProfileOption,
+        [],
+      )
       .action(extractAction),
   )
   .addCommand(
