@@ -35,6 +35,8 @@ Extracts your Instagram session cookies from a Chromium browser where you're log
 
 ```bash
 agent-instagram auth extract
+agent-instagram auth extract --browser-profile ~/browser-data
+agent-instagram auth extract --browser-profile ~/work-profile --browser-profile ~/personal-profile
 ```
 
 This command:
@@ -45,6 +47,7 @@ This command:
 - Validates the session against the Instagram API
 - Stores credentials in `~/.config/agent-messenger/`
 - Supported browsers: Chrome, Chrome Canary, Edge, Arc, Brave, Vivaldi, Chromium
+- Supports `--browser-profile <path>` for agent-browser profiles, custom Chrome user data dirs, or portable browser profiles; repeatable and comma-separated values are accepted
 - Auto-extraction runs when no valid session is stored, so manual extraction is rarely needed
 
 ### Username/Password Login (Fallback)
