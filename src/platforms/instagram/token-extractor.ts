@@ -31,10 +31,12 @@ export class InstagramTokenExtractor {
   private debugLog: ((message: string) => void) | null
   private decryptor: ChromiumCookieDecryptor
   private cookieReader: ChromiumCookieReader
+  private customBrowserProfileDirs: string[]
 
-  constructor(platform?: NodeJS.Platform, debugLog?: (message: string) => void) {
+  constructor(platform?: NodeJS.Platform, debugLog?: (message: string) => void, customBrowserProfileDirs?: string[]) {
     this.platform = platform ?? process.platform
     this.debugLog = debugLog ?? null
+    this.customBrowserProfileDirs = customBrowserProfileDirs ?? []
     this.decryptor = new ChromiumCookieDecryptor({ platform: this.platform })
     this.cookieReader = new ChromiumCookieReader()
   }
@@ -53,7 +55,7 @@ export class InstagramTokenExtractor {
       }
     }
 
-    for (const profileDir of getAgentBrowserProfileDirs()) {
+    for (const profileDir of getAgentBrowserProfileDirs({ customProfileDirs: this.customBrowserProfileDirs })) {
       paths.push(join(profileDir, 'Cookies'))
       paths.push(join(profileDir, 'Network', 'Cookies'))
     }
@@ -71,7 +73,7 @@ export class InstagramTokenExtractor {
       paths.push(join(browserBase, 'Local State'))
     }
 
-    for (const profileDir of getAgentBrowserProfileDirs()) {
+    for (const profileDir of getAgentBrowserProfileDirs({ customProfileDirs: this.customBrowserProfileDirs })) {
       paths.push(join(profileDir, 'Local State'))
     }
 
