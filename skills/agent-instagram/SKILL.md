@@ -66,7 +66,13 @@ agent-instagram auth extract
 
 # With debug output
 agent-instagram auth extract --debug
+
+# Scan custom Chromium profile/user-data dirs
+agent-instagram auth extract --browser-profile ~/browser-data
+agent-instagram auth extract --browser-profile ~/work-profile,~/personal-profile
 ```
+
+`--browser-profile` accepts repeatable or comma-separated Chromium profile/user-data directories. Use it for agent-browser profiles, custom Chrome user data dirs, or portable browser profiles.
 
 **How it works**: The CLI reads Instagram cookies (`sessionid`, `csrftoken`, `ds_user_id`) directly from the browser's SQLite cookie database. No browser automation, no password prompts. The session is stored locally in `~/.config/agent-messenger/`.
 
