@@ -33,6 +33,9 @@
       "slack": [
         "./src/platforms/slack/index.ts"
       ],
+      "slackbot": [
+        "./src/platforms/slackbot/index.ts"
+      ],
       "discord": [
         "./src/platforms/discord/index.ts"
       ],
@@ -80,6 +83,10 @@
     "./slack": {
       "types": "./src/platforms/slack/index.ts",
       "default": "./src/platforms/slack/index.ts"
+    },
+    "./slackbot": {
+      "types": "./src/platforms/slackbot/index.ts",
+      "default": "./src/platforms/slackbot/index.ts"
     },
     "./discord": {
       "types": "./src/platforms/discord/index.ts",
