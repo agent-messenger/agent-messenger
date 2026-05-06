@@ -290,6 +290,25 @@ describe('DiscordBotClient', () => {
       const headers = fetchCalls[0].options?.headers as Record<string, string>
       expect(headers.Authorization).toBe('Bot bot-token')
     })
+
+    it('throws when response has no attachments', async () => {
+      const { tmpdir } = await import('node:os')
+      const { join } = await import('node:path')
+      const tempFile = join(tmpdir(), 'test-discordbot-upload-empty.txt')
+      await Bun.write(tempFile, 'test content')
+
+      mockResponse({
+        id: 'msg1',
+        channel_id: 'ch1',
+        author: { id: '123', username: 'bot' },
+        content: '',
+        timestamp: '2024-01-01T00:00:00.000Z',
+        attachments: [],
+      })
+
+      const client = await new DiscordBotClient().login({ token: 'bot-token' })
+      await expect(client.uploadFile('ch1', tempFile)).rejects.toThrow('Upload succeeded but no attachments returned')
+    })
   })
 
   describe('listFiles', () => {

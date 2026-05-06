@@ -307,11 +307,12 @@ export class DiscordBotClient {
     }
     const message = await this.requestFormData<MessageWithAttachments>(`/channels/${channelId}/messages`, formData)
 
-    if (!message.attachments || message.attachments.length === 0) {
+    const first = message.attachments?.[0]
+    if (!first) {
       throw new DiscordBotError('Upload succeeded but no attachments returned', 'no_attachments')
     }
 
-    return message.attachments[0]
+    return first
   }
 
   async listFiles(channelId: string): Promise<DiscordFile[]> {
