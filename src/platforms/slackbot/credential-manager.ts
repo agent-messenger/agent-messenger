@@ -103,6 +103,7 @@ export class SlackBotCredentialManager {
     // Try "workspace_id/bot_id" format first
     if (botId.includes('/')) {
       const [workspaceId, id] = botId.split('/')
+      if (!workspaceId || !id) return null
       const workspace = config.workspaces[workspaceId]
       if (!workspace) return null
       const bot = workspace.bots[id]
@@ -131,22 +132,24 @@ export class SlackBotCredentialManager {
       }
     }
 
-    if (matches.length === 1) return matches[0]
+    const [onlyMatch, ...rest] = matches
+    if (onlyMatch && rest.length === 0) return onlyMatch
     return null
   }
 
   async setCredentials(creds: SlackBotCredentials): Promise<void> {
     const config = await this.load()
 
-    if (!config.workspaces[creds.workspace_id]) {
-      config.workspaces[creds.workspace_id] = {
-        workspace_id: creds.workspace_id,
-        workspace_name: creds.workspace_name,
-        bots: {},
-      }
+    const existing = config.workspaces[creds.workspace_id]
+    const workspace: SlackBotWorkspace = existing ?? {
+      workspace_id: creds.workspace_id,
+      workspace_name: creds.workspace_name,
+      bots: {},
+    }
+    if (!existing) {
+      config.workspaces[creds.workspace_id] = workspace
     }
 
-    const workspace = config.workspaces[creds.workspace_id]
     workspace.workspace_name = creds.workspace_name
     workspace.bots[creds.bot_id] = {
       bot_id: creds.bot_id,
@@ -167,6 +170,7 @@ export class SlackBotCredentialManager {
 
     if (botId.includes('/')) {
       const [workspaceId, id] = botId.split('/')
+      if (!workspaceId || !id) return false
       const workspace = config.workspaces[workspaceId]
       if (!workspace || !workspace.bots[id]) return false
 
@@ -183,16 +187,16 @@ export class SlackBotCredentialManager {
       return true
     }
 
-    const matches: { workspace: SlackBotWorkspace }[] = []
+    const matches: SlackBotWorkspace[] = []
     for (const workspace of Object.values(config.workspaces)) {
       if (workspace.bots[botId]) {
-        matches.push({ workspace })
+        matches.push(workspace)
       }
     }
 
-    if (matches.length !== 1) return false
+    const [workspace, ...rest] = matches
+    if (!workspace || rest.length > 0) return false
 
-    const { workspace } = matches[0]
     delete workspace.bots[botId]
     if (Object.keys(workspace.bots).length === 0) {
       delete config.workspaces[workspace.workspace_id]
