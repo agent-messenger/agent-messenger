@@ -1,8 +1,8 @@
 import { existsSync } from 'node:fs'
 import { mkdir, readFile, rm, writeFile } from 'node:fs/promises'
-import { homedir } from 'node:os'
 import { join } from 'node:path'
 
+import { getConfigDir } from '../../shared/utils/config-dir'
 import { createAccountId, type WhatsAppAccount, type WhatsAppAccountPaths, type WhatsAppConfig } from './types'
 
 export class WhatsAppCredentialManager {
@@ -11,7 +11,7 @@ export class WhatsAppCredentialManager {
   private baileysRootDir: string
 
   constructor(configDir?: string) {
-    this.configDir = configDir ?? join(homedir(), '.config', 'agent-messenger')
+    this.configDir = configDir ?? getConfigDir()
     this.credentialsPath = join(this.configDir, 'whatsapp-credentials.json')
     this.baileysRootDir = join(this.configDir, 'whatsapp')
   }

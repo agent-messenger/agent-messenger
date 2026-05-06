@@ -1,8 +1,8 @@
 import { existsSync } from 'node:fs'
 import { mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises'
-import { homedir } from 'node:os'
 import { join } from 'node:path'
 
+import { getConfigDir } from '../../shared/utils/config-dir'
 import { getWebexAppCredentials } from './app-config'
 import type { WebexConfig } from './types'
 import { WebexConfigSchema } from './types'
@@ -19,7 +19,7 @@ export class WebexCredentialManager {
   private credentialsPath: string
 
   constructor(configDir?: string) {
-    this.configDir = configDir ?? join(homedir(), '.config', 'agent-messenger')
+    this.configDir = configDir ?? getConfigDir()
     this.credentialsPath = join(this.configDir, 'webex-credentials.json')
   }
 

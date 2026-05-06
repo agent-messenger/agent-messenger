@@ -1,7 +1,7 @@
 import { mkdirSync } from 'node:fs'
-import { homedir } from 'node:os'
 import { join } from 'node:path'
 
+import { getConfigDir } from '@/shared/utils/config-dir'
 import { FileStorage } from '@/vendor/linejs/base/storage/mod.js'
 import {
   loginWithQR as linejsLoginWithQR,
@@ -41,7 +41,7 @@ function getDefaultDevice(): LineDevice {
 }
 
 function createStorage(accountId?: string): FileStorage {
-  const dir = join(homedir(), '.config', 'agent-messenger', 'line-storage')
+  const dir = join(getConfigDir(), 'line-storage')
   mkdirSync(dir, { recursive: true })
   return new FileStorage(join(dir, `${accountId ?? 'default'}.json`))
 }

@@ -1,8 +1,8 @@
 import { existsSync } from 'node:fs'
 import { mkdir, readFile, rm, writeFile } from 'node:fs/promises'
-import { homedir } from 'node:os'
 import { join } from 'node:path'
 
+import { getConfigDir } from '../../shared/utils/config-dir'
 import { createAccountId, type InstagramAccount, type InstagramAccountPaths, type InstagramConfig } from './types'
 
 export class InstagramCredentialManager {
@@ -11,7 +11,7 @@ export class InstagramCredentialManager {
   private instagramRootDir: string
 
   constructor(configDir?: string) {
-    this.configDir = configDir ?? join(homedir(), '.config', 'agent-messenger')
+    this.configDir = configDir ?? getConfigDir()
     this.credentialsPath = join(this.configDir, 'instagram-credentials.json')
     this.instagramRootDir = join(this.configDir, 'instagram')
   }

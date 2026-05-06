@@ -1,8 +1,8 @@
 import { existsSync } from 'node:fs'
 import { mkdir, rm, writeFile, readFile } from 'node:fs/promises'
-import { homedir } from 'node:os'
 import { join } from 'node:path'
 
+import { getConfigDir } from '../../shared/utils/config-dir'
 import type { LineAccountCredentials, LineConfig } from './types'
 
 export class LineCredentialManager {
@@ -10,7 +10,7 @@ export class LineCredentialManager {
   private credentialsPath: string
 
   constructor(configDir?: string) {
-    this.configDir = configDir ?? join(homedir(), '.config', 'agent-messenger')
+    this.configDir = configDir ?? getConfigDir()
     this.credentialsPath = join(this.configDir, 'line-credentials.json')
   }
 

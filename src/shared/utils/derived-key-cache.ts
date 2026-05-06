@@ -1,7 +1,8 @@
 import { existsSync } from 'node:fs'
 import { mkdir, readFile, rm, writeFile } from 'node:fs/promises'
-import { homedir } from 'node:os'
 import { join } from 'node:path'
+
+import { getConfigDir } from './config-dir'
 
 export type Platform = 'slack' | 'discord' | 'teams' | 'instagram' | 'channeltalk'
 
@@ -18,7 +19,7 @@ export class DerivedKeyCache {
   private cacheDir: string
 
   constructor(cacheDir?: string) {
-    this.cacheDir = cacheDir ?? join(homedir(), '.config', 'agent-messenger', '.derived-keys')
+    this.cacheDir = cacheDir ?? join(getConfigDir(), '.derived-keys')
   }
 
   private getKeyPath(platform: Platform): string {

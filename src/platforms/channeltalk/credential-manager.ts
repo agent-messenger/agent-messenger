@@ -1,8 +1,8 @@
 import { existsSync } from 'node:fs'
 import { chmod, mkdir, readFile, writeFile } from 'node:fs/promises'
-import { homedir } from 'node:os'
 import { join } from 'node:path'
 
+import { getConfigDir } from '../../shared/utils/config-dir'
 import type { ChannelConfig, ChannelCredentials, ChannelWorkspaceEntry } from './types'
 import { ChannelConfigSchema } from './types'
 
@@ -11,7 +11,7 @@ export class ChannelCredentialManager {
   private credentialsPath: string
 
   constructor(configDir?: string) {
-    this.configDir = configDir ?? join(homedir(), '.config', 'agent-messenger')
+    this.configDir = configDir ?? getConfigDir()
     this.credentialsPath = join(this.configDir, 'channel-credentials.json')
   }
 

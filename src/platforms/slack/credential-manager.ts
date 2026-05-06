@@ -1,8 +1,8 @@
 import { existsSync } from 'node:fs'
 import { chmod, mkdir, readFile, writeFile } from 'node:fs/promises'
-import { homedir } from 'node:os'
 import { join } from 'node:path'
 
+import { getConfigDir } from '../../shared/utils/config-dir'
 import type { Config, WorkspaceCredentials } from './types'
 
 export class SlackCredentialManager {
@@ -10,7 +10,7 @@ export class SlackCredentialManager {
   private credentialsPath: string
 
   constructor(configDir?: string) {
-    this.configDir = configDir ?? join(homedir(), '.config', 'agent-messenger')
+    this.configDir = configDir ?? getConfigDir()
     this.credentialsPath = join(this.configDir, 'slack-credentials.json')
   }
 

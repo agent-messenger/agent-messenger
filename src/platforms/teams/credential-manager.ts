@@ -1,8 +1,8 @@
 import { existsSync } from 'node:fs'
 import { mkdir, readFile, rm, writeFile } from 'node:fs/promises'
-import { homedir } from 'node:os'
 import { join } from 'node:path'
 
+import { getConfigDir } from '../../shared/utils/config-dir'
 import type { TeamsAccount, TeamsAccountType, TeamsConfig, TeamsConfigLegacy, TeamsRegion } from './types'
 
 export class TeamsCredentialManager {
@@ -12,7 +12,7 @@ export class TeamsCredentialManager {
   private credentialsPath: string
 
   constructor(configDir?: string) {
-    this.configDir = configDir ?? join(homedir(), '.config', 'agent-messenger')
+    this.configDir = configDir ?? getConfigDir()
     this.credentialsPath = join(this.configDir, 'teams-credentials.json')
   }
 

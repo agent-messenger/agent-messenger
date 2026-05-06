@@ -1,8 +1,8 @@
 import { existsSync } from 'node:fs'
 import { chmod, mkdir, readFile, rm, writeFile } from 'node:fs/promises'
-import { homedir } from 'node:os'
 import { join } from 'node:path'
 
+import { getConfigDir } from '../../shared/utils/config-dir'
 import type { KakaoAccountCredentials, KakaoConfig, KakaoDeviceType } from './types'
 
 export interface PendingLoginState {
@@ -18,7 +18,7 @@ export class KakaoCredentialManager {
   private pendingLoginPath: string
 
   constructor(configDir?: string) {
-    this.configDir = configDir ?? join(homedir(), '.config', 'agent-messenger')
+    this.configDir = configDir ?? getConfigDir()
     this.credentialsPath = join(this.configDir, 'kakaotalk-credentials.json')
     this.pendingLoginPath = join(this.configDir, 'kakaotalk-pending-login.json')
   }

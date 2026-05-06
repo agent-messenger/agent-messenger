@@ -1,10 +1,10 @@
 import { existsSync } from 'node:fs'
 import { chmod, mkdir, readFile, writeFile } from 'node:fs/promises'
-import { homedir } from 'node:os'
 import { join } from 'node:path'
 
 import { Long } from 'bson'
 
+import { getConfigDir } from '@/shared/utils/config-dir'
 import { warn } from '@/shared/utils/stderr'
 
 import { LANG, PC_OS_NAME, getLocoDeviceConfig } from './protocol/config'
@@ -105,10 +105,8 @@ function wrapError(error: unknown, code: string): KakaoTalkError {
 
 const MAX_PAGES = 50
 
-const CONFIG_DIR = join(homedir(), '.config', 'agent-messenger')
-
 function syncStatePath(deviceUuid: string): string {
-  return join(CONFIG_DIR, `kakaotalk-sync-state-${deviceUuid}.json`)
+  return join(getConfigDir(), `kakaotalk-sync-state-${deviceUuid}.json`)
 }
 
 async function loadSyncState(deviceUuid: string): Promise<SyncState | undefined> {
@@ -133,7 +131,7 @@ async function loadSyncState(deviceUuid: string): Promise<SyncState | undefined>
 }
 
 async function saveSyncState(deviceUuid: string, state: SyncState): Promise<void> {
-  await mkdir(CONFIG_DIR, { recursive: true })
+  await mkdir(getConfigDir(), { recursive: true })
   const path = syncStatePath(deviceUuid)
   await writeFile(path, JSON.stringify(state, null, 2))
   await chmod(path, 0o600)

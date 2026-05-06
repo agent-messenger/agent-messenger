@@ -129,6 +129,17 @@ agent-slack message send general "Hello from the CLI!"
 
 That's it. Credentials are extracted automatically from your Slack desktop app on first run. No OAuth flows. No API tokens. No configuration files.
 
+### Custom config directory
+
+By default, Agent Messenger stores credentials, sync state, and derived-key caches under `~/.config/agent-messenger`. To relocate everything (e.g. for CI sandboxes, multi-tenant setups, or non-default home directories), set the `AGENT_MESSENGER_CONFIG_DIR` environment variable:
+
+```bash
+export AGENT_MESSENGER_CONFIG_DIR="$HOME/.local/share/agent-messenger"
+agent-slack auth extract
+```
+
+The variable is read on every CLI/SDK invocation and applies to all platforms (Slack, Discord, Teams, Webex, Telegram, WhatsApp, LINE, WeChat, Instagram, KakaoTalk, Channel Talk, and their bot variants). Explicit `configDir` arguments to credential managers still take precedence.
+
 ## Telegram Quick Start
 
 Get up and running with Telegram in a minute:
