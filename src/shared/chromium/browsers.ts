@@ -75,11 +75,13 @@ export function discoverBrowserProfileDirs(browserBase: string): string[] {
   dirs.push(join(browserBase, 'Default'))
   if (!existsSync(browserBase)) return dirs
   try {
-    const entries = readdirSync(browserBase, { withFileTypes: true })
-    for (const entry of entries) {
-      if (!entry.isDirectory()) continue
-      if (!/^Profile \d+$/i.test(entry.name)) continue
-      dirs.push(join(browserBase, entry.name))
+    // readdirSync order is filesystem-dependent (e.g. Linux returns unsorted),
+    // so sort numbered profiles by their numeric index for deterministic output.
+    const profiles = readdirSync(browserBase, { withFileTypes: true })
+      .filter((entry) => entry.isDirectory() && /^Profile \d+$/i.test(entry.name))
+      .sort((a, b) => parseInt(a.name.slice('Profile '.length), 10) - parseInt(b.name.slice('Profile '.length), 10))
+    for (const profile of profiles) {
+      dirs.push(join(browserBase, profile.name))
     }
   } catch {
     return dirs
