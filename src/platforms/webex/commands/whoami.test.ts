@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, expect, spyOn, it } from 'bun:test'
 
-import * as clientModule from '../client'
+import { WebexClient } from '../client'
 import { WebexError } from '../types'
 import { whoamiCommand } from './whoami'
 
@@ -17,27 +17,23 @@ const mockUser = {
   created: '2024-01-01T00:00:00.000Z',
 }
 
-const makeFakeClient = () => ({
-  login: async function (this: unknown) {
-    return this
-  },
-  testAuth: async () => mockUser,
-})
-
-let webexClientSpy: ReturnType<typeof spyOn>
+let loginSpy: ReturnType<typeof spyOn>
+let testAuthSpy: ReturnType<typeof spyOn>
 let consoleLogSpy: ReturnType<typeof spyOn>
 let processExitSpy: ReturnType<typeof spyOn>
 
 beforeEach(() => {
-  webexClientSpy = spyOn(clientModule, 'WebexClient').mockImplementation(
-    makeFakeClient as unknown as typeof clientModule.WebexClient,
-  )
+  loginSpy = spyOn(WebexClient.prototype, 'login').mockImplementation(async function (this: WebexClient) {
+    return this
+  })
+  testAuthSpy = spyOn(WebexClient.prototype, 'testAuth').mockResolvedValue(mockUser)
   consoleLogSpy = spyOn(console, 'log').mockImplementation(() => {})
   processExitSpy = spyOn(process, 'exit').mockImplementation((_code?: number) => undefined as never)
 })
 
 afterEach(() => {
-  webexClientSpy?.mockRestore()
+  loginSpy?.mockRestore()
+  testAuthSpy?.mockRestore()
   consoleLogSpy?.mockRestore()
   processExitSpy?.mockRestore()
 })
@@ -102,15 +98,7 @@ it('whoami outputs pretty-printed JSON when --pretty flag is passed', async () =
 
 it('whoami exits with code 1 when not authenticated', async () => {
   // given: no credentials
-  webexClientSpy.mockImplementation(
-    () =>
-      ({
-        login: async () => {
-          throw new WebexError('No Webex credentials found.', 'no_credentials')
-        },
-        testAuth: async () => mockUser,
-      }) as unknown as clientModule.WebexClient,
-  )
+  loginSpy.mockRejectedValue(new WebexError('No Webex credentials found.', 'no_credentials'))
 
   // when: running whoami
   await whoamiCommand.parseAsync([], { from: 'user' })

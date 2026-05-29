@@ -1,14 +1,7 @@
-import { afterEach, beforeEach, describe, expect, mock, spyOn, it } from 'bun:test'
+import { afterEach, beforeEach, describe, expect, spyOn, it } from 'bun:test'
 
+import { WebexClient } from '../client'
 import { WebexError } from '../types'
-
-const mockHandleError = mock((err: Error) => {
-  throw err
-})
-
-mock.module('@/shared/utils/error-handler', () => ({
-  handleError: mockHandleError,
-}))
 
 const mockMembers = [
   {
@@ -31,32 +24,39 @@ const mockMembers = [
   },
 ]
 
-const mockListMemberships = mock(() => Promise.resolve(mockMembers))
-const mockLogin = mock(() => Promise.resolve({ listMemberships: mockListMemberships }))
-
-mock.module('../client', () => ({
-  WebexClient: class {
-    login = mockLogin
-  },
-}))
-
 import { listAction } from './member'
 
 describe('member commands', () => {
+  let mockListMemberships: ReturnType<typeof spyOn>
+  let mockLogin: ReturnType<typeof spyOn>
   let consoleSpy: ReturnType<typeof spyOn>
+  let consoleErrorSpy: ReturnType<typeof spyOn>
+  let processExitSpy: ReturnType<typeof spyOn>
+  const protoSpies: ReturnType<typeof spyOn>[] = []
+
+  function protoSpy(method: keyof WebexClient) {
+    const s = spyOn(WebexClient.prototype, method as never)
+    protoSpies.push(s)
+    return s
+  }
 
   beforeEach(() => {
-    mockListMemberships.mockReset().mockImplementation(() => Promise.resolve(mockMembers))
-    mockLogin.mockReset().mockImplementation(() => Promise.resolve({ listMemberships: mockListMemberships }))
-    mockHandleError.mockReset().mockImplementation((err: Error) => {
-      throw err
+    mockLogin = protoSpy('login').mockImplementation(async function (this: WebexClient) {
+      return this
     })
+    mockListMemberships = protoSpy('listMemberships').mockResolvedValue(mockMembers)
 
     consoleSpy = spyOn(console, 'log').mockImplementation(() => {})
+    consoleErrorSpy = spyOn(console, 'error').mockImplementation(() => {})
+    processExitSpy = spyOn(process, 'exit').mockImplementation((_code?: number) => undefined as never)
   })
 
   afterEach(() => {
     consoleSpy.mockRestore()
+    consoleErrorSpy.mockRestore()
+    processExitSpy.mockRestore()
+    for (const s of protoSpies) s.mockRestore()
+    protoSpies.length = 0
   })
 
   it('calls listMemberships with spaceId and outputs mapped members', async () => {
@@ -91,23 +91,19 @@ describe('member commands', () => {
     expect(mockListMemberships).toHaveBeenCalledWith('room-1', { max: 25 })
   })
 
-  it('throws when not authenticated', async () => {
-    mockLogin.mockImplementation(async () => {
-      throw new WebexError('No Webex credentials found.', 'no_credentials')
-    })
+  it('exits with code 1 when not authenticated', async () => {
+    mockLogin.mockRejectedValue(new WebexError('No Webex credentials found.', 'no_credentials'))
 
-    await expect(listAction('room-1', {})).rejects.toThrow('No Webex credentials found.')
+    await listAction('room-1', {})
 
-    expect(mockHandleError).toHaveBeenCalledWith(expect.any(WebexError))
+    expect(processExitSpy).toHaveBeenCalledWith(1)
   })
 
-  it('throws on API error', async () => {
-    mockListMemberships.mockImplementation(async () => {
-      throw new Error('API failure')
-    })
+  it('exits with code 1 on API error', async () => {
+    mockListMemberships.mockRejectedValue(new Error('API failure'))
 
-    await expect(listAction('room-1', {})).rejects.toThrow('API failure')
+    await listAction('room-1', {})
 
-    expect(mockHandleError).toHaveBeenCalledWith(expect.any(Error))
+    expect(processExitSpy).toHaveBeenCalledWith(1)
   })
 })

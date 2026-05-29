@@ -1,14 +1,7 @@
-import { afterEach, beforeEach, expect, mock, spyOn, it } from 'bun:test'
+import { afterEach, beforeEach, expect, spyOn, it } from 'bun:test'
 
+import { WebexClient } from '../client'
 import { WebexError } from '../types'
-
-const mockHandleError = mock((err: Error) => {
-  throw err
-})
-
-mock.module('@/shared/utils/error-handler', () => ({
-  handleError: mockHandleError,
-}))
 
 const mockMessage = {
   id: 'msg_123',
@@ -30,51 +23,48 @@ const mockMessage2 = {
   created: '2025-01-29T10:01:00.000Z',
 }
 
-const mockSendMessage = mock(() => Promise.resolve(mockMessage))
-const mockSendDirectMessage = mock(() => Promise.resolve(mockMessage))
-const mockListMessages = mock(() => Promise.resolve([mockMessage, mockMessage2]))
-const mockGetMessage = mock(() => Promise.resolve(mockMessage))
-const mockDeleteMessage = mock(() => Promise.resolve(undefined))
-const mockEditMessage = mock(() => Promise.resolve({ ...mockMessage, text: 'Updated message' }))
-
-const mockClient = {
-  sendMessage: mockSendMessage,
-  sendDirectMessage: mockSendDirectMessage,
-  listMessages: mockListMessages,
-  getMessage: mockGetMessage,
-  deleteMessage: mockDeleteMessage,
-  editMessage: mockEditMessage,
-}
-
-const mockLogin = mock(() => Promise.resolve(mockClient))
-
-mock.module('../client', () => ({
-  WebexClient: class {
-    login = mockLogin
-  },
-}))
-
 import { deleteAction, dmAction, editAction, getAction, listAction, sendAction } from './message'
 
+let mockSendMessage: ReturnType<typeof spyOn>
+let mockSendDirectMessage: ReturnType<typeof spyOn>
+let mockListMessages: ReturnType<typeof spyOn>
+let mockGetMessage: ReturnType<typeof spyOn>
+let mockDeleteMessage: ReturnType<typeof spyOn>
+let mockEditMessage: ReturnType<typeof spyOn>
+let mockLogin: ReturnType<typeof spyOn>
 let consoleLogSpy: ReturnType<typeof spyOn>
+let consoleErrorSpy: ReturnType<typeof spyOn>
+let processExitSpy: ReturnType<typeof spyOn>
+const protoSpies: ReturnType<typeof spyOn>[] = []
+
+function protoSpy(method: keyof WebexClient) {
+  const s = spyOn(WebexClient.prototype, method as never)
+  protoSpies.push(s)
+  return s
+}
 
 beforeEach(() => {
-  mockSendMessage.mockReset().mockImplementation(() => Promise.resolve(mockMessage))
-  mockSendDirectMessage.mockReset().mockImplementation(() => Promise.resolve(mockMessage))
-  mockListMessages.mockReset().mockImplementation(() => Promise.resolve([mockMessage, mockMessage2]))
-  mockGetMessage.mockReset().mockImplementation(() => Promise.resolve(mockMessage))
-  mockDeleteMessage.mockReset().mockImplementation(() => Promise.resolve(undefined))
-  mockEditMessage.mockReset().mockImplementation(() => Promise.resolve({ ...mockMessage, text: 'Updated message' }))
-  mockLogin.mockReset().mockImplementation(() => Promise.resolve(mockClient))
-  mockHandleError.mockReset().mockImplementation((err: Error) => {
-    throw err
+  mockLogin = protoSpy('login').mockImplementation(async function (this: WebexClient) {
+    return this
   })
+  mockSendMessage = protoSpy('sendMessage').mockResolvedValue(mockMessage)
+  mockSendDirectMessage = protoSpy('sendDirectMessage').mockResolvedValue(mockMessage)
+  mockListMessages = protoSpy('listMessages').mockResolvedValue([mockMessage, mockMessage2])
+  mockGetMessage = protoSpy('getMessage').mockResolvedValue(mockMessage)
+  mockDeleteMessage = protoSpy('deleteMessage').mockResolvedValue(undefined)
+  mockEditMessage = protoSpy('editMessage').mockResolvedValue({ ...mockMessage, text: 'Updated message' })
 
   consoleLogSpy = spyOn(console, 'log').mockImplementation(() => {})
+  consoleErrorSpy = spyOn(console, 'error').mockImplementation(() => {})
+  processExitSpy = spyOn(process, 'exit').mockImplementation((_code?: number) => undefined as never)
 })
 
 afterEach(() => {
   consoleLogSpy.mockRestore()
+  consoleErrorSpy.mockRestore()
+  processExitSpy.mockRestore()
+  for (const s of protoSpies) s.mockRestore()
+  protoSpies.length = 0
 })
 
 it('calls sendMessage with correct args and outputs result', async () => {
@@ -96,14 +86,13 @@ it('passes markdown option when --markdown flag is set on send', async () => {
   expect(mockSendMessage).toHaveBeenCalledWith('space_456', '**bold**', { markdown: true })
 })
 
-it('throws when not authenticated on send', async () => {
-  mockLogin.mockImplementation(async () => {
-    throw new WebexError('No Webex credentials found.', 'no_credentials')
-  })
+it('exits with code 1 when not authenticated on send', async () => {
+  mockLogin.mockRejectedValue(new WebexError('No Webex credentials found.', 'no_credentials'))
 
-  await expect(sendAction('space_456', 'Hello', { pretty: false })).rejects.toThrow('No Webex credentials found.')
+  await sendAction('space_456', 'Hello', { pretty: false })
 
-  expect(mockHandleError).toHaveBeenCalledWith(expect.any(WebexError))
+  expect(mockSendMessage).not.toHaveBeenCalled()
+  expect(processExitSpy).toHaveBeenCalledWith(1)
 })
 
 it('calls sendDirectMessage with email and text', async () => {
