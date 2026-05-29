@@ -82,7 +82,7 @@ async function loginWithPairingCode(options: LoginOptions & { phone: string }): 
       options.pretty,
     ),
   )
-  process.exit(0)
+  return process.exit(0)
 }
 
 async function loginWithQR(options: LoginOptions): Promise<void> {
@@ -145,7 +145,7 @@ async function loginWithQR(options: LoginOptions): Promise<void> {
       options.pretty,
     ),
   )
-  process.exit(0)
+  return process.exit(0)
 }
 
 async function loginAction(options: LoginOptions): Promise<void> {
@@ -156,7 +156,7 @@ async function loginAction(options: LoginOptions): Promise<void> {
       await loginWithPairingCode(options as LoginOptions & { phone: string })
     } else {
       console.error('Error: Either --phone or --qr is required')
-      process.exit(1)
+      return process.exit(1)
     }
   } catch (error) {
     handleError(error as Error)
@@ -179,7 +179,7 @@ async function statusAction(options: StatusOptions): Promise<void> {
           options.pretty,
         ),
       )
-      process.exit(1)
+      return process.exit(1)
     }
 
     console.log(
@@ -229,7 +229,7 @@ async function useAction(accountId: string, options: { pretty?: boolean }): Prom
 
     if (!found) {
       console.log(formatOutput({ error: `WhatsApp account "${accountId}" not found.` }, options.pretty))
-      process.exit(1)
+      return process.exit(1)
     }
 
     const current = await manager.getAccount()
@@ -246,7 +246,7 @@ async function logoutAction(options: { account?: string; pretty?: boolean }): Pr
 
     if (!account && !options.account) {
       console.log(formatOutput({ error: 'No WhatsApp account configured.' }, options.pretty))
-      process.exit(1)
+      return process.exit(1)
     }
 
     const accountId = account?.account_id ?? options.account!
@@ -267,7 +267,7 @@ async function logoutAction(options: { account?: string; pretty?: boolean }): Pr
 
     await manager.removeAccount(accountId)
     console.log(formatOutput({ success: true, account_id: accountId, logged_out: true }, options.pretty))
-    process.exit(0)
+    return process.exit(0)
   } catch (error) {
     handleError(error as Error)
   }

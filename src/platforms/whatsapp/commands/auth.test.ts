@@ -2,12 +2,6 @@ import { afterEach, beforeEach, describe, expect, mock, spyOn, it } from 'bun:te
 
 const originalConsoleLog = console.log
 
-mock.module('@/shared/utils/error-handler', () => ({
-  handleError: (err: Error) => {
-    throw err
-  },
-}))
-
 const mockGetAccount = mock(() => Promise.resolve(null))
 const mockListAccounts = mock(() => Promise.resolve([]))
 const mockSetCurrent = mock(() => Promise.resolve(false))
@@ -46,6 +40,7 @@ import { authCommand } from './auth'
 
 describe('auth commands', () => {
   let consoleLogSpy: ReturnType<typeof mock>
+  let consoleErrorSpy: ReturnType<typeof spyOn>
   let processExitSpy: ReturnType<typeof spyOn>
 
   beforeEach(() => {
@@ -73,14 +68,14 @@ describe('auth commands', () => {
 
     consoleLogSpy = mock((..._args: unknown[]) => {})
     console.log = consoleLogSpy
-    processExitSpy = spyOn(process, 'exit').mockImplementation((_code?: number) => {
-      throw new Error(`process.exit(${_code})`)
-    })
+    consoleErrorSpy = spyOn(console, 'error').mockImplementation(() => {})
+    processExitSpy = spyOn(process, 'exit').mockImplementation((_code?: number) => undefined as never)
     processExitSpy.mockClear()
   })
 
   afterEach(() => {
     console.log = originalConsoleLog
+    consoleErrorSpy.mockRestore()
     processExitSpy.mockRestore()
   })
 
@@ -153,7 +148,7 @@ describe('auth commands', () => {
     it('outputs error and exits when account not found', async () => {
       mockSetCurrent.mockImplementation(() => Promise.resolve(false))
 
-      await expect(authCommand.parseAsync(['use', 'nonexistent'], { from: 'user' })).rejects.toThrow('process.exit(1)')
+      await authCommand.parseAsync(['use', 'nonexistent'], { from: 'user' })
 
       expect(processExitSpy).toHaveBeenCalledWith(1)
       const output = JSON.parse(consoleLogSpy.mock.calls[0][0])
@@ -185,7 +180,7 @@ describe('auth commands', () => {
     it('outputs error and exits when no account configured', async () => {
       mockGetAccount.mockImplementation(() => Promise.resolve(null))
 
-      await expect(authCommand.parseAsync(['status'], { from: 'user' })).rejects.toThrow('process.exit(1)')
+      await authCommand.parseAsync(['status'], { from: 'user' })
 
       expect(processExitSpy).toHaveBeenCalledWith(1)
       const output = JSON.parse(consoleLogSpy.mock.calls[0][0])
@@ -217,9 +212,7 @@ describe('auth commands', () => {
     it('outputs error for specific missing account', async () => {
       mockGetAccount.mockImplementation(() => Promise.resolve(null))
 
-      await expect(authCommand.parseAsync(['status', '--account', 'missing-id'], { from: 'user' })).rejects.toThrow(
-        'process.exit(1)',
-      )
+      await authCommand.parseAsync(['status', '--account', 'missing-id'], { from: 'user' })
 
       expect(processExitSpy).toHaveBeenCalledWith(1)
       const output = JSON.parse(consoleLogSpy.mock.calls[0][0])
@@ -241,8 +234,9 @@ describe('auth commands', () => {
       )
       mockRemoveAccount.mockImplementation(() => Promise.resolve(true))
 
-      await expect(authCommand.parseAsync(['logout'], { from: 'user' })).rejects.toThrow('process.exit(0)')
+      await authCommand.parseAsync(['logout'], { from: 'user' })
 
+      expect(processExitSpy).toHaveBeenCalledWith(0)
       expect(mockRemoveAccount).toHaveBeenCalledWith('plus-12025551234')
       const output = JSON.parse(consoleLogSpy.mock.calls[0][0])
       expect(output.success).toBe(true)
@@ -253,7 +247,7 @@ describe('auth commands', () => {
     it('outputs error and exits when no account configured', async () => {
       mockGetAccount.mockImplementation(() => Promise.resolve(null))
 
-      await expect(authCommand.parseAsync(['logout'], { from: 'user' })).rejects.toThrow('process.exit(1)')
+      await authCommand.parseAsync(['logout'], { from: 'user' })
 
       expect(processExitSpy).toHaveBeenCalledWith(1)
       const output = JSON.parse(consoleLogSpy.mock.calls[0][0])
@@ -273,8 +267,9 @@ describe('auth commands', () => {
       mockConnect.mockImplementation(() => Promise.reject(new Error('Connection failed')))
       mockRemoveAccount.mockImplementation(() => Promise.resolve(true))
 
-      await expect(authCommand.parseAsync(['logout'], { from: 'user' })).rejects.toThrow('process.exit(0)')
+      await authCommand.parseAsync(['logout'], { from: 'user' })
 
+      expect(processExitSpy).toHaveBeenCalledWith(0)
       expect(mockRemoveAccount).toHaveBeenCalledWith('plus-12025551234')
       const output = JSON.parse(consoleLogSpy.mock.calls[0][0])
       expect(output.success).toBe(true)
@@ -295,10 +290,9 @@ describe('auth commands', () => {
       })
       mockRemoveAccount.mockImplementation(() => Promise.resolve(true))
 
-      await expect(
-        authCommand.parseAsync(['logout', '--account', 'plus-19995551234'], { from: 'user' }),
-      ).rejects.toThrow('process.exit(0)')
+      await authCommand.parseAsync(['logout', '--account', 'plus-19995551234'], { from: 'user' })
 
+      expect(processExitSpy).toHaveBeenCalledWith(0)
       expect(mockRemoveAccount).toHaveBeenCalledWith('plus-19995551234')
       const output = JSON.parse(consoleLogSpy.mock.calls[0][0])
       expect(output.success).toBe(true)
