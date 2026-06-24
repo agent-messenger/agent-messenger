@@ -184,6 +184,19 @@ export async function createApp(): Promise<void> {
     },
     {
       adapter: lazyAdapter(
+        'iMessage',
+        'agent-imessage setup',
+        async () => new (await import('./adapters/imessage-adapter')).IMessageAdapter(),
+      ),
+      label: 'iMessage',
+      enabled: false,
+      channels: null,
+      workspaces: null,
+      listening: false,
+      lastChannelId: null,
+    },
+    {
+      adapter: lazyAdapter(
         'LINE',
         'agent-line auth login',
         async () => new (await import('./adapters/line-adapter')).LineAdapter(),

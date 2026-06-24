@@ -1571,6 +1571,7 @@ describe('KakaoTalkClient', () => {
 
   describe('getProfile', () => {
     const mockFetch = mock(() => Promise.resolve(new Response()))
+    const originalFetch = globalThis.fetch
 
     beforeEach(() => {
       mockFetch.mockReset()
@@ -1579,6 +1580,7 @@ describe('KakaoTalkClient', () => {
 
     afterEach(() => {
       mockFetch.mockReset()
+      globalThis.fetch = originalFetch
     })
 
     function makeJsonResponse(data: unknown, status = 200): Response {

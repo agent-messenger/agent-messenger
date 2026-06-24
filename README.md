@@ -92,6 +92,7 @@ This installs:
 - `agent-kakaotalk` — KakaoTalk CLI (sub-device login, LOCO protocol)
 - `agent-channeltalk` — Channel Talk CLI (beta, zero-config, extracted cookies)
 - `agent-channeltalkbot` — Channel Talk Bot CLI (beta, API credentials, for server-side/CI/CD)
+- `agent-imessage` — iMessage CLI (via a self-hosted [BlueBubbles](https://bluebubbles.app) server on your Mac)
 
 ## Agent Skills
 
@@ -210,6 +211,7 @@ const slack = await new SlackClient().login({ token: 'xoxc-...', cookie: 'xoxd-.
 | `agent-messenger/kakaotalk` | `KakaoTalkClient` |
 | `agent-messenger/channeltalk` | `ChannelClient` |
 | `agent-messenger/channeltalkbot` | `ChannelBotClient` |
+| `agent-messenger/imessage` | `BlueBubblesClient` |
 
 Each module also exports its credential manager, Zod schemas, and TypeScript types:
 
@@ -429,6 +431,8 @@ See the [TUI docs](https://agent-messenger.dev/docs/tui) for keybindings, archit
 
 > ⚠️ **Teams tokens expire in 60-90 minutes.** Re-run `agent-teams auth extract` to refresh. See [Teams Guide](skills/agent-teams/SKILL.md) for details.
 
+> 💬 **iMessage** is supported via a self-hosted [BlueBubbles](https://bluebubbles.app) relay (`agent-imessage`), not the table above. v1 covers send & list messages, direct & group chats, chat listing, real-time watch (polling), and multi-account. Reactions, typing indicators, and edit/unsend are a later tier that requires BlueBubbles' Private API. See the [iMessage Guide](skills/agent-imessage/SKILL.md).
+
 ## Platform Guides
 
 - **[Slack Guide](https://agent-messenger.dev/docs/cli/slack)** — Full command reference for Slack
@@ -448,6 +452,11 @@ See the [TUI docs](https://agent-messenger.dev/docs/tui) for keybindings, archit
 - **[KakaoTalk Guide](https://agent-messenger.dev/docs/cli/kakaotalk)** — Sub-device login and LOCO protocol integration
 - **[Channel Talk Guide](https://agent-messenger.dev/docs/cli/channeltalk)** — Full command reference for Channel Talk (beta, zero-config)
 - **[Channel Talk Bot Guide](https://agent-messenger.dev/docs/cli/channeltalkbot)** — Bot API integration for Channel Talk (beta)
+- **[iMessage Guide](skills/agent-imessage/SKILL.md)** — iMessage via a self-hosted BlueBubbles relay on your Mac
+
+### iMessage is different
+
+Most agent-messenger platforms run directly from the CLI with no server. **iMessage is the exception:** Apple provides no public API, so `agent-imessage` connects to **your own Mac** running the free, open-source [BlueBubbles](https://bluebubbles.app) server. You still act as yourself with your own Apple ID, keep control of your credentials, and run one shell command per action — but you (or your team) must keep one Mac running BlueBubbles. The CLI itself runs anywhere that can reach that Mac, including Docker containers. See the [setup guide](skills/agent-imessage/references/setup.md).
 
 ## Use Cases
 

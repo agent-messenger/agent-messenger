@@ -1,0 +1,6 @@
+export { authCommand } from './auth'
+export { chatCommand } from './chat'
+export { doctorCommand } from './doctor'
+export { messageCommand } from './message'
+export { setupCommand } from './setup'
+export { whoamiCommand } from './whoami'

@@ -11,6 +11,7 @@
     "agent-channeltalkbot": "./src/platforms/channeltalkbot/cli.ts",
     "agent-discord": "./src/platforms/discord/cli.ts",
     "agent-discordbot": "./src/platforms/discordbot/cli.ts",
+    "agent-imessage": "./src/platforms/imessage/cli.ts",
     "agent-instagram": "./src/platforms/instagram/cli.ts",
     "agent-kakaotalk": "./src/platforms/kakaotalk/cli.ts",
     "agent-line": "./src/platforms/line/cli.ts",
@@ -79,6 +80,9 @@
       ],
       "telegrambot": [
         "./src/platforms/telegrambot/index.ts"
+      ],
+      "imessage": [
+        "./src/platforms/imessage/index.ts"
       ]
     }
   },
@@ -151,6 +155,10 @@
     "./telegrambot": {
       "types": "./src/platforms/telegrambot/index.ts",
       "default": "./src/platforms/telegrambot/index.ts"
+    },
+    "./imessage": {
+      "types": "./src/platforms/imessage/index.ts",
+      "default": "./src/platforms/imessage/index.ts"
     }
   },
   "scripts": {

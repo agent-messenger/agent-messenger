@@ -19,6 +19,7 @@
     "channel-talk",
     "line",
     "instagram",
+    "imessage",
     "messaging",
     "workspace",
     "guild",
@@ -44,6 +45,7 @@
     "./skills/agent-instagram",
     "./skills/agent-kakaotalk",
     "./skills/agent-channeltalk",
-    "./skills/agent-channeltalkbot"
+    "./skills/agent-channeltalkbot",
+    "./skills/agent-imessage"
   ]
 }

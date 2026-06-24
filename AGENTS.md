@@ -2,6 +2,10 @@
 
 Multi-platform messaging CLI for AI agents (Slack, Discord, Teams).
 
+## Platform Notes
+
+Each platform lives in `src/platforms/<name>/` and follows the same convention (cli, index, client, types, credential-manager, ensure-auth, commands). **iMessage (`agent-imessage`) is the one exception that requires a self-hosted relay:** Apple has no public API, so it connects over HTTP to a BlueBubbles server the user runs on their own Mac. Its client (`BlueBubblesClient`) is a plain REST client with a provider-aware `{ serverUrl, password }` credential, and it receives messages by polling (no inbound webhook server).
+
 ## TypeScript Execution Model
 
 ### Local Development
