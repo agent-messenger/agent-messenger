@@ -540,6 +540,121 @@ describe('KakaoTalkClient', () => {
       client.close()
     })
 
+    // Regression for #266: LCHATLIST pages can return chat.c as a BSON Long-like
+    // {low, high} object. String(chat.c) collapses it to "[object Object]", breaking
+    // dedupe/format/title-resolution. longToString must normalize it to a decimal id.
+    // LONG_CHAT_ID encodes 9876543210 as (high << 32) | low.
+    const LONG_CHAT_ID = { low: 1286608618, high: 2 }
+    const LONG_CHAT_ID_DECIMAL = '9876543210'
+
+    it('includes paginated LCHATLIST chats whose id is a Long-like {low, high} object', async () => {
+      // given
+      mockLogin.mockResolvedValue({ ...DEFAULT_LOGIN_RESULT, eof: false })
+      mockGetChatList.mockResolvedValueOnce({
+        body: {
+          chatDatas: [
+            {
+              c: LONG_CHAT_ID,
+              t: 1,
+              k: ['티머니'],
+              i: [9],
+              a: 1,
+              n: 0,
+              o: 1698000000,
+              l: null,
+              ll: makeLong(100),
+            },
+          ],
+          lastTokenId: makeLong(1),
+          lastChatId: LONG_CHAT_ID,
+          eof: true,
+        },
+      })
+      const client = await new KakaoTalkClient().login({ oauthToken: 'token', userId: 'user1', deviceUuid: 'device1' })
+
+      // when
+      const chats = await client.getChats({ all: true })
+
+      // then
+      expect(chats).toHaveLength(3)
+      const paginated = chats.find((c) => c.display_name === '티머니')
+      expect(paginated).toBeDefined()
+      expect(paginated!.chat_id).toBe(LONG_CHAT_ID_DECIMAL)
+
+      client.close()
+    })
+
+    it('deduplicates a Long-like LCHATLIST id against a numeric login-snapshot id', async () => {
+      // given
+      mockLogin.mockResolvedValue({ ...DEFAULT_LOGIN_RESULT, eof: false })
+      mockGetChatList.mockResolvedValueOnce({
+        body: {
+          chatDatas: [
+            {
+              c: { low: 100, high: 0 },
+              t: 1,
+              k: ['Alice', 'Bob'],
+              a: 2,
+              n: 0,
+              o: 1700000000,
+              l: null,
+              ll: makeLong(999),
+            },
+          ],
+          lastTokenId: makeLong(1),
+          lastChatId: makeLong(100),
+          eof: true,
+        },
+      })
+      const client = await new KakaoTalkClient().login({ oauthToken: 'token', userId: 'user1', deviceUuid: 'device1' })
+
+      // when
+      const chats = await client.getChats({ all: true })
+
+      // then
+      expect(chats).toHaveLength(2)
+      client.close()
+    })
+
+    it('resolves titles without crashing for Long-like LCHATLIST chat ids', async () => {
+      // given
+      mockLogin.mockResolvedValue({ ...DEFAULT_LOGIN_RESULT, eof: false })
+      mockGetChatList.mockResolvedValueOnce({
+        body: {
+          chatDatas: [
+            {
+              c: LONG_CHAT_ID,
+              t: 1,
+              k: ['티머니'],
+              i: [9],
+              a: 1,
+              n: 0,
+              o: 1698000000,
+              l: null,
+              ll: makeLong(100),
+            },
+          ],
+          lastTokenId: makeLong(1),
+          lastChatId: LONG_CHAT_ID,
+          eof: true,
+        },
+      })
+      mockGetChannelInfo.mockResolvedValue({
+        body: { chatInfo: { chatMetas: [{ type: 3, content: 'PlusChat' }] } },
+      })
+      const client = await new KakaoTalkClient().login({ oauthToken: 'token', userId: 'user1', deviceUuid: 'device1' })
+
+      // when
+      const chats = await client.getChats({ all: true, resolveTitles: true })
+
+      // then
+      const paginated = chats.find((c) => c.chat_id === LONG_CHAT_ID_DECIMAL)
+      expect(paginated).toBeDefined()
+      expect(paginated!.title).toBe('PlusChat')
+
+      client.close()
+    })
+
     it('wraps errors as KakaoTalkError', async () => {
       mockLogin.mockRejectedValue(new Error('Connection refused'))
 

@@ -62,7 +62,7 @@ class MemberNameCache {
       const names = chat.k as string[] | undefined
       if (!Array.isArray(ids) || !Array.isArray(names)) continue
 
-      const chatId = String(chat.c)
+      const chatId = longToString(chat.c)
       let map = this.byChatId.get(chatId)
       if (!map) {
         map = new Map()
@@ -176,7 +176,7 @@ function formatChat(chat: ChatData, title: string | null, nameCache: MemberNameC
   const memberNames = (chat.k ?? []) as string[]
   const lastLog = chat.l as Record<string, unknown> | null
   const displayName = memberNames.join(', ') || null
-  const chatId = String(chat.c)
+  const chatId = longToString(chat.c)
 
   return {
     chat_id: chatId,
@@ -256,7 +256,7 @@ function findMaxLogId(logs: Array<Record<string, unknown>>, field: string): Long
 
 function collectChats(chatDatas: ChatData[], into: ChatData[], seen: Set<string>): void {
   for (const chat of chatDatas) {
-    const id = String(chat.c)
+    const id = longToString(chat.c)
     if (!seen.has(id)) {
       seen.add(id)
       into.push(chat)
@@ -771,7 +771,9 @@ export class KakaoTalkClient {
         }
 
         const titles = options?.resolveTitles
-          ? await Promise.all(results.map((chat) => this.fetchChatTitle(session, parseLong(String(chat.c)), chat)))
+          ? await Promise.all(
+              results.map((chat) => this.fetchChatTitle(session, parseLong(longToString(chat.c)), chat)),
+            )
           : null
 
         return results.map((chat, i) => formatChat(chat, titles ? titles[i] : null, this.nameCache))
