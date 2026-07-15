@@ -338,8 +338,9 @@ export class TeamsClient {
   }
 
   async getIdToken(): Promise<string | null> {
-    const { TeamsTokenExtractor } = await import('./token-extractor')
-    const extractor = new TeamsTokenExtractor()
+    const { TeamsTokenExtractor, resolveTeamsTokenSource } = await import('./token-extractor')
+    const tokenSource = resolveTeamsTokenSource(process.env.AGENT_TEAMS_AUTH_SOURCE)
+    const extractor = new TeamsTokenExtractor(undefined, undefined, undefined, undefined, tokenSource)
     return extractor.extractIdToken(this.getAccountType())
   }
 

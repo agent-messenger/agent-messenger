@@ -105,6 +105,12 @@ it('no-token message mentions desktop app and browser fallback', () => {
   expect(getNoTeamsTokenFoundMessage()).toContain('desktop app or a supported Chromium browser')
 })
 
+it('desktop-only no-token message does not suggest a browser fallback', () => {
+  const message = getNoTeamsTokenFoundMessage('desktop')
+  expect(message).toContain('Microsoft Teams desktop app')
+  expect(message).not.toContain('Chromium browser')
+})
+
 it('login pending hint preserves explicit account type', async () => {
   const completeSpy = spyOn(deviceLogin, 'completeDeviceCode').mockRejectedValue(new deviceLogin.PendingApprovalError())
   const consoleSpy = spyOn(console, 'log').mockImplementation(() => {})

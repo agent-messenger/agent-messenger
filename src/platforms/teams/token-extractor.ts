@@ -28,6 +28,14 @@ export interface ExtractedTeamsToken {
   accountTypeKnown: boolean
 }
 
+export type TeamsTokenSource = 'all' | 'desktop'
+
+export function resolveTeamsTokenSource(value?: string): TeamsTokenSource {
+  if (!value || value === 'all') return 'all'
+  if (value === 'desktop') return 'desktop'
+  throw new Error(`Invalid Teams token source: ${value}. Use "all" or "desktop".`)
+}
+
 interface TeamsCookiePath {
   path: string
   accountType: TeamsAccountType
@@ -70,21 +78,25 @@ export class TeamsTokenExtractor {
   private cookieReader: ChromiumCookieReader
   private debugLog: ((message: string) => void) | null
   private customBrowserProfileDirs: string[]
+  private tokenSource: TeamsTokenSource
 
   constructor(
     platform?: NodeJS.Platform,
     keyCache?: DerivedKeyCache,
     debugLog?: (message: string) => void,
     customBrowserProfileDirs?: string[],
+    tokenSource: TeamsTokenSource = 'all',
   ) {
     this.platform = platform ?? process.platform
     this.debugLog = debugLog ?? null
     this.customBrowserProfileDirs = customBrowserProfileDirs ?? []
+    this.tokenSource = tokenSource
 
     const resolvedKeyCache = keyCache ?? new DerivedKeyCache()
     this.decryptor = new ChromiumCookieDecryptor({
       platform: this.platform,
       appKeychainVariants: TEAMS_KEYCHAIN_VARIANTS,
+      includeBrowserKeychainVariants: tokenSource !== 'desktop',
       keyCache: resolvedKeyCache,
       keyCachePlatform: 'teams',
     })
@@ -205,7 +217,8 @@ export class TeamsTokenExtractor {
   }
 
   getTeamsCookiesPaths(): TeamsCookiePath[] {
-    return [...this.getDesktopCookiesPaths(), ...this.getBrowserCookiesPaths()]
+    const desktopPaths = this.getDesktopCookiesPaths()
+    return this.tokenSource === 'desktop' ? desktopPaths : [...desktopPaths, ...this.getBrowserCookiesPaths()]
   }
 
   getLocalStatePath(): string {
@@ -236,7 +249,9 @@ export class TeamsTokenExtractor {
   }
 
   getKeychainVariants(): KeychainVariant[] {
-    return [...TEAMS_KEYCHAIN_VARIANTS, ...BROWSER_KEYCHAIN_VARIANTS]
+    return this.tokenSource === 'desktop'
+      ? [...TEAMS_KEYCHAIN_VARIANTS]
+      : [...TEAMS_KEYCHAIN_VARIANTS, ...BROWSER_KEYCHAIN_VARIANTS]
   }
 
   isValidSkypeToken(token: string): boolean {
@@ -264,7 +279,8 @@ export class TeamsTokenExtractor {
     const desktopPaths = this.getDesktopCookiesPaths().filter(
       (p) => accountType === undefined || !p.accountTypeKnown || p.accountType === accountType,
     )
-    const candidatePaths = [...desktopPaths, ...this.getBrowserCookiesPaths()]
+    const candidatePaths =
+      this.tokenSource === 'desktop' ? desktopPaths : [...desktopPaths, ...this.getBrowserCookiesPaths()]
 
     for (const { path: dbPath } of candidatePaths) {
       if (!dbPath || !existsSync(dbPath)) continue

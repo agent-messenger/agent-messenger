@@ -3,7 +3,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { homedir, tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-import { TeamsTokenExtractor } from './token-extractor'
+import { TeamsTokenExtractor, resolveTeamsTokenSource } from './token-extractor'
 
 describe('TeamsTokenExtractor', () => {
   let extractor: TeamsTokenExtractor
@@ -217,6 +217,13 @@ describe('TeamsTokenExtractor', () => {
 
       expect(paths).toEqual([])
     })
+
+    it('returns only official Teams desktop paths in desktop mode', () => {
+      const desktopOnly = new TeamsTokenExtractor('darwin', undefined, undefined, undefined, 'desktop')
+
+      expect(desktopOnly.getTeamsCookiesPaths()).toEqual(desktopOnly.getDesktopCookiesPaths())
+      expect(desktopOnly.getTeamsCookiesPaths().some((entry) => entry.path.includes('Google/Chrome'))).toBe(false)
+    })
   })
 
   describe('getLocalStatePath', () => {
@@ -276,6 +283,26 @@ describe('TeamsTokenExtractor', () => {
       const teamsIdx = variants.findIndex((v) => v.service === 'Microsoft Teams Safe Storage')
       const chromeIdx = variants.findIndex((v) => v.service === 'Chrome Safe Storage')
       expect(teamsIdx).toBeLessThan(chromeIdx)
+    })
+
+    it('uses only Teams Keychain entries in desktop mode', () => {
+      const desktopOnly = new TeamsTokenExtractor('darwin', undefined, undefined, undefined, 'desktop')
+      const variants = desktopOnly.getKeychainVariants()
+
+      expect(variants).toContainEqual({ service: 'Microsoft Teams Safe Storage', account: 'Microsoft Teams' })
+      expect(variants.some((variant) => variant.service.includes('Chrome'))).toBe(false)
+      expect(variants.some((variant) => variant.service.includes('Edge'))).toBe(false)
+    })
+  })
+
+  describe('resolveTeamsTokenSource', () => {
+    it('defaults to all and accepts desktop', () => {
+      expect(resolveTeamsTokenSource()).toBe('all')
+      expect(resolveTeamsTokenSource('desktop')).toBe('desktop')
+    })
+
+    it('rejects unknown sources', () => {
+      expect(() => resolveTeamsTokenSource('browser')).toThrow('Invalid Teams token source')
     })
   })
 

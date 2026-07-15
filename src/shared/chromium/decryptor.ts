@@ -12,6 +12,8 @@ export interface ChromiumDecryptorOptions {
   platform: NodeJS.Platform
   /** App-specific keychain entries, prepended before browser variants */
   appKeychainVariants?: KeychainVariant[]
+  /** Disable browser Keychain fallbacks when the caller only reads an app-owned profile. */
+  includeBrowserKeychainVariants?: boolean
   /** Optional key cache for avoiding repeated macOS Keychain prompts */
   keyCache?: DerivedKeyCache
   /** Platform identifier for key cache (e.g. 'slack', 'discord') */
@@ -32,7 +34,8 @@ export class ChromiumCookieDecryptor {
   constructor(options: ChromiumDecryptorOptions) {
     this.platform = options.platform
     // App-specific variants come first, browser variants as fallback
-    this.keychainVariants = [...(options.appKeychainVariants ?? []), ...BROWSER_KEYCHAIN_VARIANTS]
+    const browserVariants = options.includeBrowserKeychainVariants === false ? [] : BROWSER_KEYCHAIN_VARIANTS
+    this.keychainVariants = [...(options.appKeychainVariants ?? []), ...browserVariants]
     this.keyCache = options.keyCache ?? null
     this.keyCachePlatform = options.keyCachePlatform ?? null
     this.linuxKeyringAppNames = options.linuxKeyringAppNames ?? []
