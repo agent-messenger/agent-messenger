@@ -14,6 +14,13 @@ struct BridgeRequest: Codable {
     let args: [String]
     let profile: String?
     let timeout_ms: Int?
+    let input_files: [BridgeInputFile]?
+}
+
+struct BridgeInputFile: Codable {
+    let argument_index: Int
+    let filename: String
+    let bytes: Data
 }
 
 struct BridgeResponse: Codable {
@@ -30,14 +37,31 @@ guard profile == "live" || profile == "proof" else {
     exit(64)
 }
 let requestID = UUID().uuidString.lowercased()
+let cliArgs = Array(CommandLine.arguments.dropFirst())
+var inputFiles: [BridgeInputFile] = []
+if let fileIndex = cliArgs.indices.first(where: {
+    $0 + 4 < cliArgs.count && cliArgs[$0] == "file" && cliArgs[$0 + 1] == "upload"
+}) {
+    let argumentIndex = fileIndex + 4
+    let fileURL = URL(fileURLWithPath: cliArgs[argumentIndex]).standardizedFileURL
+    let values = try? fileURL.resourceValues(forKeys: [.isRegularFileKey, .fileSizeKey])
+    guard values?.isRegularFile == true, let size = values?.fileSize, size <= 20 * 1_024 * 1_024,
+          let bytes = try? Data(contentsOf: fileURL, options: [.mappedIfSafe]) else {
+        FileHandle.standardError.write(Data("Teams file upload requires a readable regular file no larger than 20 MiB.\n".utf8))
+        exit(66)
+    }
+    inputFiles.append(BridgeInputFile(argument_index: argumentIndex, filename: fileURL.lastPathComponent, bytes: bytes))
+}
+
 let request = BridgeRequest(
     version: 1,
     id: requestID,
-    args: Array(CommandLine.arguments.dropFirst()),
+    args: cliArgs,
     profile: profile,
-    timeout_ms: 90_000
+    timeout_ms: 90_000,
+    input_files: inputFiles.isEmpty ? nil : inputFiles
 )
-guard let requestData = try? JSONEncoder().encode(request), requestData.count <= 1_048_576 else {
+guard let requestData = try? JSONEncoder().encode(request), requestData.count <= 28 * 1_024 * 1_024 else {
     FileHandle.standardError.write(Data("Teams bridge request is too large.\n".utf8))
     exit(64)
 }

@@ -19,6 +19,13 @@ private struct BridgeRequest: Codable {
     let args: [String]
     let profile: String?
     let timeout_ms: Int?
+    let input_files: [BridgeInputFile]?
+}
+
+private struct BridgeInputFile: Codable {
+    let argument_index: Int
+    let filename: String
+    let bytes: Data
 }
 
 private struct BridgeResponse: Codable {
@@ -137,6 +144,26 @@ private func validatedArgs(_ request: BridgeRequest) throws -> [String] {
         }
     }
     return args
+}
+
+private func stagedInputArgs(_ args: [String], request: BridgeRequest, stagedRoot: URL) throws -> [String] {
+    guard let inputs = request.input_files, !inputs.isEmpty else { return args }
+    guard inputs.count == 1 else { throw BridgeError.invalidRequest("Teams bridge accepts one input file per command.") }
+    let input = inputs[0]
+    guard input.argument_index >= 0, input.argument_index < args.count,
+          input.argument_index >= 4,
+          args[input.argument_index - 4] == "file", args[input.argument_index - 3] == "upload",
+          args[input.argument_index - 2].isEmpty == false, args[input.argument_index - 1].isEmpty == false,
+          input.bytes.count <= 20 * 1_024 * 1_024,
+          !input.filename.isEmpty, input.filename == URL(fileURLWithPath: input.filename).lastPathComponent else {
+        throw BridgeError.invalidRequest("Teams bridge input file does not match a file upload command.")
+    }
+    let inputRoot = stagedRoot.appendingPathComponent("input", isDirectory: true)
+    let stagedFile = inputRoot.appendingPathComponent(input.filename, isDirectory: false)
+    try writePrivate(input.bytes, to: stagedFile)
+    var rewritten = args
+    rewritten[input.argument_index] = stagedFile.path
+    return rewritten
 }
 
 private func selectedConfigDirectory(for request: BridgeRequest, paths: BridgePaths) throws -> URL {
@@ -484,8 +511,8 @@ private final class TeamsBridgeService: NSObject, TeamsBridgeXPCProtocol {
             var responseID = "invalid"
             var stagedRoot: URL?
             do {
-                guard requestData.count <= 1_048_576 else {
-                    throw BridgeError.invalidRequest("Teams bridge request exceeded the 1 MiB safety limit.")
+                guard requestData.count <= 28 * 1_024 * 1_024 else {
+                    throw BridgeError.invalidRequest("Teams bridge request exceeded the 28 MiB safety limit.")
                 }
                 let request = try JSONDecoder().decode(BridgeRequest.self, from: requestData)
                 responseID = request.id
@@ -502,8 +529,9 @@ private final class TeamsBridgeService: NSObject, TeamsBridgeXPCProtocol {
                 try ensureDerivedTeamsKey(configDirectory: config)
                 let stage = try stageTeamsProfiles(sourceRoot: sourceRoot, paths: self.paths, requestID: request.id)
                 stagedRoot = stage
+                let runtimeArgs = try stagedInputArgs(args, request: request, stagedRoot: stage)
                 var result = try runAgentTeams(
-                    args: args,
+                    args: runtimeArgs,
                     configDirectory: config,
                     stagedRoot: stage,
                     timeoutMilliseconds: request.timeout_ms ?? 90_000
@@ -511,7 +539,7 @@ private final class TeamsBridgeService: NSObject, TeamsBridgeXPCProtocol {
                 if result.0 != 0 && result.2.contains("AGENT_TEAMS_CACHED_KEY_REJECTED") {
                     try ensureDerivedTeamsKey(configDirectory: config, forceRefresh: true)
                     result = try runAgentTeams(
-                        args: args,
+                        args: runtimeArgs,
                         configDirectory: config,
                         stagedRoot: stage,
                         timeoutMilliseconds: request.timeout_ms ?? 90_000
@@ -578,14 +606,45 @@ private final class BridgeDelegate: NSObject, NSApplicationDelegate {
 }
 
 private func runSelfTest() throws {
-    let valid = BridgeRequest(version: 1, id: "self-test", args: ["auth", "extract"], profile: "proof", timeout_ms: 5_000)
+    let valid = BridgeRequest(version: 1, id: "self-test", args: ["auth", "extract"], profile: "proof", timeout_ms: 5_000, input_files: nil)
     guard try validatedArgs(valid).suffix(2) == ["--source", "desktop"] else {
         throw BridgeError.invalidRequest("Desktop source injection failed.")
     }
-    let invalid = BridgeRequest(version: 1, id: "self-test", args: ["auth", "login"], profile: "proof", timeout_ms: 5_000)
+    let invalid = BridgeRequest(version: 1, id: "self-test", args: ["auth", "login"], profile: "proof", timeout_ms: 5_000, input_files: nil)
     do {
         _ = try validatedArgs(invalid)
         throw BridgeError.invalidRequest("Device-code guard failed.")
+    } catch BridgeError.invalidRequest {
+        // Expected.
+    }
+    let testRoot = FileManager.default.temporaryDirectory
+        .appendingPathComponent("teams-bridge-input-self-test-\(UUID().uuidString)", isDirectory: true)
+    defer { try? FileManager.default.removeItem(at: testRoot) }
+    try ensureDirectory(testRoot)
+    let upload = BridgeRequest(
+        version: 1,
+        id: "self-test",
+        args: ["--account", "work", "file", "upload", "team", "channel", "/outside/approval.png"],
+        profile: "proof",
+        timeout_ms: 5_000,
+        input_files: [BridgeInputFile(argument_index: 6, filename: "approval.png", bytes: Data("image".utf8))]
+    )
+    let stagedArgs = try stagedInputArgs(upload.args, request: upload, stagedRoot: testRoot)
+    guard stagedArgs[6].hasPrefix(testRoot.path),
+          try Data(contentsOf: URL(fileURLWithPath: stagedArgs[6])) == Data("image".utf8) else {
+        throw BridgeError.invalidRequest("Input file staging self-test failed.")
+    }
+    let mismatched = BridgeRequest(
+        version: 1,
+        id: "self-test",
+        args: ["message", "send", "team", "channel", "hello", "--file", "/outside/approval.png"],
+        profile: "proof",
+        timeout_ms: 5_000,
+        input_files: [BridgeInputFile(argument_index: 6, filename: "approval.png", bytes: Data("image".utf8))]
+    )
+    do {
+        _ = try stagedInputArgs(mismatched.args, request: mismatched, stagedRoot: testRoot)
+        throw BridgeError.invalidRequest("Non-upload file staging guard failed.")
     } catch BridgeError.invalidRequest {
         // Expected.
     }
