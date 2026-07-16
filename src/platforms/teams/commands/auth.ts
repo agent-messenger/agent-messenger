@@ -10,7 +10,7 @@ import { TeamsClient } from '../client'
 import { TeamsCredentialManager } from '../credential-manager'
 import { completeDeviceCode, loginWithDeviceCode, PendingApprovalError, startDeviceCode } from '../device-login'
 import { probeAccountType } from '../realm-discovery'
-import { TeamsTokenExtractor, resolveTeamsTokenSource } from '../token-extractor'
+import { TeamsCachedKeyRejectedError, TeamsTokenExtractor, resolveTeamsTokenSource } from '../token-extractor'
 import type { TeamsAccount, TeamsAccountType, TeamsConfig } from '../types'
 
 interface LoginOptions {
@@ -252,6 +252,7 @@ export async function extractAction(options: {
     const extracted = await extractor.extract()
 
     if (extracted.length === 0) {
+      if (extractor.didCachedKeyFail()) throw new TeamsCachedKeyRejectedError()
       console.log(
         formatOutput(
           {

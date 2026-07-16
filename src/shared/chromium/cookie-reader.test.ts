@@ -31,6 +31,27 @@ describe('ChromiumCookieReader', () => {
   })
 
   describe('queryAll', () => {
+    it('reads rows that exist only in an active WAL snapshot', async () => {
+      const tempDir = mkdtempSync(join(tmpdir(), 'chromium-cookie-reader-'))
+      tempDirs.push(tempDir)
+      const dbPath = join(tempDir, 'Cookies')
+      const db = new Database(dbPath)
+      db.run('PRAGMA journal_mode=WAL')
+      db.run('PRAGMA wal_autocheckpoint=0')
+      db.run('CREATE TABLE cookies (name TEXT, value TEXT, encrypted_value BLOB)')
+      db.run("INSERT INTO cookies VALUES ('wal-session', 'fresh', NULL)")
+
+      try {
+        const result = await new ChromiumCookieReader().queryAll<{ name: string; value: string }>(
+          dbPath,
+          'SELECT name, value FROM cookies',
+        )
+        expect(result).toEqual([{ name: 'wal-session', value: 'fresh' }])
+      } finally {
+        db.close()
+      }
+    })
+
     it('returns all matching rows from a real SQLite database', async () => {
       // given
       const tempDir = mkdtempSync(join(tmpdir(), 'chromium-cookie-reader-'))

@@ -1,0 +1,11 @@
+#!/bin/sh
+
+set -eu
+
+CLIENT="$HOME/.local/bin/agent-teams-bridge-client"
+if [ ! -x "$CLIENT" ]; then
+  printf 'The signed Agent Messenger Teams Bridge client is not installed.\n' >&2
+  exit 69
+fi
+
+exec "$CLIENT" "$@"

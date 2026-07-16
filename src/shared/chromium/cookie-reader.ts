@@ -19,7 +19,7 @@ export class ChromiumCookieReader {
     const tempPath = this.createTempPath()
 
     try {
-      copyFileSync(dbPath, tempPath)
+      this.copySnapshot(dbPath, tempPath)
     } catch {
       return []
     }
@@ -43,7 +43,7 @@ export class ChromiumCookieReader {
     const tempPath = this.createTempPath()
 
     try {
-      copyFileSync(dbPath, tempPath)
+      this.copySnapshot(dbPath, tempPath)
     } catch {
       return null
     }
@@ -59,6 +59,14 @@ export class ChromiumCookieReader {
 
   private createTempPath(): string {
     return join(tmpdir(), `chromium-cookies-${Date.now()}-${Math.random().toString(36).slice(2)}.db`)
+  }
+
+  private copySnapshot(sourcePath: string, destinationPath: string): void {
+    copyFileSync(sourcePath, destinationPath)
+    for (const suffix of ['-wal', '-shm']) {
+      const sourceSidecar = `${sourcePath}${suffix}`
+      if (existsSync(sourceSidecar)) copyFileSync(sourceSidecar, `${destinationPath}${suffix}`)
+    }
   }
 
   private executeQuery<T>(tempPath: string, sql: string, params: unknown[] | undefined, mode: 'all'): T[]
@@ -87,6 +95,8 @@ export class ChromiumCookieReader {
   private cleanupTemp(tempPath: string): void {
     try {
       rmSync(tempPath, { force: true })
+      rmSync(`${tempPath}-wal`, { force: true })
+      rmSync(`${tempPath}-shm`, { force: true })
     } catch {
       // Temp file cleanup failure is non-critical
     }

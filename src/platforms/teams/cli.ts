@@ -18,7 +18,15 @@ import {
 } from './commands'
 import { TeamsCredentialManager } from './credential-manager'
 import { ensureTeamsAuth } from './ensure-auth'
+import { assertTeamsOperatorBoundary } from './operator-boundary'
 import type { TeamsAccountType } from './types'
+
+try {
+  assertTeamsOperatorBoundary()
+} catch (error) {
+  process.stderr.write(`${(error as Error).message}\n`)
+  process.exit(64)
+}
 
 function isAuthCommand(command: CommandType): boolean {
   let cmd: CommandType | null = command

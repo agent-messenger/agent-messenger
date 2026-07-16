@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, spyOn, it } from 'bun:test'
 import { TeamsClient } from './client'
 import { TeamsCredentialManager } from './credential-manager'
 import { ensureTeamsAuth } from './ensure-auth'
-import { TeamsTokenExtractor } from './token-extractor'
+import { TeamsCachedKeyRejectedError, TeamsTokenExtractor } from './token-extractor'
 
 let loadConfigSpy: ReturnType<typeof spyOn>
 let extractSpy: ReturnType<typeof spyOn>
@@ -191,6 +191,15 @@ describe('ensureTeamsAuth', () => {
     // then
     expect(testAuthSpy).not.toHaveBeenCalled()
     expect(saveConfigSpy).not.toHaveBeenCalled()
+  })
+
+  it('surfaces a rejected application-supplied key for one bounded companion retry', async () => {
+    extractSpy.mockResolvedValue([])
+    const staleKeySpy = spyOn(TeamsTokenExtractor.prototype, 'didCachedKeyFail').mockReturnValue(true)
+
+    await expect(ensureTeamsAuth()).rejects.toBeInstanceOf(TeamsCachedKeyRejectedError)
+
+    staleKeySpy.mockRestore()
   })
 
   it('keeps an authenticated work account when team discovery is empty', async () => {

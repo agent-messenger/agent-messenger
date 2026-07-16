@@ -30,6 +30,15 @@ export interface ExtractedTeamsToken {
 
 export type TeamsTokenSource = 'all' | 'desktop'
 
+export const TEAMS_CACHED_KEY_REJECTED = 'AGENT_TEAMS_CACHED_KEY_REJECTED'
+
+export class TeamsCachedKeyRejectedError extends Error {
+  constructor() {
+    super(`${TEAMS_CACHED_KEY_REJECTED}: the cached Teams desktop decryption key no longer matches`)
+    this.name = 'TeamsCachedKeyRejectedError'
+  }
+}
+
 export function resolveTeamsTokenSource(value?: string): TeamsTokenSource {
   if (!value || value === 'all') return 'all'
   if (value === 'desktop') return 'desktop'
@@ -79,6 +88,7 @@ export class TeamsTokenExtractor {
   private debugLog: ((message: string) => void) | null
   private customBrowserProfileDirs: string[]
   private tokenSource: TeamsTokenSource
+  private desktopProfileRoot: string | null
 
   constructor(
     platform?: NodeJS.Platform,
@@ -86,17 +96,23 @@ export class TeamsTokenExtractor {
     debugLog?: (message: string) => void,
     customBrowserProfileDirs?: string[],
     tokenSource: TeamsTokenSource = 'all',
+    desktopProfileRoot?: string,
   ) {
     this.platform = platform ?? process.platform
     this.debugLog = debugLog ?? null
     this.customBrowserProfileDirs = customBrowserProfileDirs ?? []
     this.tokenSource = tokenSource
+    this.desktopProfileRoot = desktopProfileRoot ?? process.env.AGENT_TEAMS_DESKTOP_PROFILE_ROOT ?? null
 
     const resolvedKeyCache = keyCache ?? new DerivedKeyCache()
     this.decryptor = new ChromiumCookieDecryptor({
       platform: this.platform,
       appKeychainVariants: TEAMS_KEYCHAIN_VARIANTS,
       includeBrowserKeychainVariants: tokenSource !== 'desktop',
+      // macOS Teams credentials are application-mediated in this fork. The
+      // signed companion supplies a derived key; the library never shells out
+      // to `security`, even if somebody bypasses the guarded dispatcher.
+      allowKeychainLookup: this.platform !== 'darwin' && process.env.AGENT_TEAMS_DISABLE_KEYCHAIN_LOOKUP !== '1',
       keyCache: resolvedKeyCache,
       keyCachePlatform: 'teams',
     })
@@ -110,18 +126,20 @@ export class TeamsTokenExtractor {
   getDesktopCookiesPaths(): TeamsCookiePath[] {
     switch (this.platform) {
       case 'darwin': {
-        const ebWebViewBase = join(
-          homedir(),
-          'Library',
-          'Containers',
-          'com.microsoft.teams2',
-          'Data',
-          'Library',
-          'Application Support',
-          'Microsoft',
-          'MSTeams',
-          'EBWebView',
-        )
+        const ebWebViewBase =
+          this.desktopProfileRoot ??
+          join(
+            homedir(),
+            'Library',
+            'Containers',
+            'com.microsoft.teams2',
+            'Data',
+            'Library',
+            'Application Support',
+            'Microsoft',
+            'MSTeams',
+            'EBWebView',
+          )
         return [
           { path: join(ebWebViewBase, 'WV2Profile_tfw', 'Cookies'), accountType: 'work', accountTypeKnown: true },
           {
@@ -224,7 +242,9 @@ export class TeamsTokenExtractor {
   getLocalStatePath(): string {
     switch (this.platform) {
       case 'darwin':
-        return join(homedir(), 'Library', 'Application Support', 'Microsoft', 'Teams', 'Local State')
+        return this.desktopProfileRoot
+          ? join(this.desktopProfileRoot, 'Local State')
+          : join(homedir(), 'Library', 'Application Support', 'Microsoft', 'Teams', 'Local State')
       case 'linux':
         return join(homedir(), '.config', 'Microsoft', 'Microsoft Teams', 'Local State')
       case 'win32': {
@@ -339,6 +359,10 @@ export class TeamsTokenExtractor {
 
   async clearKeyCache(): Promise<void> {
     await this.decryptor.clearKeyCache()
+  }
+
+  didCachedKeyFail(): boolean {
+    return this.decryptor.didCachedKeyFail()
   }
 
   private async extractFromCookiesDB(): Promise<ExtractedTeamsToken[]> {

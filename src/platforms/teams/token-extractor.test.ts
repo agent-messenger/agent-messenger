@@ -224,6 +224,18 @@ describe('TeamsTokenExtractor', () => {
       expect(desktopOnly.getTeamsCookiesPaths()).toEqual(desktopOnly.getDesktopCookiesPaths())
       expect(desktopOnly.getTeamsCookiesPaths().some((entry) => entry.path.includes('Google/Chrome'))).toBe(false)
     })
+
+    it('can read a companion-staged Teams desktop profile instead of the protected app container', () => {
+      const stagedRoot = join(tmpdir(), 'teams-bridge-stage')
+      const staged = new TeamsTokenExtractor('darwin', undefined, undefined, undefined, 'desktop', stagedRoot)
+
+      expect(staged.getDesktopCookiesPaths()).toContainEqual({
+        path: join(stagedRoot, 'WV2Profile_tfw', 'Network', 'Cookies'),
+        accountType: 'work',
+        accountTypeKnown: true,
+      })
+      expect(staged.getLocalStatePath()).toBe(join(stagedRoot, 'Local State'))
+    })
   })
 
   describe('getLocalStatePath', () => {

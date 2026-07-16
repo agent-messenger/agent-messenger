@@ -14,6 +14,8 @@ export interface ChromiumDecryptorOptions {
   appKeychainVariants?: KeychainVariant[]
   /** Disable browser Keychain fallbacks when the caller only reads an app-owned profile. */
   includeBrowserKeychainVariants?: boolean
+  /** Disable direct Keychain reads when an owning companion has supplied the derived key. */
+  allowKeychainLookup?: boolean
   /** Optional key cache for avoiding repeated macOS Keychain prompts */
   keyCache?: DerivedKeyCache
   /** Platform identifier for key cache (e.g. 'slack', 'discord') */
@@ -28,8 +30,11 @@ export class ChromiumCookieDecryptor {
   private keyCache: DerivedKeyCache | null
   private keyCachePlatform: Platform | null
   private linuxKeyringAppNames: string[]
+  private allowKeychainLookup: boolean
   private cachedKey: Buffer | null = null
   private usedCachedKey = false
+  private cachedKeyDecryptAttempts = 0
+  private cachedKeyDecryptSuccesses = 0
 
   constructor(options: ChromiumDecryptorOptions) {
     this.platform = options.platform
@@ -39,6 +44,7 @@ export class ChromiumCookieDecryptor {
     this.keyCache = options.keyCache ?? null
     this.keyCachePlatform = options.keyCachePlatform ?? null
     this.linuxKeyringAppNames = options.linuxKeyringAppNames ?? []
+    this.allowKeychainLookup = options.allowKeychainLookup ?? true
   }
 
   isEncryptedValue(value: Buffer): boolean {
@@ -62,6 +68,12 @@ export class ChromiumCookieDecryptor {
     }
     this.cachedKey = null
     this.usedCachedKey = false
+    this.cachedKeyDecryptAttempts = 0
+    this.cachedKeyDecryptSuccesses = 0
+  }
+
+  didCachedKeyFail(): boolean {
+    return this.usedCachedKey && this.cachedKeyDecryptAttempts > 0 && this.cachedKeyDecryptSuccesses === 0
   }
 
   decryptCookie(encryptedValue: Buffer, localStatePath?: string): string | null {
@@ -88,9 +100,15 @@ export class ChromiumCookieDecryptor {
 
   decryptMacCookieRaw(encryptedData: Buffer): Buffer | null {
     if (this.cachedKey) {
+      this.cachedKeyDecryptAttempts += 1
       const decrypted = this.decryptAESCBCRaw(encryptedData, this.cachedKey)
-      if (decrypted) return decrypted
+      if (decrypted) {
+        this.cachedKeyDecryptSuccesses += 1
+        return decrypted
+      }
     }
+
+    if (!this.allowKeychainLookup) return null
 
     for (const variant of this.keychainVariants) {
       const password = this.execKeychainLookup(variant.service, variant.account)

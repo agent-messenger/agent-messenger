@@ -3,7 +3,7 @@ import { warn } from '@/shared/utils/stderr'
 import { TeamsClient } from './client'
 import { TeamsCredentialManager } from './credential-manager'
 import { refreshDeviceCodeAccount } from './device-login'
-import { TeamsTokenExtractor, resolveTeamsTokenSource } from './token-extractor'
+import { TeamsCachedKeyRejectedError, TeamsTokenExtractor, resolveTeamsTokenSource } from './token-extractor'
 import type { TeamsAccount, TeamsAccountType, TeamsConfig } from './types'
 
 export async function ensureTeamsAuth(): Promise<void> {
@@ -18,7 +18,10 @@ export async function ensureTeamsAuth(): Promise<void> {
     const tokenSource = resolveTeamsTokenSource(process.env.AGENT_TEAMS_AUTH_SOURCE)
     const extractor = new TeamsTokenExtractor(undefined, undefined, undefined, undefined, tokenSource)
     const extracted = await extractor.extract()
-    if (extracted.length === 0) return
+    if (extracted.length === 0) {
+      if (extractor.didCachedKeyFail()) throw new TeamsCachedKeyRejectedError()
+      return
+    }
 
     const invalidAccountKey = config ? resolveSelectedAccountKey(config) : null
     const newConfig: TeamsConfig = {
@@ -71,7 +74,9 @@ export async function ensureTeamsAuth(): Promise<void> {
     if (Object.keys(newConfig.accounts).length > 0) {
       await credManager.saveConfig(newConfig)
     }
-  } catch {}
+  } catch (error) {
+    if (error instanceof TeamsCachedKeyRejectedError) throw error
+  }
 }
 
 async function resolveAccountType(
