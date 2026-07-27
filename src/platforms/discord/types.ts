@@ -207,6 +207,38 @@ export interface DiscordGuildMember {
   flags: number
 }
 
+export interface DiscordRoleColors {
+  primary_color: number
+  secondary_color: number | null
+  tertiary_color: number | null
+}
+
+export interface DiscordRoleTags {
+  bot_id?: string
+  integration_id?: string
+  premium_subscriber?: null
+  subscription_listing_id?: string
+  available_for_purchase?: null
+  guild_connections?: null
+}
+
+export interface DiscordRole {
+  id: string
+  name: string
+  /** @deprecated Discord still returns this; prefer {@link DiscordRoleColors.primary_color}. */
+  color: number
+  colors: DiscordRoleColors
+  hoist: boolean
+  position: number
+  permissions: string
+  managed: boolean
+  mentionable: boolean
+  flags: number
+  icon?: string | null
+  unicode_emoji?: string | null
+  tags?: DiscordRoleTags
+}
+
 export interface DiscordUserProfile {
   user: DiscordUser & { bio?: string }
   connected_accounts: Array<{
