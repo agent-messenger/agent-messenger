@@ -362,6 +362,93 @@ describe('DiscordClient', () => {
     })
   })
 
+  describe('getMyGuildMember', () => {
+    const member = {
+      user: { id: 'user-1', username: 'alice' },
+      roles: ['role-1'],
+      joined_at: '2024-01-15T10:00:00Z',
+      deaf: false,
+      mute: false,
+      flags: 0,
+    }
+
+    it('gets the current user guild member', async () => {
+      mockResponse(member)
+
+      const client = await new DiscordClient().login({ token: 'test-token' })
+      const result = await client.getMyGuildMember('guild-1')
+
+      expect(result).toEqual(member)
+      expect(fetchCalls[0].url).toBe('https://discord.com/api/v10/users/@me/guilds/guild-1/member')
+    })
+
+    it('falls back to the client-facing route on missing access', async () => {
+      mockResponse({ message: 'Missing Access', code: 50001 }, 403)
+      mockResponse(member)
+
+      const client = await new DiscordClient().login({ token: 'test-token' })
+      const result = await client.getMyGuildMember('guild-1')
+
+      expect(result).toEqual(member)
+      expect(fetchCalls).toHaveLength(2)
+      expect(fetchCalls[1].url).toBe('https://discord.com/api/v10/guilds/guild-1/members/@me')
+    })
+
+    it('falls back when the missing scope is reported as 401', async () => {
+      mockResponse({ message: '401: Unauthorized', code: 0 }, 401)
+      mockResponse(member)
+
+      const client = await new DiscordClient().login({ token: 'test-token' })
+      const result = await client.getMyGuildMember('guild-1')
+
+      expect(result).toEqual(member)
+      expect(fetchCalls).toHaveLength(2)
+      expect(fetchCalls[1].url).toBe('https://discord.com/api/v10/guilds/guild-1/members/@me')
+    })
+
+    it('surfaces the fallback error when both routes are unauthorized', async () => {
+      mockResponse({ message: '401: Unauthorized', code: 0 }, 401)
+      mockResponse({ message: '401: Unauthorized', code: 0 }, 401)
+
+      const client = await new DiscordClient().login({ token: 'test-token' })
+
+      await expect(client.getMyGuildMember('guild-1')).rejects.toEqual(new DiscordError('401: Unauthorized', '0'))
+      expect(fetchCalls).toHaveLength(2)
+    })
+
+    it('propagates non-403 errors without falling back', async () => {
+      mockResponse({ message: 'Unknown Guild', code: 10004 }, 404)
+
+      const client = await new DiscordClient().login({ token: 'test-token' })
+
+      await expect(client.getMyGuildMember('guild-1')).rejects.toEqual(new DiscordError('Unknown Guild', '10004'))
+      expect(fetchCalls).toHaveLength(1)
+    })
+  })
+
+  describe('listRoles', () => {
+    it('lists guild role definitions', async () => {
+      mockResponse([
+        {
+          id: 'role-1',
+          name: 'Member',
+          color: 0,
+          hoist: false,
+          position: 1,
+          permissions: '1024',
+          managed: false,
+          mentionable: false,
+        },
+      ])
+
+      const client = await new DiscordClient().login({ token: 'test-token' })
+      const roles = await client.listRoles('guild-1')
+
+      expect(roles).toHaveLength(1)
+      expect(fetchCalls[0].url).toBe('https://discord.com/api/v10/guilds/guild-1/roles')
+    })
+  })
+
   describe('uploadFile', () => {
     it('uploads file to channel', async () => {
       const tempFile = '/tmp/test-upload.txt'
