@@ -186,6 +186,14 @@ const members = await client.searchMembers(serverId, 'alice')
 const limited = await client.searchMembers(serverId, 'alice', 5)
 // → DiscordGuildMember[]
 
+// Get your own membership (including role IDs) in a server
+const member = await client.getMyGuildMember(serverId)
+// → DiscordGuildMember { user, nick?, roles, joined_at, deaf, mute, flags }
+
+// List a server's role definitions
+const roles = await client.listRoles(serverId)
+// → DiscordRole[] { id, name, color, hoist, position, permissions, managed, mentionable }
+
 // Search messages in a server
 const results = await client.searchMessages(serverId, 'deployment failed')
 const filtered = await client.searchMessages(serverId, 'API design', {

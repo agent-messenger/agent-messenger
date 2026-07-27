@@ -259,7 +259,15 @@ agent-discord mention unread --limit 200
 # Search guild members
 agent-discord member search <guild-id> <query>
 agent-discord member search 123456789 "john" --limit 20
+
+# Get your own membership and roles in a guild
+agent-discord member me
+agent-discord member me 123456789
 ```
+
+`member me` reads `GET /users/@me/guilds/{guild_id}/member`, which a user-account token may call for its own membership. Discord's reference lists the `guilds.members.read` OAuth2 scope for that route; a user-account token is accepted without it, and this was verified against a live account. `member search` is different: it hits the guild member search endpoint, which requires elevated permissions and answers `Missing Access` for a user token.
+
+Role names come from `GET /guilds/{guild_id}/roles`, which any member of the guild may read. Roles are returned highest-first, ordered by `position` and then by role ID to match Discord's own ordering.
 
 ### Friend Commands
 

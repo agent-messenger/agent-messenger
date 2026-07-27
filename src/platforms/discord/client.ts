@@ -12,6 +12,7 @@ import type {
   DiscordMessage,
   DiscordReadState,
   DiscordRelationship,
+  DiscordRole,
   DiscordSearchOptions,
   DiscordSearchResult,
   DiscordUnreadMention,
@@ -479,6 +480,14 @@ export class DiscordClient {
     params.set('limit', limit.toString())
 
     return this.request<DiscordGuildMember[]>('GET', `/guilds/${guildId}/members/search?${params.toString()}`)
+  }
+
+  async getMyGuildMember(guildId: string): Promise<DiscordGuildMember> {
+    return this.request<DiscordGuildMember>('GET', `/users/@me/guilds/${guildId}/member`)
+  }
+
+  async listRoles(guildId: string): Promise<DiscordRole[]> {
+    return this.request<DiscordRole[]>('GET', `/guilds/${guildId}/roles`)
   }
 
   async searchMessages(

@@ -362,6 +362,59 @@ describe('DiscordClient', () => {
     })
   })
 
+  describe('getMyGuildMember', () => {
+    const member = {
+      user: { id: 'user-1', username: 'alice' },
+      roles: ['role-1'],
+      joined_at: '2024-01-15T10:00:00Z',
+      deaf: false,
+      mute: false,
+      flags: 0,
+    }
+
+    it('gets the current user guild member', async () => {
+      mockResponse(member)
+
+      const client = await new DiscordClient().login({ token: 'test-token' })
+      const result = await client.getMyGuildMember('guild-1')
+
+      expect(result).toEqual(member)
+      expect(fetchCalls[0].url).toBe('https://discord.com/api/v10/users/@me/guilds/guild-1/member')
+    })
+
+    it('surfaces the error when the user is not in the guild', async () => {
+      mockResponse({ message: 'Unknown Guild', code: 10004 }, 404)
+
+      const client = await new DiscordClient().login({ token: 'test-token' })
+
+      await expect(client.getMyGuildMember('guild-1')).rejects.toEqual(new DiscordError('Unknown Guild', '10004'))
+      expect(fetchCalls).toHaveLength(1)
+    })
+  })
+
+  describe('listRoles', () => {
+    it('lists guild role definitions', async () => {
+      mockResponse([
+        {
+          id: 'role-1',
+          name: 'Member',
+          color: 0,
+          hoist: false,
+          position: 1,
+          permissions: '1024',
+          managed: false,
+          mentionable: false,
+        },
+      ])
+
+      const client = await new DiscordClient().login({ token: 'test-token' })
+      const roles = await client.listRoles('guild-1')
+
+      expect(roles).toHaveLength(1)
+      expect(fetchCalls[0].url).toBe('https://discord.com/api/v10/guilds/guild-1/roles')
+    })
+  })
+
   describe('uploadFile', () => {
     it('uploads file to channel', async () => {
       const tempFile = '/tmp/test-upload.txt'

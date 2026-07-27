@@ -316,6 +316,10 @@ agent-discord profile get <user-id>
 # Search guild members
 agent-discord member search <guild-id> <query>
 agent-discord member search 1234567890123456789 "john" --limit 20
+
+# Get your own membership and roles in a guild
+agent-discord member me
+agent-discord member me 1234567890123456789
 ```
 
 ### Thread Commands
@@ -518,6 +522,10 @@ const { results } = await client.searchMessages(serverId, 'deployment', {
   sortOrder: 'desc',
   limit: 5,
 })
+
+// Get your own membership and the server's role definitions
+const member = await client.getMyGuildMember(serverId)
+const roles = await client.listRoles(serverId)
 
 // List unread mentions (correlates mention history with per-channel read state)
 const { mentions, count, badgeCount, complete } = await client.getUnreadMentions()
