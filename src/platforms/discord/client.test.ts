@@ -382,41 +382,7 @@ describe('DiscordClient', () => {
       expect(fetchCalls[0].url).toBe('https://discord.com/api/v10/users/@me/guilds/guild-1/member')
     })
 
-    it('falls back to the client-facing route on missing access', async () => {
-      mockResponse({ message: 'Missing Access', code: 50001 }, 403)
-      mockResponse(member)
-
-      const client = await new DiscordClient().login({ token: 'test-token' })
-      const result = await client.getMyGuildMember('guild-1')
-
-      expect(result).toEqual(member)
-      expect(fetchCalls).toHaveLength(2)
-      expect(fetchCalls[1].url).toBe('https://discord.com/api/v10/guilds/guild-1/members/@me')
-    })
-
-    it('falls back when the missing scope is reported as 401', async () => {
-      mockResponse({ message: '401: Unauthorized', code: 0 }, 401)
-      mockResponse(member)
-
-      const client = await new DiscordClient().login({ token: 'test-token' })
-      const result = await client.getMyGuildMember('guild-1')
-
-      expect(result).toEqual(member)
-      expect(fetchCalls).toHaveLength(2)
-      expect(fetchCalls[1].url).toBe('https://discord.com/api/v10/guilds/guild-1/members/@me')
-    })
-
-    it('surfaces the fallback error when both routes are unauthorized', async () => {
-      mockResponse({ message: '401: Unauthorized', code: 0 }, 401)
-      mockResponse({ message: '401: Unauthorized', code: 0 }, 401)
-
-      const client = await new DiscordClient().login({ token: 'test-token' })
-
-      await expect(client.getMyGuildMember('guild-1')).rejects.toEqual(new DiscordError('401: Unauthorized', '0'))
-      expect(fetchCalls).toHaveLength(2)
-    })
-
-    it('propagates non-403 errors without falling back', async () => {
+    it('surfaces the error when the user is not in the guild', async () => {
       mockResponse({ message: 'Unknown Guild', code: 10004 }, 404)
 
       const client = await new DiscordClient().login({ token: 'test-token' })

@@ -54,7 +54,6 @@ const BASE_URL = 'https://discord.com/api/v10'
 const MAX_RETRIES = 3
 const BASE_BACKOFF_MS = 100
 const MAX_SEARCH_INDEX_RETRY_MS = 30_000
-const MEMBER_ROUTE_FALLBACK_CODES = new Set(['50001', 'http_403', '0', 'http_401'])
 
 export class DiscordClient {
   private token: string | null = null
@@ -484,17 +483,7 @@ export class DiscordClient {
   }
 
   async getMyGuildMember(guildId: string): Promise<DiscordGuildMember> {
-    try {
-      return await this.request<DiscordGuildMember>('GET', `/users/@me/guilds/${guildId}/member`)
-    } catch (error) {
-      // The documented route requires the guilds.members.read OAuth2 scope, which
-      // user tokens do not carry; the client-facing route works for them. Discord
-      // reports the missing scope as either 403 Missing Access or 401 Unauthorized.
-      if (error instanceof DiscordError && MEMBER_ROUTE_FALLBACK_CODES.has(error.code)) {
-        return this.request<DiscordGuildMember>('GET', `/guilds/${guildId}/members/@me`)
-      }
-      throw error
-    }
+    return this.request<DiscordGuildMember>('GET', `/users/@me/guilds/${guildId}/member`)
   }
 
   async listRoles(guildId: string): Promise<DiscordRole[]> {
