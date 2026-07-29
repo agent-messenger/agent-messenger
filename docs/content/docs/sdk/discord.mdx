@@ -135,7 +135,14 @@ const dms = await client.listDMChannels()
 // Open a DM with a user (returns existing DM channel if already open)
 const dm = await client.createDM(userId)
 // → DiscordDMChannel { id, type, recipients, last_message_id? }
+
+// Get only unread DM and group-DM channels, newest first
+const unreadDMs = await client.getUnreadDMs()
+const capped = await client.getUnreadDMs({ limit: 10 })
+// → DiscordUnreadDMsResult { channels, count, totalUnread, complete }
 ```
+
+Mention history only records guild mentions, so a DM never appears in `getUnreadMentions` regardless of how many unread messages it holds. `getUnreadDMs` covers that gap by comparing each DM channel's `last_message_id` against its read marker. Each channel's `unreadCount` is Discord's own badge counter, which in DMs counts every message rather than only mentions: it is `null` when the channel has no read-state entry (count unknown, but still reported as unread, since a DM holding messages with no marker is more likely never opened than read) and `0` when the DM is muted but genuinely unread. `count` and `totalUnread` describe every unread DM found, so they stay accurate when `limit` caps the returned list; `totalUnread` sums known counts only. `complete` is `false` when Discord delivered a partial read state: an absent entry only means "never opened" when the collection is complete, so in a partial payload those channels are omitted rather than reported, and the list may be short.
 
 ### Mentions
 
@@ -153,6 +160,10 @@ const scoped = await client.getUnreadMentions({ guildId: serverId, limit: 200 })
 // Snapshot per-channel read state directly (one-shot gateway connect)
 const readState = await client.fetchReadState()
 // → DiscordReadState[] { channelId, lastMessageId, mentionCount }
+
+// Same snapshot, plus whether Discord delivered a complete collection
+const snapshot = await client.fetchReadStateSnapshot()
+// → DiscordReadStateSnapshot { states, partial }
 ```
 
 `getUnreadMentions` correlates recent mention history (Discord's 7-day window) with per-channel read state, returning only mentions newer than each channel's read marker. `count` is the number of enumerated unread mentions; `badgeCount` is Discord's own account-wide unread-mention badge total (not narrowed by `guildId`, since read states carry no guild association); `complete` is `true` when the scan exhausted all available mention history (Discord's 7-day window) and `false` when it stopped early at `limit` or a non-advancing cursor.
@@ -367,6 +378,8 @@ import type {
   DiscordReadState,
   DiscordUnreadMention,
   DiscordUnreadMentionsResult,
+  DiscordUnreadDM,
+  DiscordUnreadDMsResult,
   DiscordUserNote,
   DiscordSearchResult,
   DiscordSearchResponse,

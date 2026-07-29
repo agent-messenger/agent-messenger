@@ -254,6 +254,17 @@ const discord = await new DiscordClient().login()
 const { mentions, count, badgeCount, complete } = await discord.getUnreadMentions()
 ```
 
+### Unread DMs (Discord)
+
+Mention history only records server mentions, so DMs never appear in `getUnreadMentions`. `getUnreadDMs` covers them by comparing each DM and group-DM channel's `last_message_id` against its read marker. Each channel's `unreadCount` is Discord's own badge counter — `null` when the channel has no read-state entry (count unknown, still reported as unread) and `0` when the DM is muted. `count` and `totalUnread` describe every unread DM found, so they stay accurate when `limit` caps the returned list. `complete` is `false` when Discord delivered a partial read state, in which case never-opened DMs may be missing from the result.
+
+```typescript
+import { DiscordClient } from 'agent-messenger/discord'
+
+const discord = await new DiscordClient().login()
+const { channels, count, totalUnread, complete } = await discord.getUnreadDMs()
+```
+
 ### QR Code Login (Slack)
 
 Sign in with a QR code from Slack's "Sign in on mobile" screen — no desktop app or browser automation, just HTTP. `dataUrl` is the QR image as a `data:image/png;base64,...` string.
@@ -507,7 +518,7 @@ See the [TUI docs](https://agent-messenger.dev/docs/tui) for keybindings, archit
 
 > ¹ **Teams message edit** applies to chats/DMs only. Channel messages are not editable through the internal API this client uses.
 
-> ² **Discord unread** covers unread **mentions** (`agent-discord mention unread`), not all unread messages. It correlates your recent mention history (last 7 days) with per-channel read state.
+> ² **Discord unread** covers unread **mentions** in servers (`agent-discord mention unread`, correlating your last 7 days of mention history with per-channel read state) and unread **DMs** (`agent-discord dm unread`, comparing each DM channel's latest message against its read marker). Unread non-mention messages in server channels are not covered.
 
 > 💬 **iMessage** is supported via the local [imsg](https://github.com/openclaw/imsg) tool (`agent-imessage`), not the table above. It runs **on a Mac** (Apple has no API). v1 covers send & list messages, direct & group chats, chat listing, real-time watch, and standard tapbacks. Typing, edit/unsend, group management, and targeted/custom reactions require imsg's bridge (SIP disabled) and are a later tier. See the [iMessage Guide](skills/agent-imessage/SKILL.md).
 
