@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, spyOn } from 'bun:test'
 
 import { DiscordClient, DiscordError } from './client'
-import type { DiscordReadState } from './types'
+import type { DiscordDMChannel, DiscordReadState } from './types'
 
 describe('DiscordClient', () => {
   const originalFetch = globalThis.fetch
@@ -947,6 +947,156 @@ describe('DiscordClient', () => {
       // then: the repeated page adds nothing new, so the guard stops the scan as incomplete
       expect(result.complete).toBe(false)
       expect(result.count).toBe(100)
+    })
+  })
+
+  describe('getUnreadDMs', () => {
+    const dmChannel = (id: string, lastMessageId?: string, type = 1): DiscordDMChannel => ({
+      id,
+      type,
+      recipients: [{ id: `u${id}`, username: `user${id}` }],
+      ...(lastMessageId ? { last_message_id: lastMessageId } : {}),
+    })
+
+    const stub = (client: DiscordClient, channels: DiscordDMChannel[], states: DiscordReadState[], partial = false) => {
+      spyOn(client, 'listDMChannels').mockResolvedValue(channels)
+      spyOn(client, 'fetchReadStateSnapshot').mockResolvedValue({ states, partial })
+    }
+
+    it('keeps channels whose newest message is past the read marker', async () => {
+      // given: c1 has a message newer than its marker, c2 is fully read
+      const client = await new DiscordClient().login({ token: 'test-token' })
+      stub(
+        client,
+        [dmChannel('c1', '200'), dmChannel('c2', '50')],
+        [
+          { channelId: 'c1', lastMessageId: '100', mentionCount: 2 },
+          { channelId: 'c2', lastMessageId: '100', mentionCount: 0 },
+        ],
+      )
+
+      const result = await client.getUnreadDMs()
+
+      expect(result.count).toBe(1)
+      expect(result.channels[0].id).toBe('c1')
+      expect(result.channels[0].unreadCount).toBe(2)
+      expect(result.totalUnread).toBe(2)
+    })
+
+    it('treats an equal snowflake as read', async () => {
+      const client = await new DiscordClient().login({ token: 'test-token' })
+      stub(client, [dmChannel('c1', '100')], [{ channelId: 'c1', lastMessageId: '100', mentionCount: 1 }])
+
+      const result = await client.getUnreadDMs()
+
+      expect(result.count).toBe(0)
+    })
+
+    it('compares snowflakes beyond the safe integer range', async () => {
+      // given: two 19-digit snowflakes that collapse to the same value as Numbers
+      const client = await new DiscordClient().login({ token: 'test-token' })
+      stub(
+        client,
+        [dmChannel('c1', '1234567890123456789')],
+        [{ channelId: 'c1', lastMessageId: '1234567890123456788', mentionCount: 1 }],
+      )
+
+      const result = await client.getUnreadDMs()
+
+      expect(result.count).toBe(1)
+    })
+
+    it('surfaces a channel with no read-state entry as an unknown count', async () => {
+      const client = await new DiscordClient().login({ token: 'test-token' })
+      stub(client, [dmChannel('c1', '200')], [])
+
+      const result = await client.getUnreadDMs()
+
+      expect(result.count).toBe(1)
+      expect(result.channels[0].unreadCount).toBeNull()
+      // then: an unknown count must not be summed as zero-or-anything-else
+      expect(result.totalUnread).toBe(0)
+      expect(result.complete).toBe(true)
+    })
+
+    it('omits absent entries when the read state is partial', async () => {
+      // given: an incomplete collection, where absence means "not delivered", not "never read"
+      const client = await new DiscordClient().login({ token: 'test-token' })
+      stub(client, [dmChannel('c1', '200')], [], true)
+
+      const result = await client.getUnreadDMs()
+
+      expect(result.count).toBe(0)
+      expect(result.complete).toBe(false)
+    })
+
+    it('still reports channels past their marker when the read state is partial', async () => {
+      // given: a delivered entry is authoritative even inside a partial collection
+      const client = await new DiscordClient().login({ token: 'test-token' })
+      stub(client, [dmChannel('c1', '200')], [{ channelId: 'c1', lastMessageId: '100', mentionCount: 2 }], true)
+
+      const result = await client.getUnreadDMs()
+
+      expect(result.count).toBe(1)
+      expect(result.channels[0].unreadCount).toBe(2)
+      expect(result.complete).toBe(false)
+    })
+
+    it('skips channels that never had a message', async () => {
+      const client = await new DiscordClient().login({ token: 'test-token' })
+      stub(client, [dmChannel('c1')], [])
+
+      const result = await client.getUnreadDMs()
+
+      expect(result.count).toBe(0)
+    })
+
+    it('keeps a muted but unread channel with a zero count', async () => {
+      const client = await new DiscordClient().login({ token: 'test-token' })
+      stub(client, [dmChannel('c1', '200')], [{ channelId: 'c1', lastMessageId: '100', mentionCount: 0 }])
+
+      const result = await client.getUnreadDMs()
+
+      expect(result.count).toBe(1)
+      expect(result.channels[0].unreadCount).toBe(0)
+    })
+
+    it('treats a null read marker as never acknowledged', async () => {
+      const client = await new DiscordClient().login({ token: 'test-token' })
+      stub(client, [dmChannel('c1', '200')], [{ channelId: 'c1', lastMessageId: null, mentionCount: 4 }])
+
+      const result = await client.getUnreadDMs()
+
+      expect(result.count).toBe(1)
+      expect(result.channels[0].unreadCount).toBe(4)
+    })
+
+    it('includes group DMs and orders channels newest first', async () => {
+      const client = await new DiscordClient().login({ token: 'test-token' })
+      stub(client, [dmChannel('c1', '200'), dmChannel('c2', '900', 3)], [])
+
+      const result = await client.getUnreadDMs()
+
+      expect(result.channels.map((channel) => channel.id)).toEqual(['c2', 'c1'])
+      expect(result.channels[0].type).toBe(3)
+    })
+
+    it('caps returned channels by limit while keeping totals unfiltered', async () => {
+      const client = await new DiscordClient().login({ token: 'test-token' })
+      stub(
+        client,
+        [dmChannel('c1', '200'), dmChannel('c2', '900')],
+        [
+          { channelId: 'c1', lastMessageId: '100', mentionCount: 2 },
+          { channelId: 'c2', lastMessageId: '100', mentionCount: 5 },
+        ],
+      )
+
+      const result = await client.getUnreadDMs({ limit: 1 })
+
+      expect(result.channels).toHaveLength(1)
+      expect(result.count).toBe(2)
+      expect(result.totalUnread).toBe(7)
     })
   })
 })

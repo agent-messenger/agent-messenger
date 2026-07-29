@@ -3,16 +3,22 @@ import { EventEmitter } from 'events'
 import WebSocket from 'ws'
 
 import type { DiscordClient } from './client'
-import type { DiscordListenerEventMap, DiscordGatewayGenericEvent, DiscordReadState } from './types'
+import type {
+  DiscordListenerEventMap,
+  DiscordGatewayGenericEvent,
+  DiscordReadState,
+  DiscordReadStateSnapshot,
+} from './types'
 import { DiscordGatewayOpcode, DiscordRawReadStateSchema, DiscordReadyReadStateSchema } from './types'
 
-export function parseReadStates(value: unknown): DiscordReadState[] {
+export function parseReadStates(value: unknown): DiscordReadStateSnapshot {
   const parsed = DiscordReadyReadStateSchema.safeParse(value)
   if (!parsed.success) {
     throw new Error('Discord READY contained an invalid read_state payload')
   }
 
   const entries = Array.isArray(parsed.data) ? parsed.data : parsed.data.entries
+  const partial = Array.isArray(parsed.data) ? false : (parsed.data.partial ?? false)
 
   const readStates: DiscordReadState[] = []
   for (const entry of entries) {
@@ -25,7 +31,7 @@ export function parseReadStates(value: unknown): DiscordReadState[] {
       mentionCount: state.data.mention_count ?? 0,
     })
   }
-  return readStates
+  return { states: readStates, partial }
 }
 
 const GATEWAY_URL = 'wss://gateway.discord.gg/?v=10&encoding=json'
@@ -80,6 +86,7 @@ export class DiscordListener {
   private token: string | null = null
   private cachedUser: { id: string; username: string } | null = null
   private readState: DiscordReadState[] | null = null
+  private readStatePartial = false
   private generation = 0
   private startPromise: Promise<void> | null = null
   private pendingStartReject: ((error: Error) => void) | null = null
@@ -200,6 +207,10 @@ export class DiscordListener {
 
   getReadState(): DiscordReadState[] | null {
     return this.readState
+  }
+
+  getReadStateSnapshot(): DiscordReadStateSnapshot | null {
+    return this.readState === null ? null : { states: this.readState, partial: this.readStatePartial }
   }
 
   private isCurrent(generation: number, ws?: WebSocket): boolean {
@@ -326,7 +337,9 @@ export class DiscordListener {
       this.sessionId = d.session_id
       this.resumeGatewayUrl = d.resume_gateway_url
       this.cachedUser = d.user
-      this.readState = d.read_state === undefined ? [] : parseReadStates(d.read_state)
+      const snapshot = d.read_state === undefined ? null : parseReadStates(d.read_state)
+      this.readState = snapshot === null ? [] : snapshot.states
+      this.readStatePartial = snapshot?.partial ?? false
       this.reconnectAttempts = 0
       this.emitter.emit('connected', { user: d.user, sessionId: d.session_id })
       return
