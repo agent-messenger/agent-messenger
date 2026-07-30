@@ -262,7 +262,29 @@ agent-discord dm list
 
 # Create a DM channel with a user
 agent-discord dm create <user-id>
+
+# List unread DM and group-DM channels, newest first
+agent-discord dm unread
+agent-discord dm unread --limit 10
 ```
+
+`dm unread` covers what `mention unread` cannot: Discord's mention history only records
+server mentions, so a plain DM never appears there regardless of how many unread messages
+it holds. This compares each DM channel's `last_message_id` against its read marker instead.
+
+`unread_count` is Discord's own badge counter, which in DMs counts every message rather
+than only mentions. It is `null` when the channel has no read-state entry (count unknown —
+the channel is still reported, since a DM with messages and no marker is more likely never
+opened than read) and `0` when the DM is muted but genuinely unread. `count` and
+`total_unread` describe every unread DM found, so they stay accurate when `--limit` caps
+the returned list; `total_unread` sums known counts only.
+
+`complete` is `false` when Discord delivered a partial read state. An absent read-state
+entry only means "never opened" when the collection is complete, so in a partial payload
+those channels are omitted rather than reported and the list may be short.
+
+Note that this command opens a short-lived gateway connection, because Discord exposes read
+state only through the gateway's `READY` payload. Expect a few seconds, unlike `dm list`.
 
 ### Mention Commands
 

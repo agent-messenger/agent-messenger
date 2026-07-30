@@ -143,19 +143,28 @@ describe('parseReadStates', () => {
       { id: 'c2', read_state_type: 2, mention_count: 5 },
     ])
 
-    expect(result).toEqual([{ channelId: 'c1', lastMessageId: '100', mentionCount: 1 }])
+    expect(result.states).toEqual([{ channelId: 'c1', lastMessageId: '100', mentionCount: 1 }])
   })
 
   it('normalizes missing last_message_id and mention_count', () => {
     const result = parseReadStates([{ id: 'c1' }])
 
-    expect(result).toEqual([{ channelId: 'c1', lastMessageId: null, mentionCount: 0 }])
+    expect(result.states).toEqual([{ channelId: 'c1', lastMessageId: null, mentionCount: 0 }])
   })
 
   it('skips malformed entries but keeps valid ones', () => {
     const result = parseReadStates([{ id: 'c1', mention_count: 1 }, { mention_count: 3 }])
 
-    expect(result).toEqual([{ channelId: 'c1', lastMessageId: null, mentionCount: 1 }])
+    expect(result.states).toEqual([{ channelId: 'c1', lastMessageId: null, mentionCount: 1 }])
+  })
+
+  it('treats a bare array payload as complete', () => {
+    expect(parseReadStates([{ id: 'c1' }]).partial).toBe(false)
+  })
+
+  it('reads the partial flag from a versioned payload', () => {
+    expect(parseReadStates({ entries: [{ id: 'c1' }], version: 7, partial: true }).partial).toBe(true)
+    expect(parseReadStates({ entries: [{ id: 'c1' }], version: 7 }).partial).toBe(false)
   })
 
   it('throws on a non-array, non-versioned payload', () => {

@@ -139,6 +139,13 @@ export interface DiscordReadState {
   mentionCount: number
 }
 
+// When partial is true the entries are an incomplete slice, so an absent channel
+// carries no information: it may simply have been left out of this payload.
+export interface DiscordReadStateSnapshot {
+  states: DiscordReadState[]
+  partial: boolean
+}
+
 export interface DiscordUnreadMention extends DiscordMention {
   mention_count: number
 }
@@ -151,6 +158,31 @@ export interface DiscordUnreadMentionsResult {
   badgeCount: number
   complete: boolean
   windowDays: number
+}
+
+export interface DiscordUnreadDM {
+  id: string
+  type: number
+  name: string | null
+  recipients: DiscordUser[]
+  lastMessageId: string
+  // Discord's own badge counter, which counts every message in a DM rather than
+  // only mentions. null when the channel has no READY read-state entry (count
+  // unknown); 0 when the DM is muted, since muting stops the counter but still
+  // leaves the channel unread.
+  unreadCount: number | null
+}
+
+// count and totalUnread describe every unread DM found, so they stay truthful when
+// `channels` is capped by a limit. totalUnread sums known counts only, meaning
+// channels with an unknown count contribute nothing to it. complete is false when
+// Discord delivered a partial read state, in which case never-opened DMs may be
+// missing from the result.
+export interface DiscordUnreadDMsResult {
+  channels: DiscordUnreadDM[]
+  count: number
+  totalUnread: number
+  complete: boolean
 }
 
 export interface DiscordSearchResult {
@@ -512,7 +544,11 @@ export type DiscordRawReadState = z.infer<typeof DiscordRawReadStateSchema>
 // VERSIONED_READ_STATES gateway capability is negotiated.
 export const DiscordReadyReadStateSchema = z.union([
   z.array(z.unknown()),
-  z.object({ entries: z.array(z.unknown()), version: z.number().optional() }),
+  z.object({
+    entries: z.array(z.unknown()),
+    version: z.number().optional(),
+    partial: z.boolean().optional(),
+  }),
 ])
 
 export type DiscordGatewayEvent =

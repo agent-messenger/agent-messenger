@@ -11,10 +11,13 @@ import type {
   DiscordMention,
   DiscordMessage,
   DiscordReadState,
+  DiscordReadStateSnapshot,
   DiscordRelationship,
   DiscordRole,
   DiscordSearchOptions,
   DiscordSearchResult,
+  DiscordUnreadDM,
+  DiscordUnreadDMsResult,
   DiscordUnreadMention,
   DiscordUnreadMentionsResult,
   DiscordUser,
@@ -32,6 +35,47 @@ function isSnowflakeNewer(candidate: string, marker: string): boolean {
   } catch {
     return false
   }
+}
+
+interface ReadStateCandidateChannel {
+  id: string
+  last_message_id?: string | null
+}
+
+export interface UnreadChannel<T> {
+  channel: T
+  lastMessageId: string
+  unreadCount: number | null
+}
+
+export function selectUnreadChannels<T extends ReadStateCandidateChannel>(
+  channels: T[],
+  readState: DiscordReadStateSnapshot,
+): UnreadChannel<T>[] {
+  const readStateByChannel = new Map(readState.states.map((state) => [state.channelId, state]))
+
+  const unread: UnreadChannel<T>[] = []
+  for (const channel of channels) {
+    const lastMessageId = channel.last_message_id
+    if (!lastMessageId) continue
+
+    const state = readStateByChannel.get(channel.id)
+    // An absent entry only carries meaning when the collection is complete. In a
+    // complete payload Discord omits read states for channels it never tracked, so a
+    // channel holding messages with no marker is far more likely never-opened than
+    // read: surface it with an unknown count rather than silently hiding it. In a
+    // partial payload the entry may simply have been left out, so reporting it would
+    // be a false positive on an already-read channel.
+    if (!state) {
+      if (!readState.partial) unread.push({ channel, lastMessageId, unreadCount: null })
+      continue
+    }
+
+    if (state.lastMessageId !== null && !isSnowflakeNewer(lastMessageId, state.lastMessageId)) continue
+    unread.push({ channel, lastMessageId, unreadCount: state.mentionCount })
+  }
+
+  return unread.sort((a, b) => (isSnowflakeNewer(a.lastMessageId, b.lastMessageId) ? -1 : 1))
 }
 
 export class DiscordError extends Error {
@@ -350,6 +394,31 @@ export class DiscordClient {
     })
   }
 
+  async getUnreadDMs(options?: { limit?: number }): Promise<DiscordUnreadDMsResult> {
+    const [readState, channels] = await Promise.all([this.fetchReadStateSnapshot(), this.listDMChannels()])
+
+    const unread = selectUnreadChannels(channels, readState).map(
+      ({ channel, lastMessageId, unreadCount }): DiscordUnreadDM => ({
+        id: channel.id,
+        type: channel.type,
+        name: channel.name ?? null,
+        recipients: channel.recipients,
+        lastMessageId,
+        unreadCount,
+      }),
+    )
+
+    const totalUnread = unread.reduce((sum, channel) => sum + (channel.unreadCount ?? 0), 0)
+    const limited = options?.limit === undefined ? unread : unread.slice(0, options.limit)
+
+    return {
+      channels: limited,
+      count: unread.length,
+      totalUnread,
+      complete: !readState.partial,
+    }
+  }
+
   async getMentions(options?: { limit?: number; guildId?: string; before?: string }): Promise<DiscordMention[]> {
     const params = new URLSearchParams()
     params.set('limit', (options?.limit ?? 25).toString())
@@ -367,15 +436,19 @@ export class DiscordClient {
   }
 
   async fetchReadState(): Promise<DiscordReadState[]> {
+    return (await this.fetchReadStateSnapshot()).states
+  }
+
+  async fetchReadStateSnapshot(): Promise<DiscordReadStateSnapshot> {
     const { DiscordListener } = await import('./listener')
     const listener = new DiscordListener(this)
     try {
       await listener.start()
-      const readState = listener.getReadState()
-      if (readState === null) {
+      const snapshot = listener.getReadStateSnapshot()
+      if (snapshot === null) {
         throw new DiscordError('Discord gateway did not deliver read state', 'no_read_state')
       }
-      return readState
+      return snapshot
     } finally {
       listener.stop()
     }
