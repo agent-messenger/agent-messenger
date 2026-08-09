@@ -497,6 +497,14 @@ The `deviceType` determines the LOCO protocol identity: `'tablet'` sends `os: 'a
 
 Reconnect only triggers on actual session death. Operation-level errors (invalid chat ID, server rejection, etc.) are thrown immediately without retry, so side effects like `sendMessage` or `sendAttachment` are never duplicated.
 
+Initial `LOGINLIST` failures are classified separately from reconnectable session death:
+
+- `invalid_access_token` with `serverStatus === -950`: the stored Kakao access token has expired or been revoked. Re-authenticate before retrying.
+- `login_rejected`: Kakao explicitly rejected authentication for another server status. Inspect `serverStatus` and the device-slot/account state.
+- `login_failed`: booking, check-in, socket close, timeout, or another transport/protocol interruption. This is not proof that the token is invalid.
+
+Rejected authentication closes the provisional session before it can be adopted. Callers must not continue to `LCHATLIST` or other LOCO operations after either authentication error.
+
 ## See Also
 
 - [Authentication Guide](authentication.md) - Setting up credentials

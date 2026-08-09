@@ -94,6 +94,18 @@ agent-kakaotalk auth logout
 agent-kakaotalk auth logout --account <account-id>
 ```
 
+`auth status` checks stored credential state only. Kakao validates the access token when a command opens a LOCO session. If the token has expired or been revoked, commands fail with structured JSON:
+
+```json
+{
+  "error": "KakaoTalk LOGINLIST invalid access token (status -950)",
+  "code": "invalid_access_token",
+  "server_status": -950
+}
+```
+
+Run `agent-kakaotalk auth login` before retrying. Other explicit server rejections use `code: "login_rejected"`; connection closes and timeouts remain `code: "login_failed"` so callers can distinguish authentication from transport failures.
+
 ## Multi-Account
 
 KakaoTalk supports multiple accounts. Each login stores credentials separately, keyed by user ID.
