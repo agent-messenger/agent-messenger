@@ -165,6 +165,52 @@ describe('refreshKakaoOAuthToken', () => {
     expectSecretsRedacted(error, credentials.accessToken, credentials.refreshToken)
   })
 
+  it('keeps the timeout active while consuming a stalled response body', async () => {
+    const fetchImpl = mock(async (_url: string | URL | Request, init?: RequestInit): Promise<Response> => {
+      const body = new ReadableStream<Uint8Array>({
+        start(controller) {
+          const fallback = setTimeout(() => {
+            controller.error(Object.assign(new Error('stalled body access-secret'), { name: 'AbortError' }))
+          }, 50)
+
+          init?.signal?.addEventListener(
+            'abort',
+            () => {
+              clearTimeout(fallback)
+              controller.error(Object.assign(new Error('stalled body access-secret'), { name: 'AbortError' }))
+            },
+            { once: true },
+          )
+        },
+      })
+
+      return new Response(body, { status: 200, headers: { 'Content-Type': 'application/json' } })
+    })
+
+    const error = await captureError(refreshKakaoOAuthToken(credentials, { fetchImpl, timeoutMs: 5 }))
+
+    expect(error).toMatchObject({ code: 'refresh_timeout' })
+    expectSecretsRedacted(error, credentials.accessToken, credentials.refreshToken)
+  })
+
+  it('classifies response body transport failures without retaining a secret-bearing cause', async () => {
+    const fetchImpl = mock(async (): Promise<Response> => {
+      const body = new ReadableStream<Uint8Array>({
+        start(controller) {
+          controller.error(new Error(`body failure ${credentials.accessToken} ${credentials.refreshToken}`))
+        },
+      })
+
+      return new Response(body, { status: 200, headers: { 'Content-Type': 'application/json' } })
+    })
+
+    const error = await captureError(refreshKakaoOAuthToken(credentials, { fetchImpl }))
+
+    expect(error).toMatchObject({ code: 'refresh_request_failed' })
+    expect(error.cause).toBeUndefined()
+    expectSecretsRedacted(error, credentials.accessToken, credentials.refreshToken)
+  })
+
   it('classifies network failures without retaining a secret-bearing cause', async () => {
     const fetchImpl = mock(async () => {
       throw new Error(`network failure ${credentials.accessToken} ${credentials.refreshToken}`)
