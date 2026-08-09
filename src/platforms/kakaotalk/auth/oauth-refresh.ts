@@ -40,7 +40,7 @@ export interface KakaoOAuthRefreshResult {
   expiresIn?: number
 }
 
-interface KakaoOAuthRefreshOptions {
+export interface KakaoOAuthRefreshOptions {
   fetchImpl?: typeof fetch
   requestId?: () => string
   timeoutMs?: number
@@ -57,6 +57,11 @@ function readRecord(value: unknown): Record<string, unknown> | null {
     : null
 }
 
+function transportError(error: unknown, signal: AbortSignal): KakaoOAuthRefreshError {
+  const timedOut = signal.aborted || (error instanceof Error && error.name === 'AbortError')
+  return new KakaoOAuthRefreshError(timedOut ? 'refresh_timeout' : 'refresh_request_failed')
+}
+
 export async function refreshKakaoOAuthToken(
   input: KakaoOAuthRefreshInput,
   options: KakaoOAuthRefreshOptions = {},
@@ -69,69 +74,71 @@ export async function refreshKakaoOAuthToken(
   const controller = new AbortController()
   const timeout = setTimeout(() => controller.abort(), options.timeoutMs ?? DEFAULT_REFRESH_TIMEOUT_MS)
 
-  let response: Response
   try {
-    response = await fetchImpl(ANDROID_OAUTH_REFRESH_URL, {
-      method: 'POST',
-      headers: {
-        A: ANDROID_AGENT,
-        Authorization: `${input.accessToken}-${buildDeviceId(input.deviceUuid)}`,
-        'User-Agent': ANDROID_USER_AGENT,
-        'Accept-Language': 'ko',
-        'Content-Type': 'application/json; charset=utf-8',
-        C: (options.requestId ?? randomUUID)(),
-        Connection: 'Close',
-      },
-      body: JSON.stringify({
-        access_token: input.accessToken,
-        refresh_token: input.refreshToken,
-        grant_type: 'refresh_token',
-      }),
-      signal: controller.signal,
-    })
-  } catch (error) {
-    const timedOut = controller.signal.aborted || (error instanceof Error && error.name === 'AbortError')
-    throw new KakaoOAuthRefreshError(timedOut ? 'refresh_timeout' : 'refresh_request_failed')
+    let response: Response
+    try {
+      response = await fetchImpl(ANDROID_OAUTH_REFRESH_URL, {
+        method: 'POST',
+        headers: {
+          A: ANDROID_AGENT,
+          Authorization: `${input.accessToken}-${buildDeviceId(input.deviceUuid)}`,
+          'User-Agent': ANDROID_USER_AGENT,
+          'Accept-Language': 'ko',
+          'Content-Type': 'application/json; charset=utf-8',
+          C: (options.requestId ?? randomUUID)(),
+          Connection: 'Close',
+        },
+        body: JSON.stringify({
+          access_token: input.accessToken,
+          refresh_token: input.refreshToken,
+          grant_type: 'refresh_token',
+        }),
+        signal: controller.signal,
+      })
+    } catch (error) {
+      throw transportError(error, controller.signal)
+    }
+
+    let body: Record<string, unknown> | null
+    try {
+      body = readRecord(await response.json())
+    } catch (error) {
+      if (!(error instanceof SyntaxError)) throw transportError(error, controller.signal)
+      body = null
+    }
+
+    const serverStatus = body && typeof body.status === 'number' ? body.status : undefined
+    if (!response.ok) {
+      throw new KakaoOAuthRefreshError(
+        serverStatus !== undefined && serverStatus !== 0 ? 'refresh_rejected' : 'refresh_http_error',
+        { serverStatus: serverStatus !== 0 ? serverStatus : undefined, httpStatus: response.status },
+      )
+    }
+
+    if (!body) {
+      throw new KakaoOAuthRefreshError('refresh_malformed_response', { httpStatus: response.status })
+    }
+
+    if (serverStatus !== undefined && serverStatus !== 0) {
+      throw new KakaoOAuthRefreshError('refresh_rejected', {
+        serverStatus,
+        httpStatus: response.status,
+      })
+    }
+
+    const accessToken = typeof body.access_token === 'string' ? body.access_token : ''
+    if (!accessToken) {
+      throw new KakaoOAuthRefreshError('refresh_malformed_response', { httpStatus: response.status })
+    }
+
+    return {
+      accessToken,
+      refreshToken:
+        typeof body.refresh_token === 'string' && body.refresh_token ? body.refresh_token : input.refreshToken,
+      tokenType: typeof body.token_type === 'string' && body.token_type ? body.token_type : undefined,
+      expiresIn: typeof body.expires_in === 'number' ? body.expires_in : undefined,
+    }
   } finally {
     clearTimeout(timeout)
-  }
-
-  let body: Record<string, unknown> | null
-  try {
-    body = readRecord(await response.json())
-  } catch {
-    body = null
-  }
-
-  const serverStatus = body && typeof body.status === 'number' ? body.status : undefined
-  if (!response.ok) {
-    throw new KakaoOAuthRefreshError(
-      serverStatus !== undefined && serverStatus !== 0 ? 'refresh_rejected' : 'refresh_http_error',
-      { serverStatus: serverStatus !== 0 ? serverStatus : undefined, httpStatus: response.status },
-    )
-  }
-
-  if (!body) {
-    throw new KakaoOAuthRefreshError('refresh_malformed_response', { httpStatus: response.status })
-  }
-
-  if (serverStatus !== undefined && serverStatus !== 0) {
-    throw new KakaoOAuthRefreshError('refresh_rejected', {
-      serverStatus,
-      httpStatus: response.status,
-    })
-  }
-
-  const accessToken = typeof body.access_token === 'string' ? body.access_token : ''
-  if (!accessToken) {
-    throw new KakaoOAuthRefreshError('refresh_malformed_response', { httpStatus: response.status })
-  }
-
-  return {
-    accessToken,
-    refreshToken:
-      typeof body.refresh_token === 'string' && body.refresh_token ? body.refresh_token : input.refreshToken,
-    tokenType: typeof body.token_type === 'string' && body.token_type ? body.token_type : undefined,
-    expiresIn: typeof body.expires_in === 'number' ? body.expires_in : undefined,
   }
 }

@@ -1,5 +1,6 @@
 import { expect, it } from 'bun:test'
 
+import type { KakaoOAuthRefreshOptions } from '@/platforms/kakaotalk/index'
 import {
   classifyKakaoChat,
   CredentialManager,
@@ -93,4 +94,7 @@ it('KakaoTypingResultSchema is exported from barrel', () => {
 it('Kakao OAuth refresh API is exported from barrel', () => {
   expect(typeof refreshKakaoOAuthToken).toBe('function')
   expect(typeof KakaoOAuthRefreshError).toBe('function')
+
+  const options: KakaoOAuthRefreshOptions = { timeoutMs: 5_000 }
+  expect(options.timeoutMs).toBe(5_000)
 })
