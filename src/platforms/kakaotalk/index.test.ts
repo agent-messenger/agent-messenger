@@ -3,6 +3,7 @@ import { expect, it } from 'bun:test'
 import {
   classifyKakaoChat,
   CredentialManager,
+  KakaoOAuthRefreshError,
   KakaoAccountCredentialsSchema,
   KakaoCredentialManager,
   KakaoChatSchema,
@@ -18,6 +19,7 @@ import {
   KakaoProfileSchema,
   KakaoTalkPushReadEventSchema,
   KakaoTypingResultSchema,
+  refreshKakaoOAuthToken,
 } from '@/platforms/kakaotalk/index'
 
 it('KakaoTalkClient is exported from barrel', () => {
@@ -86,4 +88,9 @@ it('KakaoLeaveChatResultSchema is exported from barrel', () => {
 
 it('KakaoTypingResultSchema is exported from barrel', () => {
   expect(typeof KakaoTypingResultSchema.parse).toBe('function')
+})
+
+it('Kakao OAuth refresh API is exported from barrel', () => {
+  expect(typeof refreshKakaoOAuthToken).toBe('function')
+  expect(typeof KakaoOAuthRefreshError).toBe('function')
 })
