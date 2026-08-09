@@ -1,8 +1,9 @@
 # Third-Party Notices
 
-This LOCO protocol implementation was written from scratch for agent-messenger.
-The protocol knowledge used to build it comes from the following open-source
-projects and their documentation. No code was copied from these projects.
+This KakaoTalk protocol and Android authentication implementation was written
+from scratch for agent-messenger. The protocol knowledge used to build it comes
+from the following open-source projects and their documentation. No code was
+copied from these projects.
 
 ---
 
@@ -37,7 +38,21 @@ Android sub-device login flow, and connection patterns.
 - Copyright (c) 2020 storycraft
 
 Referenced for: LOCO packet format, BSON command schemas, authentication flow,
-X-VC signature algorithm, channel/chat type enumerations.
+Android OAuth refresh request/response behavior, X-VC signature algorithm,
+channel/chat type enumerations.
+
+---
+
+## KakaoForge
+
+- Repository: https://github.com/play2fly/KakaoForge
+- Reference commit: 4b774ea40b1347280fadb685415436584093118b
+- License: KakaoForge Non-Commercial / No Abuse License
+- Copyright (c) 2026 aodjo
+
+Referenced for: current Android `oauth2_token.json` request fields, client
+headers, device-id handling, and token rotation/expiry response fields. Protocol
+behavior only; no source code was copied or adapted.
 
 ---
 

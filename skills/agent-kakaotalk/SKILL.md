@@ -599,6 +599,32 @@ if (!account) throw new Error('Not authenticated')
 const client = await new KakaoTalkClient().login({ oauthToken: account.oauth_token, userId: account.user_id, deviceUuid: account.device_uuid })
 ```
 
+For caller-managed token renewal, use the explicit SDK primitive:
+
+```typescript
+import { refreshKakaoOAuthToken } from 'agent-messenger/kakaotalk'
+
+if (!account.refresh_token) throw new Error('No KakaoTalk refresh token')
+
+const refreshed = await refreshKakaoOAuthToken({
+  accessToken: account.oauth_token,
+  refreshToken: account.refresh_token,
+  deviceUuid: account.device_uuid,
+})
+
+const nextAccount = {
+  ...account,
+  oauth_token: refreshed.accessToken,
+  refresh_token: refreshed.refreshToken,
+  updated_at: new Date().toISOString(),
+}
+
+// Persist nextAccount atomically before another client uses this credential.
+// The refresh primitive intentionally does not write credential files or retry login.
+```
+
+Kakao can rotate the refresh token. Never refresh a copied production credential and discard the returned token set. See [references/authentication.md](references/authentication.md) for error codes and the controlled canary procedure.
+
 ### Example
 
 ```typescript

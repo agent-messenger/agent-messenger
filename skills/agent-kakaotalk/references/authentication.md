@@ -262,6 +262,36 @@ KakaoTalk OAuth tokens can expire or be invalidated when:
 - The token naturally expires
 - KakaoTalk's server revokes the session
 
+### Explicit SDK Refresh
+
+The SDK exports `refreshKakaoOAuthToken()` for callers that need to exchange a stored Android sub-device refresh token for a new token set:
+
+```typescript
+import { refreshKakaoOAuthToken } from 'agent-messenger/kakaotalk'
+
+const refreshed = await refreshKakaoOAuthToken({
+  accessToken: account.oauth_token,
+  refreshToken: account.refresh_token,
+  deviceUuid: account.device_uuid,
+})
+```
+
+This is an explicit, stateless operation. It does not retry `LOGINLIST`, update the credentials file, or run automatically when a command receives `invalid_access_token`.
+
+The result always contains an access token and refresh token. Kakao may rotate the refresh token; if the response omits it, the SDK preserves the input refresh token in the returned value. The caller must persist both returned tokens atomically before the process exits or another client uses the same credential.
+
+Do not refresh a copied production credential and discard the result. A successful refresh can invalidate the previously stored refresh token on the server.
+
+Failures throw `KakaoOAuthRefreshError` with safe metadata only:
+
+- `refresh_credentials_missing` — an access token, refresh token, or device UUID was not provided.
+- `refresh_rejected` — Kakao returned an explicit non-zero status; inspect `serverStatus`.
+- `refresh_http_error` — the endpoint returned an HTTP failure without a Kakao status; inspect `httpStatus`.
+- `refresh_timeout` / `refresh_request_failed` — the request did not complete.
+- `refresh_malformed_response` — a successful response did not contain a usable access token.
+
+Token values, authorization headers, and raw response bodies are not included in these errors. The endpoint is an undocumented Android API and can change without notice.
+
 ### Re-authentication
 
 If commands start failing with auth errors:
