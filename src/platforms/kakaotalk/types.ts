@@ -12,6 +12,7 @@ export interface ExtractedKakaoToken {
 }
 
 export type KakaoAuthMethod = 'login' | 'extract'
+export type KakaoAuthErrorCode = 'invalid_access_token' | 'login_rejected'
 
 export interface KakaoAccountCredentials {
   account_id: string

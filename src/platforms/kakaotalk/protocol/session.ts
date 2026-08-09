@@ -15,6 +15,7 @@ import {
   getLocoDeviceConfig,
 } from './config'
 import { LocoConnection } from './connection'
+import { validateLoginListResponse } from './login-response'
 import type { BookingResponse, CheckinResponse, LoginListResponse, LocoPacket, SyncState } from './types'
 
 // LOCO opcode string emitted on the wire for typing indicator pulses.
@@ -81,27 +82,34 @@ export class LocoSession {
     const lastTokenId = syncState ? new Long(syncState.lastTokenId.low, syncState.lastTokenId.high) : Long.fromNumber(0)
     const lbk = syncState?.lbk ?? 0
 
-    const response = await this.connection.sendPacket('LOGINLIST', {
-      appVer: deviceConfig.appVersion,
-      prtVer: PROTOCOL_VERSION,
-      os: deviceConfig.os,
-      lang: LANG,
-      dtype: DTYPE,
-      duuid: deviceUuid,
-      oauthToken,
-      ntype: 0,
-      MCCMNC: MCCMNC,
-      revision: syncState?.revision ?? 0,
-      chatIds,
-      maxIds,
-      lastTokenId,
-      lbk,
-      rp: new Binary(Buffer.from([0x00, 0x00, 0xff, 0xff, 0x00, 0x00])),
-      bg: false,
-    })
+    try {
+      const response = await this.connection.sendPacket('LOGINLIST', {
+        appVer: deviceConfig.appVersion,
+        prtVer: PROTOCOL_VERSION,
+        os: deviceConfig.os,
+        lang: LANG,
+        dtype: DTYPE,
+        duuid: deviceUuid,
+        oauthToken,
+        ntype: 0,
+        MCCMNC: MCCMNC,
+        revision: syncState?.revision ?? 0,
+        chatIds,
+        maxIds,
+        lastTokenId,
+        lbk,
+        rp: new Binary(Buffer.from([0x00, 0x00, 0xff, 0xff, 0x00, 0x00])),
+        bg: false,
+      })
 
-    this.startPing()
-    return response.body as unknown as LoginListResponse
+      const loginResult = validateLoginListResponse(response)
+      this.startPing()
+      return loginResult
+    } catch (error) {
+      this.connection.close()
+      this.connection = null
+      throw error
+    }
   }
 
   private async bookAndCheckin(
