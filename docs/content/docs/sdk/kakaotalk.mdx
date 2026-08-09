@@ -194,6 +194,38 @@ client.close()
 
 Once closed, any subsequent method call throws a `KakaoTalkError` with code `client_closed`. Create a new client if you need to reconnect.
 
+## OAuth Token Refresh
+
+`refreshKakaoOAuthToken()` explicitly exchanges a stored Android sub-device refresh token for a new token set. It is stateless and caller-invoked: it does not update credential files, retry `LOGINLIST`, or run automatically after an authentication failure.
+
+```typescript
+import { refreshKakaoOAuthToken } from 'agent-messenger/kakaotalk'
+
+if (!account.refresh_token) throw new Error('No KakaoTalk refresh token')
+
+const refreshed = await refreshKakaoOAuthToken(
+  {
+    accessToken: account.oauth_token,
+    refreshToken: account.refresh_token,
+    deviceUuid: account.device_uuid,
+  },
+  { timeoutMs: 15_000 },
+)
+
+const nextAccount = {
+  ...account,
+  oauth_token: refreshed.accessToken,
+  refresh_token: refreshed.refreshToken,
+  updated_at: new Date().toISOString(),
+}
+
+await persistAccountAtomically(nextAccount) // Application-defined durable storage
+```
+
+The result always includes both tokens. Kakao may rotate the refresh token, so persist the entire returned token set atomically before the process exits or another client uses the credential. Never refresh a copied production credential and discard the result.
+
+Failures throw `KakaoOAuthRefreshError` with a safe `code` and optional `serverStatus` or `httpStatus`; token values and raw response bodies are not retained. This uses an undocumented Android endpoint and may change without notice.
+
 ## KakaoTalkListener
 
 Real-time event listener that receives push events from KakaoTalk via the LOCO protocol. Subscribes to the underlying client's LOCO session.
