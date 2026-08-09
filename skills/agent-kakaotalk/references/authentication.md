@@ -81,19 +81,17 @@ Check email/password and try again.
 
 Stored credentials are validated by Kakao only when a command opens a LOCO session. `auth status` confirms that a credential is present; it does not prove that the access token is still accepted by the server.
 
-An expired or revoked access token is reported as a structured error:
+An expired or revoked access token keeps the existing CLI error shape and reports the server status in the message:
 
 ```json
 {
-  "error": "KakaoTalk LOGINLIST invalid access token (status -950)",
-  "code": "invalid_access_token",
-  "server_status": -950
+  "error": "KakaoTalk LOGINLIST invalid access token (status -950)"
 }
 ```
 
-Run `agent-kakaotalk auth login` to replace the credential before retrying the command. Other non-zero Kakao authentication responses use `code: "login_rejected"` and preserve `server_status` for diagnosis.
+Run `agent-kakaotalk auth login` to replace the credential before retrying the command. Other non-zero Kakao authentication responses preserve the returned status in the error message.
 
-A socket close, timeout, or other interrupted `LOGINLIST` remains `code: "login_failed"`. It is a transport failure and must not be treated as an invalid token. Rejected authentication closes the provisional connection and does not continue to `LCHATLIST` or sync-state work.
+A socket close, timeout, or other interrupted `LOGINLIST` remains a transport failure and must not be treated as an invalid token. Rejected authentication closes the provisional connection and does not continue to `LCHATLIST` or sync-state work.
 
 ### Device Slots
 
