@@ -55,6 +55,8 @@ export {
 } from './types'
 export { attemptLogin, generateDeviceUuid, loginFlow, registerDevice, requestPasscode } from './auth/kakao-login'
 export type { LoginCredentials } from './auth/kakao-login'
+export { KakaoOAuthRefreshError, refreshKakaoOAuthToken } from './auth/oauth-refresh'
+export type { KakaoOAuthRefreshErrorCode, KakaoOAuthRefreshInput, KakaoOAuthRefreshResult } from './auth/oauth-refresh'
 export { sha1Hex } from './media-upload'
 export { detectImageDimensions } from './image-meta'
 export type { AttachmentInput, AttachmentPlan, ResolvedAttachment, SingleAttachmentKind } from './attachment-router'
