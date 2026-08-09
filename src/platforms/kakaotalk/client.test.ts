@@ -144,6 +144,31 @@ describe('KakaoTalkClient', () => {
         expect((e as KakaoTalkError).code).toBe('missing_user_id')
       }
     })
+
+    it('preserves typed invalid_access_token failures and never proceeds to LCHATLIST', async () => {
+      const authError = Object.assign(new Error('KakaoTalk LOGINLIST rejected'), {
+        code: 'invalid_access_token',
+        serverStatus: -950,
+      })
+      mockLogin.mockRejectedValue(authError)
+      const client = await new KakaoTalkClient().login({
+        oauthToken: 'expired-access-token',
+        userId: 'user1',
+        deviceUuid: 'device1',
+      })
+
+      let error: unknown
+      try {
+        await client.getChats()
+      } catch (cause) {
+        error = cause
+      }
+
+      expect(error).toBeInstanceOf(KakaoTalkError)
+      expect(error).toMatchObject({ code: 'invalid_access_token', serverStatus: -950 })
+      expect(mockGetChatList).not.toHaveBeenCalled()
+      expect(mockClose).toHaveBeenCalledTimes(1)
+    })
   })
 
   describe('getChats', () => {
