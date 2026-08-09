@@ -40,11 +40,13 @@ export type KakaoSessionEventHandler = (event: KakaoSessionEvent) => void
 
 export class KakaoTalkError extends Error {
   code: string
+  readonly serverStatus?: number
 
-  constructor(message: string, code: string, options?: { cause?: unknown }) {
+  constructor(message: string, code: string, options?: { cause?: unknown; serverStatus?: number }) {
     super(message, options)
     this.name = 'KakaoTalkError'
     this.code = code
+    this.serverStatus = options?.serverStatus
   }
 }
 
@@ -278,6 +280,17 @@ function wrapError(error: unknown, code: string): KakaoTalkError {
   if (error instanceof KakaoTalkError) return error
   const message = error instanceof Error ? error.message : String(error)
   return new KakaoTalkError(message, code, { cause: error })
+}
+
+function isLoginResponseError(
+  error: unknown,
+): error is Error & { code: 'invalid_access_token' | 'login_rejected'; serverStatus: number } {
+  if (!(error instanceof Error)) return false
+  const candidate = error as Error & { code?: unknown; serverStatus?: unknown }
+  return (
+    (candidate.code === 'invalid_access_token' || candidate.code === 'login_rejected') &&
+    typeof candidate.serverStatus === 'number'
+  )
 }
 
 const MAX_PAGES = 50
@@ -675,7 +688,11 @@ export class KakaoTalkClient {
       return { session, loginResult }
     } catch (error) {
       session.close()
-      throw new KakaoTalkError(error instanceof Error ? error.message : String(error), 'login_failed', { cause: error })
+      const code = isLoginResponseError(error) ? error.code : 'login_failed'
+      throw new KakaoTalkError(error instanceof Error ? error.message : String(error), code, {
+        cause: error,
+        serverStatus: isLoginResponseError(error) ? error.serverStatus : undefined,
+      })
     }
   }
 

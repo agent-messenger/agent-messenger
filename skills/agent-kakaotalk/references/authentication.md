@@ -77,6 +77,22 @@ Re-run with `--device-type pc --force` or `--device-type tablet --force`.
 
 Check email/password and try again.
 
+### Runtime authentication failures
+
+Stored credentials are validated by Kakao only when a command opens a LOCO session. `auth status` confirms that a credential is present; it does not prove that the access token is still accepted by the server.
+
+An expired or revoked access token keeps the existing CLI error shape and reports the server status in the message:
+
+```json
+{
+  "error": "KakaoTalk LOGINLIST invalid access token (status -950)"
+}
+```
+
+Run `agent-kakaotalk auth login` to replace the credential before retrying the command. Other non-zero Kakao authentication responses preserve the returned status in the error message.
+
+A socket close, timeout, or other interrupted `LOGINLIST` remains a transport failure and must not be treated as an invalid token. Rejected authentication closes the provisional connection and does not continue to `LCHATLIST` or sync-state work.
+
 ### Device Slots
 
 KakaoTalk allows these simultaneous sessions:

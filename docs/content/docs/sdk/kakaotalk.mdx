@@ -32,6 +32,28 @@ import { KakaoTalkClient } from 'agent-messenger/kakaotalk'
 const client = await new KakaoTalkClient().login()
 ```
 
+### Login errors
+
+The first operation opens the LOCO session lazily. If Kakao rejects `LOGINLIST`, `KakaoTalkError` preserves a typed code and safe numeric server status:
+
+```typescript
+import { KakaoTalkError } from 'agent-messenger/kakaotalk'
+
+try {
+  await client.getChats()
+} catch (error) {
+  if (error instanceof KakaoTalkError && error.code === 'invalid_access_token') {
+    console.error(error.serverStatus) // -950
+  }
+}
+```
+
+- `invalid_access_token`: Kakao returned status `-950`; re-authenticate before retrying.
+- `login_rejected`: Kakao returned another explicit authentication rejection.
+- `login_failed`: booking, check-in, socket close, timeout, or another transport/protocol failure.
+
+Rejected authentication closes the provisional session and never continues to `LCHATLIST` or sync-state work.
+
 ### Chat Rooms
 
 ```typescript

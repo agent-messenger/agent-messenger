@@ -6,6 +6,7 @@ export { KakaoTalkListener } from './listener'
 export type { PendingLoginState } from './credential-manager'
 export type {
   KakaoAccountCredentials,
+  KakaoAuthErrorCode,
   KakaoAuthMethod,
   KakaoChat,
   KakaoConfig,

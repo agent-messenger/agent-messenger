@@ -144,6 +144,61 @@ describe('KakaoTalkClient', () => {
         expect((e as KakaoTalkError).code).toBe('missing_user_id')
       }
     })
+
+    it('preserves invalid_access_token and never continues to LCHATLIST', async () => {
+      mockLogin.mockRejectedValue(
+        Object.assign(new Error('KakaoTalk LOGINLIST invalid access token (status -950)'), {
+          code: 'invalid_access_token',
+          serverStatus: -950,
+        }),
+      )
+      const client = await new KakaoTalkClient().login({
+        oauthToken: 'expired-access-token',
+        userId: 'user1',
+        deviceUuid: 'device1',
+      })
+
+      let error: unknown
+      try {
+        await client.getChats({ all: true })
+      } catch (cause) {
+        error = cause
+      }
+
+      expect(error).toBeInstanceOf(KakaoTalkError)
+      expect(error).toMatchObject({ code: 'invalid_access_token', serverStatus: -950 })
+      expect(mockGetChatList).not.toHaveBeenCalled()
+      expect(mockClose).toHaveBeenCalledTimes(1)
+    })
+
+    it('preserves other typed LOGINLIST rejections', async () => {
+      mockLogin.mockRejectedValue(
+        Object.assign(new Error('KakaoTalk LOGINLIST rejected (status -777)'), {
+          code: 'login_rejected',
+          serverStatus: -777,
+        }),
+      )
+      const client = await new KakaoTalkClient().login({
+        oauthToken: 'rejected-access-token',
+        userId: 'user1',
+        deviceUuid: 'device1',
+      })
+
+      await expect(client.getChats()).rejects.toMatchObject({ code: 'login_rejected', serverStatus: -777 })
+      expect(mockGetChatList).not.toHaveBeenCalled()
+    })
+
+    it('keeps interrupted LOGINLIST connections classified as login_failed', async () => {
+      mockLogin.mockRejectedValue(new Error('KakaoTalk LOGINLIST transport failed: connection closed'))
+      const client = await new KakaoTalkClient().login({
+        oauthToken: 'token',
+        userId: 'user1',
+        deviceUuid: 'device1',
+      })
+
+      await expect(client.getChats()).rejects.toMatchObject({ code: 'login_failed' })
+      expect(mockGetChatList).not.toHaveBeenCalled()
+    })
   })
 
   describe('getChats', () => {

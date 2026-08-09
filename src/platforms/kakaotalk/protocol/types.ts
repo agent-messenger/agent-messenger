@@ -36,6 +36,7 @@ export interface SyncState {
 
 // LOGINLIST uses short BSON field names: c=chatId, t=type, a=activeMembers, etc.
 export interface LoginListResponse extends ChatListResponse {
+  status?: number
   userId: number
   revision: number
 }
