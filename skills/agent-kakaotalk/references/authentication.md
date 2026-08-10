@@ -262,6 +262,49 @@ KakaoTalk OAuth tokens can expire or be invalidated when:
 - The token naturally expires
 - KakaoTalk's server revokes the session
 
+### Explicit SDK Refresh
+
+The SDK exports `refreshKakaoOAuthToken()` for callers that need to exchange a stored Android sub-device refresh token for a new token set:
+
+```typescript
+import { refreshKakaoOAuthToken } from 'agent-messenger/kakaotalk'
+
+const refreshed = await refreshKakaoOAuthToken({
+  accessToken: account.oauth_token,
+  refreshToken: account.refresh_token,
+  deviceUuid: account.device_uuid,
+})
+```
+
+This is an explicit, stateless operation. It does not retry `LOGINLIST`, update the credentials file, or run automatically when a command receives `invalid_access_token`.
+
+The result always contains an access token and refresh token. Kakao may rotate the refresh token; if the response omits it, the SDK preserves the input refresh token in the returned value. The caller must persist both returned tokens atomically before the process exits or another client uses the same credential.
+
+Do not refresh a copied production credential and discard the result. A successful refresh can invalidate the previously stored refresh token on the server.
+
+#### Controlled Live Canary
+
+Use a dedicated test account and device when possible. If a production credential is the only available canary, use this sequence:
+
+1. Stop every collector, CLI process, and service that can use the credential. Confirm there is only one refresh caller.
+2. Prepare an atomic persistence path before making the request. Credential files must keep `0600` permissions.
+3. Call `refreshKakaoOAuthToken()` exactly once. Record only success, token-rotation booleans, and expiry metadata — never tokens, authorization headers, account IDs, or the raw response.
+4. If a token set is returned, immediately persist both returned tokens with a temporary file, `fsync`, and atomic rename. Do not let the process exit or another client start first.
+5. Start a fresh process, reload the persisted credential, and verify that `LOGINLIST` and a minimal chat-list request succeed.
+6. Scan application logs and temporary files for the old and new token values, confirm the credential still has `0600` permissions, then restart the stopped caller.
+
+If the refresh request fails before returning a token set, leave the stored credential unchanged and stop the canary. Do not loop blindly: an ambiguous network failure may have occurred after server-side rotation, in which case re-authentication can be required.
+
+Failures throw `KakaoOAuthRefreshError` with safe metadata only:
+
+- `refresh_credentials_missing` — an access token, refresh token, or device UUID was not provided.
+- `refresh_rejected` — Kakao returned an explicit non-zero status; inspect `serverStatus`.
+- `refresh_http_error` — the endpoint returned an HTTP failure without a Kakao status; inspect `httpStatus`.
+- `refresh_timeout` / `refresh_request_failed` — the request did not complete.
+- `refresh_malformed_response` — a successful response did not contain a usable access token.
+
+Token values, authorization headers, and raw response bodies are not included in these errors. The endpoint is an undocumented Android API and can change without notice.
+
 ### Re-authentication
 
 If commands start failing with auth errors:

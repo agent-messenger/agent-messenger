@@ -7,8 +7,8 @@ import type { KakaoDeviceType, KakaoLoginResult } from '../types'
 const ANDROID_APP_VERSION = '25.9.2'
 const ANDROID_OS_VERSION = '13'
 const ANDROID_API_LEVEL = '33'
-const ANDROID_AGENT = `android/${ANDROID_APP_VERSION}/ko`
-const ANDROID_USER_AGENT = `KT/${ANDROID_APP_VERSION} An/${ANDROID_OS_VERSION} ko`
+export const ANDROID_AGENT = `android/${ANDROID_APP_VERSION}/ko`
+export const ANDROID_USER_AGENT = `KT/${ANDROID_APP_VERSION} An/${ANDROID_OS_VERSION} ko`
 const ANDROID_LOGIN_URL = 'https://katalk.kakao.com/android/account/login.json'
 const ANDROID_PASSCODE_URL = 'https://katalk.kakao.com/android/account/passcodeLogin/generate'
 const ANDROID_REGISTER_URL = 'https://katalk.kakao.com/android/account/passcodeLogin/registerDevice'
