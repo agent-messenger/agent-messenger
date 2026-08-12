@@ -50,6 +50,7 @@ const MAX_CHAT_IMAGE_STATUS_BYTES = 64 * 1_024
 const CHAT_IMAGE_DOWNLOAD_TIMEOUT_MS = 30_000
 const CHAT_IMAGE_VIEW = 'imgpsh_fullsize_anim'
 const CHAT_IMAGE_OBJECT_ID = /^0-[a-z0-9]+-[a-z0-9-]+$/i
+const CHAT_IMAGE_VIEW_HOSTS = new Set(['api.asm.skype.com', 'eu-api.asm.skype.com'])
 
 // Personal (Teams for Life) skypetokens carry a consumer `skypeid` (e.g.
 // "live:..." or "8:live:..."); work/school tokens carry an org identity. Used
@@ -64,10 +65,6 @@ function isPersonalToken(token: string): boolean {
   } catch {
     return false
   }
-}
-
-function escapeXmlAttribute(value: string): string {
-  return escapeHtml(value).replace(/&quot;/g, '&quot;')
 }
 
 function validImageDimensions(width: number, height: number): boolean {
@@ -280,7 +277,7 @@ async function readChatImageViewLocation(response: Response, imageObjectId: stri
   const expectedPath = `/v1/objects/${imageObjectId}/views/${CHAT_IMAGE_VIEW}`
   if (
     location.protocol !== 'https:' ||
-    (location.hostname !== 'api.asm.skype.com' && !location.hostname.endsWith('-api.asm.skype.com')) ||
+    !CHAT_IMAGE_VIEW_HOSTS.has(location.hostname) ||
     location.port !== '' ||
     location.username !== '' ||
     location.password !== '' ||
@@ -953,70 +950,6 @@ export class TeamsClient {
       author: { id: 'ME', displayName: 'Me' },
       content,
       timestamp: arrivalTime ? new Date(arrivalTime).toISOString() : new Date().toISOString(),
-    }
-  }
-
-  async sendChatImage(chatId: string, imagePath: string): Promise<TeamsMessage> {
-    if (this.isTokenExpired()) {
-      throw new TeamsError('Token has expired. Run "auth extract" to refresh.', 'token_expired')
-    }
-    const bytes = await readFile(imagePath)
-    if (bytes.length === 0 || bytes.length > MAX_CHAT_IMAGE_BYTES) {
-      throw new TeamsError('Chat image must be between 1 byte and 20 MiB.', 'invalid_chat_image_size')
-    }
-    const metadata = imageMetadata(bytes)
-    const filename = basename(imagePath) || `image.${metadata.contentType === 'image/png' ? 'png' : 'jpg'}`
-    const token = this.ensureAuth()
-    const createResponse = await fetch(`${AMS_API_BASE}/objects`, {
-      method: 'POST',
-      headers: {
-        Authorization: `skype_token ${token}`,
-        'Content-Type': 'application/json; charset=UTF-8',
-      },
-      body: JSON.stringify({ type: 'pish/image', permissions: { [chatId]: ['read'] }, filename }),
-    })
-    const created = (await createResponse.json().catch(() => null)) as { id?: string } | null
-    if (!createResponse.ok || !validChatImageObjectId(created?.id)) {
-      throw new TeamsError(
-        `Teams image object creation failed with HTTP ${createResponse.status}.`,
-        'chat_image_create_failed',
-      )
-    }
-    const objectId = created.id
-    const uploadResponse = await fetch(`${AMS_API_BASE}/objects/${encodeURIComponent(objectId)}/content/original`, {
-      method: 'PUT',
-      headers: {
-        Authorization: `skype_token ${token}`,
-        'Content-Type': metadata.contentType,
-      },
-      body: bytes,
-    })
-    if (!uploadResponse.ok) {
-      throw new TeamsError(`Teams image upload failed with HTTP ${uploadResponse.status}.`, 'chat_image_upload_failed')
-    }
-
-    const objectUrl = `${AMS_API_BASE}/objects/${objectId}`
-    const safeFilename = escapeXmlAttribute(filename)
-    const content = `<URIObject uri="${objectUrl}" url_thumbnail="${objectUrl}/views/imgt1_anim" type="Picture.1" doc_id="${objectId}" width="${metadata.width}" height="${metadata.height}">To view this shared photo, open it in Teams.<OriginalName v="${safeFilename}"></OriginalName><FileSize v="${bytes.length}"></FileSize><meta type="photo" originalName="${safeFilename}"></meta></URIObject>`
-    interface SendResponse {
-      OriginalArrivalTime?: number
-    }
-    const encodedChatId = encodeURIComponent(chatId)
-    const response = await this.request<SendResponse>('POST', `/users/ME/conversations/${encodedChatId}/messages`, {
-      content,
-      messagetype: 'RichText/UriObject',
-      contenttype: 'text',
-      amsreferences: [objectId],
-    })
-    const arrivalTime = response?.OriginalArrivalTime
-    return {
-      id: arrivalTime ? String(arrivalTime) : '',
-      channel_id: chatId,
-      author: { id: 'ME', displayName: 'Me' },
-      content: filename,
-      timestamp: arrivalTime ? new Date(arrivalTime).toISOString() : new Date().toISOString(),
-      message_type: 'RichText/UriObject',
-      image_object_id: objectId,
     }
   }
 

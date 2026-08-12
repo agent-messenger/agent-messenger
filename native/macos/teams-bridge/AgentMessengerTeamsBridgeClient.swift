@@ -88,8 +88,6 @@ func fileTransferCommand(_ args: [String]) -> FileTransferCommand? {
     switch (positionals[0].value, positionals[1].value) {
     case ("file", "upload") where positionals.count == 5:
         return .input(argumentIndex: positionals[4].index, kind: .channelFile)
-    case ("chat", "send-image") where positionals.count == 4:
-        return .input(argumentIndex: positionals[3].index, kind: .chatImage)
     case ("file", "download") where positionals.count == 5 || positionals.count == 6:
         return .output(
             argumentIndex: positionals.count == 6 ? positionals[5].index : nil,
@@ -110,8 +108,7 @@ func fileTransferCommand(_ args: [String]) -> FileTransferCommand? {
 }
 
 func runSelfTest() throws {
-    let image = fileTransferCommand(["chat", "--account", "personal", "send-image", "chat", "--pretty", "photo.png"])
-    guard case .input(let imageIndex, .chatImage) = image, imageIndex == 6 else {
+    guard fileTransferCommand(["chat", "--account", "personal", "send-image", "chat", "--pretty", "photo.png"]) == nil else {
         throw POSIXError(.EINVAL)
     }
     let upload = fileTransferCommand(["--team=team", "file", "upload", "team", "--account=work", "channel", "--", "--photo.png"])
@@ -120,6 +117,11 @@ func runSelfTest() throws {
     }
     let download = fileTransferCommand(["file", "download", "team", "channel", "file", "--pretty"])
     guard case .output(nil, let insertionIndex, .channelFile, "file") = download, insertionIndex == 5 else {
+        throw POSIXError(.EINVAL)
+    }
+    let imageDownload = fileTransferCommand(["chat", "--account", "personal", "download-image", "0-frca-d16-image"])
+    guard case .output(nil, let imageInsertionIndex, .chatImage, "0-frca-d16-image") = imageDownload,
+          imageInsertionIndex == 5 else {
         throw POSIXError(.EINVAL)
     }
 
@@ -132,9 +134,15 @@ func runSelfTest() throws {
     try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
     let destination = directory.appendingPathComponent("output.bin")
     try writePrivateAtomically(Data("first".utf8), to: destination)
-    try writePrivateAtomically(Data("second".utf8), to: destination)
+    var rejectedExistingFile = false
+    do {
+        try writePrivateAtomically(Data("second".utf8), to: destination)
+    } catch let error as POSIXError where error.code == .EEXIST {
+        rejectedExistingFile = true
+    }
     let attributes = try FileManager.default.attributesOfItem(atPath: destination.path)
-    guard try Data(contentsOf: destination) == Data("second".utf8),
+    guard rejectedExistingFile,
+          try Data(contentsOf: destination) == Data("first".utf8),
           (attributes[.posixPermissions] as? NSNumber)?.intValue == 0o600 else {
         throw POSIXError(.EACCES)
     }
@@ -226,7 +234,7 @@ func writePrivateAtomically(_ data: Data, to destination: URL) throws {
     guard fchmod(fileDescriptor, mode_t(0o600)) == 0, fsync(fileDescriptor) == 0 else {
         throw POSIXError(POSIXErrorCode(rawValue: errno) ?? .EIO)
     }
-    guard renameat(parentDescriptor, temporary, parentDescriptor, filename) == 0 else {
+    guard renameatx_np(parentDescriptor, temporary, parentDescriptor, filename, UInt32(RENAME_EXCL)) == 0 else {
         throw POSIXError(POSIXErrorCode(rawValue: errno) ?? .EIO)
     }
     keepTemporary = false

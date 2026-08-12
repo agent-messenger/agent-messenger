@@ -1,4 +1,4 @@
-import { chmodSync, statSync, writeFileSync } from 'node:fs'
+import { statSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { resolve } from 'node:path'
 
@@ -106,37 +106,6 @@ export async function sendAction(chatId: string, content: string, options: { pre
   }
 }
 
-export async function sendImageAction(chatId: string, path: string, options: { pretty?: boolean }): Promise<void> {
-  try {
-    const credManager = new TeamsCredentialManager()
-    const cred = await credManager.getTokenWithExpiry()
-    if (!cred) {
-      console.log(formatOutput({ error: 'Not authenticated. Run "auth extract" first.' }, options.pretty))
-      process.exit(1)
-    }
-    const client = await new TeamsClient().login({
-      token: cred.token,
-      tokenExpiresAt: cred.tokenExpiresAt,
-      accountType: cred.accountType,
-      region: cred.region,
-    })
-    const message = await client.sendChatImage(chatId, resolve(path))
-    console.log(
-      formatOutput(
-        {
-          id: message.id,
-          timestamp: message.timestamp,
-          message_type: message.message_type,
-          image_object_id: message.image_object_id,
-        },
-        options.pretty,
-      ),
-    )
-  } catch (error) {
-    handleError(error as Error)
-  }
-}
-
 export async function downloadImageAction(
   imageObjectId: string,
   outputPath: string | undefined,
@@ -163,8 +132,7 @@ export async function downloadImageAction(
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error
     }
-    writeFileSync(destination, image.buffer, { mode: 0o600 })
-    chmodSync(destination, 0o600)
+    writeFileSync(destination, image.buffer, { flag: 'wx', mode: 0o600 })
     console.log(
       formatOutput(
         {
@@ -225,14 +193,6 @@ export const chatCommand = new Command('chat')
       .argument('[output-path]', 'Output file or directory path')
       .option('--pretty', 'Pretty print JSON output')
       .action(downloadImageAction),
-  )
-  .addCommand(
-    new Command('send-image')
-      .description('Send a PNG or JPEG image to a chat')
-      .argument('<chat-id>', 'Chat ID')
-      .argument('<path>', 'Image path')
-      .option('--pretty', 'Pretty print JSON output')
-      .action(sendImageAction),
   )
   .addCommand(
     new Command('list')

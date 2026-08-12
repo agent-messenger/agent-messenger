@@ -96,11 +96,6 @@ private func approvedFileCommand(_ args: [String]) throws -> ApprovedFileCommand
             throw BridgeError.invalidRequest("Use: agent-teams file upload <team-id> <channel-id> <path> [--pretty].")
         }
         return .input(argumentIndex: positionals[4].index)
-    case ("chat", "send-image"):
-        guard positionals.count == 4 else {
-            throw BridgeError.invalidRequest("Use: agent-teams chat send-image <chat-id> <path> [--pretty].")
-        }
-        return .input(argumentIndex: positionals[3].index)
     case ("file", "download"):
         guard positionals.count == 6 else {
             throw BridgeError.invalidRequest("Teams bridge file downloads require one staged output path.")

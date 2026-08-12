@@ -17,6 +17,7 @@ RESOURCES="$APP/Contents/Resources"
 IDENTITY=${TEAMS_BRIDGE_SIGNING_IDENTITY:-Developer ID Application: Build Context, Inc. (9F4ARQ5FJR)}
 BUN_VERSION=1.3.14
 BUN_ARM64_SHA256=e0c90ec15d33363e6b70713d56bc3b2c7585c17f40a0fe0f8fd9305901d4e233
+BUN_ARM64_TARBALL_SHA512=3a68f6d12ba21c13948d4048caab643634942233ad10e27099b8b1fd9c851f805a43a3994da6915884784e31d5cf4c9a7478258ba94b4e2021d6e6ab9ef0f8f4
 
 expected_version=$(node -p "require('$ROOT/package.json').version")
 if [ ! -d "$ROOT/node_modules" ]; then
@@ -24,13 +25,27 @@ if [ ! -d "$ROOT/node_modules" ]; then
   exit 1
 fi
 
-bun_binary=$(LC_ALL=en_US.UTF-8 LANG=en_US.UTF-8 npx -y "bun@$BUN_VERSION" -e 'console.log(process.execPath)')
+if [ "$(uname -m)" != "arm64" ]; then
+  printf 'The reviewed Teams bridge build supports only arm64 macOS.\n' >&2
+  exit 1
+fi
+bun_download_root=$(mktemp -d "${TMPDIR:-/tmp}/teams-bridge-bun.XXXXXX")
+trap 'rm -rf "$bun_download_root"' EXIT HUP INT TERM
+bun_tarball=$(npm pack --silent --pack-destination "$bun_download_root" "@oven/bun-darwin-aarch64@$BUN_VERSION")
+bun_tarball="$bun_download_root/$bun_tarball"
+bun_tarball_sha512=$(/usr/bin/openssl dgst -sha512 "$bun_tarball" | awk '{print $NF}')
+if [ "$bun_tarball_sha512" != "$BUN_ARM64_TARBALL_SHA512" ]; then
+  printf 'The Bun package digest does not match the reviewed arm64 package.\n' >&2
+  exit 1
+fi
+tar -xzf "$bun_tarball" -C "$bun_download_root"
+bun_binary="$bun_download_root/package/bin/bun"
 if [ ! -x "$bun_binary" ]; then
   printf 'Unable to locate the reviewed Bun runtime.\n' >&2
   exit 1
 fi
 bun_sha256=$(/usr/bin/openssl dgst -sha256 "$bun_binary" | awk '{print $NF}')
-if [ "$(uname -m)" = "arm64" ] && [ "$bun_sha256" != "$BUN_ARM64_SHA256" ]; then
+if [ "$bun_sha256" != "$BUN_ARM64_SHA256" ]; then
   printf 'The Bun runtime digest does not match the reviewed arm64 build.\n' >&2
   exit 1
 fi

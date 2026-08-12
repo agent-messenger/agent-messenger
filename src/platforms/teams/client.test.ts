@@ -2,7 +2,6 @@ import { afterEach, beforeEach, describe, expect, it } from 'bun:test'
 import { rmSync, unlinkSync } from 'node:fs'
 import { join } from 'node:path'
 
-import { encode as encodeJpeg } from 'jpeg-js'
 import { PNG } from 'pngjs'
 
 import { TeamsClient } from './client'
@@ -17,10 +16,6 @@ const GRAPH_AUDIENCE = 'https://graph.microsoft.com'
 
 function pngFixture(width: number, height: number): Buffer {
   return PNG.sync.write({ width, height, data: Buffer.alloc(width * height * 4, 0xff) })
-}
-
-function jpegFixture(width: number, height: number): Buffer {
-  return encodeJpeg({ width, height, data: Buffer.alloc(width * height * 4, 0xff) }, 80).data
 }
 
 describe('TeamsClient', () => {
@@ -385,68 +380,6 @@ describe('TeamsClient', () => {
     })
   })
 
-  describe('sendChatImage', () => {
-    it('creates, uploads, and sends one inline image object to a chat', async () => {
-      const png = pngFixture(320, 180)
-      await Bun.write('/tmp/test-teams-chat-image.png', png)
-      mockResponse({ id: '0-weu-d1-image' })
-      mockBinaryResponse('', 201)
-      mockResponse({ OriginalArrivalTime: 1704067200000 })
-
-      const client = await new TeamsClient().login({ token: 'test-token', accountType: 'personal' })
-      const message = await client.sendChatImage('48:notes', '/tmp/test-teams-chat-image.png')
-
-      expect(fetchCalls[0].url).toBe('https://api.asm.skype.com/v1/objects')
-      expect(fetchCalls[0].options?.body).toBe(
-        JSON.stringify({
-          type: 'pish/image',
-          permissions: { '48:notes': ['read'] },
-          filename: 'test-teams-chat-image.png',
-        }),
-      )
-      expect(fetchCalls[1].url).toBe('https://api.asm.skype.com/v1/objects/0-weu-d1-image/content/original')
-      expect(headerValue(fetchCalls[1].options, 'Content-Type')).toBe('image/png')
-      expect(fetchCalls[2].url).toBe('https://msgapi.teams.live.com/v1/users/ME/conversations/48%3Anotes/messages')
-      expect(String(fetchCalls[2].options?.body)).toContain('RichText/UriObject')
-      expect(String(fetchCalls[2].options?.body)).toContain('width=\\\"320\\\" height=\\\"180\\\"')
-      expect(message.image_object_id).toBe('0-weu-d1-image')
-    })
-
-    it('decodes and uploads a valid JPEG', async () => {
-      const jpeg = jpegFixture(24, 16)
-      await Bun.write('/tmp/test-teams-chat-image.png', jpeg)
-      mockResponse({ id: '0-weu-d1-jpeg' })
-      mockBinaryResponse('', 201)
-      mockResponse({ OriginalArrivalTime: 1704067200000 })
-
-      const client = await new TeamsClient().login({ token: 'test-token', accountType: 'personal' })
-      await client.sendChatImage('48:notes', '/tmp/test-teams-chat-image.png')
-
-      expect(headerValue(fetchCalls[1].options, 'Content-Type')).toBe('image/jpeg')
-      expect(String(fetchCalls[2].options?.body)).toContain('width=\\"24\\" height=\\"16\\"')
-    })
-
-    it('rejects malformed image data and an invalid object ID returned by AMS', async () => {
-      const png = pngFixture(1, 1)
-      const corruptPng = Buffer.from(png)
-      corruptPng[corruptPng.length - 1] ^= 0xff
-      await Bun.write('/tmp/test-teams-chat-image.png', corruptPng)
-
-      const client = await new TeamsClient().login({ token: 'test-token', accountType: 'personal' })
-      await expect(client.sendChatImage('48:notes', '/tmp/test-teams-chat-image.png')).rejects.toMatchObject({
-        code: 'invalid_chat_image_signature',
-      })
-      expect(fetchCalls).toHaveLength(0)
-
-      await Bun.write('/tmp/test-teams-chat-image.png', png)
-      mockResponse({ id: `0-a-${'b'.repeat(253)}` })
-      await expect(client.sendChatImage('48:notes', '/tmp/test-teams-chat-image.png')).rejects.toMatchObject({
-        code: 'chat_image_create_failed',
-      })
-      expect(fetchCalls).toHaveLength(1)
-    })
-  })
-
   describe('downloadChatImage', () => {
     it('downloads a bounded PNG from the trusted AMS image view without redirects', async () => {
       const png = pngFixture(320, 180)
@@ -487,6 +420,7 @@ describe('TeamsClient', () => {
         'https://user@eu-api.asm.skype.com/v1/objects/0-frca-d16-image/views/imgpsh_fullsize_anim',
         'https://eu-api.asm.skype.com:444/v1/objects/0-frca-d16-image/views/imgpsh_fullsize_anim',
         'https://api.asm.skype.com.evil.test/v1/objects/0-frca-d16-image/views/imgpsh_fullsize_anim',
+        'https://anything-api.asm.skype.com/v1/objects/0-frca-d16-image/views/imgpsh_fullsize_anim',
         'https://eu-api.asm.skype.com/v1/objects/0-frca-d16-other/views/imgpsh_fullsize_anim',
         'https://eu-api.asm.skype.com/v1/objects/0-frca-d16-image/views/imgpsh_fullsize_anim?download=1',
         'https://eu-api.asm.skype.com/v1/objects/0-frca-d16-image/views/imgpsh_fullsize_anim#other',
