@@ -233,14 +233,19 @@ it('send: rejects an invalid format', async () => {
     throw new Error(`exit:${code}`)
   })
 
-  await expect(sendAction('team_123', 'ch_456', 'hi', { pretty: false, format: 'invalid' })).rejects.toThrow(
-    'exit:1',
-  )
+  try {
+    await expect(sendAction('team_123', 'ch_456', 'hi', { pretty: false, format: 'invalid' })).rejects.toThrow(
+      'exit:1',
+    )
 
-  expect(consoleSpy).toHaveBeenCalled()
-  expect(consoleSpy.mock.calls[0][0]).toContain('Invalid format')
-  expect(clientSendMessageSpy).not.toHaveBeenCalled()
-  exitSpy.mockRestore()
+    expect(consoleSpy).toHaveBeenCalled()
+    expect(consoleSpy.mock.calls[0][0]).toContain('Invalid format')
+    expect(clientSendMessageSpy).not.toHaveBeenCalled()
+  } finally {
+    // Restore in finally: a failing assertion above would otherwise leave
+    // process.exit mocked, so every later test would throw instead of exiting.
+    exitSpy.mockRestore()
+  }
 })
 
 it('send: passes html format to the client', async () => {

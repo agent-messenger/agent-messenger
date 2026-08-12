@@ -100,5 +100,26 @@ describe('sanitizeTeamsHtml', () => {
       expect(sanitizeTeamsHtml('<a-b onclick="x">hi</a-b>')).toBe('&lt;a-b onclick="x"&gt;hi&lt;/a-b&gt;')
       expect(sanitizeTeamsHtml('<my-widget>x</my-widget>')).toBe('&lt;my-widget&gt;x&lt;/my-widget&gt;')
     })
+
+    it('escapes tag names that merely start with an allowed name', () => {
+      // A tag name must end at a real boundary. Otherwise "<at:id>" matched the
+      // "at" prefix and was promoted into a Teams mention, and "<b_extra>" into
+      // bold — arbitrary markup turning into formatting or a mention.
+      expect(sanitizeTeamsHtml('<at:id>x</at:id>')).toBe('&lt;at:id&gt;x&lt;/at:id&gt;')
+      expect(sanitizeTeamsHtml('<b_extra>x</b_extra>')).toBe('&lt;b_extra&gt;x&lt;/b_extra&gt;')
+      expect(sanitizeTeamsHtml('<b.bold>x</b.bold>')).toBe('&lt;b.bold&gt;x&lt;/b.bold&gt;')
+      expect(sanitizeTeamsHtml('<a:link href="https://evil.com">x</a:link>')).toBe(
+        '&lt;a:link href="https://evil.com"&gt;x&lt;/a:link&gt;',
+      )
+    })
+
+    it('ignores attribute names that merely end with an allowed name', () => {
+      // An attribute name must start at a real boundary. Otherwise "foo.id"
+      // was truncated to "id" and "foo.href" to "href", letting arbitrary
+      // attributes forge a mention or a link.
+      expect(sanitizeTeamsHtml('<at foo.id="29:evil">J</at>')).toBe('<at>J</at>')
+      expect(sanitizeTeamsHtml('<at x:id="29:evil">J</at>')).toBe('<at>J</at>')
+      expect(sanitizeTeamsHtml('<a foo.href="https://evil.com">x</a>')).toBe('<a>x</a>')
+    })
   })
 })

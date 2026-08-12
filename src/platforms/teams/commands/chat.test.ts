@@ -147,13 +147,18 @@ it('send: rejects an invalid format', async () => {
     throw new Error(`exit:${code}`)
   })
 
-  await expect(sendAction('19:1on1@unq.gbl.spaces', 'hi', { pretty: false, format: 'invalid' })).rejects.toThrow(
-    'exit:1',
-  )
+  try {
+    await expect(sendAction('19:1on1@unq.gbl.spaces', 'hi', { pretty: false, format: 'invalid' })).rejects.toThrow(
+      'exit:1',
+    )
 
-  expect(consoleSpy.mock.calls[0][0]).toContain('Invalid format')
-  expect(clientSendChatMessageSpy).not.toHaveBeenCalled()
-  exitSpy.mockRestore()
+    expect(consoleSpy.mock.calls[0][0]).toContain('Invalid format')
+    expect(clientSendChatMessageSpy).not.toHaveBeenCalled()
+  } finally {
+    // Restore in finally: a failing assertion above would otherwise leave
+    // process.exit mocked, so every later test would throw instead of exiting.
+    exitSpy.mockRestore()
+  }
 })
 
 it('edit: passes markdown format to the client', async () => {
@@ -172,10 +177,15 @@ it('edit: rejects an invalid format', async () => {
     throw new Error(`exit:${code}`)
   })
 
-  await expect(
-    editAction('19:1on1@unq.gbl.spaces', 'msg_123', 'hi', { pretty: false, format: 'invalid' }),
-  ).rejects.toThrow('exit:1')
+  try {
+    await expect(
+      editAction('19:1on1@unq.gbl.spaces', 'msg_123', 'hi', { pretty: false, format: 'invalid' }),
+    ).rejects.toThrow('exit:1')
 
-  expect(clientEditChatMessageSpy).not.toHaveBeenCalled()
-  exitSpy.mockRestore()
+    expect(clientEditChatMessageSpy).not.toHaveBeenCalled()
+  } finally {
+    // Restore in finally: a failing assertion above would otherwise leave
+    // process.exit mocked, so every later test would throw instead of exiting.
+    exitSpy.mockRestore()
+  }
 })

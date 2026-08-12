@@ -51,13 +51,19 @@ const SAFE_URL_PATTERN = /^(https?:|mailto:|\/|#)/i
 // "<" not followed by a tag name — e.g. the outer "<" in "<<script>" — is
 // left as plain text instead of being absorbed into a match.
 //
-// The name accepts hyphens so custom elements match as a whole: without them
-// "<a-b>" matched the "a" prefix and was silently rewritten to "<a>". Matching
-// the full name lets it fail the whitelist and be escaped like any other
-// unknown tag.
-const TAG_PATTERN = /<(\/)?([a-zA-Z][a-zA-Z0-9-]*)([^<>]*)>/g
+// The name must end at a real boundary — whitespace, "/" or ">" — so a name is
+// only ever matched in full. Without that lookahead a tag whose name merely
+// starts with an allowed one was promoted into it: "<at:id>" became a Teams
+// mention and "<b_extra>" became bold. Requiring the boundary makes those fail
+// the whitelist and get escaped like any other unknown tag.
+const TAG_PATTERN = /<(\/)?([a-zA-Z][a-zA-Z0-9-]*)(?=[\s/>])([^<>]*)>/g
 
-const ATTR_PATTERN = /([a-zA-Z][a-zA-Z0-9-]*)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/g
+// The name must likewise start at a boundary — the beginning of the attribute
+// section, whitespace, or the "/" of a self-closing tag. Scanning without one
+// let a disallowed name be truncated to an allowed suffix, so `foo.id` was read
+// as `id` and `foo.href` as `href`, forging mentions and links out of arbitrary
+// attributes.
+const ATTR_PATTERN = /(?<=^|[\s/])([a-zA-Z][a-zA-Z0-9-]*)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/g
 
 export function sanitizeTeamsHtml(html: string): string {
   let result = ''
