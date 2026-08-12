@@ -46,6 +46,9 @@ const AMS_API_BASE = 'https://api.asm.skype.com/v1'
 const MAX_CHAT_IMAGE_BYTES = 20 * 1_024 * 1_024
 const MAX_CHAT_IMAGE_PIXELS = 40_000_000
 const MAX_CHAT_IMAGE_OBJECT_ID_BYTES = 256
+const MAX_CHAT_IMAGE_STATUS_BYTES = 64 * 1_024
+const CHAT_IMAGE_DOWNLOAD_TIMEOUT_MS = 30_000
+const CHAT_IMAGE_VIEW = 'imgpsh_fullsize_anim'
 const CHAT_IMAGE_OBJECT_ID = /^0-[a-z0-9]+-[a-z0-9-]+$/i
 
 // Personal (Teams for Life) skypetokens carry a consumer `skypeid` (e.g.
@@ -208,7 +211,7 @@ async function readChatImageResponse(response: Response): Promise<Buffer> {
     if (done) break
     size += value.byteLength
     if (size > MAX_CHAT_IMAGE_BYTES) {
-      await reader.cancel()
+      await reader.cancel().catch(() => undefined)
       throw new TeamsError('Teams chat image must be between 1 byte and 20 MiB.', 'invalid_chat_image_size')
     }
     chunks.push(Buffer.from(value))
@@ -217,6 +220,77 @@ async function readChatImageResponse(response: Response): Promise<Buffer> {
     throw new TeamsError('Teams chat image must be between 1 byte and 20 MiB.', 'invalid_chat_image_size')
   }
   return Buffer.concat(chunks, size)
+}
+
+async function readChatImageViewLocation(response: Response, imageObjectId: string): Promise<string> {
+  if (response.status >= 300 && response.status < 400) {
+    throw new TeamsError('Teams chat image status refused a redirect.', 'chat_image_status_redirect_refused')
+  }
+  if (!response.ok) {
+    throw new TeamsError(
+      `Teams chat image status failed with HTTP ${response.status}.`,
+      `chat_image_status_${response.status}`,
+    )
+  }
+
+  const declaredLength = Number(response.headers.get('Content-Length') ?? 0)
+  if (!Number.isSafeInteger(declaredLength) || declaredLength < 0 || declaredLength > MAX_CHAT_IMAGE_STATUS_BYTES) {
+    throw new TeamsError('Teams chat image status response is too large.', 'invalid_chat_image_status_size')
+  }
+  const reader = response.body?.getReader()
+  if (!reader) {
+    throw new TeamsError('Teams chat image status response had no body.', 'invalid_chat_image_status')
+  }
+  const chunks: Buffer[] = []
+  let size = 0
+  while (true) {
+    const { done, value } = await reader.read()
+    if (done) break
+    size += value.byteLength
+    if (size > MAX_CHAT_IMAGE_STATUS_BYTES) {
+      await reader.cancel().catch(() => undefined)
+      throw new TeamsError('Teams chat image status response is too large.', 'invalid_chat_image_status_size')
+    }
+    chunks.push(Buffer.from(value))
+  }
+
+  let status: unknown
+  try {
+    status = JSON.parse(Buffer.concat(chunks, size).toString('utf8'))
+  } catch {
+    throw new TeamsError('Teams chat image status response is invalid.', 'invalid_chat_image_status')
+  }
+  if (!status || typeof status !== 'object' || Array.isArray(status)) {
+    throw new TeamsError('Teams chat image status response is invalid.', 'invalid_chat_image_status')
+  }
+  const imageStatus = status as { content_state?: unknown; view_location?: unknown }
+  if (imageStatus.content_state === 'expired') {
+    throw new TeamsError('Teams chat image has expired.', 'chat_image_expired')
+  }
+  if (typeof imageStatus.view_location !== 'string') {
+    throw new TeamsError('Teams chat image status had no view location.', 'chat_image_view_missing')
+  }
+
+  let location: URL
+  try {
+    location = new URL(imageStatus.view_location)
+  } catch {
+    throw new TeamsError('Teams chat image view location is invalid.', 'invalid_chat_image_view_location')
+  }
+  const expectedPath = `/v1/objects/${imageObjectId}/views/${CHAT_IMAGE_VIEW}`
+  if (
+    location.protocol !== 'https:' ||
+    (location.hostname !== 'api.asm.skype.com' && !location.hostname.endsWith('-api.asm.skype.com')) ||
+    location.port !== '' ||
+    location.username !== '' ||
+    location.password !== '' ||
+    location.pathname !== expectedPath ||
+    location.search !== '' ||
+    location.hash !== ''
+  ) {
+    throw new TeamsError('Teams chat image view location is not trusted.', 'invalid_chat_image_view_location')
+  }
+  return location.href
 }
 
 function stripHtml(content: string | undefined): string | undefined {
@@ -954,27 +1028,46 @@ export class TeamsClient {
       throw new TeamsError('Token has expired. Run "auth extract" to refresh.', 'token_expired')
     }
 
-    const response = await fetch(`${AMS_API_BASE}/objects/${imageObjectId}/content/original`, {
-      headers: {
-        Authorization: `skype_token ${this.ensureAuth()}`,
-      },
-      redirect: 'manual',
-    })
-    const buffer = await readChatImageResponse(response)
-    const imageType = downloadedImageType(buffer)
-    const responseType = response.headers.get('Content-Type')?.split(';', 1)[0].trim().toLowerCase()
-    if (responseType !== imageType.content_type) {
-      throw new TeamsError(
-        'Teams chat image content type does not match its file signature.',
-        'chat_image_type_mismatch',
-      )
+    const headers = {
+      Authorization: `skype_token ${this.ensureAuth()}`,
     }
+    const signal = AbortSignal.timeout(CHAT_IMAGE_DOWNLOAD_TIMEOUT_MS)
+    try {
+      const statusResponse = await fetch(`${AMS_API_BASE}/objects/${imageObjectId}/views/${CHAT_IMAGE_VIEW}/status`, {
+        headers,
+        redirect: 'manual',
+        signal,
+      })
+      const viewLocation = await readChatImageViewLocation(statusResponse, imageObjectId)
+      const response = await fetch(viewLocation, {
+        headers: {
+          ...headers,
+          Accept: 'image/png,image/jpeg',
+        },
+        redirect: 'manual',
+        signal,
+      })
+      const buffer = await readChatImageResponse(response)
+      const imageType = downloadedImageType(buffer)
+      const responseType = response.headers.get('Content-Type')?.split(';', 1)[0].trim().toLowerCase()
+      if (responseType !== imageType.content_type) {
+        throw new TeamsError(
+          'Teams chat image content type does not match its file signature.',
+          'chat_image_type_mismatch',
+        )
+      }
 
-    return {
-      image_object_id: imageObjectId,
-      ...imageType,
-      size: buffer.length,
-      buffer,
+      return {
+        image_object_id: imageObjectId,
+        ...imageType,
+        size: buffer.length,
+        buffer,
+      }
+    } catch (error) {
+      if (error instanceof DOMException && (error.name === 'TimeoutError' || error.name === 'AbortError')) {
+        throw new TeamsError('Teams chat image download timed out.', 'chat_image_download_timeout')
+      }
+      throw error
     }
   }
 
