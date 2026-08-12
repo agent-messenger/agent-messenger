@@ -205,6 +205,11 @@ Output includes the authenticated user's identity information.
 agent-teams message send <team-id> <channel-id> <content>
 agent-teams message send <team-id> 19:abc123@thread.tacv2 "Hello world"
 
+# Send a rich-text message written in markdown
+agent-teams message send <team-id> <channel-id> "## Deploy done
+- service A
+- service B" --format markdown
+
 # List messages
 agent-teams message list <team-id> <channel-id>
 agent-teams message list <team-id> 19:abc123@thread.tacv2 --limit 50
@@ -249,14 +254,38 @@ agent-teams chat history <chat-id> --limit 100
 
 # Send a message to a chat
 agent-teams chat send <chat-id> "Hello"
+agent-teams chat send <chat-id> "**Important**: see the [board](https://example.com)" --format markdown
 
 # Edit one of your own chat messages
 agent-teams chat edit <chat-id> <message-id> "Updated text"
+agent-teams chat edit <chat-id> <message-id> "Fixed \`bug\`" --format markdown
 ```
 
 Chat IDs look like `19:guid1_guid2@unq.gbl.spaces` (1:1) or `19:guid@thread.tacv2` (group). Get them from `chat list`. The `48:notes` chat (`type: self`) is your personal "to me" notes thread.
 
 `chat edit` only works on your own messages, and only for chats — Teams channel messages are not editable through this API.
+
+### Message Formatting
+
+`message send`, `chat send`, and `chat edit` accept `--format <text|markdown>` (default `text`).
+
+In `text` mode the content is HTML-escaped, so `<`, `>`, and `&` are sent literally.
+
+In `markdown` mode the content is converted to HTML before sending. Supported syntax:
+
+| Syntax | Renders as |
+| --- | --- |
+| `# Heading` through `###### Heading` | headings |
+| `**bold**`, `_italic_`, `***bold italic***` | emphasis |
+| `` `inline code` `` | inline code |
+| triple-backtick fence, optionally with a language tag | fenced code block |
+| `- item` | bulleted list |
+| `1. item` | numbered list |
+| `> quote` | blockquote |
+| `[label](https://example.com)` | link |
+| `---` | horizontal rule |
+
+Links are restricted to `http:`, `https:`, `mailto:`, root-relative (`/`), and anchor (`#`) URLs; anything else renders as plain text. Raw HTML in the input is escaped, not passed through — there is no `--format html`.
 
 ### Team Commands
 
