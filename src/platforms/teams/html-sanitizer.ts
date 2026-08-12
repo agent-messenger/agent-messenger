@@ -50,7 +50,12 @@ const SAFE_URL_PATTERN = /^(https?:|mailto:|\/|#)/i
 // "/"). Requires a letter immediately after "<" (or after "</"), so a bare
 // "<" not followed by a tag name — e.g. the outer "<" in "<<script>" — is
 // left as plain text instead of being absorbed into a match.
-const TAG_PATTERN = /<(\/)?([a-zA-Z][a-zA-Z0-9]*)([^<>]*)>/g
+//
+// The name accepts hyphens so custom elements match as a whole: without them
+// "<a-b>" matched the "a" prefix and was silently rewritten to "<a>". Matching
+// the full name lets it fail the whitelist and be escaped like any other
+// unknown tag.
+const TAG_PATTERN = /<(\/)?([a-zA-Z][a-zA-Z0-9-]*)([^<>]*)>/g
 
 const ATTR_PATTERN = /([a-zA-Z][a-zA-Z0-9-]*)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/g
 

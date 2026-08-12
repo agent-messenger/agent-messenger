@@ -93,5 +93,12 @@ describe('sanitizeTeamsHtml', () => {
     it('drops a javascript: href even with leading whitespace before it', () => {
       expect(sanitizeTeamsHtml('<a href=" javascript:alert(1)">link</a>')).toBe('<a>link</a>')
     })
+
+    it('escapes hyphenated custom elements instead of rewriting them to a shorter allowed tag', () => {
+      // Without a hyphen in the tag-name pattern, "<a-b>" matched as "<a>" plus
+      // leftover text, silently rewriting an unknown element into an anchor.
+      expect(sanitizeTeamsHtml('<a-b onclick="x">hi</a-b>')).toBe('&lt;a-b onclick="x"&gt;hi&lt;/a-b&gt;')
+      expect(sanitizeTeamsHtml('<my-widget>x</my-widget>')).toBe('&lt;my-widget&gt;x&lt;/my-widget&gt;')
+    })
   })
 })
