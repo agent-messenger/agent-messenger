@@ -2,6 +2,8 @@ import { randomUUID } from 'node:crypto'
 import { readFile } from 'node:fs/promises'
 import { basename } from 'node:path'
 
+import { escapeHtml, markdownToHtml } from '@/shared/utils/markdown-to-html'
+
 import { SUBSTRATE_SEARCH_URL } from './app-config'
 import { TeamsCredentialManager } from './credential-manager'
 import { TeamsTokenProvider } from './token-provider'
@@ -12,6 +14,7 @@ import type {
   TeamsChatType,
   TeamsFile,
   TeamsMessage,
+  TeamsMessageFormat,
   TeamsRegion,
   TeamsSearchResult,
   TeamsTeam,
@@ -230,13 +233,8 @@ async function readDownloadResponse(response: Response, codePrefix: string): Pro
   return Buffer.from(await response.arrayBuffer())
 }
 
-function escapeHtml(value: string): string {
-  return value
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;')
-    .replaceAll("'", '&#39;')
+function formatContent(content: string, format: TeamsMessageFormat): string {
+  return format === 'markdown' ? markdownToHtml(content) : escapeHtml(content)
 }
 
 function withThreadMetadata(message: RawTeamsMessage, rootMessageId?: string): TeamsMessage {
@@ -692,13 +690,17 @@ export class TeamsClient {
       }))
   }
 
-  async sendChatMessage(chatId: string, content: string): Promise<TeamsMessage> {
+  async sendChatMessage(
+    chatId: string,
+    content: string,
+    format: TeamsMessageFormat = 'text',
+  ): Promise<TeamsMessage> {
     interface SendResponse {
       OriginalArrivalTime?: number
     }
     const encodedChatId = encodeURIComponent(chatId)
     const response = await this.request<SendResponse>('POST', `/users/ME/conversations/${encodedChatId}/messages`, {
-      content: escapeHtml(content),
+      content: formatContent(content, format),
       messagetype: 'RichText/Html',
       contenttype: 'text',
     })
@@ -713,7 +715,12 @@ export class TeamsClient {
     }
   }
 
-  async editChatMessage(chatId: string, messageId: string, content: string): Promise<TeamsMessage> {
+  async editChatMessage(
+    chatId: string,
+    messageId: string,
+    content: string,
+    format: TeamsMessageFormat = 'text',
+  ): Promise<TeamsMessage> {
     interface EditResponse {
       edittime?: string | number
     }
@@ -724,7 +731,7 @@ export class TeamsClient {
       'PUT',
       `/users/ME/conversations/${encodedChatId}/messages/${encodedMessageId}`,
       {
-        content: escapeHtml(content),
+        content: formatContent(content, format),
         messagetype: 'RichText/Html',
         contenttype: 'text',
         skypeeditedid: messageId,
@@ -758,12 +765,20 @@ export class TeamsClient {
     )
   }
 
-  async sendMessage(teamId: string, channelId: string, content: string, rootMessageId?: string): Promise<TeamsMessage> {
+  async sendMessage(
+    teamId: string,
+    channelId: string,
+    content: string,
+    rootMessageId?: string,
+    format: TeamsMessageFormat = 'text',
+  ): Promise<TeamsMessage> {
+    const body = formatContent(content, format)
+
     if (rootMessageId) {
       const response = await this.request<RawTeamsMessage>(
         'POST',
         `/csa/${this.region}/api/v2/teams/${teamId}/channels/${channelId}/messages/${rootMessageId}/replies`,
-        { content, parentMessageId: rootMessageId },
+        { content: body, parentMessageId: rootMessageId },
         CSA_API_BASE,
       )
       return withThreadMetadata(response, rootMessageId)
@@ -772,7 +787,7 @@ export class TeamsClient {
     return this.request<TeamsMessage>(
       'POST',
       `/csa/${this.region}/api/v2/teams/${teamId}/channels/${channelId}/messages`,
-      { content },
+      { content: body },
       CSA_API_BASE,
     )
   }

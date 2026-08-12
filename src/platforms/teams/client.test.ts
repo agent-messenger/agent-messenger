@@ -328,6 +328,23 @@ describe('TeamsClient', () => {
         }),
       )
     })
+
+    it('converts markdown to HTML when format is markdown', async () => {
+      mockResponse({ OriginalArrivalTime: 1704067200000 })
+
+      const client = await new TeamsClient().login({ token: 'test-token', accountType: 'personal' })
+      const message = await client.sendChatMessage('19:1on1@unq.gbl.spaces', '**bold** and `code`', 'markdown')
+
+      // 返回值回显用户传入的原始 markdown，而不是转换后的 HTML
+      expect(message.content).toBe('**bold** and `code`')
+      expect(fetchCalls[0].options?.body).toBe(
+        JSON.stringify({
+          content: '<strong>bold</strong> and <code>code</code>',
+          messagetype: 'RichText/Html',
+          contenttype: 'text',
+        }),
+      )
+    })
   })
 
   describe('editChatMessage', () => {
@@ -346,6 +363,23 @@ describe('TeamsClient', () => {
       expect(fetchCalls[0].options?.body).toBe(
         JSON.stringify({
           content: 'a &lt;b&gt; &amp; c',
+          messagetype: 'RichText/Html',
+          contenttype: 'text',
+          skypeeditedid: 'msg1',
+        }),
+      )
+    })
+
+    it('converts markdown to HTML when format is markdown', async () => {
+      mockResponse({ edittime: 1704067200000 })
+
+      const client = await new TeamsClient().login({ token: 'test-token', accountType: 'personal' })
+      const message = await client.editChatMessage('19:1on1@unq.gbl.spaces', 'msg1', '**bold**', 'markdown')
+
+      expect(message.content).toBe('**bold**')
+      expect(fetchCalls[0].options?.body).toBe(
+        JSON.stringify({
+          content: '<strong>bold</strong>',
           messagetype: 'RichText/Html',
           contenttype: 'text',
           skypeeditedid: 'msg1',
@@ -436,6 +470,53 @@ describe('TeamsClient', () => {
       expect(message.root_message_id).toBe('root1')
       expect(message.parent_message_id).toBe('root1')
       expect(message.is_thread_reply).toBe(true)
+    })
+
+    it('escapes HTML in channel messages when format is text', async () => {
+      mockResponse({
+        id: 'msg1',
+        channel_id: 'ch1',
+        author: { id: '123', displayName: 'Test User' },
+        content: 'a &lt;b&gt; &amp; c',
+        timestamp: '2024-01-01T00:00:00.000Z',
+      })
+
+      const client = await new TeamsClient().login({ token: 'test-token', region: 'emea' })
+      await client.sendMessage('111', 'ch1', 'a <b> & c')
+
+      expect(fetchCalls[0].options?.body).toBe(JSON.stringify({ content: 'a &lt;b&gt; &amp; c' }))
+    })
+
+    it('converts markdown to HTML for channel messages', async () => {
+      mockResponse({
+        id: 'msg1',
+        channel_id: 'ch1',
+        author: { id: '123', displayName: 'Test User' },
+        content: '<strong>bold</strong>',
+        timestamp: '2024-01-01T00:00:00.000Z',
+      })
+
+      const client = await new TeamsClient().login({ token: 'test-token', region: 'emea' })
+      await client.sendMessage('111', 'ch1', '**bold**', undefined, 'markdown')
+
+      expect(fetchCalls[0].options?.body).toBe(JSON.stringify({ content: '<strong>bold</strong>' }))
+    })
+
+    it('converts markdown to HTML for channel thread replies', async () => {
+      mockResponse({
+        id: 'reply1',
+        channel_id: 'ch1',
+        author: { id: '123', displayName: 'Test User' },
+        content: '<strong>bold</strong>',
+        timestamp: '2024-01-01T00:01:00.000Z',
+      })
+
+      const client = await new TeamsClient().login({ token: 'test-token', region: 'emea' })
+      await client.sendMessage('111', 'ch1', '**bold**', 'root1', 'markdown')
+
+      expect(fetchCalls[0].options?.body).toBe(
+        JSON.stringify({ content: '<strong>bold</strong>', parentMessageId: 'root1' }),
+      )
     })
   })
 
