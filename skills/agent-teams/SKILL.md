@@ -287,13 +287,15 @@ In `markdown` mode the content is converted to HTML before sending. Supported sy
 
 Links are restricted to `http:`, `https:`, `mailto:`, root-relative (`/`), and anchor (`#`) URLs; anything else renders as plain text.
 
-In `html` mode the content is sent verbatim, with no escaping or conversion. Use it when you need Teams-specific markup that markdown cannot express — most commonly @mentions:
+In `html` mode the content is filtered through a tag whitelist rather than sent verbatim. Use it when you need Teams-specific markup that markdown cannot express — most commonly @mentions:
 
 ```bash
 agent-teams message send <team-id> <channel-id> "Hey <at id=\"29:abc\">John</at>, build is ready" --format html
 ```
 
-Because nothing is escaped, only pass content you construct yourself. Untrusted input belongs in `text` mode.
+Allowed tags: `at`, `a`, `b`, `i`, `u`, `s`, `strong`, `em`, `code`, `pre`, `br`, `p`, `ul`, `ol`, `li`, `blockquote`, `h1`–`h6`, `hr`. `<at>` only keeps its `id` attribute; `<a>` only keeps `href`, and only when it matches the same URL whitelist as markdown mode; every other tag keeps no attributes at all. Anything not on the list — `<script>`, `<img>`, `on*` event attributes, malformed or unrecognized tags — is escaped or stripped rather than passed through.
+
+The whitelist limits the blast radius, but it does not make the mode safe for arbitrary input: only pass content you construct yourself. Untrusted input belongs in `text` mode.
 
 ### Team Commands
 

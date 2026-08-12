@@ -6,6 +6,7 @@ import { escapeHtml, markdownToHtml } from '@/shared/utils/markdown-to-html'
 
 import { SUBSTRATE_SEARCH_URL } from './app-config'
 import { TeamsCredentialManager } from './credential-manager'
+import { sanitizeTeamsHtml } from './html-sanitizer'
 import { TeamsTokenProvider } from './token-provider'
 import type {
   TeamsAccountType,
@@ -234,7 +235,7 @@ async function readDownloadResponse(response: Response, codePrefix: string): Pro
 }
 
 function formatContent(content: string, format: TeamsMessageFormat): string {
-  if (format === 'html') return content
+  if (format === 'html') return sanitizeTeamsHtml(content)
   return format === 'markdown' ? markdownToHtml(content) : escapeHtml(content)
 }
 
