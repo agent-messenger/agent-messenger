@@ -1,13 +1,16 @@
 import { afterEach, beforeEach, expect, mock, spyOn, it } from 'bun:test'
+import { existsSync, readFileSync, rmSync } from 'node:fs'
 
 import { TeamsClient } from '../client'
 import { TeamsCredentialManager } from '../credential-manager'
-import { editAction, historyAction, listAction, sendAction } from './chat'
+import { downloadImageAction, editAction, historyAction, listAction, sendAction, sendImageAction } from './chat'
 
 let clientListChatsSpy: ReturnType<typeof spyOn>
 let clientGetChatMessagesSpy: ReturnType<typeof spyOn>
 let clientSendChatMessageSpy: ReturnType<typeof spyOn>
 let clientEditChatMessageSpy: ReturnType<typeof spyOn>
+let clientSendChatImageSpy: ReturnType<typeof spyOn>
+let clientDownloadChatImageSpy: ReturnType<typeof spyOn>
 let credManagerLoadSpy: ReturnType<typeof spyOn>
 const originalConsoleLog = console.log
 
@@ -42,6 +45,22 @@ beforeEach(() => {
     content: 'Edited content',
     timestamp: '2025-01-29T10:05:00Z',
   })
+  clientSendChatImageSpy = spyOn(TeamsClient.prototype, 'sendChatImage').mockResolvedValue({
+    id: '1704067200001',
+    channel_id: '48:notes',
+    author: { id: 'ME', displayName: 'Me' },
+    content: 'approval.png',
+    timestamp: '2025-01-29T10:01:00Z',
+    message_type: 'RichText/UriObject',
+    image_object_id: '0-weu-d1-image',
+  })
+  clientDownloadChatImageSpy = spyOn(TeamsClient.prototype, 'downloadChatImage').mockResolvedValue({
+    image_object_id: '0-frca-d16-image',
+    content_type: 'image/png',
+    extension: 'png',
+    size: 8,
+    buffer: Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]),
+  })
 
   credManagerLoadSpy = spyOn(TeamsCredentialManager.prototype, 'loadConfig').mockResolvedValue({
     current_account: 'personal',
@@ -61,8 +80,11 @@ afterEach(() => {
   clientGetChatMessagesSpy?.mockRestore()
   clientSendChatMessageSpy?.mockRestore()
   clientEditChatMessageSpy?.mockRestore()
+  clientSendChatImageSpy?.mockRestore()
+  clientDownloadChatImageSpy?.mockRestore()
   credManagerLoadSpy?.mockRestore()
   console.log = originalConsoleLog
+  rmSync('/tmp/test-teams-chat-download.png', { force: true })
 })
 
 it('list: returns array of chats', async () => {
@@ -107,6 +129,27 @@ it('send: returns sent message', async () => {
   expect(consoleSpy).toHaveBeenCalled()
   const output = consoleSpy.mock.calls[0][0]
   expect(output).toContain('Hello world')
+})
+
+it('send-image: sends an image to an exact chat', async () => {
+  const consoleSpy = mock((_msg: string) => {})
+  console.log = consoleSpy
+  await sendImageAction('48:notes', '/tmp/approval.png', { pretty: false })
+  expect(clientSendChatImageSpy).toHaveBeenCalledWith('48:notes', '/tmp/approval.png')
+  expect(consoleSpy.mock.calls[0][0]).toContain('0-weu-d1-image')
+})
+
+it('download-image: writes the verified image to the exact output path', async () => {
+  const consoleSpy = mock((_msg: string) => {})
+  console.log = consoleSpy
+  const outputPath = '/tmp/test-teams-chat-download.png'
+
+  await downloadImageAction('0-frca-d16-image', outputPath, { pretty: false })
+
+  expect(clientDownloadChatImageSpy).toHaveBeenCalledWith('0-frca-d16-image')
+  expect(existsSync(outputPath)).toBe(true)
+  expect(readFileSync(outputPath)).toEqual(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]))
+  expect(consoleSpy.mock.calls[0][0]).toContain(outputPath)
 })
 
 it('edit: edits a chat message and returns updated content', async () => {

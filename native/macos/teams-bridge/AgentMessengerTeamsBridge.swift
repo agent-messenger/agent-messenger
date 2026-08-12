@@ -20,9 +20,21 @@ private struct BridgeRequest: Codable {
     let profile: String?
     let timeout_ms: Int?
     let input_files: [BridgeInputFile]?
+    let output_files: [BridgeOutputFileRequest]?
 }
 
 private struct BridgeInputFile: Codable {
+    let argument_index: Int
+    let filename: String
+    let bytes: Data
+}
+
+private struct BridgeOutputFileRequest: Codable {
+    let argument_index: Int
+    let filename: String
+}
+
+private struct BridgeOutputFile: Codable {
     let argument_index: Int
     let filename: String
     let bytes: Data
@@ -34,6 +46,171 @@ private struct BridgeResponse: Codable {
     let exit_code: Int32
     let stdout: String
     let stderr: String
+    let output_files: [BridgeOutputFile]?
+}
+
+private enum ApprovedFileCommand {
+    case input(argumentIndex: Int)
+    case output(argumentIndex: Int)
+}
+
+private func approvedFileCommand(_ args: [String]) throws -> ApprovedFileCommand? {
+    var positionals: [(index: Int, value: String)] = []
+    var optionsEnded = false
+    var index = 0
+    while index < args.count {
+        let value = args[index]
+        if !optionsEnded, value == "--" {
+            optionsEnded = true
+            index += 1
+            continue
+        }
+        if !optionsEnded, value == "--pretty" {
+            index += 1
+            continue
+        }
+        if !optionsEnded, value == "--account" || value == "--team" {
+            guard index + 1 < args.count else {
+                throw BridgeError.invalidRequest("Teams bridge command has an option without a value.")
+            }
+            index += 2
+            continue
+        }
+        if !optionsEnded, value.hasPrefix("--account=") || value.hasPrefix("--team=") {
+            guard value.last != "=" else {
+                throw BridgeError.invalidRequest("Teams bridge command has an empty option value.")
+            }
+            index += 1
+            continue
+        }
+        positionals.append((index, value))
+        index += 1
+    }
+
+    guard positionals.count >= 2 else { return nil }
+    let command = positionals[0].value
+    let action = positionals[1].value
+    switch (command, action) {
+    case ("file", "upload"):
+        guard positionals.count == 5 else {
+            throw BridgeError.invalidRequest("Use: agent-teams file upload <team-id> <channel-id> <path> [--pretty].")
+        }
+        return .input(argumentIndex: positionals[4].index)
+    case ("chat", "send-image"):
+        guard positionals.count == 4 else {
+            throw BridgeError.invalidRequest("Use: agent-teams chat send-image <chat-id> <path> [--pretty].")
+        }
+        return .input(argumentIndex: positionals[3].index)
+    case ("file", "download"):
+        guard positionals.count == 6 else {
+            throw BridgeError.invalidRequest("Teams bridge file downloads require one staged output path.")
+        }
+        return .output(argumentIndex: positionals[5].index)
+    case ("chat", "download-image"):
+        guard positionals.count == 4 else {
+            throw BridgeError.invalidRequest("Teams bridge image downloads require one staged output path.")
+        }
+        return .output(argumentIndex: positionals[3].index)
+    default:
+        return nil
+    }
+}
+
+private func stagedFileArgs(
+    _ args: [String],
+    request: BridgeRequest,
+    stagedRoot: URL
+) throws -> ([String], [BridgeOutputFileRequest]) {
+    let inputs = request.input_files ?? []
+    let outputs = request.output_files ?? []
+    var rewritten = args
+
+    switch try approvedFileCommand(args) {
+    case .input(let argumentIndex):
+        guard inputs.count == 1, outputs.isEmpty else {
+            throw BridgeError.invalidRequest("Teams bridge upload commands require exactly one input file declaration.")
+        }
+        let input = inputs[0]
+        guard input.argument_index == argumentIndex, argumentIndex < args.count,
+              input.bytes.count <= 20 * 1_024 * 1_024,
+              args[argumentIndex] == input.filename,
+              !input.filename.isEmpty,
+              input.filename == URL(fileURLWithPath: input.filename).lastPathComponent else {
+            throw BridgeError.invalidRequest("Teams bridge input file does not match the approved upload command.")
+        }
+        let inputRoot = stagedRoot.appendingPathComponent("input", isDirectory: true)
+        let stagedFile = inputRoot.appendingPathComponent(input.filename, isDirectory: false)
+        try writePrivate(input.bytes, to: stagedFile)
+        rewritten[argumentIndex] = stagedFile.path
+        return (rewritten, [])
+    case .output(let argumentIndex):
+        guard inputs.isEmpty, outputs.count == 1 else {
+            throw BridgeError.invalidRequest("Teams bridge download commands require exactly one output file declaration.")
+        }
+        let output = outputs[0]
+        guard output.argument_index == argumentIndex, argumentIndex < args.count,
+              args[argumentIndex] == output.filename,
+              !output.filename.isEmpty,
+              output.filename == URL(fileURLWithPath: output.filename).lastPathComponent else {
+            throw BridgeError.invalidRequest("Teams bridge output file does not match the approved download command.")
+        }
+        let outputRoot = stagedRoot.appendingPathComponent("output", isDirectory: true)
+        try ensureDirectory(outputRoot)
+        rewritten[argumentIndex] = outputRoot.appendingPathComponent(output.filename, isDirectory: false).path
+        return (rewritten, outputs)
+    case nil:
+        guard inputs.isEmpty, outputs.isEmpty else {
+            throw BridgeError.invalidRequest("Teams bridge file declarations are not allowed for this command.")
+        }
+        return (rewritten, [])
+    }
+}
+
+private func collectOutputFiles(_ requests: [BridgeOutputFileRequest], stagedRoot: URL) throws -> [BridgeOutputFile]? {
+    guard !requests.isEmpty else { return nil }
+    let outputRoot = stagedRoot.appendingPathComponent("output", isDirectory: true)
+    let outputRootDescriptor = open(outputRoot.path, O_RDONLY | O_DIRECTORY | O_NOFOLLOW | O_CLOEXEC)
+    guard outputRootDescriptor >= 0 else {
+        throw BridgeError.runtimeFailed("Teams bridge output directory is unavailable.")
+    }
+    defer { close(outputRootDescriptor) }
+    return try requests.map { request in
+        guard !request.filename.isEmpty,
+              request.filename == URL(fileURLWithPath: request.filename).lastPathComponent else {
+            throw BridgeError.runtimeFailed("Teams bridge output has an invalid name.")
+        }
+        let fileDescriptor = openat(outputRootDescriptor, request.filename, O_RDONLY | O_NOFOLLOW | O_CLOEXEC)
+        guard fileDescriptor >= 0 else {
+            throw BridgeError.runtimeFailed("Teams bridge output is missing or exceeds 20 MiB.")
+        }
+        defer { close(fileDescriptor) }
+        var status = stat()
+        guard fstat(fileDescriptor, &status) == 0,
+              status.st_mode & S_IFMT == S_IFREG,
+              status.st_size >= 0,
+              status.st_size <= 20 * 1_024 * 1_024 else {
+            throw BridgeError.runtimeFailed("Teams bridge output is missing or exceeds 20 MiB.")
+        }
+        var bytes = Data()
+        bytes.reserveCapacity(Int(status.st_size))
+        var chunk = [UInt8](repeating: 0, count: 64 * 1_024)
+        while true {
+            let count = chunk.withUnsafeMutableBytes { rawBuffer in
+                Darwin.read(fileDescriptor, rawBuffer.baseAddress, rawBuffer.count)
+            }
+            if count < 0, errno == EINTR { continue }
+            guard count >= 0, bytes.count + count <= 20 * 1_024 * 1_024 else {
+                throw BridgeError.runtimeFailed("Teams bridge output is missing or exceeds 20 MiB.")
+            }
+            if count == 0 { break }
+            bytes.append(contentsOf: chunk.prefix(count))
+        }
+        return BridgeOutputFile(
+            argument_index: request.argument_index,
+            filename: request.filename,
+            bytes: bytes
+        )
+    }
 }
 
 private enum BridgeError: LocalizedError {
@@ -144,26 +321,6 @@ private func validatedArgs(_ request: BridgeRequest) throws -> [String] {
         }
     }
     return args
-}
-
-private func stagedInputArgs(_ args: [String], request: BridgeRequest, stagedRoot: URL) throws -> [String] {
-    guard let inputs = request.input_files, !inputs.isEmpty else { return args }
-    guard inputs.count == 1 else { throw BridgeError.invalidRequest("Teams bridge accepts one input file per command.") }
-    let input = inputs[0]
-    guard input.argument_index >= 0, input.argument_index < args.count,
-          input.argument_index >= 4,
-          args[input.argument_index - 4] == "file", args[input.argument_index - 3] == "upload",
-          args[input.argument_index - 2].isEmpty == false, args[input.argument_index - 1].isEmpty == false,
-          input.bytes.count <= 20 * 1_024 * 1_024,
-          !input.filename.isEmpty, input.filename == URL(fileURLWithPath: input.filename).lastPathComponent else {
-        throw BridgeError.invalidRequest("Teams bridge input file does not match a file upload command.")
-    }
-    let inputRoot = stagedRoot.appendingPathComponent("input", isDirectory: true)
-    let stagedFile = inputRoot.appendingPathComponent(input.filename, isDirectory: false)
-    try writePrivate(input.bytes, to: stagedFile)
-    var rewritten = args
-    rewritten[input.argument_index] = stagedFile.path
-    return rewritten
 }
 
 private func selectedConfigDirectory(for request: BridgeRequest, paths: BridgePaths) throws -> URL {
@@ -529,7 +686,7 @@ private final class TeamsBridgeService: NSObject, TeamsBridgeXPCProtocol {
                 try ensureDerivedTeamsKey(configDirectory: config)
                 let stage = try stageTeamsProfiles(sourceRoot: sourceRoot, paths: self.paths, requestID: request.id)
                 stagedRoot = stage
-                let runtimeArgs = try stagedInputArgs(args, request: request, stagedRoot: stage)
+                let (runtimeArgs, outputRequests) = try stagedFileArgs(args, request: request, stagedRoot: stage)
                 var result = try runAgentTeams(
                     args: runtimeArgs,
                     configDirectory: config,
@@ -545,18 +702,40 @@ private final class TeamsBridgeService: NSObject, TeamsBridgeXPCProtocol {
                         timeoutMilliseconds: request.timeout_ms ?? 90_000
                     )
                 }
-                response = BridgeResponse(version: 1, id: request.id, exit_code: result.0, stdout: result.1, stderr: result.2)
+                let outputFiles = result.0 == 0 ? try collectOutputFiles(outputRequests, stagedRoot: stage) : nil
+                response = BridgeResponse(
+                    version: 1,
+                    id: request.id,
+                    exit_code: result.0,
+                    stdout: result.1,
+                    stderr: result.2,
+                    output_files: outputFiles
+                )
             } catch {
                 response = BridgeResponse(
                     version: 1,
                     id: responseID,
                     exit_code: 70,
                     stdout: "",
-                    stderr: "\(error.localizedDescription)\n"
+                    stderr: "\(error.localizedDescription)\n",
+                    output_files: nil
                 )
             }
             if let stagedRoot { try? FileManager.default.removeItem(at: stagedRoot) }
-            reply((try? JSONEncoder().encode(response)) ?? Data())
+            let encodedResponse = try? JSONEncoder().encode(response)
+            if let encodedResponse, encodedResponse.count <= 32 * 1_024 * 1_024 {
+                reply(encodedResponse)
+            } else {
+                let boundedResponse = BridgeResponse(
+                    version: 1,
+                    id: responseID,
+                    exit_code: 70,
+                    stdout: "",
+                    stderr: "Teams bridge response exceeded the 32 MiB safety limit.\n",
+                    output_files: nil
+                )
+                reply((try? JSONEncoder().encode(boundedResponse)) ?? Data())
+            }
         }
     }
 }
@@ -606,11 +785,11 @@ private final class BridgeDelegate: NSObject, NSApplicationDelegate {
 }
 
 private func runSelfTest() throws {
-    let valid = BridgeRequest(version: 1, id: "self-test", args: ["auth", "extract"], profile: "proof", timeout_ms: 5_000, input_files: nil)
+    let valid = BridgeRequest(version: 1, id: "self-test", args: ["auth", "extract"], profile: "proof", timeout_ms: 5_000, input_files: nil, output_files: nil)
     guard try validatedArgs(valid).suffix(2) == ["--source", "desktop"] else {
         throw BridgeError.invalidRequest("Desktop source injection failed.")
     }
-    let invalid = BridgeRequest(version: 1, id: "self-test", args: ["auth", "login"], profile: "proof", timeout_ms: 5_000, input_files: nil)
+    let invalid = BridgeRequest(version: 1, id: "self-test", args: ["auth", "login"], profile: "proof", timeout_ms: 5_000, input_files: nil, output_files: nil)
     do {
         _ = try validatedArgs(invalid)
         throw BridgeError.invalidRequest("Device-code guard failed.")
@@ -624,15 +803,46 @@ private func runSelfTest() throws {
     let upload = BridgeRequest(
         version: 1,
         id: "self-test",
-        args: ["--account", "work", "file", "upload", "team", "channel", "/outside/approval.png"],
+        args: ["--account", "work", "file", "upload", "team", "channel", "approval.png"],
         profile: "proof",
         timeout_ms: 5_000,
-        input_files: [BridgeInputFile(argument_index: 6, filename: "approval.png", bytes: Data("image".utf8))]
+        input_files: [BridgeInputFile(argument_index: 6, filename: "approval.png", bytes: Data("image".utf8))],
+        output_files: nil
     )
-    let stagedArgs = try stagedInputArgs(upload.args, request: upload, stagedRoot: testRoot)
+    let (stagedArgs, _) = try stagedFileArgs(upload.args, request: upload, stagedRoot: testRoot)
     guard stagedArgs[6].hasPrefix(testRoot.path),
           try Data(contentsOf: URL(fileURLWithPath: stagedArgs[6])) == Data("image".utf8) else {
         throw BridgeError.invalidRequest("Input file staging self-test failed.")
+    }
+    let missingInput = BridgeRequest(
+        version: 1,
+        id: "self-test",
+        args: upload.args,
+        profile: "proof",
+        timeout_ms: 5_000,
+        input_files: nil,
+        output_files: nil
+    )
+    do {
+        _ = try stagedFileArgs(missingInput.args, request: missingInput, stagedRoot: testRoot)
+        throw BridgeError.invalidRequest("Missing input file declaration guard failed.")
+    } catch BridgeError.invalidRequest {
+        // Expected.
+    }
+    let duplicateInput = BridgeRequest(
+        version: 1,
+        id: "self-test",
+        args: upload.args,
+        profile: "proof",
+        timeout_ms: 5_000,
+        input_files: upload.input_files! + upload.input_files!,
+        output_files: nil
+    )
+    do {
+        _ = try stagedFileArgs(duplicateInput.args, request: duplicateInput, stagedRoot: testRoot)
+        throw BridgeError.invalidRequest("Duplicate input file declaration guard failed.")
+    } catch BridgeError.invalidRequest {
+        // Expected.
     }
     let mismatched = BridgeRequest(
         version: 1,
@@ -640,11 +850,71 @@ private func runSelfTest() throws {
         args: ["message", "send", "team", "channel", "hello", "--file", "/outside/approval.png"],
         profile: "proof",
         timeout_ms: 5_000,
-        input_files: [BridgeInputFile(argument_index: 6, filename: "approval.png", bytes: Data("image".utf8))]
+        input_files: [BridgeInputFile(argument_index: 6, filename: "approval.png", bytes: Data("image".utf8))],
+        output_files: nil
     )
     do {
-        _ = try stagedInputArgs(mismatched.args, request: mismatched, stagedRoot: testRoot)
+        _ = try stagedFileArgs(mismatched.args, request: mismatched, stagedRoot: testRoot)
         throw BridgeError.invalidRequest("Non-upload file staging guard failed.")
+    } catch BridgeError.invalidRequest {
+        // Expected.
+    }
+    let download = BridgeRequest(
+        version: 1,
+        id: "self-test",
+        args: ["--account", "personal", "chat", "download-image", "0-frca-d16-image", "download-image"],
+        profile: "proof",
+        timeout_ms: 5_000,
+        input_files: nil,
+        output_files: [BridgeOutputFileRequest(argument_index: 5, filename: "download-image")]
+    )
+    let (downloadArgs, downloadOutputs) = try stagedFileArgs(download.args, request: download, stagedRoot: testRoot)
+    guard downloadArgs[5].hasPrefix(testRoot.path) else {
+        throw BridgeError.invalidRequest("Output file staging self-test failed.")
+    }
+    let stagedOutput = URL(fileURLWithPath: downloadArgs[5])
+    try writePrivate(Data("downloaded".utf8), to: stagedOutput)
+    guard try collectOutputFiles(downloadOutputs, stagedRoot: testRoot)?.first?.bytes == Data("downloaded".utf8) else {
+        throw BridgeError.invalidRequest("Output file collection self-test failed.")
+    }
+    try FileManager.default.removeItem(at: stagedOutput)
+    let escapedOutput = testRoot.appendingPathComponent("escaped-output", isDirectory: false)
+    try Data("blocked".utf8).write(to: escapedOutput)
+    try FileManager.default.createSymbolicLink(
+        at: stagedOutput,
+        withDestinationURL: escapedOutput
+    )
+    do {
+        _ = try collectOutputFiles(downloadOutputs, stagedRoot: testRoot)
+        throw BridgeError.invalidRequest("Symbolic-link output guard failed.")
+    } catch BridgeError.runtimeFailed {
+        // Expected.
+    }
+    let fileDownload = BridgeRequest(
+        version: 1,
+        id: "self-test",
+        args: ["file", "--team", "team", "download", "team", "--account=work", "channel", "file", "--pretty", "download-output"],
+        profile: "proof",
+        timeout_ms: 5_000,
+        input_files: nil,
+        output_files: [BridgeOutputFileRequest(argument_index: 9, filename: "download-output")]
+    )
+    let (fileDownloadArgs, _) = try stagedFileArgs(fileDownload.args, request: fileDownload, stagedRoot: testRoot)
+    guard fileDownloadArgs[9].hasPrefix(testRoot.path) else {
+        throw BridgeError.invalidRequest("Channel file output staging self-test failed.")
+    }
+    let wrongCommandOutput = BridgeRequest(
+        version: 1,
+        id: "self-test",
+        args: ["chat", "history", "chat"],
+        profile: "proof",
+        timeout_ms: 5_000,
+        input_files: nil,
+        output_files: [BridgeOutputFileRequest(argument_index: 2, filename: "chat")]
+    )
+    do {
+        _ = try stagedFileArgs(wrongCommandOutput.args, request: wrongCommandOutput, stagedRoot: testRoot)
+        throw BridgeError.invalidRequest("Wrong-command output declaration guard failed.")
     } catch BridgeError.invalidRequest {
         // Expected.
     }

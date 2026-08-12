@@ -90,4 +90,5 @@ codesign --force --options runtime --timestamp --sign "$IDENTITY" \
 codesign --verify --deep --strict "$APP"
 codesign --verify --strict "$CLIENT"
 "$APP_EXECUTABLE" --self-test
+"$CLIENT" --self-test
 printf '%s\n%s\n' "$APP" "$CLIENT"

@@ -187,6 +187,7 @@
     "commander": "^11.1.0",
     "crypto-js": "^4.2.0",
     "curve25519-js": "^0.0.4",
+    "jpeg-js": "^0.4.4",
     "jsqr": "^1.4.0",
     "node-bignumber": "^1.2.2",
     "node-int64": "^0.4.0",

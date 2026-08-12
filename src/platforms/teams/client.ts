@@ -2,6 +2,9 @@ import { randomUUID } from 'node:crypto'
 import { readFile } from 'node:fs/promises'
 import { basename } from 'node:path'
 
+import { decode as decodeJpeg } from 'jpeg-js'
+import { PNG } from 'pngjs'
+
 import { SUBSTRATE_SEARCH_URL } from './app-config'
 import { TeamsCredentialManager } from './credential-manager'
 import { TeamsTokenProvider } from './token-provider'
@@ -9,6 +12,7 @@ import type {
   TeamsAccountType,
   TeamsChannel,
   TeamsChat,
+  TeamsChatImageDownload,
   TeamsChatType,
   TeamsFile,
   TeamsMessage,
@@ -38,6 +42,11 @@ const BASE_BACKOFF_MS = 100
 const DEFAULT_REGION: TeamsRegion = 'amer'
 const REGIONS: TeamsRegion[] = ['amer', 'emea', 'apac']
 const GRAPH_API_BASE = 'https://graph.microsoft.com/v1.0'
+const AMS_API_BASE = 'https://api.asm.skype.com/v1'
+const MAX_CHAT_IMAGE_BYTES = 20 * 1_024 * 1_024
+const MAX_CHAT_IMAGE_PIXELS = 40_000_000
+const MAX_CHAT_IMAGE_OBJECT_ID_BYTES = 256
+const CHAT_IMAGE_OBJECT_ID = /^0-[a-z0-9]+-[a-z0-9-]+$/i
 
 // Personal (Teams for Life) skypetokens carry a consumer `skypeid` (e.g.
 // "live:..." or "8:live:..."); work/school tokens carry an org identity. Used
@@ -52,6 +61,162 @@ function isPersonalToken(token: string): boolean {
   } catch {
     return false
   }
+}
+
+function escapeXmlAttribute(value: string): string {
+  return escapeHtml(value).replace(/&quot;/g, '&quot;')
+}
+
+function validImageDimensions(width: number, height: number): boolean {
+  return width > 0 && height > 0 && width <= MAX_CHAT_IMAGE_PIXELS / height
+}
+
+function jpegMetadata(bytes: Buffer): { contentType: 'image/jpeg'; width: number; height: number } | null {
+  if (bytes.length < 4 || bytes[0] !== 0xff || bytes[1] !== 0xd8) return null
+  const frameMarkers = new Set([0xc0, 0xc1, 0xc2, 0xc3, 0xc5, 0xc6, 0xc7, 0xc9, 0xca, 0xcb, 0xcd, 0xce, 0xcf])
+  let offset = 2
+  let width = 0
+  let height = 0
+  let sawScan = false
+  let sawScanData = false
+  let inScan = false
+
+  while (offset < bytes.length) {
+    if (bytes[offset] !== 0xff) {
+      if (!inScan) return null
+      sawScanData = true
+      offset++
+      continue
+    }
+    while (offset < bytes.length && bytes[offset] === 0xff) offset++
+    if (offset >= bytes.length) return null
+    const marker = bytes[offset++]
+    if (inScan && marker === 0x00) {
+      sawScanData = true
+      continue
+    }
+    if (inScan && marker >= 0xd0 && marker <= 0xd7) continue
+    inScan = false
+    if (marker === 0xd9) {
+      if (offset !== bytes.length || !sawScan || !sawScanData || !validImageDimensions(width, height)) return null
+      try {
+        const decoded = decodeJpeg(bytes, {
+          formatAsRGBA: false,
+          tolerantDecoding: false,
+          maxResolutionInMP: MAX_CHAT_IMAGE_PIXELS / 1_000_000,
+          maxMemoryUsageInMB: 256,
+        })
+        return decoded.width === width && decoded.height === height
+          ? { contentType: 'image/jpeg', width, height }
+          : null
+      } catch {
+        return null
+      }
+    }
+    if (marker === 0xd8 || marker === 0x01 || (marker >= 0xd0 && marker <= 0xd7)) return null
+    if (offset + 2 > bytes.length) return null
+    const length = bytes.readUInt16BE(offset)
+    if (length < 2 || offset + length > bytes.length) return null
+    if (frameMarkers.has(marker)) {
+      if (length < 8 || width !== 0 || height !== 0) return null
+      height = bytes.readUInt16BE(offset + 3)
+      width = bytes.readUInt16BE(offset + 5)
+      const components = bytes[offset + 7]
+      if (length !== 8 + 3 * components || !validImageDimensions(width, height)) return null
+    }
+    if (marker === 0xda) {
+      if (!validImageDimensions(width, height)) return null
+      sawScan = true
+      inScan = true
+    }
+    offset += length
+  }
+  return null
+}
+
+function imageMetadata(bytes: Buffer): { contentType: 'image/jpeg' | 'image/png'; width: number; height: number } {
+  if (
+    bytes.length >= 33 &&
+    bytes.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10])) &&
+    bytes.readUInt32BE(8) === 13 &&
+    bytes.toString('ascii', 12, 16) === 'IHDR'
+  ) {
+    const width = bytes.readUInt32BE(16)
+    const height = bytes.readUInt32BE(20)
+    if (validImageDimensions(width, height)) {
+      try {
+        const decoded = PNG.sync.read(bytes, { checkCRC: true })
+        if (decoded.width === width && decoded.height === height) {
+          return { contentType: 'image/png', width, height }
+        }
+      } catch {
+        // Try JPEG before returning the common validation error.
+      }
+    }
+  }
+  const jpeg = jpegMetadata(bytes)
+  if (jpeg) return jpeg
+  throw new TeamsError('Chat image must be a valid PNG or JPEG file.', 'invalid_chat_image_signature')
+}
+
+function validChatImageObjectId(value: unknown): value is string {
+  return (
+    typeof value === 'string' &&
+    Buffer.byteLength(value, 'ascii') <= MAX_CHAT_IMAGE_OBJECT_ID_BYTES &&
+    CHAT_IMAGE_OBJECT_ID.test(value)
+  )
+}
+
+function downloadedImageType(bytes: Buffer): Pick<TeamsChatImageDownload, 'content_type' | 'extension'> {
+  const { contentType } = imageMetadata(bytes)
+  return contentType === 'image/png'
+    ? { content_type: 'image/png', extension: 'png' }
+    : { content_type: 'image/jpeg', extension: 'jpg' }
+}
+
+async function readChatImageResponse(response: Response): Promise<Buffer> {
+  if (response.status >= 300 && response.status < 400) {
+    throw new TeamsError('Teams chat image download refused a redirect.', 'chat_image_redirect_refused')
+  }
+  if (!response.ok) {
+    throw new TeamsError(
+      `Teams chat image download failed with HTTP ${response.status}.`,
+      `chat_image_download_${response.status}`,
+    )
+  }
+
+  const contentType = response.headers.get('Content-Type')?.split(';', 1)[0].trim().toLowerCase()
+  if (contentType !== 'image/png' && contentType !== 'image/jpeg') {
+    throw new TeamsError('Teams chat image response must be PNG or JPEG.', 'invalid_chat_image_content_type')
+  }
+  const contentLength = response.headers.get('Content-Length')
+  if (contentLength !== null) {
+    const declaredLength = Number(contentLength)
+    if (!Number.isSafeInteger(declaredLength) || declaredLength < 1 || declaredLength > MAX_CHAT_IMAGE_BYTES) {
+      throw new TeamsError('Teams chat image must be between 1 byte and 20 MiB.', 'invalid_chat_image_size')
+    }
+  }
+
+  const reader = response.body?.getReader()
+  if (!reader) {
+    throw new TeamsError('Teams chat image response had no body.', 'chat_image_body_missing')
+  }
+  const chunks: Buffer[] = []
+  let size = 0
+  while (true) {
+    const { done, value } = await reader.read()
+    if (done) break
+    size += value.byteLength
+    if (size > MAX_CHAT_IMAGE_BYTES) {
+      await reader.cancel()
+      throw new TeamsError('Teams chat image must be between 1 byte and 20 MiB.', 'invalid_chat_image_size')
+    }
+    chunks.push(Buffer.from(value))
+  }
+  if (size === 0) {
+    throw new TeamsError('Teams chat image must be between 1 byte and 20 MiB.', 'invalid_chat_image_size')
+  }
+  return Buffer.concat(chunks, size)
 }
 
 function stripHtml(content: string | undefined): string | undefined {
@@ -667,6 +832,7 @@ export class TeamsClient {
       composetime?: string
       originalarrivaltime?: string
       messagetype?: string
+      amsreferences?: string[]
     }
     interface MessagesResponse {
       messages: ChatMessage[]
@@ -677,7 +843,7 @@ export class TeamsClient {
       `/users/ME/conversations/${encodedChatId}/messages?startTime=0&view=msnp24Equivalent&pageSize=${limit}`,
     )
 
-    const userMessageTypes = new Set(['Text', 'RichText/Html', 'RichText/Media_CallRecording'])
+    const userMessageTypes = new Set(['Text', 'RichText/Html', 'RichText/Media_CallRecording', 'RichText/UriObject'])
     return (data.messages ?? [])
       .filter((msg) => !msg.messagetype || userMessageTypes.has(msg.messagetype))
       .slice(0, limit)
@@ -690,6 +856,8 @@ export class TeamsClient {
         },
         content: stripHtml(msg.content) ?? '',
         timestamp: msg.composetime ?? msg.originalarrivaltime ?? '',
+        message_type: msg.messagetype,
+        image_object_id: validChatImageObjectId(msg.amsreferences?.[0]) ? msg.amsreferences[0] : undefined,
       }))
   }
 
@@ -711,6 +879,102 @@ export class TeamsClient {
       author: { id: 'ME', displayName: 'Me' },
       content,
       timestamp: arrivalTime ? new Date(arrivalTime).toISOString() : new Date().toISOString(),
+    }
+  }
+
+  async sendChatImage(chatId: string, imagePath: string): Promise<TeamsMessage> {
+    if (this.isTokenExpired()) {
+      throw new TeamsError('Token has expired. Run "auth extract" to refresh.', 'token_expired')
+    }
+    const bytes = await readFile(imagePath)
+    if (bytes.length === 0 || bytes.length > MAX_CHAT_IMAGE_BYTES) {
+      throw new TeamsError('Chat image must be between 1 byte and 20 MiB.', 'invalid_chat_image_size')
+    }
+    const metadata = imageMetadata(bytes)
+    const filename = basename(imagePath) || `image.${metadata.contentType === 'image/png' ? 'png' : 'jpg'}`
+    const token = this.ensureAuth()
+    const createResponse = await fetch(`${AMS_API_BASE}/objects`, {
+      method: 'POST',
+      headers: {
+        Authorization: `skype_token ${token}`,
+        'Content-Type': 'application/json; charset=UTF-8',
+      },
+      body: JSON.stringify({ type: 'pish/image', permissions: { [chatId]: ['read'] }, filename }),
+    })
+    const created = (await createResponse.json().catch(() => null)) as { id?: string } | null
+    if (!createResponse.ok || !validChatImageObjectId(created?.id)) {
+      throw new TeamsError(
+        `Teams image object creation failed with HTTP ${createResponse.status}.`,
+        'chat_image_create_failed',
+      )
+    }
+    const objectId = created.id
+    const uploadResponse = await fetch(`${AMS_API_BASE}/objects/${encodeURIComponent(objectId)}/content/original`, {
+      method: 'PUT',
+      headers: {
+        Authorization: `skype_token ${token}`,
+        'Content-Type': metadata.contentType,
+      },
+      body: bytes,
+    })
+    if (!uploadResponse.ok) {
+      throw new TeamsError(`Teams image upload failed with HTTP ${uploadResponse.status}.`, 'chat_image_upload_failed')
+    }
+
+    const objectUrl = `${AMS_API_BASE}/objects/${objectId}`
+    const safeFilename = escapeXmlAttribute(filename)
+    const content = `<URIObject uri="${objectUrl}" url_thumbnail="${objectUrl}/views/imgt1_anim" type="Picture.1" doc_id="${objectId}" width="${metadata.width}" height="${metadata.height}">To view this shared photo, open it in Teams.<OriginalName v="${safeFilename}"></OriginalName><FileSize v="${bytes.length}"></FileSize><meta type="photo" originalName="${safeFilename}"></meta></URIObject>`
+    interface SendResponse {
+      OriginalArrivalTime?: number
+    }
+    const encodedChatId = encodeURIComponent(chatId)
+    const response = await this.request<SendResponse>('POST', `/users/ME/conversations/${encodedChatId}/messages`, {
+      content,
+      messagetype: 'RichText/UriObject',
+      contenttype: 'text',
+      amsreferences: [objectId],
+    })
+    const arrivalTime = response?.OriginalArrivalTime
+    return {
+      id: arrivalTime ? String(arrivalTime) : '',
+      channel_id: chatId,
+      author: { id: 'ME', displayName: 'Me' },
+      content: filename,
+      timestamp: arrivalTime ? new Date(arrivalTime).toISOString() : new Date().toISOString(),
+      message_type: 'RichText/UriObject',
+      image_object_id: objectId,
+    }
+  }
+
+  async downloadChatImage(imageObjectId: string): Promise<TeamsChatImageDownload> {
+    if (!validChatImageObjectId(imageObjectId)) {
+      throw new TeamsError('Teams chat image object ID is invalid.', 'invalid_chat_image_object_id')
+    }
+    if (this.isTokenExpired()) {
+      throw new TeamsError('Token has expired. Run "auth extract" to refresh.', 'token_expired')
+    }
+
+    const response = await fetch(`${AMS_API_BASE}/objects/${imageObjectId}/content/original`, {
+      headers: {
+        Authorization: `skype_token ${this.ensureAuth()}`,
+      },
+      redirect: 'manual',
+    })
+    const buffer = await readChatImageResponse(response)
+    const imageType = downloadedImageType(buffer)
+    const responseType = response.headers.get('Content-Type')?.split(';', 1)[0].trim().toLowerCase()
+    if (responseType !== imageType.content_type) {
+      throw new TeamsError(
+        'Teams chat image content type does not match its file signature.',
+        'chat_image_type_mismatch',
+      )
+    }
+
+    return {
+      image_object_id: imageObjectId,
+      ...imageType,
+      size: buffer.length,
+      buffer,
     }
   }
 
