@@ -275,15 +275,18 @@ In `markdown` mode the content is converted to HTML before sending. Supported sy
 
 | Syntax | Renders as |
 | --- | --- |
-| `# Heading` through `###### Heading` | headings |
+| `# Heading` through `#### Heading` | headings |
+| `##### Heading`, `###### Heading` | body text — Teams renders `<h5>`/`<h6>` at normal size |
 | `**bold**`, `_italic_`, `***bold italic***` | emphasis |
 | `` `inline code` `` | inline code |
-| triple-backtick fence, optionally with a language tag | fenced code block |
+| triple-backtick fence | fenced code block, without syntax highlighting |
 | `- item` | bulleted list |
 | `1. item` | numbered list |
 | `> quote` | blockquote |
 | `[label](https://example.com)` | link |
 | `---` | horizontal rule |
+
+Two things the Teams client does not do with the HTML it is given, both verified against a live account: `<h5>` and `<h6>` render at body size, so heading levels below 4 carry no visual weight; and a language tag on a fence (` ```ts `) is accepted but not highlighted — code blocks are monospaced only. Stay at `####` or above when the heading level needs to be visible.
 
 Links are restricted to `http:`, `https:`, `mailto:`, root-relative (`/`), and anchor (`#`) URLs; anything else renders as plain text.
 
