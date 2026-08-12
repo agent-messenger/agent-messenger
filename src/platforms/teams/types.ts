@@ -87,6 +87,8 @@ export type TeamsAccountType = 'work' | 'personal'
 
 export type TeamsRegion = 'amer' | 'emea' | 'apac'
 
+export type TeamsMessageFormat = 'text' | 'markdown'
+
 export type TeamsAuthMethod = 'device-code' | 'browser' | 'extracted' | 'manual'
 
 export interface TeamsAccount {

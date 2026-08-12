@@ -22,6 +22,7 @@ export type {
   TeamsListenerEventMap,
   TeamsMention,
   TeamsMessage,
+  TeamsMessageFormat,
   TeamsRealtimeMessage,
   TeamsReaction,
   TeamsSearchResult,
