@@ -5,6 +5,7 @@ import { formatOutput } from '@/shared/utils/output'
 
 import { TeamsClient } from '../client'
 import { TeamsCredentialManager } from '../credential-manager'
+import { resolveFormat } from './message'
 
 export async function listAction(options: { pretty?: boolean }): Promise<void> {
   try {
@@ -70,7 +71,13 @@ export async function historyAction(chatId: string, options: { limit?: number; p
   }
 }
 
-export async function sendAction(chatId: string, content: string, options: { pretty?: boolean }): Promise<void> {
+export async function sendAction(
+  chatId: string,
+  content: string,
+  options: { pretty?: boolean; format?: string },
+): Promise<void> {
+  const format = resolveFormat(options.format, options.pretty)
+
   try {
     const credManager = new TeamsCredentialManager()
     const cred = await credManager.getTokenWithExpiry()
@@ -86,7 +93,7 @@ export async function sendAction(chatId: string, content: string, options: { pre
       accountType: cred.accountType,
       region: cred.region,
     })
-    const message = await client.sendChatMessage(chatId, content)
+    const message = await client.sendChatMessage(chatId, content, format)
 
     const output = {
       id: message.id,
@@ -104,8 +111,10 @@ export async function editAction(
   chatId: string,
   messageId: string,
   content: string,
-  options: { pretty?: boolean },
+  options: { pretty?: boolean; format?: string },
 ): Promise<void> {
+  const format = resolveFormat(options.format, options.pretty)
+
   try {
     const credManager = new TeamsCredentialManager()
     const cred = await credManager.getTokenWithExpiry()
@@ -121,7 +130,7 @@ export async function editAction(
       accountType: cred.accountType,
       region: cred.region,
     })
-    const message = await client.editChatMessage(chatId, messageId, content)
+    const message = await client.editChatMessage(chatId, messageId, content, format)
 
     const output = {
       id: message.id,
@@ -161,6 +170,7 @@ export const chatCommand = new Command('chat')
       .description('Send a message to a chat')
       .argument('<chat-id>', 'Chat ID')
       .argument('<content>', 'Message content')
+      .option('--format <format>', 'Message format: text or markdown', 'text')
       .option('--pretty', 'Pretty print JSON output')
       .action(sendAction),
   )
@@ -170,6 +180,7 @@ export const chatCommand = new Command('chat')
       .argument('<chat-id>', 'Chat ID')
       .argument('<message-id>', 'Message ID')
       .argument('<content>', 'New message content')
+      .option('--format <format>', 'Message format: text or markdown', 'text')
       .option('--pretty', 'Pretty print JSON output')
       .action(editAction),
   )

@@ -115,8 +115,66 @@ it('edit: edits a chat message and returns updated content', async () => {
 
   await editAction('19:1on1@unq.gbl.spaces', 'msg_123', 'Edited content', { pretty: false })
 
-  expect(clientEditChatMessageSpy).toHaveBeenCalledWith('19:1on1@unq.gbl.spaces', 'msg_123', 'Edited content')
+  expect(clientEditChatMessageSpy).toHaveBeenCalledWith('19:1on1@unq.gbl.spaces', 'msg_123', 'Edited content', 'text')
   expect(consoleSpy).toHaveBeenCalled()
   const output = consoleSpy.mock.calls[0][0]
   expect(output).toContain('Edited content')
+})
+
+it('send: passes markdown format to the client', async () => {
+  const consoleSpy = mock((_msg: string) => {})
+  console.log = consoleSpy
+
+  await sendAction('19:1on1@unq.gbl.spaces', '**bold**', { pretty: false, format: 'markdown' })
+
+  expect(clientSendChatMessageSpy).toHaveBeenCalledWith('19:1on1@unq.gbl.spaces', '**bold**', 'markdown')
+})
+
+it('send: defaults to text format when --format is omitted', async () => {
+  const consoleSpy = mock((_msg: string) => {})
+  console.log = consoleSpy
+
+  await sendAction('19:1on1@unq.gbl.spaces', 'plain', { pretty: false })
+
+  expect(clientSendChatMessageSpy).toHaveBeenCalledWith('19:1on1@unq.gbl.spaces', 'plain', 'text')
+})
+
+it('send: rejects an invalid format', async () => {
+  const consoleSpy = mock((_msg: string) => {})
+  console.log = consoleSpy
+  const exitSpy = spyOn(process, 'exit').mockImplementation((code?: string | number | null) => {
+    throw new Error(`exit:${code}`)
+  })
+
+  await expect(sendAction('19:1on1@unq.gbl.spaces', 'hi', { pretty: false, format: 'html' })).rejects.toThrow(
+    'exit:1',
+  )
+
+  expect(consoleSpy.mock.calls[0][0]).toContain('Invalid format')
+  expect(clientSendChatMessageSpy).not.toHaveBeenCalled()
+  exitSpy.mockRestore()
+})
+
+it('edit: passes markdown format to the client', async () => {
+  const consoleSpy = mock((_msg: string) => {})
+  console.log = consoleSpy
+
+  await editAction('19:1on1@unq.gbl.spaces', 'msg_123', '**bold**', { pretty: false, format: 'markdown' })
+
+  expect(clientEditChatMessageSpy).toHaveBeenCalledWith('19:1on1@unq.gbl.spaces', 'msg_123', '**bold**', 'markdown')
+})
+
+it('edit: rejects an invalid format', async () => {
+  const consoleSpy = mock((_msg: string) => {})
+  console.log = consoleSpy
+  const exitSpy = spyOn(process, 'exit').mockImplementation((code?: string | number | null) => {
+    throw new Error(`exit:${code}`)
+  })
+
+  await expect(
+    editAction('19:1on1@unq.gbl.spaces', 'msg_123', 'hi', { pretty: false, format: 'html' }),
+  ).rejects.toThrow('exit:1')
+
+  expect(clientEditChatMessageSpy).not.toHaveBeenCalled()
+  exitSpy.mockRestore()
 })
