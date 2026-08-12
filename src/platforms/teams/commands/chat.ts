@@ -5,7 +5,7 @@ import { formatOutput } from '@/shared/utils/output'
 
 import { TeamsClient } from '../client'
 import { TeamsCredentialManager } from '../credential-manager'
-import { resolveFormat } from './message'
+import { resolveFormat } from './format'
 
 export async function listAction(options: { pretty?: boolean }): Promise<void> {
   try {
@@ -170,7 +170,7 @@ export const chatCommand = new Command('chat')
       .description('Send a message to a chat')
       .argument('<chat-id>', 'Chat ID')
       .argument('<content>', 'Message content')
-      .option('--format <format>', 'Message format: text or markdown', 'text')
+      .option('--format <format>', 'Message format: text, markdown, or html', 'text')
       .option('--pretty', 'Pretty print JSON output')
       .action(sendAction),
   )
@@ -180,7 +180,7 @@ export const chatCommand = new Command('chat')
       .argument('<chat-id>', 'Chat ID')
       .argument('<message-id>', 'Message ID')
       .argument('<content>', 'New message content')
-      .option('--format <format>', 'Message format: text or markdown', 'text')
+      .option('--format <format>', 'Message format: text, markdown, or html', 'text')
       .option('--pretty', 'Pretty print JSON output')
       .action(editAction),
   )

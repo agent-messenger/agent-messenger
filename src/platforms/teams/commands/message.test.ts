@@ -233,10 +233,36 @@ it('send: rejects an invalid format', async () => {
     throw new Error(`exit:${code}`)
   })
 
-  await expect(sendAction('team_123', 'ch_456', 'hi', { pretty: false, format: 'html' })).rejects.toThrow('exit:1')
+  await expect(sendAction('team_123', 'ch_456', 'hi', { pretty: false, format: 'invalid' })).rejects.toThrow(
+    'exit:1',
+  )
 
   expect(consoleSpy).toHaveBeenCalled()
   expect(consoleSpy.mock.calls[0][0]).toContain('Invalid format')
   expect(clientSendMessageSpy).not.toHaveBeenCalled()
   exitSpy.mockRestore()
+})
+
+it('send: passes html format to the client', async () => {
+  const consoleSpy = mock((_msg: string) => {})
+  console.log = consoleSpy
+
+  await sendAction('team_123', 'ch_456', '<at id="29:x">John</at>', { pretty: false, format: 'html' })
+
+  expect(clientSendMessageSpy).toHaveBeenCalledWith(
+    'team_123',
+    'ch_456',
+    '<at id="29:x">John</at>',
+    undefined,
+    'html',
+  )
+})
+
+it('send: passes markdown format together with --thread', async () => {
+  const consoleSpy = mock((_msg: string) => {})
+  console.log = consoleSpy
+
+  await sendAction('team_123', 'ch_456', '**bold**', { pretty: false, thread: 'root_1', format: 'markdown' })
+
+  expect(clientSendMessageSpy).toHaveBeenCalledWith('team_123', 'ch_456', '**bold**', 'root_1', 'markdown')
 })

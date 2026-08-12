@@ -267,7 +267,7 @@ Chat IDs look like `19:guid1_guid2@unq.gbl.spaces` (1:1) or `19:guid@thread.tacv
 
 ### Message Formatting
 
-`message send`, `chat send`, and `chat edit` accept `--format <text|markdown>` (default `text`).
+`message send`, `chat send`, and `chat edit` accept `--format <text|markdown|html>` (default `text`).
 
 In `text` mode the content is HTML-escaped, so `<`, `>`, and `&` are sent literally.
 
@@ -285,7 +285,15 @@ In `markdown` mode the content is converted to HTML before sending. Supported sy
 | `[label](https://example.com)` | link |
 | `---` | horizontal rule |
 
-Links are restricted to `http:`, `https:`, `mailto:`, root-relative (`/`), and anchor (`#`) URLs; anything else renders as plain text. Raw HTML in the input is escaped, not passed through — there is no `--format html`.
+Links are restricted to `http:`, `https:`, `mailto:`, root-relative (`/`), and anchor (`#`) URLs; anything else renders as plain text.
+
+In `html` mode the content is sent verbatim, with no escaping or conversion. Use it when you need Teams-specific markup that markdown cannot express — most commonly @mentions:
+
+```bash
+agent-teams message send <team-id> <channel-id> "Hey <at id=\"29:abc\">John</at>, build is ready" --format html
+```
+
+Because nothing is escaped, only pass content you construct yourself. Untrusted input belongs in `text` mode.
 
 ### Team Commands
 
@@ -414,7 +422,7 @@ agent-teams channel list --pretty
 | Channel identifiers | UUID format (19:xxx@thread.tacv2) | Snowflake IDs  | Channel name or ID |
 | Token storage       | Cookies SQLite                    | LevelDB        | LevelDB            |
 | Token expiry        | **60-90 minutes**                 | Rarely expires | Rarely expires     |
-| Mentions            | `<at id="user-id">Name</at>`      | `<@user_id>`   | `<@USER_ID>`       |
+| Mentions            | `<at id="user-id">Name</at>` (needs `--format html`) | `<@user_id>`   | `<@USER_ID>`       |
 
 **Important**: Teams uses UUID-style channel IDs (like `19:abc123@thread.tacv2`). You cannot use channel names directly - use `channel list` to find IDs first.
 

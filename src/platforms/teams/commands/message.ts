@@ -5,17 +5,9 @@ import { formatOutput } from '@/shared/utils/output'
 
 import { TeamsClient } from '../client'
 import { TeamsCredentialManager } from '../credential-manager'
-import type { TeamsMessage, TeamsMessageFormat } from '../types'
+import type { TeamsMessage } from '../types'
 import { TeamsAuthCapabilityError } from '../types'
-
-export function resolveFormat(value: string | undefined, pretty: boolean | undefined): TeamsMessageFormat {
-  const format = value ?? 'text'
-  if (format !== 'text' && format !== 'markdown') {
-    console.log(formatOutput({ error: `Invalid format: ${format}. Use "text" or "markdown".` }, pretty))
-    process.exit(1)
-  }
-  return format
-}
+import { resolveFormat } from './format'
 
 export async function sendAction(
   teamId: string,
@@ -285,7 +277,7 @@ export const messageCommand = new Command('message')
       .argument('<channel-id>', 'Channel ID')
       .argument('<content>', 'Message content')
       .option('--thread <message-id>', 'Reply to a thread root message')
-      .option('--format <format>', 'Message format: text or markdown', 'text')
+      .option('--format <format>', 'Message format: text, markdown, or html', 'text')
       .option('--pretty', 'Pretty print JSON output')
       .action(sendAction),
   )

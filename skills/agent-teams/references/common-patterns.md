@@ -279,12 +279,12 @@ if [ -z "$USER_ID" ] || [ "$USER_ID" = "null" ]; then
 fi
 
 # Send message with mention (Teams format)
-agent-teams message send "$TEAM_ID" "$CHANNEL_ID" "Hey <at id=\"$USER_ID\">$USER_NAME</at>, the build is ready for review!"
+agent-teams message send "$TEAM_ID" "$CHANNEL_ID" "Hey <at id=\"$USER_ID\">$USER_NAME</at>, the build is ready for review!" --format html
 ```
 
 **When to use**: Notifications, task assignments, code review requests.
 
-**Note**: Teams mentions use format `<at id="USER_ID">Display Name</at>`.
+**Note**: Teams mentions use format `<at id="USER_ID">Display Name</at>` and require `--format html` — in the default `text` mode the tags are escaped and render literally.
 
 ## Pattern 8: Reaction-Based Workflow
 

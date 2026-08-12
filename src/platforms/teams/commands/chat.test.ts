@@ -107,6 +107,7 @@ it('send: returns sent message', async () => {
   expect(consoleSpy).toHaveBeenCalled()
   const output = consoleSpy.mock.calls[0][0]
   expect(output).toContain('Hello world')
+  expect(clientSendChatMessageSpy).toHaveBeenCalledWith('19:1on1@unq.gbl.spaces', 'Hello world', 'text')
 })
 
 it('edit: edits a chat message and returns updated content', async () => {
@@ -146,7 +147,7 @@ it('send: rejects an invalid format', async () => {
     throw new Error(`exit:${code}`)
   })
 
-  await expect(sendAction('19:1on1@unq.gbl.spaces', 'hi', { pretty: false, format: 'html' })).rejects.toThrow(
+  await expect(sendAction('19:1on1@unq.gbl.spaces', 'hi', { pretty: false, format: 'invalid' })).rejects.toThrow(
     'exit:1',
   )
 
@@ -172,7 +173,7 @@ it('edit: rejects an invalid format', async () => {
   })
 
   await expect(
-    editAction('19:1on1@unq.gbl.spaces', 'msg_123', 'hi', { pretty: false, format: 'html' }),
+    editAction('19:1on1@unq.gbl.spaces', 'msg_123', 'hi', { pretty: false, format: 'invalid' }),
   ).rejects.toThrow('exit:1')
 
   expect(clientEditChatMessageSpy).not.toHaveBeenCalled()

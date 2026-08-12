@@ -345,6 +345,21 @@ describe('TeamsClient', () => {
         }),
       )
     })
+
+    it('passes content through unchanged when format is html', async () => {
+      mockResponse({ OriginalArrivalTime: 1704067200000 })
+
+      const client = await new TeamsClient().login({ token: 'test-token', accountType: 'personal' })
+      await client.sendChatMessage('19:1on1@unq.gbl.spaces', '<b>raw</b>', 'html')
+
+      expect(fetchCalls[0].options?.body).toBe(
+        JSON.stringify({
+          content: '<b>raw</b>',
+          messagetype: 'RichText/Html',
+          contenttype: 'text',
+        }),
+      )
+    })
   })
 
   describe('editChatMessage', () => {
@@ -380,6 +395,22 @@ describe('TeamsClient', () => {
       expect(fetchCalls[0].options?.body).toBe(
         JSON.stringify({
           content: '<strong>bold</strong>',
+          messagetype: 'RichText/Html',
+          contenttype: 'text',
+          skypeeditedid: 'msg1',
+        }),
+      )
+    })
+
+    it('passes content through unchanged when format is html', async () => {
+      mockResponse({ edittime: 1704067200000 })
+
+      const client = await new TeamsClient().login({ token: 'test-token', accountType: 'personal' })
+      await client.editChatMessage('19:1on1@unq.gbl.spaces', 'msg1', '<b>raw</b>', 'html')
+
+      expect(fetchCalls[0].options?.body).toBe(
+        JSON.stringify({
+          content: '<b>raw</b>',
           messagetype: 'RichText/Html',
           contenttype: 'text',
           skypeeditedid: 'msg1',
@@ -517,6 +548,21 @@ describe('TeamsClient', () => {
       expect(fetchCalls[0].options?.body).toBe(
         JSON.stringify({ content: '<strong>bold</strong>', parentMessageId: 'root1' }),
       )
+    })
+
+    it('passes content through unchanged when format is html', async () => {
+      mockResponse({
+        id: 'msg1',
+        channel_id: 'ch1',
+        author: { id: '123', displayName: 'Test User' },
+        content: 'Hey <at id="29:xyz">John</at>',
+        timestamp: '2024-01-01T00:00:00.000Z',
+      })
+
+      const client = await new TeamsClient().login({ token: 'test-token', region: 'emea' })
+      await client.sendMessage('111', 'ch1', 'Hey <at id="29:xyz">John</at>', undefined, 'html')
+
+      expect(fetchCalls[0].options?.body).toBe(JSON.stringify({ content: 'Hey <at id="29:xyz">John</at>' }))
     })
   })
 

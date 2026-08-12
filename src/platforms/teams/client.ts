@@ -234,6 +234,7 @@ async function readDownloadResponse(response: Response, codePrefix: string): Pro
 }
 
 function formatContent(content: string, format: TeamsMessageFormat): string {
+  if (format === 'html') return content
   return format === 'markdown' ? markdownToHtml(content) : escapeHtml(content)
 }
 
