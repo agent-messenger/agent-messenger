@@ -234,9 +234,7 @@ it('send: rejects an invalid format', async () => {
   })
 
   try {
-    await expect(sendAction('team_123', 'ch_456', 'hi', { pretty: false, format: 'invalid' })).rejects.toThrow(
-      'exit:1',
-    )
+    await expect(sendAction('team_123', 'ch_456', 'hi', { pretty: false, format: 'invalid' })).rejects.toThrow('exit:1')
 
     expect(consoleSpy).toHaveBeenCalled()
     expect(consoleSpy.mock.calls[0][0]).toContain('Invalid format')
@@ -254,13 +252,7 @@ it('send: passes html format to the client', async () => {
 
   await sendAction('team_123', 'ch_456', '<at id="29:x">John</at>', { pretty: false, format: 'html' })
 
-  expect(clientSendMessageSpy).toHaveBeenCalledWith(
-    'team_123',
-    'ch_456',
-    '<at id="29:x">John</at>',
-    undefined,
-    'html',
-  )
+  expect(clientSendMessageSpy).toHaveBeenCalledWith('team_123', 'ch_456', '<at id="29:x">John</at>', undefined, 'html')
 })
 
 it('send: passes markdown format together with --thread', async () => {

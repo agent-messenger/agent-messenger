@@ -692,11 +692,7 @@ export class TeamsClient {
       }))
   }
 
-  async sendChatMessage(
-    chatId: string,
-    content: string,
-    format: TeamsMessageFormat = 'text',
-  ): Promise<TeamsMessage> {
+  async sendChatMessage(chatId: string, content: string, format: TeamsMessageFormat = 'text'): Promise<TeamsMessage> {
     interface SendResponse {
       OriginalArrivalTime?: number
     }

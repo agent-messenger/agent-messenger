@@ -67,9 +67,7 @@ describe('sanitizeTeamsHtml', () => {
     })
 
     it('sanitizes a disallowed tag nested inside a whitelisted one', () => {
-      expect(sanitizeTeamsHtml('<b><script>alert(1)</script></b>')).toBe(
-        '<b>&lt;script&gt;alert(1)&lt;/script&gt;</b>',
-      )
+      expect(sanitizeTeamsHtml('<b><script>alert(1)</script></b>')).toBe('<b>&lt;script&gt;alert(1)&lt;/script&gt;</b>')
     })
 
     it('does not double-escape already-escaped content', () => {

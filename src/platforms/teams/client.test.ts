@@ -335,7 +335,7 @@ describe('TeamsClient', () => {
       const client = await new TeamsClient().login({ token: 'test-token', accountType: 'personal' })
       const message = await client.sendChatMessage('19:1on1@unq.gbl.spaces', '**bold** and `code`', 'markdown')
 
-      // 返回值回显用户传入的原始 markdown，而不是转换后的 HTML
+      // The return value echoes the caller's original markdown, not the converted HTML
       expect(message.content).toBe('**bold** and `code`')
       expect(fetchCalls[0].options?.body).toBe(
         JSON.stringify({
