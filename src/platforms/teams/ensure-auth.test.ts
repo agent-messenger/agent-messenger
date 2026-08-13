@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, spyOn, it } from 'bun:test'
 import { TeamsClient } from './client'
 import { TeamsCredentialManager } from './credential-manager'
 import { ensureTeamsAuth } from './ensure-auth'
-import { TeamsTokenExtractor } from './token-extractor'
+import { TeamsCachedKeyRejectedError, TeamsTokenExtractor } from './token-extractor'
 
 let loadConfigSpy: ReturnType<typeof spyOn>
 let extractSpy: ReturnType<typeof spyOn>
@@ -124,6 +124,36 @@ describe('ensureTeamsAuth', () => {
     )
   })
 
+  it('re-extracts when Microsoft rejects an unexpired token', async () => {
+    loadConfigSpy.mockResolvedValue({
+      current_account: 'work',
+      accounts: {
+        work: {
+          token: 'rejected-token',
+          token_expires_at: new Date(Date.now() + 3600000).toISOString(),
+          account_type: 'work',
+          current_team: 'team-1',
+          teams: { 'team-1': { team_id: 'team-1', team_name: 'Team One' } },
+        },
+      },
+    })
+    testAuthSpy
+      .mockRejectedValueOnce(new Error('Authentication failed'))
+      .mockResolvedValueOnce({ id: 'user-123', displayName: 'Test User' })
+
+    await ensureTeamsAuth()
+
+    expect(extractSpy).toHaveBeenCalled()
+    expect(saveConfigSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        current_account: 'work',
+        accounts: expect.objectContaining({
+          work: expect.objectContaining({ token: 'test-teams-token' }),
+        }),
+      }),
+    )
+  })
+
   it('sets first team as current', async () => {
     // when
     await ensureTeamsAuth()
@@ -163,7 +193,16 @@ describe('ensureTeamsAuth', () => {
     expect(saveConfigSpy).not.toHaveBeenCalled()
   })
 
-  it('does not save when no teams found', async () => {
+  it('surfaces a rejected application-supplied key for one bounded companion retry', async () => {
+    extractSpy.mockResolvedValue([])
+    const staleKeySpy = spyOn(TeamsTokenExtractor.prototype, 'didCachedKeyFail').mockReturnValue(true)
+
+    await expect(ensureTeamsAuth()).rejects.toBeInstanceOf(TeamsCachedKeyRejectedError)
+
+    staleKeySpy.mockRestore()
+  })
+
+  it('keeps an authenticated work account when team discovery is empty', async () => {
     // given
     listTeamsSpy.mockResolvedValue([])
 
@@ -171,7 +210,13 @@ describe('ensureTeamsAuth', () => {
     await ensureTeamsAuth()
 
     // then
-    expect(saveConfigSpy).not.toHaveBeenCalled()
+    expect(saveConfigSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        accounts: expect.objectContaining({
+          work: expect.objectContaining({ token: 'test-teams-token', current_team: null, teams: {} }),
+        }),
+      }),
+    )
   })
 
   it('silently handles extraction failure', async () => {

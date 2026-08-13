@@ -2,20 +2,26 @@ import { afterEach, beforeEach, describe, expect, it } from 'bun:test'
 import { rmSync, unlinkSync } from 'node:fs'
 import { join } from 'node:path'
 
+import { PNG } from 'pngjs'
+
 import { TeamsClient } from './client'
 import { TeamsCredentialManager } from './credential-manager'
 import { TeamsError } from './types'
 
-const TEMP_FILES_TO_CLEANUP = ['/tmp/test-teams-upload.txt']
+const TEMP_FILES_TO_CLEANUP = ['/tmp/test-teams-upload.txt', '/tmp/test-teams-chat-image.png']
 const TEMP_DIRS_TO_CLEANUP: string[] = []
 const SEARCH_TENANT_ID = '11111111-1111-1111-1111-111111111111'
 const SEARCH_USER_ID = '22222222-2222-2222-2222-222222222222'
 const GRAPH_AUDIENCE = 'https://graph.microsoft.com'
 
+function pngFixture(width: number, height: number): Buffer {
+  return PNG.sync.write({ width, height, data: Buffer.alloc(width * height * 4, 0xff) })
+}
+
 describe('TeamsClient', () => {
   const originalFetch = globalThis.fetch
   let fetchCalls: Array<{ url: string; options?: RequestInit }> = []
-  let fetchResponses: Response[] = []
+  let fetchResponses: Array<Response | Error> = []
   let fetchIndex = 0
 
   beforeEach(() => {
@@ -29,6 +35,7 @@ describe('TeamsClient', () => {
       if (!response) {
         throw new Error('No mock response configured')
       }
+      if (response instanceof Error) throw response
       return response
     }
   })
@@ -306,6 +313,49 @@ describe('TeamsClient', () => {
         'https://msgapi.teams.live.com/v1/users/ME/conversations/19%3A1on1%40unq.gbl.spaces/messages?startTime=0&view=msnp24Equivalent&pageSize=30',
       )
     })
+
+    it('keeps inline image messages and returns their AMS object ID', async () => {
+      mockResponse({
+        messages: [
+          {
+            id: 'm-image',
+            content: '<URIObject>Photo</URIObject>',
+            from: 'host/users/ME/contacts/8:alice',
+            imdisplayname: 'Alice',
+            composetime: '2024-01-01T00:00:00.000Z',
+            messagetype: 'RichText/UriObject',
+            amsreferences: ['0-frca-d16-image'],
+          },
+        ],
+      })
+
+      const client = await new TeamsClient().login({ token: 'test-token', accountType: 'personal' })
+      const messages = await client.getChatMessages('19:group@thread.v2', 30)
+
+      expect(messages).toHaveLength(1)
+      expect(messages[0]).toMatchObject({
+        message_type: 'RichText/UriObject',
+        image_object_id: '0-frca-d16-image',
+      })
+    })
+
+    it('does not expose an invalid AMS image object ID', async () => {
+      mockResponse({
+        messages: [
+          {
+            id: 'm-image',
+            content: '<URIObject>Photo</URIObject>',
+            messagetype: 'RichText/UriObject',
+            amsreferences: [`0-a-${'b'.repeat(253)}`],
+          },
+        ],
+      })
+
+      const client = await new TeamsClient().login({ token: 'test-token', accountType: 'personal' })
+      const messages = await client.getChatMessages('19:group@thread.v2', 30)
+
+      expect(messages[0].image_object_id).toBeUndefined()
+    })
   })
 
   describe('sendChatMessage', () => {
@@ -327,6 +377,183 @@ describe('TeamsClient', () => {
           contenttype: 'text',
         }),
       )
+    })
+  })
+
+  describe('downloadChatImage', () => {
+    it('downloads a bounded PNG from the trusted AMS image view without redirects', async () => {
+      const png = pngFixture(320, 180)
+      mockResponse({
+        content_state: 'ready',
+        view_state: 'ready',
+        view_location: 'https://eu-api.asm.skype.com/v1/objects/0-frca-d16-image/views/imgpsh_fullsize_anim',
+      })
+      fetchResponses.push(
+        new Response(png, {
+          headers: { 'Content-Type': 'image/png', 'Content-Length': String(png.length) },
+        }),
+      )
+
+      const client = await new TeamsClient().login({ token: 'test-token', accountType: 'personal' })
+      const image = await client.downloadChatImage('0-frca-d16-image')
+
+      expect(fetchCalls[0].url).toBe(
+        'https://api.asm.skype.com/v1/objects/0-frca-d16-image/views/imgpsh_fullsize_anim/status',
+      )
+      expect(fetchCalls[0].options?.redirect).toBe('manual')
+      expect(fetchCalls[0].options?.signal).toBeInstanceOf(AbortSignal)
+      expect(headerValue(fetchCalls[0].options, 'Authorization')).toBe('skype_token test-token')
+      expect(fetchCalls[1].url).toBe(
+        'https://eu-api.asm.skype.com/v1/objects/0-frca-d16-image/views/imgpsh_fullsize_anim',
+      )
+      expect(fetchCalls[1].options?.redirect).toBe('manual')
+      expect(fetchCalls[1].options?.signal).toBe(fetchCalls[0].options?.signal)
+      expect(headerValue(fetchCalls[1].options, 'Authorization')).toBe('skype_token test-token')
+      expect(image).toMatchObject({ content_type: 'image/png', extension: 'png', size: png.length })
+      expect(image.buffer).toEqual(png)
+    })
+
+    it('rejects untrusted AMS view locations before sending the token', async () => {
+      const locations = [
+        'https://example.com/v1/objects/0-frca-d16-image/views/imgpsh_fullsize_anim',
+        'http://eu-api.asm.skype.com/v1/objects/0-frca-d16-image/views/imgpsh_fullsize_anim',
+        'https://user@eu-api.asm.skype.com/v1/objects/0-frca-d16-image/views/imgpsh_fullsize_anim',
+        'https://eu-api.asm.skype.com:444/v1/objects/0-frca-d16-image/views/imgpsh_fullsize_anim',
+        'https://api.asm.skype.com.evil.test/v1/objects/0-frca-d16-image/views/imgpsh_fullsize_anim',
+        'https://anything-api.asm.skype.com/v1/objects/0-frca-d16-image/views/imgpsh_fullsize_anim',
+        'https://eu-api.asm.skype.com/v1/objects/0-frca-d16-other/views/imgpsh_fullsize_anim',
+        'https://eu-api.asm.skype.com/v1/objects/0-frca-d16-image/views/imgpsh_fullsize_anim?download=1',
+        'https://eu-api.asm.skype.com/v1/objects/0-frca-d16-image/views/imgpsh_fullsize_anim#other',
+      ]
+      for (const view_location of locations) {
+        mockResponse({ content_state: 'ready', view_state: 'ready', view_location })
+      }
+      const client = await new TeamsClient().login({ token: 'test-token', accountType: 'personal' })
+
+      for (const _location of locations) {
+        await expect(client.downloadChatImage('0-frca-d16-image')).rejects.toMatchObject({
+          code: 'invalid_chat_image_view_location',
+        })
+      }
+      expect(fetchCalls).toHaveLength(locations.length)
+    })
+
+    it('maps request aborts to a stable timeout error', async () => {
+      fetchResponses.push(new DOMException('timed out', 'TimeoutError'))
+      const client = await new TeamsClient().login({ token: 'test-token', accountType: 'personal' })
+
+      await expect(client.downloadChatImage('0-frca-d16-image')).rejects.toMatchObject({
+        code: 'chat_image_download_timeout',
+      })
+    })
+
+    it('rejects a streamed status response above the size limit', async () => {
+      fetchResponses.push(
+        new Response(
+          new ReadableStream({
+            start(controller) {
+              controller.enqueue(new Uint8Array(64 * 1_024))
+              controller.enqueue(new Uint8Array(1))
+              controller.close()
+            },
+          }),
+          { headers: { 'Content-Type': 'application/json' } },
+        ),
+      )
+      const client = await new TeamsClient().login({ token: 'test-token', accountType: 'personal' })
+
+      await expect(client.downloadChatImage('0-frca-d16-image')).rejects.toMatchObject({
+        code: 'invalid_chat_image_status_size',
+      })
+      expect(fetchCalls).toHaveLength(1)
+    })
+
+    it('rejects malformed and non-object image status JSON consistently', async () => {
+      fetchResponses.push(
+        new Response('not-json', { headers: { 'Content-Type': 'application/json' } }),
+        new Response('null', { headers: { 'Content-Type': 'application/json' } }),
+      )
+      const client = await new TeamsClient().login({ token: 'test-token', accountType: 'personal' })
+
+      for (const id of ['0-frca-d16-malformed', '0-frca-d16-null']) {
+        await expect(client.downloadChatImage(id)).rejects.toMatchObject({ code: 'invalid_chat_image_status' })
+      }
+      expect(fetchCalls).toHaveLength(2)
+    })
+
+    it('rejects an object ID that can change the AMS URL', async () => {
+      const client = await new TeamsClient().login({ token: 'test-token', accountType: 'personal' })
+      await expect(client.downloadChatImage('../outside')).rejects.toMatchObject({
+        code: 'invalid_chat_image_object_id',
+      })
+      await expect(client.downloadChatImage(`0-a-${'b'.repeat(253)}`)).rejects.toMatchObject({
+        code: 'invalid_chat_image_object_id',
+      })
+      expect(fetchCalls).toHaveLength(0)
+    })
+
+    it('rejects incomplete and corrupt PNG and JPEG streams', async () => {
+      const png = pngFixture(1, 1)
+      const corruptPng = Buffer.from(png)
+      corruptPng[corruptPng.length - 1] ^= 0xff
+      const fabricatedJpeg = Buffer.from([
+        0xff, 0xd8, 0xff, 0xc0, 0x00, 0x0b, 0x08, 0x00, 0x01, 0x00, 0x01, 0x01, 0x01, 0x11, 0x00, 0xff, 0xda, 0x00,
+        0x08, 0x01, 0x01, 0x00, 0x00, 0x3f, 0x00, 0x01, 0xff, 0xd9,
+      ])
+      for (const [id, body, contentType] of [
+        ['0-frca-d16-truncated', png.subarray(0, png.length - 4), 'image/png'],
+        ['0-frca-d16-crc', corruptPng, 'image/png'],
+        ['0-frca-d16-jpeg', fabricatedJpeg, 'image/jpeg'],
+      ] as const) {
+        mockResponse({
+          content_state: 'ready',
+          view_location: `https://eu-api.asm.skype.com/v1/objects/${id}/views/imgpsh_fullsize_anim`,
+        })
+        fetchResponses.push(new Response(body, { headers: { 'Content-Type': contentType } }))
+      }
+      const client = await new TeamsClient().login({ token: 'test-token', accountType: 'personal' })
+
+      for (const id of ['0-frca-d16-truncated', '0-frca-d16-crc', '0-frca-d16-jpeg']) {
+        await expect(client.downloadChatImage(id)).rejects.toMatchObject({ code: 'invalid_chat_image_signature' })
+      }
+    })
+
+    it('rejects redirects, oversized responses, non-images, and signature mismatches', async () => {
+      const ids = ['redirect', 'large', 'text', 'signature', 'mismatch']
+      const cases = [
+        new Response(null, { status: 302, headers: { Location: 'https://example.com/image.png' } }),
+        new Response(pngFixture(1, 1), {
+          headers: { 'Content-Type': 'image/png', 'Content-Length': String(20 * 1_024 * 1_024 + 1) },
+        }),
+        new Response('text', { headers: { 'Content-Type': 'text/plain' } }),
+        new Response(Buffer.from('not-a-png'), { headers: { 'Content-Type': 'image/png' } }),
+        new Response(pngFixture(1, 1), { headers: { 'Content-Type': 'image/jpeg' } }),
+      ]
+      for (let index = 0; index < ids.length; index++) {
+        const id = `0-frca-d16-${ids[index]}`
+        mockResponse({
+          content_state: 'ready',
+          view_location: `https://eu-api.asm.skype.com/v1/objects/${id}/views/imgpsh_fullsize_anim`,
+        })
+        fetchResponses.push(cases[index])
+      }
+      const client = await new TeamsClient().login({ token: 'test-token', accountType: 'personal' })
+
+      await expect(client.downloadChatImage('0-frca-d16-redirect')).rejects.toMatchObject({
+        code: 'chat_image_redirect_refused',
+      })
+      await expect(client.downloadChatImage('0-frca-d16-large')).rejects.toMatchObject({
+        code: 'invalid_chat_image_size',
+      })
+      await expect(client.downloadChatImage('0-frca-d16-text')).rejects.toMatchObject({
+        code: 'invalid_chat_image_content_type',
+      })
+      await expect(client.downloadChatImage('0-frca-d16-signature')).rejects.toMatchObject({
+        code: 'invalid_chat_image_signature',
+      })
+      await expect(client.downloadChatImage('0-frca-d16-mismatch')).rejects.toMatchObject({
+        code: 'chat_image_type_mismatch',
+      })
     })
   })
 

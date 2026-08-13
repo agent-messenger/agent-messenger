@@ -47,6 +47,58 @@ describe('ChromiumCookieDecryptor', () => {
       // then
       expect((decryptor as any).keychainVariants).toEqual(BROWSER_KEYCHAIN_VARIANTS)
     })
+
+    it('can disable browser variants for an app-owned profile', () => {
+      const appVariants = [{ service: 'App Safe Storage', account: 'App' }]
+      const decryptor = new ChromiumCookieDecryptor({
+        platform: 'darwin',
+        appKeychainVariants: appVariants,
+        includeBrowserKeychainVariants: false,
+      })
+
+      expect((decryptor as any).keychainVariants).toEqual(appVariants)
+    })
+
+    it('can forbid direct Keychain reads for an application-mediated caller', () => {
+      const decryptor = new ChromiumCookieDecryptor({
+        platform: 'darwin',
+        appKeychainVariants: [{ service: 'App Safe Storage', account: 'App' }],
+        allowKeychainLookup: false,
+      })
+      const keychainLookup = spyOn(decryptor as any, 'execKeychainLookup')
+
+      expect(decryptor.decryptMacCookieRaw(Buffer.from('v10-encrypted-value'))).toBeNull()
+      expect(keychainLookup).not.toHaveBeenCalled()
+    })
+
+    it('reports a cached key that fails every attempted decryption', async () => {
+      const wrongKey = pbkdf2Sync('wrong-password', 'saltysalt', 1003, 16, 'sha1')
+      const decryptor = new ChromiumCookieDecryptor({
+        platform: 'darwin',
+        allowKeychainLookup: false,
+        keyCache: { get: async () => wrongKey } as any,
+        keyCachePlatform: 'teams',
+      })
+      const encrypted = encryptAESCBC('test-value', pbkdf2Sync('correct-password', 'saltysalt', 1003, 16, 'sha1'))
+
+      await decryptor.loadCachedKey()
+      expect(decryptor.decryptMacCookieRaw(encrypted)).toBeNull()
+      expect(decryptor.didCachedKeyFail()).toBe(true)
+    })
+
+    it('does not reject a cached key after a successful decryption', async () => {
+      const key = pbkdf2Sync('correct-password', 'saltysalt', 1003, 16, 'sha1')
+      const decryptor = new ChromiumCookieDecryptor({
+        platform: 'darwin',
+        allowKeychainLookup: false,
+        keyCache: { get: async () => key } as any,
+        keyCachePlatform: 'teams',
+      })
+
+      await decryptor.loadCachedKey()
+      expect(decryptor.decryptMacCookieRaw(encryptAESCBC('test-value', key))?.toString()).toBe('test-value')
+      expect(decryptor.didCachedKeyFail()).toBe(false)
+    })
   })
 
   describe('isEncryptedValue', () => {
@@ -437,6 +489,29 @@ describe('ChromiumCookieDecryptor', () => {
   })
 
   describe('loadCachedKey / clearKeyCache', () => {
+    it('uses a persisted macOS key without attempting another Keychain lookup', async () => {
+      // given
+      const key = Buffer.from('0123456789abcdef')
+      const keyCache = { get: async () => key, clear: async () => {} }
+      const decryptor = new ChromiumCookieDecryptor({
+        platform: 'darwin',
+        appKeychainVariants: [{ service: 'Microsoft Teams Safe Storage', account: 'Microsoft Teams' }],
+        includeBrowserKeychainVariants: false,
+        keyCache: keyCache as any,
+        keyCachePlatform: 'teams',
+      })
+      const keychainLookup = spyOn(decryptor as any, 'execKeychainLookup')
+      const encrypted = encryptAESCBC('desktop-session', key, 'v10')
+      await decryptor.loadCachedKey()
+
+      // when
+      const result = decryptor.decryptMacCookieRaw(encrypted)
+
+      // then
+      expect(result?.toString('utf8')).toBe('desktop-session')
+      expect(keychainLookup).not.toHaveBeenCalled()
+    })
+
     it('loadCachedKey is no-op on non-darwin platform', async () => {
       // given
       const keyCache = {

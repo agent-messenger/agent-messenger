@@ -10,7 +10,7 @@ import { TeamsClient } from '../client'
 import { TeamsCredentialManager } from '../credential-manager'
 import { completeDeviceCode, loginWithDeviceCode, PendingApprovalError, startDeviceCode } from '../device-login'
 import { probeAccountType } from '../realm-discovery'
-import { TeamsTokenExtractor } from '../token-extractor'
+import { TeamsCachedKeyRejectedError, TeamsTokenExtractor, resolveTeamsTokenSource } from '../token-extractor'
 import type { TeamsAccount, TeamsAccountType, TeamsConfig } from '../types'
 
 interface LoginOptions {
@@ -213,6 +213,7 @@ export async function extractAction(options: {
   debug?: boolean
   token?: string
   browserProfile?: string[]
+  source?: string
 }): Promise<void> {
   try {
     if (options.token) {
@@ -220,8 +221,12 @@ export async function extractAction(options: {
       return
     }
 
+    const tokenSource = resolveTeamsTokenSource(options.source ?? process.env.AGENT_TEAMS_AUTH_SOURCE)
+    if (tokenSource === 'desktop' && options.browserProfile?.length) {
+      throw new Error('--browser-profile cannot be used with the desktop-only Teams token source.')
+    }
     const debugLog = options.debug ? (msg: string) => debug(`[debug] ${msg}`) : undefined
-    const extractor = new TeamsTokenExtractor(undefined, undefined, debugLog, options.browserProfile)
+    const extractor = new TeamsTokenExtractor(undefined, undefined, debugLog, options.browserProfile, tokenSource)
 
     if (process.platform === 'darwin') {
       console.log('')
@@ -247,10 +252,11 @@ export async function extractAction(options: {
     const extracted = await extractor.extract()
 
     if (extracted.length === 0) {
+      if (extractor.didCachedKeyFail()) throw new TeamsCachedKeyRejectedError()
       console.log(
         formatOutput(
           {
-            error: getNoTeamsTokenFoundMessage(),
+            error: getNoTeamsTokenFoundMessage(tokenSource),
             hint: 'Run with --token <token> to manually provide a token, or --debug for more info.',
           },
           options.pretty,
@@ -462,8 +468,10 @@ async function extractManualToken(token: string, options: { pretty?: boolean; de
   }
 }
 
-export function getNoTeamsTokenFoundMessage(): string {
-  return 'No Teams token found. Make sure you are logged in to Microsoft Teams via the desktop app or a supported Chromium browser.'
+export function getNoTeamsTokenFoundMessage(source: 'all' | 'desktop' = 'all'): string {
+  return source === 'desktop'
+    ? 'No Teams token found. Make sure both required accounts are open and signed in through the Microsoft Teams desktop app.'
+    : 'No Teams token found. Make sure you are logged in to Microsoft Teams via the desktop app or a supported Chromium browser.'
 }
 
 export async function logoutAction(options: { pretty?: boolean }): Promise<void> {
@@ -611,6 +619,7 @@ export const authCommand = new Command('auth')
       .description('Extract token from Microsoft Teams desktop app or a supported Chromium browser')
       .option('--pretty', 'Pretty print JSON output')
       .option('--debug', 'Show debug output for troubleshooting')
+      .option('--source <source>', 'Token source: all or desktop')
       .option('--token <token>', 'Manually provide a token (bypasses auto-extraction)')
       .option(
         '--browser-profile <path>',

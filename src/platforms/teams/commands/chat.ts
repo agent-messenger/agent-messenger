@@ -1,3 +1,7 @@
+import { statSync, writeFileSync } from 'node:fs'
+import { join } from 'node:path'
+import { resolve } from 'node:path'
+
 import { Command } from 'commander'
 
 import { handleError } from '@/shared/utils/error-handler'
@@ -62,6 +66,8 @@ export async function historyAction(chatId: string, options: { limit?: number; p
       author: msg.author.displayName,
       content: msg.content,
       timestamp: msg.timestamp,
+      message_type: msg.message_type,
+      image_object_id: msg.image_object_id,
     }))
 
     console.log(formatOutput(output, options.pretty))
@@ -95,6 +101,49 @@ export async function sendAction(chatId: string, content: string, options: { pre
     }
 
     console.log(formatOutput(output, options.pretty))
+  } catch (error) {
+    handleError(error as Error)
+  }
+}
+
+export async function downloadImageAction(
+  imageObjectId: string,
+  outputPath: string | undefined,
+  options: { pretty?: boolean },
+): Promise<void> {
+  try {
+    const credManager = new TeamsCredentialManager()
+    const cred = await credManager.getTokenWithExpiry()
+    if (!cred) {
+      console.log(formatOutput({ error: 'Not authenticated. Run "auth extract" first.' }, options.pretty))
+      process.exit(1)
+    }
+    const client = await new TeamsClient().login({
+      token: cred.token,
+      tokenExpiresAt: cred.tokenExpiresAt,
+      accountType: cred.accountType,
+      region: cred.region,
+    })
+    const image = await client.downloadChatImage(imageObjectId)
+    const defaultName = `${imageObjectId}.${image.extension}`
+    let destination = outputPath ? resolve(outputPath) : resolve(defaultName)
+    try {
+      if (statSync(destination).isDirectory()) destination = join(destination, defaultName)
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error
+    }
+    writeFileSync(destination, image.buffer, { flag: 'wx', mode: 0o600 })
+    console.log(
+      formatOutput(
+        {
+          image_object_id: image.image_object_id,
+          content_type: image.content_type,
+          size: image.size,
+          path: destination,
+        },
+        options.pretty,
+      ),
+    )
   } catch (error) {
     handleError(error as Error)
   }
@@ -137,6 +186,14 @@ export async function editAction(
 
 export const chatCommand = new Command('chat')
   .description('Chat commands (1:1, group, and self chats)')
+  .addCommand(
+    new Command('download-image')
+      .description('Download a PNG or JPEG image from a chat')
+      .argument('<image-object-id>', 'AMS image object ID')
+      .argument('[output-path]', 'Output file or directory path')
+      .option('--pretty', 'Pretty print JSON output')
+      .action(downloadImageAction),
+  )
   .addCommand(
     new Command('list')
       .description('List 1:1, group, and self chats')

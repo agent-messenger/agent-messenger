@@ -29,6 +29,16 @@ export interface TeamsMessage {
   root_message_id?: string
   parent_message_id?: string
   is_thread_reply?: boolean
+  message_type?: string
+  image_object_id?: string
+}
+
+export interface TeamsChatImageDownload {
+  image_object_id: string
+  content_type: 'image/jpeg' | 'image/png'
+  extension: 'jpg' | 'png'
+  size: number
+  buffer: Buffer
 }
 
 export interface TeamsSearchResult {
@@ -154,6 +164,8 @@ export const TeamsMessageSchema = z.object({
   root_message_id: z.string().optional(),
   parent_message_id: z.string().optional(),
   is_thread_reply: z.boolean().optional(),
+  message_type: z.string().optional(),
+  image_object_id: z.string().optional(),
 })
 
 export const TeamsSearchResultSchema = z.object({

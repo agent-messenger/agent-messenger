@@ -163,6 +163,8 @@
   },
   "scripts": {
     "build": "tsc && tsc-alias --resolve-full-paths",
+    "build:teams-bridge:macos": "sh scripts/build-teams-bridge-macos.sh",
+    "install:teams-bridge:macos": "sh scripts/install-teams-bridge-macos.sh",
     "postbuild": "bun scripts/postbuild.ts",
     "test": "bun test src/",
     "test:e2e": "bun --config=bunfig.e2e.toml test",
@@ -185,6 +187,7 @@
     "commander": "^11.1.0",
     "crypto-js": "^4.2.0",
     "curve25519-js": "^0.0.4",
+    "jpeg-js": "^0.4.4",
     "jsqr": "^1.4.0",
     "node-bignumber": "^1.2.2",
     "node-int64": "^0.4.0",

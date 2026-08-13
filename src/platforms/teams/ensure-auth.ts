@@ -3,7 +3,7 @@ import { warn } from '@/shared/utils/stderr'
 import { TeamsClient } from './client'
 import { TeamsCredentialManager } from './credential-manager'
 import { refreshDeviceCodeAccount } from './device-login'
-import { TeamsTokenExtractor } from './token-extractor'
+import { TeamsCachedKeyRejectedError, TeamsTokenExtractor, resolveTeamsTokenSource } from './token-extractor'
 import type { TeamsAccount, TeamsAccountType, TeamsConfig } from './types'
 
 export async function ensureTeamsAuth(): Promise<void> {
@@ -11,17 +11,25 @@ export async function ensureTeamsAuth(): Promise<void> {
     const credManager = new TeamsCredentialManager()
     const config = await credManager.loadConfig()
 
-    if (config && hasValidToken(config)) return
+    if (config && (await hasUsableToken(config, credManager))) return
 
     if (config && (await trySilentRefresh(config, credManager))) return
 
-    const extractor = new TeamsTokenExtractor()
+    const tokenSource = resolveTeamsTokenSource(process.env.AGENT_TEAMS_AUTH_SOURCE)
+    const extractor = new TeamsTokenExtractor(undefined, undefined, undefined, undefined, tokenSource)
     const extracted = await extractor.extract()
-    if (extracted.length === 0) return
+    if (extracted.length === 0) {
+      if (extractor.didCachedKeyFail()) throw new TeamsCachedKeyRejectedError()
+      return
+    }
 
+    const invalidAccountKey = config ? resolveSelectedAccountKey(config) : null
     const newConfig: TeamsConfig = {
       current_account: config?.current_account ?? null,
       accounts: { ...config?.accounts },
+    }
+    if (invalidAccountKey) {
+      delete newConfig.accounts[invalidAccountKey]
     }
     const addedTypes = new Set<TeamsAccountType>()
 
@@ -33,8 +41,6 @@ export async function ensureTeamsAuth(): Promise<void> {
         if (addedTypes.has(accountType)) continue
 
         const teams = await client.listTeams()
-        if (accountType !== 'personal' && teams.length === 0) continue
-
         const teamMap: Record<string, { team_id: string; team_name: string }> = {}
         for (const team of teams) {
           teamMap[team.id] = { team_id: team.id, team_name: team.name }
@@ -61,10 +67,16 @@ export async function ensureTeamsAuth(): Promise<void> {
       }
     }
 
+    if (newConfig.current_account && !newConfig.accounts[newConfig.current_account]) {
+      newConfig.current_account = (Object.keys(newConfig.accounts)[0] as TeamsAccountType | undefined) ?? null
+    }
+
     if (Object.keys(newConfig.accounts).length > 0) {
       await credManager.saveConfig(newConfig)
     }
-  } catch {}
+  } catch (error) {
+    if (error instanceof TeamsCachedKeyRejectedError) throw error
+  }
 }
 
 async function resolveAccountType(
@@ -96,17 +108,34 @@ async function resolveAccountType(
 }
 
 async function trySilentRefresh(config: TeamsConfig, credManager: TeamsCredentialManager): Promise<boolean> {
-  const key = TeamsCredentialManager.accountOverride ?? config.current_account
+  const key = resolveSelectedAccountKey(config)
   if (!key) return false
   const account = config.accounts[key]
   if (account?.auth_method !== 'device-code' || !account.aad_refresh_token) return false
-  return refreshDeviceCodeAccount(key as TeamsAccountType, credManager)
+  return refreshDeviceCodeAccount(key, credManager)
 }
 
-function hasValidToken(config: TeamsConfig): boolean {
-  const key = TeamsCredentialManager.accountOverride ?? config.current_account
+function resolveSelectedAccountKey(config: TeamsConfig): TeamsAccountType | null {
+  return (TeamsCredentialManager.accountOverride ?? config.current_account) as TeamsAccountType | null
+}
+
+async function hasUsableToken(config: TeamsConfig, credManager: TeamsCredentialManager): Promise<boolean> {
+  const key = resolveSelectedAccountKey(config)
   if (!key) return false
   const account = config.accounts[key]
   if (!account?.token || !account.token_expires_at) return false
-  return new Date(account.token_expires_at).getTime() > Date.now()
+  if (new Date(account.token_expires_at).getTime() <= Date.now()) return false
+
+  try {
+    const client = await new TeamsClient(credManager).login({
+      token: account.token,
+      tokenExpiresAt: account.token_expires_at,
+      accountType: account.account_type,
+      region: account.region,
+    })
+    await client.testAuth()
+    return true
+  } catch {
+    return false
+  }
 }
