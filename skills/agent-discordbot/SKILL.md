@@ -1,7 +1,7 @@
 ---
 name: agent-discordbot
 description: Interact with Discord servers using bot tokens - send messages, read channels, manage reactions
-version: 2.35.0
+version: 2.36.0
 allowed-tools: Bash(agent-discordbot:*)
 metadata:
   openclaw:
