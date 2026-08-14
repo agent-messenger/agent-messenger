@@ -7,13 +7,16 @@ import { TeamsClient } from '../client'
 import { TeamsCredentialManager } from '../credential-manager'
 import type { TeamsMessage } from '../types'
 import { TeamsAuthCapabilityError } from '../types'
+import { resolveFormat } from './format'
 
 export async function sendAction(
   teamId: string,
   channelId: string,
   content: string,
-  options: { pretty?: boolean; thread?: string },
+  options: { pretty?: boolean; thread?: string; format?: string },
 ): Promise<void> {
+  const format = resolveFormat(options.format, options.pretty)
+
   try {
     const credManager = new TeamsCredentialManager()
     const cred = await credManager.getTokenWithExpiry()
@@ -29,7 +32,7 @@ export async function sendAction(
       accountType: cred.accountType,
       region: cred.region,
     })
-    const message = await client.sendMessage(teamId, channelId, content, options.thread)
+    const message = await client.sendMessage(teamId, channelId, content, options.thread, format)
 
     const output = {
       id: message.id,
@@ -274,6 +277,7 @@ export const messageCommand = new Command('message')
       .argument('<channel-id>', 'Channel ID')
       .argument('<content>', 'Message content')
       .option('--thread <message-id>', 'Reply to a thread root message')
+      .option('--format <format>', 'Message format: text, markdown, or html', 'text')
       .option('--pretty', 'Pretty print JSON output')
       .action(sendAction),
   )

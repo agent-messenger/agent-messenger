@@ -205,6 +205,11 @@ Output includes the authenticated user's identity information.
 agent-teams message send <team-id> <channel-id> <content>
 agent-teams message send <team-id> 19:abc123@thread.tacv2 "Hello world"
 
+# Send a rich-text message written in markdown
+agent-teams message send <team-id> <channel-id> "## Deploy done
+- service A
+- service B" --format markdown
+
 # List messages
 agent-teams message list <team-id> <channel-id>
 agent-teams message list <team-id> 19:abc123@thread.tacv2 --limit 50
@@ -249,14 +254,51 @@ agent-teams chat history <chat-id> --limit 100
 
 # Send a message to a chat
 agent-teams chat send <chat-id> "Hello"
+agent-teams chat send <chat-id> "**Important**: see the [board](https://example.com)" --format markdown
 
 # Edit one of your own chat messages
 agent-teams chat edit <chat-id> <message-id> "Updated text"
+agent-teams chat edit <chat-id> <message-id> "Fixed \`bug\`" --format markdown
 ```
 
 Chat IDs look like `19:guid1_guid2@unq.gbl.spaces` (1:1) or `19:guid@thread.tacv2` (group). Get them from `chat list`. The `48:notes` chat (`type: self`) is your personal "to me" notes thread.
 
 `chat edit` only works on your own messages, and only for chats — Teams channel messages are not editable through this API.
+
+### Message Formatting
+
+`message send`, `chat send`, and `chat edit` accept `--format <text|markdown|html>` (default `text`).
+
+In `text` mode the content is HTML-escaped, so `<`, `>`, and `&` are sent literally.
+
+In `markdown` mode the content is converted to HTML before sending. Supported syntax:
+
+| Syntax | Renders as |
+| --- | --- |
+| `# Heading` through `#### Heading` | headings |
+| `##### Heading`, `###### Heading` | **not supported** — indistinguishable from body text |
+| `**bold**`, `_italic_`, `***bold italic***` | emphasis |
+| `` `inline code` `` | inline code |
+| triple-backtick fence | fenced code block, without syntax highlighting |
+| `- item` | bulleted list |
+| `1. item` | numbered list |
+| `> quote` | blockquote |
+| `[label](https://example.com)` | link |
+| `---` | horizontal rule |
+
+Heading levels 5 and 6 are unusable: the Teams client renders `<h5>` and `<h6>` at body size, so they are indistinguishable from surrounding text. Only go as deep as `####`. Fenced code blocks render as monospaced blocks but are never syntax-highlighted — a language tag (` ```ts `) is accepted and then ignored. Both behaviors were verified against a live account.
+
+Links are restricted to `http:`, `https:`, `mailto:`, root-relative (`/`), and anchor (`#`) URLs; anything else renders as plain text.
+
+In `html` mode the content is filtered through a tag whitelist rather than sent verbatim. Use it when you need Teams-specific markup that markdown cannot express — most commonly @mentions:
+
+```bash
+agent-teams message send <team-id> <channel-id> "Hey <at id=\"29:abc\">John</at>, build is ready" --format html
+```
+
+Allowed tags: `at`, `a`, `b`, `i`, `u`, `s`, `strong`, `em`, `code`, `pre`, `br`, `p`, `ul`, `ol`, `li`, `blockquote`, `h1`–`h6`, `hr`. `<at>` only keeps its `id` attribute; `<a>` only keeps `href`, and only when it matches the same URL whitelist as markdown mode; every other tag keeps no attributes at all. Anything not on the list — `<script>`, `<img>`, `on*` event attributes, malformed or unrecognized tags — is escaped or stripped rather than passed through.
+
+The whitelist limits the blast radius, but it does not make the mode safe for arbitrary input: only pass content you construct yourself. Untrusted input belongs in `text` mode.
 
 ### Team Commands
 
@@ -385,7 +427,7 @@ agent-teams channel list --pretty
 | Channel identifiers | UUID format (19:xxx@thread.tacv2) | Snowflake IDs  | Channel name or ID |
 | Token storage       | Cookies SQLite                    | LevelDB        | LevelDB            |
 | Token expiry        | **60-90 minutes**                 | Rarely expires | Rarely expires     |
-| Mentions            | `<at id="user-id">Name</at>`      | `<@user_id>`   | `<@USER_ID>`       |
+| Mentions            | `<at id="user-id">Name</at>` (needs `--format html`) | `<@user_id>`   | `<@USER_ID>`       |
 
 **Important**: Teams uses UUID-style channel IDs (like `19:abc123@thread.tacv2`). You cannot use channel names directly - use `channel list` to find IDs first.
 

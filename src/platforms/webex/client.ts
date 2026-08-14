@@ -1,5 +1,7 @@
 import { createHash } from 'node:crypto'
 
+import { escapeHtml, markdownToHtml, stripMarkdown } from '@/shared/utils/markdown-to-html'
+
 import { WebexCredentialManager } from './credential-manager'
 import { WebexEncryptionService } from './encryption'
 import type { WebexScr } from './encryption'
@@ -11,7 +13,6 @@ import {
   toRestId,
 } from './id-normalizer'
 import { KmsKeyProvider } from './kms-key-provider'
-import { escapeHtml, markdownToHtml, stripMarkdown } from './markdown-to-html'
 import type { WebexConfig, WebexMembership, WebexMessage, WebexPerson, WebexSpace } from './types'
 import { WebexError } from './types'
 

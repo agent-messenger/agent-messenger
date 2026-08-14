@@ -207,3 +207,59 @@ it('delete: returns success', async () => {
   const output = consoleSpy.mock.calls[0][0]
   expect(output).toContain('deleted')
 })
+
+it('send: passes markdown format to the client', async () => {
+  const consoleSpy = mock((_msg: string) => {})
+  console.log = consoleSpy
+
+  await sendAction('team_123', 'ch_456', '**bold**', { pretty: false, format: 'markdown' })
+
+  expect(clientSendMessageSpy).toHaveBeenCalledWith('team_123', 'ch_456', '**bold**', undefined, 'markdown')
+})
+
+it('send: defaults to text format when --format is omitted', async () => {
+  const consoleSpy = mock((_msg: string) => {})
+  console.log = consoleSpy
+
+  await sendAction('team_123', 'ch_456', 'plain', { pretty: false })
+
+  expect(clientSendMessageSpy).toHaveBeenCalledWith('team_123', 'ch_456', 'plain', undefined, 'text')
+})
+
+it('send: rejects an invalid format', async () => {
+  const consoleSpy = mock((_msg: string) => {})
+  console.log = consoleSpy
+  const exitSpy = spyOn(process, 'exit').mockImplementation((code?: string | number | null) => {
+    throw new Error(`exit:${code}`)
+  })
+
+  try {
+    await expect(sendAction('team_123', 'ch_456', 'hi', { pretty: false, format: 'invalid' })).rejects.toThrow('exit:1')
+
+    expect(consoleSpy).toHaveBeenCalled()
+    expect(consoleSpy.mock.calls[0][0]).toContain('Invalid format')
+    expect(clientSendMessageSpy).not.toHaveBeenCalled()
+  } finally {
+    // Restore in finally: a failing assertion above would otherwise leave
+    // process.exit mocked, so every later test would throw instead of exiting.
+    exitSpy.mockRestore()
+  }
+})
+
+it('send: passes html format to the client', async () => {
+  const consoleSpy = mock((_msg: string) => {})
+  console.log = consoleSpy
+
+  await sendAction('team_123', 'ch_456', '<at id="29:x">John</at>', { pretty: false, format: 'html' })
+
+  expect(clientSendMessageSpy).toHaveBeenCalledWith('team_123', 'ch_456', '<at id="29:x">John</at>', undefined, 'html')
+})
+
+it('send: passes markdown format together with --thread', async () => {
+  const consoleSpy = mock((_msg: string) => {})
+  console.log = consoleSpy
+
+  await sendAction('team_123', 'ch_456', '**bold**', { pretty: false, thread: 'root_1', format: 'markdown' })
+
+  expect(clientSendMessageSpy).toHaveBeenCalledWith('team_123', 'ch_456', '**bold**', 'root_1', 'markdown')
+})

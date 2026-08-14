@@ -112,6 +112,13 @@ describe('markdownToHtml', () => {
   it('preserves whitespace-only input', () => {
     expect(markdownToHtml('   ')).toBe('   ')
   })
+
+  it('does not clobber a fenced block with an inline placeholder on the same line', () => {
+    const result = markdownToHtml('Run `npm i` then ```\ncode here\n``` done')
+
+    expect(result).toContain('<code>npm i</code>')
+    expect(result).toContain('code here')
+  })
 })
 
 describe('stripMarkdown', () => {
