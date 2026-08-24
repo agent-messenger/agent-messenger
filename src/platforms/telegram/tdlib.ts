@@ -7,6 +7,10 @@ interface TdjsonSymbols {
   td_execute: (request: string) => string | null
 }
 
+function unwrapDefaultExport<T>(moduleNamespace: T): T {
+  return (moduleNamespace as T & { default?: T }).default ?? moduleNamespace
+}
+
 let cachedKoffi: typeof import('koffi') | undefined
 
 async function getKoffi(): Promise<typeof import('koffi')> {
@@ -15,7 +19,7 @@ async function getKoffi(): Promise<typeof import('koffi')> {
   }
 
   try {
-    cachedKoffi = await import('koffi')
+    cachedKoffi = unwrapDefaultExport(await import('koffi'))
     return cachedKoffi
   } catch {
     throw new Error('koffi is required for Telegram support. Install it with: bun add koffi prebuilt-tdlib')
@@ -36,7 +40,7 @@ function getLibrarySuffix(): string {
 
 async function getPrebuiltTdjsonPath(): Promise<string | undefined> {
   try {
-    const mod = (await import('prebuilt-tdlib')) as { getTdjson?: () => string }
+    const mod = unwrapDefaultExport((await import('prebuilt-tdlib')) as { getTdjson?: () => string })
     const tdjson = mod.getTdjson?.()
     return typeof tdjson === 'string' && tdjson.length > 0 ? tdjson : undefined
   } catch {
