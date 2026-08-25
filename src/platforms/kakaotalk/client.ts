@@ -22,6 +22,7 @@ import {
   type KakaoMarkReadResult,
   type KakaoMember,
   type KakaoMessage,
+  type KakaoMessagePage,
   type KakaoMultiPhotoExtra,
   type KakaoProfile,
   type KakaoReplyExtra,
@@ -207,10 +208,22 @@ interface ChannelMetaEntry {
   content?: string
 }
 
+interface ChannelInfoData {
+  chatId?: unknown
+  type?: unknown
+  activeMembersCount?: unknown
+  newMessageCount?: unknown
+  invalidNewMessageCount?: unknown
+  lastLogId?: unknown
+  lastSeenLogId?: unknown
+  lastChatLog?: Record<string, unknown> | null
+  displayMembers?: Array<Record<string, unknown>>
+  chatMetas?: ChannelMetaEntry[]
+  li?: unknown
+}
+
 interface ChannelInfoResponse {
-  chatInfo?: {
-    chatMetas?: ChannelMetaEntry[]
-  }
+  chatInfo?: ChannelInfoData
 }
 
 function extractTitle(body: Record<string, unknown>): string | null {
@@ -221,6 +234,62 @@ function extractTitle(body: Record<string, unknown>): string | null {
   const titleMeta = metas.find((m) => m?.type === META_TYPE_TITLE)
   const content = titleMeta?.content
   return typeof content === 'string' && content.length > 0 ? content : null
+}
+
+function extractChannelInfo(body: Record<string, unknown>, expectedChatId: string): ChannelInfoData {
+  const info = (body as ChannelInfoResponse).chatInfo
+  if (!info || typeof info !== 'object') {
+    throw new Error('CHATINFO response missing chatInfo')
+  }
+  const responseChatId = longToString(info.chatId)
+  if (responseChatId !== expectedChatId) {
+    throw new Error('CHATINFO response chatId mismatch')
+  }
+  return info
+}
+
+function requiredNonNegativeInteger(value: unknown, field: string): number {
+  if (!Number.isInteger(value) || (value as number) < 0) {
+    throw new Error(`CHATINFO response invalid ${field}`)
+  }
+  return value as number
+}
+
+function channelInfoToChatData(body: Record<string, unknown>, expectedChatId: string): ChatData {
+  const info = extractChannelInfo(body, expectedChatId)
+  const type = requiredNonNegativeInteger(info.type, 'type')
+  const activeMembers = requiredNonNegativeInteger(info.activeMembersCount, 'activeMembersCount')
+  const unreadCount =
+    info.invalidNewMessageCount === true ? 0 : requiredNonNegativeInteger(info.newMessageCount, 'newMessageCount')
+  const displayMembers = Array.isArray(info.displayMembers) ? info.displayMembers : []
+  const memberIds: unknown[] = []
+  const memberNames: string[] = []
+
+  for (const member of displayMembers) {
+    if (!member || typeof member !== 'object') continue
+    if (member.userId === undefined || typeof member.nickName !== 'string') continue
+    memberIds.push(member.userId)
+    memberNames.push(member.nickName)
+  }
+
+  return {
+    c: info.chatId,
+    t: type,
+    a: activeMembers,
+    n: unreadCount,
+    l: info.lastChatLog ?? null,
+    ll: info.lastLogId,
+    i: memberIds,
+    k: memberNames,
+    li: info.li,
+  }
+}
+
+function extractChannelMaxLogId(body: Record<string, unknown>, expectedChatId: string): Long {
+  const info = extractChannelInfo(body, expectedChatId)
+  const maxLogId = bsonToLong(info.lastLogId)
+  if (!maxLogId) throw new Error('CHATINFO response missing lastLogId')
+  return maxLogId
 }
 
 interface OpenLinkInfoResponse {
@@ -518,6 +587,50 @@ function formatMessages(
   }))
 }
 
+function formatForwardMessage(log: Record<string, unknown>, chatId: string, nameCache: MemberNameCache): KakaoMessage {
+  return {
+    log_id: longToString(log.logId),
+    type: log.type as number,
+    author_id: log.authorId as number,
+    author_name: nameCache.lookup(chatId, log.authorId as number),
+    message: log.message as string,
+    attachment: parseAttachmentJson(log.attachment),
+    sent_at: log.sendAt as number,
+  }
+}
+
+function buildMessagePage(
+  logs: Array<Record<string, unknown>>,
+  count: number,
+  cursor: Long,
+  protocolComplete: boolean,
+  chatId: string,
+  nameCache: MemberNameCache,
+): KakaoMessagePage {
+  const cursorValue = BigInt(cursor.toString())
+  const unique = new Map<string, Record<string, unknown>>()
+
+  for (const log of logs) {
+    const logId = longToString(log.logId)
+    if (BigInt(logId) <= cursorValue) continue
+    if (!unique.has(logId)) unique.set(logId, log)
+  }
+
+  const ordered = [...unique.entries()].sort(([left], [right]) => {
+    const a = BigInt(left)
+    const b = BigInt(right)
+    return a < b ? -1 : a > b ? 1 : 0
+  })
+  const selected = ordered.slice(0, count)
+  const nextCursor = selected.at(-1)?.[0] ?? null
+
+  return {
+    messages: selected.map(([, log]) => formatForwardMessage(log, chatId, nameCache)),
+    next_cursor: nextCursor,
+    complete: protocolComplete && ordered.length <= count,
+  }
+}
+
 function buildReplyExtra(target: KakaoReplyTarget): KakaoReplyExtra {
   return {
     attach_only: false,
@@ -811,6 +924,44 @@ export class KakaoTalkClient {
   }
 
   /**
+   * Fetch one chat directly by id via read-only CHATINFO.
+   *
+   * Unlike `getChats()`, this does not depend on the login-time snapshot or
+   * LCHATLIST pagination, so a room first observed from a live push can be
+   * resolved without interpreting protocol fields outside this SDK.
+   */
+  async getChat(chatId: string): Promise<KakaoChat> {
+    const parsedChatId = parseChatId(chatId)
+    const normalizedChatId = longToString(parsedChatId)
+    return this.executeWithReconnect(async ({ session }) => {
+      try {
+        const response = await session.getChannelInfo(parsedChatId)
+        assertLocoOk(response, 'CHATINFO')
+        const body = response.body as Record<string, unknown>
+        const chat = channelInfoToChatData(body, normalizedChatId)
+        this.nameCache.ingest([chat])
+
+        let title = extractTitle(body)
+        if (!title && isOpenChat(chat)) {
+          const linkId = getOpenLinkId(chat)
+          if (linkId) {
+            try {
+              const openLinkResponse = await session.getOpenLinkInfo([linkId])
+              title = extractOpenLinkName(openLinkResponse.body as Record<string, unknown>)
+            } catch {
+              title = null
+            }
+          }
+        }
+
+        return formatChat(chat, title, this.nameCache)
+      } catch (error) {
+        throw wrapError(error, 'get_chat_failed')
+      }
+    })
+  }
+
+  /**
    * Resolve the user-set room title via CHATINFO. Returns null on any error
    * (network, malformed response, or no TITLE meta present). Designed to be
    * fire-and-forget per chat — failures don't poison the whole `getChats` call.
@@ -849,6 +1000,60 @@ export class KakaoTalkClient {
     } catch {
       return null
     }
+  }
+
+  /**
+   * Fetch one forward-only, lossless history page after `from`.
+   *
+   * The page never keeps only the newest `count` entries. If the protocol
+   * returns more entries than requested, the oldest entries are returned and
+   * `complete` remains false so callers can continue from `next_cursor`.
+   */
+  async getMessagePage(chatId: string, options?: { count?: number; from?: string }): Promise<KakaoMessagePage> {
+    const count = options?.count ?? 100
+    if (!Number.isInteger(count) || count < 1 || count > 100) {
+      throw new KakaoTalkError('Message page count must be an integer between 1 and 100', 'invalid_message_page_count')
+    }
+    const parsedChatId = parseChatId(chatId)
+    const normalizedChatId = longToString(parsedChatId)
+    const cursor = options?.from ? parseLogId(options.from) : Long.fromNumber(0)
+
+    return this.executeWithReconnect(async ({ session }) => {
+      try {
+        const response = await session.getChatLogs([parsedChatId], [cursor])
+        assertLocoOk(response, 'MCHATLOGS')
+        const batch = ((response.body.chatLogs ?? []) as Array<Record<string, unknown>>).filter(
+          (log) => longToString(log.chatId) === normalizedChatId,
+        )
+
+        if (batch.length > 0) {
+          return buildMessagePage(batch, count, cursor, response.body.eof === true, normalizedChatId, this.nameCache)
+        }
+
+        // CHATINFO is read-only and supplies a fresh lastLogId even for rooms
+        // absent from the login snapshot. This avoids CHATONROOM, which can
+        // advance server-side unread state.
+        const chatInfoResponse = await session.getChannelInfo(parsedChatId)
+        assertLocoOk(chatInfoResponse, 'CHATINFO')
+        const maxLogId = extractChannelMaxLogId(chatInfoResponse.body as Record<string, unknown>, normalizedChatId)
+        if (maxLogId.lessThanOrEqual(cursor)) {
+          return { messages: [], next_cursor: null, complete: true }
+        }
+
+        const syncResponse = await session.syncMessages(parsedChatId, Math.min(count, 80), cursor, maxLogId)
+        assertLocoOk(syncResponse, 'SYNCMSG')
+        const syncBatch = ((syncResponse.body.chatLogs ?? []) as Array<Record<string, unknown>>).filter(
+          (log) => longToString(log.chatId) === normalizedChatId,
+        )
+        const maxReturned = findMaxLogId(syncBatch, 'logId')
+        const protocolComplete =
+          syncResponse.body.isOK === true || (maxReturned !== null && maxReturned.greaterThanOrEqual(maxLogId))
+
+        return buildMessagePage(syncBatch, count, cursor, protocolComplete, normalizedChatId, this.nameCache)
+      } catch (error) {
+        throw wrapError(error, 'get_message_page_failed')
+      }
+    })
   }
 
   async getMessages(chatId: string, options?: { count?: number; from?: string }): Promise<KakaoMessage[]> {

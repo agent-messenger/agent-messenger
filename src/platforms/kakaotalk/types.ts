@@ -95,6 +95,12 @@ export interface KakaoMessage {
   sent_at: number
 }
 
+export interface KakaoMessagePage {
+  messages: KakaoMessage[]
+  next_cursor: string | null
+  complete: boolean
+}
+
 export interface KakaoMember {
   user_id: string
   nickname: string
@@ -245,6 +251,12 @@ export const KakaoMessageSchema = z.object({
   message: z.string(),
   attachment: z.record(z.string(), z.unknown()).nullable(),
   sent_at: z.number(),
+})
+
+export const KakaoMessagePageSchema = z.object({
+  messages: z.array(KakaoMessageSchema),
+  next_cursor: z.string().nullable(),
+  complete: z.boolean(),
 })
 
 export const KakaoMemberSchema = z.object({
