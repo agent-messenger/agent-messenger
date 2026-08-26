@@ -44,12 +44,18 @@ export type KakaoSessionEventHandler = (event: KakaoSessionEvent) => void
 
 export type KakaoTalkResponseFailureKind = 'provider_rejection' | 'transient_or_unknown'
 export type KakaoTalkResponseStatusSource = 'packet' | 'body'
+export type KakaoTalkGetChatFailureReason =
+  | 'provider_rejection'
+  | 'synthetic_connection_close'
+  | 'chat_info_absent'
+  | 'transport_or_unknown'
 
 export class KakaoTalkError extends Error {
   code: string
   readonly serverStatus?: number
   readonly responseFailureKind?: KakaoTalkResponseFailureKind
   readonly responseStatusSource?: KakaoTalkResponseStatusSource
+  readonly getChatFailureReason?: KakaoTalkGetChatFailureReason
 
   constructor(
     message: string,
@@ -59,6 +65,7 @@ export class KakaoTalkError extends Error {
       serverStatus?: number
       responseFailureKind?: KakaoTalkResponseFailureKind
       responseStatusSource?: KakaoTalkResponseStatusSource
+      getChatFailureReason?: KakaoTalkGetChatFailureReason
     },
   ) {
     super(message, options)
@@ -67,6 +74,7 @@ export class KakaoTalkError extends Error {
     this.serverStatus = options?.serverStatus
     this.responseFailureKind = options?.responseFailureKind
     this.responseStatusSource = options?.responseStatusSource
+    this.getChatFailureReason = options?.getChatFailureReason
   }
 }
 
@@ -387,14 +395,25 @@ function collectChats(chatDatas: ChatData[], into: ChatData[], seen: Set<string>
   }
 }
 
-function wrapError(error: unknown, code: string, options?: { classifyResponseFailure?: boolean }): KakaoTalkError {
+function wrapError(
+  error: unknown,
+  code: string,
+  options?: { classifyResponseFailure?: boolean; classifyGetChatFailure?: boolean },
+): KakaoTalkError {
   if (error instanceof KakaoTalkError) {
-    if (!options?.classifyResponseFailure || error.responseFailureKind) return error
+    const responseFailureKind =
+      error.responseFailureKind ?? (options?.classifyResponseFailure ? 'transient_or_unknown' : undefined)
+    const getChatFailureReason =
+      error.getChatFailureReason ?? (options?.classifyGetChatFailure ? 'transport_or_unknown' : undefined)
+    if (responseFailureKind === error.responseFailureKind && getChatFailureReason === error.getChatFailureReason) {
+      return error
+    }
     return new KakaoTalkError(error.message, error.code, {
       cause: error.cause ?? error,
       serverStatus: error.serverStatus,
-      responseFailureKind: 'transient_or_unknown',
+      responseFailureKind,
       responseStatusSource: error.responseStatusSource,
+      getChatFailureReason,
     })
   }
   const message = error instanceof Error ? error.message : String(error)
@@ -408,6 +427,13 @@ function wrapError(error: unknown, code: string, options?: { classifyResponseFai
         : options?.classifyResponseFailure
           ? 'transient_or_unknown'
           : undefined,
+    getChatFailureReason: options?.classifyGetChatFailure
+      ? error instanceof LocoResponseError && error.responseFailureKind === 'provider_rejection'
+        ? 'provider_rejection'
+        : error instanceof LocoResponseError && error.responseStatusSource === 'packet' && error.serverStatus === -1
+          ? 'synthetic_connection_close'
+          : 'transport_or_unknown'
+      : undefined,
   })
 }
 
@@ -1087,6 +1113,12 @@ export class KakaoTalkClient {
         const response = await session.getChannelInfo(parsedChatId)
         assertLocoOk(response, 'CHATINFO')
         const body = response.body as Record<string, unknown>
+        if (body.chatInfo === undefined) {
+          throw new KakaoTalkError('CHATINFO response missing chatInfo', 'get_chat_failed', {
+            responseFailureKind: 'transient_or_unknown',
+            getChatFailureReason: 'chat_info_absent',
+          })
+        }
         const chat = channelInfoToChatData(body, normalizedChatId)
         this.nameCache.ingest([chat])
 
@@ -1105,7 +1137,10 @@ export class KakaoTalkClient {
 
         return formatChat(chat, title, this.nameCache)
       } catch (error) {
-        throw wrapError(error, 'get_chat_failed', { classifyResponseFailure: true })
+        throw wrapError(error, 'get_chat_failed', {
+          classifyResponseFailure: true,
+          classifyGetChatFailure: true,
+        })
       }
     })
   }
