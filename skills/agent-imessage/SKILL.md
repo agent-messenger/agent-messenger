@@ -1,7 +1,7 @@
 ---
 name: agent-imessage
 description: Interact with iMessage on a Mac via the imsg tool - send messages, read chats, watch for new messages
-version: 2.36.1
+version: 2.37.0
 allowed-tools: Bash(agent-imessage:*)
 metadata:
   openclaw:
