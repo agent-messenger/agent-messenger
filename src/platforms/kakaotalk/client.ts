@@ -1113,7 +1113,7 @@ export class KakaoTalkClient {
         const response = await session.getChannelInfo(parsedChatId)
         assertLocoOk(response, 'CHATINFO')
         const body = response.body as Record<string, unknown>
-        if (body.chatInfo === undefined) {
+        if (body.chatInfo === undefined || body.chatInfo === null) {
           throw new KakaoTalkError('CHATINFO response missing chatInfo', 'get_chat_failed', {
             responseFailureKind: 'transient_or_unknown',
             getChatFailureReason: 'chat_info_absent',
