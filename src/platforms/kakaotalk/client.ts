@@ -8,6 +8,7 @@ import { getConfigDir } from '@/shared/utils/config-dir'
 import { warn } from '@/shared/utils/stderr'
 
 import { type AttachmentInput, type ResolvedAttachment, planAttachments } from './attachment-router'
+import { isOpenKakaoChatType } from './chat-classifier'
 import { detectImageDimensions } from './image-meta'
 import { sha1Hex } from './media-upload'
 import { LANG, PC_OS_NAME, getLocoDeviceConfig } from './protocol/config'
@@ -186,7 +187,7 @@ function formatChat(chat: ChatData, title: string | null, nameCache: MemberNameC
 
   return {
     chat_id: chatId,
-    type: chat.t as number,
+    type: chat.t as KakaoChat['type'],
     display_name: displayName,
     title,
     active_members: chat.a as number,
@@ -256,9 +257,16 @@ function requiredNonNegativeInteger(value: unknown, field: string): number {
   return value as number
 }
 
+function requiredChatType(value: unknown): KakaoChat['type'] {
+  if (typeof value === 'string' && isOpenKakaoChatType(value)) {
+    return value
+  }
+  return requiredNonNegativeInteger(value, 'type')
+}
+
 function channelInfoToChatData(body: Record<string, unknown>, expectedChatId: string): ChatData {
   const info = extractChannelInfo(body, expectedChatId)
-  const type = requiredNonNegativeInteger(info.type, 'type')
+  const type = requiredChatType(info.type)
   const activeMembers = requiredNonNegativeInteger(info.activeMembersCount, 'activeMembersCount')
   const unreadCount =
     info.invalidNewMessageCount === true ? 0 : requiredNonNegativeInteger(info.newMessageCount, 'newMessageCount')
@@ -304,10 +312,8 @@ function extractOpenLinkName(body: Record<string, unknown>): string | null {
   return typeof ln === 'string' && ln.length > 0 ? ln : null
 }
 
-const OPEN_CHAT_TYPES = new Set(['OM', 'OD'])
-
 function isOpenChat(chat: ChatData): boolean {
-  return typeof chat.t === 'string' && OPEN_CHAT_TYPES.has(chat.t)
+  return isOpenKakaoChatType(chat.t)
 }
 
 function getOpenLinkId(chat: ChatData): Long | null {

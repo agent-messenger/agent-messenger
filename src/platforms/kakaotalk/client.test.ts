@@ -927,6 +927,122 @@ describe('KakaoTalkClient', () => {
       client.close()
     })
 
+    for (const openChatType of ['OM', 'OD'] as const) {
+      it(`preserves ${openChatType} and falls back to INFOLINK when CHATINFO has no title`, async () => {
+        mockGetChannelInfo.mockResolvedValueOnce({
+          statusCode: 0,
+          body: {
+            chatInfo: {
+              chatId: makeLong(300),
+              type: openChatType,
+              activeMembersCount: 2,
+              newMessageCount: 0,
+              invalidNewMessageCount: false,
+              lastLogId: makeLong(77),
+              lastSeenLogId: makeLong(73),
+              lastChatLog: null,
+              displayMembers: [
+                { userId: makeLong(42), nickName: 'Alice' },
+                { userId: makeLong(43), nickName: 'Bob' },
+              ],
+              chatMetas: [],
+              li: makeLong(7777),
+              pushAlert: true,
+            },
+          },
+        })
+        mockGetOpenLinkInfo.mockResolvedValueOnce({ body: { ols: [{ ln: 'Open Group Title' }] } })
+
+        const client = await new KakaoTalkClient().login({
+          oauthToken: 'token',
+          userId: 'user1',
+          deviceUuid: 'device1',
+        })
+        const chat = await client.getChat('300')
+
+        expect(chat).toEqual({
+          chat_id: '300',
+          type: openChatType,
+          display_name: 'Alice, Bob',
+          title: 'Open Group Title',
+          active_members: 2,
+          unread_count: 0,
+          last_message: null,
+        })
+        expect(mockGetOpenLinkInfo).toHaveBeenCalledTimes(1)
+
+        client.close()
+      })
+    }
+
+    it('falls back to INFOLINK for a numeric open-chat code', async () => {
+      mockGetChannelInfo.mockResolvedValueOnce({
+        statusCode: 0,
+        body: {
+          chatInfo: {
+            chatId: makeLong(300),
+            type: 13,
+            activeMembersCount: 2,
+            newMessageCount: 0,
+            invalidNewMessageCount: false,
+            lastLogId: makeLong(77),
+            lastSeenLogId: makeLong(73),
+            lastChatLog: null,
+            displayMembers: [],
+            chatMetas: [],
+            li: makeLong(7777),
+            pushAlert: true,
+          },
+        },
+      })
+      mockGetOpenLinkInfo.mockResolvedValueOnce({ body: { ols: [{ ln: 'Numeric Open Title' }] } })
+
+      const client = await new KakaoTalkClient().login({
+        oauthToken: 'token',
+        userId: 'user1',
+        deviceUuid: 'device1',
+      })
+      const chat = await client.getChat('300')
+
+      expect(chat.type).toBe(13)
+      expect(chat.title).toBe('Numeric Open Title')
+      expect(mockGetOpenLinkInfo).toHaveBeenCalledTimes(1)
+
+      client.close()
+    })
+
+    it('rejects an unknown string CHATINFO type without contacting INFOLINK', async () => {
+      mockGetChannelInfo.mockResolvedValueOnce({
+        statusCode: 0,
+        body: {
+          chatInfo: {
+            chatId: makeLong(300),
+            type: 'UNKNOWN',
+            activeMembersCount: 2,
+            newMessageCount: 0,
+            invalidNewMessageCount: false,
+            lastLogId: makeLong(1),
+            lastSeenLogId: makeLong(0),
+            displayMembers: [],
+            chatMetas: [],
+            li: makeLong(7777),
+            pushAlert: true,
+          },
+        },
+      })
+
+      const client = await new KakaoTalkClient().login({
+        oauthToken: 'token',
+        userId: 'user1',
+        deviceUuid: 'device1',
+      })
+
+      await expect(client.getChat('300')).rejects.toMatchObject({ code: 'get_chat_failed' })
+      expect(mockGetOpenLinkInfo).not.toHaveBeenCalled()
+
+      client.close()
+    })
+
     it('rejects a CHATINFO response bound to a different chat id', async () => {
       mockGetChannelInfo.mockResolvedValueOnce({
         statusCode: 0,

@@ -70,9 +70,12 @@ export const KAKAO_NEXT_ACTIONS: Record<string, { next_action: string; message: 
   },
 }
 
+export type KakaoOpenChatType = 2 | 13 | 14 | 15 | 16 | 'OM' | 'OD'
+export type KakaoChatType = number | Extract<KakaoOpenChatType, string>
+
 export interface KakaoChat {
   chat_id: string
-  type: number
+  type: KakaoChatType
   display_name: string | null
   title: string | null
   active_members: number
@@ -236,7 +239,7 @@ export interface KakaoTypingResult {
 
 export const KakaoChatSchema = z.object({
   chat_id: z.string(),
-  type: z.number(),
+  type: z.union([z.number(), z.literal('OM'), z.literal('OD')]),
   display_name: z.string().nullable(),
   title: z.string().nullable(),
   active_members: z.number(),

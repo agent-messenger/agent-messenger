@@ -57,6 +57,17 @@ agent-kakaotalk message send "$TARGET_CHAT" "Hey Alice!"
 
 > Note: `display_name` joins the chat's member nicknames. For the user-set room title (matching the KakaoTalk app), see [Pattern 10](#pattern-10-resolve-canonical-room-titles).
 
+For an exact chat ID observed from a live event, the SDK can resolve that room
+directly without depending on the login-time list:
+
+```typescript
+const chat = await client.getChat('9876543210')
+```
+
+`getChat()` uses the read-only `CHATINFO` owner. It preserves numeric room types
+and open-chat types `OM` / `OD`; open chats without a `TITLE` meta use the
+OpenLink name as a display-title fallback.
+
 ## Pattern 3: Send Files, Photos, Videos, and Audio
 
 **Use case**: Upload an attachment to a chat (photo, video, voice, generic file, or multi-photo gallery)
@@ -186,6 +197,31 @@ NEW_MESSAGES=$(agent-kakaotalk message list "$CHAT_ID" --from "$LAST_SEEN")
 **When to use**: Reading long chat histories, catching up on new messages since last check.
 
 **Pagination details**: The CLI prefers KakaoTalk's `MCHATLOGS` flow for history reads, fetching message batches from the requested `--from` point and returning the last N messages after deduplication and ascending sort. If that path cannot provide results, it reads the maximum log ID from the login chat-list watermark (`ll`, falling back to `l.logId`) and calls `SYNCMSG` directly only when that watermark is ahead of the current cursor. The history path never uses `CHATONROOM`, which avoids room-entry side effects. If the watermark is missing or is not ahead of the cursor, the fallback fails closed and returns `[]`. As a safety net, both message flows are capped at 50 internal pages. A warning is printed to stderr only when that cap is actually hit and the returned history may be incomplete.
+
+For lossless forward-only SDK pagination, carry `next_cursor` into the next
+exclusive `from` request until `complete` is true:
+
+```typescript
+let from = '123456789'
+do {
+  const page = await client.getMessagePage(CHAT_ID, { from, count: 80 })
+  for (const message of page.messages) {
+    await archive(message)
+  }
+  if (page.complete) break
+  if (page.next_cursor === null) {
+    throw new Error('KakaoTalk history made no forward progress')
+  }
+  from = page.next_cursor
+} while (true)
+```
+
+`from` is exclusive. `next_cursor` is the last returned log ID, or `null` when
+the server made no forward progress. `complete` is true only when the available
+forward range is exhausted. The SDK prefers `MCHATLOGS`; for late rooms or an
+empty page it reconciles with read-only `CHATINFO` and then calls `SYNCMSG` only
+when the observed maximum log ID is ahead of `from`. This path does not call
+`CHATONROOM`.
 
 ## Pattern 7: Multi-Chat Broadcast
 

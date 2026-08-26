@@ -15,6 +15,7 @@ import {
   KakaoSendResultSchema,
   KakaoTalkClient,
   KakaoTalkError,
+  isOpenKakaoChatType,
   KakaoTalkListener,
   KakaoTalkPushMemberEventSchema,
   KakaoTalkPushMessageEventSchema,
@@ -86,6 +87,12 @@ it('KakaoProfileSchema is exported from barrel', () => {
 
 it('classifyKakaoChat is exported from barrel', () => {
   expect(typeof classifyKakaoChat).toBe('function')
+})
+
+it('isOpenKakaoChatType is exported from barrel', () => {
+  expect(isOpenKakaoChatType('OM')).toBe(true)
+  expect(isOpenKakaoChatType(13)).toBe(true)
+  expect(isOpenKakaoChatType('UNKNOWN')).toBe(false)
 })
 
 it('KakaoLeaveChatResultSchema is exported from barrel', () => {
