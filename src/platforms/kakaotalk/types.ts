@@ -118,6 +118,14 @@ export interface KakaoMember {
   open_permission: number | null
 }
 
+export interface KakaoMemberSnapshot {
+  chat_id: string
+  active_members: number
+  members: KakaoMember[]
+  complete: true
+  consistency_basis: 'stable_double_read_chatinfo_getmem'
+}
+
 export interface KakaoSendResult {
   success: boolean
   status_code: number
@@ -271,6 +279,14 @@ export const KakaoMemberSchema = z.object({
   open_token: z.number().nullable(),
   open_profile_link_id: z.string().nullable(),
   open_permission: z.number().nullable(),
+})
+
+export const KakaoMemberSnapshotSchema = z.object({
+  chat_id: z.string(),
+  active_members: z.number().int().nonnegative(),
+  members: z.array(KakaoMemberSchema),
+  complete: z.literal(true),
+  consistency_basis: z.literal('stable_double_read_chatinfo_getmem'),
 })
 
 export const KakaoSendResultSchema = z.object({

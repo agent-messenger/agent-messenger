@@ -21,6 +21,7 @@ import {
   type KakaoLeaveChatResult,
   type KakaoMarkReadResult,
   type KakaoMember,
+  type KakaoMemberSnapshot,
   type KakaoMessage,
   type KakaoMessagePage,
   type KakaoMultiPhotoExtra,
@@ -521,9 +522,29 @@ function formatMember(member: Record<string, unknown>): KakaoMember {
 }
 
 function memberIdKey(member: Record<string, unknown>): string | null {
-  if (member.userId === undefined || member.userId === null) return null
-  const key = longToString(member.userId)
-  return key === '0' ? null : key
+  const value = member.userId
+  if (typeof value === 'number') {
+    return Number.isSafeInteger(value) && value > 0 ? String(value) : null
+  }
+  if (!value || typeof value !== 'object' || !('low' in value) || !('high' in value)) {
+    return null
+  }
+  const { low, high } = value as {
+    low: unknown
+    high: unknown
+  }
+  if (
+    !Number.isInteger(low) ||
+    !Number.isInteger(high) ||
+    (low as number) < -0x80000000 ||
+    (low as number) > 0xffffffff ||
+    (high as number) < -0x80000000 ||
+    (high as number) > 0xffffffff
+  ) {
+    return null
+  }
+  const numeric = (BigInt((high as number) >>> 0) << 32n) | BigInt((low as number) >>> 0)
+  return numeric > 0n && numeric <= BigInt(Number.MAX_SAFE_INTEGER) ? numeric.toString() : null
 }
 
 function mergeMemberRecords(
@@ -553,19 +574,59 @@ function mergeMemberRecords(
   return merged
 }
 
-function extractChatInfoMembers(body: unknown): Array<Record<string, unknown>> {
-  if (!body || typeof body !== 'object') return []
-
-  const record = body as Record<string, unknown>
-  if (Array.isArray(record.m)) {
-    return record.m as Array<Record<string, unknown>>
+function exactMemberRecords(
+  value: unknown,
+  source: string,
+): {
+  records: Array<Record<string, unknown>>
+  ids: Set<string>
+} {
+  if (!Array.isArray(value)) {
+    throw new Error(`${source} member snapshot missing`)
   }
+  const records: Array<Record<string, unknown>> = []
+  const ids = new Set<string>()
+  for (const raw of value) {
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
+      throw new Error(`${source} member snapshot invalid`)
+    }
+    const record = raw as Record<string, unknown>
+    const id = memberIdKey(record)
+    if (!id || ids.has(id)) {
+      throw new Error(`${source} member snapshot invalid`)
+    }
+    ids.add(id)
+    records.push(record)
+  }
+  return { records, ids }
+}
 
-  const chatInfo = record.chatInfo
-  if (!chatInfo || typeof chatInfo !== 'object') return []
+function sameIds(left: Set<string>, right: Set<string>): boolean {
+  return left.size === right.size && [...left].every((id) => right.has(id))
+}
 
-  const displayMembers = (chatInfo as Record<string, unknown>).displayMembers
-  return Array.isArray(displayMembers) ? (displayMembers as Array<Record<string, unknown>>) : []
+function subsetIds(subset: Set<string>, superset: Set<string>): boolean {
+  return [...subset].every((id) => superset.has(id))
+}
+
+function channelMemberView(
+  body: Record<string, unknown>,
+  expectedChatId: string,
+): {
+  activeMembers: number
+  records: Array<Record<string, unknown>>
+  ids: Set<string>
+} {
+  const info = extractChannelInfo(body, expectedChatId)
+  const activeMembers = requiredNonNegativeInteger(info.activeMembersCount, 'activeMembersCount')
+  const displayMembers = exactMemberRecords(info.displayMembers ?? [], 'CHATINFO')
+  if (displayMembers.records.length > activeMembers) {
+    throw new Error('CHATINFO member snapshot invalid')
+  }
+  return {
+    activeMembers,
+    ...displayMembers,
+  }
 }
 
 function formatMessages(
@@ -1154,28 +1215,58 @@ export class KakaoTalkClient {
     })
   }
 
-  async getMembers(chatId: string): Promise<KakaoMember[]> {
+  async getMemberSnapshot(chatId: string): Promise<KakaoMemberSnapshot> {
     const parsedChatId = parseChatId(chatId)
+    const normalizedChatId = longToString(parsedChatId)
     return this.executeWithReconnect(async ({ session }) => {
       try {
-        const response = await session.getAllMembers(parsedChatId)
-        assertLocoOk(response, 'GETMEM')
-        const members = (response.body.members ?? []) as Array<Record<string, unknown>>
-        let fallbackMembers: Array<Record<string, unknown>> = []
-        try {
-          // Some KakaoTalk rooms return only a subset from GETMEM even though
-          // CHATONROOM carries the full active member list in `m`.
-          const chatInfo = await session.getChatInfo(parsedChatId)
-          fallbackMembers = extractChatInfoMembers(chatInfo.body)
-        } catch {
-          fallbackMembers = []
+        const firstChatResponse = await session.getChannelInfo(parsedChatId)
+        assertLocoOk(firstChatResponse, 'CHATINFO')
+        const firstChat = channelMemberView(firstChatResponse.body as Record<string, unknown>, normalizedChatId)
+        const firstMemberResponse = await session.getAllMembers(parsedChatId)
+        assertLocoOk(firstMemberResponse, 'GETMEM')
+        const firstMembers = exactMemberRecords(firstMemberResponse.body.members ?? [], 'GETMEM')
+        const secondChatResponse = await session.getChannelInfo(parsedChatId)
+        assertLocoOk(secondChatResponse, 'CHATINFO')
+        const secondChat = channelMemberView(secondChatResponse.body as Record<string, unknown>, normalizedChatId)
+        const secondMemberResponse = await session.getAllMembers(parsedChatId)
+        assertLocoOk(secondMemberResponse, 'GETMEM')
+        const secondMembers = exactMemberRecords(secondMemberResponse.body.members ?? [], 'GETMEM')
+        if (
+          firstChat.activeMembers !== secondChat.activeMembers ||
+          firstMembers.records.length !== firstChat.activeMembers ||
+          secondMembers.records.length !== secondChat.activeMembers ||
+          !sameIds(firstChat.ids, secondChat.ids) ||
+          !sameIds(firstMembers.ids, secondMembers.ids) ||
+          !subsetIds(secondChat.ids, secondMembers.ids)
+        ) {
+          throw new Error('member_snapshot_changed_or_incomplete')
         }
-
-        return mergeMemberRecords(members, fallbackMembers).map(formatMember)
+        return {
+          chat_id: normalizedChatId,
+          active_members: secondChat.activeMembers,
+          members: mergeMemberRecords(secondMembers.records, secondChat.records).map(formatMember),
+          complete: true,
+          consistency_basis: 'stable_double_read_chatinfo_getmem',
+        }
       } catch (error) {
-        throw wrapError(error, 'get_members_failed')
+        throw wrapError(error, 'get_member_snapshot_failed')
       }
     })
+  }
+
+  async getMembers(chatId: string): Promise<KakaoMember[]> {
+    try {
+      return (await this.getMemberSnapshot(chatId)).members
+    } catch (error) {
+      if (error instanceof KakaoTalkError && error.code === 'get_member_snapshot_failed') {
+        throw new KakaoTalkError(error.message, 'get_members_failed', {
+          cause: error,
+          serverStatus: error.serverStatus,
+        })
+      }
+      throw error
+    }
   }
 
   async getMembersByIds(chatId: string, userIds: string[]): Promise<KakaoMember[]> {

@@ -113,13 +113,26 @@ Each `KakaoMessage` also carries an `attachment: Record<string, unknown> | null`
 ### Members
 
 ```typescript
-// List all members of a chat (LOCO GETMEM)
+// List all members through the compatibility array API
 const members = await client.getMembers('9876543210')
 // → KakaoMember[]
+
+// Read the exact snapshot contract and its consistency evidence
+const snapshot = await client.getMemberSnapshot('9876543210')
+// → KakaoMemberSnapshot {
+//     chat_id, active_members, members, complete: true,
+//     consistency_basis: 'stable_double_read_chatinfo_getmem'
+//   }
 
 // Resolve a specific subset by user_id (LOCO MEMBER) — useful for >100-member rooms
 const subset = await client.getMembersByIds('9876543210', ['1234567890', '9876543210'])
 ```
+
+`getMemberSnapshot()` compares two read-only `CHATINFO` observations
+and two complete `GETMEM` observations. It succeeds only when the active
+count, display-member subset, and full member-ID set are stable. It does
+not call `CHATONROOM`, so it does not enter the room or advance unread
+state. Any malformed, partial, or changing snapshot fails closed.
 
 Each `KakaoMember` includes `user_id`, `nickname`, profile image URLs, `status_message`, `country_iso`, `user_type` (nullable; `null` when the server omits the field), and open-chat-only fields (`open_token`, `open_profile_link_id`, `open_permission` — the last is the OpenChannelUserPerm bitfield: `1`=OWNER, `2`=NONE, `4`=MANAGER, `8`=BOT).
 
