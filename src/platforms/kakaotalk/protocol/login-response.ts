@@ -17,7 +17,7 @@ export class KakaoLoginResponseError extends Error {
   }
 }
 
-function isSyntheticConnectionClose(response: LocoPacket): boolean {
+export function isSyntheticConnectionClose(response: LocoPacket): boolean {
   return response.statusCode === CONNECTION_CLOSED_STATUS && response.body.error === 'connection closed'
 }
 

@@ -1,4 +1,5 @@
 export { KakaoTalkClient, KakaoTalkError } from './client'
+export type { KakaoTalkResponseFailureKind, KakaoTalkResponseStatusSource } from './client'
 export { classifyKakaoChat, isOpenKakaoChatType } from './chat-classifier'
 export type { KakaoChatKind } from './chat-classifier'
 export { KakaoCredentialManager, CredentialManager } from './credential-manager'
