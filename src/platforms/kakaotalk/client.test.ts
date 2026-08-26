@@ -1034,6 +1034,7 @@ describe('KakaoTalkClient', () => {
           chatInfo: {
             chatId: makeLong(300),
             type: 11,
+            left: false,
             activeMembersCount: 2,
             newMessageCount: 4,
             invalidNewMessageCount: false,
@@ -1263,6 +1264,99 @@ describe('KakaoTalkClient', () => {
 
       client.close()
     })
+
+    it('classifies exact CHATINFO left=true as structurally absent without exposing response contents', async () => {
+      const secretSentinel = 'secret-left-chat-body-do-not-emit'
+      const nativeChatIdSentinel = '987654321'
+      mockGetChannelInfo.mockResolvedValueOnce({
+        statusCode: 0,
+        body: {
+          chatInfo: {
+            left: true,
+            chatId: makeLong(Number(nativeChatIdSentinel)),
+            secret: secretSentinel,
+          },
+        },
+      })
+
+      const client = await new KakaoTalkClient().login({ oauthToken: 'token', userId: 'user1', deviceUuid: 'device1' })
+
+      let error: unknown
+      try {
+        await client.getChat(nativeChatIdSentinel)
+      } catch (cause) {
+        error = cause
+      }
+
+      expect(error).toBeInstanceOf(KakaoTalkError)
+      expect(error).toMatchObject({
+        code: 'get_chat_failed',
+        getChatFailureReason: 'chat_info_absent',
+        responseFailureKind: 'transient_or_unknown',
+      })
+      const publicError = error as KakaoTalkError
+      const serialized = JSON.stringify(publicError)
+      expect(publicError.message).not.toContain(secretSentinel)
+      expect(publicError.message).not.toContain(nativeChatIdSentinel)
+      expect(serialized).not.toContain(secretSentinel)
+      expect(serialized).not.toContain(nativeChatIdSentinel)
+
+      client.close()
+    })
+
+    for (const [label, chatInfo] of [
+      ['mismatched chatId', { left: true, chatId: makeLong(301) }],
+      ['missing chatId', { left: true }],
+      ['invalid chatId', { left: true, chatId: { invalid: true } }],
+    ] as const) {
+      it(`does not classify CHATINFO left=true with ${label} as structurally absent`, async () => {
+        mockGetChannelInfo.mockResolvedValueOnce({
+          statusCode: 0,
+          body: { chatInfo },
+        })
+
+        const client = await new KakaoTalkClient().login({
+          oauthToken: 'token',
+          userId: 'user1',
+          deviceUuid: 'device1',
+        })
+
+        await expect(client.getChat('300')).rejects.toMatchObject({
+          code: 'get_chat_failed',
+          getChatFailureReason: 'transport_or_unknown',
+          responseFailureKind: 'transient_or_unknown',
+        })
+
+        client.close()
+      })
+    }
+
+    for (const [label, chatInfo] of [
+      ['left=false', { left: false }],
+      ['left missing', {}],
+      ['left nonboolean', { left: 'true' }],
+    ] as const) {
+      it(`does not classify malformed successful CHATINFO with ${label} as structurally absent`, async () => {
+        mockGetChannelInfo.mockResolvedValueOnce({
+          statusCode: 0,
+          body: { chatInfo },
+        })
+
+        const client = await new KakaoTalkClient().login({
+          oauthToken: 'token',
+          userId: 'user1',
+          deviceUuid: 'device1',
+        })
+
+        await expect(client.getChat('300')).rejects.toMatchObject({
+          code: 'get_chat_failed',
+          getChatFailureReason: 'transport_or_unknown',
+          responseFailureKind: 'transient_or_unknown',
+        })
+
+        client.close()
+      })
+    }
 
     it('classifies malformed successful CHATINFO chatInfo as transport or unknown', async () => {
       mockGetChannelInfo.mockResolvedValueOnce({
