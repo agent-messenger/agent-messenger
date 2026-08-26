@@ -75,6 +75,10 @@ const titled = await client.getChats({ resolveTitles: true })
 
 // Resolve a single chat's title directly (returns null on error or missing title)
 const title = await client.getChatTitle('9876543210')
+
+// Fetch one complete KakaoChat directly via read-only CHATINFO.
+// This also resolves rooms that are not present in the login-time chat list.
+const chat = await client.getChat('9876543210')
 ```
 
 ### Messages
@@ -89,6 +93,17 @@ const more = await client.getMessages('9876543210', { count: 100 })
 
 // Get messages after a known log ID
 const newer = await client.getMessages('9876543210', { from: '123456789' })
+
+// Reconcile history without dropping older messages when a protocol response
+// contains more than `count`. Continue until `complete` is true.
+let cursor: string | undefined = '123456789'
+do {
+  const page = await client.getMessagePage('9876543210', { from: cursor, count: 100 })
+  await consume(page.messages)
+  if (page.complete) break
+  if (!page.next_cursor) throw new Error('KakaoTalk history made no cursor progress')
+  cursor = page.next_cursor
+} while (true)
 ```
 
 Each `KakaoMessage` carries an `author_name: string | null`. The SDK auto-populates this from the same chat-list response that already arrives at login (no extra LOCO calls). It resolves for "display members" — the small set of nicknames KakaoTalk includes in the chat list — and is `null` for everyone else.
@@ -98,13 +113,26 @@ Each `KakaoMessage` also carries an `attachment: Record<string, unknown> | null`
 ### Members
 
 ```typescript
-// List all members of a chat (LOCO GETMEM)
+// List all members through the compatibility array API
 const members = await client.getMembers('9876543210')
 // → KakaoMember[]
+
+// Read the exact snapshot contract and its consistency evidence
+const snapshot = await client.getMemberSnapshot('9876543210')
+// → KakaoMemberSnapshot {
+//     chat_id, active_members, members, complete: true,
+//     consistency_basis: 'stable_double_read_chatinfo_getmem'
+//   }
 
 // Resolve a specific subset by user_id (LOCO MEMBER) — useful for >100-member rooms
 const subset = await client.getMembersByIds('9876543210', ['1234567890', '9876543210'])
 ```
+
+`getMemberSnapshot()` compares two read-only `CHATINFO` observations
+and two complete `GETMEM` observations. It succeeds only when the active
+count, display-member subset, and full member-ID set are stable. It does
+not call `CHATONROOM`, so it does not enter the room or advance unread
+state. Any malformed, partial, or changing snapshot fails closed.
 
 Each `KakaoMember` includes `user_id`, `nickname`, profile image URLs, `status_message`, `country_iso`, `user_type` (nullable; `null` when the server omits the field), and open-chat-only fields (`open_token`, `open_profile_link_id`, `open_permission` — the last is the OpenChannelUserPerm bitfield: `1`=OWNER, `2`=NONE, `4`=MANAGER, `8`=BOT).
 

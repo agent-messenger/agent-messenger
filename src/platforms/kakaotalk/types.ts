@@ -70,9 +70,12 @@ export const KAKAO_NEXT_ACTIONS: Record<string, { next_action: string; message: 
   },
 }
 
+export type KakaoOpenChatType = 2 | 13 | 14 | 15 | 16 | 'OM' | 'OD'
+export type KakaoChatType = number | Extract<KakaoOpenChatType, string>
+
 export interface KakaoChat {
   chat_id: string
-  type: number
+  type: KakaoChatType
   display_name: string | null
   title: string | null
   active_members: number
@@ -95,6 +98,12 @@ export interface KakaoMessage {
   sent_at: number
 }
 
+export interface KakaoMessagePage {
+  messages: KakaoMessage[]
+  next_cursor: string | null
+  complete: boolean
+}
+
 export interface KakaoMember {
   user_id: string
   nickname: string
@@ -110,6 +119,14 @@ export interface KakaoMember {
   open_profile_link_id: string | null
   /** OpenChannelUserPerm bitfield: 1=OWNER, 2=NONE, 4=MANAGER, 8=BOT. Forward-compatible with future values. */
   open_permission: number | null
+}
+
+export interface KakaoMemberSnapshot {
+  chat_id: string
+  active_members: number
+  members: KakaoMember[]
+  complete: true
+  consistency_basis: 'stable_double_read_chatinfo_getmem'
 }
 
 export interface KakaoSendResult {
@@ -222,7 +239,7 @@ export interface KakaoTypingResult {
 
 export const KakaoChatSchema = z.object({
   chat_id: z.string(),
-  type: z.number(),
+  type: z.union([z.number(), z.literal('OM'), z.literal('OD')]),
   display_name: z.string().nullable(),
   title: z.string().nullable(),
   active_members: z.number(),
@@ -247,6 +264,12 @@ export const KakaoMessageSchema = z.object({
   sent_at: z.number(),
 })
 
+export const KakaoMessagePageSchema = z.object({
+  messages: z.array(KakaoMessageSchema),
+  next_cursor: z.string().nullable(),
+  complete: z.boolean(),
+})
+
 export const KakaoMemberSchema = z.object({
   user_id: z.string(),
   nickname: z.string(),
@@ -259,6 +282,14 @@ export const KakaoMemberSchema = z.object({
   open_token: z.number().nullable(),
   open_profile_link_id: z.string().nullable(),
   open_permission: z.number().nullable(),
+})
+
+export const KakaoMemberSnapshotSchema = z.object({
+  chat_id: z.string(),
+  active_members: z.number().int().nonnegative(),
+  members: z.array(KakaoMemberSchema),
+  complete: z.literal(true),
+  consistency_basis: z.literal('stable_double_read_chatinfo_getmem'),
 })
 
 export const KakaoSendResultSchema = z.object({

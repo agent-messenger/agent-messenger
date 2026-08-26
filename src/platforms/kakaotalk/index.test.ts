@@ -10,10 +10,12 @@ import {
   KakaoChatSchema,
   KakaoConfigSchema,
   KakaoLeaveChatResultSchema,
+  KakaoMessagePageSchema,
   KakaoMessageSchema,
   KakaoSendResultSchema,
   KakaoTalkClient,
   KakaoTalkError,
+  isOpenKakaoChatType,
   KakaoTalkListener,
   KakaoTalkPushMemberEventSchema,
   KakaoTalkPushMessageEventSchema,
@@ -51,6 +53,10 @@ it('KakaoMessageSchema is exported from barrel', () => {
   expect(typeof KakaoMessageSchema.parse).toBe('function')
 })
 
+it('KakaoMessagePageSchema is exported from barrel', () => {
+  expect(typeof KakaoMessagePageSchema.parse).toBe('function')
+})
+
 it('KakaoSendResultSchema is exported from barrel', () => {
   expect(typeof KakaoSendResultSchema.parse).toBe('function')
 })
@@ -81,6 +87,12 @@ it('KakaoProfileSchema is exported from barrel', () => {
 
 it('classifyKakaoChat is exported from barrel', () => {
   expect(typeof classifyKakaoChat).toBe('function')
+})
+
+it('isOpenKakaoChatType is exported from barrel', () => {
+  expect(isOpenKakaoChatType('OM')).toBe(true)
+  expect(isOpenKakaoChatType(13)).toBe(true)
+  expect(isOpenKakaoChatType('UNKNOWN')).toBe(false)
 })
 
 it('KakaoLeaveChatResultSchema is exported from barrel', () => {

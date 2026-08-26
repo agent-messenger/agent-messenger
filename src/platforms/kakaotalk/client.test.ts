@@ -47,6 +47,23 @@ function makeLong(n: number): { low: number; high: number } {
   return { low: n, high: 0 }
 }
 
+function memberChannelInfo(
+  activeMembersCount: number,
+  displayMembers: Array<Record<string, unknown>> = [],
+  chatId = 100,
+) {
+  return {
+    statusCode: 0,
+    body: {
+      chatInfo: {
+        chatId: makeLong(chatId),
+        activeMembersCount,
+        displayMembers,
+      },
+    },
+  }
+}
+
 function resetAllMocks() {
   mockLogin.mockReset()
   mockGetChatList.mockReset()
@@ -111,6 +128,7 @@ describe('KakaoTalkClient', () => {
   })
 
   afterEach(() => {
+    expect(mockGetChatInfo).not.toHaveBeenCalled()
     resetAllMocks()
   })
 
@@ -858,7 +876,365 @@ describe('KakaoTalkClient', () => {
     })
   })
 
+  describe('getChat', () => {
+    it('returns one fully normalized late chat from read-only CHATINFO', async () => {
+      mockGetChannelInfo.mockResolvedValueOnce({
+        statusCode: 0,
+        body: {
+          chatInfo: {
+            chatId: makeLong(300),
+            type: 11,
+            activeMembersCount: 2,
+            newMessageCount: 4,
+            invalidNewMessageCount: false,
+            lastLogId: makeLong(77),
+            lastSeenLogId: makeLong(73),
+            lastChatLog: {
+              logId: makeLong(77),
+              authorId: 42,
+              type: 1,
+              message: 'latest',
+              sendAt: 1700000077,
+            },
+            displayMembers: [
+              { userId: makeLong(42), nickName: 'Alice' },
+              { userId: makeLong(43), nickName: 'Bob' },
+            ],
+            chatMetas: [{ type: 3, content: 'Late room' }],
+            pushAlert: true,
+          },
+        },
+      })
+
+      const client = await new KakaoTalkClient().login({ oauthToken: 'token', userId: 'user1', deviceUuid: 'device1' })
+      const chat = await client.getChat('300')
+
+      expect(chat).toEqual({
+        chat_id: '300',
+        type: 11,
+        display_name: 'Alice, Bob',
+        title: 'Late room',
+        active_members: 2,
+        unread_count: 4,
+        last_message: {
+          author_id: 42,
+          author_name: 'Alice',
+          message: 'latest',
+          sent_at: 1700000077,
+        },
+      })
+
+      client.close()
+    })
+
+    for (const openChatType of ['OM', 'OD'] as const) {
+      it(`preserves ${openChatType} and falls back to INFOLINK when CHATINFO has no title`, async () => {
+        mockGetChannelInfo.mockResolvedValueOnce({
+          statusCode: 0,
+          body: {
+            chatInfo: {
+              chatId: makeLong(300),
+              type: openChatType,
+              activeMembersCount: 2,
+              newMessageCount: 0,
+              invalidNewMessageCount: false,
+              lastLogId: makeLong(77),
+              lastSeenLogId: makeLong(73),
+              lastChatLog: null,
+              displayMembers: [
+                { userId: makeLong(42), nickName: 'Alice' },
+                { userId: makeLong(43), nickName: 'Bob' },
+              ],
+              chatMetas: [],
+              li: makeLong(7777),
+              pushAlert: true,
+            },
+          },
+        })
+        mockGetOpenLinkInfo.mockResolvedValueOnce({ body: { ols: [{ ln: 'Open Group Title' }] } })
+
+        const client = await new KakaoTalkClient().login({
+          oauthToken: 'token',
+          userId: 'user1',
+          deviceUuid: 'device1',
+        })
+        const chat = await client.getChat('300')
+
+        expect(chat).toEqual({
+          chat_id: '300',
+          type: openChatType,
+          display_name: 'Alice, Bob',
+          title: 'Open Group Title',
+          active_members: 2,
+          unread_count: 0,
+          last_message: null,
+        })
+        expect(mockGetOpenLinkInfo).toHaveBeenCalledTimes(1)
+
+        client.close()
+      })
+    }
+
+    it('falls back to INFOLINK for a numeric open-chat code', async () => {
+      mockGetChannelInfo.mockResolvedValueOnce({
+        statusCode: 0,
+        body: {
+          chatInfo: {
+            chatId: makeLong(300),
+            type: 13,
+            activeMembersCount: 2,
+            newMessageCount: 0,
+            invalidNewMessageCount: false,
+            lastLogId: makeLong(77),
+            lastSeenLogId: makeLong(73),
+            lastChatLog: null,
+            displayMembers: [],
+            chatMetas: [],
+            li: makeLong(7777),
+            pushAlert: true,
+          },
+        },
+      })
+      mockGetOpenLinkInfo.mockResolvedValueOnce({ body: { ols: [{ ln: 'Numeric Open Title' }] } })
+
+      const client = await new KakaoTalkClient().login({
+        oauthToken: 'token',
+        userId: 'user1',
+        deviceUuid: 'device1',
+      })
+      const chat = await client.getChat('300')
+
+      expect(chat.type).toBe(13)
+      expect(chat.title).toBe('Numeric Open Title')
+      expect(mockGetOpenLinkInfo).toHaveBeenCalledTimes(1)
+
+      client.close()
+    })
+
+    it('rejects an unknown string CHATINFO type without contacting INFOLINK', async () => {
+      mockGetChannelInfo.mockResolvedValueOnce({
+        statusCode: 0,
+        body: {
+          chatInfo: {
+            chatId: makeLong(300),
+            type: 'UNKNOWN',
+            activeMembersCount: 2,
+            newMessageCount: 0,
+            invalidNewMessageCount: false,
+            lastLogId: makeLong(1),
+            lastSeenLogId: makeLong(0),
+            displayMembers: [],
+            chatMetas: [],
+            li: makeLong(7777),
+            pushAlert: true,
+          },
+        },
+      })
+
+      const client = await new KakaoTalkClient().login({
+        oauthToken: 'token',
+        userId: 'user1',
+        deviceUuid: 'device1',
+      })
+
+      await expect(client.getChat('300')).rejects.toMatchObject({ code: 'get_chat_failed' })
+      expect(mockGetOpenLinkInfo).not.toHaveBeenCalled()
+
+      client.close()
+    })
+
+    it('rejects a CHATINFO response bound to a different chat id', async () => {
+      mockGetChannelInfo.mockResolvedValueOnce({
+        statusCode: 0,
+        body: {
+          chatInfo: {
+            chatId: makeLong(999),
+            type: 11,
+            activeMembersCount: 2,
+            newMessageCount: 0,
+            invalidNewMessageCount: false,
+            lastLogId: makeLong(1),
+            lastSeenLogId: makeLong(0),
+            displayMembers: [],
+            chatMetas: [],
+            pushAlert: true,
+          },
+        },
+      })
+
+      const client = await new KakaoTalkClient().login({ oauthToken: 'token', userId: 'user1', deviceUuid: 'device1' })
+
+      await expect(client.getChat('300')).rejects.toMatchObject({ code: 'get_chat_failed' })
+
+      client.close()
+    })
+
+    it('rejects an invalid chat id before opening a LOCO session', async () => {
+      const client = await new KakaoTalkClient().login({ oauthToken: 'token', userId: 'user1', deviceUuid: 'device1' })
+
+      await expect(client.getChat('not-a-number')).rejects.toMatchObject({ code: 'invalid_chat_id' })
+      expect(mockLogin).not.toHaveBeenCalled()
+      expect(mockGetChannelInfo).not.toHaveBeenCalled()
+
+      client.close()
+    })
+  })
+
   describe('getMessages', () => {
+    it('returns a lossless forward page without discarding the oldest messages', async () => {
+      mockGetChatLogs.mockResolvedValueOnce({
+        statusCode: 0,
+        body: {
+          status: 0,
+          chatLogs: Array.from({ length: 5 }, (_, index) => ({
+            logId: makeLong(index + 1),
+            chatId: 100,
+            type: 1,
+            authorId: 42,
+            message: `message-${index + 1}`,
+            sendAt: 1700000000 + index,
+          })),
+          eof: true,
+        },
+      })
+
+      const client = await new KakaoTalkClient().login({ oauthToken: 'token', userId: 'user1', deviceUuid: 'device1' })
+      const page = await client.getMessagePage('100', { count: 2 })
+
+      expect(page.messages.map((message) => message.log_id)).toEqual(['1', '2'])
+      expect(page.next_cursor).toBe('2')
+      expect(page.complete).toBe(false)
+
+      client.close()
+    })
+
+    it('returns a complete forward page when the protocol page is exhausted', async () => {
+      mockGetChatLogs.mockResolvedValueOnce({
+        statusCode: 0,
+        body: {
+          status: 0,
+          chatLogs: [
+            { logId: makeLong(11), chatId: 100, type: 1, authorId: 42, message: 'eleven', sendAt: 11 },
+            { logId: makeLong(10), chatId: 100, type: 1, authorId: 42, message: 'ten', sendAt: 10 },
+          ],
+          eof: true,
+        },
+      })
+
+      const client = await new KakaoTalkClient().login({ oauthToken: 'token', userId: 'user1', deviceUuid: 'device1' })
+      const page = await client.getMessagePage('100', { from: '9', count: 10 })
+
+      expect(page.messages.map((message) => message.log_id)).toEqual(['10', '11'])
+      expect(page.next_cursor).toBe('11')
+      expect(page.complete).toBe(true)
+
+      client.close()
+    })
+
+    it('continues exclusively after the supplied cursor when the server repeats it', async () => {
+      mockGetChatLogs.mockResolvedValueOnce({
+        statusCode: 0,
+        body: {
+          status: 0,
+          chatLogs: [
+            { logId: makeLong(2), chatId: 100, type: 1, authorId: 42, message: 'repeat', sendAt: 2 },
+            { logId: makeLong(3), chatId: 100, type: 1, authorId: 42, message: 'three', sendAt: 3 },
+            { logId: makeLong(4), chatId: 100, type: 1, authorId: 42, message: 'four', sendAt: 4 },
+          ],
+          eof: true,
+        },
+      })
+
+      const client = await new KakaoTalkClient().login({ oauthToken: 'token', userId: 'user1', deviceUuid: 'device1' })
+      const page = await client.getMessagePage('100', { from: '2', count: 10 })
+
+      expect(page.messages.map((message) => message.log_id)).toEqual(['3', '4'])
+      expect(page.next_cursor).toBe('4')
+      expect(page.complete).toBe(true)
+
+      client.close()
+    })
+
+    it('does not report completion when the protocol makes no cursor progress', async () => {
+      mockGetChatLogs.mockResolvedValueOnce({
+        statusCode: 0,
+        body: { status: 0, chatLogs: [], eof: false },
+      })
+      mockGetChannelInfo.mockResolvedValueOnce({
+        statusCode: 0,
+        body: {
+          chatInfo: {
+            chatId: makeLong(100),
+            type: 11,
+            activeMembersCount: 2,
+            newMessageCount: 0,
+            invalidNewMessageCount: false,
+            lastLogId: makeLong(999),
+            lastSeenLogId: makeLong(0),
+            displayMembers: [],
+            chatMetas: [],
+            pushAlert: true,
+          },
+        },
+      })
+      mockSyncMessages.mockResolvedValueOnce({
+        statusCode: 0,
+        body: { status: 0, chatLogs: [], isOK: false },
+      })
+
+      const client = await new KakaoTalkClient().login({ oauthToken: 'token', userId: 'user1', deviceUuid: 'device1' })
+      const page = await client.getMessagePage('100', { from: '9', count: 10 })
+
+      expect(page).toEqual({ messages: [], next_cursor: null, complete: false })
+
+      client.close()
+    })
+
+    it('uses read-only CHATINFO to paginate a late room missing from the login snapshot', async () => {
+      mockLogin.mockResolvedValueOnce({ ...structuredClone(DEFAULT_LOGIN_RESULT), chatDatas: [] })
+      mockGetChatLogs.mockResolvedValueOnce({
+        statusCode: 0,
+        body: { status: 0, chatLogs: [], eof: true },
+      })
+      mockGetChannelInfo.mockResolvedValueOnce({
+        statusCode: 0,
+        body: {
+          chatInfo: {
+            chatId: makeLong(300),
+            type: 11,
+            activeMembersCount: 2,
+            newMessageCount: 1,
+            invalidNewMessageCount: false,
+            lastLogId: makeLong(12),
+            lastSeenLogId: makeLong(0),
+            displayMembers: [],
+            chatMetas: [],
+            pushAlert: true,
+          },
+        },
+      })
+      mockSyncMessages.mockResolvedValueOnce({
+        statusCode: 0,
+        body: {
+          status: 0,
+          isOK: true,
+          chatLogs: [{ logId: makeLong(12), chatId: 300, type: 1, authorId: 42, message: 'late', sendAt: 12 }],
+        },
+      })
+
+      const client = await new KakaoTalkClient().login({ oauthToken: 'token', userId: 'user1', deviceUuid: 'device1' })
+      const page = await client.getMessagePage('300', { from: '11', count: 10 })
+
+      expect(page.messages.map((message) => message.log_id)).toEqual(['12'])
+      expect(page.next_cursor).toBe('12')
+      expect(page.complete).toBe(true)
+      expect(mockGetChatInfo).not.toHaveBeenCalled()
+      expect(mockSyncMessages.mock.calls[0]?.[2]?.toString()).toBe('11')
+      expect(mockSyncMessages.mock.calls[0]?.[3]?.toString()).toBe('12')
+
+      client.close()
+    })
+
     it('falls back to SYNCMSG when MCHATLOGS succeeds with an empty result', async () => {
       const loginResult = structuredClone(DEFAULT_LOGIN_RESULT)
       loginResult.chatDatas[0]!.ll = makeLong(10)
@@ -1610,7 +1986,8 @@ describe('KakaoTalkClient', () => {
 
   describe('getMembers / getMembersByIds', () => {
     it('returns formatted members from GETMEM with normalized fields', async () => {
-      mockGetAllMembers.mockResolvedValueOnce({
+      mockGetChannelInfo.mockResolvedValueOnce(memberChannelInfo(2)).mockResolvedValueOnce(memberChannelInfo(2))
+      mockGetAllMembers.mockResolvedValue({
         statusCode: 0,
         body: {
           members: [
@@ -1670,12 +2047,14 @@ describe('KakaoTalkClient', () => {
         open_profile_link_id: '99',
         open_permission: 4,
       })
+      expect(mockGetChatInfo).not.toHaveBeenCalled()
 
       client.close()
     })
 
-    it('merges CHATONROOM members when GETMEM returns a partial member list', async () => {
-      mockGetAllMembers.mockResolvedValueOnce({
+    it('rejects a partial GETMEM snapshot without entering the room', async () => {
+      mockGetChannelInfo.mockResolvedValueOnce(memberChannelInfo(3)).mockResolvedValueOnce(memberChannelInfo(3))
+      mockGetAllMembers.mockResolvedValue({
         statusCode: 0,
         body: {
           members: [
@@ -1689,43 +2068,223 @@ describe('KakaoTalkClient', () => {
           token: 0,
         },
       })
-      mockGetChatInfo.mockResolvedValueOnce({
-        statusCode: 0,
-        body: {
-          status: 0,
-          m: [
-            { userId: makeLong(42), nickName: 'Alice From Room', type: 100 },
-            { userId: makeLong(43), nickName: 'Bob', type: 100 },
-            { userId: makeLong(44), nickName: 'Carol', type: 100 },
-          ],
-        },
-      })
 
       const client = await new KakaoTalkClient().login({ oauthToken: 'token', userId: 'user1', deviceUuid: 'device1' })
-      const members = await client.getMembers('100')
-
-      expect(members.map((member) => member.user_id)).toEqual(['42', '43', '44'])
-      expect(members[0].nickname).toBe('Alice')
-      expect(members[0].profile_image_url).toBe('https://kakao.com/p/alice.jpg')
-      expect(members[1].nickname).toBe('Bob')
-      expect(members[2].nickname).toBe('Carol')
+      await expect(client.getMembers('100')).rejects.toMatchObject({
+        code: 'get_members_failed',
+      })
+      expect(mockGetChatInfo).not.toHaveBeenCalled()
 
       client.close()
     })
 
-    it('returns empty array when GETMEM returns no members', async () => {
-      mockGetAllMembers.mockResolvedValueOnce({ statusCode: 0, body: {} })
+    it('returns a stable empty snapshot for a zero-member room without CHATONROOM', async () => {
+      mockGetChannelInfo.mockResolvedValue(memberChannelInfo(0))
+      mockGetAllMembers.mockResolvedValue({
+        statusCode: 0,
+        body: { members: [] },
+      })
 
       const client = await new KakaoTalkClient().login({ oauthToken: 'token', userId: 'user1', deviceUuid: 'device1' })
-      const members = await client.getMembers('100')
+      const snapshot = await client.getMemberSnapshot('100')
 
-      expect(members).toEqual([])
+      expect(snapshot).toMatchObject({
+        chat_id: '100',
+        active_members: 0,
+        complete: true,
+        consistency_basis: 'stable_double_read_chatinfo_getmem',
+      })
+      expect(snapshot.members).toEqual([])
+      expect(mockGetAllMembers).toHaveBeenCalledTimes(2)
+      expect(mockGetChatInfo).not.toHaveBeenCalled()
+
+      client.close()
+    })
+
+    it('returns a stable CHATINFO GETMEM snapshot without CHATONROOM', async () => {
+      const visible = [
+        {
+          userId: makeLong(42),
+          nickName: 'Alice',
+          type: 100,
+        },
+      ]
+      mockGetChannelInfo
+        .mockResolvedValueOnce(memberChannelInfo(2, visible))
+        .mockResolvedValueOnce(memberChannelInfo(2, visible))
+      mockGetAllMembers.mockResolvedValue({
+        statusCode: 0,
+        body: {
+          members: [
+            visible[0],
+            {
+              userId: makeLong(43),
+              nickName: 'Bob',
+              type: 100,
+            },
+          ],
+        },
+      })
+
+      const client = await new KakaoTalkClient().login({
+        oauthToken: 'token',
+        userId: 'user1',
+        deviceUuid: 'device1',
+      })
+      const snapshot = await client.getMemberSnapshot('100')
+
+      expect(snapshot).toMatchObject({
+        chat_id: '100',
+        active_members: 2,
+        complete: true,
+        consistency_basis: 'stable_double_read_chatinfo_getmem',
+      })
+      expect(snapshot.members.map((member) => member.user_id)).toEqual(['42', '43'])
+      expect(mockGetAllMembers).toHaveBeenCalledTimes(2)
+      expect(mockGetChannelInfo).toHaveBeenCalledTimes(2)
+      expect(mockGetChatInfo).not.toHaveBeenCalled()
+
+      client.close()
+    })
+
+    it('fails closed when active membership changes across the snapshot', async () => {
+      mockGetChannelInfo.mockResolvedValueOnce(memberChannelInfo(2)).mockResolvedValueOnce(memberChannelInfo(3))
+      mockGetAllMembers.mockResolvedValue({
+        statusCode: 0,
+        body: {
+          members: [
+            { userId: makeLong(42), nickName: 'Alice' },
+            { userId: makeLong(43), nickName: 'Bob' },
+          ],
+        },
+      })
+
+      const client = await new KakaoTalkClient().login({
+        oauthToken: 'token',
+        userId: 'user1',
+        deviceUuid: 'device1',
+      })
+      await expect(client.getMemberSnapshot('100')).rejects.toMatchObject({
+        code: 'get_member_snapshot_failed',
+      })
+      expect(mockGetChatInfo).not.toHaveBeenCalled()
+
+      client.close()
+    })
+
+    it('fails closed on a same-cardinality hidden member swap', async () => {
+      const visible = [{ userId: makeLong(42), nickName: 'Visible' }]
+      mockGetChannelInfo
+        .mockResolvedValueOnce(memberChannelInfo(2, visible))
+        .mockResolvedValueOnce(memberChannelInfo(2, visible))
+      mockGetAllMembers
+        .mockResolvedValueOnce({
+          statusCode: 0,
+          body: {
+            members: [visible[0], { userId: makeLong(43), nickName: 'Departed' }],
+          },
+        })
+        .mockResolvedValueOnce({
+          statusCode: 0,
+          body: {
+            members: [visible[0], { userId: makeLong(44), nickName: 'Joined' }],
+          },
+        })
+
+      const client = await new KakaoTalkClient().login({
+        oauthToken: 'token',
+        userId: 'user1',
+        deviceUuid: 'device1',
+      })
+      await expect(client.getMemberSnapshot('100')).rejects.toMatchObject({
+        code: 'get_member_snapshot_failed',
+      })
+
+      client.close()
+    })
+
+    it('fails closed on malformed CHATINFO member identity', async () => {
+      mockGetChannelInfo.mockResolvedValueOnce(memberChannelInfo(1, [{ userId: {}, nickName: 'Malformed' }]))
+
+      const client = await new KakaoTalkClient().login({
+        oauthToken: 'token',
+        userId: 'user1',
+        deviceUuid: 'device1',
+      })
+      await expect(client.getMemberSnapshot('100')).rejects.toMatchObject({
+        code: 'get_member_snapshot_failed',
+      })
+      expect(mockGetAllMembers).not.toHaveBeenCalled()
+
+      client.close()
+    })
+
+    it('fails closed on malformed GETMEM member identity', async () => {
+      mockGetChannelInfo.mockResolvedValueOnce(memberChannelInfo(1))
+      mockGetAllMembers.mockResolvedValueOnce({
+        statusCode: 0,
+        body: {
+          members: [{ userId: '42', nickName: 'Malformed string id' }],
+        },
+      })
+
+      const client = await new KakaoTalkClient().login({
+        oauthToken: 'token',
+        userId: 'user1',
+        deviceUuid: 'device1',
+      })
+      await expect(client.getMemberSnapshot('100')).rejects.toMatchObject({
+        code: 'get_member_snapshot_failed',
+      })
+
+      client.close()
+    })
+
+    it('fails closed on duplicate GETMEM identity without CHATONROOM', async () => {
+      mockGetChannelInfo.mockResolvedValueOnce(memberChannelInfo(2))
+      mockGetAllMembers.mockResolvedValue({
+        statusCode: 0,
+        body: {
+          members: [
+            { userId: makeLong(42), nickName: 'Alice' },
+            { userId: makeLong(42), nickName: 'Duplicate' },
+          ],
+        },
+      })
+
+      const client = await new KakaoTalkClient().login({
+        oauthToken: 'token',
+        userId: 'user1',
+        deviceUuid: 'device1',
+      })
+      await expect(client.getMemberSnapshot('100')).rejects.toMatchObject({
+        code: 'get_member_snapshot_failed',
+      })
+      expect(mockGetChatInfo).not.toHaveBeenCalled()
+
+      client.close()
+    })
+
+    it('fails closed on CHATINFO chat id mismatch before GETMEM', async () => {
+      mockGetChannelInfo.mockResolvedValueOnce(memberChannelInfo(1, [], 101))
+
+      const client = await new KakaoTalkClient().login({
+        oauthToken: 'token',
+        userId: 'user1',
+        deviceUuid: 'device1',
+      })
+      await expect(client.getMemberSnapshot('100')).rejects.toMatchObject({
+        code: 'get_member_snapshot_failed',
+      })
+      expect(mockGetAllMembers).not.toHaveBeenCalled()
+      expect(mockGetChatInfo).not.toHaveBeenCalled()
 
       client.close()
     })
 
     it('normalizes missing user_type to null and treats pli=0 as absent', async () => {
-      mockGetAllMembers.mockResolvedValueOnce({
+      mockGetChannelInfo.mockResolvedValueOnce(memberChannelInfo(3)).mockResolvedValueOnce(memberChannelInfo(3))
+      mockGetAllMembers.mockResolvedValue({
         statusCode: 0,
         body: {
           members: [
@@ -1749,6 +2308,7 @@ describe('KakaoTalkClient', () => {
     })
 
     it('wraps GETMEM failures as KakaoTalkError get_members_failed', async () => {
+      mockGetChannelInfo.mockResolvedValueOnce(memberChannelInfo(1))
       mockGetAllMembers.mockRejectedValueOnce(new Error('Network error'))
 
       const client = await new KakaoTalkClient().login({ oauthToken: 'token', userId: 'user1', deviceUuid: 'device1' })
@@ -1764,6 +2324,7 @@ describe('KakaoTalkClient', () => {
     })
 
     it('throws on synthetic disconnect packet from GETMEM (statusCode != 0)', async () => {
+      mockGetChannelInfo.mockResolvedValueOnce(memberChannelInfo(1))
       mockGetAllMembers.mockResolvedValueOnce({
         statusCode: -1,
         body: { error: 'connection closed' },
@@ -1782,6 +2343,7 @@ describe('KakaoTalkClient', () => {
     })
 
     it('throws on GETMEM body.status nonzero', async () => {
+      mockGetChannelInfo.mockResolvedValueOnce(memberChannelInfo(1))
       mockGetAllMembers.mockResolvedValueOnce({
         statusCode: 0,
         body: { status: -500 },
@@ -1893,6 +2455,8 @@ describe('KakaoTalkClient', () => {
         expect((e as KakaoTalkError).code).toBe('invalid_chat_id')
       }
       expect(mockGetAllMembers).not.toHaveBeenCalled()
+      expect(mockGetChannelInfo).not.toHaveBeenCalled()
+      expect(mockGetChatInfo).not.toHaveBeenCalled()
       expect(mockLogin).not.toHaveBeenCalled()
 
       client.close()
@@ -1959,17 +2523,22 @@ describe('KakaoTalkClient', () => {
         if (handler) handler()
         return Promise.resolve({ statusCode: -1, body: { error: 'connection closed' } })
       })
-      mockGetAllMembers.mockResolvedValueOnce({
+      mockGetAllMembers.mockResolvedValue({
         statusCode: 0,
         body: { members: [{ userId: makeLong(42), nickName: 'Alice', type: 100 }] },
       })
+      mockGetChannelInfo
+        .mockResolvedValueOnce(memberChannelInfo(1))
+        .mockResolvedValueOnce(memberChannelInfo(1))
+        .mockResolvedValueOnce(memberChannelInfo(1))
 
       const client = await new KakaoTalkClient().login({ oauthToken: 'token', userId: 'user1', deviceUuid: 'device1' })
       const members = await client.getMembers('100')
 
       expect(members).toHaveLength(1)
       expect(members[0].nickname).toBe('Alice')
-      expect(mockGetAllMembers).toHaveBeenCalledTimes(2)
+      expect(mockGetAllMembers).toHaveBeenCalledTimes(3)
+      expect(mockGetChatInfo).not.toHaveBeenCalled()
       // Login fires twice: once for the initial connect, once for the reconnect
       // after the captured onClose handler invalidated this.state.
       expect(mockLogin).toHaveBeenCalledTimes(2)

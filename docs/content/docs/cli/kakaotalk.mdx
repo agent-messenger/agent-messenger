@@ -171,11 +171,17 @@ Output (JSON by default; `--pretty` pretty-prints the same JSON):
 ### Member Commands
 
 ```bash
-# List all members of a chat room (uses LOCO GETMEM — one call per invocation)
+# List all members of a chat room using a fail-closed, read-only snapshot
 agent-kakaotalk member list <chat-id>
 agent-kakaotalk member list <chat-id> --pretty
 agent-kakaotalk member list <chat-id> --account <account-id>
 ```
+
+Member listing uses two read-only `CHATINFO` observations and two
+`GETMEM` observations. The command returns only when the active count,
+display-member subset, and full member-ID set remain stable across the
+observations. It never enters the room with `CHATONROOM`; incomplete or
+changing snapshots fail instead of returning a guessed member list.
 
 Each member includes:
 
