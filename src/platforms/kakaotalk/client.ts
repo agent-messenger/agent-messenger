@@ -230,7 +230,7 @@ function formatChat(chat: ChatData, title: string | null, nameCache: MemberNameC
 
   return {
     chat_id: chatId,
-    type: chat.t as KakaoChat['type'],
+    type: requiredChatType(chat.t),
     display_name: displayName,
     title,
     active_members: chat.a as number,
@@ -301,7 +301,7 @@ function requiredNonNegativeInteger(value: unknown, field: string): number {
 }
 
 function requiredChatType(value: unknown): KakaoChat['type'] {
-  if (typeof value === 'string' && isOpenKakaoChatType(value)) {
+  if (typeof value === 'string' && value.length > 0) {
     return value
   }
   return requiredNonNegativeInteger(value, 'type')

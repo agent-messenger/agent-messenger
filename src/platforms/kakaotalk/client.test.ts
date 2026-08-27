@@ -242,6 +242,42 @@ describe('KakaoTalkClient', () => {
       client.close()
     })
 
+    it('preserves an unknown non-empty string type from the login snapshot', async () => {
+      mockLogin.mockResolvedValue({
+        ...DEFAULT_LOGIN_RESULT,
+        chatDatas: [{ ...DEFAULT_LOGIN_RESULT.chatDatas[0], t: 'FutureChat' }],
+      })
+
+      const client = await new KakaoTalkClient().login({
+        oauthToken: 'token',
+        userId: 'user1',
+        deviceUuid: 'device1',
+      })
+
+      await expect(client.getChats()).resolves.toMatchObject([{ type: 'FutureChat' }])
+
+      client.close()
+    })
+
+    for (const invalidType of ['', true] as const) {
+      it(`rejects invalid ${JSON.stringify(invalidType)} type from the login snapshot`, async () => {
+        mockLogin.mockResolvedValue({
+          ...DEFAULT_LOGIN_RESULT,
+          chatDatas: [{ ...DEFAULT_LOGIN_RESULT.chatDatas[0], t: invalidType }],
+        })
+
+        const client = await new KakaoTalkClient().login({
+          oauthToken: 'token',
+          userId: 'user1',
+          deviceUuid: 'device1',
+        })
+
+        await expect(client.getChats()).rejects.toMatchObject({ code: 'get_chats_failed' })
+
+        client.close()
+      })
+    }
+
     it('populates last_message.author_name from paired chat.i / chat.k arrays', async () => {
       const client = await new KakaoTalkClient().login({ oauthToken: 'token', userId: 'user1', deviceUuid: 'device1' })
       const chats = await client.getChats()
@@ -1459,13 +1495,55 @@ describe('KakaoTalkClient', () => {
       client.close()
     })
 
-    it('rejects an unknown string CHATINFO type without contacting INFOLINK', async () => {
+    for (const normalChatType of ['DirectChat', 'MultiChat', 'PlusChat', 'MemoChat'] as const) {
+      it(`preserves donor-defined ${normalChatType} without contacting INFOLINK`, async () => {
+        mockGetChannelInfo.mockResolvedValueOnce({
+          statusCode: 0,
+          body: {
+            chatInfo: {
+              chatId: makeLong(300),
+              type: normalChatType,
+              activeMembersCount: 2,
+              newMessageCount: 0,
+              invalidNewMessageCount: false,
+              lastLogId: makeLong(1),
+              lastSeenLogId: makeLong(0),
+              displayMembers: [],
+              chatMetas: [],
+              li: makeLong(7777),
+              pushAlert: true,
+            },
+          },
+        })
+
+        const client = await new KakaoTalkClient().login({
+          oauthToken: 'token',
+          userId: 'user1',
+          deviceUuid: 'device1',
+        })
+
+        await expect(client.getChat('300')).resolves.toEqual({
+          chat_id: '300',
+          type: normalChatType,
+          display_name: null,
+          title: null,
+          active_members: 2,
+          unread_count: 0,
+          last_message: null,
+        })
+        expect(mockGetOpenLinkInfo).not.toHaveBeenCalled()
+
+        client.close()
+      })
+    }
+
+    it('rejects an empty string CHATINFO type without contacting INFOLINK', async () => {
       mockGetChannelInfo.mockResolvedValueOnce({
         statusCode: 0,
         body: {
           chatInfo: {
             chatId: makeLong(300),
-            type: 'UNKNOWN',
+            type: '',
             activeMembersCount: 2,
             newMessageCount: 0,
             invalidNewMessageCount: false,
@@ -1473,7 +1551,6 @@ describe('KakaoTalkClient', () => {
             lastSeenLogId: makeLong(0),
             displayMembers: [],
             chatMetas: [],
-            li: makeLong(7777),
             pushAlert: true,
           },
         },
@@ -1485,7 +1562,50 @@ describe('KakaoTalkClient', () => {
         deviceUuid: 'device1',
       })
 
-      await expect(client.getChat('300')).rejects.toMatchObject({ code: 'get_chat_failed' })
+      await expect(client.getChat('300')).rejects.toMatchObject({
+        code: 'get_chat_failed',
+        getChatFailureReason: 'transport_or_unknown',
+        responseFailureKind: 'transient_or_unknown',
+      })
+      expect(mockGetOpenLinkInfo).not.toHaveBeenCalled()
+
+      client.close()
+    })
+
+    it('preserves an unknown non-empty string CHATINFO type without contacting INFOLINK', async () => {
+      mockGetChannelInfo.mockResolvedValueOnce({
+        statusCode: 0,
+        body: {
+          chatInfo: {
+            chatId: makeLong(300),
+            type: 'UnknownChat',
+            activeMembersCount: 2,
+            newMessageCount: 0,
+            invalidNewMessageCount: false,
+            lastLogId: makeLong(1),
+            lastSeenLogId: makeLong(0),
+            displayMembers: [],
+            chatMetas: [],
+            pushAlert: true,
+          },
+        },
+      })
+
+      const client = await new KakaoTalkClient().login({
+        oauthToken: 'token',
+        userId: 'user1',
+        deviceUuid: 'device1',
+      })
+
+      await expect(client.getChat('300')).resolves.toEqual({
+        chat_id: '300',
+        type: 'UnknownChat',
+        display_name: null,
+        title: null,
+        active_members: 2,
+        unread_count: 0,
+        last_message: null,
+      })
       expect(mockGetOpenLinkInfo).not.toHaveBeenCalled()
 
       client.close()

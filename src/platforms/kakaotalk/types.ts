@@ -71,7 +71,15 @@ export const KAKAO_NEXT_ACTIONS: Record<string, { next_action: string; message: 
 }
 
 export type KakaoOpenChatType = 2 | 13 | 14 | 15 | 16 | 'OM' | 'OD'
-export type KakaoChatType = number | Extract<KakaoOpenChatType, string>
+export const KNOWN_KAKAO_CHAT_STRING_TYPES = ['DirectChat', 'MultiChat', 'PlusChat', 'MemoChat', 'OM', 'OD'] as const
+export type KakaoChatType = number | string
+
+export function isKnownKakaoChatStringType(value: unknown): value is (typeof KNOWN_KAKAO_CHAT_STRING_TYPES)[number] {
+  return (
+    typeof value === 'string' &&
+    KNOWN_KAKAO_CHAT_STRING_TYPES.includes(value as (typeof KNOWN_KAKAO_CHAT_STRING_TYPES)[number])
+  )
+}
 
 export interface KakaoChat {
   chat_id: string
@@ -239,7 +247,7 @@ export interface KakaoTypingResult {
 
 export const KakaoChatSchema = z.object({
   chat_id: z.string(),
-  type: z.union([z.number(), z.literal('OM'), z.literal('OD')]),
+  type: z.union([z.number(), z.string().min(1)]),
   display_name: z.string().nullable(),
   title: z.string().nullable(),
   active_members: z.number(),
