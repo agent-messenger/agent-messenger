@@ -19,6 +19,7 @@ import {
   KAKAO_MESSAGE_TYPE,
   type KakaoChat,
   type KakaoDeviceType,
+  type KakaoEditResult,
   type KakaoLeaveChatResult,
   type KakaoMarkReadResult,
   type KakaoMember,
@@ -28,6 +29,7 @@ import {
   type KakaoMultiPhotoExtra,
   type KakaoProfile,
   type KakaoReplyExtra,
+  type KakaoReactionResult,
   type KakaoReplyTarget,
   type KakaoSendResult,
   type KakaoTypingResult,
@@ -509,6 +511,10 @@ function assertLocoOk(response: LocoPacket, command: string): void {
   if (typeof bodyStatus === 'number' && bodyStatus !== 0) {
     throw new Error(`${command} failed: body.status=${bodyStatus}`)
   }
+}
+function mutationStatusCode(response: LocoPacket): number {
+  const bodyStatus = response.body.status
+  return typeof bodyStatus === 'number' && bodyStatus !== 0 ? bodyStatus : response.statusCode
 }
 
 function formatMember(member: Record<string, unknown>): KakaoMember {
@@ -1311,6 +1317,44 @@ export class KakaoTalkClient {
         }
       } catch (error) {
         throw wrapError(error, 'send_message_failed')
+      }
+    })
+  }
+  async addReaction(chatId: string, logId: string, reactionType: number): Promise<KakaoReactionResult> {
+    const parsedChatId = parseChatId(chatId)
+    const parsedLogId = parseLogId(logId)
+    return this.executeWithReconnect(async ({ session }) => {
+      try {
+        const response = await session.addReaction(parsedChatId, parsedLogId, reactionType)
+        const statusCode = mutationStatusCode(response)
+        return {
+          success: statusCode === 0,
+          status_code: statusCode,
+          chat_id: chatId,
+          log_id: logId,
+          reaction_type: reactionType,
+        }
+      } catch (error) {
+        throw wrapError(error, 'add_reaction_failed')
+      }
+    })
+  }
+
+  async editMessage(chatId: string, logId: string, text: string): Promise<KakaoEditResult> {
+    const parsedChatId = parseChatId(chatId)
+    const parsedLogId = parseLogId(logId)
+    return this.executeWithReconnect(async ({ session }) => {
+      try {
+        const response = await session.editMessage(parsedChatId, parsedLogId, text)
+        const statusCode = mutationStatusCode(response)
+        return {
+          success: statusCode === 0,
+          status_code: statusCode,
+          chat_id: chatId,
+          log_id: logId,
+        }
+      } catch (error) {
+        throw wrapError(error, 'edit_message_failed')
       }
     })
   }

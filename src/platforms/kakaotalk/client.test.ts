@@ -13,7 +13,9 @@ const mockGetAllMembers = mock(() => Promise.resolve({}))
 const mockGetMembersByIds = mock(() => Promise.resolve({}))
 const mockSyncMessages = mock(() => Promise.resolve({}))
 const mockSendMessage = mock(() => Promise.resolve({}))
+const mockAddReaction = mock(() => Promise.resolve({}))
 const mockSendReply = mock(() => Promise.resolve({}))
+const mockEditMessage = mock(() => Promise.resolve({}))
 const mockMarkRead = mock(() => Promise.resolve({}))
 const mockLeaveChat = mock(() => Promise.resolve({}))
 const mockSendTyping = mock(() => Promise.resolve({}))
@@ -33,6 +35,8 @@ mock.module('./protocol/session', () => ({
     getMembersByIds = mockGetMembersByIds
     syncMessages = mockSyncMessages
     sendMessage = mockSendMessage
+    addReaction = mockAddReaction
+    editMessage = mockEditMessage
     sendReply = mockSendReply
     markRead = mockMarkRead
     leaveChat = mockLeaveChat
@@ -75,6 +79,8 @@ function resetAllMocks() {
   mockGetMembersByIds.mockReset()
   mockSyncMessages.mockReset()
   mockSendMessage.mockReset()
+  mockAddReaction.mockReset()
+  mockEditMessage.mockReset()
   mockSendReply.mockReset()
   mockMarkRead.mockReset()
   mockLeaveChat.mockReset()
@@ -1627,6 +1633,91 @@ describe('KakaoTalkClient', () => {
       expect(extra.attach_type).toBe(2)
       expect(extra.src_type).toBe(2)
 
+      client.close()
+    })
+  })
+  describe('addReaction', () => {
+    it('passes parsed ids and reaction type to the ACTION session method', async () => {
+      mockAddReaction.mockResolvedValueOnce({ statusCode: 0, body: {} })
+      const client = await new KakaoTalkClient().login({ oauthToken: 'token', userId: 'user1', deviceUuid: 'device1' })
+
+      const result = await client.addReaction('100', '42', 1)
+
+      const [chatIdArg, logIdArg, reactionType] = mockAddReaction.mock.calls[0] as [
+        { toString(): string },
+        { toString(): string },
+        number,
+      ]
+      expect(chatIdArg.toString()).toBe('100')
+      expect(logIdArg.toString()).toBe('42')
+      expect(reactionType).toBe(1)
+      expect(result).toEqual({
+        success: true,
+        status_code: 0,
+        chat_id: '100',
+        log_id: '42',
+        reaction_type: 1,
+      })
+
+      client.close()
+    })
+
+    it('reports body-level ACTION failures without hiding the server status', async () => {
+      mockAddReaction.mockResolvedValueOnce({ statusCode: 0, body: { status: -203 } })
+      const client = await new KakaoTalkClient().login({ oauthToken: 'token', userId: 'user1', deviceUuid: 'device1' })
+
+      const result = await client.addReaction('100', '42', 1)
+
+      expect(result.success).toBe(false)
+      expect(result.status_code).toBe(-203)
+      client.close()
+    })
+
+    it('wraps ACTION transport errors', async () => {
+      mockAddReaction.mockRejectedValueOnce(new Error('Socket closed'))
+      const client = await new KakaoTalkClient().login({ oauthToken: 'token', userId: 'user1', deviceUuid: 'device1' })
+
+      await expect(client.addReaction('100', '42', 1)).rejects.toMatchObject({
+        name: 'KakaoTalkError',
+        code: 'add_reaction_failed',
+      })
+      client.close()
+    })
+  })
+
+  describe('editMessage', () => {
+    it('passes parsed ids and replacement text to the REWRITE session method', async () => {
+      mockEditMessage.mockResolvedValueOnce({ statusCode: 0, body: {} })
+      const client = await new KakaoTalkClient().login({ oauthToken: 'token', userId: 'user1', deviceUuid: 'device1' })
+
+      const result = await client.editMessage('100', '42', 'edited')
+
+      const [chatIdArg, logIdArg, text] = mockEditMessage.mock.calls[0] as [
+        { toString(): string },
+        { toString(): string },
+        string,
+      ]
+      expect(chatIdArg.toString()).toBe('100')
+      expect(logIdArg.toString()).toBe('42')
+      expect(text).toBe('edited')
+      expect(result).toEqual({
+        success: true,
+        status_code: 0,
+        chat_id: '100',
+        log_id: '42',
+      })
+
+      client.close()
+    })
+
+    it('reports body-level REWRITE failures without hiding the server status', async () => {
+      mockEditMessage.mockResolvedValueOnce({ statusCode: 0, body: { status: -203 } })
+      const client = await new KakaoTalkClient().login({ oauthToken: 'token', userId: 'user1', deviceUuid: 'device1' })
+
+      const result = await client.editMessage('100', '42', 'edited')
+
+      expect(result.success).toBe(false)
+      expect(result.status_code).toBe(-203)
       client.close()
     })
   })

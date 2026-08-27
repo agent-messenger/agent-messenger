@@ -136,6 +136,27 @@ export interface KakaoSendResult {
   log_id: string
   sent_at: number
 }
+// ACTION reaction types currently verified by the openkakao-cli protocol
+// implementation. Keep this narrow until more KakaoTalk reaction values have
+// been captured from the official client.
+export const KAKAO_REACTION_TYPE = {
+  LIKE: 1,
+} as const
+
+export interface KakaoReactionResult {
+  success: boolean
+  status_code: number
+  chat_id: string
+  log_id: string
+  reaction_type: number
+}
+
+export interface KakaoEditResult {
+  success: boolean
+  status_code: number
+  chat_id: string
+  log_id: string
+}
 
 // LOCO message_type values. Source: KakaoTalk APK 26.4.2 + typeclaw inbound parser.
 export const KAKAO_MESSAGE_TYPE = {
@@ -298,6 +319,20 @@ export const KakaoSendResultSchema = z.object({
   chat_id: z.string(),
   log_id: z.string(),
   sent_at: z.number(),
+})
+export const KakaoReactionResultSchema = z.object({
+  success: z.boolean(),
+  status_code: z.number(),
+  chat_id: z.string(),
+  log_id: z.string(),
+  reaction_type: z.number().int().positive(),
+})
+
+export const KakaoEditResultSchema = z.object({
+  success: z.boolean(),
+  status_code: z.number(),
+  chat_id: z.string(),
+  log_id: z.string(),
 })
 
 export const KakaoMarkReadResultSchema = z.object({

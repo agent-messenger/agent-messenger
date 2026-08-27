@@ -47,6 +47,40 @@ export async function sendTypingPacket(
 ): Promise<LocoPacket> {
   return connection.sendPacket(TYPING_ACTION_METHOD, buildTypingActionBody(chatId, linkId))
 }
+// ACTION is also used by the official client for message reactions. The
+// payload differs from the typing subtype: reactions target a logId and carry
+// the selected reaction type.
+export const REACTION_ACTION_METHOD = 'ACTION'
+export const REWRITE_MESSAGE_METHOD = 'REWRITE'
+
+export function buildReactionActionBody(chatId: Long, logId: Long, reactionType: number): Record<string, unknown> {
+  if (!Number.isInteger(reactionType) || reactionType <= 0) {
+    throw new Error(`reactionType must be a positive integer, got ${String(reactionType)}`)
+  }
+  return { chatId, logId, type: reactionType }
+}
+
+export function buildRewriteMessageBody(chatId: Long, logId: Long, text: string): Record<string, unknown> {
+  return { chatId, logId, msg: text, type: KAKAO_MESSAGE_TYPE.TEXT }
+}
+
+export async function sendReactionPacket(
+  connection: { sendPacket: (method: string, body: Record<string, unknown>) => Promise<LocoPacket> },
+  chatId: Long,
+  logId: Long,
+  reactionType: number,
+): Promise<LocoPacket> {
+  return connection.sendPacket(REACTION_ACTION_METHOD, buildReactionActionBody(chatId, logId, reactionType))
+}
+
+export async function rewriteMessagePacket(
+  connection: { sendPacket: (method: string, body: Record<string, unknown>) => Promise<LocoPacket> },
+  chatId: Long,
+  logId: Long,
+  text: string,
+): Promise<LocoPacket> {
+  return connection.sendPacket(REWRITE_MESSAGE_METHOD, buildRewriteMessageBody(chatId, logId, text))
+}
 
 export class LocoSession {
   private connection: LocoConnection | null = null
@@ -162,6 +196,15 @@ export class LocoSession {
       type: 1,
       noSeen: false,
     })
+  }
+  async addReaction(chatId: Long, logId: Long, reactionType: number): Promise<LocoPacket> {
+    if (!this.connection) throw new Error('Not connected')
+    return sendReactionPacket(this.connection, chatId, logId, reactionType)
+  }
+
+  async editMessage(chatId: Long, logId: Long, text: string): Promise<LocoPacket> {
+    if (!this.connection) throw new Error('Not connected')
+    return rewriteMessagePacket(this.connection, chatId, logId, text)
   }
 
   // Quoted reply — a WRITE with message_type 26 (REPLY) whose `extra` JSON

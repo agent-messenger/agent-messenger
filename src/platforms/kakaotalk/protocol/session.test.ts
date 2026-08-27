@@ -2,7 +2,17 @@ import { describe, expect, it, mock } from 'bun:test'
 
 import { Long } from 'bson'
 
-import { buildTypingActionBody, sendTypingPacket, TYPING_ACTION_METHOD } from './session'
+import {
+  buildReactionActionBody,
+  buildRewriteMessageBody,
+  buildTypingActionBody,
+  REACTION_ACTION_METHOD,
+  REWRITE_MESSAGE_METHOD,
+  sendReactionPacket,
+  sendTypingPacket,
+  TYPING_ACTION_METHOD,
+  rewriteMessagePacket,
+} from './session'
 import type { LocoPacket } from './types'
 
 type SentPacket = { method: string; body: Record<string, unknown> }
@@ -109,5 +119,53 @@ describe('sendTypingPacket → sendPacket wire boundary', () => {
     const packet = sent[0]!
     expect(packet.method).toBe(TYPING_ACTION_METHOD)
     expect(packet.body).toEqual(buildTypingActionBody(Long.fromString('123'), Long.fromString('456')))
+  })
+})
+describe('reaction and rewrite wire contracts', () => {
+  it('builds the ACTION reaction body with full-width ids and the selected type', () => {
+    const body = buildReactionActionBody(Long.fromString('459750513901477'), Long.fromString('922337203685477000'), 1)
+
+    expect((body.chatId as Long).toString()).toBe('459750513901477')
+    expect((body.logId as Long).toString()).toBe('922337203685477000')
+    expect(body.type).toBe(1)
+    expect(Object.keys(body).sort()).toEqual(['chatId', 'logId', 'type'])
+  })
+
+  it('rejects invalid reaction types before sending a packet', () => {
+    expect(() => buildReactionActionBody(Long.fromString('1'), Long.fromString('2'), 0)).toThrow(
+      'reactionType must be a positive integer',
+    )
+    expect(() => buildReactionActionBody(Long.fromString('1'), Long.fromString('2'), 1.5)).toThrow(
+      'reactionType must be a positive integer',
+    )
+  })
+
+  it('builds the REWRITE body with the text message type', () => {
+    const body = buildRewriteMessageBody(Long.fromString('123'), Long.fromString('456'), 'corrected')
+
+    expect(body).toEqual({
+      chatId: Long.fromString('123'),
+      logId: Long.fromString('456'),
+      msg: 'corrected',
+      type: 1,
+    })
+  })
+
+  it('sends ACTION and REWRITE through the live connection', async () => {
+    const { connection, sent } = fakeConnection()
+
+    await sendReactionPacket(connection, Long.fromString('123'), Long.fromString('456'), 1)
+    await rewriteMessagePacket(connection, Long.fromString('123'), Long.fromString('456'), 'edited')
+
+    expect(sent).toEqual([
+      {
+        method: REACTION_ACTION_METHOD,
+        body: { chatId: Long.fromString('123'), logId: Long.fromString('456'), type: 1 },
+      },
+      {
+        method: REWRITE_MESSAGE_METHOD,
+        body: { chatId: Long.fromString('123'), logId: Long.fromString('456'), msg: 'edited', type: 1 },
+      },
+    ])
   })
 })
