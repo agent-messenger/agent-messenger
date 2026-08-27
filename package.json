@@ -172,6 +172,7 @@
     "format": "oxfmt --write .",
     "format:check": "oxfmt --check .",
     "dev": "bun --hot ./dist/cli.js",
+    "prepare": "bun run build",
     "prepublishOnly": "bun run build && bun scripts/prepublish.ts",
     "postpublish": "git checkout package.json"
   },
