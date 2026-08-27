@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'bun:test'
 
-import { validateLoginListResponse } from './login-response'
+import { isSyntheticConnectionClose, validateLoginListResponse } from './login-response'
 import type { LocoPacket } from './types'
 
 function packet(statusCode: number, body: Record<string, unknown>): LocoPacket {
@@ -54,11 +54,22 @@ describe('LOGINLIST response classification', () => {
   })
 
   it('keeps a synthetic socket close on the transport-error path', () => {
-    const error = captureError(() => validateLoginListResponse(packet(-1, { error: 'connection closed' })))
+    const response = packet(-1, { error: 'connection closed' })
+    const error = captureError(() => validateLoginListResponse(response))
 
+    expect(isSyntheticConnectionClose(response)).toBe(true)
     expect(error).toBeInstanceOf(Error)
     expect(error).toMatchObject({ message: 'KakaoTalk LOGINLIST transport failed: connection closed' })
     expect(error).not.toHaveProperty('code')
     expect(error).not.toHaveProperty('serverStatus')
+  })
+
+  it('does not classify status -1 with a nonmatching body as a synthetic socket close', () => {
+    const response = packet(-1, { error: 'provider rejected' })
+
+    expect(isSyntheticConnectionClose(response)).toBe(false)
+    expect(() => validateLoginListResponse(response)).toThrow(
+      expect.objectContaining({ code: 'login_rejected', serverStatus: -1 }),
+    )
   })
 })

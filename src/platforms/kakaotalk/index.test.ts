@@ -49,6 +49,33 @@ it('KakaoChatSchema is exported from barrel', () => {
   expect(typeof KakaoChatSchema.parse).toBe('function')
 })
 
+it('KakaoChatSchema preserves a non-empty string channel type', () => {
+  for (const channelType of ['DirectChat', 'MultiChat', 'PlusChat', 'MemoChat', 'OM', 'OD', 'FutureChat']) {
+    expect(
+      KakaoChatSchema.parse({
+        chat_id: '300',
+        type: channelType,
+        display_name: null,
+        title: null,
+        active_members: 2,
+        unread_count: 0,
+        last_message: null,
+      }).type,
+    ).toBe(channelType)
+  }
+  expect(() =>
+    KakaoChatSchema.parse({
+      chat_id: '300',
+      type: '',
+      display_name: null,
+      title: null,
+      active_members: 2,
+      unread_count: 0,
+      last_message: null,
+    }),
+  ).toThrow()
+})
+
 it('KakaoMessageSchema is exported from barrel', () => {
   expect(typeof KakaoMessageSchema.parse).toBe('function')
 })

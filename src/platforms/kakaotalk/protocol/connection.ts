@@ -73,15 +73,28 @@ export class LocoConnection {
 
     const raw = encodePacket(packet)
     const data = this.crypto ? this.crypto.encrypt(raw) : raw
-    await this.write(data)
 
     return new Promise((resolve, reject) => {
+      let entry: {
+        resolve: (packet: LocoPacket) => void
+        timer: ReturnType<typeof setTimeout>
+      }
       const timer = setTimeout(() => {
+        if (this.pendingResolvers.get(packetId) !== entry) return
         this.pendingResolvers.delete(packetId)
         this.timedOutIds.add(packetId)
         reject(new Error(`LOCO packet timeout: ${method} (${DEFAULT_SEND_TIMEOUT_MS}ms)`))
       }, DEFAULT_SEND_TIMEOUT_MS)
-      this.pendingResolvers.set(packetId, { resolve, timer })
+      entry = { resolve, timer }
+      this.pendingResolvers.set(packetId, entry)
+
+      void this.write(data).catch((error: unknown) => {
+        if (this.pendingResolvers.get(packetId) !== entry) return
+        clearTimeout(entry.timer)
+        this.pendingResolvers.delete(packetId)
+        this.timedOutIds.add(packetId)
+        reject(error)
+      })
     })
   }
 

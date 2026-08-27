@@ -12,6 +12,7 @@ import { isOpenKakaoChatType } from './chat-classifier'
 import { detectImageDimensions } from './image-meta'
 import { sha1Hex } from './media-upload'
 import { LANG, PC_OS_NAME, getLocoDeviceConfig } from './protocol/config'
+import { isSyntheticConnectionClose } from './protocol/login-response'
 import { uploadMediaToLoco, uploadMultiMediaEntry } from './protocol/media-uploader'
 import { LocoSession } from './protocol/session'
 import type { ChatListResponse, LocoPacket, LoginListResponse, SyncState } from './protocol/types'
@@ -41,15 +42,57 @@ export type KakaoSessionEvent =
 export type KakaoPushHandler = (packet: LocoPacket) => void
 export type KakaoSessionEventHandler = (event: KakaoSessionEvent) => void
 
+export type KakaoTalkResponseFailureKind = 'provider_rejection' | 'transient_or_unknown'
+export type KakaoTalkResponseStatusSource = 'packet' | 'body'
+export type KakaoTalkGetChatFailureReason =
+  | 'provider_rejection'
+  | 'synthetic_connection_close'
+  | 'chat_info_absent'
+  | 'transport_or_unknown'
+
 export class KakaoTalkError extends Error {
   code: string
   readonly serverStatus?: number
+  readonly responseFailureKind?: KakaoTalkResponseFailureKind
+  readonly responseStatusSource?: KakaoTalkResponseStatusSource
+  readonly getChatFailureReason?: KakaoTalkGetChatFailureReason
 
-  constructor(message: string, code: string, options?: { cause?: unknown; serverStatus?: number }) {
+  constructor(
+    message: string,
+    code: string,
+    options?: {
+      cause?: unknown
+      serverStatus?: number
+      responseFailureKind?: KakaoTalkResponseFailureKind
+      responseStatusSource?: KakaoTalkResponseStatusSource
+      getChatFailureReason?: KakaoTalkGetChatFailureReason
+    },
+  ) {
     super(message, options)
     this.name = 'KakaoTalkError'
     this.code = code
     this.serverStatus = options?.serverStatus
+    this.responseFailureKind = options?.responseFailureKind
+    this.responseStatusSource = options?.responseStatusSource
+    this.getChatFailureReason = options?.getChatFailureReason
+  }
+}
+
+class LocoResponseError extends Error {
+  readonly serverStatus?: number
+  readonly responseFailureKind: KakaoTalkResponseFailureKind
+  readonly responseStatusSource?: KakaoTalkResponseStatusSource
+
+  constructor(
+    message: string,
+    responseFailureKind: KakaoTalkResponseFailureKind,
+    options?: { serverStatus?: number; responseStatusSource?: KakaoTalkResponseStatusSource },
+  ) {
+    super(message)
+    this.name = 'LocoResponseError'
+    this.serverStatus = options?.serverStatus
+    this.responseFailureKind = responseFailureKind
+    this.responseStatusSource = options?.responseStatusSource
   }
 }
 
@@ -187,7 +230,7 @@ function formatChat(chat: ChatData, title: string | null, nameCache: MemberNameC
 
   return {
     chat_id: chatId,
-    type: chat.t as KakaoChat['type'],
+    type: requiredChatType(chat.t),
     display_name: displayName,
     title,
     active_members: chat.a as number,
@@ -258,7 +301,7 @@ function requiredNonNegativeInteger(value: unknown, field: string): number {
 }
 
 function requiredChatType(value: unknown): KakaoChat['type'] {
-  if (typeof value === 'string' && isOpenKakaoChatType(value)) {
+  if (typeof value === 'string' && value.length > 0) {
     return value
   }
   return requiredNonNegativeInteger(value, 'type')
@@ -352,10 +395,46 @@ function collectChats(chatDatas: ChatData[], into: ChatData[], seen: Set<string>
   }
 }
 
-function wrapError(error: unknown, code: string): KakaoTalkError {
-  if (error instanceof KakaoTalkError) return error
+function wrapError(
+  error: unknown,
+  code: string,
+  options?: { classifyResponseFailure?: boolean; classifyGetChatFailure?: boolean },
+): KakaoTalkError {
+  if (error instanceof KakaoTalkError) {
+    const responseFailureKind =
+      error.responseFailureKind ?? (options?.classifyResponseFailure ? 'transient_or_unknown' : undefined)
+    const getChatFailureReason =
+      error.getChatFailureReason ?? (options?.classifyGetChatFailure ? 'transport_or_unknown' : undefined)
+    if (responseFailureKind === error.responseFailureKind && getChatFailureReason === error.getChatFailureReason) {
+      return error
+    }
+    return new KakaoTalkError(error.message, error.code, {
+      cause: error.cause ?? error,
+      serverStatus: error.serverStatus,
+      responseFailureKind,
+      responseStatusSource: error.responseStatusSource,
+      getChatFailureReason,
+    })
+  }
   const message = error instanceof Error ? error.message : String(error)
-  return new KakaoTalkError(message, code, { cause: error })
+  return new KakaoTalkError(message, code, {
+    cause: error,
+    serverStatus: error instanceof LocoResponseError ? error.serverStatus : undefined,
+    responseStatusSource: error instanceof LocoResponseError ? error.responseStatusSource : undefined,
+    responseFailureKind:
+      error instanceof LocoResponseError
+        ? error.responseFailureKind
+        : options?.classifyResponseFailure
+          ? 'transient_or_unknown'
+          : undefined,
+    getChatFailureReason: options?.classifyGetChatFailure
+      ? error instanceof LocoResponseError && error.responseFailureKind === 'provider_rejection'
+        ? 'provider_rejection'
+        : error instanceof LocoResponseError && error.responseStatusSource === 'packet' && error.serverStatus === -1
+          ? 'synthetic_connection_close'
+          : 'transport_or_unknown'
+      : undefined,
+  })
 }
 
 function isLoginResponseError(
@@ -502,12 +581,27 @@ function isNonZeroLong(v: unknown): boolean {
 // caller-visible error channel (e.g. GETMEM/MEMBER return `[]` for both empty rooms and dead
 // sockets). Throwing here lets executeWithReconnect detect session death and reconnect.
 function assertLocoOk(response: LocoPacket, command: string): void {
+  if (typeof response.statusCode !== 'number' || !Number.isFinite(response.statusCode)) {
+    throw new LocoResponseError(`${command} failed: response status unavailable`, 'transient_or_unknown')
+  }
+  if (isSyntheticConnectionClose(response)) {
+    throw new LocoResponseError(`${command} failed: connection closed`, 'transient_or_unknown', {
+      serverStatus: response.statusCode,
+      responseStatusSource: 'packet',
+    })
+  }
   if (response.statusCode !== 0) {
-    throw new Error(`${command} failed: statusCode=${response.statusCode}`)
+    throw new LocoResponseError(`${command} failed: statusCode=${response.statusCode}`, 'provider_rejection', {
+      serverStatus: response.statusCode,
+      responseStatusSource: 'packet',
+    })
   }
   const bodyStatus = response.body.status
   if (typeof bodyStatus === 'number' && bodyStatus !== 0) {
-    throw new Error(`${command} failed: body.status=${bodyStatus}`)
+    throw new LocoResponseError(`${command} failed: body.status=${bodyStatus}`, 'provider_rejection', {
+      serverStatus: bodyStatus,
+      responseStatusSource: 'body',
+    })
   }
 }
 
@@ -946,6 +1040,7 @@ export class KakaoTalkClient {
         if (options?.all || options?.search || snapshotEmpty) {
           let cursor: ChatListResponse = loginResult
           let pages = 0
+          const requireCompleteList = options?.all === true
 
           while (pages < MAX_PAGES) {
             // Trust eof only when the snapshot had data. When the snapshot was empty
@@ -958,15 +1053,28 @@ export class KakaoTalkClient {
             const lastChatId = bsonToLong(cursor.lastChatId)
 
             const response = await session.getChatList(lastTokenId, lastChatId)
+            if (requireCompleteList) assertLocoOk(response, 'LCHATLIST')
             const body = response.body as unknown as ChatListResponse
+            if (requireCompleteList && !Array.isArray(body.chatDatas)) {
+              throw new Error('LCHATLIST pagination incomplete: chatDatas unavailable')
+            }
             const chatDatas = (body.chatDatas ?? []) as ChatData[]
+            cursor = body
+            pages++
 
-            if (chatDatas.length === 0) break
+            if (chatDatas.length === 0) {
+              if (requireCompleteList && body.eof !== true) {
+                throw new Error('LCHATLIST pagination incomplete: empty non-EOF page')
+              }
+              break
+            }
 
             collectChats(chatDatas, allChats, seenChatIds)
             this.nameCache.ingest(chatDatas)
-            cursor = body
-            pages++
+          }
+
+          if (requireCompleteList && cursor.eof !== true) {
+            throw new Error(`LCHATLIST pagination incomplete after ${pages} pages`)
           }
         }
 
@@ -996,6 +1104,9 @@ export class KakaoTalkClient {
    * Unlike `getChats()`, this does not depend on the login-time snapshot or
    * LCHATLIST pagination, so a room first observed from a live push can be
    * resolved without interpreting protocol fields outside this SDK.
+   * The returned chat type preserves numeric values and non-empty protocol
+   * strings, including DirectChat, MultiChat, PlusChat, MemoChat, OM, and OD;
+   * unknown non-empty strings are preserved for forward compatibility.
    */
   async getChat(chatId: string): Promise<KakaoChat> {
     const parsedChatId = parseChatId(chatId)
@@ -1005,6 +1116,21 @@ export class KakaoTalkClient {
         const response = await session.getChannelInfo(parsedChatId)
         assertLocoOk(response, 'CHATINFO')
         const body = response.body as Record<string, unknown>
+        const chatInfo = body.chatInfo
+        const isLeftChatInfo =
+          chatInfo !== null &&
+          typeof chatInfo === 'object' &&
+          !Array.isArray(chatInfo) &&
+          (chatInfo as Record<string, unknown>).left === true
+        if (isLeftChatInfo) {
+          extractChannelInfo(body, normalizedChatId)
+        }
+        if (chatInfo === undefined || chatInfo === null || isLeftChatInfo) {
+          throw new KakaoTalkError('CHATINFO response missing chatInfo', 'get_chat_failed', {
+            responseFailureKind: 'transient_or_unknown',
+            getChatFailureReason: 'chat_info_absent',
+          })
+        }
         const chat = channelInfoToChatData(body, normalizedChatId)
         this.nameCache.ingest([chat])
 
@@ -1023,7 +1149,10 @@ export class KakaoTalkClient {
 
         return formatChat(chat, title, this.nameCache)
       } catch (error) {
-        throw wrapError(error, 'get_chat_failed')
+        throw wrapError(error, 'get_chat_failed', {
+          classifyResponseFailure: true,
+          classifyGetChatFailure: true,
+        })
       }
     })
   }

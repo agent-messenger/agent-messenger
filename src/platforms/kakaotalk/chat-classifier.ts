@@ -1,4 +1,4 @@
-import type { KakaoChat, KakaoOpenChatType } from './types'
+import { isKnownKakaoChatStringType, type KakaoChat, type KakaoOpenChatType } from './types'
 
 export type KakaoChatKind = 'dm' | 'group' | 'open' | 'unknown'
 
@@ -21,12 +21,15 @@ export function isOpenKakaoChatType(type: unknown): type is KakaoOpenChatType {
  * NOT "simplify" this back to a pure type-code mapping without verifying
  * against a real KakaoTalk session.
  *
- * `'unknown'` is reserved for future protocol drift; the current heuristic
- * never returns it, but it is part of the union so consumers can handle
- * the case defensively.
+ * `'unknown'` is reserved for future string protocol drift so consumers fail
+ * closed instead of silently classifying an unrecognized server value by
+ * member count.
  */
 export function classifyKakaoChat(chat: Pick<KakaoChat, 'type' | 'active_members'>): KakaoChatKind {
   if (isOpenKakaoChatType(chat.type)) return 'open'
+  if (typeof chat.type === 'string' && !isKnownKakaoChatStringType(chat.type)) {
+    return 'unknown'
+  }
   // active_members counts the logged-in user, so a 1:1 DM is exactly 2
   // (self + one other) and a "lone" room with only self is 1.
   if (chat.active_members <= 2) return 'dm'

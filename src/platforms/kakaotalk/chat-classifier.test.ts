@@ -30,4 +30,26 @@ describe('classifyKakaoChat', () => {
   it('classifies a 1-member chat (lone room) as dm', () => {
     expect(classifyKakaoChat({ type: 11, active_members: 1 })).toBe('dm')
   })
+
+  for (const type of ['DirectChat', 'MultiChat', 'PlusChat', 'MemoChat'] as const) {
+    it(`keeps member-count classification for known normal type ${type}`, () => {
+      expect(classifyKakaoChat({ type, active_members: 2 })).toBe('dm')
+      expect(classifyKakaoChat({ type, active_members: 3 })).toBe('group')
+    })
+  }
+
+  it('classifies an unknown string type as unknown regardless of member count', () => {
+    expect(
+      classifyKakaoChat({
+        type: 'UnknownChat',
+        active_members: 2,
+      }),
+    ).toBe('unknown')
+    expect(
+      classifyKakaoChat({
+        type: 'UnknownChat',
+        active_members: 3,
+      }),
+    ).toBe('unknown')
+  })
 })
