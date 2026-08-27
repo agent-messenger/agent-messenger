@@ -1104,6 +1104,9 @@ export class KakaoTalkClient {
    * Unlike `getChats()`, this does not depend on the login-time snapshot or
    * LCHATLIST pagination, so a room first observed from a live push can be
    * resolved without interpreting protocol fields outside this SDK.
+   * The returned chat type preserves numeric values and non-empty protocol
+   * strings, including DirectChat, MultiChat, PlusChat, MemoChat, OM, and OD;
+   * unknown non-empty strings are preserved for forward compatibility.
    */
   async getChat(chatId: string): Promise<KakaoChat> {
     const parsedChatId = parseChatId(chatId)
