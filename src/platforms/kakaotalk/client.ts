@@ -163,6 +163,18 @@ function bsonToLong(v: unknown): Long | undefined {
   return undefined
 }
 
+// LCHATLIST cursor fields (lastTokenId/lastChatId) arrive as plain numbers when the
+// value fits in a safe integer, because bson promotes them, and as { low, high }
+// otherwise. bsonToLong only accepts the object form, so a numeric cursor became
+// undefined and getChatList() re-requested the first page until MAX_PAGES.
+// Kept separate from bsonToLong on purpose: its other callers (log ids, open link
+// ids) rely on a numeric 0 staying absent rather than becoming a Long.
+function cursorToLong(v: unknown): Long | undefined {
+  if (typeof v === 'number' && Number.isSafeInteger(v)) return Long.fromNumber(v)
+  if (typeof v === 'bigint') return Long.fromBigInt(v)
+  return bsonToLong(v)
+}
+
 function longToString(v: unknown): string {
   if (v && typeof v === 'object' && 'high' in v && 'low' in v) {
     const { high, low } = v as { high: number; low: number }
@@ -1049,8 +1061,8 @@ export class KakaoTalkClient {
             if (cursor.eof && !snapshotEmpty) break
             if (cursor.eof && snapshotEmpty && pages > 0) break
 
-            const lastTokenId = bsonToLong(cursor.lastTokenId)
-            const lastChatId = bsonToLong(cursor.lastChatId)
+            const lastTokenId = cursorToLong(cursor.lastTokenId)
+            const lastChatId = cursorToLong(cursor.lastChatId)
 
             const response = await session.getChatList(lastTokenId, lastChatId)
             if (requireCompleteList) assertLocoOk(response, 'LCHATLIST')
