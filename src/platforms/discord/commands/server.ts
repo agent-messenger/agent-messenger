@@ -6,6 +6,10 @@ import { formatOutput } from '@/shared/utils/output'
 import { DiscordClient } from '../client'
 import { DiscordCredentialManager } from '../credential-manager'
 
+/** Discord raises both allowances with the server's boost level. */
+const STATIC_EMOJI_SLOTS_BY_TIER = [50, 100, 150, 250]
+const STICKER_SLOTS_BY_TIER = [5, 15, 30, 60]
+
 export async function listAction(options: { pretty?: boolean }): Promise<void> {
   try {
     const credManager = new DiscordCredentialManager()
@@ -37,11 +41,27 @@ export async function infoAction(serverId: string, options: { pretty?: boolean }
     const client = await new DiscordClient().login({ token: config.token })
     const server = await client.getServer(serverId)
 
+    const tier = server.premium_tier ?? 0
+    const emojis = server.emojis ?? []
+    const stickers = server.stickers ?? []
+    const staticEmojiCount = emojis.filter((emoji) => !emoji.animated).length
+
     const output = {
       id: server.id,
       name: server.name,
       icon: server.icon,
-      owner: server.owner,
+      owner_id: server.owner_id,
+      premium_tier: tier,
+      premium_subscription_count: server.premium_subscription_count ?? 0,
+      emoji_count: emojis.length,
+      sticker_count: stickers.length,
+      static_emoji_slots: STATIC_EMOJI_SLOTS_BY_TIER[tier] ?? STATIC_EMOJI_SLOTS_BY_TIER[0],
+      static_emoji_slots_remaining: Math.max(
+        0,
+        (STATIC_EMOJI_SLOTS_BY_TIER[tier] ?? STATIC_EMOJI_SLOTS_BY_TIER[0]) - staticEmojiCount,
+      ),
+      sticker_slots: STICKER_SLOTS_BY_TIER[tier] ?? STICKER_SLOTS_BY_TIER[0],
+      sticker_slots_remaining: Math.max(0, (STICKER_SLOTS_BY_TIER[tier] ?? STICKER_SLOTS_BY_TIER[0]) - stickers.length),
     }
 
     console.log(formatOutput(output, options.pretty))

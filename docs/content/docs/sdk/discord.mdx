@@ -125,6 +125,54 @@ const files = await client.listFiles(channelId)
 // → DiscordFile[]
 ```
 
+### Expressions (Emoji and Stickers)
+
+```typescript
+// List a guild's custom emoji
+const emojis = await client.listEmojis(guildId)
+// → DiscordEmoji[] { id, name, animated?, managed?, available?, roles?, user? }
+
+// Upload a custom emoji. The media type is read from the bytes, not the filename.
+const bytes = new Uint8Array(await readFile('./potato.png'))
+const emoji = await client.createEmoji(guildId, 'potato', bytes, 'potato.png')
+
+await client.deleteEmoji(guildId, emoji.id)
+
+// List a guild's custom stickers
+const stickers = await client.listStickers(guildId)
+// → DiscordSticker[] { id, name, tags, type, format_type, description?, ... }
+// type: STANDARD = 1, GUILD = 2. format_type: PNG = 1, APNG = 2, LOTTIE = 3, GIF = 4.
+
+// Upload a custom sticker. `tags` is the unicode emoji it relates to.
+const sticker = await client.createSticker(
+  guildId,
+  { name: 'potato', description: 'A potato', tags: '🥔' },
+  bytes,
+  'potato.png',
+)
+
+await client.deleteSticker(guildId, sticker.id)
+```
+
+These methods take image bytes rather than a path, so the caller decides how the
+image is read. The media type the upload declares is read from the bytes
+themselves — a filename is unverified input, and Discord refuses a part whose
+declared type does not match its content with a bare `Invalid Asset`.
+
+Each endpoint takes its own formats: emoji accepts PNG, GIF, JPEG and WebP;
+stickers accept PNG (including APNG), GIF and a JSON document for Lottie.
+Bytes that are not one of the target endpoint's formats throw a `DiscordError`
+with code `unsupported_asset` before any request is made. A sticker's JSON must
+carry the `layers` array every Lottie animation has — `{}` is otherwise sent and
+refused as `Invalid Asset`. Whether the animation renders is Discord's call, and
+Lottie uploads need a `VERIFIED` or `PARTNERED` guild.
+
+Listing needs no special permission. Creating needs `CREATE_GUILD_EXPRESSIONS`.
+Deleting an expression you created needs either `CREATE_GUILD_EXPRESSIONS` or
+`MANAGE_GUILD_EXPRESSIONS`; deleting someone else's needs `MANAGE_GUILD_EXPRESSIONS`. `getServer(guildId)`
+returns `premium_tier` with the guild's `emojis` and `stickers`, which is how
+you find out how many slots remain.
+
 ### Direct Messages
 
 ```typescript
@@ -369,6 +417,8 @@ const credentials = await manager.getCredentials()
 import type {
   DiscordGuild,
   DiscordChannel,
+  DiscordEmoji,
+  DiscordSticker,
   DiscordMessage,
   DiscordUser,
   DiscordDMChannel,

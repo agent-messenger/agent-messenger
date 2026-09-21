@@ -497,6 +497,7 @@ See the [TUI docs](https://agent-messenger.dev/docs/tui) for keybindings, archit
 | Threads                    |  ✅   |   ✅    |   —   |   —   |    —     |    —     |   —   |   —    |     —     |    —      |         —           |
 | Channels & Users           |  ✅   |   ✅    |  ✅   |  ✅   | partial  |    —     |  ✅   |   ✅    |     —     |    —      |         ✅          |
 | Reactions                  |  ✅   |   ✅    |  ✅   |   —   |    —     |    ✅     |   —   |   —    |     —     |    —      |         —           |
+| Custom emoji & stickers    | partial³ |   ✅    |   —   |   —   |    —     |    —     |   —   |   —    |     —     |    —      |         —           |
 | File uploads               |  ✅   |   ✅    |  ✅   |  ✅   |    —     |    —     |   —   |   —    |     —     |    ✅     |         —           |
 | File downloads             |  ✅   |    —    |   —   |  ✅   |    —     |    —     |   —   |   —    |     —     |    —      |         —           |
 | Workspace snapshots        |  ✅   |   ✅    |  ✅   |  ✅   |    —     |    —     |   —   |   —    |     —     |    —      |         ✅          |
@@ -519,6 +520,11 @@ See the [TUI docs](https://agent-messenger.dev/docs/tui) for keybindings, archit
 > ¹ **Teams message edit** applies to chats/DMs only. Channel messages are not editable through the internal API this client uses.
 
 > ² **Discord unread** covers unread **mentions** in servers (`agent-discord mention unread`, correlating your last 7 days of mention history with per-channel read state) and unread **DMs** (`agent-discord dm unread`, comparing each DM channel's latest message against its read marker). Unread non-mention messages in server channels are not covered.
+>
+> ³ **Slack custom emoji** is read-only (`agent-slack emoji list`). Discord covers
+> both custom emoji and stickers end to end — list, upload and delete.
+> Uploading needs `CREATE_GUILD_EXPRESSIONS`; deleting someone else's
+> expression needs `MANAGE_GUILD_EXPRESSIONS`.
 
 > 💬 **iMessage** is supported via the local [imsg](https://github.com/openclaw/imsg) tool (`agent-imessage`), not the table above. It runs **on a Mac** (Apple has no API). v1 covers send & list messages, direct & group chats, chat listing, real-time watch, and standard tapbacks. Typing, edit/unsend, group management, and targeted/custom reactions require imsg's bridge (SIP disabled) and are a later tier. See the [iMessage Guide](skills/agent-imessage/SKILL.md).
 

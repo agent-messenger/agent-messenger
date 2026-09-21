@@ -72,6 +72,9 @@ agent-discord server current
 agent-discord server info <server-id>
 ```
 
+`server info` reports the server's boost tier alongside its custom emoji and
+sticker counts and the slots still free at that tier.
+
 ## Commands
 
 ### Whoami Command
@@ -181,6 +184,76 @@ agent-discord file list <channel-id>
 # Get file info
 agent-discord file info <channel-id> <file-id>
 ```
+
+### Emoji Commands
+
+Manage a server's custom emoji.
+
+Listing needs no special permission. Creating needs `CREATE_GUILD_EXPRESSIONS`.
+Deleting an expression you created needs either `CREATE_GUILD_EXPRESSIONS` or
+`MANAGE_GUILD_EXPRESSIONS`; deleting someone else's needs `MANAGE_GUILD_EXPRESSIONS`.
+
+```bash
+# List custom emoji, with static and animated counts
+agent-discord emoji list <server-id>
+
+# Upload a custom emoji (name defaults to the filename without extension)
+agent-discord emoji create <server-id> <path>
+agent-discord emoji create 123456789 ./potato.png --name potato
+
+# Delete a custom emoji
+agent-discord emoji delete <server-id> <emoji-id>
+```
+
+An emoji name may only contain letters, digits and underscores, and must be
+2–32 characters. The image must be at most 256KB.
+
+The media type is read from the file's own bytes, not its extension, and each
+command accepts only what its endpoint takes — emoji accepts PNG, GIF, JPEG and
+WebP. Anything else is refused before the request, because Discord answers a
+mismatched part with a bare `Invalid Asset`.
+
+### Sticker Commands
+
+Manage a server's custom stickers.
+
+Listing needs no special permission. Creating needs `CREATE_GUILD_EXPRESSIONS`.
+Deleting an expression you created needs either `CREATE_GUILD_EXPRESSIONS` or
+`MANAGE_GUILD_EXPRESSIONS`; deleting someone else's needs `MANAGE_GUILD_EXPRESSIONS`.
+
+```bash
+# List custom stickers
+agent-discord sticker list <server-id>
+
+# Upload a custom sticker
+agent-discord sticker create <server-id> <path> --tags <emoji>
+agent-discord sticker create 123456789 ./potato.png --tags 🥔 --name potato --description "A potato"
+
+# Delete a custom sticker
+agent-discord sticker delete <server-id> <sticker-id>
+```
+
+**Sticker Options:**
+
+- `--tags <emoji>` - Unicode emoji this sticker relates to (required)
+- `--name <name>` - Sticker name, 2–30 characters (defaults to the filename)
+- `--description <text>` - Sticker description
+
+A sticker image must be a PNG, APNG, GIF or a Lottie JSON document, at most
+512KB — a JPEG or WebP is refused locally, since the sticker endpoint does not
+take them. A JSON sticker must carry a `layers` array, which every Lottie animation has;
+whether it actually renders is Discord's call.
+Animated stickers are capped at 5 seconds. Lottie stickers upload only on
+guilds with the `VERIFIED` or `PARTNERED` feature.
+
+Discord documents 320x320 for stickers, but does not appear to enforce it — a
+408x408 PNG uploaded and registered unchanged. The CLI therefore checks the
+file's format, not its dimensions. Keep to 320x320 to be safe.
+
+> **Note:** Discord raises both allowances with the server's boost level —
+> static emoji 50/100/150/250 and stickers 5/15/30/60 for boost tiers 0–3.
+> `agent-discord server info <server-id>` reports the tier and the remaining
+> slots.
 
 ### Snapshot Command
 

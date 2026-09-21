@@ -8,6 +8,7 @@ import {
   authCommand,
   channelCommand,
   dmCommand,
+  emojiCommand,
   fileCommand,
   friendCommand,
   memberCommand,
@@ -18,6 +19,7 @@ import {
   reactionCommand,
   serverCommand,
   snapshotCommand,
+  stickerCommand,
   threadCommand,
   userCommand,
   whoamiCommand,
@@ -50,6 +52,7 @@ program.addCommand(authCommand)
 program.addCommand(serverCommand)
 program.addCommand(channelCommand)
 program.addCommand(dmCommand)
+program.addCommand(emojiCommand)
 program.addCommand(fileCommand)
 program.addCommand(friendCommand)
 program.addCommand(memberCommand)
@@ -59,6 +62,7 @@ program.addCommand(noteCommand)
 program.addCommand(profileCommand)
 program.addCommand(reactionCommand)
 program.addCommand(snapshotCommand)
+program.addCommand(stickerCommand)
 program.addCommand(threadCommand)
 program.addCommand(userCommand)
 program.addCommand(whoamiCommand)

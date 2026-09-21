@@ -8,7 +8,14 @@ export interface DiscordGuild {
   id: string
   name: string
   icon?: string
+  /** Only present on GET /users/@me/guilds. */
   owner?: boolean
+  /** Only present on GET /guilds/{id}. */
+  owner_id?: string
+  premium_tier?: number
+  premium_subscription_count?: number
+  emojis?: DiscordEmoji[]
+  stickers?: DiscordSticker[]
 }
 
 export interface DiscordChannel {
@@ -114,6 +121,30 @@ export interface DiscordFile {
   content_type?: string
   height?: number
   width?: number
+}
+
+export interface DiscordEmoji {
+  id: string
+  name: string
+  animated?: boolean
+  managed?: boolean
+  available?: boolean
+  roles?: string[]
+  user?: DiscordUser
+}
+
+export interface DiscordSticker {
+  id: string
+  name: string
+  description?: string | null
+  tags: string
+  /** STANDARD = 1, GUILD = 2. */
+  type: number
+  /** PNG = 1, APNG = 2, LOTTIE = 3, GIF = 4. */
+  format_type: number
+  available?: boolean
+  guild_id?: string
+  user?: DiscordUser
 }
 
 export interface DiscordMention {

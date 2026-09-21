@@ -1,10 +1,13 @@
 import { readFile } from 'node:fs/promises'
 
+import type { ExpressionFormat } from './expression-format'
+import { EMOJI_FORMATS, STICKER_FORMATS, lottieError, mediaTypeOf, sniffFormat } from './expression-format'
 import { getDiscordHeaders } from './super-properties'
 import { DiscordSearchIndexNotReadyResponseSchema, DiscordSearchResponseSchema } from './types'
 import type {
   DiscordChannel,
   DiscordDMChannel,
+  DiscordEmoji,
   DiscordFile,
   DiscordGuild,
   DiscordGuildMember,
@@ -16,6 +19,7 @@ import type {
   DiscordRole,
   DiscordSearchOptions,
   DiscordSearchResult,
+  DiscordSticker,
   DiscordUnreadDM,
   DiscordUnreadDMsResult,
   DiscordUnreadMention,
@@ -95,6 +99,7 @@ interface RateLimitBucket {
 }
 
 const BASE_URL = 'https://discord.com/api/v10'
+
 const MAX_RETRIES = 3
 const BASE_BACKOFF_MS = 100
 const MAX_SEARCH_INDEX_RETRY_MS = 30_000
@@ -382,6 +387,73 @@ export class DiscordClient {
       }
     }
     return files
+  }
+
+  /**
+   * The media type the part declares comes from the bytes, never the filename,
+   * and only from the formats the target endpoint actually takes — a JPEG
+   * declared to the sticker endpoint is refused by Discord as "Invalid Asset".
+   */
+  private mediaTypeOrThrow(image: Uint8Array, allowed: ReadonlySet<ExpressionFormat>): string {
+    const format = sniffFormat(image)
+    if (!format || !allowed.has(format)) {
+      const names = [...allowed].join(', ')
+      throw new DiscordError(
+        format ? `File is a ${format}; this endpoint takes ${names}` : `File is not one of ${names}`,
+        'unsupported_asset',
+      )
+    }
+    if (format === 'json') {
+      const problem = lottieError(image)
+      if (problem) throw new DiscordError(problem, 'unsupported_asset')
+    }
+
+    return mediaTypeOf(format)
+  }
+
+  async listEmojis(guildId: string): Promise<DiscordEmoji[]> {
+    return this.request<DiscordEmoji[]>('GET', `/guilds/${guildId}/emojis`)
+  }
+
+  async createEmoji(
+    guildId: string,
+    name: string,
+    image: Uint8Array,
+    filename: string,
+    roles: string[] = [],
+  ): Promise<DiscordEmoji> {
+    return this.request<DiscordEmoji>('POST', `/guilds/${guildId}/emojis`, {
+      name,
+      image: `data:${this.mediaTypeOrThrow(image, EMOJI_FORMATS)};base64,${Buffer.from(image).toString('base64')}`,
+      roles,
+    })
+  }
+
+  async deleteEmoji(guildId: string, emojiId: string): Promise<void> {
+    await this.request<void>('DELETE', `/guilds/${guildId}/emojis/${emojiId}`)
+  }
+
+  async listStickers(guildId: string): Promise<DiscordSticker[]> {
+    return this.request<DiscordSticker[]>('GET', `/guilds/${guildId}/stickers`)
+  }
+
+  async createSticker(
+    guildId: string,
+    fields: { name: string; description?: string; tags: string },
+    image: Uint8Array,
+    filename: string,
+  ): Promise<DiscordSticker> {
+    const formData = new FormData()
+    formData.append('name', fields.name)
+    formData.append('description', fields.description ?? '')
+    formData.append('tags', fields.tags)
+    formData.append('file', new Blob([image], { type: this.mediaTypeOrThrow(image, STICKER_FORMATS) }), filename)
+
+    return this.requestFormData<DiscordSticker>(`/guilds/${guildId}/stickers`, formData)
+  }
+
+  async deleteSticker(guildId: string, stickerId: string): Promise<void> {
+    await this.request<void>('DELETE', `/guilds/${guildId}/stickers/${stickerId}`)
   }
 
   async listDMChannels(): Promise<DiscordDMChannel[]> {

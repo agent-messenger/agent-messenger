@@ -241,6 +241,9 @@ agent-discord server switch <server-id>
 agent-discord server current
 ```
 
+`server info` also reports the boost tier with the custom emoji and sticker
+counts and the slots still free at that tier.
+
 ### User Commands
 
 ```bash
@@ -383,6 +386,54 @@ agent-discord file list <channel-id>
 agent-discord file info <channel-id> <file-id>
 ```
 
+### Emoji Commands
+
+Creating needs `CREATE_GUILD_EXPRESSIONS`; deleting someone else's expression
+needs `MANAGE_GUILD_EXPRESSIONS`; listing needs neither. Name: letters, digits
+and underscores only, 2–32 characters. Image at most 256KB.
+
+```bash
+# List custom emoji
+agent-discord emoji list <server-id>
+
+# Upload (name defaults to the filename without extension)
+agent-discord emoji create <server-id> <path>
+agent-discord emoji create 1234567890123456789 ./potato.png --name potato
+
+# Delete
+agent-discord emoji delete <server-id> <emoji-id>
+```
+
+### Sticker Commands
+
+Same permissions as emoji. PNG, APNG, GIF or Lottie JSON, at most 512KB. Name
+2–30 characters. Lottie needs a `VERIFIED` or `PARTNERED` guild. Discord
+documents 320x320 but accepted a 408x408 PNG, so the CLI does not enforce a
+size — it checks the format from the file's bytes instead of its extension.
+
+```bash
+# List custom stickers
+agent-discord sticker list <server-id>
+
+# Upload — --tags is the unicode emoji the sticker relates to
+agent-discord sticker create <server-id> <path> --tags <emoji>
+agent-discord sticker create 1234567890123456789 ./potato.png --tags 🥔 --name potato
+
+# Delete
+agent-discord sticker delete <server-id> <sticker-id>
+```
+
+The media type is read from the file's bytes, not its extension, and each
+command takes only its endpoint's formats — emoji accepts PNG, GIF, JPEG and
+WebP; stickers accept PNG, APNG, GIF and a JSON document for Lottie. Anything
+else fails locally with a named error before a request is sent, so a batch says
+which file was wrong instead of returning a bare `Invalid Asset`.
+
+Check the remaining slots before a batch upload — `agent-discord server info
+<server-id>` reports the boost tier with the counts and free slots. Discord
+raises both allowances with the boost level: static emoji 50/100/150/250 and
+stickers 5/15/30/60 for tiers 0–3.
+
 ### Snapshot Command
 
 Get server overview for AI agents (brief by default):
@@ -480,6 +531,23 @@ Common errors:
 - `No current server set`: Run `server switch <id>` first
 - `Message not found`: Invalid message ID
 - `Unknown Channel`: Invalid channel ID
+- `File is not one of ...`: The file's bytes match no format this endpoint
+  takes. Refused locally — the request was never sent, so retrying is pointless.
+- `File is a <format>; this endpoint takes ...`: The file is a real image, but
+  not one this endpoint accepts — a JPEG or WebP sticker, or a JSON emoji.
+  Convert it; also refused locally.
+- `Emoji name may only contain ...` / `... name must be at least 2 characters`:
+  The name broke Discord's rules and was refused locally. Names come from the
+  filename unless `--name` is given, so `potato-13.png` fails on the hyphen.
+- `JSON file is not a Lottie animation (no layers array)` / `... is not valid
+  JSON` / `... is not valid UTF-8`: A JSON sticker that cannot be an animation.
+  Each names its own fault, because a file can carry a `layers` array and still
+  be broken. All three are refused locally; Discord answers such a file with a
+  bare `Invalid Asset`.
+- `Invalid Asset` (from Discord): The format was accepted locally but Discord
+  refused the content itself — a truncated or corrupt image.
+- `Maximum number of stickers reached (N)` (from Discord): No slots left. Check
+  `server info` for the tier's allowance before a batch.
 
 ## Configuration
 

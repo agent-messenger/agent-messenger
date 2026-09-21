@@ -1099,4 +1099,137 @@ describe('DiscordClient', () => {
       expect(result.totalUnread).toBe(7)
     })
   })
+  describe('expressions', () => {
+    const png = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])
+
+    it('listEmojis requests the guild emoji collection', async () => {
+      const client = await new DiscordClient().login({ token: 'test-token' })
+      mockResponse([{ id: 'e1', name: 'potato_01', animated: false }])
+
+      const emojis = await client.listEmojis('g1')
+
+      expect(fetchCalls[0].url).toBe('https://discord.com/api/v10/guilds/g1/emojis')
+      expect(fetchCalls[0].options?.method).toBe('GET')
+      expect(emojis[0].name).toBe('potato_01')
+    })
+
+    it('createEmoji posts the image as a base64 data URI', async () => {
+      const client = await new DiscordClient().login({ token: 'test-token' })
+      mockResponse({ id: 'e1', name: 'potato_01', animated: false })
+
+      const emoji = await client.createEmoji('g1', 'potato_01', png, 'potato_01.png')
+
+      expect(fetchCalls[0].url).toBe('https://discord.com/api/v10/guilds/g1/emojis')
+      expect(fetchCalls[0].options?.method).toBe('POST')
+      const body = JSON.parse(fetchCalls[0].options?.body as string)
+      expect(body.name).toBe('potato_01')
+      expect(body.image).toBe(`data:image/png;base64,${Buffer.from(png).toString('base64')}`)
+      expect(emoji.id).toBe('e1')
+    })
+
+    it('deleteEmoji issues a DELETE for the emoji', async () => {
+      const client = await new DiscordClient().login({ token: 'test-token' })
+      mockResponse(null, 204)
+
+      await client.deleteEmoji('g1', 'e1')
+
+      expect(fetchCalls[0].url).toBe('https://discord.com/api/v10/guilds/g1/emojis/e1')
+      expect(fetchCalls[0].options?.method).toBe('DELETE')
+    })
+
+    it('listStickers requests the guild sticker collection', async () => {
+      const client = await new DiscordClient().login({ token: 'test-token' })
+      mockResponse([{ id: 's1', name: 'potato_01', tags: 'potato', type: 2, format_type: 1 }])
+
+      const stickers = await client.listStickers('g1')
+
+      expect(fetchCalls[0].url).toBe('https://discord.com/api/v10/guilds/g1/stickers')
+      expect(fetchCalls[0].options?.method).toBe('GET')
+      expect(stickers[0].name).toBe('potato_01')
+    })
+
+    it('createSticker posts multipart fields alongside the file', async () => {
+      const client = await new DiscordClient().login({ token: 'test-token' })
+      mockResponse({ id: 's1', name: 'potato_01', tags: 'potato', type: 2, format_type: 1 })
+
+      const sticker = await client.createSticker(
+        'g1',
+        { name: 'potato_01', description: 'a potato', tags: 'potato' },
+        png,
+        'potato_01.png',
+      )
+
+      expect(fetchCalls[0].url).toBe('https://discord.com/api/v10/guilds/g1/stickers')
+      expect(fetchCalls[0].options?.method).toBe('POST')
+      const form = fetchCalls[0].options?.body as FormData
+      expect(form.get('name')).toBe('potato_01')
+      expect(form.get('description')).toBe('a potato')
+      expect(form.get('tags')).toBe('potato')
+      expect((form.get('file') as File).name).toBe('potato_01.png')
+      // Discord rejects a sticker part with no media type as "Invalid Asset".
+      expect((form.get('file') as File).type).toBe('image/png')
+      expect(sticker.id).toBe('s1')
+    })
+
+    it('createSticker types the part from the bytes, not the filename', async () => {
+      const client = await new DiscordClient().login({ token: 'test-token' })
+      mockResponse({ id: 's2', name: 'potato_02', tags: 'potato', type: 2, format_type: 4 })
+      const gif = new Uint8Array([...Buffer.from('GIF89a'), 0, 0, 0, 0])
+
+      // The filename claims PNG; the bytes are a GIF. Discord answers a part
+      // whose type does not match its content with "Invalid Asset".
+      await client.createSticker('g1', { name: 'potato_02', tags: 'potato' }, gif, 'potato_02.png')
+
+      const form = fetchCalls[0].options?.body as FormData
+      expect((form.get('file') as File).type).toBe('image/gif')
+    })
+
+    it('createSticker refuses bytes that are not a supported format', async () => {
+      const client = await new DiscordClient().login({ token: 'test-token' })
+      const junk = new Uint8Array([0, 1, 2, 3, 4, 5, 6, 7])
+
+      await expect(
+        client.createSticker('g1', { name: 'potato_02', tags: 'potato' }, junk, 'potato_02.png'),
+      ).rejects.toThrow('not one of')
+      expect(fetchCalls).toHaveLength(0)
+    })
+
+    it('createSticker refuses a JPEG, which the sticker endpoint does not take', async () => {
+      const client = await new DiscordClient().login({ token: 'test-token' })
+      const jpeg = new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 0, 0, 0, 0])
+
+      await expect(
+        client.createSticker('g1', { name: 'potato_02', tags: 'potato' }, jpeg, 'potato_02.jpg'),
+      ).rejects.toThrow('File is a jpeg')
+      expect(fetchCalls).toHaveLength(0)
+    })
+
+    it('createEmoji refuses a JSON document, which the emoji endpoint does not take', async () => {
+      const client = await new DiscordClient().login({ token: 'test-token' })
+      const json = new Uint8Array(Buffer.from('{"v":"5.5.7"}'))
+
+      await expect(client.createEmoji('g1', 'potato_01', json, 'potato_01.json')).rejects.toThrow('File is a json')
+      expect(fetchCalls).toHaveLength(0)
+    })
+
+    it('createSticker refuses JSON that is not a Lottie animation', async () => {
+      const client = await new DiscordClient().login({ token: 'test-token' })
+      const empty = new Uint8Array(Buffer.from('{}'))
+
+      await expect(
+        client.createSticker('g1', { name: 'potato_02', tags: 'potato' }, empty, 'potato_02.json'),
+      ).rejects.toThrow('not a Lottie animation')
+      expect(fetchCalls).toHaveLength(0)
+    })
+
+    it('deleteSticker issues a DELETE for the sticker', async () => {
+      const client = await new DiscordClient().login({ token: 'test-token' })
+      mockResponse(null, 204)
+
+      await client.deleteSticker('g1', 's1')
+
+      expect(fetchCalls[0].url).toBe('https://discord.com/api/v10/guilds/g1/stickers/s1')
+      expect(fetchCalls[0].options?.method).toBe('DELETE')
+    })
+  })
 })
