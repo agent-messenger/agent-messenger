@@ -763,6 +763,72 @@ describe('KakaoTalkClient', () => {
       client.close()
     })
 
+    it('advances LCHATLIST pagination when cursor fields are plain numbers', async () => {
+      // LOCO sends lastTokenId/lastChatId as plain numbers when they fit in a safe
+      // integer (bson promotes them). The mocked session ignores its arguments, so
+      // asserting only on the collected chats would pass even while every request
+      // re-sent cursor 0. Assert on the cursor that actually reaches getChatList.
+      mockLogin.mockResolvedValue({ ...DEFAULT_LOGIN_RESULT, lastTokenId: 7, lastChatId: 200, eof: false })
+      mockGetChatList
+        .mockResolvedValueOnce({
+          statusCode: 0,
+          body: {
+            status: 0,
+            chatDatas: [
+              {
+                c: 300,
+                t: 1,
+                k: ['Dave'],
+                i: [4],
+                a: 1,
+                n: 0,
+                o: 1698000000,
+                l: null,
+                ll: makeLong(100),
+              },
+            ],
+            lastTokenId: 8,
+            lastChatId: 300,
+            eof: false,
+          },
+        })
+        .mockResolvedValueOnce({
+          statusCode: 0,
+          body: {
+            status: 0,
+            chatDatas: [
+              {
+                c: 400,
+                t: 1,
+                k: ['Erin'],
+                i: [5],
+                a: 1,
+                n: 0,
+                o: 1697000000,
+                l: null,
+                ll: makeLong(90),
+              },
+            ],
+            lastTokenId: 9,
+            lastChatId: 400,
+            eof: true,
+          },
+        })
+
+      const client = await new KakaoTalkClient().login({ oauthToken: 'token', userId: 'user1', deviceUuid: 'device1' })
+      const chats = await client.getChats({ all: true })
+
+      expect(chats.map((chat) => chat.chat_id)).toEqual(['100', '200', '300', '400'])
+      expect(mockGetChatList).toHaveBeenCalledTimes(2)
+      const cursors = mockGetChatList.mock.calls.map((call) => (call as unknown[]).map((v) => String(v)))
+      expect(cursors).toEqual([
+        ['7', '200'],
+        ['8', '300'],
+      ])
+
+      client.close()
+    })
+
     it('fails closed when LCHATLIST has a nonzero response status', async () => {
       mockLogin.mockResolvedValue({ ...DEFAULT_LOGIN_RESULT, eof: false })
       mockGetChatList.mockResolvedValueOnce({
