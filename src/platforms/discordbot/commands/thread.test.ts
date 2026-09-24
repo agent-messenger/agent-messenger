@@ -21,6 +21,21 @@ const mockArchiveThread = mock((_threadId: string, _archived?: boolean) =>
   }),
 )
 
+const mockListThreads = mock((_guildId: string, _options?: { parentId?: string; archived?: boolean }) =>
+  Promise.resolve({
+    threads: [
+      {
+        id: 'thread-789',
+        name: 'test-thread',
+        type: 11,
+        parent_id: 'channel-456',
+        thread_metadata: { archived: false },
+      },
+    ],
+    has_more: true,
+  }),
+)
+
 const mockResolveChannel = mock((_guildId: string, channel: string) => {
   if (/^\d+$/.test(channel)) return Promise.resolve(channel)
   if (channel === 'general') return Promise.resolve('channel-456')
@@ -35,11 +50,12 @@ mock.module('../client', () => ({
     createThread = mockCreateThread
     archiveThread = mockArchiveThread
     resolveChannel = mockResolveChannel
+    listThreads = mockListThreads
   },
 }))
 
 import { DiscordBotCredentialManager } from '../credential-manager'
-import { archiveAction, createAction } from './thread'
+import { archiveAction, createAction, listAction } from './thread'
 
 describe('thread commands', () => {
   let tempDir: string
@@ -65,6 +81,7 @@ describe('thread commands', () => {
     mockCreateThread.mockClear()
     mockArchiveThread.mockClear()
     mockResolveChannel.mockClear()
+    mockListThreads.mockClear()
   })
 
   afterEach(() => {
@@ -72,6 +89,46 @@ describe('thread commands', () => {
       rmSync(tempDir, { recursive: true })
     }
     process.env = originalEnv
+  })
+
+  describe('listAction', () => {
+    it('lists active threads guild-wide', async () => {
+      const result = await listAction(undefined, { _credManager: manager })
+
+      expect(result.threads).toEqual([
+        { id: 'thread-789', name: 'test-thread', type: 11, parent_id: 'channel-456', archived: false },
+      ])
+      expect(result.has_more).toBe(true)
+      expect(mockListThreads).toHaveBeenCalledWith('guild1', { parentId: undefined, archived: undefined })
+    })
+
+    it('lists active threads filtered by channel', async () => {
+      await listAction('general', { _credManager: manager })
+
+      expect(mockResolveChannel).toHaveBeenCalledWith('guild1', 'general')
+      expect(mockListThreads).toHaveBeenCalledWith('guild1', { parentId: 'channel-456', archived: undefined })
+    })
+
+    it('requires a channel for archived threads', async () => {
+      const result = await listAction(undefined, { _credManager: manager, archived: true })
+
+      expect(result.error).toContain('requires a channel')
+      expect(mockListThreads).not.toHaveBeenCalled()
+    })
+
+    it('lists archived threads for a channel', async () => {
+      await listAction('general', { _credManager: manager, archived: true })
+
+      expect(mockListThreads).toHaveBeenCalledWith('guild1', { parentId: 'channel-456', archived: true })
+    })
+
+    it('returns client errors', async () => {
+      mockListThreads.mockImplementationOnce(() => Promise.reject(new Error('API Error')))
+
+      const result = await listAction(undefined, { _credManager: manager })
+
+      expect(result.error).toContain('API Error')
+    })
   })
 
   describe('createAction', () => {

@@ -63,7 +63,7 @@ Without this, the bot won't receive message content in large servers.
 agent-discordbot auth set <token>
 
 # Set with a custom bot identifier for multi-bot setups
-agent-discordbot auth set <token> --bot deploy --name "Deploy Bot"
+agent-discordbot auth set <token> --bot deploy
 
 # Check bot auth status
 agent-discordbot auth status
@@ -87,8 +87,8 @@ Store multiple bot tokens and switch between them:
 
 ```bash
 # Add multiple bots
-agent-discordbot auth set deploy-bot-token --bot deploy --name "Deploy Bot"
-agent-discordbot auth set alert-bot-token --bot alert --name "Alert Bot"
+agent-discordbot auth set deploy-bot-token --bot deploy
+agent-discordbot auth set alert-bot-token --bot alert
 
 # List all stored bots
 agent-discordbot auth list
@@ -105,14 +105,15 @@ agent-discordbot auth remove deploy
 
 ### Permissions Reference
 
-| Permission           | Used For                            |
-| -------------------- | ----------------------------------- |
-| Send Messages        | Sending messages to channels        |
-| Read Message History | Reading past messages in channels   |
-| View Channels        | Listing and accessing channels      |
-| Add Reactions        | Adding and removing emoji reactions |
-| Attach Files         | Uploading files to channels         |
-| Manage Threads       | Creating and archiving threads      |
+| Permission               | Used For                                                                     |
+| ------------------------ | ---------------------------------------------------------------------------- |
+| Send Messages            | Sending messages to channels                                                 |
+| Send Messages in Threads | Posting into threads with `--thread` (`message send`, `file upload`)         |
+| Read Message History     | Reading past messages, replying with `--reply`, and `thread list --archived` |
+| View Channels            | Listing and accessing channels                                               |
+| Add Reactions            | Adding and removing emoji reactions                                          |
+| Attach Files             | Uploading files to channels and threads                                      |
+| Manage Threads           | Creating and archiving threads                                               |
 
 ### Environment Variables (CI/CD)
 
@@ -159,8 +160,12 @@ agent-discordbot message send general "Hello world"
 # Reply to a message
 agent-discordbot message send general "On it!" --reply 9876543210987654321
 
-# Send a message into a thread
-agent-discordbot message send general "Hello world" --thread 9876543210987654321
+# Send a message into a thread. --thread takes a thread ID or an active
+# thread name in that channel. The message lands in the thread, so the
+# response's channel_id is the thread ID, not the parent channel.
+agent-discordbot thread list general                     # find the thread ID
+agent-discordbot message send general "Hello" --thread 9876543210987654321
+agent-discordbot message send general "Hello" --thread "Release notes"
 
 # List messages
 agent-discordbot message list <channel>
@@ -196,7 +201,6 @@ agent-discordbot channel info general
 ```bash
 # List server members
 agent-discordbot user list
-agent-discordbot user list --limit 50
 
 # Get user info
 agent-discordbot user info <user-id>
@@ -211,18 +215,38 @@ agent-discordbot reaction add general 9876543210987654321 thumbsup
 
 # Remove reaction
 agent-discordbot reaction remove <channel> <message-id> <emoji>
+
+# List reactions on a message (emoji, count, and whether the bot reacted)
+agent-discordbot reaction list <channel> <message-id>
 ```
 
 ### File Commands
 
 ```bash
-# Upload file to a channel
-agent-discordbot file upload <channel> <file-path>
+# Upload one or more files (max 10) to a channel
+agent-discordbot file upload <channel> <file-path...> [--text <text>] [--thread <id|name>] [--reply <message-id>] [--filename <name>]
 agent-discordbot file upload general ./report.pdf
+agent-discordbot file upload general ./report.pdf ./chart.png --text "Weekly numbers"
 
-# List files in channel
+# Upload into a thread (same --thread rules as message send)
+agent-discordbot file upload general ./log.txt --thread "Release notes"
+
+# Upload as a reply to a message
+agent-discordbot file upload general ./fix.patch --reply 9876543210987654321
+
+# Override the filename (single file only)
+agent-discordbot file upload general ./tmp/abc123.txt --filename notes.txt
+
+# List files in channel (attachments of the latest 100 messages, one request)
 agent-discordbot file list <channel>
+
+# Get a single file by attachment ID (searches back through the latest 1,000 messages)
+agent-discordbot file info <channel> <file-id>
 ```
+
+`file list` reads a single page of channel history, so it stays fast on busy channels. `file info` pages further back with `before` cursors and stops at the first matching attachment; a file older than the latest 1,000 messages reports `File not found`.
+
+The upload response includes `message_id`, `channel_id` (the thread ID when `--thread` is used), and a `files` array with each attachment's `id`, `filename`, `size`, and `url`. Discord enforces the per-file size limit; oversized uploads come back as an error instead of being rejected locally.
 
 ### Thread Commands
 
@@ -230,6 +254,13 @@ agent-discordbot file list <channel>
 # Create a thread from a message
 agent-discordbot thread create <channel> <name>
 agent-discordbot thread create general "Discussion" --auto-archive-duration 1440
+
+# List active threads in the server, or only those under one channel
+agent-discordbot thread list
+agent-discordbot thread list <channel>
+
+# List archived threads (a channel is required; returns up to 100 with has_more)
+agent-discordbot thread list <channel> --archived
 
 # Archive a thread
 agent-discordbot thread archive <thread-id>
@@ -269,16 +300,18 @@ With `--full`, returns comprehensive JSON with:
 
 ## Key Differences from agent-discord
 
-| Feature                     | agent-discord                   | agent-discordbot             |
-| --------------------------- | ------------------------------- | ---------------------------- |
-| Token type                  | User token                      | Bot token                    |
-| Token source                | Auto-extracted from desktop app | Manual from Developer Portal |
-| Message search              | Yes                             | No                           |
-| DM commands                 | Yes                             | No                           |
-| Mention/Friend/Note/Profile | Yes                             | No                           |
-| Thread management           | Yes                             | Yes                          |
-| Multi-bot support           | N/A                             | Yes (`--bot` flag)           |
-| CI/CD friendly              | Requires desktop app            | Yes                          |
+| Feature                     | agent-discord                   | agent-discordbot                           |
+| --------------------------- | ------------------------------- | ------------------------------------------ |
+| Token type                  | User token                      | Bot token                                  |
+| Token source                | Auto-extracted from desktop app | Manual from Developer Portal               |
+| Message search              | Yes                             | No                                         |
+| DM commands                 | Yes                             | No                                         |
+| Mention/Friend/Note/Profile | Yes                             | No                                         |
+| Thread management           | Yes                             | Yes (create, list, archive)                |
+| File upload                 | Yes                             | Yes (multi-file, into threads, as replies) |
+| Reactions                   | Yes                             | Yes (add, remove, list)                    |
+| Multi-bot support           | N/A                             | Yes (`--bot` flag)                         |
+| CI/CD friendly              | Requires desktop app            | Yes                                        |
 
 ## Global Options
 

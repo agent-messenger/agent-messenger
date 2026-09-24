@@ -76,9 +76,10 @@ const sameId = await client.resolveChannel(guildId, '1234567890123456789')
 // Send a message to a channel
 const msg = await client.sendMessage(channelId, 'Hello world')
 
-// Send a message in a thread
+// Send a message into a thread. The request is posted to the thread itself,
+// so the returned channel_id is the thread ID, not channelId.
 const reply = await client.sendMessage(channelId, 'Reply', { thread_id: threadId })
-// → DiscordMessage { id, channel_id, author, content, timestamp }
+// → DiscordMessage { id, channel_id: threadId, author, content, timestamp, attachments? }
 
 // Reply to a specific message
 const replyToMsg = await client.sendMessage(channelId, 'On it!', { reply_to: messageId })
@@ -100,6 +101,30 @@ const edited = await client.editMessage(channelId, messageId, 'Updated content')
 // Delete a message (bot can delete its own messages or any with Manage Messages permission)
 await client.deleteMessage(channelId, messageId)
 ```
+
+#### createMessage
+
+`createMessage` is the single entry point behind `sendMessage` and `uploadFile`. It takes text, files, a reply target, and a thread in one call and returns the created `DiscordMessage`, including its `attachments`.
+
+```typescript
+const created = await client.createMessage(channelId, {
+  content: 'Build artifacts attached',
+  files: [{ path: '/tmp/report.pdf' }, { path: '/tmp/log.txt', filename: 'build-log.txt' }],
+  reply_to: messageId,
+  thread_id: threadId,
+})
+// → DiscordMessage { id, channel_id: threadId, content, attachments: DiscordFile[], ... }
+```
+
+How the request is built:
+
+- With no `files`, the message is sent as a plain JSON body (`content`, `message_reference`).
+- With `files`, the client sends `multipart/form-data`: a `payload_json` part carrying `content`, `message_reference`, and an `attachments` list, plus one `files[n]` part per file. Files are read from disk with `node:fs/promises`.
+- `thread_id` changes the target path to `/channels/{thread_id}/messages`. Discord's Create Message body has no thread field, so this is the only way a message lands in a thread. Posting to an archived thread by ID unarchives it unless the thread is locked.
+- `reply_to` becomes `message_reference: { message_id }`.
+- `filename` overrides the name Discord shows for that file. It's taken as a basename, so it can't contain `/` or `\`, and it can't be empty, `.`, or `..`.
+
+Validation happens before any request goes out. An empty `content` with no files throws `empty_message`, more than 10 files throws `too_many_files`, and a bad `filename` throws `invalid_filename`. Discord enforces the per-file size limit server-side; when an upload exceeds it, the client surfaces Discord error `40005` (or HTTP 413) with a message that explains the cause.
 
 ### Reactions
 
@@ -131,10 +156,33 @@ const user = await client.getUser(userId)
 const file = await client.uploadFile(channelId, '/path/to/report.pdf')
 // → DiscordFile { id, filename, size, url, content_type?, height?, width? }
 
-// List file attachments from recent messages in a channel
+// Optional third parameter: caption, display name, reply target, thread
+const inThread = await client.uploadFile(channelId, '/path/to/report.pdf', {
+  content: 'Weekly report',
+  filename: 'report-2026-09.pdf',
+  reply_to: messageId,
+  thread_id: threadId,
+})
+// → DiscordFile (the first attachment of the created message)
+
+// Several files in one message: use createMessage and read the attachments back
+const batch = await client.createMessage(channelId, {
+  content: 'Screenshots',
+  files: [{ path: '/tmp/a.png' }, { path: '/tmp/b.png' }, { path: '/tmp/c.png' }],
+})
+// → batch.attachments: DiscordFile[] (up to 10 per message)
+
+// List file attachments from recent messages in a channel (one page, latest 100 messages)
 const files = await client.listFiles(channelId)
 // → DiscordFile[]
+
+// Look up one attachment by ID; pages back with before cursors and stops at the first match
+const found = await client.findFile(channelId, fileId)
+// → DiscordFile | undefined
 ```
+
+`listFiles` always makes exactly one request. `findFile` scans up to 10 pages (the latest 1,000 messages) and
+returns `undefined` when the attachment is not in that range.
 
 ### Threads
 
@@ -151,7 +199,24 @@ const configured = await client.createThread(channelId, 'Design Review', {
 await client.archiveThread(threadId)
 await client.archiveThread(threadId, false) // unarchive
 // → DiscordChannel
+
+// List active threads in a server, optionally narrowed to one parent channel
+const active = await client.listThreads(guildId)
+const inChannel = await client.listThreads(guildId, { parentId: channelId })
+// → DiscordThreadListResult { threads: DiscordChannel[] }
+
+// List archived public threads of a channel (one page of up to 100)
+const archived = await client.listThreads(guildId, { parentId: channelId, archived: true })
+// → DiscordThreadListResult { threads, has_more? }
+
+// Resolve a thread name (or ID) to a thread ID
+const resolvedId = await client.resolveThread(guildId, channelId, 'bug-report-login')
+const sameThreadId = await client.resolveThread(guildId, channelId, '1234567890123456789')
 ```
+
+`listThreads` with `archived: true` needs `parentId`; without it the call throws `parent_required`. Active threads come from a single guild-wide request and are filtered by `parent_id` on the client.
+
+`resolveThread` returns a numeric ID as-is without any lookup. A name (with or without a leading `#`) is matched against the active threads of that parent channel in one request. Two or more matches throw `thread_ambiguous` with the candidate IDs in the message; no match throws `thread_not_found`. Archived threads aren't searched by name. Find them with `listThreads(..., { archived: true })` and target them by ID.
 
 ## Real-Time Events
 
@@ -285,11 +350,13 @@ await manager.setCurrentServer('1234567890123456789', 'My Server')
 
 ```typescript
 import type {
+  DiscordAttachmentInput,
   DiscordBotConfig,
   DiscordBotCredentials,
   DiscordBotEntry,
   DiscordBotListenerEventMap,
   DiscordChannel,
+  DiscordCreateMessageOptions,
   DiscordFile,
   DiscordGatewayChannelEvent,
   DiscordGatewayEvent,
@@ -306,9 +373,33 @@ import type {
   DiscordGuild,
   DiscordMessage,
   DiscordReaction,
+  DiscordThreadListResult,
   DiscordUser,
 } from 'agent-messenger/discordbot'
 ```
+
+Shapes used by `createMessage` and the thread helpers:
+
+```typescript
+interface DiscordAttachmentInput {
+  path: string // local file path
+  filename?: string // display name override (basename only)
+}
+
+interface DiscordCreateMessageOptions {
+  content?: string
+  files?: DiscordAttachmentInput[] // at most 10
+  reply_to?: string // message ID to reply to
+  thread_id?: string // post into this thread instead of the channel
+}
+
+interface DiscordThreadListResult {
+  threads: DiscordChannel[]
+  has_more?: boolean // only set for archived listings
+}
+```
+
+`DiscordMessage` also carries optional `attachments` (`DiscordFile[]`), `reactions` (`DiscordReaction[]`), and `thread` (`DiscordChannel`, the thread started from that message). `DiscordReaction.me` reports whether the bot itself reacted. `DiscordMessageSchema` and `DiscordReactionSchema` validate these fields too.
 
 ### Zod Schemas
 
@@ -375,7 +466,14 @@ Error codes thrown by the client:
 - `rate_limited` — Discord 429 response; the client retries automatically with `Retry-After`, then surfaces this if retries are exhausted
 - `network_error` — Fetch failed (DNS, connection refused, timeout)
 - `channel_not_found` — `resolveChannel()` could not find the named channel in the current guild
+- `empty_message` — `createMessage()` called with no content and no files
+- `too_many_files` — `createMessage()` called with more than 10 files
+- `invalid_filename` — A `filename` override was empty, `.`, `..`, or contained a path separator
+- `parent_required` — `listThreads()` called with `archived: true` but no `parentId`
+- `thread_ambiguous` — `resolveThread()` matched more than one active thread with that name; the message lists the IDs
+- `thread_not_found` — `resolveThread()` found no active thread with that name in the parent channel
 - `no_attachments` — File upload returned 200 but the response had no attachments
+- `40005` / `http_413` — Discord rejected an upload as too large for the server's limit; the message says so explicitly
 - `http_<status>` — Discord returned an unexpected status (e.g., `http_500`) without a structured `code` in the error body
 - Discord API error codes (numeric, as strings) — When Discord's response body includes a `code` field (e.g., `"50001"` for "Missing Access"), it is propagated as-is. See the [Discord JSON Error Codes reference](https://discord.com/developers/docs/topics/opcodes-and-status-codes#json-json-error-codes).
 

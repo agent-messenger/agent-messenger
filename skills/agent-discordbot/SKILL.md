@@ -27,7 +27,9 @@ Before diving in, a few things about Discord Bot integration:
 - **Privileged intents** — `MessageContent`, `GuildMembers`, and `GuildPresences` are privileged and must be enabled in the Developer Portal before they can be used by the SDK listener.
 - **Permission gates** — Bot capabilities depend on the role's permission flags in each server. Missing permissions return 403 errors.
 - **Real-time events** — Available via the SDK's Gateway listener, not via the CLI.
-- **Channel resolution** — Use channel IDs (snowflake numbers) directly. The CLI does not resolve `#channel-name` syntax.
+- **Channel resolution** — Every `<channel>` argument accepts a channel ID (snowflake) or an exact channel name (`general` or `#general`). IDs skip the lookup and are faster; names fail with `Channel not found` when nothing matches exactly.
+- **Thread targeting** — `--thread <id|name>` on `message send` and `file upload` posts into a thread. A numeric value is used as the thread ID; a name is matched against the active threads of that channel (`thread_not_found` / `thread_ambiguous` otherwise). Archived threads must be targeted by ID (find it with `thread list <channel> --archived`); posting to an archived thread unarchives it unless it's locked.
+- **`thread_id` vs `channel_id` in output** — For a message posted inside a thread, `channel_id` IS the thread ID. `thread_id` is only set when a thread was started from that message; otherwise it's `null`.
 
 ## Quick Start
 
@@ -56,7 +58,7 @@ agent-discordbot uses Discord Bot tokens which you create in the Discord Develop
 agent-discordbot auth set your-bot-token
 
 # Set with a custom bot identifier
-agent-discordbot auth set your-bot-token --bot deploy --name "Deploy Bot"
+agent-discordbot auth set your-bot-token --bot deploy
 
 # Check auth status
 agent-discordbot auth status
@@ -151,7 +153,7 @@ If a memorized ID returns an error (channel not found, server not found), remove
 ```bash
 # Set bot token
 agent-discordbot auth set <token>
-agent-discordbot auth set <token> --bot deploy --name "Deploy Bot"
+agent-discordbot auth set <token> --bot deploy
 
 # Check auth status
 agent-discordbot auth status
@@ -205,9 +207,13 @@ agent-discordbot message send 1234567890123456789 "Hello world"
 agent-discordbot message send <channel-id> <content> --reply <message-id>
 agent-discordbot message send 1234567890123456789 "On it!" --reply 9876543210987654321
 
-# Send a message into a thread
-agent-discordbot message send <channel-id> <content> --thread <thread-id>
+# Send a message into a thread (by ID or by active-thread name); the returned channel_id equals the thread ID
+agent-discordbot message send <channel-id> <content> --thread <thread-id|thread-name>
 agent-discordbot message send 1234567890123456789 "Hello world" --thread 9876543210987654321
+agent-discordbot message send 1234567890123456789 "Hello world" --thread "Deployment Progress"
+
+# Sending directly to a thread ID also works (a thread is a channel)
+agent-discordbot message send 9876543210987654321 "Hello thread"
 
 # List messages
 agent-discordbot message list <channel-id>
@@ -243,7 +249,6 @@ agent-discordbot channel info 1234567890123456789
 ```bash
 # List server members
 agent-discordbot user list
-agent-discordbot user list --limit 50
 
 # Get user info
 agent-discordbot user info <user-id>
@@ -258,18 +263,35 @@ agent-discordbot reaction add 1234567890123456789 9876543210987654321 thumbsup
 
 # Remove reaction
 agent-discordbot reaction remove <channel-id> <message-id> <emoji>
+
+# List reactions on a message: [{ emoji: {id, name}, count, me }]
+agent-discordbot reaction list <channel-id> <message-id>
 ```
 
 ### File Commands
 
 ```bash
-# Upload file to a channel
-agent-discordbot file upload <channel-id> <path>
+# Upload one or more files (max 10) to a channel, optionally with text
+agent-discordbot file upload <channel-id> <path...> [--text <text>] [--thread <id|name>] [--reply <message-id>] [--filename <name>]
 agent-discordbot file upload 1234567890123456789 ./report.pdf
+agent-discordbot file upload 1234567890123456789 ./report.pdf ./chart.png --text "Weekly numbers"
 
-# List files in channel
+# Upload into a thread, or as a reply
+agent-discordbot file upload 1234567890123456789 ./log.txt --thread 9876543210987654321
+agent-discordbot file upload 1234567890123456789 ./log.txt --text "Full log attached" --reply 9876543210987654321
+
+# Override the stored filename (single file only)
+agent-discordbot file upload 1234567890123456789 ./tmp-8x1.txt --filename build.log
+
+# List files in channel (attachments of the latest 100 messages, one request)
 agent-discordbot file list <channel-id>
+
+# Get info for one attachment (id, filename, size, url, content_type)
+# Searches back through the latest 1,000 messages and stops at the first match
+agent-discordbot file info <channel-id> <file-id>
 ```
+
+`file upload` returns `{ success, file, files, message_id, channel_id }`. `file` is the first attachment, `files` has all of them, and `channel_id` is the thread ID when `--thread` was used. Every message read path (`message send|list|get|replies`) includes `attachments: [{ id, filename, size, url, content_type }]`, `[]` when there are none. There is no fixed size limit in the CLI; Discord decides per server and reports `40005` (or `http_413`) when a file is too big.
 
 ### Thread Commands
 
@@ -278,9 +300,18 @@ agent-discordbot file list <channel-id>
 agent-discordbot thread create <channel-id> <name>
 agent-discordbot thread create 1234567890123456789 "Discussion" --auto-archive-duration 1440
 
+# List active threads (whole server, or one channel's threads)
+agent-discordbot thread list
+agent-discordbot thread list <channel-id>
+
+# List archived threads of a channel (100 most recently archived; has_more tells you if there are older ones)
+agent-discordbot thread list <channel-id> --archived
+
 # Archive a thread
 agent-discordbot thread archive <thread-id>
 ```
+
+`thread list` returns `{ threads: [{ id, name, type, parent_id, archived }], has_more }`. `--archived` needs a channel argument (`parent_required` otherwise).
 
 ### Snapshot Command
 
@@ -369,6 +400,16 @@ All commands return consistent error format:
 
 Common errors: `missing_token`, `invalid_token`, `Missing Access`, `Unknown Channel`, `Missing Permissions`.
 
+Errors specific to sending files and targeting threads:
+
+- `empty_message`: `file upload` needs at least one file, or `--text` alongside it.
+- `too_many_files`: more than 10 files in one upload.
+- `invalid_filename`: `--filename` is empty, `.`, `..`, or contains a path separator.
+- `thread_not_found`: `--thread <name>` matched no active thread in that channel. Run `thread list <channel>` (add `--archived` for archived ones) or pass the thread ID.
+- `thread_ambiguous`: several active threads share that name; the message lists their IDs. Use the ID.
+- `parent_required`: `thread list --archived` was called without a channel.
+- `40005` / `http_413`: Discord rejected the upload as too large for that server's limit. The error message says so; the CLI doesn't preflight sizes.
+
 ## Configuration
 
 Credentials stored in `~/.config/agent-messenger/discordbot-credentials.json` (0600 permissions). See [references/authentication.md](references/authentication.md) for format and security details.
@@ -384,7 +425,9 @@ Credentials stored in `~/.config/agent-messenger/discordbot-credentials.json` (0
 | Mentions             | Yes                             | No                           |
 | Friends/Notes        | Yes                             | No                           |
 | Edit/delete messages | Any message                     | Bot's own messages only      |
-| File upload          | Yes                             | Yes                          |
+| File upload          | Yes                             | Yes (text, threads, replies) |
+| Thread list          | No                              | Yes (active + archived)      |
+| Reaction list        | Yes                             | Yes                          |
 | Snapshot             | Yes                             | Yes                          |
 | CI/CD friendly       | Requires desktop app            | Yes (just set token)         |
 
@@ -401,6 +444,9 @@ Credentials stored in `~/.config/agent-messenger/discordbot-credentials.json` (0
 - Bot must be invited to the server and have appropriate permissions
 - Message Content intent required for verified bots (100+ servers)
 - Plain text messages only (no embeds in v1)
+- Thread names resolve against active threads only; archived threads need their ID
+- `thread list --archived` returns one page (100 threads) with `has_more`; no pagination beyond that
+- No file download or delete
 
 ## Troubleshooting
 

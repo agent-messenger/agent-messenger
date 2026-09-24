@@ -25,6 +25,7 @@ agent-discordbot uses Discord Bot tokens obtained from the Discord Developer Por
 2. Under **Scopes**, select `bot`
 3. Under **Bot Permissions**, select the permissions you need:
    - Send Messages
+   - Send Messages in Threads
    - Read Message History
    - View Channels
    - Add Reactions
@@ -49,7 +50,7 @@ Even for unverified bots, enabling this intent is recommended to avoid surprises
 ```bash
 agent-discordbot auth set your-bot-token
 
-agent-discordbot auth set your-bot-token --bot deploy --name "Deploy Bot"
+agent-discordbot auth set your-bot-token --bot deploy
 ```
 
 This command:
@@ -102,8 +103,8 @@ This command:
 Store and switch between multiple bot tokens:
 
 ```bash
-agent-discordbot auth set deploy-bot-token --bot deploy --name "Deploy Bot"
-agent-discordbot auth set alert-bot-token --bot alert --name "Alert Bot"
+agent-discordbot auth set deploy-bot-token --bot deploy
+agent-discordbot auth set alert-bot-token --bot alert
 
 agent-discordbot auth list
 
@@ -171,14 +172,15 @@ agent-discordbot auth status
 
 ## Required Bot Permissions
 
-| Permission           | Used For                            |
-| -------------------- | ----------------------------------- |
-| Send Messages        | Sending messages to channels        |
-| Read Message History | Reading channel messages            |
-| View Channels        | Listing and accessing channels      |
-| Add Reactions        | Adding and removing emoji reactions |
-| Attach Files         | Uploading files to channels         |
-| Manage Threads       | Creating and archiving threads      |
+| Permission               | Used For                                             |
+| ------------------------ | ---------------------------------------------------- |
+| Send Messages            | Sending messages to channels                         |
+| Send Messages in Threads | Posting messages and files into threads (`--thread`) |
+| Read Message History     | Reading channel messages                             |
+| View Channels            | Listing and accessing channels                       |
+| Add Reactions            | Adding and removing emoji reactions                  |
+| Attach Files             | Uploading files to channels and threads              |
+| Manage Threads           | Creating and archiving threads                       |
 
 ## Troubleshooting
 

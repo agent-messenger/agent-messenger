@@ -39,20 +39,46 @@ CHANNEL="1234567890123456789"
 RESULT=$(agent-discordbot thread create "$CHANNEL" "Deployment Progress")
 THREAD_ID=$(echo "$RESULT" | jq -r '.thread.id')
 
-# Send updates in the thread
+# Send updates in the thread (either target the thread ID directly, or use --thread from the parent channel)
 agent-discordbot message send "$THREAD_ID" "Building application..."
 sleep 2
-agent-discordbot message send "$THREAD_ID" "Running tests..."
+agent-discordbot message send "$CHANNEL" "Running tests..." --thread "$THREAD_ID"
 sleep 2
-agent-discordbot message send "$THREAD_ID" "Deploying to production..."
+agent-discordbot message send "$CHANNEL" "Deploying to production..." --thread "Deployment Progress"
 sleep 2
-agent-discordbot message send "$THREAD_ID" "Deployment complete!"
+
+# Attach the build log to the thread; channel_id in the result equals the thread ID
+RESULT=$(agent-discordbot file upload "$CHANNEL" ./build.log --text "Deployment complete!" --thread "$THREAD_ID")
+echo "$RESULT" | jq -r '.channel_id, .file.filename'
 
 # Add reaction to the original channel message
 agent-discordbot reaction add "$CHANNEL" "$THREAD_ID" white_check_mark
 ```
 
 **When to use**: Multi-step processes, CI/CD pipelines, progress tracking.
+
+## Pattern 2b: Find an Existing Thread
+
+**Use case**: Continue a conversation in a thread you didn't create in this session
+
+```bash
+#!/bin/bash
+
+CHANNEL="1234567890123456789"
+
+# Active threads in the channel
+THREAD_ID=$(agent-discordbot thread list "$CHANNEL" | jq -r '.threads[] | select(.name=="Deployment Progress") | .id')
+
+# Not active? Look through the 100 most recently archived threads (has_more flags older ones)
+if [ -z "$THREAD_ID" ]; then
+  THREAD_ID=$(agent-discordbot thread list "$CHANNEL" --archived | jq -r '.threads[] | select(.name=="Deployment Progress") | .id')
+fi
+
+# Posting by ID unarchives the thread (unless it's locked). Names only resolve for active threads.
+agent-discordbot message send "$CHANNEL" "Picking this back up" --thread "$THREAD_ID"
+```
+
+**When to use**: Resuming work across sessions, replying in threads other people opened.
 
 ## Pattern 3: Monitor Channel for New Messages
 
@@ -187,20 +213,22 @@ echo "Channels:"
 agent-discordbot channel list --pretty
 
 echo "Members:"
-agent-discordbot user list --pretty --limit 20
+agent-discordbot user list --pretty
 ```
 
 ## Best Practices
 
-### 1. Always Use Channel IDs
+### 1. Prefer Channel IDs, Names Work Too
 
-Discord requires Snowflake IDs (large numbers), not channel names:
+Every `<channel>` argument accepts an exact channel name (`general` or `#general`), so `agent-discordbot message send general "Hello"` works. An ID skips the channel lookup on every call and can't hit a rename, so resolve once and reuse the ID:
 
 ```bash
 CHANNELS=$(agent-discordbot channel list)
-CHANNEL_ID=$(echo "$CHANNELS" | jq -r '.[] | select(.name=="general") | .id')
+CHANNEL_ID=$(echo "$CHANNELS" | jq -r '.channels[] | select(.name=="general") | .id')
 agent-discordbot message send "$CHANNEL_ID" "Hello"
 ```
+
+The same goes for `--thread`: a name resolves against the channel's active threads, an ID is used as-is.
 
 ### 2. Rate Limit Your Requests
 

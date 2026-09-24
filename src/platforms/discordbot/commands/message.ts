@@ -2,8 +2,8 @@ import { Command } from 'commander'
 
 import { cliOutput } from '@/shared/utils/cli-output'
 
-import type { BotOption } from './shared'
-import { getClient, getCurrentServer } from './shared'
+import type { AttachmentOutput, BotOption, MessageOutput } from './shared'
+import { getClient, getCurrentServer, resolveSendTarget, toMessageOutput } from './shared'
 
 interface MessageResult {
   id?: string
@@ -13,14 +13,8 @@ interface MessageResult {
   timestamp?: string
   edited_timestamp?: string
   thread_id?: string | null
-  messages?: Array<{
-    id: string
-    channel_id: string
-    content: string
-    author: string
-    timestamp: string
-    thread_id?: string | null
-  }>
+  attachments?: AttachmentOutput[]
+  messages?: MessageOutput[]
   deleted?: string
   error?: string
 }
@@ -33,19 +27,10 @@ export async function sendAction(
   try {
     const client = await getClient(options)
     const serverId = await getCurrentServer(options)
-    const channelId = await client.resolveChannel(serverId, channel)
-    const message = await client.sendMessage(channelId, text, {
-      thread_id: options.thread,
-      reply_to: options.reply,
-    })
+    const { channelId, threadId } = await resolveSendTarget(client, serverId, channel, options.thread)
+    const message = await client.createMessage(threadId ?? channelId, { content: text, reply_to: options.reply })
 
-    return {
-      id: message.id,
-      channel_id: message.channel_id,
-      content: message.content,
-      author: message.author.username,
-      timestamp: message.timestamp,
-    }
+    return toMessageOutput(message)
   } catch (error) {
     return { error: (error as Error).message }
   }
@@ -59,16 +44,7 @@ export async function listAction(channel: string, options: BotOption & { limit?:
     const limit = options.limit ? parseInt(options.limit, 10) : 50
     const messages = await client.getMessages(channelId, limit)
 
-    return {
-      messages: messages.map((msg) => ({
-        id: msg.id,
-        channel_id: msg.channel_id,
-        content: msg.content,
-        author: msg.author.username,
-        timestamp: msg.timestamp,
-        thread_id: msg.thread_id || null,
-      })),
-    }
+    return { messages: messages.map(toMessageOutput) }
   } catch (error) {
     return { error: (error as Error).message }
   }
@@ -81,15 +57,7 @@ export async function getAction(channel: string, messageId: string, options: Bot
     const channelId = await client.resolveChannel(serverId, channel)
     const message = await client.getMessage(channelId, messageId)
 
-    return {
-      id: message.id,
-      channel_id: message.channel_id,
-      content: message.content,
-      author: message.author.username,
-      timestamp: message.timestamp,
-      edited_timestamp: message.edited_timestamp,
-      thread_id: message.thread_id || null,
-    }
+    return toMessageOutput(message)
   } catch (error) {
     return { error: (error as Error).message }
   }
@@ -107,14 +75,7 @@ export async function editAction(
     const channelId = await client.resolveChannel(serverId, channel)
     const message = await client.editMessage(channelId, messageId, text)
 
-    return {
-      id: message.id,
-      channel_id: message.channel_id,
-      content: message.content,
-      author: message.author.username,
-      timestamp: message.timestamp,
-      edited_timestamp: message.edited_timestamp,
-    }
+    return toMessageOutput(message)
   } catch (error) {
     return { error: (error as Error).message }
   }
@@ -151,16 +112,7 @@ export async function repliesAction(
     const limit = options.limit ? parseInt(options.limit, 10) : 50
     const messages = await client.getMessages(threadId, limit)
 
-    return {
-      messages: messages.map((msg) => ({
-        id: msg.id,
-        channel_id: msg.channel_id,
-        content: msg.content,
-        author: msg.author.username,
-        timestamp: msg.timestamp,
-        thread_id: msg.thread_id || null,
-      })),
-    }
+    return { messages: messages.map(toMessageOutput) }
   } catch (error) {
     return { error: (error as Error).message }
   }
@@ -173,7 +125,7 @@ export const messageCommand = new Command('message')
       .description('Send a message to a channel')
       .argument('<channel>', 'Channel ID or name')
       .argument('<text>', 'Message text')
-      .option('--thread <id>', 'Thread ID for replies')
+      .option('--thread <id|name>', 'Post into this thread')
       .option('--reply <message-id>', 'Reply to a message by ID')
       .option('--bot <id>', 'Use specific bot')
       .option('--server <id>', 'Server ID')

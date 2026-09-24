@@ -65,6 +65,26 @@ export interface DiscordMessage {
   timestamp: string
   edited_timestamp?: string
   thread_id?: string
+  attachments?: DiscordFile[]
+  reactions?: DiscordReaction[]
+  thread?: DiscordChannel
+}
+
+export interface DiscordAttachmentInput {
+  path: string
+  filename?: string
+}
+
+export interface DiscordCreateMessageOptions {
+  content?: string
+  files?: DiscordAttachmentInput[]
+  reply_to?: string
+  thread_id?: string
+}
+
+export interface DiscordThreadListResult {
+  threads: DiscordChannel[]
+  has_more?: boolean
 }
 
 export interface DiscordUser {
@@ -77,10 +97,11 @@ export interface DiscordUser {
 
 export interface DiscordReaction {
   emoji: {
-    id?: string
+    id: string | null
     name: string
   }
   count: number
+  me?: boolean
 }
 
 export interface DiscordFile {
@@ -149,6 +170,25 @@ export const DiscordChannelSchema = z.object({
     .optional(),
 })
 
+export const DiscordFileSchema = z.object({
+  id: z.string(),
+  filename: z.string(),
+  size: z.number(),
+  url: z.string(),
+  content_type: z.string().optional(),
+  height: z.number().optional(),
+  width: z.number().optional(),
+})
+
+export const DiscordReactionSchema = z.object({
+  emoji: z.object({
+    id: z.string().nullable().optional(),
+    name: z.string(),
+  }),
+  count: z.number(),
+  me: z.boolean().optional(),
+})
+
 export const DiscordMessageSchema = z.object({
   id: z.string(),
   channel_id: z.string(),
@@ -160,6 +200,9 @@ export const DiscordMessageSchema = z.object({
   timestamp: z.string(),
   edited_timestamp: z.string().optional(),
   thread_id: z.string().optional(),
+  attachments: z.array(DiscordFileSchema).optional(),
+  reactions: z.array(DiscordReactionSchema).optional(),
+  thread: DiscordChannelSchema.optional(),
 })
 
 export const DiscordUserSchema = z.object({
@@ -168,24 +211,6 @@ export const DiscordUserSchema = z.object({
   global_name: z.string().optional(),
   avatar: z.string().optional(),
   bot: z.boolean().optional(),
-})
-
-export const DiscordReactionSchema = z.object({
-  emoji: z.object({
-    id: z.string().optional(),
-    name: z.string(),
-  }),
-  count: z.number(),
-})
-
-export const DiscordFileSchema = z.object({
-  id: z.string(),
-  filename: z.string(),
-  size: z.number(),
-  url: z.string(),
-  content_type: z.string().optional(),
-  height: z.number().optional(),
-  width: z.number().optional(),
 })
 
 export const DiscordGatewayOpcode = {

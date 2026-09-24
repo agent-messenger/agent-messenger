@@ -47,6 +47,21 @@ describe('DiscordBotClient', () => {
     )
   }
 
+  const messagePage = (startIndex: number, count: number) =>
+    Array.from({ length: count }, (_, offset) => {
+      const index = startIndex + offset
+      return {
+        id: `msg${index}`,
+        channel_id: 'ch1',
+        author: { id: '123', username: 'user1' },
+        content: '',
+        timestamp: '2024-01-01T00:00:00.000Z',
+        attachments: [
+          { id: `att${index}`, filename: `file${index}.txt`, size: 10, url: `https://example.com/file${index}.txt` },
+        ],
+      }
+    })
+
   describe('constructor', () => {
     it('requires token', async () => {
       await expect(new DiscordBotClient().login({ token: '' })).rejects.toThrow(DiscordBotError)
@@ -86,6 +101,35 @@ describe('DiscordBotClient', () => {
 
       const client = await new DiscordBotClient().login({ token: 'bad-token' })
       await expect(client.testAuth()).rejects.toThrow(DiscordBotError)
+    })
+  })
+
+  describe('oversized upload errors', () => {
+    it('maps HTTP 413 with an empty response body', async () => {
+      fetchResponses.push(new Response(null, { status: 413 }))
+
+      const client = await new DiscordBotClient().login({ token: 'bot-token' })
+      await expect(client.testAuth()).rejects.toMatchObject({
+        code: 'http_413',
+        message: 'File(s) too large for this server upload limit (Discord error 40005)',
+      })
+    })
+
+    it('maps Discord error 40005 to the actionable upload message', async () => {
+      mockResponse({ code: 40005, message: 'Request entity too large' }, 400)
+
+      const client = await new DiscordBotClient().login({ token: 'bot-token' })
+      await expect(client.testAuth()).rejects.toMatchObject({
+        code: '40005',
+        message: 'File(s) too large for this server upload limit (Discord error 40005)',
+      })
+    })
+
+    it('preserves unrelated permission errors', async () => {
+      mockResponse({ code: 50013, message: 'Missing Permissions' }, 403)
+
+      const client = await new DiscordBotClient().login({ token: 'bot-token' })
+      await expect(client.testAuth()).rejects.toMatchObject({ code: '50013', message: 'Missing Permissions' })
     })
   })
 
@@ -165,7 +209,8 @@ describe('DiscordBotClient', () => {
       const client = await new DiscordBotClient().login({ token: 'bot-token' })
       await client.sendMessage('ch1', 'Thread reply', { thread_id: 'thread123' })
 
-      expect(fetchCalls[0].options?.body).toBe(JSON.stringify({ content: 'Thread reply', thread_id: 'thread123' }))
+      expect(fetchCalls[0].url).toBe('https://discord.com/api/v10/channels/thread123/messages')
+      expect(fetchCalls[0].options?.body).toBe(JSON.stringify({ content: 'Thread reply' }))
     })
 
     it('includes message_reference when reply_to is provided', async () => {
@@ -183,6 +228,179 @@ describe('DiscordBotClient', () => {
       expect(fetchCalls[0].options?.body).toBe(
         JSON.stringify({ content: 'Reply text', message_reference: { message_id: 'parent123' } }),
       )
+    })
+  })
+
+  describe('createMessage', () => {
+    it('sends files with text as multipart form data', async () => {
+      const { tmpdir } = await import('node:os')
+      const { join } = await import('node:path')
+      const tempFile = join(tmpdir(), 'report.pdf')
+      await Bun.write(tempFile, 'report contents')
+
+      mockResponse({
+        id: 'msg1',
+        channel_id: 'ch1',
+        author: { id: '123', username: 'bot' },
+        content: 'see attached',
+        timestamp: '2024-01-01T00:00:00.000Z',
+        attachments: [{ id: 'att1', filename: 'report.pdf', size: 15, url: 'https://example.com/report.pdf' }],
+      })
+
+      const client = await new DiscordBotClient().login({ token: 'bot-token' })
+      await client.createMessage('ch1', { content: 'see attached', files: [{ path: tempFile }] })
+
+      const body = fetchCalls[0].options?.body
+      expect(body).toBeInstanceOf(FormData)
+      const formData = body as FormData
+      expect(JSON.parse(formData.get('payload_json') as string)).toEqual({
+        content: 'see attached',
+        attachments: [{ id: 0, filename: 'report.pdf' }],
+      })
+      expect((formData.get('files[0]') as File).name).toBe('report.pdf')
+      const headers = fetchCalls[0].options?.headers as Record<string, string> | undefined
+      expect(headers?.['Content-Type']).toBeUndefined()
+    })
+
+    it('preserves indexed multipart wire format for multiple files', async () => {
+      const { tmpdir } = await import('node:os')
+      const { join } = await import('node:path')
+      const firstPath = join(tmpdir(), 'a.txt')
+      const secondPath = join(tmpdir(), 'b.txt')
+      await Bun.write(firstPath, 'alpha')
+      await Bun.write(secondPath, 'bravo!')
+      mockResponse({ attachments: [] })
+
+      const client = await new DiscordBotClient().login({ token: 'bot-token' })
+      await client.createMessage('ch1', {
+        content: 'two files',
+        files: [{ path: firstPath }, { path: secondPath }],
+      })
+
+      const body = fetchCalls[0].options?.body
+      expect(body).toBeInstanceOf(FormData)
+      const formData = body as FormData
+      expect(JSON.parse(formData.get('payload_json') as string)).toEqual({
+        content: 'two files',
+        attachments: [
+          { id: 0, filename: 'a.txt' },
+          { id: 1, filename: 'b.txt' },
+        ],
+      })
+      expect((formData.get('files[0]') as File).name).toBe('a.txt')
+      expect((formData.get('files[0]') as File).size).toBe(5)
+      expect((formData.get('files[1]') as File).name).toBe('b.txt')
+      expect((formData.get('files[1]') as File).size).toBe(6)
+      const headers = fetchCalls[0].options?.headers as Record<string, string> | undefined
+      expect(headers?.['Content-Type']).toBeUndefined()
+    })
+
+    it('normalizes Windows-style implicit filenames', async () => {
+      const { tmpdir } = await import('node:os')
+      const { join } = await import('node:path')
+      const tempFile = join(tmpdir(), 'C:\\dir\\x.txt')
+      await Bun.write(tempFile, 'content')
+      mockResponse({ attachments: [{ id: 'att1', filename: 'x.txt', size: 7, url: 'https://example.com' }] })
+
+      const client = await new DiscordBotClient().login({ token: 'bot-token' })
+      await client.createMessage('ch1', { files: [{ path: tempFile }] })
+
+      const formData = fetchCalls[0].options?.body as FormData
+      expect(JSON.parse(formData.get('payload_json') as string).attachments[0].filename).toBe('x.txt')
+      expect((formData.get('files[0]') as File).name).toBe('x.txt')
+    })
+
+    it('uses a filename override for multipart parts', async () => {
+      const { tmpdir } = await import('node:os')
+      const { join } = await import('node:path')
+      const tempFile = join(tmpdir(), 'test-discordbot-create-message-original.txt')
+      await Bun.write(tempFile, 'content')
+      mockResponse({ attachments: [{ id: 'att1', filename: 'renamed.txt', size: 7, url: 'https://example.com' }] })
+
+      const client = await new DiscordBotClient().login({ token: 'bot-token' })
+      await client.createMessage('ch1', { files: [{ path: tempFile, filename: 'renamed.txt' }] })
+
+      const formData = fetchCalls[0].options?.body as FormData
+      expect(JSON.parse(formData.get('payload_json') as string).attachments[0].filename).toBe('renamed.txt')
+      expect((formData.get('files[0]') as File).name).toBe('renamed.txt')
+    })
+
+    it('rejects invalid filenames before fetching', async () => {
+      const invalidFilenames = ['../evil', 'a/b', 'a\\b', '.', '..', '']
+      const client = await new DiscordBotClient().login({ token: 'bot-token' })
+
+      for (const filename of invalidFilenames) {
+        await expect(
+          client.createMessage('ch1', { content: 'x', files: [{ path: '/tmp/file', filename }] }),
+        ).rejects.toMatchObject({ code: 'invalid_filename', message: 'Invalid filename' })
+      }
+      expect(fetchCalls).toHaveLength(0)
+    })
+
+    it('rejects more than 10 files before fetching', async () => {
+      const client = await new DiscordBotClient().login({ token: 'bot-token' })
+      const files = Array.from({ length: 11 }, (_, index) => ({ path: `/tmp/file-${index}` }))
+
+      await expect(client.createMessage('ch1', { files })).rejects.toMatchObject({
+        code: 'too_many_files',
+        message: 'Discord allows at most 10 files per message',
+      })
+      expect(fetchCalls).toHaveLength(0)
+    })
+
+    it('rejects an empty message before fetching', async () => {
+      const client = await new DiscordBotClient().login({ token: 'bot-token' })
+
+      await expect(client.createMessage('ch1', { content: '  ' })).rejects.toMatchObject({
+        code: 'empty_message',
+        message: 'Message must have content or at least one file',
+      })
+      expect(fetchCalls).toHaveLength(0)
+    })
+
+    it('propagates missing file errors', async () => {
+      const client = await new DiscordBotClient().login({ token: 'bot-token' })
+
+      await expect(
+        client.createMessage('ch1', { content: 'x', files: [{ path: '/tmp/does-not-exist-ulw' }] }),
+      ).rejects.toThrow(/ENOENT/)
+      expect(fetchCalls).toHaveLength(0)
+    })
+
+    it('posts file messages into the requested thread', async () => {
+      const { tmpdir } = await import('node:os')
+      const { join } = await import('node:path')
+      const tempFile = join(tmpdir(), 'test-discordbot-thread-file.txt')
+      await Bun.write(tempFile, 'content')
+      mockResponse({
+        attachments: [{ id: 'att1', filename: 'test-discordbot-thread-file.txt', size: 7, url: 'https://example.com' }],
+      })
+
+      const client = await new DiscordBotClient().login({ token: 'bot-token' })
+      await client.createMessage('parent', { content: 'x', thread_id: 'thread123', files: [{ path: tempFile }] })
+
+      expect(fetchCalls[0].url).toBe('https://discord.com/api/v10/channels/thread123/messages')
+    })
+
+    it('sends replies and files together', async () => {
+      const { tmpdir } = await import('node:os')
+      const { join } = await import('node:path')
+      const tempFile = join(tmpdir(), 'test-discordbot-reply-file.txt')
+      await Bun.write(tempFile, 'content')
+      mockResponse({
+        attachments: [{ id: 'att1', filename: 'test-discordbot-reply-file.txt', size: 7, url: 'https://example.com' }],
+      })
+
+      const client = await new DiscordBotClient().login({ token: 'bot-token' })
+      await client.createMessage('ch1', { content: 'reply', reply_to: 'parent123', files: [{ path: tempFile }] })
+
+      const formData = fetchCalls[0].options?.body as FormData
+      expect(JSON.parse(formData.get('payload_json') as string)).toEqual({
+        content: 'reply',
+        message_reference: { message_id: 'parent123' },
+        attachments: [{ id: 0, filename: 'test-discordbot-reply-file.txt' }],
+      })
+      expect(formData.get('files[0]')).toBeTruthy()
     })
   })
 
@@ -354,6 +572,64 @@ describe('DiscordBotClient', () => {
 
       expect(files).toHaveLength(1)
       expect(files[0].filename).toBe('file1.txt')
+    })
+
+    it('requests a single page even when the page is full', async () => {
+      mockResponse(messagePage(0, 100))
+
+      const client = await new DiscordBotClient().login({ token: 'bot-token' })
+      const files = await client.listFiles('ch1')
+
+      expect(files).toHaveLength(100)
+      expect(fetchCalls).toHaveLength(1)
+      expect(fetchCalls[0].url).toBe('https://discord.com/api/v10/channels/ch1/messages?limit=100')
+    })
+  })
+
+  describe('findFile', () => {
+    it('stops after the first page when the file is in the newest messages', async () => {
+      mockResponse(messagePage(0, 100))
+
+      const client = await new DiscordBotClient().login({ token: 'bot-token' })
+      const file = await client.findFile('ch1', 'att0')
+
+      expect(file?.filename).toBe('file0.txt')
+      expect(fetchCalls).toHaveLength(1)
+      expect(fetchCalls[0].url).toBe('https://discord.com/api/v10/channels/ch1/messages?limit=100')
+    })
+
+    it('follows the before cursor to reach an older page', async () => {
+      mockResponse(messagePage(0, 100))
+      mockResponse(messagePage(100, 40))
+
+      const client = await new DiscordBotClient().login({ token: 'bot-token' })
+      const file = await client.findFile('ch1', 'att120')
+
+      expect(file?.filename).toBe('file120.txt')
+      expect(fetchCalls).toHaveLength(2)
+      expect(fetchCalls[1].url).toBe('https://discord.com/api/v10/channels/ch1/messages?limit=100&before=msg99')
+    })
+
+    it('stops at the end of the channel history when the file is missing', async () => {
+      mockResponse(messagePage(0, 100))
+      mockResponse(messagePage(100, 3))
+
+      const client = await new DiscordBotClient().login({ token: 'bot-token' })
+      const file = await client.findFile('ch1', 'missing')
+
+      expect(file).toBeUndefined()
+      expect(fetchCalls).toHaveLength(2)
+    })
+
+    it('gives up after the bounded page budget', async () => {
+      for (let page = 0; page < 12; page += 1) mockResponse(messagePage(page * 100, 100))
+
+      const client = await new DiscordBotClient().login({ token: 'bot-token' })
+      const file = await client.findFile('ch1', 'missing')
+
+      expect(file).toBeUndefined()
+      expect(fetchCalls).toHaveLength(10)
+      expect(fetchCalls[9].url).toBe('https://discord.com/api/v10/channels/ch1/messages?limit=100&before=msg899')
     })
   })
 
