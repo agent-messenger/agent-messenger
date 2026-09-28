@@ -33,3 +33,4 @@ coverage/
 .env.local
 
 .sisyphus
+.omo
