@@ -162,7 +162,7 @@ agent-slack --workspace T789012 auth status
 agent-slack --workspace T789012 auth logout
 ```
 
-The flag applies to every command, including all `auth` subcommands, and never changes `current_workspace`. `auth logout` removes the selected workspace when no positional id is given (a positional id still wins), and `auth status` fails with `Workspace not found: <id>` if the selected id is not stored.
+The flag applies to every command that uses a stored workspace, including `auth status` and `auth logout`, and does not change `current_workspace`. `auth extract` and `auth qr` discover workspaces instead of targeting one, so the flag does not affect them; they set `current_workspace` only when none is set yet. `auth logout` removes the selected workspace when no positional id is given (a positional id still wins), and `auth status` fails with `Workspace not found: <id>` if the selected id is not stored.
 
 ### Current Workspace
 
