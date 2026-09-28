@@ -25,6 +25,7 @@ import {
   whoamiCommand,
   workspaceCommand,
 } from './commands/index'
+import { setSelectedWorkspaceId } from './credential-manager'
 import { ensureSlackAuth } from './ensure-auth'
 
 function isAuthCommand(command: CommandType): boolean {
@@ -48,6 +49,10 @@ program
 
 program.hook('preAction', async (_thisCommand, actionCommand) => {
   if (isAuthCommand(actionCommand)) return
+  const workspaceId = program.opts<{ workspace?: string }>().workspace
+  if (workspaceId) {
+    setSelectedWorkspaceId(workspaceId)
+  }
   await ensureSlackAuth()
 })
 

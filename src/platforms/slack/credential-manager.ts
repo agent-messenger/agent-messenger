@@ -5,6 +5,20 @@ import { join } from 'node:path'
 import { getConfigDir } from '../../shared/utils/config-dir'
 import type { Config, WorkspaceCredentials } from './types'
 
+// Process-wide workspace selection set from the CLI `--workspace <id>` global flag (see
+// the preAction hook in cli.ts). When present it makes commands target that workspace for
+// this single CLI invocation WITHOUT mutating the persisted current_workspace, so the
+// default (no-flag) path and any long-lived watcher keep resolving to current_workspace.
+let selectedWorkspaceId: string | null = null
+
+export function setSelectedWorkspaceId(id: string | null): void {
+  selectedWorkspaceId = id
+}
+
+export function getSelectedWorkspaceId(): string | null {
+  return selectedWorkspaceId
+}
+
 export class SlackCredentialManager {
   private configDir: string
   private credentialsPath: string
@@ -34,6 +48,10 @@ export class SlackCredentialManager {
   }
 
   async getWorkspace(id?: string): Promise<WorkspaceCredentials | null> {
+    // An explicit id wins; otherwise fall back to the process-wide `--workspace` selection.
+    // When neither is set, behaviour is unchanged (resolves to current_workspace below).
+    const resolvedId = id ?? selectedWorkspaceId ?? undefined
+
     // Check env vars first (take precedence over file-based credentials)
     // Only use env credentials if no specific id requested, or id matches env workspace
     const envToken = process.env.E2E_SLACK_TOKEN
@@ -42,7 +60,7 @@ export class SlackCredentialManager {
     const envWorkspaceName = process.env.E2E_SLACK_WORKSPACE_NAME
 
     if (envToken && envCookie && envWorkspaceId && envWorkspaceName) {
-      if (!id || id === envWorkspaceId) {
+      if (!resolvedId || resolvedId === envWorkspaceId) {
         return {
           token: envToken,
           cookie: envCookie,
@@ -54,8 +72,8 @@ export class SlackCredentialManager {
 
     const config = await this.load()
 
-    if (id) {
-      return config.workspaces[id] ?? null
+    if (resolvedId) {
+      return config.workspaces[resolvedId] ?? null
     }
 
     if (!config.current_workspace) {
