@@ -7,7 +7,7 @@ import { formatOutput } from '@/shared/utils/output'
 import { debug } from '@/shared/utils/stderr'
 
 import { SlackClient, SlackError } from '../client'
-import { CredentialManager } from '../credential-manager'
+import { CredentialManager, getSelectedWorkspaceId } from '../credential-manager'
 import { refreshCookie, refreshKnownWorkspaceDomains, tryWebTokenRefresh } from '../ensure-auth'
 import type { RefreshResult } from '../ensure-auth'
 import { loginWithQr } from '../qr-http-login'
@@ -192,7 +192,7 @@ async function logoutAction(workspace: string | undefined, options: { pretty?: b
     const credManager = new CredentialManager()
     const config = await credManager.load()
 
-    let targetWorkspace = workspace
+    let targetWorkspace = workspace ?? getSelectedWorkspaceId() ?? undefined
 
     if (!targetWorkspace) {
       if (!config.current_workspace) {
@@ -229,7 +229,18 @@ async function statusAction(options: { pretty?: boolean }): Promise<void> {
     const ws = await credManager.getWorkspace()
 
     if (!ws) {
-      console.log(formatOutput({ error: 'No current workspace set. Run "auth extract" first.' }, options.pretty))
+      const selectedWorkspace = getSelectedWorkspaceId()
+      console.log(
+        formatOutput(
+          selectedWorkspace
+            ? {
+                error: `Workspace not found: ${selectedWorkspace}`,
+                hint: 'Run "workspace list" to see available workspaces.',
+              }
+            : { error: 'No current workspace set. Run "auth extract" first.' },
+          options.pretty,
+        ),
+      )
       process.exit(1)
     }
 

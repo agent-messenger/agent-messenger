@@ -612,6 +612,24 @@ agent-slack reminder complete Rm001
 agent-slack reminder delete Rm002
 ```
 
+## Pattern: Work Across Workspaces
+
+**Use case**: Read or act in a second workspace without changing the current one
+
+```bash
+#!/bin/bash
+
+# The global --workspace flag targets one workspace for a single command
+agent-slack --workspace T789012 auth status
+agent-slack --workspace T789012 channel list
+agent-slack --workspace T789012 message send general "Cross-workspace update"
+
+# The current workspace is unchanged afterwards
+agent-slack workspace current
+```
+
+**When to use**: Occasional commands in another workspace. Use `workspace switch` only when the default should change for every later command.
+
 ## See Also
 
 - [Authentication Guide](authentication.md) - Setting up credentials

@@ -152,6 +152,18 @@ agent-slack workspace switch T789012
 
 All subsequent commands will use the selected workspace until you switch again.
 
+### Use a Workspace for One Command
+
+Pass the global `--workspace <id>` flag before the command to target another workspace for a single invocation without switching:
+
+```bash
+agent-slack --workspace T789012 channel list
+agent-slack --workspace T789012 auth status
+agent-slack --workspace T789012 auth logout
+```
+
+The flag applies to every command that uses a stored workspace, including `auth status` and `auth logout`, and does not change `current_workspace`. `auth extract` and `auth qr` discover workspaces instead of targeting one, so the flag does not affect them; they set `current_workspace` only when none is set yet. `auth logout` removes the selected workspace when no positional id is given (a positional id still wins), and `auth status` fails with `Workspace not found: <id>` if the selected id is not stored.
+
 ### Current Workspace
 
 Check which workspace is active:
