@@ -74,7 +74,13 @@ agent-slack workspace remove <workspace-id>
 
 # Check auth status
 agent-slack auth status
+
+# Run one command against another workspace without switching
+agent-slack --workspace <workspace-id> channel list
+agent-slack --workspace <workspace-id> auth status
 ```
+
+The global `--workspace <id>` flag goes before the command and applies to every command, including `auth status` and `auth logout`. It targets that workspace for this one invocation only and never changes the current workspace. If the id is not stored, `auth status` fails with `Workspace not found: <id>`.
 
 ## Memory
 
@@ -171,9 +177,10 @@ agent-slack auth qr --debug   # show each redirect hop for troubleshooting
 # Check auth status
 agent-slack auth status
 
-# Logout from a workspace (defaults to current)
+# Logout from a workspace (defaults to the --workspace selection, then current)
 agent-slack auth logout
 agent-slack auth logout <workspace-id>
+agent-slack --workspace <workspace-id> auth logout
 ```
 
 ### Whoami Command
