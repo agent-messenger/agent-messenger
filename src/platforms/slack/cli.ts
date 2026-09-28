@@ -48,11 +48,11 @@ program
   .option('--workspace <id>', 'Use specific workspace')
 
 program.hook('preAction', async (_thisCommand, actionCommand) => {
-  if (isAuthCommand(actionCommand)) return
   const workspaceId = program.opts<{ workspace?: string }>().workspace
   if (workspaceId) {
     setSelectedWorkspaceId(workspaceId)
   }
+  if (isAuthCommand(actionCommand)) return
   await ensureSlackAuth()
 })
 
