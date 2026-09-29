@@ -3,9 +3,11 @@ export { DiscordBotCredentialManager } from './credential-manager'
 export { DiscordBotListener } from './listener'
 export type { DiscordBotListenerOptions } from './listener'
 export type {
+  DiscordAttachmentInput,
   DiscordBotConfig,
   DiscordBotCredentials,
   DiscordBotEntry,
+  DiscordCreateMessageOptions,
   DiscordBotListenerEventMap,
   DiscordChannel,
   DiscordFile,
@@ -26,6 +28,7 @@ export type {
   DiscordGuild,
   DiscordMessage,
   DiscordReaction,
+  DiscordThreadListResult,
   DiscordUser,
 } from './types'
 export {

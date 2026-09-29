@@ -13,6 +13,18 @@ interface ThreadOutput {
   parent_id?: string
 }
 
+interface ListActionResult {
+  error?: string
+  threads?: Array<{
+    id: string
+    name: string
+    type: number
+    parent_id?: string
+    archived?: boolean
+  }>
+  has_more?: boolean
+}
+
 interface CreateActionResult {
   success?: boolean
   error?: string
@@ -23,6 +35,35 @@ interface ArchiveActionResult {
   success?: boolean
   error?: string
   threadId?: string
+}
+
+export async function listAction(
+  channel: string | undefined,
+  options: BotOption & { archived?: boolean },
+): Promise<ListActionResult> {
+  try {
+    if (options.archived && !channel) {
+      return { error: 'thread list --archived requires a channel' }
+    }
+
+    const serverId = await getCurrentServer(options)
+    const client = await getClient(options)
+    const parentId = channel ? await client.resolveChannel(serverId, channel) : undefined
+    const result = await client.listThreads(serverId, { parentId, archived: options.archived })
+
+    return {
+      threads: result.threads.map((thread) => ({
+        id: thread.id,
+        name: thread.name,
+        type: thread.type,
+        parent_id: thread.parent_id,
+        archived: thread.thread_metadata?.archived,
+      })),
+      has_more: result.has_more,
+    }
+  } catch (error) {
+    return { error: (error as Error).message }
+  }
 }
 
 export async function createAction(
@@ -68,6 +109,23 @@ export async function archiveAction(threadId: string, options: BotOption): Promi
 
 export const threadCommand = new Command('thread')
   .description('Thread commands')
+  .addCommand(
+    new Command('list')
+      .description('List threads')
+      .argument('[channel]', 'Channel ID or name')
+      .option('--archived', 'List archived threads (requires a channel)')
+      .option('--server <id>', 'Use specific server')
+      .option('--bot <id>', 'Use specific bot')
+      .option('--pretty', 'Pretty print JSON output')
+      .action(async (channelArg: string | undefined, options: BotOption & { archived?: boolean }) => {
+        try {
+          const result = await listAction(channelArg, options)
+          console.log(formatOutput(result, options.pretty))
+        } catch (error) {
+          handleError(error as Error)
+        }
+      }),
+  )
   .addCommand(
     new Command('create')
       .description('Create a thread')

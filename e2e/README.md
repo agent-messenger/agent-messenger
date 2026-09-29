@@ -231,7 +231,9 @@ When triggering manually, you can select which platform to test:
 | `message`     | send, list, get, edit, delete, thread, replies |
 | `channel`     | list, info                                       |
 | `user`        | list, info                                       |
-| `reaction`    | add, remove                                      |
+| `file`        | upload, list, info                               |
+| `thread`      | create, list, archive                            |
+| `reaction`    | add, list, remove                                |
 | `server`      | list, current                                    |
 
 ### Webex Tests

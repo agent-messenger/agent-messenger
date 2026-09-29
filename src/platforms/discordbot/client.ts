@@ -1,6 +1,18 @@
-import { readFile } from 'node:fs/promises'
-
-import type { DiscordChannel, DiscordFile, DiscordGuild, DiscordMessage, DiscordUser } from './types'
+import {
+  createMessage as createMessageHelper,
+  findFile as findFileHelper,
+  listFiles as listFilesHelper,
+  uploadFile as uploadFileHelper,
+} from './client-message'
+import { listThreads as listThreadsHelper, resolveThread as resolveThreadHelper } from './client-threads'
+import type {
+  DiscordChannel,
+  DiscordCreateMessageOptions,
+  DiscordFile,
+  DiscordGuild,
+  DiscordMessage,
+  DiscordUser,
+} from './types'
 import { DiscordBotError } from './types'
 
 const BASE_URL = 'https://discord.com/api/v10'
@@ -105,6 +117,13 @@ export class DiscordBotClient {
   }
 
   private handleErrorResponse(response: Response, errorBody: Record<string, string | number>): never {
+    if (errorBody.code === 40005 || response.status === 413) {
+      throw new DiscordBotError(
+        'File(s) too large for this server upload limit (Discord error 40005)',
+        errorBody.code?.toString() ?? 'http_413',
+      )
+    }
+
     throw new DiscordBotError(
       (errorBody.message as string) || `HTTP ${response.status}`,
       errorBody.code?.toString() || `http_${response.status}`,
@@ -249,19 +268,21 @@ export class DiscordBotClient {
     return this.request<DiscordChannel>('GET', `/channels/${channelId}`)
   }
 
+  async createMessage(channelId: string, options: DiscordCreateMessageOptions): Promise<DiscordMessage> {
+    return createMessageHelper(
+      (method, path, body) => this.request(method, path, body),
+      (path, formData) => this.requestFormData(path, formData),
+      channelId,
+      options,
+    )
+  }
+
   async sendMessage(
     channelId: string,
     content: string,
     options?: { thread_id?: string; reply_to?: string },
   ): Promise<DiscordMessage> {
-    const body: Record<string, unknown> = { content }
-    if (options?.thread_id) {
-      body.thread_id = options.thread_id
-    }
-    if (options?.reply_to) {
-      body.message_reference = { message_id: options.reply_to }
-    }
-    return this.request<DiscordMessage>('POST', `/channels/${channelId}/messages`, body)
+    return this.createMessage(channelId, { content, thread_id: options?.thread_id, reply_to: options?.reply_to })
   }
 
   async getMessages(channelId: string, limit: number = 50): Promise<DiscordMessage[]> {
@@ -302,39 +323,25 @@ export class DiscordBotClient {
     return this.request<DiscordUser>('GET', `/users/${userId}`)
   }
 
-  async uploadFile(channelId: string, filePath: string): Promise<DiscordFile> {
-    const fileBuffer = await readFile(filePath)
-    const filename = filePath.split('/').pop() || 'file'
-
-    const formData = new FormData()
-    formData.append('files[0]', new Blob([fileBuffer]), filename)
-
-    interface MessageWithAttachments extends DiscordMessage {
-      attachments: DiscordFile[]
-    }
-    const message = await this.requestFormData<MessageWithAttachments>(`/channels/${channelId}/messages`, formData)
-
-    const first = message.attachments?.[0]
-    if (!first) {
-      throw new DiscordBotError('Upload succeeded but no attachments returned', 'no_attachments')
-    }
-
-    return first
+  async uploadFile(
+    channelId: string,
+    filePath: string,
+    options?: { content?: string; filename?: string; reply_to?: string; thread_id?: string },
+  ): Promise<DiscordFile> {
+    return uploadFileHelper(
+      (id, messageOptions) => this.createMessage(id, messageOptions),
+      channelId,
+      filePath,
+      options,
+    )
   }
 
   async listFiles(channelId: string): Promise<DiscordFile[]> {
-    interface MessageWithAttachments extends DiscordMessage {
-      attachments: DiscordFile[]
-    }
-    const messages = await this.request<MessageWithAttachments[]>('GET', `/channels/${channelId}/messages?limit=100`)
+    return listFilesHelper((method, path, body) => this.request(method, path, body), channelId)
+  }
 
-    const files: DiscordFile[] = []
-    for (const msg of messages) {
-      if (msg.attachments && msg.attachments.length > 0) {
-        files.push(...msg.attachments)
-      }
-    }
-    return files
+  async findFile(channelId: string, fileId: string): Promise<DiscordFile | undefined> {
+    return findFileHelper((method, path, body) => this.request(method, path, body), channelId, fileId)
   }
 
   async createThread(
@@ -371,5 +378,18 @@ export class DiscordBotClient {
       )
     }
     return found.id
+  }
+
+  async listThreads(guildId: string, options?: { parentId?: string; archived?: boolean }) {
+    return listThreadsHelper({ request: (method, path, body) => this.request(method, path, body) }, guildId, options)
+  }
+
+  async resolveThread(guildId: string, parentChannelId: string, thread: string) {
+    return resolveThreadHelper(
+      { request: (method, path, body) => this.request(method, path, body) },
+      guildId,
+      parentChannelId,
+      thread,
+    )
   }
 }
