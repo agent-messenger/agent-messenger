@@ -1,5 +1,5 @@
-import { afterEach, beforeEach, describe, expect, it } from 'bun:test'
-import { chmod, mkdir, mkdtemp, readFile, readdir, rm, stat, writeFile } from 'node:fs/promises'
+import { afterEach, beforeEach, describe, expect, it, spyOn } from 'bun:test'
+import { chmod, mkdir, mkdtemp, open, readFile, readdir, rm, stat, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
@@ -41,6 +41,14 @@ describe('KakaoSyncStateStore', () => {
   })
 
   describe('save', () => {
+    async function getFileHandlePrototype() {
+      const probePath = join(tempDir, '.file-handle-probe')
+      const probe = await open(probePath, 'w')
+      await probe.close()
+      await rm(probePath)
+      return Object.getPrototypeOf(probe) as typeof probe
+    }
+
     it('replaces the state file with valid JSON and no temp residue', async () => {
       await store.save(DEVICE_UUID, makeState(1))
       await store.save(DEVICE_UUID, makeState(2))
@@ -57,6 +65,45 @@ describe('KakaoSyncStateStore', () => {
       const unserializable = { ...makeState(2), revision: 2n } as unknown as SyncState
 
       await expect(store.save(DEVICE_UUID, unserializable)).rejects.toThrow(TypeError)
+
+      expect(await readFile(statePath, 'utf-8')).toBe(before)
+      expect(await readdir(tempDir)).toEqual([STATE_FILE])
+    })
+
+    it('keeps the existing state file when a partial temp write fails', async () => {
+      await store.save(DEVICE_UUID, makeState(1))
+      const before = await readFile(statePath, 'utf-8')
+      const fileHandlePrototype = await getFileHandlePrototype()
+      const originalWriteFile = fileHandlePrototype.writeFile
+      const writeSpy = spyOn(fileHandlePrototype, 'writeFile').mockImplementationOnce(async function (data) {
+        const content = typeof data === 'string' ? data : data.toString()
+        await originalWriteFile.call(this, content.slice(0, 12))
+        throw Object.assign(new Error('injected partial write failure'), { code: 'EIO' })
+      })
+
+      try {
+        await expect(store.save(DEVICE_UUID, makeState(2))).rejects.toMatchObject({ code: 'EIO' })
+      } finally {
+        writeSpy.mockRestore()
+      }
+
+      expect(await readFile(statePath, 'utf-8')).toBe(before)
+      expect(await readdir(tempDir)).toEqual([STATE_FILE])
+    })
+
+    it('keeps the existing state file when syncing the temp file fails', async () => {
+      await store.save(DEVICE_UUID, makeState(1))
+      const before = await readFile(statePath, 'utf-8')
+      const fileHandlePrototype = await getFileHandlePrototype()
+      const syncSpy = spyOn(fileHandlePrototype, 'sync').mockImplementationOnce(() =>
+        Promise.reject(Object.assign(new Error('injected sync failure'), { code: 'EIO' })),
+      )
+
+      try {
+        await expect(store.save(DEVICE_UUID, makeState(2))).rejects.toMatchObject({ code: 'EIO' })
+      } finally {
+        syncSpy.mockRestore()
+      }
 
       expect(await readFile(statePath, 'utf-8')).toBe(before)
       expect(await readdir(tempDir)).toEqual([STATE_FILE])
