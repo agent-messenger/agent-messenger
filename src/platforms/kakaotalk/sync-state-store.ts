@@ -6,6 +6,29 @@ import { join } from 'node:path'
 import { getConfigDir } from '../../shared/utils/config-dir'
 import type { SyncState } from './protocol/types'
 
+function isLongLike(value: unknown): value is { low: number; high: number } {
+  if (typeof value !== 'object' || value === null) return false
+  const candidate = value as Record<string, unknown>
+  return typeof candidate.low === 'number' && typeof candidate.high === 'number'
+}
+
+function isSyncState(value: unknown): value is SyncState {
+  if (typeof value !== 'object' || value === null) return false
+  const candidate = value as Record<string, unknown>
+
+  return (
+    candidate.version === 2 &&
+    typeof candidate.revision === 'number' &&
+    Array.isArray(candidate.chatIds) &&
+    candidate.chatIds.every(isLongLike) &&
+    Array.isArray(candidate.maxIds) &&
+    candidate.maxIds.every(isLongLike) &&
+    candidate.chatIds.length === candidate.maxIds.length &&
+    isLongLike(candidate.lastTokenId) &&
+    typeof candidate.lbk === 'number'
+  )
+}
+
 export class KakaoSyncStateStore {
   private configDir: string
 
@@ -22,27 +45,15 @@ export class KakaoSyncStateStore {
     if (!existsSync(path)) return undefined
     const content = await readFile(path, 'utf-8')
 
-    let parsed: Partial<SyncState>
+    let parsed: unknown
     try {
-      parsed = JSON.parse(content) as Partial<SyncState>
+      parsed = JSON.parse(content)
     } catch {
       await this.quarantine(path)
       return undefined
     }
 
-    if (
-      parsed.version !== 2 ||
-      typeof parsed.revision !== 'number' ||
-      !Array.isArray(parsed.chatIds) ||
-      !Array.isArray(parsed.maxIds) ||
-      parsed.chatIds.length !== parsed.maxIds.length ||
-      !parsed.lastTokenId ||
-      typeof parsed.lbk !== 'number'
-    ) {
-      return undefined
-    }
-
-    return parsed as SyncState
+    return isSyncState(parsed) ? parsed : undefined
   }
 
   async save(deviceUuid: string, state: SyncState): Promise<void> {

@@ -119,8 +119,14 @@ const DEFAULT_LOGIN_RESULT = {
   eof: true,
 }
 
+const originalConfigDir = process.env['AGENT_MESSENGER_CONFIG_DIR']
+
 describe('KakaoTalkClient', () => {
-  beforeEach(() => {
+  let configDir: string
+
+  beforeEach(async () => {
+    configDir = await mkdtemp(join(tmpdir(), 'kakao-client-test-'))
+    process.env['AGENT_MESSENGER_CONFIG_DIR'] = configDir
     resetAllMocks()
     // Deep-clone so tests that mutate loginResult.chatDatas (e.g. leaveChat)
     // don't leak into subsequent tests.
@@ -130,9 +136,12 @@ describe('KakaoTalkClient', () => {
     mockSyncMessages.mockResolvedValue({ body: { status: 0, isOK: true, chatLogs: [] } })
   })
 
-  afterEach(() => {
+  afterEach(async () => {
     expect(mockGetChatInfo).not.toHaveBeenCalled()
     resetAllMocks()
+    if (originalConfigDir === undefined) delete process.env['AGENT_MESSENGER_CONFIG_DIR']
+    else process.env['AGENT_MESSENGER_CONFIG_DIR'] = originalConfigDir
+    await rm(configDir, { recursive: true, force: true })
   })
 
   describe('constructor', () => {
@@ -223,20 +232,6 @@ describe('KakaoTalkClient', () => {
   })
 
   describe('sync state', () => {
-    const originalConfigDir = process.env['AGENT_MESSENGER_CONFIG_DIR']
-    let configDir: string
-
-    beforeEach(async () => {
-      configDir = await mkdtemp(join(tmpdir(), 'kakao-client-sync-state-test-'))
-      process.env['AGENT_MESSENGER_CONFIG_DIR'] = configDir
-    })
-
-    afterEach(async () => {
-      if (originalConfigDir === undefined) delete process.env['AGENT_MESSENGER_CONFIG_DIR']
-      else process.env['AGENT_MESSENGER_CONFIG_DIR'] = originalConfigDir
-      await rm(configDir, { recursive: true, force: true })
-    })
-
     it('quarantines a truncated sync state and rebuilds it from LOGINLIST', async () => {
       const statePath = join(configDir, 'kakaotalk-sync-state-device1.json')
       const truncated = '{\n  "version": 2,\n  "revision": 7,\n  "chatIds": ['

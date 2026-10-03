@@ -11,6 +11,7 @@ const STATE_FILE = `kakaotalk-sync-state-${DEVICE_UUID}.json`
 const TRUNCATED = '{\n  "version": 2,\n  "revision": 7,\n  "chatIds": ['
 // Directory permissions cannot block writes on Windows or for root
 const canRevokeWrite = process.platform !== 'win32' && process.getuid?.() !== 0
+const canInspectPosixMode = process.platform !== 'win32'
 
 function makeState(revision: number): SyncState {
   return {
@@ -40,12 +41,12 @@ describe('KakaoSyncStateStore', () => {
   })
 
   describe('save', () => {
-    it('replaces the state file with valid JSON, mode 0600 and no temp residue', async () => {
+    it('replaces the state file with valid JSON and no temp residue', async () => {
       await store.save(DEVICE_UUID, makeState(1))
       await store.save(DEVICE_UUID, makeState(2))
 
       expect(JSON.parse(await readFile(statePath, 'utf-8'))).toEqual(makeState(2))
-      expect((await stat(statePath)).mode & 0o777).toBe(0o600)
+      if (canInspectPosixMode) expect((await stat(statePath)).mode & 0o777).toBe(0o600)
       expect(await readdir(tempDir)).toEqual([STATE_FILE])
       expect(await store.load(DEVICE_UUID)).toEqual(makeState(2))
     })
@@ -88,7 +89,7 @@ describe('KakaoSyncStateStore', () => {
       return (await readdir(tempDir)).filter((name) => name.endsWith('.corrupt'))
     }
 
-    it('quarantines truncated JSON with mode 0600 and loads as missing state', async () => {
+    it('quarantines truncated JSON and loads it as missing state', async () => {
       await writeFile(statePath, TRUNCATED)
       await chmod(statePath, 0o644)
 
@@ -100,7 +101,7 @@ describe('KakaoSyncStateStore', () => {
       expect(corruptFiles[0].startsWith(`${STATE_FILE}.`)).toBe(true)
       const corruptPath = join(tempDir, corruptFiles[0])
       expect(await readFile(corruptPath, 'utf-8')).toBe(TRUNCATED)
-      expect((await stat(corruptPath)).mode & 0o777).toBe(0o600)
+      if (canInspectPosixMode) expect((await stat(corruptPath)).mode & 0o777).toBe(0o600)
 
       await store.save(DEVICE_UUID, makeState(1))
 
@@ -119,7 +120,11 @@ describe('KakaoSyncStateStore', () => {
 
     it.each([
       ['an unsupported version', { ...makeState(1), version: 1 }],
-      ['an invalid schema', { ...makeState(1), maxIds: [] }],
+      ['mismatched cursor arrays', { ...makeState(1), maxIds: [] }],
+      ['a null value', null],
+      ['an invalid chat ID', { ...makeState(1), chatIds: [{ low: '100', high: 0 }] }],
+      ['an invalid max ID', { ...makeState(1), maxIds: [null] }],
+      ['an invalid last token ID', { ...makeState(1), lastTokenId: { low: 0, high: '0' } }],
     ])('leaves valid JSON with %s untouched', async (_label, state) => {
       const content = JSON.stringify(state)
       await writeFile(statePath, content)
@@ -128,7 +133,7 @@ describe('KakaoSyncStateStore', () => {
       expect(await store.load(DEVICE_UUID)).toBeUndefined()
 
       expect(await readFile(statePath, 'utf-8')).toBe(content)
-      expect((await stat(statePath)).mode & 0o777).toBe(0o644)
+      if (canInspectPosixMode) expect((await stat(statePath)).mode & 0o777).toBe(0o644)
       expect(await readdir(tempDir)).toEqual([STATE_FILE])
     })
 
