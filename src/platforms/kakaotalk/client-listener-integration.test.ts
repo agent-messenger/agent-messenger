@@ -289,10 +289,11 @@ describe('KakaoTalkClient + KakaoTalkListener integration (shared LOCO session)'
     expect(connects.length).toBe(1)
 
     // when — the server pushes CHANGESVR (asking us to migrate to a new gateway)
+    const reconnected = new Promise<void>((resolve) => listener.once('connected', () => resolve()))
     sessions[0]!.simulatePush('CHANGESVR', {})
 
     // then — the client actively migrates: old session closed, new one opened
-    await new Promise((r) => setTimeout(r, 0))
+    await reconnected
     expect(sessions.length).toBe(2)
     expect(sessions[0]!.closed).toBe(true)
     expect(disconnects.length).toBe(1)
