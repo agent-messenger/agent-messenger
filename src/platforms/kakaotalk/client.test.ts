@@ -1,4 +1,7 @@
 import { afterEach, beforeEach, describe, expect, mock, it } from 'bun:test'
+import { mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 
 import { KakaoTalkClient, KakaoTalkError } from './client'
 
@@ -216,6 +219,43 @@ describe('KakaoTalkClient', () => {
 
       await expect(client.getChats()).rejects.toMatchObject({ code: 'login_failed' })
       expect(mockGetChatList).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('sync state', () => {
+    const originalConfigDir = process.env['AGENT_MESSENGER_CONFIG_DIR']
+    let configDir: string
+
+    beforeEach(async () => {
+      configDir = await mkdtemp(join(tmpdir(), 'kakao-client-sync-state-test-'))
+      process.env['AGENT_MESSENGER_CONFIG_DIR'] = configDir
+    })
+
+    afterEach(async () => {
+      if (originalConfigDir === undefined) delete process.env['AGENT_MESSENGER_CONFIG_DIR']
+      else process.env['AGENT_MESSENGER_CONFIG_DIR'] = originalConfigDir
+      await rm(configDir, { recursive: true, force: true })
+    })
+
+    it('quarantines a truncated sync state and rebuilds it from LOGINLIST', async () => {
+      const statePath = join(configDir, 'kakaotalk-sync-state-device1.json')
+      const truncated = '{\n  "version": 2,\n  "revision": 7,\n  "chatIds": ['
+      await writeFile(statePath, truncated)
+      const client = await new KakaoTalkClient().login({ oauthToken: 'token', userId: 'user1', deviceUuid: 'device1' })
+
+      const chats = await client.getChats()
+
+      expect(chats).toHaveLength(2)
+      expect(mockLogin).toHaveBeenCalledWith('token', 'user1', 'device1', undefined, 'tablet')
+      const corruptFiles = (await readdir(configDir)).filter((name) => name.endsWith('.corrupt'))
+      expect(corruptFiles).toHaveLength(1)
+      expect(await readFile(join(configDir, corruptFiles[0]), 'utf-8')).toBe(truncated)
+      expect(JSON.parse(await readFile(statePath, 'utf-8'))).toMatchObject({
+        version: 2,
+        chatIds: [makeLong(100), makeLong(200)],
+        maxIds: [makeLong(999), makeLong(500)],
+      })
+      client.close()
     })
   })
 

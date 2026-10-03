@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import { existsSync } from 'node:fs'
-import { mkdir, open, readFile, rename, rm } from 'node:fs/promises'
+import { chmod, mkdir, open, readFile, rename, rm } from 'node:fs/promises'
 import { join } from 'node:path'
 
 import { getConfigDir } from '../../shared/utils/config-dir'
@@ -21,7 +21,14 @@ export class KakaoSyncStateStore {
     const path = this.getStatePath(deviceUuid)
     if (!existsSync(path)) return undefined
     const content = await readFile(path, 'utf-8')
-    const parsed = JSON.parse(content) as Partial<SyncState>
+
+    let parsed: Partial<SyncState>
+    try {
+      parsed = JSON.parse(content) as Partial<SyncState>
+    } catch {
+      await this.quarantine(path)
+      return undefined
+    }
 
     if (
       parsed.version !== 2 ||
@@ -58,6 +65,12 @@ export class KakaoSyncStateStore {
       throw error
     }
 
+    await this.syncConfigDir()
+  }
+
+  private async quarantine(path: string): Promise<void> {
+    await chmod(path, 0o600)
+    await rename(path, `${path}.${randomUUID()}.corrupt`)
     await this.syncConfigDir()
   }
 
