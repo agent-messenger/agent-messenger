@@ -1,5 +1,6 @@
+import { randomUUID } from 'node:crypto'
 import { existsSync } from 'node:fs'
-import { chmod, mkdir, readFile, writeFile } from 'node:fs/promises'
+import { mkdir, open, readFile, rename, rm } from 'node:fs/promises'
 import { join } from 'node:path'
 
 import { getConfigDir } from '../../shared/utils/config-dir'
@@ -38,9 +39,37 @@ export class KakaoSyncStateStore {
   }
 
   async save(deviceUuid: string, state: SyncState): Promise<void> {
+    const content = JSON.stringify(state, null, 2)
     await mkdir(this.configDir, { recursive: true })
     const path = this.getStatePath(deviceUuid)
-    await writeFile(path, JSON.stringify(state, null, 2))
-    await chmod(path, 0o600)
+    const tmpPath = `${path}.${randomUUID()}.tmp`
+
+    try {
+      const file = await open(tmpPath, 'wx', 0o600)
+      try {
+        await file.writeFile(content)
+        await file.sync()
+      } finally {
+        await file.close()
+      }
+      await rename(tmpPath, path)
+    } catch (error) {
+      await rm(tmpPath, { force: true }).catch(() => {})
+      throw error
+    }
+
+    await this.syncConfigDir()
+  }
+
+  private async syncConfigDir(): Promise<void> {
+    // Windows cannot open a directory handle to fsync it
+    if (process.platform === 'win32') return
+
+    const dir = await open(this.configDir, 'r')
+    try {
+      await dir.sync()
+    } finally {
+      await dir.close()
+    }
   }
 }
