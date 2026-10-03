@@ -1,10 +1,5 @@
-import { existsSync } from 'node:fs'
-import { chmod, mkdir, readFile, writeFile } from 'node:fs/promises'
-import { join } from 'node:path'
-
 import { Long } from 'bson'
 
-import { getConfigDir } from '@/shared/utils/config-dir'
 import { warn } from '@/shared/utils/stderr'
 
 import { type AttachmentInput, type ResolvedAttachment, planAttachments } from './attachment-router'
@@ -16,6 +11,7 @@ import { isSyntheticConnectionClose } from './protocol/login-response'
 import { uploadMediaToLoco, uploadMultiMediaEntry } from './protocol/media-uploader'
 import { LocoSession } from './protocol/session'
 import type { ChatListResponse, LocoPacket, LoginListResponse, SyncState } from './protocol/types'
+import { KakaoSyncStateStore } from './sync-state-store'
 import {
   KAKAO_MESSAGE_TYPE,
   type KakaoChat,
@@ -461,38 +457,6 @@ function isLoginResponseError(
 }
 
 const MAX_PAGES = 50
-
-function syncStatePath(deviceUuid: string): string {
-  return join(getConfigDir(), `kakaotalk-sync-state-${deviceUuid}.json`)
-}
-
-async function loadSyncState(deviceUuid: string): Promise<SyncState | undefined> {
-  const path = syncStatePath(deviceUuid)
-  if (!existsSync(path)) return undefined
-  const content = await readFile(path, 'utf-8')
-  const parsed = JSON.parse(content) as Partial<SyncState>
-
-  if (
-    parsed.version !== 2 ||
-    typeof parsed.revision !== 'number' ||
-    !Array.isArray(parsed.chatIds) ||
-    !Array.isArray(parsed.maxIds) ||
-    parsed.chatIds.length !== parsed.maxIds.length ||
-    !parsed.lastTokenId ||
-    typeof parsed.lbk !== 'number'
-  ) {
-    return undefined
-  }
-
-  return parsed as SyncState
-}
-
-async function saveSyncState(deviceUuid: string, state: SyncState): Promise<void> {
-  await mkdir(getConfigDir(), { recursive: true })
-  const path = syncStatePath(deviceUuid)
-  await writeFile(path, JSON.stringify(state, null, 2))
-  await chmod(path, 0o600)
-}
 
 function toLongLike(v: unknown): { low: number; high: number } {
   if (v && typeof v === 'object' && 'low' in v && 'high' in v) {
@@ -957,7 +921,8 @@ export class KakaoTalkClient {
     })
 
     try {
-      const syncState = await loadSyncState(this.deviceUuid!)
+      const syncStateStore = new KakaoSyncStateStore()
+      const syncState = await syncStateStore.load(this.deviceUuid!)
       const loginResult = await session.login(
         this.oauthToken!,
         this.userId!,
@@ -967,7 +932,7 @@ export class KakaoTalkClient {
       )
 
       const newSyncState = mergeSyncState(syncState, loginResult)
-      await saveSyncState(this.deviceUuid!, newSyncState)
+      await syncStateStore.save(this.deviceUuid!, newSyncState)
 
       this.nameCache.ingest((loginResult.chatDatas ?? []) as ChatData[])
 

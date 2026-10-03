@@ -1,4 +1,7 @@
 import { afterEach, beforeEach, describe, expect, mock, it } from 'bun:test'
+import { mkdtemp, rm } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 
 import { KakaoTalkClient } from './client'
 import { KakaoTalkListener } from './listener'
@@ -112,20 +115,28 @@ const CREDS = {
   deviceUuid: 'device-uuid-1',
   deviceType: 'tablet' as const,
 }
+const originalConfigDir = process.env['AGENT_MESSENGER_CONFIG_DIR']
 
 function currentSession(): MockLocoSession {
   return sessions[sessions.length - 1]!
 }
 
 describe('KakaoTalkClient + KakaoTalkListener integration (shared LOCO session)', () => {
-  beforeEach(() => {
+  let configDir: string
+
+  beforeEach(async () => {
+    configDir = await mkdtemp(join(tmpdir(), 'kakao-client-listener-test-'))
+    process.env['AGENT_MESSENGER_CONFIG_DIR'] = configDir
     sessions.length = 0
     loginCalls.length = 0
   })
 
-  afterEach(() => {
+  afterEach(async () => {
     sessions.length = 0
     loginCalls.length = 0
+    if (originalConfigDir === undefined) delete process.env['AGENT_MESSENGER_CONFIG_DIR']
+    else process.env['AGENT_MESSENGER_CONFIG_DIR'] = originalConfigDir
+    await rm(configDir, { recursive: true, force: true })
   })
 
   it('opens exactly ONE LocoSession when a client and listener are used together', async () => {
@@ -289,10 +300,17 @@ describe('KakaoTalkClient + KakaoTalkListener integration (shared LOCO session)'
     expect(connects.length).toBe(1)
 
     // when — the server pushes CHANGESVR (asking us to migrate to a new gateway)
+    const reconnected = new Promise<void>((resolve, reject) => {
+      const timeout = setTimeout(() => reject(new Error('Timed out waiting for CHANGESVR migration')), 1_000)
+      listener.once('connected', () => {
+        clearTimeout(timeout)
+        resolve()
+      })
+    })
     sessions[0]!.simulatePush('CHANGESVR', {})
 
     // then — the client actively migrates: old session closed, new one opened
-    await new Promise((r) => setTimeout(r, 0))
+    await reconnected
     expect(sessions.length).toBe(2)
     expect(sessions[0]!.closed).toBe(true)
     expect(disconnects.length).toBe(1)
