@@ -137,11 +137,14 @@ describe('KakaoTalkClient', () => {
   })
 
   afterEach(async () => {
-    expect(mockGetChatInfo).not.toHaveBeenCalled()
-    resetAllMocks()
-    if (originalConfigDir === undefined) delete process.env['AGENT_MESSENGER_CONFIG_DIR']
-    else process.env['AGENT_MESSENGER_CONFIG_DIR'] = originalConfigDir
-    await rm(configDir, { recursive: true, force: true })
+    try {
+      expect(mockGetChatInfo).not.toHaveBeenCalled()
+    } finally {
+      resetAllMocks()
+      if (originalConfigDir === undefined) delete process.env['AGENT_MESSENGER_CONFIG_DIR']
+      else process.env['AGENT_MESSENGER_CONFIG_DIR'] = originalConfigDir
+      await rm(configDir, { recursive: true, force: true })
+    }
   })
 
   describe('constructor', () => {
