@@ -80,7 +80,7 @@ export async function validateDiscordEnvironment() {
 export const DISCORDBOT_TEST_SERVER_ID = process.env.E2E_DISCORDBOT_SERVER_ID || '1467039439770357844'
 export const DISCORDBOT_TEST_SERVER_NAME = process.env.E2E_DISCORDBOT_SERVER_NAME || 'Agent Messenger'
 export const DISCORDBOT_TEST_CHANNEL_ID = process.env.E2E_DISCORDBOT_CHANNEL_ID || '1467062262996144162'
-export const DISCORDBOT_TEST_CHANNEL = 'e2e-test'
+export const DISCORDBOT_TEST_CHANNEL = process.env.E2E_DISCORDBOT_CHANNEL_NAME || 'e2e-test'
 
 export async function validateDiscordBotEnvironment() {
   const { runCLI, parseJSON } = await import('./helpers')
