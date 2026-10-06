@@ -55,7 +55,7 @@ agent-teams reaction remove "$TEAM_ID" "$CHANNEL_ID" "$ROOT_ID" '👍'
 agent-teams reaction add "$TEAM_ID" "$CHANNEL_ID" "$REPLY_ID" like --thread "$ROOT_ID"
 ```
 
-Reaction input accepts Unicode, plus the names `like`, `heart`, `laugh`, `surprised`, `sad` and `angry`, converted to Unicode for Graph. A reply requires its root ID for get/delete/reaction operations. Channel reactions require `ChannelMessage.Send`; deletion requires the separate `ChannelMessage.ReadWrite` scope. Sending successfully does not prove deletion permission.
+Reaction input accepts Unicode, plus the names `like`, `heart`, `laugh`, `surprised`, `sad` and `angry`, converted to Unicode for Graph. A reply requires its root ID for get/delete/reaction operations. Channel reactions require `ChannelMessage.Send`. Deletion first reads the exact Graph message target, then calls Chat Service with the existing Skype token. This avoids requesting Graph `ChannelMessage.ReadWrite`; Teams message ownership and deletion policy still apply. Deletion is attempted once, with no write fallback.
 
 ```bash
 # Delete only the authorized message. This can fail with 403 if the scope is absent.

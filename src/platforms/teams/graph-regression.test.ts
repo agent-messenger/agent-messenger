@@ -87,7 +87,8 @@ describe('Teams Graph transport regressions', () => {
     expect(calls.map((call) => JSON.parse(String(call.options?.body)).reactionType)).toEqual(['👍', '👍', '💘'])
   })
 
-  it('uses the nested reply route for reads, deletion and reactions', async () => {
+  it('resolves the nested reply, deletes its conversation target and preserves Graph reactions', async () => {
+    respond({ ...message('reply-1'), replyToId: 'root-1' })
     respond({ ...message('reply-1'), replyToId: 'root-1' })
     respond(null, 204)
     respond(null, 204)
@@ -99,10 +100,47 @@ describe('Teams Graph transport regressions', () => {
     const path = 'https://graph.microsoft.com/v1.0/teams/team-1/channels/channel-1/messages/root-1/replies/reply-1'
     expect(calls.map((call) => call.url)).toEqual([
       path,
-      path + '/softDelete',
+      path,
+      'https://amer.ng.msg.teams.microsoft.com/v1/users/ME/conversations/channel-1%3Bmessageid%3Droot-1/messages/reply-1',
       path + '/setReaction',
       path + '/unsetReaction',
     ])
+    expect(calls[2].options?.method).toBe('DELETE')
+    expect(new Headers(calls[2].options?.headers).get('X-Skypetoken')).toBe('skype-fixture')
+    expect(new Headers(calls[2].options?.headers).has('Authorization')).toBe(false)
+  })
+
+  it('never deletes when the exact Graph target is denied or differs', async () => {
+    respond({ error: { code: 'Forbidden', message: 'Denied' } }, 403)
+    await expect(client.deleteMessage('team-1', 'channel-1', 'message-1')).rejects.toThrow('Denied')
+    expect(calls).toHaveLength(1)
+    respond(message('different-message'))
+    await expect(client.deleteMessage('team-1', 'channel-1', 'message-1')).rejects.toThrow('target')
+    expect(calls.every((call) => call.options?.method === 'GET')).toBe(true)
+  })
+
+  it('does not repeat or switch APIs after an uncertain Chat Service deletion', async () => {
+    respond(message())
+    respond({ message: 'Unknown result' }, 503)
+    await expect(client.deleteMessage('team-1', 'channel-1', 'message-1')).rejects.toThrow('Unknown result')
+    expect(calls).toHaveLength(2)
+    expect(calls.map((call) => call.options?.method)).toEqual(['GET', 'DELETE'])
+  })
+
+  it('rejects successful HTTP deletion responses containing a service error', async () => {
+    respond(message())
+    respond({ errorCode: 403 })
+    await expect(client.deleteMessage('team-1', 'channel-1', 'message-1')).rejects.toThrow('403')
+    expect(calls).toHaveLength(2)
+  })
+
+  it('accepts empty delete success and avoids rewriting a known deleted target', async () => {
+    respond(message())
+    responses.push(new Response(null, { status: 200 }))
+    await client.deleteMessage('team-1', 'channel-1', 'message-1')
+    respond({ ...message(), deletedDateTime: '2026-01-01T00:01:00Z' })
+    await client.deleteMessage('team-1', 'channel-1', 'message-1')
+    expect(calls.map((call) => call.options?.method)).toEqual(['GET', 'DELETE', 'GET'])
   })
 
   it('preserves original HTML, attachments, mentions, line breaks and reply linkage', async () => {

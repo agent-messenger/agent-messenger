@@ -398,6 +398,6 @@ agent-teams reaction remove <team-id> <channel-id> <reply-id> like --thread <roo
 agent-teams message delete <team-id> <channel-id> <reply-id> --thread <root-id> --force
 ```
 
-Reaction input accepts Unicode and `like`, `heart`, `laugh`, `surprised`, `sad`, `angry` aliases. Graph requires Unicode, so names are converted. Channel reactions use `ChannelMessage.Send`; deletion requires the separate `ChannelMessage.ReadWrite` permission, which the default login may lack. A successful send does not prove delete access.
+Reaction input accepts Unicode and `like`, `heart`, `laugh`, `surprised`, `sad`, `angry` aliases. Graph requires Unicode, so names are converted. Channel reactions use `ChannelMessage.Send`. Deletion resolves the exact Graph message or reply, then calls Chat Service with the existing Skype token. This avoids adding Graph `ChannelMessage.ReadWrite` consent. Teams ownership and deletion policy still apply. A delete write is attempted once with no fallback write; reread the exact target before deciding what happened.
 
 Device-code work `team list` uses live Graph display names. Extraction account names and `team current` are cached; verify ambiguous labels with `team info`. The send interface does not expose a Graph `mentions` payload, so raw `<at>` markup is not a verified notification mention.

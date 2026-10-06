@@ -886,7 +886,19 @@ export class TeamsClient {
   }
 
   async deleteMessage(teamId: string, channelId: string, messageId: string, rootMessageId?: string): Promise<void> {
-    await this.graph().request('POST', this.messagePath(teamId, channelId, messageId, rootMessageId) + '/softDelete')
+    // Resolve the exact team/channel/reply before writing to Chat Service, which
+    // uses the existing Skype token instead of Graph's broader delete scope.
+    const message = await this.getMessage(teamId, channelId, messageId, rootMessageId)
+    if (message.id !== messageId)
+      throw new TeamsError('Delete target did not match the message.', 'delete_target_mismatch')
+    if (message.deleted_at) return
+    const conversationId = rootMessageId ? `${channelId};messageid=${rootMessageId}` : channelId
+    const result = await this.request<{ errorCode?: number | string } | undefined>(
+      'DELETE',
+      `/users/ME/conversations/${segment(conversationId)}/messages/${segment(messageId)}`,
+    )
+    if (result?.errorCode !== undefined && Number(result.errorCode) !== 0)
+      throw new TeamsError(`Chat Service delete failed: ${result.errorCode}`, 'message_delete_failed')
   }
 
   async addReaction(

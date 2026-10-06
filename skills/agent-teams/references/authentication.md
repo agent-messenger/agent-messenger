@@ -85,7 +85,7 @@ The default is `~/.config/agent-messenger/teams-credentials.json`, with owner-on
 - Refresh failure: reconnect the same account explicitly; do not extract another identity.
 - 403 on a channel/file: inspect the specific delegated scope, tenant policy and membership. Login is not an admin grant.
 - Channel reactions require `ChannelMessage.Send` and Unicode reaction input. Legacy Teams names are converted by the client.
-- Channel deletion requires `ChannelMessage.ReadWrite`, which the default first-party login may not grant. Send and reaction success do not establish delete permission.
+- Channel deletion resolves the exact target with Graph, then uses the existing Skype token on Chat Service. It does not request extra Graph delete consent. The account must still have permission to delete that message under Teams policy.
 - Replies need `--thread <root-id>` for get/delete/reactions.
 - Expired manually supplied Skype token: obtain a fresh credential for the intended account; a raw Skype token cannot enable Graph methods.
 

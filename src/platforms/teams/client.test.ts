@@ -614,7 +614,8 @@ describe('TeamsClient', () => {
   })
 
   describe('Graph message mutations and directory', () => {
-    it('gets a message and uses softDelete, setReaction and unsetReaction', async () => {
+    it('resolves a message, deletes through Chat Service and uses Graph reactions', async () => {
+      mockResponse(graphMessage())
       mockResponse(graphMessage())
       mockResponse(null, 204)
       mockResponse(null, 204)
@@ -626,11 +627,16 @@ describe('TeamsClient', () => {
       await client.removeReaction('111', 'ch1', 'm1', 'like')
       expect(fetchCalls.map((c) => [c.url.split('/').pop(), c.options?.method])).toEqual([
         ['m1', 'GET'],
-        ['softDelete', 'POST'],
+        ['m1', 'GET'],
+        ['m1', 'DELETE'],
         ['setReaction', 'POST'],
         ['unsetReaction', 'POST'],
       ])
-      expect(JSON.parse(String(fetchCalls[2].options?.body))).toEqual({ reactionType: '👍' })
+      expect(fetchCalls[2].url).toBe(
+        'https://emea.ng.msg.teams.microsoft.com/v1/users/ME/conversations/ch1/messages/m1',
+      )
+      expect(headerValue(fetchCalls[2].options, 'X-Skypetoken')).toBe('skype-token')
+      expect(JSON.parse(String(fetchCalls[3].options?.body))).toEqual({ reactionType: '👍' })
     })
     it('maps membership userId and directory mail', async () => {
       mockResponse({ value: [{ id: 'member-id', userId: 'u1', displayName: 'Test User', email: 'test@example.test' }] })
