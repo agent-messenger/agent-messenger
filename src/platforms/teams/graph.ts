@@ -8,7 +8,7 @@ export const segment = (value: string): string => encodeURIComponent(value)
 // Render text for agents while retaining the untouched server body separately.
 export function messageText(html: string): string {
   return html
-    .replace(/<br\s*\/?\s*>/gi, '\n')
+    .replace(/<br\s*\/?\s*>(?:[ \t]*\r?\n)?/gi, '\n')
     .replace(/<\/(?:p|div|li|h[1-6]|blockquote|pre)>\s*(?=<|$)/gi, '\n')
     .replace(/<[^>]*>/g, '')
     .replace(

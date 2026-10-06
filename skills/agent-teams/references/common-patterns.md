@@ -1,640 +1,115 @@
 # Common Patterns
 
-## Overview
+Use the account and exact destinations authorized by the user. Channel names are labels; resolve them to IDs before a write.
 
-This guide covers typical workflows for AI agents interacting with Microsoft Teams using agent-teams.
+## Sign in and resolve the destination
 
-**Important**: Teams uses UUID-style channel IDs (like `19:abc123@thread.tacv2`). You cannot use channel names directly - always get IDs from `channel list` first.
-
-**CRITICAL**: Teams tokens expire in 60-90 minutes! All patterns include token refresh handling.
-
-## Pattern 1: Send a Simple Message
-
-**Use case**: Post a notification or update to a channel
+Work/school channels, directory, files and search require device-code authentication. Sign in once, then let the CLI refresh the same account silently:
 
 ```bash
-#!/bin/bash
-
-TEAM_ID="team-uuid-here"
-
-# First, ensure token is valid
-agent-teams auth extract 2>/dev/null || true
-
-# Get channel ID from channel list
-CHANNELS=$(agent-teams channel list "$TEAM_ID")
-CHANNEL_ID=$(echo "$CHANNELS" | jq -r '.[] | select(.name=="General") | .id')
-
-# Send message using channel ID
-agent-teams message send "$TEAM_ID" "$CHANNEL_ID" "Deployment completed successfully!"
-
-# With error handling
-RESULT=$(agent-teams message send "$TEAM_ID" "$CHANNEL_ID" "Hello world")
-if echo "$RESULT" | jq -e '.id' > /dev/null 2>&1; then
-  echo "Message sent!"
-else
-  ERROR=$(echo "$RESULT" | jq -r '.error')
-
-  # Handle token expiry
-  if echo "$ERROR" | grep -qi "expired\|401"; then
-    echo "Token expired, refreshing..."
-    agent-teams auth extract
-    agent-teams message send "$TEAM_ID" "$CHANNEL_ID" "Hello world"
-  else
-    echo "Failed: $ERROR"
-    exit 1
-  fi
-fi
+agent-teams auth login --email user@example.com --account-type work
+agent-teams --account work auth status
+agent-teams --account work team list
+agent-teams --account work channel list "$TEAM_ID"
 ```
 
-**When to use**: Simple one-off messages after looking up the channel ID.
+If refresh fails, reconnect with `auth login`. Do not run `auth extract` in a channel automation wrapper: it replaces refresh credentials with a Skype-only account. Automatic extraction is suppressed when any stored device-code account exists, including when another account type is selected.
 
-## Pattern 2: Monitor Channel for New Messages (with Token Refresh)
+`team list` uses live Graph display names for device-code work accounts. Extraction accounts retain cached team labels, which can be channel topics. SDK users can call `listJoinedTeams()` for authoritative Graph names; `listTeams()` remains the Skype discovery method.
 
-**Use case**: Watch a channel and respond to new messages
+## Send once and retain the receipt
 
 ```bash
 #!/bin/bash
+set -euo pipefail
 
+# Set these only after resolving the authorized destination.
 TEAM_ID="team-uuid-here"
 CHANNEL_ID="19:abc123@thread.tacv2"
-LAST_ID=""
-TOKEN_CHECK_INTERVAL=300  # Check token every 5 minutes
 
-last_token_check=$(date +%s)
+# Reads may be repeated safely.
+agent-teams --account work message list "$TEAM_ID" "$CHANNEL_ID" --limit 10
 
-refresh_token_if_needed() {
-  local now=$(date +%s)
-  local elapsed=$((now - last_token_check))
-
-  if [ $elapsed -gt $TOKEN_CHECK_INTERVAL ]; then
-    STATUS=$(agent-teams auth status)
-    EXPIRES_SOON=$(echo "$STATUS" | jq -r '.token_expires_soon // true')
-
-    if [ "$EXPIRES_SOON" = "true" ]; then
-      echo "Token expiring soon, refreshing..."
-      agent-teams auth extract
-    fi
-
-    last_token_check=$now
-  fi
-}
-
-while true; do
-  # Proactively refresh token
-  refresh_token_if_needed
-
-  # Get latest message
-  MESSAGES=$(agent-teams message list "$TEAM_ID" "$CHANNEL_ID" --limit 1)
-
-  # Handle token expiry error
-  if echo "$MESSAGES" | jq -e '.error' | grep -qi "expired\|401" 2>/dev/null; then
-    echo "Token expired, refreshing..."
-    agent-teams auth extract
-    continue
-  fi
-
-  LATEST_ID=$(echo "$MESSAGES" | jq -r '.[0].id // ""')
-
-  # Check if new message
-  if [ "$LATEST_ID" != "$LAST_ID" ] && [ -n "$LAST_ID" ]; then
-    CONTENT=$(echo "$MESSAGES" | jq -r '.[0].content')
-    AUTHOR=$(echo "$MESSAGES" | jq -r '.[0].author')
-
-    echo "New message from $AUTHOR: $CONTENT"
-
-    # Process message here
-    if echo "$CONTENT" | grep -q "bot"; then
-      agent-teams message send "$TEAM_ID" "$CHANNEL_ID" "You called?"
-    fi
-  fi
-
-  LAST_ID="$LATEST_ID"
-  sleep 5
-done
-```
-
-**When to use**: Building a simple bot that reacts to messages.
-
-**Limitations**: Polling-based, not real-time. Token must be refreshed every 60-90 minutes.
-
-## Pattern 3: Get Team Overview
-
-**Use case**: Understand team state before taking action
-
-```bash
-#!/bin/bash
-
-# Ensure fresh token
-agent-teams auth extract 2>/dev/null || true
-
-# Get brief snapshot (default — fast, minimal output)
-SNAPSHOT=$(agent-teams snapshot)
-
-# Extract key information
-TEAM_NAME=$(echo "$SNAPSHOT" | jq -r '.team.name // "Unknown"')
-CHANNEL_COUNT=$(echo "$SNAPSHOT" | jq -r '.channels | length')
-
-echo "Team: $TEAM_NAME"
-echo "Channels: $CHANNEL_COUNT"
-
-# List all channels
-echo -e "\nChannels:"
-echo "$SNAPSHOT" | jq -r '.channels[] | "  #\(.name) (\(.id))"'
-
-# Then drill into a specific channel for recent activity
-CHANNEL_ID=$(echo "$SNAPSHOT" | jq -r '.channels[0].id // empty')
-TEAM_ID=$(echo "$SNAPSHOT" | jq -r '.team.id // empty')
-if [ -n "$TEAM_ID" ] && [ -n "$CHANNEL_ID" ]; then
-  echo -e "\nRecent messages:"
-  agent-teams message list "$TEAM_ID" "$CHANNEL_ID" --limit 10
-fi
-```
-
-**When to use**: Initial context gathering, status reports, team summaries. Start with brief snapshot, then use `message list <team-id> <channel-id>` or `member list <team-id>` for details.
-
-## Pattern 4: Find Channel by Name
-
-**Use case**: Get channel ID from channel name
-
-```bash
-#!/bin/bash
-
-TEAM_ID="team-uuid-here"
-
-get_channel_id() {
-  local channel_name=$1
-
-  CHANNELS=$(agent-teams channel list "$TEAM_ID")
-  CHANNEL_ID=$(echo "$CHANNELS" | jq -r --arg name "$channel_name" '.[] | select(.name==$name) | .id')
-
-  if [ -z "$CHANNEL_ID" ]; then
-    echo "Channel #$channel_name not found" >&2
-    return 1
-  fi
-
-  echo "$CHANNEL_ID"
-}
-
-# Usage
-GENERAL_ID=$(get_channel_id "General")
-if [ $? -eq 0 ]; then
-  agent-teams message send "$TEAM_ID" "$GENERAL_ID" "Hello!"
-fi
-```
-
-**When to use**: When you know channel name but need the ID.
-
-## Pattern 5: Multi-Channel Broadcast
-
-**Use case**: Send the same message to multiple channels
-
-```bash
-#!/bin/bash
-
-TEAM_ID="team-uuid-here"
-MESSAGE="System maintenance in 30 minutes"
-CHANNEL_NAMES=("General" "Announcements" "Engineering")
-
-# Ensure fresh token before bulk operation
-agent-teams auth extract
-
-# Get all channels once
-CHANNELS=$(agent-teams channel list "$TEAM_ID")
-
-for name in "${CHANNEL_NAMES[@]}"; do
-  CHANNEL_ID=$(echo "$CHANNELS" | jq -r --arg n "$name" '.[] | select(.name==$n) | .id')
-
-  if [ -z "$CHANNEL_ID" ]; then
-    echo "Channel #$name not found, skipping"
-    continue
-  fi
-
-  echo "Posting to #$name..."
-  RESULT=$(agent-teams message send "$TEAM_ID" "$CHANNEL_ID" "$MESSAGE")
-
-  if echo "$RESULT" | jq -e '.id' > /dev/null 2>&1; then
-    echo "  Posted to #$name"
-  else
-    echo "  Failed to post to #$name"
-  fi
-
-  # Rate limit: Don't spam Teams API
-  sleep 1
-done
-```
-
-**When to use**: Announcements, alerts, status updates across channels.
-
-## Pattern 6: File Upload with Context
-
-**Use case**: Share a file with explanation
-
-```bash
-#!/bin/bash
-
-TEAM_ID="team-uuid-here"
-CHANNEL_ID="19:abc123@thread.tacv2"
-REPORT_FILE="./daily-report.pdf"
-
-# Upload file
-UPLOAD_RESULT=$(agent-teams file upload "$TEAM_ID" "$CHANNEL_ID" "$REPORT_FILE")
-
-if echo "$UPLOAD_RESULT" | jq -e '.id' > /dev/null 2>&1; then
-  FILE_ID=$(echo "$UPLOAD_RESULT" | jq -r '.id')
-  echo "File uploaded: $FILE_ID"
-
-  # Send context message
-  agent-teams message send "$TEAM_ID" "$CHANNEL_ID" "Daily report is ready! Key highlights:
-- 95% test coverage
-- 3 bugs fixed
-- 2 new features deployed"
+# Attempt the write once. Preserve stdout, stderr and the exit code.
+if RESULT=$(agent-teams --account work message send "$TEAM_ID" "$CHANNEL_ID" "Deployment completed"); then
+  printf '%s\n' "$RESULT" | jq -e '.id'
 else
-  echo "Upload failed: $(echo "$UPLOAD_RESULT" | jq -r '.error')"
+  printf '%s\n' "$RESULT" >&2
+  echo 'Send failed or is uncertain. Inspect channel history before another attempt.' >&2
   exit 1
 fi
 ```
 
-**When to use**: Automated reporting, log sharing, artifact distribution.
+Mutation requests are never automatically replayed after 429, 5xx or a lost response. A network/parse error can occur after Microsoft has accepted a write. Inspect exact history, sender and server message IDs before deciding what to do. Authentication repair does not establish that an earlier message was unsent. A readback missing a message immediately is also insufficient proof of non-delivery.
 
-## Pattern 7: User Lookup and Mention
+The upstream CLI has no durable job ledger or server idempotency key. Applications that retry jobs need their own persisted reservation, result and uncertain state. Keep one job ID through the whole attempt and stop automatic resends when the result is uncertain.
 
-**Use case**: Find a user and mention them in a message
+## Root posts, replies and reactions
+
+```bash
+agent-teams message send "$TEAM_ID" "$CHANNEL_ID" "Reply body" --thread "$ROOT_ID"
+agent-teams message replies "$TEAM_ID" "$CHANNEL_ID" "$ROOT_ID" --limit 50
+agent-teams message get "$TEAM_ID" "$CHANNEL_ID" "$REPLY_ID" --thread "$ROOT_ID"
+agent-teams reaction add "$TEAM_ID" "$CHANNEL_ID" "$ROOT_ID" '👍'
+agent-teams reaction remove "$TEAM_ID" "$CHANNEL_ID" "$ROOT_ID" '👍'
+agent-teams reaction add "$TEAM_ID" "$CHANNEL_ID" "$REPLY_ID" like --thread "$ROOT_ID"
+```
+
+Reaction input accepts Unicode, plus the names `like`, `heart`, `laugh`, `surprised`, `sad` and `angry`, converted to Unicode for Graph. A reply requires its root ID for get/delete/reaction operations. Channel reactions require `ChannelMessage.Send`; deletion requires the separate `ChannelMessage.ReadWrite` scope. Sending successfully does not prove deletion permission.
+
+```bash
+# Delete only the authorized message. This can fail with 403 if the scope is absent.
+agent-teams message delete "$TEAM_ID" "$CHANNEL_ID" "$REPLY_ID" --thread "$ROOT_ID" --force
+```
+
+## Faithful reads and search
+
+```bash
+agent-teams message list "$TEAM_ID" "$CHANNEL_ID" --limit 100
+agent-teams message search 'project name' --limit 20 --from 0
+agent-teams chat list
+agent-teams chat history "$CHAT_ID" --page --limit 50
+agent-teams chat history "$CHAT_ID" --cursor "$NEXT_CURSOR" --limit 50
+```
+
+Default history returns an array and follows pages. `--page` or `--cursor` returns `{messages, next_cursor}`. Follow cursors until absent and persist your position for resumable collection. Chat media and system records are retained. `content` is rendered text; `raw_content`, `content_type`, `mentions`, `attachments` and `raw` retain the server representation. HTML source newlines after `<br>` do not add duplicate blank lines.
+
+Search uses Substrate and returns indexed previews, with original results in `raw`. Plain previews preserve literal angle brackets and entities. Use exact history/get to retrieve the full source message. Search may lag newly sent messages.
+
+## Read-only polling
 
 ```bash
 #!/bin/bash
-
-TEAM_ID="team-uuid-here"
-CHANNEL_ID="19:abc123@thread.tacv2"
-USERNAME="john"
-
-# Get team members
-USERS=$(agent-teams user list "$TEAM_ID")
-USER=$(echo "$USERS" | jq -r --arg name "$USERNAME" 'first(.[] | select(.displayName | ascii_downcase | contains($name | ascii_downcase)))')
-USER_ID=$(echo "$USER" | jq -r '.id')
-USER_NAME=$(echo "$USER" | jq -r '.displayName')
-
-if [ -z "$USER_ID" ] || [ "$USER_ID" = "null" ]; then
-  echo "User $USERNAME not found"
-  exit 1
-fi
-
-# Send message with mention (Teams format)
-agent-teams message send "$TEAM_ID" "$CHANNEL_ID" "Hey <at id=\"$USER_ID\">$USER_NAME</at>, the build is ready for review!" --format html
-```
-
-**When to use**: Notifications, task assignments, code review requests.
-
-**Note**: Teams mentions use format `<at id="USER_ID">Display Name</at>` and require `--format html` — in the default `text` mode the tags are escaped and render literally.
-
-## Pattern 8: Reaction-Based Workflow
-
-**Use case**: Use reactions as simple state indicators
-
-```bash
-#!/bin/bash
-
-TEAM_ID="team-uuid-here"
-CHANNEL_ID="19:abc123@thread.tacv2"
-
-# Send deployment message
-RESULT=$(agent-teams message send "$TEAM_ID" "$CHANNEL_ID" "Deploying v2.1.0 to production...")
-MSG_ID=$(echo "$RESULT" | jq -r '.id')
-
-# Mark as in-progress
-agent-teams reaction add "$TEAM_ID" "$CHANNEL_ID" "$MSG_ID" "hourglass"
-
-# Simulate deployment
-sleep 5
-
-# Remove in-progress, add success
-agent-teams reaction remove "$TEAM_ID" "$CHANNEL_ID" "$MSG_ID" "hourglass"
-agent-teams reaction add "$TEAM_ID" "$CHANNEL_ID" "$MSG_ID" "checkmark"
-
-# Send completion message
-agent-teams message send "$TEAM_ID" "$CHANNEL_ID" "Deployed v2.1.0 to production successfully!"
-```
-
-**When to use**: Visual status tracking, workflow states, quick acknowledgments.
-
-## Pattern 9: Error Handling with Token Refresh
-
-**Use case**: Robust message sending with retries and token refresh
-
-```bash
-#!/bin/bash
-
-TEAM_ID="team-uuid-here"
-
-send_with_retry() {
-  local team_id=$1
-  local channel_id=$2
-  local message=$3
-  local max_attempts=3
-  local attempt=1
-
-  while [ $attempt -le $max_attempts ]; do
-    echo "Attempt $attempt/$max_attempts..."
-
-    RESULT=$(agent-teams message send "$team_id" "$channel_id" "$message")
-
-    if echo "$RESULT" | jq -e '.id' > /dev/null 2>&1; then
-      echo "Message sent successfully!"
-      return 0
-    fi
-
-    ERROR=$(echo "$RESULT" | jq -r '.error // "Unknown error"')
-    echo "Failed: $ERROR"
-
-    # Handle token expiry - refresh and retry
-    if echo "$ERROR" | grep -qi "expired\|401\|unauthorized"; then
-      echo "Token expired, refreshing..."
-      agent-teams auth extract
-      # Don't count this as an attempt
-      continue
-    fi
-
-    # Don't retry on certain errors
-    if echo "$ERROR" | grep -q "Channel not found"; then
-      echo "Channel not found - not retrying"
-      return 1
-    fi
-
-    if [ $attempt -lt $max_attempts ]; then
-      sleep $((attempt * 2))  # Exponential backoff
-    fi
-
-    attempt=$((attempt + 1))
-  done
-
-  echo "Failed after $max_attempts attempts"
-  return 1
-}
-
-# Usage
-CHANNEL_ID="19:abc123@thread.tacv2"
-send_with_retry "$TEAM_ID" "$CHANNEL_ID" "Important message!"
-```
-
-**When to use**: Production scripts, critical notifications, unreliable networks.
-
-## Pattern 10: Switch Teams for Operations
-
-**Use case**: Work with multiple Teams
-
-```bash
-#!/bin/bash
-
-# List all teams
-TEAMS=$(agent-teams team list)
-echo "Available teams:"
-echo "$TEAMS" | jq -r '.[] | "  \(.name) (\(.id)) \(if .current then "[current]" else "" end)"'
-
-# Switch to a specific team
-TARGET_TEAM=$(echo "$TEAMS" | jq -r '.[] | select(.name | contains("Production")) | .id')
-if [ -n "$TARGET_TEAM" ]; then
-  agent-teams team switch "$TARGET_TEAM"
-  echo "Switched to Production team"
-fi
-
-# Now operations use the new team
-agent-teams channel list "$TARGET_TEAM"
-```
-
-**When to use**: Managing multiple teams, cross-team operations.
-
-## Pattern 11: Token Refresh Wrapper (TEAMS-SPECIFIC)
-
-**Use case**: Wrap any operation with automatic token refresh
-
-```bash
-#!/bin/bash
-
-TEAM_ID="team-uuid-here"
-
-# Wrapper function that handles token refresh
-teams_cmd() {
-  local result
-
-  # First attempt
-  result=$("$@" 2>&1)
-
-  # Check for token expiry
-  if echo "$result" | grep -qi "expired\|401\|unauthorized"; then
-    echo "Token expired, refreshing..." >&2
-    agent-teams auth extract >&2
-
-    # Retry
-    result=$("$@" 2>&1)
-  fi
-
-  echo "$result"
-}
-
-# Usage - wrap any agent-teams command
-CHANNELS=$(teams_cmd agent-teams channel list "$TEAM_ID")
-RESULT=$(teams_cmd agent-teams message send "$TEAM_ID" "$CHANNEL_ID" "Hello!")
-SNAPSHOT=$(teams_cmd agent-teams snapshot)
-```
-
-**When to use**: Any script that runs for more than a few minutes.
-
-## Pattern 12: Personal Account Chats (No Teams)
-
-**Use case**: Message from a personal Microsoft account (`@outlook.com` / `@live.com`), which has no teams or channels — only 1:1, group, and self ("to me") chats
-
-```bash
-#!/bin/bash
-
-# Personal accounts have no teams, so `team list` is empty and team/channel
-# commands fail with "No current team set". Use the `chat` commands instead.
-
-agent-teams auth extract 2>/dev/null || true
-
-# List chats (type is oneOnOne, group, or self)
-CHATS=$(agent-teams chat list)
-echo "$CHATS" | jq -r '.[] | "  \(.type): \(.id) — \(.topic // .last_message // "")"'
-
-# Pick a chat ID (here: the self "to me" notes thread)
-CHAT_ID=$(echo "$CHATS" | jq -r '.[] | select(.type=="self") | .id')
-
-# Read history and send a message
-agent-teams chat history "$CHAT_ID" --limit 20
-agent-teams chat send "$CHAT_ID" "Reminder: stand-up at 10am"
-```
-
-**When to use**: Any workflow on a personal/consumer Teams account. Get chat IDs from `chat list` — they look like `19:guid1_guid2@unq.gbl.spaces` (1:1), `19:guid@thread.tacv2` (group), or `48:notes` (self).
-
-**Note**: Work accounts also have 1:1 and group chats and can use these same `chat` commands.
-
-## Best Practices
-
-### 1. Always Handle Token Expiry
-
-```bash
-# Good - handle token expiry
-RESULT=$(agent-teams message send "$TEAM_ID" "$CHANNEL_ID" "Hello")
-if echo "$RESULT" | grep -qi "expired\|401"; then
-  agent-teams auth extract
-  RESULT=$(agent-teams message send "$TEAM_ID" "$CHANNEL_ID" "Hello")
-fi
-
-# Bad - assume token is always valid
-agent-teams message send "$TEAM_ID" "$CHANNEL_ID" "Hello"
-```
-
-### 2. Refresh Token Proactively for Long-Running Scripts
-
-```bash
-# Good - check token age periodically
+set -euo pipefail
 while true; do
-  STATUS=$(agent-teams auth status)
-  if [ "$(echo "$STATUS" | jq -r '.token_expires_soon')" = "true" ]; then
-    agent-teams auth extract
-  fi
-
-  # Do work...
-  sleep 60
-done
-
-# Bad - wait for failure
-while true; do
-  agent-teams message send "$TEAM_ID" "$CHANNEL_ID" "Status update"  # Will fail after 60-90 min
-  sleep 60
-done
-```
-
-### 3. Always Get Channel IDs First
-
-```bash
-# Good - look up channel ID
-CHANNELS=$(agent-teams channel list "$TEAM_ID")
-CHANNEL_ID=$(echo "$CHANNELS" | jq -r '.[] | select(.name=="General") | .id')
-agent-teams message send "$TEAM_ID" "$CHANNEL_ID" "Hello"
-
-# Bad - hardcoded IDs without documentation
-agent-teams message send "$TEAM_ID" "19:abc123@thread.tacv2" "Hello"
-```
-
-### 4. Check for Success
-
-```bash
-# Good
-RESULT=$(agent-teams message send "$TEAM_ID" "$CHANNEL_ID" "Hello")
-if echo "$RESULT" | jq -e '.id' > /dev/null 2>&1; then
-  echo "Success!"
-else
-  echo "Failed: $(echo "$RESULT" | jq -r '.error')"
-fi
-
-# Bad
-agent-teams message send "$TEAM_ID" "$CHANNEL_ID" "Hello"  # No error checking
-```
-
-### 5. Rate Limit Your Requests
-
-```bash
-# Good - respect Teams API limits
-for channel_id in "${CHANNEL_IDS[@]}"; do
-  agent-teams message send "$TEAM_ID" "$channel_id" "$MESSAGE"
-  sleep 1  # 1 second between requests
-done
-
-# Bad - rapid-fire requests
-for channel_id in "${CHANNEL_IDS[@]}"; do
-  agent-teams message send "$TEAM_ID" "$channel_id" "$MESSAGE"
-done
-```
-
-### 6. Cache Channel Lists
-
-```bash
-# Good - fetch once, reuse
-CHANNELS=$(agent-teams channel list "$TEAM_ID")
-for name in "${CHANNEL_NAMES[@]}"; do
-  id=$(echo "$CHANNELS" | jq -r --arg n "$name" '.[] | select(.name==$n) | .id')
-  agent-teams message send "$TEAM_ID" "$id" "$MESSAGE"
-done
-
-# Bad - fetch repeatedly
-for name in "${CHANNEL_NAMES[@]}"; do
-  CHANNELS=$(agent-teams channel list "$TEAM_ID")  # Wasteful!
-  id=$(echo "$CHANNELS" | jq -r --arg n "$name" '.[] | select(.name==$n) | .id')
-  agent-teams message send "$TEAM_ID" "$id" "$MESSAGE"
-done
-```
-
-## Anti-Patterns
-
-### Don't Ignore Token Expiry
-
-```bash
-# Bad - ignores the 60-90 minute token limit
-while true; do
-  agent-teams message list "$TEAM_ID" "$CHANNEL_ID" --limit 1
-  sleep 10
-done
-# Will fail silently after ~1 hour
-
-# Good - handle token refresh
-while true; do
-  # Check and refresh token periodically
-  if should_refresh_token; then
-    agent-teams auth extract
-  fi
-
-  agent-teams message list "$TEAM_ID" "$CHANNEL_ID" --limit 1
+  agent-teams --account work message list "$TEAM_ID" "$CHANNEL_ID" --limit 20
   sleep 10
 done
 ```
 
-### Don't Poll Too Frequently
+Device-code refresh happens in the CLI. Stop and reconnect if it fails. Polling the latest page is a convenience, not a complete collector: use IDs, overlap and pagination to avoid missed records. Do not attach automatic replies without authorization and a persisted processing ledger.
+
+## Files and mentions
+
+Channel file commands use Graph drive folders:
 
 ```bash
-# Bad - polls every second (may get rate limited)
-while true; do
-  agent-teams message list "$TEAM_ID" "$CHANNEL_ID" --limit 1
-  sleep 1
-done
-
-# Good - reasonable interval
-while true; do
-  agent-teams message list "$TEAM_ID" "$CHANNEL_ID" --limit 1
-  sleep 10  # 10 seconds
-done
+agent-teams file list "$TEAM_ID" "$CHANNEL_ID"
+agent-teams file upload "$TEAM_ID" "$CHANNEL_ID" ./report.txt
+agent-teams file download "$TEAM_ID" "$CHANNEL_ID" "$FILE_ID" ./downloaded.txt
 ```
 
-### Don't Ignore Errors
+Upload places a file in the folder; it does not attach it to a message. An existing filename can be replaced, so resolve a unique name before an authorized upload. File metadata in a message does not download the binary automatically.
 
-```bash
-# Bad
-agent-teams message send "$TEAM_ID" "$CHANNEL_ID" "Hello"
-# Continues even if it failed
+Raw `<at>` markup by itself is not a verified notification mention. Graph posts require a matching `mentions` payload, which the current send interface does not expose. Do not claim a user was notified merely because text looks like a mention.
 
-# Good
-RESULT=$(agent-teams message send "$TEAM_ID" "$CHANNEL_ID" "Hello")
-if ! echo "$RESULT" | jq -e '.id' > /dev/null 2>&1; then
-  echo "Failed to send message"
-  exit 1
-fi
-```
+## Account types and real-time events
 
-### Don't Spam Channels
+Personal accounts use chat commands, including `48:notes` for self chat. Work accounts can use those commands too. Graph channel operations do not support personal accounts.
 
-```bash
-# Bad - sends 100 messages
-for i in {1..100}; do
-  agent-teams message send "$TEAM_ID" "$CHANNEL_ID" "Message $i"
-done
+`TeamsListener` is SDK-only and additionally extracts a desktop/browser token for its WebSocket. Device-code API success alone does not verify real-time reception. Meeting, calling and calendar workflows are separate capabilities.
 
-# Good - batch into single message
-MESSAGE="Updates:"
-for i in {1..100}; do
-  MESSAGE="$MESSAGE\n$i. Item $i"
-done
-agent-teams message send "$TEAM_ID" "$CHANNEL_ID" "$MESSAGE"
-```
+## References
 
-## See Also
-
-- [Authentication Guide](authentication.md) - Setting up credentials and token management
-- [Templates](../templates/) - Runnable example scripts
+- [Authentication Guide](authentication.md)
+- [Templates](../templates/)

@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from 'bun:test'
 
 import { TeamsClient } from './client'
+import { messageText } from './graph'
 
 describe('Teams Graph transport regressions', () => {
   const originalFetch = globalThis.fetch
@@ -51,6 +52,57 @@ describe('Teams Graph transport regressions', () => {
       value: [{ id: 'membership-id', userId: 'user-1', displayName: 'Example User', email: 'user@example.test' }],
     })
     expect((await client.listUsers('team-1'))[0].id).toBe('user-1')
+  })
+
+  it('lists joined team names from Graph rather than channel topics', async () => {
+    respond({ value: [{ id: 'team-1', displayName: 'Example Team' }] })
+    expect(await client.listJoinedTeams()).toEqual([{ id: 'team-1', name: 'Example Team' }])
+    expect(calls[0].url).toBe('https://graph.microsoft.com/v1.0/me/joinedTeams')
+  })
+
+  it('does not duplicate line breaks added as HTML source formatting by Teams', () => {
+    expect(messageText('First<br>\nsecond<br>\r\nthird')).toBe('First\nsecond\nthird')
+    expect(messageText('First<br>\n<br>\r\nthird')).toBe('First\n\nthird')
+  })
+
+  it('accepts the empty 200 response returned after a successful Skype chat edit', async () => {
+    responses.push(new Response(null, { status: 200 }))
+    expect((await client.editChatMessage('chat-1', 'message-1', 'Edited')).content).toBe('Edited')
+    expect(calls).toHaveLength(1)
+  })
+
+  it('still rejects malformed nonempty JSON without replaying an edit', async () => {
+    responses.push(new Response('{broken', { status: 200 }))
+    await expect(client.editChatMessage('chat-1', 'message-1', 'Edited')).rejects.toThrow()
+    expect(calls).toHaveLength(1)
+  })
+
+  it('translates legacy reaction names to Graph Unicode and accepts Unicode directly', async () => {
+    respond(null, 204)
+    respond(null, 204)
+    respond(null, 204)
+    await client.addReaction('team-1', 'channel-1', 'message-1', 'like')
+    await client.removeReaction('team-1', 'channel-1', 'message-1', 'like')
+    await client.addReaction('team-1', 'channel-1', 'message-1', '💘')
+    expect(calls.map((call) => JSON.parse(String(call.options?.body)).reactionType)).toEqual(['👍', '👍', '💘'])
+  })
+
+  it('uses the nested reply route for reads, deletion and reactions', async () => {
+    respond({ ...message('reply-1'), replyToId: 'root-1' })
+    respond(null, 204)
+    respond(null, 204)
+    respond(null, 204)
+    expect((await client.getMessage('team-1', 'channel-1', 'reply-1', 'root-1')).root_message_id).toBe('root-1')
+    await client.deleteMessage('team-1', 'channel-1', 'reply-1', 'root-1')
+    await client.addReaction('team-1', 'channel-1', 'reply-1', 'like', 'root-1')
+    await client.removeReaction('team-1', 'channel-1', 'reply-1', 'like', 'root-1')
+    const path = 'https://graph.microsoft.com/v1.0/teams/team-1/channels/channel-1/messages/root-1/replies/reply-1'
+    expect(calls.map((call) => call.url)).toEqual([
+      path,
+      path + '/softDelete',
+      path + '/setReaction',
+      path + '/unsetReaction',
+    ])
   })
 
   it('preserves original HTML, attachments, mentions, line breaks and reply linkage', async () => {
@@ -172,6 +224,30 @@ describe('Teams archive and search regressions', () => {
       author: { id: '8:orgid:user-1', displayName: 'Example User' },
       raw,
     })
+  })
+
+  it('preserves angle brackets and entities in a plain search preview', async () => {
+    respond({
+      EntitySets: [
+        {
+          ResultSets: [
+            {
+              Results: [
+                {
+                  Source: {
+                    InternetMessageId: 'm1',
+                    ClientThreadId: 'chat-1',
+                    Preview: 'Use <T> &lt;value&gt; as the type',
+                  },
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    })
+    const [result] = await client.searchMessages('type')
+    expect(result.content).toBe('Use <T> &lt;value&gt; as the type')
   })
 
   it('preserves media and system records and follows chat history cursors', async () => {

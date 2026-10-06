@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, spyOn, it } from 'bun:test'
 
 import { TeamsClient } from './client'
 import { TeamsCredentialManager } from './credential-manager'
+import * as deviceLogin from './device-login'
 import { ensureTeamsAuth } from './ensure-auth'
 import { TeamsTokenExtractor } from './token-extractor'
 
@@ -339,4 +340,52 @@ it('never replaces an expired device-code account with an extracted browser acco
   await ensureTeamsAuth()
   expect(extractSpy).not.toHaveBeenCalled()
   expect(saveConfigSpy).not.toHaveBeenCalled()
+})
+
+it('does not extract another account when refreshing the device-code account fails', async () => {
+  const refresh = spyOn(deviceLogin, 'refreshDeviceCodeAccount').mockResolvedValue(false)
+  loadConfigSpy.mockResolvedValue({
+    current_account: 'work',
+    accounts: {
+      work: {
+        token: 'expired',
+        token_expires_at: '2000-01-01T00:00:00Z',
+        account_type: 'work',
+        auth_method: 'device-code',
+        aad_refresh_token: 'fixture-refresh',
+        current_team: null,
+        teams: {},
+      },
+    },
+  })
+  try {
+    await ensureTeamsAuth()
+    expect(refresh).toHaveBeenCalledWith('work', expect.any(TeamsCredentialManager))
+    expect(extractSpy).not.toHaveBeenCalled()
+    expect(saveConfigSpy).not.toHaveBeenCalled()
+  } finally {
+    refresh.mockRestore()
+  }
+})
+
+it('cannot replace device-code work credentials while bootstrapping an overridden personal account', async () => {
+  const previous = TeamsCredentialManager.accountOverride
+  TeamsCredentialManager.accountOverride = 'personal'
+  const account = {
+    token: 'expired',
+    token_expires_at: '2000-01-01T00:00:00Z',
+    account_type: 'work' as const,
+    auth_method: 'device-code' as const,
+    aad_refresh_token: 'fixture-refresh',
+    current_team: null,
+    teams: {},
+  }
+  loadConfigSpy.mockResolvedValue({ current_account: 'work', accounts: { work: account } })
+  try {
+    await ensureTeamsAuth()
+    expect(extractSpy).not.toHaveBeenCalled()
+    expect(saveConfigSpy).not.toHaveBeenCalled()
+  } finally {
+    TeamsCredentialManager.accountOverride = previous
+  }
 })

@@ -16,12 +16,15 @@ metadata:
 
 # Agent Teams
 
-A TypeScript CLI tool that enables AI agents and humans to interact with Microsoft Teams through a simple command interface. Features seamless token extraction from the Teams desktop app (with browser fallback) and multi-team support.
+A TypeScript CLI and SDK for Microsoft Teams. Work/school channels, directory and files use Graph; chats use the Skype messaging service and search uses Substrate.
 
 ## Quick Start
 
 ```bash
-# Get team snapshot (credentials are extracted automatically)
+# Sign in for channel, directory, file and search operations
+agent-teams auth login --email user@example.com --account-type work
+
+# Get team snapshot
 agent-teams snapshot
 
 # Send a message
@@ -33,14 +36,14 @@ agent-teams channel list <team-id>
 
 ## Authentication
 
-Two co-equal ways to sign in — pick whichever fits:
+Choose authentication by the required operations:
 
 1. **`agent-teams auth login`** (work/school **or** personal Microsoft accounts) — device-code sign-in. Open the printed URL, enter the code, and approve in your browser. No desktop app or browser extraction needed. It prompts for your Microsoft email (or pass `--email <email>`) and auto-detects work vs personal, then starts the matching flow; pass `--account-type work|personal` to force it and skip detection. Only `auth login` stores the AAD refresh token required by `message search`.
-2. **`agent-teams auth extract`** — zero-config extraction from the Teams desktop app, falling back to a Chromium browser. Best when you're already signed into Teams locally. Yields a Skype token only — sufficient for messaging, but **not** for `message search` (see below).
+2. **`agent-teams auth extract`** supplies a Skype token from desktop/browser cookies for chats and legacy discovery. It cannot mint the Graph/Substrate tokens required by channel, directory, file and search operations.
 
-Credentials are also extracted automatically on first use of any command if none are stored, so `auth extract` can happen silently in the background.
+Automatic extraction can happen when no device-code account is stored. If any stored account uses device-code, automatic extraction is suppressed, including when another account type is selected. A failed refresh therefore cannot overwrite a deliberate login with another desktop/browser identity.
 
-Teams tokens are short-lived (60-90 minutes for extraction, a few hours for device-code). **Device-code accounts (`auth login`) refresh silently** — the CLI re-mints an expired token from the stored refresh token with no re-login needed. Extraction accounts re-extract automatically as long as you're still signed into the Teams desktop app or a supported browser; if that fails, re-run `auth extract` (or switch to `auth login`).
+Tokens are short-lived. Device-code accounts refresh silently for the selected account. If refresh fails, reconnect explicitly with `auth login`. Running `auth extract` explicitly can discard the account's AAD refresh credentials; do not use it as a generic channel/search repair wrapper.
 
 ### Non-interactive `auth login` (agents / CI)
 
@@ -164,7 +167,7 @@ If a memorized ID returns an error (channel not found, team not found), remove i
 ### Auth Commands
 
 ```bash
-# Sign in via device code (personal Microsoft accounts).
+# Sign in via device code (work/school or personal Microsoft accounts).
 agent-teams auth login
 agent-teams auth login --device-code <code>   # finish a non-interactive login
 
@@ -290,11 +293,7 @@ Heading levels 5 and 6 are unusable: the Teams client renders `<h5>` and `<h6>` 
 
 Links are restricted to `http:`, `https:`, `mailto:`, root-relative (`/`), and anchor (`#`) URLs; anything else renders as plain text.
 
-In `html` mode the content is filtered through a tag whitelist rather than sent verbatim. Use it when you need Teams-specific markup that markdown cannot express — most commonly @mentions:
-
-```bash
-agent-teams message send <team-id> <channel-id> "Hey <at id=\"29:abc\">John</at>, build is ready" --format html
-```
+In `html` mode content is filtered through a tag whitelist. This supports formatting, but raw `<at>` markup alone is not a notification mention: Graph requires a matching `mentions` payload that the current send interface does not expose.
 
 Allowed tags: `at`, `a`, `b`, `i`, `u`, `s`, `strong`, `em`, `code`, `pre`, `br`, `p`, `ul`, `ol`, `li`, `blockquote`, `h1`–`h6`, `hr`. `<at>` only keeps its `id` attribute; `<a>` only keeps `href`, and only when it matches the same URL whitelist as markdown mode; every other tag keeps no attributes at all. Anything not on the list — `<script>`, `<img>`, `on*` event attributes, malformed or unrecognized tags — is escaped or stripped rather than passed through.
 
@@ -362,7 +361,7 @@ agent-teams file download <team-id> <channel-id> <file-id> ./report.pdf
 agent-teams file download <team-id> <channel-id> <file-id> ./downloads/ --pretty
 ```
 
-`file download` output: `{ "id", "name", "size", "content_type", "path" }` where `path` is where the file was written. Inline/image attachments download with the extracted Skype token and work for any signed-in account; SharePoint/OneDrive documents download via Microsoft Graph and require an `auth login` account (cookie-only `auth extract` accounts get a clear error telling you to run `auth login`).
+`file download` returns `{ "id", "name", "size", "content_type", "path" }`. Channel file list/upload/download use Graph drive folders and require `auth login`. Upload places a file in the folder and does not attach it to a chat message. Message attachment metadata is retained separately; it does not imply binary download support for every attachment.
 
 ### Snapshot Command
 
@@ -398,6 +397,12 @@ With `--full`, returns comprehensive JSON with:
 
 ## Output Format
 
+Message reads retain `raw_content`, `content_type`, `mentions`, `attachments` and `raw` alongside rendered `content`. HTML source newlines after `<br>` do not create duplicate blank lines. Media and system records remain in chat history. Default history returns an array and follows pages; `chat history --page` or `--cursor` returns `{messages, next_cursor}` for resumable reads. Search returns indexed previews and `raw`; plain previews preserve literal angle brackets and entities. Use exact history/get for full source messages.
+
+Replies require `--thread <root-message-id>` for `message get`, `message delete`, `reaction add` and `reaction remove`. Reaction input accepts Unicode or the names `like`, `heart`, `laugh`, `surprised`, `sad`, `angry`. The client converts those names to Graph Unicode. Channel deletion needs `ChannelMessage.ReadWrite`; successful sending or reacting does not prove this permission is granted.
+
+GET requests retry transient rate limits/server errors. Search POST and mutations run once. A lost response or parse error can occur after a write succeeded. Preserve the attempt and inspect history before another send; do not put writes in automatic resend loops. The upstream CLI has no durable send ledger or server idempotency key.
+
 ### JSON (Default)
 
 All commands output JSON by default for AI consumption:
@@ -427,7 +432,7 @@ agent-teams channel list --pretty
 | Channel identifiers | UUID format (19:xxx@thread.tacv2) | Snowflake IDs  | Channel name or ID |
 | Token storage       | Cookies SQLite                    | LevelDB        | LevelDB            |
 | Token expiry        | **60-90 minutes**                 | Rarely expires | Rarely expires     |
-| Mentions            | `<at id="user-id">Name</at>` (needs `--format html`) | `<@user_id>`   | `<@USER_ID>`       |
+| Mentions            | Requires a Graph mentions payload (not exposed) | `<@user_id>`   | `<@USER_ID>`       |
 
 **Important**: Teams uses UUID-style channel IDs (like `19:abc123@thread.tacv2`). You cannot use channel names directly - use `channel list` to find IDs first.
 
@@ -486,16 +491,16 @@ import { TeamsClient, TeamsCredentialManager } from 'agent-messenger/teams'
 const manager = new TeamsCredentialManager()
 const creds = await manager.getTokenWithExpiry()
 if (!creds) {
-  throw new Error('Teams token not found. Run auth extract first.')
+  throw new Error('Teams token not found. Run auth login first.')
 }
-const client = await new TeamsClient().login({ token: creds.token, tokenExpiresAt: creds.tokenExpiresAt })
+const client = await new TeamsClient(manager).login({ ...creds })
 ```
 
 ### Example
 
 ```typescript
 // List teams
-const teams = await client.listTeams()
+const teams = await client.listJoinedTeams()
 
 // List channels in a team
 const channels = await client.listChannels(teams[0].id)
@@ -562,7 +567,8 @@ See the [Teams SDK documentation](https://agent-messenger.dev/docs/sdk/teams) fo
 - Personal accounts: chats only (no teams/channels); use the `chat` commands
 - No meeting support
 - No webhook support
-- Plain text messages only (no adaptive cards in v1)
+- Text, markdown and HTML messages, without adaptive card support
+- Notification mentions are not exposed by the send interface; raw `<at>` markup alone does not verify a mention
 - User tokens only (no app tokens)
 - **Tokens are short-lived** - device-code (`auth login`) accounts refresh silently from the stored refresh token; extraction accounts auto-refresh but need the Teams desktop app or browser to still be logged in
 

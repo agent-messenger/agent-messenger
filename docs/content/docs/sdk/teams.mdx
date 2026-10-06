@@ -17,10 +17,9 @@ import { TeamsClient, TeamsCredentialManager, TeamsError } from 'agent-messenger
 
 Work/school channel, directory and file methods use Microsoft Graph with the existing `TeamsTokenProvider`. Sign in with `agent-teams auth login` first; an extracted Skype token alone cannot access these methods. Private/group chats continue to use the Skype messaging service. Tenant policies and permissions can restrict individual operations.
 
+The main client for interacting with Microsoft Teams' API programmatically. GET requests include rate-limit handling and backoff on server errors. Search uses a POST and is not automatically retried. Mutations are attempted once to avoid duplicate delivery after an ambiguous response.
 
-The main client for interacting with Microsoft Teams' API programmatically. Read requests include rate-limit handling and backoff on server errors. Mutations are attempted once to avoid duplicate delivery after an ambiguous response.
-
-Teams tokens expire in 60-90 minutes. The client checks expiry before each request and throws a `TeamsError` with code `token_expired` when the token is stale. Re-run `agent-teams auth extract` to refresh.
+Skype tokens are short-lived and their expiry is checked before Skype requests. `.login()` refreshes a stored device-code account; manually supplied SDK credentials remain a snapshot. For long-running SDK use, obtain fresh credentials at job boundaries. Graph/Substrate bearer tokens are minted and cached separately. If device-code refresh fails, reconnect explicitly with `auth login`; `auth extract` cannot repair Graph capabilities.
 
 ```typescript
 import { TeamsClient } from 'agent-messenger/teams'
@@ -29,7 +28,7 @@ const client = await new TeamsClient().login({ token })
 // With expiry tracking: await new TeamsClient().login({ token, tokenExpiresAt: '2025-03-23T12:00:00Z' })
 ```
 
-Or use automatic credential extraction — credentials are extracted from the desktop app, no manual token needed:
+Or load saved credentials, with silent device-code refresh. Automatic extraction only occurs when no device-code account is stored:
 
 ```typescript
 import { TeamsClient } from 'agent-messenger/teams'
@@ -48,8 +47,9 @@ const user = await client.testAuth()
 ### Teams
 
 ```typescript
-// List all teams the authenticated user belongs to
-const teams = await client.listTeams()
+// Live Graph team names for a device-code work account
+const teams = await client.listJoinedTeams()
+// Legacy Skype conversation discovery: await client.listTeams()
 // → TeamsTeam[]
 
 // Get a specific team by ID
@@ -381,9 +381,18 @@ for (const file of files.slice(0, 5)) {
 ```typescript
 const page = await client.getChatMessagesPage(chatId, 50)
 // page.messages retains raw_content, content_type, mentions, attachments and raw.
-const next = page.next_cursor
-  ? await client.getChatMessagesPage(chatId, 50, page.next_cursor)
-  : undefined
+const next = page.next_cursor ? await client.getChatMessagesPage(chatId, 50, page.next_cursor) : undefined
 ```
 
 `getChatMessages(chatId, limit)` follows pages automatically and includes media/system records. `getMessages` and `getThreadReplies` follow Graph pages up to the requested limit. Original server bodies remain in `raw`, even when text is rendered for agents. Search results are indexed previews, with their original result in `raw`.
+
+### Reply targets and reaction permissions
+
+```typescript
+const reply = await client.getMessage(teamId, channelId, replyId, rootId)
+await client.addReaction(teamId, channelId, replyId, '👍', rootId)
+await client.removeReaction(teamId, channelId, replyId, 'like', rootId)
+await client.deleteMessage(teamId, channelId, replyId, rootId)
+```
+
+The optional final root ID selects the nested reply route. Unicode reactions pass through; the legacy names `like`, `heart`, `laugh`, `surprised`, `sad`, `angry` convert to Unicode. Channel reactions require `ChannelMessage.Send`, while deletion separately requires `ChannelMessage.ReadWrite`. The default first-party grant can send/react but lack deletion permission. Own chat edits accept the empty HTTP 200 response returned by Skype; always use readback to verify the changed message.

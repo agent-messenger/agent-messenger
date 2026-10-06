@@ -2,8 +2,10 @@ import { afterEach, beforeEach, expect, spyOn, it } from 'bun:test'
 
 import { TeamsClient } from '../client'
 import { TeamsCredentialManager } from '../credential-manager'
+import { listAction } from './team'
 
 let clientListTeamsSpy: ReturnType<typeof spyOn>
+let clientListJoinedTeamsSpy: ReturnType<typeof spyOn>
 let clientGetTeamSpy: ReturnType<typeof spyOn>
 let credManagerLoadConfigSpy: ReturnType<typeof spyOn>
 let credManagerSetCurrentTeamSpy: ReturnType<typeof spyOn>
@@ -11,6 +13,9 @@ let credManagerGetCurrentTeamSpy: ReturnType<typeof spyOn>
 let credManagerSaveConfigSpy: ReturnType<typeof spyOn>
 
 beforeEach(() => {
+  clientListJoinedTeamsSpy = spyOn(TeamsClient.prototype, 'listJoinedTeams').mockResolvedValue([
+    { id: 'team-1', name: 'Actual Team' },
+  ])
   clientListTeamsSpy = spyOn(TeamsClient.prototype, 'listTeams').mockResolvedValue([
     { id: 'team-1', name: 'Team One', description: 'First team' },
     { id: 'team-2', name: 'Team Two', description: 'Second team' },
@@ -52,12 +57,30 @@ beforeEach(() => {
 })
 
 afterEach(() => {
+  clientListJoinedTeamsSpy?.mockRestore()
   clientListTeamsSpy?.mockRestore()
   clientGetTeamSpy?.mockRestore()
   credManagerLoadConfigSpy?.mockRestore()
   credManagerSetCurrentTeamSpy?.mockRestore()
   credManagerGetCurrentTeamSpy?.mockRestore()
   credManagerSaveConfigSpy?.mockRestore()
+})
+
+it('list: uses live team display names for a device-code account', async () => {
+  const manager = new TeamsCredentialManager()
+  const config = (await manager.loadConfig())!
+  config.accounts.work.auth_method = 'device-code'
+  config.accounts.work.teams['team-1'].team_name = 'Wrong channel topic'
+  const output = spyOn(console, 'log').mockImplementation(() => {})
+  try {
+    await listAction({})
+    expect(JSON.parse(output.mock.calls[0][0] as string)).toEqual([
+      { id: 'team-1', name: 'Actual Team', current: true },
+    ])
+    expect(clientListJoinedTeamsSpy).toHaveBeenCalledTimes(1)
+  } finally {
+    output.mockRestore()
+  }
 })
 
 it('list: returns teams with current marker', async () => {

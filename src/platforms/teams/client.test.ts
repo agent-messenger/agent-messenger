@@ -630,7 +630,7 @@ describe('TeamsClient', () => {
         ['setReaction', 'POST'],
         ['unsetReaction', 'POST'],
       ])
-      expect(JSON.parse(String(fetchCalls[2].options?.body))).toEqual({ reactionType: 'like' })
+      expect(JSON.parse(String(fetchCalls[2].options?.body))).toEqual({ reactionType: '👍' })
     })
     it('maps membership userId and directory mail', async () => {
       mockResponse({ value: [{ id: 'member-id', userId: 'u1', displayName: 'Test User', email: 'test@example.test' }] })

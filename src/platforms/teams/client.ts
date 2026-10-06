@@ -38,6 +38,18 @@ const DEFAULT_REGION: TeamsRegion = 'amer'
 const REGIONS: TeamsRegion[] = ['amer', 'emea', 'apac']
 const GRAPH_API_BASE = 'https://graph.microsoft.com/v1.0'
 
+function reactionUnicode(emoji: string): string {
+  const aliases: Record<string, string> = {
+    like: '👍',
+    heart: '❤️',
+    laugh: '😆',
+    surprised: '😮',
+    sad: '😢',
+    angry: '😠',
+  }
+  return Object.hasOwn(aliases, emoji) ? aliases[emoji] : emoji
+}
+
 // Personal (Teams for Life) skypetokens carry a consumer `skypeid` (e.g.
 // "live:..." or "8:live:..."); work/school tokens carry an org identity. Used
 // only to guess the account type when a caller logs in with a bare token.
@@ -131,14 +143,16 @@ function parseSubstrateResult(value: unknown): TeamsSearchResult | null {
   const id = resultString(source, ['InternetMessageId', 'MessageId', 'id', 'Id', 'ReferenceId'])
   const channelId = resultString(source, ['channel_id', 'ChannelId', 'ClientThreadId', 'ThreadId', 'ConversationId'])
   if (!id || !channelId) return null
+  const htmlContent = resultString(source, ['content', 'Content'])
+  const preview = resultString(source, ['Preview', 'Summary'])
   const content =
-    resultString(source, ['content', 'Content', 'Preview', 'Summary']) ??
-    resultString(value, ['HitHighlightedSummary']) ??
-    ''
+    htmlContent !== undefined
+      ? messageText(htmlContent)
+      : (preview ?? messageText(resultString(value, ['HitHighlightedSummary']) ?? ''))
   return {
     id,
     channel_id: channelId,
-    content: messageText(content),
+    content,
     author: {
       id:
         (extensions && stringFrom(extensions, ['SkypeSpaces_ConversationPost_Extension_FromSkypeInternalId'])) ??
@@ -502,7 +516,8 @@ export class TeamsClient {
         return undefined as T
       }
 
-      return response.json() as Promise<T>
+      const text = await response.text()
+      return (text.trim() ? JSON.parse(text) : undefined) as T
     }
 
     throw new TeamsError('Request failed after retries', 'max_retries')
@@ -552,6 +567,11 @@ export class TeamsClient {
     }
 
     return Array.from(teamsMap.values())
+  }
+
+  // Graph carries team display names; Skype conversation topics name channels.
+  async listJoinedTeams(): Promise<TeamsTeam[]> {
+    return (await this.graph().collection('/me/joinedTeams')).map(graphTeam)
   }
 
   // Realtime messages only carry a conversation id; a channel's parent teamId
@@ -739,6 +759,15 @@ export class TeamsClient {
     return `/teams/${segment(teamId)}/channels/${segment(channelId)}`
   }
 
+  private messagePath(teamId: string, channelId: string, messageId: string, rootMessageId?: string): string {
+    return (
+      this.channelPath(teamId, channelId) +
+      '/messages/' +
+      (rootMessageId ? `${segment(rootMessageId)}/replies/` : '') +
+      segment(messageId)
+    )
+  }
+
   async getTeam(teamId: string): Promise<TeamsTeam> {
     return graphTeam(await this.graph().request('GET', `/teams/${segment(teamId)}`))
   }
@@ -843,33 +872,46 @@ export class TeamsClient {
     return this.tokenProvider
   }
 
-  async getMessage(teamId: string, channelId: string, messageId: string): Promise<TeamsMessage> {
+  async getMessage(
+    teamId: string,
+    channelId: string,
+    messageId: string,
+    rootMessageId?: string,
+  ): Promise<TeamsMessage> {
     return graphMessage(
-      await this.graph().request('GET', this.channelPath(teamId, channelId) + `/messages/${segment(messageId)}`),
+      await this.graph().request('GET', this.messagePath(teamId, channelId, messageId, rootMessageId)),
       channelId,
+      rootMessageId,
     )
   }
 
-  async deleteMessage(teamId: string, channelId: string, messageId: string): Promise<void> {
-    await this.graph().request(
-      'POST',
-      this.channelPath(teamId, channelId) + `/messages/${segment(messageId)}/softDelete`,
-    )
+  async deleteMessage(teamId: string, channelId: string, messageId: string, rootMessageId?: string): Promise<void> {
+    await this.graph().request('POST', this.messagePath(teamId, channelId, messageId, rootMessageId) + '/softDelete')
   }
 
-  async addReaction(teamId: string, channelId: string, messageId: string, emoji: string): Promise<void> {
-    await this.graph().request(
-      'POST',
-      this.channelPath(teamId, channelId) + `/messages/${segment(messageId)}/setReaction`,
-      { reactionType: emoji },
-    )
+  async addReaction(
+    teamId: string,
+    channelId: string,
+    messageId: string,
+    emoji: string,
+    rootMessageId?: string,
+  ): Promise<void> {
+    await this.graph().request('POST', this.messagePath(teamId, channelId, messageId, rootMessageId) + '/setReaction', {
+      reactionType: reactionUnicode(emoji),
+    })
   }
 
-  async removeReaction(teamId: string, channelId: string, messageId: string, emoji: string): Promise<void> {
+  async removeReaction(
+    teamId: string,
+    channelId: string,
+    messageId: string,
+    emoji: string,
+    rootMessageId?: string,
+  ): Promise<void> {
     await this.graph().request(
       'POST',
-      this.channelPath(teamId, channelId) + `/messages/${segment(messageId)}/unsetReaction`,
-      { reactionType: emoji },
+      this.messagePath(teamId, channelId, messageId, rootMessageId) + '/unsetReaction',
+      { reactionType: reactionUnicode(emoji) },
     )
   }
 

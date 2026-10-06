@@ -1,427 +1,92 @@
 # Authentication Guide
 
-## Overview
+## Choose authentication by capability
 
-agent-teams uses Microsoft Teams' user token extracted from the Teams desktop application, with automatic fallback to Chromium browser profiles (Chrome, Chrome Canary, Edge, Arc, Brave, Vivaldi, Chromium) when the desktop app isn't installed.
+| Authentication | Credentials | Supported routes |
+| --- | --- | --- |
+| `auth login` | Skype token and AAD refresh token | Chats, Graph work/school channels/directory/files, Substrate search |
+| `auth extract` | Skype token from desktop/browser cookies | Chat operations and legacy Skype discovery |
 
-## TOKEN EXPIRY WARNING
+Tenant policies and delegated scopes can restrict operations even after a successful login. Personal accounts support chats; Graph channel APIs require a work/school account.
 
-**CRITICAL**: Microsoft Teams tokens expire in **60-90 minutes**!
-
-Unlike Discord or Slack tokens which rarely expire, Teams tokens have a short lifespan. Your scripts and workflows MUST handle token expiry gracefully.
-
-### Token Lifecycle
-
-```
-Token Extracted → Valid for 60-90 min → Expires → Must Re-extract
-```
-
-### Checking Token Age
+## Device-code login
 
 ```bash
-# Check auth status - includes token age
-agent-teams auth status
+agent-teams auth login --email user@example.com --account-type work
+agent-teams --account work auth status
 ```
 
-Output:
+Approve the printed code at the Microsoft URL. `--email` selects/detects account type but does not force the browser to use that identity. Verify the actual signed-in account before writing.
 
-```json
-{
-  "authenticated": true,
-  "user": "john.doe@company.com",
-  "current_team": "team-uuid-here",
-  "teams_count": 3,
-  "token_age_minutes": 45,
-  "token_expires_soon": false
-}
+Without a TTY, login has two calls:
+
+```bash
+agent-teams auth login --email user@example.com --account-type work
+# After the user approves:
+agent-teams auth login --device-code '<device_code>' --account-type work
 ```
 
-When `token_expires_soon` is `true` (>50 min old), re-authenticate proactively.
+For consumer accounts use `--account-type personal`. The stored refresh token mints short-lived Graph/Substrate bearer tokens for the selected account. Bearer tokens are cached in memory, and rotated refresh credentials are saved.
 
-## Token Extraction
+## Refresh and identity preservation
 
-### Automatic Extraction
+Skype tokens are short-lived. Device-code accounts refresh silently on CLI use with their saved AAD refresh token. If refresh fails, explicitly reconnect with `auth login` for that account. Automatic extraction is suppressed when any device-code account is stored, so bootstrapping a different account type cannot overwrite a deliberate login.
 
-The simplest way to authenticate:
+Explicit `auth extract` remains a different authentication choice and can overwrite the account's refresh credentials. Do not invoke it as a generic repair step for Graph/search automation. After repairing authentication, reconcile an earlier uncertain write before resending it.
+
+```bash
+agent-teams auth switch-account work
+agent-teams --account work team list
+agent-teams --account personal chat list
+```
+
+`work|personal` selects an account type, not a specific employee. Give each employee a separate configuration directory or OS profile. `AGENT_MESSENGER_CONFIG_DIR` overrides the default directory.
+
+## Optional extraction for chats
 
 ```bash
 agent-teams auth extract
-
-# Use --debug for troubleshooting extraction issues
 agent-teams auth extract --debug
-
-# Scan custom Chromium profile/user-data dirs (repeatable or comma-separated)
 agent-teams auth extract --browser-profile ~/browser-data
-agent-teams auth extract --browser-profile "$HOME/work-profile,$HOME/personal-profile"
+agent-teams auth extract --browser-profile ~/work-profile --browser-profile ~/personal-profile
 ```
 
-This command:
+Extraction searches supported desktop/Chromium cookie stores for `skypetoken_asm`, validates it and stores a Skype-only account. Extracted tokens commonly last 60-90 minutes. Automatic re-extraction requires the local app/browser to remain signed in and no stored device-code account. It does not mint Graph/Substrate tokens.
 
-1. Detects your operating system (macOS, Linux, Windows)
-2. Locates the Teams desktop app data directory
-3. Reads the **Cookies SQLite database** containing session data
-4. Scans Chromium browser profiles for Teams cookies when the desktop app isn't found, or when custom `--browser-profile` paths are provided
-5. Extracts `skypetoken_asm` cookie value
-6. Validates token against Teams API before saving
-7. Discovers ALL joined teams
-8. Stores credentials securely in `~/.config/agent-messenger/teams-credentials.json`
+SDK real-time `TeamsListener` additionally needs an extracted `authtoken`/id_token for its WebSocket. That token is read on demand, not supplied by device-code login. An API-only server therefore needs a separately verified real-time design.
 
-Use `--browser-profile <path>` for agent-browser profiles, custom Chrome user data dirs, or portable browser profiles. The option can be repeated or given comma-separated paths.
+## Storage
 
-### Platform-Specific Paths
-
-**macOS:**
-
-```
-~/Library/Application Support/Microsoft/Teams/
-```
-
-**Linux:**
-
-```
-~/.config/Microsoft/Microsoft Teams/
-```
-
-**Windows:**
-
-```
-%APPDATA%\Microsoft\Teams\
-```
-
-The tool searches within:
-
-- `Cookies` - SQLite database containing `skypetoken_asm`
-- `Network/Cookies` - Alternative location on some versions
-
-### What Gets Extracted
-
-- **skypetoken_asm**: Authentication token for Teams API (sent as the `X-Skypetoken` header)
-- **teams**: All teams you're a member of
-- **token_extracted_at**: Timestamp for expiry tracking
-
-### Real-time Auth (`authtoken` / id_token)
-
-The real-time `TeamsListener` (SDK) additionally needs an OAuth Bearer token to
-authenticate its trouter WebSocket connection. This is **not** persisted with
-your credentials — the client extracts it on demand from the Teams `authtoken`
-cookie (a JWE, stored URL-encoded with a `Bearer=` prefix), decrypted with the
-same keychain machinery as `skypetoken_asm`. The listener re-extracts it on
-every (re)connection, so it always uses the current cookie value. Because it is
-read live from the desktop app's cookie store, the Teams desktop app must be
-logged in for real-time streaming to work.
-
-## Multi-Team Management
-
-### List Teams
-
-See all available teams:
-
-```bash
-agent-teams team list
-```
-
-Output:
-
-```json
-[
-  {
-    "id": "team-uuid-1",
-    "name": "Engineering",
-    "current": true
-  },
-  {
-    "id": "team-uuid-2",
-    "name": "Marketing",
-    "current": false
-  }
-]
-```
-
-### Switch Team
-
-Change the active team:
-
-```bash
-agent-teams team switch team-uuid-2
-```
-
-All subsequent commands will use the selected team until you switch again.
-
-### Current Team
-
-Check which team is active:
-
-```bash
-agent-teams team current
-```
-
-## Credential Storage
-
-### Location
-
-Credentials are stored in:
-
-```
-~/.config/agent-messenger/teams-credentials.json
-```
-
-### Format
+The default is `~/.config/agent-messenger/teams-credentials.json`, with owner-only file permissions. Credentials are plaintext JSON, not an encrypted OS keychain. Never commit them.
 
 ```json
 {
-  "token": "skypetoken_asm_value_here",
-  "token_extracted_at": "2024-01-15T10:00:00.000Z",
-  "current_team": "team-uuid-1",
-  "teams": {
-    "team-uuid-1": {
-      "team_id": "team-uuid-1",
-      "team_name": "Engineering"
-    },
-    "team-uuid-2": {
-      "team_id": "team-uuid-2",
-      "team_name": "Marketing"
+  "current_account": "work",
+  "accounts": {
+    "work": {
+      "account_type": "work",
+      "auth_method": "device-code",
+      "token": "<skype-token>",
+      "token_expires_at": "<ISO timestamp>",
+      "aad_refresh_token": "<refresh-token>",
+      "aad_client_id": "<client-id>",
+      "current_team": "<team-id>",
+      "teams": {}
     }
   }
 }
 ```
 
-### Security
-
-- File permissions: `0600` (owner read/write only)
-- Tokens are stored in plaintext (same as Teams desktop app)
-- Keep this file secure - it grants access to your Teams account
-- **Tokens auto-expire in 60-90 minutes** - provides some security
-
-## AAD Tokens (required for `message search`)
-
-Most commands use only the Skype token above. **`message search` is different**: it queries Microsoft's Substrate search API, which requires an AAD Bearer token for the `substrate.office.com` audience — a token the Skype cookie cannot produce.
-
-- **Only `auth login` (device-code) can mint it.** That flow stores an `aad_refresh_token` (and `aad_client_id`) alongside the Skype token. `auth extract` (cookie extraction) yields a Skype token only and therefore **cannot** run `message search` — the CLI returns an actionable error telling you to run `auth login`.
-- **Work and personal accounts** are both supported by `auth login`. It detects the account type from your Microsoft email (prompted interactively, or via `--email <email>`) and starts the matching flow; `--account-type work|personal` forces it and skips detection. If a personal account still reaches the work flow, the CLI stops with an actionable hint to rerun with `--account-type personal`.
-- At search time, the CLI silently exchanges the stored refresh token for a short-lived Substrate access token (per-scope AAD grant), caches it in memory only (never written to disk), and rotates the refresh token. The same mechanism can mint a Graph token for other AAD-gated features.
-
-Credentials for an `auth login` account therefore include additional fields:
-
-```json
-{
-  "account_type": "work",
-  "auth_method": "device-code",
-  "aad_refresh_token": "0.AXoA...redacted...",
-  "aad_client_id": "5e3ce6c0-2b1f-4285-8d4b-75ee78787346"
-}
-```
-
-## Authentication Status
-
-Check if you're authenticated:
-
-```bash
-agent-teams auth status
-```
-
-Output when authenticated:
-
-```json
-{
-  "authenticated": true,
-  "user": "john.doe@company.com",
-  "current_team": "team-uuid-here",
-  "teams_count": 3,
-  "token_age_minutes": 45,
-  "token_expires_soon": false
-}
-```
-
-Output when token expired:
-
-```json
-{
-  "authenticated": false,
-  "error": "Token expired. Run \"auth extract\" to re-authenticate."
-}
-```
-
-Output when not authenticated:
-
-```json
-{
-  "error": "Not authenticated. Run \"auth extract\" first."
-}
-```
-
-## Token Lifecycle
-
-### When Tokens Expire
-
-Teams tokens are invalidated when:
-
-- **60-90 minutes have passed** (most common!)
-- You sign out of the desktop app
-- Your password is changed
-- Admin revokes your session
-- You manually log out
-
-### Re-authentication Workflow
-
-**Proactive (Recommended):**
-
-```bash
-# Check token age before operations
-STATUS=$(agent-teams auth status)
-EXPIRES_SOON=$(echo "$STATUS" | jq -r '.token_expires_soon // true')
-
-if [ "$EXPIRES_SOON" = "true" ]; then
-  echo "Token expiring soon, refreshing..."
-  agent-teams auth extract
-fi
-
-# Now proceed with operations
-agent-teams message send "$CHANNEL_ID" "Hello!"
-```
-
-**Reactive (On Error):**
-
-```bash
-RESULT=$(agent-teams message send "$CHANNEL_ID" "Hello!")
-
-if echo "$RESULT" | jq -e '.error' | grep -q "expired\|401"; then
-  echo "Token expired, re-authenticating..."
-  agent-teams auth extract
-
-  # Retry the operation
-  agent-teams message send "$CHANNEL_ID" "Hello!"
-fi
-```
-
-## Troubleshooting
-
-### Using Debug Mode
-
-For any extraction issues, run with `--debug` to see detailed information:
-
-```bash
-agent-teams auth extract --debug
-```
-
-This shows:
-
-- Which Teams directory was found
-- Cookies database location
-- Token extraction progress
-- Token validation results
-- Team discovery details
-
-### "Teams desktop app not found"
-
-**Cause**: Teams desktop app not installed or in non-standard location
-
-**Solution**:
-
-1. Log in to teams.microsoft.com in a Chromium browser (Chrome, Edge, Arc, Brave) — the CLI will extract from browser automatically
-2. Or install the Microsoft Teams desktop app, log in, and run `agent-teams auth extract` again
-
-### "No Teams token found"
-
-**Cause**: Not logged into Teams or cookie storage corrupted
-
-**Solution**:
-
-1. Open Teams desktop app
-2. Make sure you're logged in (can see your teams)
-3. Run `agent-teams auth extract --debug` to see details
-
-### "Permission denied reading Teams data"
-
-**Cause**: Insufficient file system permissions
-
-**Solution** (macOS):
-
-1. Grant Terminal/iTerm full disk access in System Preferences
-2. Security & Privacy -> Privacy -> Full Disk Access
-3. Add your terminal application
-
-### "Token validation failed" / "401 Unauthorized"
-
-**Cause**: Token expired (most likely) or invalidated
-
-**Solution**:
-
-```bash
-# Re-extract fresh credentials
-agent-teams auth extract
-
-# Test authentication
-agent-teams auth status
-```
-
-### "Token expired" errors
-
-**Cause**: Token is older than 60-90 minutes
-
-**Solution**:
-
-```bash
-# Simply re-extract - this is normal for Teams!
-agent-teams auth extract
-```
-
-**Prevention**: Build token refresh into your scripts (see common-patterns.md)
-
-## Security Considerations
-
-### What agent-teams Can Access
-
-With extracted credentials, agent-teams has the same permissions as you in Teams:
-
-- Read all channels you have access to
-- Send messages as you
-- Upload/download files
-- Manage reactions
-- Access user information
-- View team member lists
-
-### What agent-teams Cannot Do
-
-- Access channels you don't have permission for
-- Perform admin operations (unless you're an admin)
-- Access other users' private chats without existing conversation
-- Manage team settings (not implemented)
-
-### Best Practices
-
-1. **Protect credentials.json**: Never commit to version control
-2. **Use team switching**: Keep different contexts separate
-3. **Handle token expiry**: Build refresh logic into all scripts
-4. **Re-extract frequently**: Tokens expire in 60-90 minutes
-5. **Revoke if compromised**: Sign out of Teams desktop app to invalidate tokens
-
-## Manual Token Management (Advanced)
-
-If automatic extraction fails, you can manually create the credentials file:
-
-```bash
-# Create config directory
-mkdir -p ~/.config/agent-messenger
-
-# Create credentials file
-cat > ~/.config/agent-messenger/teams-credentials.json << 'EOF'
-{
-  "token": "YOUR_SKYPETOKEN_ASM_HERE",
-  "token_extracted_at": "2024-01-15T10:00:00.000Z",
-  "current_team": "team-uuid-here",
-  "teams": {
-    "team-uuid-here": {
-      "team_id": "team-uuid-here",
-      "team_name": "My Team"
-    }
-  }
-}
-EOF
-
-# Set secure permissions
-chmod 600 ~/.config/agent-messenger/teams-credentials.json
-```
-
-If the user already has a token value, they can populate the file above. Otherwise, always prefer `agent-teams auth extract` to obtain the token automatically from the desktop app.
-
-**Warning**: Using user tokens for automation may violate Microsoft's Terms of Service. Use responsibly and at your own risk.
+`team list` reads live Graph names for device-code work accounts. Extraction accounts and `team current` retain cached labels. An extracted conversation topic can be a channel name rather than the true team display name; verify with `team info` or SDK `listJoinedTeams()`.
+
+## Permissions and failures
+
+- `auth_capability_missing`: no AAD refresh credential for Graph/Substrate; run `auth login`.
+- Refresh failure: reconnect the same account explicitly; do not extract another identity.
+- 403 on a channel/file: inspect the specific delegated scope, tenant policy and membership. Login is not an admin grant.
+- Channel reactions require `ChannelMessage.Send` and Unicode reaction input. Legacy Teams names are converted by the client.
+- Channel deletion requires `ChannelMessage.ReadWrite`, which the default first-party login may not grant. Send and reaction success do not establish delete permission.
+- Replies need `--thread <root-id>` for get/delete/reactions.
+- Expired manually supplied Skype token: obtain a fresh credential for the intended account; a raw Skype token cannot enable Graph methods.
+
+GET requests can retry rate limits/server errors. Search POST and all writes run once. A failed/lost write response is an uncertain result: retain its context and reconcile actual history before another attempt. See [Common Patterns](common-patterns.md).
