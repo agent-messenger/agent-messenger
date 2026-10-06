@@ -321,3 +321,22 @@ describe('ensureTeamsAuth', () => {
     expect(extractSpy).toHaveBeenCalled()
   })
 })
+
+it('never replaces an expired device-code account with an extracted browser account', async () => {
+  loadConfigSpy.mockResolvedValue({
+    current_account: 'work',
+    accounts: {
+      work: {
+        token: 'expired-token',
+        token_expires_at: '2000-01-01T00:00:00Z',
+        account_type: 'work',
+        auth_method: 'device-code',
+        current_team: null,
+        teams: {},
+      },
+    },
+  })
+  await ensureTeamsAuth()
+  expect(extractSpy).not.toHaveBeenCalled()
+  expect(saveConfigSpy).not.toHaveBeenCalled()
+})

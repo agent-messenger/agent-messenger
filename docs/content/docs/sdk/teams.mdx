@@ -15,7 +15,10 @@ import { TeamsClient, TeamsCredentialManager, TeamsError } from 'agent-messenger
 
 ## TeamsClient
 
-The main client for interacting with Microsoft Teams' API programmatically. All API methods include automatic rate-limit handling with per-bucket tracking and exponential backoff on server errors.
+Work/school channel, directory and file methods use Microsoft Graph with the existing `TeamsTokenProvider`. Sign in with `agent-teams auth login` first; an extracted Skype token alone cannot access these methods. Private/group chats continue to use the Skype messaging service. Tenant policies and permissions can restrict individual operations.
+
+
+The main client for interacting with Microsoft Teams' API programmatically. Read requests include rate-limit handling and backoff on server errors. Mutations are attempted once to avoid duplicate delivery after an ambiguous response.
 
 Teams tokens expire in 60-90 minutes. The client checks expiry before each request and throws a `TeamsError` with code `token_expired` when the token is stale. Re-run `agent-teams auth extract` to refresh.
 
@@ -372,3 +375,15 @@ for (const file of files.slice(0, 5)) {
   )
 }
 ```
+
+### Archive-ready chat pages
+
+```typescript
+const page = await client.getChatMessagesPage(chatId, 50)
+// page.messages retains raw_content, content_type, mentions, attachments and raw.
+const next = page.next_cursor
+  ? await client.getChatMessagesPage(chatId, 50, page.next_cursor)
+  : undefined
+```
+
+`getChatMessages(chatId, limit)` follows pages automatically and includes media/system records. `getMessages` and `getThreadReplies` follow Graph pages up to the requested limit. Original server bodies remain in `raw`, even when text is rendered for agents. Search results are indexed previews, with their original result in `raw`.

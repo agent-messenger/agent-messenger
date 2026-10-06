@@ -118,6 +118,19 @@ describe('TeamsClient', () => {
     fetchResponses.push(new Response(body, { status }))
   }
 
+  const graphClient = async () => {
+    const client = await new TeamsClient().login({ token: 'skype-token', region: 'emea' })
+    ;(client as any).getTokenProvider().getGraphToken = async () => 'graph-token'
+    return client
+  }
+  const graphMessage = (id = 'm1', content = 'Hello', replyToId?: string) => ({
+    id,
+    replyToId,
+    body: { contentType: 'html', content },
+    from: { user: { id: 'u1', displayName: 'Test User' } },
+    createdDateTime: '2024-01-01T00:00:00.000Z',
+  })
+
   describe('login', () => {
     it('requires token', async () => {
       await expect(new TeamsClient().login({ token: '', region: 'emea' })).rejects.toThrow(TeamsError)
@@ -273,7 +286,7 @@ describe('TeamsClient', () => {
   })
 
   describe('getChatMessages', () => {
-    it('returns user messages and filters system events', async () => {
+    it('returns user messages and retains system events', async () => {
       mockResponse({
         messages: [
           {
@@ -297,7 +310,7 @@ describe('TeamsClient', () => {
       const client = await new TeamsClient().login({ token: 'test-token', accountType: 'personal' })
       const messages = await client.getChatMessages('19:1on1@unq.gbl.spaces', 30)
 
-      expect(messages).toHaveLength(1)
+      expect(messages).toHaveLength(2)
       expect(messages[0].id).toBe('m1')
       expect(messages[0].content).toBe('Hello')
       expect(messages[0].author.displayName).toBe('Alice')
@@ -419,238 +432,76 @@ describe('TeamsClient', () => {
     })
   })
 
-  describe('getTeam', () => {
-    it('returns team info', async () => {
-      mockResponse({ id: '111', name: 'Test Team', description: 'A test team' })
-
-      const client = await new TeamsClient().login({ token: 'test-token', region: 'emea' })
-      const team = await client.getTeam('111')
-
-      expect(team.id).toBe('111')
-      expect(team.name).toBe('Test Team')
-      expect(fetchCalls[0].url).toBe('https://teams.microsoft.com/api/csa/api/v1/teams/111')
-    })
-  })
-
-  describe('listChannels', () => {
-    it('returns list of channels for team', async () => {
-      mockResponse([
+  describe('Graph teams and channels', () => {
+    it('reads team, channel list and channel detail with Graph response shapes', async () => {
+      mockResponse({ id: '111', displayName: 'Test Team', description: 'A test team' })
+      mockResponse({ value: [{ id: 'ch1', displayName: 'General', membershipType: 'standard' }] })
+      mockResponse({ id: 'ch1', displayName: 'General', membershipType: 'standard' })
+      const client = await graphClient()
+      expect(await client.getTeam('111')).toEqual({ id: '111', name: 'Test Team', description: 'A test team' })
+      expect(await client.listChannels('111')).toEqual([
         { id: 'ch1', team_id: '111', name: 'General', type: 'standard' },
-        { id: 'ch2', team_id: '111', name: 'Random', type: 'standard' },
       ])
-
-      const client = await new TeamsClient().login({ token: 'test-token', region: 'emea' })
-      const channels = await client.listChannels('111')
-
-      expect(channels).toHaveLength(2)
-      expect(channels[0].name).toBe('General')
-      expect(fetchCalls[0].url).toBe('https://teams.microsoft.com/api/csa/api/v1/teams/111/channels')
-    })
-  })
-
-  describe('getChannel', () => {
-    it('returns channel info', async () => {
-      mockResponse({ id: 'ch1', team_id: '111', name: 'General', type: 'standard' })
-
-      const client = await new TeamsClient().login({ token: 'test-token', region: 'emea' })
-      const channel = await client.getChannel('111', 'ch1')
-
-      expect(channel.id).toBe('ch1')
-      expect(channel.name).toBe('General')
-      expect(fetchCalls[0].url).toBe('https://teams.microsoft.com/api/csa/api/v1/teams/111/channels/ch1')
+      expect((await client.getChannel('111', 'ch1')).name).toBe('General')
+      expect(fetchCalls.map((c) => c.url)).toEqual([
+        'https://graph.microsoft.com/v1.0/teams/111',
+        'https://graph.microsoft.com/v1.0/teams/111/channels',
+        'https://graph.microsoft.com/v1.0/teams/111/channels/ch1',
+      ])
+      expect(headerValue(fetchCalls[0].options, 'Authorization')).toBe('Bearer graph-token')
     })
   })
 
   describe('sendMessage', () => {
-    it('sends message to channel', async () => {
-      mockResponse({
-        id: 'msg1',
-        channel_id: 'ch1',
-        author: { id: '123', displayName: 'Test User' },
-        content: 'Hello world',
-        timestamp: '2024-01-01T00:00:00.000Z',
+    it('posts root messages and replies to their distinct Graph endpoints', async () => {
+      mockResponse(graphMessage())
+      mockResponse(graphMessage('reply1', 'Reply', 'root1'))
+      const client = await graphClient()
+      expect((await client.sendMessage('111', 'ch1', 'Hello')).id).toBe('m1')
+      const reply = await client.sendMessage('111', 'ch1', 'Reply', 'root1')
+      expect(reply.root_message_id).toBe('root1')
+      expect(reply.parent_message_id).toBe('root1')
+      expect(reply.is_thread_reply).toBe(true)
+      expect(fetchCalls[0].url).toBe('https://graph.microsoft.com/v1.0/teams/111/channels/ch1/messages')
+      expect(fetchCalls[1].url).toBe('https://graph.microsoft.com/v1.0/teams/111/channels/ch1/messages/root1/replies')
+      expect(JSON.parse(String(fetchCalls[1].options?.body))).toEqual({
+        body: { contentType: 'html', content: 'Reply' },
       })
-
-      const client = await new TeamsClient().login({ token: 'test-token', region: 'emea' })
-      const message = await client.sendMessage('111', 'ch1', 'Hello world')
-
-      expect(message.content).toBe('Hello world')
-      expect(fetchCalls[0].url).toBe('https://teams.microsoft.com/api/csa/emea/api/v2/teams/111/channels/ch1/messages')
-      expect(fetchCalls[0].options?.method).toBe('POST')
-      expect(fetchCalls[0].options?.body).toBe(JSON.stringify({ content: 'Hello world' }))
     })
-
-    it('sends a reply to a channel thread', async () => {
-      mockResponse({
-        id: 'reply1',
-        channel_id: 'ch1',
-        author: { id: '123', displayName: 'Test User' },
-        content: 'Thread reply',
-        timestamp: '2024-01-01T00:01:00.000Z',
-      })
-
-      const client = await new TeamsClient().login({ token: 'test-token', region: 'emea' })
-      const message = await client.sendMessage('111', 'ch1', 'Thread reply', 'root1')
-
-      expect(fetchCalls[0].url).toBe(
-        'https://teams.microsoft.com/api/csa/emea/api/v2/teams/111/channels/ch1/messages/root1/replies',
-      )
-      expect(fetchCalls[0].options?.method).toBe('POST')
-      expect(fetchCalls[0].options?.body).toBe(JSON.stringify({ content: 'Thread reply', parentMessageId: 'root1' }))
-      // the reply the API echoes back omits thread ids, so the client normalizes them from the root
-      expect(message.root_message_id).toBe('root1')
-      expect(message.parent_message_id).toBe('root1')
-      expect(message.is_thread_reply).toBe(true)
-    })
-
-    it('escapes HTML in channel messages when format is text', async () => {
-      mockResponse({
-        id: 'msg1',
-        channel_id: 'ch1',
-        author: { id: '123', displayName: 'Test User' },
-        content: 'a &lt;b&gt; &amp; c',
-        timestamp: '2024-01-01T00:00:00.000Z',
-      })
-
-      const client = await new TeamsClient().login({ token: 'test-token', region: 'emea' })
-      await client.sendMessage('111', 'ch1', 'a <b> & c')
-
-      expect(fetchCalls[0].options?.body).toBe(JSON.stringify({ content: 'a &lt;b&gt; &amp; c' }))
-    })
-
-    it('converts markdown to HTML for channel messages', async () => {
-      mockResponse({
-        id: 'msg1',
-        channel_id: 'ch1',
-        author: { id: '123', displayName: 'Test User' },
-        content: '<strong>bold</strong>',
-        timestamp: '2024-01-01T00:00:00.000Z',
-      })
-
-      const client = await new TeamsClient().login({ token: 'test-token', region: 'emea' })
+    it('escapes text, retains line breaks, renders markdown and sanitizes HTML', async () => {
+      for (let i = 0; i < 3; i++) mockResponse(graphMessage())
+      const client = await graphClient()
+      await client.sendMessage('111', 'ch1', 'a <b> & c\nnext')
       await client.sendMessage('111', 'ch1', '**bold**', undefined, 'markdown')
-
-      expect(fetchCalls[0].options?.body).toBe(JSON.stringify({ content: '<strong>bold</strong>' }))
+      await client.sendMessage('111', 'ch1', '<script>alert(1)</script><strong>ok</strong>', undefined, 'html')
+      const bodies = fetchCalls.map((c) => JSON.parse(String(c.options?.body)).body.content)
+      expect(bodies[0]).toBe('a &lt;b&gt; &amp; c<br>next')
+      expect(bodies[1]).toBe('<strong>bold</strong>')
+      expect(bodies[2]).toBe('&lt;script&gt;alert(1)&lt;/script&gt;<strong>ok</strong>')
     })
-
-    it('converts markdown to HTML for channel thread replies', async () => {
-      mockResponse({
-        id: 'reply1',
-        channel_id: 'ch1',
-        author: { id: '123', displayName: 'Test User' },
-        content: '<strong>bold</strong>',
-        timestamp: '2024-01-01T00:01:00.000Z',
-      })
-
-      const client = await new TeamsClient().login({ token: 'test-token', region: 'emea' })
-      await client.sendMessage('111', 'ch1', '**bold**', 'root1', 'markdown')
-
-      expect(fetchCalls[0].options?.body).toBe(
-        JSON.stringify({ content: '<strong>bold</strong>', parentMessageId: 'root1' }),
-      )
-    })
-
-    it('passes content through unchanged when format is html', async () => {
-      mockResponse({
-        id: 'msg1',
-        channel_id: 'ch1',
-        author: { id: '123', displayName: 'Test User' },
-        content: 'Hey <at id="29:xyz">John</at>',
-        timestamp: '2024-01-01T00:00:00.000Z',
-      })
-
-      const client = await new TeamsClient().login({ token: 'test-token', region: 'emea' })
+    it('preserves Teams mention tags in explicit HTML', async () => {
+      mockResponse(graphMessage())
+      const client = await graphClient()
       await client.sendMessage('111', 'ch1', 'Hey <at id="29:xyz">John</at>', undefined, 'html')
-
-      expect(fetchCalls[0].options?.body).toBe(JSON.stringify({ content: 'Hey <at id="29:xyz">John</at>' }))
+      expect(JSON.parse(String(fetchCalls[0].options?.body)).body.content).toBe('Hey <at id="29:xyz">John</at>')
     })
   })
 
-  describe('getMessages', () => {
-    it('returns messages from channel', async () => {
-      mockResponse([
-        {
-          id: 'msg1',
-          channel_id: 'ch1',
-          author: { id: '123', displayName: 'User 1' },
-          content: 'Message 1',
-          timestamp: '2024-01-01T00:00:00.000Z',
-        },
-      ])
-
-      const client = await new TeamsClient().login({ token: 'test-token', region: 'emea' })
-      const messages = await client.getMessages('111', 'ch1', 50)
-
-      expect(messages).toHaveLength(1)
-      expect(messages[0].content).toBe('Message 1')
-      expect(fetchCalls[0].url).toBe(
-        'https://teams.microsoft.com/api/csa/emea/api/v2/teams/111/channels/ch1/messages?limit=50',
-      )
-    })
-
-    it('uses default limit of 50', async () => {
-      mockResponse([])
-
-      const client = await new TeamsClient().login({ token: 'test-token', region: 'emea' })
-      await client.getMessages('111', 'ch1')
-
-      expect(fetchCalls[0].url).toBe(
-        'https://teams.microsoft.com/api/csa/emea/api/v2/teams/111/channels/ch1/messages?limit=50',
-      )
-    })
-
-    it('preserves thread fields for replies without inventing them for top-level messages', async () => {
-      mockResponse([
-        {
-          id: 'reply1',
-          channel_id: 'ch1',
-          author: { id: '123', displayName: 'User 1' },
-          content: 'Reply',
-          timestamp: '2024-01-01T00:01:00.000Z',
-          rootMessageId: 'root1',
-          parentMessageId: 'root1',
-        },
-        {
-          id: 'root1',
-          channel_id: 'ch1',
-          author: { id: '123', displayName: 'User 1' },
-          content: 'Top level',
-          timestamp: '2024-01-01T00:00:00.000Z',
-        },
-      ])
-
-      const client = await new TeamsClient().login({ token: 'test-token', region: 'emea' })
-      const messages = await client.getMessages('111', 'ch1')
-
-      expect(messages[0].root_message_id).toBe('root1')
-      expect(messages[0].parent_message_id).toBe('root1')
-      expect(messages[0].is_thread_reply).toBe(true)
-      expect(messages[1].root_message_id).toBeUndefined()
-      expect(messages[1].is_thread_reply).toBeFalsy()
-    })
-  })
-
-  describe('getThreadReplies', () => {
-    it('returns replies for a channel thread with root metadata', async () => {
-      mockResponse([
-        {
-          id: 'reply1',
-          channel_id: 'ch1',
-          author: { id: '123', displayName: 'User 1' },
-          content: 'Reply 1',
-          timestamp: '2024-01-01T00:01:00.000Z',
-        },
-      ])
-
-      const client = await new TeamsClient().login({ token: 'test-token', region: 'emea' })
-      const replies = await client.getThreadReplies('111', 'ch1', 'root1', 10)
-
-      expect(replies).toHaveLength(1)
-      expect(replies[0].root_message_id).toBe('root1')
-      expect(replies[0].parent_message_id).toBe('root1')
-      expect(replies[0].is_thread_reply).toBe(true)
-      expect(fetchCalls[0].url).toBe(
-        'https://teams.microsoft.com/api/csa/emea/api/v2/teams/111/channels/ch1/messages/root1/replies?limit=10',
+  describe('Graph message history', () => {
+    it('reads root history, empty history, and replies with parent linkage', async () => {
+      mockResponse({ value: [graphMessage()] })
+      mockResponse({ value: [] })
+      mockResponse({ value: [graphMessage('reply1', 'Reply', 'root1')] })
+      const client = await graphClient()
+      const [root] = await client.getMessages('111', 'ch1', 30)
+      expect(root.content).toBe('Hello')
+      expect(root.is_thread_reply).toBeUndefined()
+      expect(await client.getMessages('111', 'ch1')).toEqual([])
+      const [reply] = await client.getThreadReplies('111', 'ch1', 'root1', 20)
+      expect(reply.root_message_id).toBe('root1')
+      expect(fetchCalls[0].url).toBe('https://graph.microsoft.com/v1.0/teams/111/channels/ch1/messages?$top=30')
+      expect(fetchCalls[2].url).toBe(
+        'https://graph.microsoft.com/v1.0/teams/111/channels/ch1/messages/root1/replies?$top=20',
       )
     })
   })
@@ -700,7 +551,7 @@ describe('TeamsClient', () => {
         from: 5,
         size: 10,
       })
-      expect(results).toEqual([
+      expect(results).toMatchObject([
         {
           id: 'msg-1',
           content: 'Deploy complete',
@@ -723,7 +574,7 @@ describe('TeamsClient', () => {
       const client = await new TeamsClient(manager).login({ token: 'skype-token', region: 'emea' })
       const results = await client.searchMessages('zzimprobablequery_xyz')
 
-      expect(results).toEqual([])
+      expect(results).toMatchObject([])
     })
 
     it('uses the logged-in account refresh token when current account differs', async () => {
@@ -762,132 +613,70 @@ describe('TeamsClient', () => {
     })
   })
 
-  describe('getMessage', () => {
-    it('returns single message', async () => {
-      mockResponse({
-        id: 'msg1',
-        channel_id: 'ch1',
-        author: { id: '123', displayName: 'User 1' },
-        content: 'Message 1',
-        timestamp: '2024-01-01T00:00:00.000Z',
-      })
-
-      const client = await new TeamsClient().login({ token: 'test-token', region: 'emea' })
-      const message = await client.getMessage('111', 'ch1', 'msg1')
-
-      expect(message.id).toBe('msg1')
-      expect(fetchCalls[0].url).toBe(
-        'https://teams.microsoft.com/api/csa/emea/api/v2/teams/111/channels/ch1/messages/msg1',
-      )
-    })
-  })
-
-  describe('deleteMessage', () => {
-    it('deletes message', async () => {
+  describe('Graph message mutations and directory', () => {
+    it('gets a message and uses softDelete, setReaction and unsetReaction', async () => {
+      mockResponse(graphMessage())
       mockResponse(null, 204)
-
-      const client = await new TeamsClient().login({ token: 'test-token', region: 'emea' })
-      await client.deleteMessage('111', 'ch1', 'msg1')
-
-      expect(fetchCalls[0].url).toBe(
-        'https://teams.microsoft.com/api/csa/emea/api/v2/teams/111/channels/ch1/messages/msg1',
-      )
-      expect(fetchCalls[0].options?.method).toBe('DELETE')
-    })
-  })
-
-  describe('addReaction', () => {
-    it('adds reaction to message', async () => {
       mockResponse(null, 204)
-
-      const client = await new TeamsClient().login({ token: 'test-token', region: 'emea' })
-      await client.addReaction('111', 'ch1', 'msg1', 'like')
-
-      expect(fetchCalls[0].url).toBe(
-        'https://teams.microsoft.com/api/csa/emea/api/v2/teams/111/channels/ch1/messages/msg1/reactions',
-      )
-      expect(fetchCalls[0].options?.method).toBe('POST')
-      expect(fetchCalls[0].options?.body).toBe(JSON.stringify({ emoji: 'like' }))
-    })
-  })
-
-  describe('removeReaction', () => {
-    it('removes reaction from message', async () => {
       mockResponse(null, 204)
-
-      const client = await new TeamsClient().login({ token: 'test-token', region: 'emea' })
-      await client.removeReaction('111', 'ch1', 'msg1', 'like')
-
-      expect(fetchCalls[0].url).toBe(
-        'https://teams.microsoft.com/api/csa/emea/api/v2/teams/111/channels/ch1/messages/msg1/reactions/like',
-      )
-      expect(fetchCalls[0].options?.method).toBe('DELETE')
-    })
-  })
-
-  describe('listUsers', () => {
-    it('returns list of team members', async () => {
-      mockResponse([
-        { id: 'u1', displayName: 'User 1', email: 'user1@example.com' },
-        { id: 'u2', displayName: 'User 2', email: 'user2@example.com' },
+      const client = await graphClient()
+      expect((await client.getMessage('111', 'ch1', 'm1')).content).toBe('Hello')
+      await client.deleteMessage('111', 'ch1', 'm1')
+      await client.addReaction('111', 'ch1', 'm1', 'like')
+      await client.removeReaction('111', 'ch1', 'm1', 'like')
+      expect(fetchCalls.map((c) => [c.url.split('/').pop(), c.options?.method])).toEqual([
+        ['m1', 'GET'],
+        ['softDelete', 'POST'],
+        ['setReaction', 'POST'],
+        ['unsetReaction', 'POST'],
       ])
-
-      const client = await new TeamsClient().login({ token: 'test-token', region: 'emea' })
-      const users = await client.listUsers('111')
-
-      expect(users).toHaveLength(2)
-      expect(users[0].displayName).toBe('User 1')
-      expect(fetchCalls[0].url).toBe('https://teams.microsoft.com/api/csa/api/v1/teams/111/members')
+      expect(JSON.parse(String(fetchCalls[2].options?.body))).toEqual({ reactionType: 'like' })
+    })
+    it('maps membership userId and directory mail', async () => {
+      mockResponse({ value: [{ id: 'member-id', userId: 'u1', displayName: 'Test User', email: 'test@example.test' }] })
+      mockResponse({ id: 'u1', displayName: 'Test User', mail: 'test@example.test' })
+      const client = await graphClient()
+      expect((await client.listUsers('111'))[0].id).toBe('u1')
+      expect((await client.getUser('u1')).email).toBe('test@example.test')
+      expect(fetchCalls[0].url).toBe('https://graph.microsoft.com/v1.0/teams/111/members')
+      expect(fetchCalls[1].url).toBe('https://graph.microsoft.com/v1.0/users/u1')
     })
   })
 
-  describe('getUser', () => {
-    it('returns user info', async () => {
-      mockResponse({ id: 'u1', displayName: 'Test User', email: 'test@example.com' })
-
-      const client = await new TeamsClient().login({ token: 'test-token', region: 'emea' })
-      const user = await client.getUser('u1')
-
-      expect(user.id).toBe('u1')
-      expect(user.displayName).toBe('Test User')
-      expect(fetchCalls[0].url).toBe('https://teams.microsoft.com/api/csa/api/v1/users/u1')
-    })
-  })
-
-  describe('uploadFile', () => {
-    it('uploads file to channel', async () => {
-      const tempFile = '/tmp/test-teams-upload.txt'
-      await Bun.write(tempFile, 'test content')
-
+  describe('Graph channel drive', () => {
+    const folder = { id: 'folder1', parentReference: { driveId: 'drive1' } }
+    it('uploads bytes using PUT to the channel folder', async () => {
+      await Bun.write('/tmp/test-teams-upload.txt', 'test content')
+      mockResponse(folder)
       mockResponse({
         id: 'file1',
         name: 'test-teams-upload.txt',
         size: 12,
-        url: 'https://teams.microsoft.com/files/file1',
+        webUrl: 'https://example.sharepoint.com/file1',
       })
-
-      const client = await new TeamsClient().login({ token: 'test-token', region: 'emea' })
-      const file = await client.uploadFile('111', 'ch1', tempFile)
-
-      expect(file.name).toBe('test-teams-upload.txt')
-      expect(fetchCalls[0].url).toBe('https://teams.microsoft.com/api/csa/emea/api/v2/teams/111/channels/ch1/files')
-      expect(fetchCalls[0].options?.method).toBe('POST')
+      const client = await graphClient()
+      expect((await client.uploadFile('111', 'ch1', '/tmp/test-teams-upload.txt')).drive_id).toBe('drive1')
+      expect(fetchCalls[1].url).toBe(
+        'https://graph.microsoft.com/v1.0/drives/drive1/items/folder1:/test-teams-upload.txt:/content',
+      )
+      expect(fetchCalls[1].options?.method).toBe('PUT')
+      expect(new TextDecoder().decode(fetchCalls[1].options?.body as Uint8Array)).toBe('test content')
     })
-  })
-
-  describe('listFiles', () => {
-    it('returns files from channel', async () => {
-      mockResponse([
-        { id: 'file1', name: 'doc.pdf', size: 1024, url: 'https://example.com/doc.pdf' },
-        { id: 'file2', name: 'image.png', size: 2048, url: 'https://example.com/image.png' },
-      ])
-
-      const client = await new TeamsClient().login({ token: 'test-token', region: 'emea' })
+    it('lists files and folders without treating a folder as downloadable', async () => {
+      mockResponse(folder)
+      mockResponse({
+        value: [
+          { id: 'file1', name: 'doc.pdf', size: 1024, webUrl: 'https://example.sharepoint.com/doc.pdf' },
+          { id: 'subfolder', name: 'Subfolder', folder: { childCount: 1 } },
+        ],
+      })
+      const client = await graphClient()
       const files = await client.listFiles('111', 'ch1')
-
       expect(files).toHaveLength(2)
-      expect(files[0].name).toBe('doc.pdf')
-      expect(fetchCalls[0].url).toBe('https://teams.microsoft.com/api/csa/emea/api/v2/teams/111/channels/ch1/files')
+      expect(files[1].is_folder).toBe(true)
+      client.listFiles = async () => files
+      await expect(client.downloadFile('111', 'ch1', 'subfolder')).rejects.toThrow('folder')
+      expect(fetchCalls).toHaveLength(2)
     })
   })
 
@@ -895,24 +684,25 @@ describe('TeamsClient', () => {
     it('downloads SharePoint files through Graph shares with base64url share id', async () => {
       const manager = await setupCredentialManager()
       const shareUrl = 'https://contoso.sharepoint.com/sites/team/Shared%20Documents/report.docx'
-      mockResponse([
+      const listedFiles = [
         { id: 'file1', name: 'report.docx', size: 11, url: shareUrl, contentType: 'application/vnd.ms-word' },
-      ])
+      ]
       mockResponse({ access_token: createGraphJwt(), refresh_token: 'rotated-refresh', expires_in: 3600 })
       mockBinaryResponse('graph-bytes')
 
       const client = await new TeamsClient(manager).login({ token: 'skype-token', region: 'emea' })
+      client.listFiles = async () => listedFiles
       const result = await client.downloadFile('111', 'ch1', 'file1')
 
       const shareId = `u!${Buffer.from(shareUrl).toString('base64url').replace(/=+$/, '')}`
-      expect(fetchCalls[2].url).toBe(`https://graph.microsoft.com/v1.0/shares/${shareId}/driveItem/content`)
-      expect(headerValue(fetchCalls[2].options, 'Authorization')).toBe(`Bearer ${createGraphJwt()}`)
+      expect(fetchCalls[1].url).toBe(`https://graph.microsoft.com/v1.0/shares/${shareId}/driveItem/content`)
+      expect(headerValue(fetchCalls[1].options, 'Authorization')).toBe(`Bearer ${createGraphJwt()}`)
       expect(Buffer.from(result.buffer).toString()).toBe('graph-bytes')
       expect(result.file.id).toBe('file1')
     })
 
     it('downloads inline object URLs with the Skype token', async () => {
-      mockResponse([
+      const listedFiles = [
         {
           id: 'file2',
           name: 'image.png',
@@ -921,15 +711,16 @@ describe('TeamsClient', () => {
           object_url: 'https://us-api.asm.skype.com/v1/objects/0-weu-d1/image.png',
           contentType: 'image/png',
         },
-      ])
+      ]
       mockBinaryResponse('image-bytes')
 
       const client = await new TeamsClient().login({ token: 'skype-token', region: 'emea' })
+      client.listFiles = async () => listedFiles
       const result = await client.downloadFile('111', 'ch1', 'file2')
 
-      expect(fetchCalls[1].url).toBe('https://us-api.asm.skype.com/v1/objects/0-weu-d1/image.png')
-      expect(headerValue(fetchCalls[1].options, 'Authorization')).toBe('Bearer skype-token')
-      expect(headerValue(fetchCalls[1].options, 'X-Skypetoken')).toBe('skype-token')
+      expect(fetchCalls[0].url).toBe('https://us-api.asm.skype.com/v1/objects/0-weu-d1/image.png')
+      expect(headerValue(fetchCalls[0].options, 'Authorization')).toBe('Bearer skype-token')
+      expect(headerValue(fetchCalls[0].options, 'X-Skypetoken')).toBe('skype-token')
       expect(Buffer.from(result.buffer).toString()).toBe('image-bytes')
     })
 
@@ -941,23 +732,24 @@ describe('TeamsClient', () => {
       TEMP_DIRS_TO_CLEANUP.push(dir)
       const manager = new TeamsCredentialManager(dir)
       await manager.setToken('skype-token', 'work', '2100-01-01T00:00:00Z')
-      mockResponse([
+      const listedFiles = [
         {
           id: 'file3',
           name: 'deck.pptx',
           size: 10,
           url: 'https://contoso.sharepoint.com/sites/team/Shared%20Documents/deck.pptx',
         },
-      ])
+      ]
 
       const client = await new TeamsClient(manager).login({ token: 'skype-token', region: 'emea' })
+      client.listFiles = async () => listedFiles
 
       await expect(client.downloadFile('111', 'ch1', 'file3')).rejects.toThrow('Requires `agent-teams auth login`')
-      expect(fetchCalls).toHaveLength(1)
+      expect(fetchCalls).toHaveLength(0)
     })
 
     it('refuses to send the Skype token to an untrusted host', async () => {
-      mockResponse([
+      const listedFiles = [
         {
           id: 'file4',
           name: 'evil.bin',
@@ -965,13 +757,14 @@ describe('TeamsClient', () => {
           url: 'https://evil.example.com/steal',
           object_url: 'https://evil.example.com/steal',
         },
-      ])
+      ]
 
       const client = await new TeamsClient().login({ token: 'skype-token', region: 'emea' })
+      client.listFiles = async () => listedFiles
 
       await expect(client.downloadFile('111', 'ch1', 'file4')).rejects.toThrow('untrusted host')
-      // only the listFiles call happened — no credentialed download fetch to the untrusted host
-      expect(fetchCalls).toHaveLength(1)
+      // No credentialed download fetch reaches the untrusted host.
+      expect(fetchCalls).toHaveLength(0)
     })
   })
 
@@ -1054,16 +847,15 @@ describe('TeamsClient', () => {
     })
   })
 
-  describe('bucket key normalization', () => {
-    it('normalizes team and channel IDs in routes', async () => {
-      mockResponse([])
-      mockResponse([])
-
-      const client = await new TeamsClient().login({ token: 'test-token', region: 'emea' })
-      await client.getMessages('team1', 'ch1')
+  describe('route isolation', () => {
+    it('encodes IDs and sends requests to the correct channel', async () => {
+      mockResponse({ value: [] })
+      mockResponse({ value: [] })
+      const client = await graphClient()
+      await client.getMessages('team/1', 'ch/1')
       await client.getMessages('team2', 'ch2')
-
-      expect(fetchCalls.length).toBe(2)
+      expect(fetchCalls[0].url).toContain('/teams/team%2F1/channels/ch%2F1/')
+      expect(fetchCalls[1].url).toContain('/teams/team2/channels/ch2/')
     })
   })
 })

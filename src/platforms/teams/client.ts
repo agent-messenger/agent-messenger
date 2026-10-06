@@ -6,6 +6,7 @@ import { escapeHtml, markdownToHtml } from '@/shared/utils/markdown-to-html'
 
 import { SUBSTRATE_SEARCH_URL } from './app-config'
 import { TeamsCredentialManager } from './credential-manager'
+import { TeamsGraph, graphMessage, graphTeam, graphChannel, graphUser, graphFile, segment, messageText } from './graph'
 import { sanitizeTeamsHtml } from './html-sanitizer'
 import { TeamsTokenProvider } from './token-provider'
 import type {
@@ -28,15 +29,9 @@ interface RateLimitBucket {
   resetAt: number
 }
 
-interface RawTeamsMessage extends TeamsMessage {
-  rootMessageId?: string
-  parentMessageId?: string
-}
-
 type JsonRecord = Record<string, unknown>
 
 const PERSONAL_MSG_API_BASE = 'https://msgapi.teams.live.com/v1'
-const CSA_API_BASE = 'https://teams.microsoft.com/api'
 const MAX_RETRIES = 3
 const BASE_BACKOFF_MS = 100
 const DEFAULT_REGION: TeamsRegion = 'amer'
@@ -69,6 +64,17 @@ function stripHtml(content: string | undefined): string | undefined {
     .replace(/&#39;/g, "'")
     .replace(/\s+/g, ' ')
     .trim()
+}
+
+function parsePropertyArray(value: unknown): unknown[] {
+  if (Array.isArray(value)) return value
+  if (typeof value === 'string') {
+    try {
+      const parsed = JSON.parse(value)
+      return Array.isArray(parsed) ? parsed : []
+    } catch {}
+  }
+  return []
 }
 
 function isRecord(value: unknown): value is JsonRecord {
@@ -118,27 +124,41 @@ function resultString(record: JsonRecord, keys: string[]): string | undefined {
 
 function parseSubstrateResult(value: unknown): TeamsSearchResult | null {
   if (!isRecord(value)) return null
-  const author = recordFrom(value, ['Author', 'author', 'From', 'from'])
-  const id = resultString(value, ['id', 'Id', 'ReferenceId', 'MessageId'])
-  const channelId = resultString(value, ['channel_id', 'ChannelId', 'ConversationId', 'ThreadId'])
+  const source = recordFrom(value, ['Source', 'source']) ?? value
+  const author = recordFrom(source, ['Author', 'author', 'From', 'from'])
+  const email = author && recordFrom(author, ['EmailAddress', 'emailAddress'])
+  const extensions = recordFrom(source, ['Extensions'])
+  const id = resultString(source, ['InternetMessageId', 'MessageId', 'id', 'Id', 'ReferenceId'])
+  const channelId = resultString(source, ['channel_id', 'ChannelId', 'ClientThreadId', 'ThreadId', 'ConversationId'])
   if (!id || !channelId) return null
-
+  const content =
+    resultString(source, ['content', 'Content', 'Preview', 'Summary']) ??
+    resultString(value, ['HitHighlightedSummary']) ??
+    ''
   return {
     id,
-    content:
-      stripHtml(resultString(value, ['content', 'Content', 'HitHighlightedSummary', 'Summary', 'Preview'])) ?? '',
-    author: {
-      id: author ? (stringFrom(author, ['id', 'Id', 'ObjectId']) ?? '') : (propertyValue(value, ['AuthorId']) ?? ''),
-      displayName: author
-        ? (stringFrom(author, ['displayName', 'DisplayName', 'Name']) ?? 'Unknown')
-        : (propertyValue(value, ['AuthorDisplayName', 'Author']) ?? 'Unknown'),
-    },
     channel_id: channelId,
-    thread_id: resultString(value, ['thread_id', 'ThreadId']),
-    team_name: resultString(value, ['team_name', 'TeamName']),
-    channel_name: resultString(value, ['channel_name', 'ChannelName']),
-    timestamp: resultString(value, ['timestamp', 'Timestamp', 'DateTimeSent', 'LastModifiedTime']) ?? '',
-    permalink: resultString(value, ['permalink', 'Permalink', 'WebUrl', 'Url']),
+    content: messageText(content),
+    author: {
+      id:
+        (extensions && stringFrom(extensions, ['SkypeSpaces_ConversationPost_Extension_FromSkypeInternalId'])) ??
+        (author && stringFrom(author, ['id', 'Id', 'ObjectId'])) ??
+        propertyValue(source, ['AuthorId']) ??
+        '',
+      displayName:
+        (email && stringFrom(email, ['Name'])) ??
+        (author && stringFrom(author, ['displayName', 'DisplayName', 'Name'])) ??
+        propertyValue(source, ['AuthorDisplayName', 'Author']) ??
+        'Unknown',
+    },
+    thread_id:
+      resultString(source, ['ClientConversationId'])?.split(';messageid=')[1] ??
+      resultString(source, ['thread_id', 'ClientConversationId', 'ThreadId']),
+    team_name: resultString(source, ['team_name', 'TeamName']),
+    channel_name: resultString(source, ['channel_name', 'ChannelName']),
+    timestamp: resultString(source, ['timestamp', 'Timestamp', 'DateTimeSent', 'LastModifiedTime']) ?? '',
+    permalink: resultString(source, ['permalink', 'Permalink', 'WebUrl', 'Url']),
+    raw: value,
   }
 }
 
@@ -236,24 +256,7 @@ async function readDownloadResponse(response: Response, codePrefix: string): Pro
 
 function formatContent(content: string, format: TeamsMessageFormat): string {
   if (format === 'html') return sanitizeTeamsHtml(content)
-  return format === 'markdown' ? markdownToHtml(content) : escapeHtml(content)
-}
-
-function withThreadMetadata(message: RawTeamsMessage, rootMessageId?: string): TeamsMessage {
-  const { rootMessageId: messageRootMessageId, parentMessageId, ...teamsMessage } = message
-  const rawRootMessageId = rootMessageId ?? messageRootMessageId
-  const isThreadReply = Boolean(
-    rootMessageId ||
-    (messageRootMessageId !== undefined && messageRootMessageId !== message.id) ||
-    (parentMessageId !== undefined && parentMessageId !== message.id),
-  )
-
-  return {
-    ...teamsMessage,
-    root_message_id: isThreadReply ? rawRootMessageId : undefined,
-    parent_message_id: isThreadReply ? (parentMessageId ?? rawRootMessageId) : undefined,
-    is_thread_reply: isThreadReply ? true : undefined,
-  }
+  return format === 'markdown' ? markdownToHtml(content) : escapeHtml(content).replace(/\r?\n/g, '<br>')
 }
 
 // groupId => Teams/channel thread (handled by listTeams). "48:notes"/
@@ -469,7 +472,7 @@ export class TeamsClient {
       this.updateBucket(bucketKey, response)
 
       if (response.status === 429) {
-        if (attempt < MAX_RETRIES) {
+        if (method === 'GET' && attempt < MAX_RETRIES) {
           await this.handleRateLimitResponse(response)
           continue
         }
@@ -479,7 +482,7 @@ export class TeamsClient {
         throw new TeamsError(errorBody?.message || 'Rate limited', 'rate_limited')
       }
 
-      if (response.status >= 500 && attempt < MAX_RETRIES) {
+      if (method === 'GET' && response.status >= 500 && attempt < MAX_RETRIES) {
         await this.sleep(BASE_BACKOFF_MS * 2 ** attempt)
         continue
       }
@@ -503,44 +506,6 @@ export class TeamsClient {
     }
 
     throw new TeamsError('Request failed after retries', 'max_retries')
-  }
-
-  private async requestFormData<T>(path: string, formData: FormData, baseUrl?: string): Promise<T> {
-    if (this.isTokenExpired()) {
-      throw new TeamsError('Token has expired. Run "auth login" or "auth extract" to refresh.', 'token_expired')
-    }
-
-    if (baseUrl === undefined && !this.regionDiscovered) {
-      await this.discoverRegion()
-    }
-
-    const url = `${baseUrl ?? this.getMsgApiBase()}${path}`
-    const bucketKey = this.getBucketKey('POST', path)
-
-    await this.waitForRateLimit(bucketKey)
-
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'X-Skypetoken': this.ensureAuth(),
-      },
-      body: formData,
-    })
-
-    this.updateBucket(bucketKey, response)
-
-    if (!response.ok) {
-      const errorBody = (await response.json().catch(() => null)) as {
-        message?: string
-        code?: string | number
-      } | null
-      throw new TeamsError(
-        errorBody?.message || `HTTP ${response.status}`,
-        errorBody?.code?.toString() ?? `http_${response.status}`,
-      )
-    }
-
-    return response.json() as Promise<T>
   }
 
   async testAuth(): Promise<TeamsUser> {
@@ -657,39 +622,59 @@ export class TeamsClient {
     return chats
   }
 
-  async getChatMessages(chatId: string, limit: number = 50): Promise<TeamsMessage[]> {
-    interface ChatMessage {
-      id: string
-      content?: string
-      from?: string
-      imdisplayname?: string
-      composetime?: string
-      originalarrivaltime?: string
-      messagetype?: string
-    }
-    interface MessagesResponse {
-      messages: ChatMessage[]
-    }
+  async getChatMessagesPage(
+    chatId: string,
+    limit = 50,
+    cursor?: string,
+  ): Promise<{ messages: TeamsMessage[]; next_cursor?: string }> {
+    if (!Number.isSafeInteger(limit) || limit < 1)
+      throw new TeamsError('Limit must be a positive integer.', 'invalid_pagination')
     const encodedChatId = encodeURIComponent(chatId)
-    const data = await this.request<MessagesResponse>(
+    let path = `/users/ME/conversations/${encodedChatId}/messages?startTime=0&view=msnp24Equivalent&pageSize=${Math.min(limit, 100)}`
+    if (cursor) {
+      const url = new URL(cursor)
+      if (
+        url.origin !== new URL(this.getMsgApiBase()).origin ||
+        !decodeURIComponent(url.pathname).endsWith(`/conversations/${chatId}/messages`)
+      ) {
+        throw new TeamsError('Untrusted message pagination URL.', 'untrusted_pagination')
+      }
+      path = url.pathname.replace(/^\/v1/, '') + url.search
+    }
+    const page = await this.request<{ messages: Array<Record<string, any>>; _metadata?: { backwardLink?: string } }>(
       'GET',
-      `/users/ME/conversations/${encodedChatId}/messages?startTime=0&view=msnp24Equivalent&pageSize=${limit}`,
+      path,
     )
-
-    const userMessageTypes = new Set(['Text', 'RichText/Html', 'RichText/Media_CallRecording'])
-    return (data.messages ?? [])
-      .filter((msg) => !msg.messagetype || userMessageTypes.has(msg.messagetype))
-      .slice(0, limit)
-      .map((msg) => ({
-        id: msg.id,
+    return {
+      messages: (page.messages ?? []).map((raw) => ({
+        id: raw.id,
         channel_id: chatId,
-        author: {
-          id: msg.from ?? '',
-          displayName: msg.imdisplayname ?? 'Unknown',
-        },
-        content: stripHtml(msg.content) ?? '',
-        timestamp: msg.composetime ?? msg.originalarrivaltime ?? '',
-      }))
+        author: { id: raw.from ?? '', displayName: raw.imdisplayname ?? 'Unknown' },
+        content: raw.messagetype === 'Text' ? (raw.content ?? '') : messageText(raw.content ?? ''),
+        timestamp: raw.composetime ?? raw.originalarrivaltime ?? '',
+        raw_content: raw.content ?? '',
+        content_type: raw.messagetype ?? '',
+        mentions: parsePropertyArray(raw.properties?.mentions),
+        attachments: parsePropertyArray(raw.properties?.files),
+        raw,
+      })),
+      next_cursor: page._metadata?.backwardLink || undefined,
+    }
+  }
+
+  async getChatMessages(chatId: string, limit = 50): Promise<TeamsMessage[]> {
+    const messages: TeamsMessage[] = [],
+      seen = new Set<string>()
+    let cursor: string | undefined
+    do {
+      const page = await this.getChatMessagesPage(chatId, limit - messages.length, cursor)
+      messages.push(...page.messages.slice(0, limit - messages.length))
+      if (page.messages.length === 0) break
+      cursor = page.next_cursor
+      if (cursor && seen.has(cursor)) throw new TeamsError('Repeated message pagination cursor.', 'repeated_pagination')
+      if (cursor) seen.add(cursor)
+    } while (cursor && messages.length < limit)
+    return messages
   }
 
   async sendChatMessage(chatId: string, content: string, format: TeamsMessageFormat = 'text'): Promise<TeamsMessage> {
@@ -746,21 +731,24 @@ export class TeamsClient {
     }
   }
 
+  private graph(): TeamsGraph {
+    return new TeamsGraph(() => this.getTokenProvider().getGraphToken())
+  }
+
+  private channelPath(teamId: string, channelId: string): string {
+    return `/teams/${segment(teamId)}/channels/${segment(channelId)}`
+  }
+
   async getTeam(teamId: string): Promise<TeamsTeam> {
-    return this.request<TeamsTeam>('GET', `/csa/api/v1/teams/${teamId}`, undefined, CSA_API_BASE)
+    return graphTeam(await this.graph().request('GET', `/teams/${segment(teamId)}`))
   }
 
   async listChannels(teamId: string): Promise<TeamsChannel[]> {
-    return this.request<TeamsChannel[]>('GET', `/csa/api/v1/teams/${teamId}/channels`, undefined, CSA_API_BASE)
+    return (await this.graph().collection(`/teams/${segment(teamId)}/channels`)).map((raw) => graphChannel(raw, teamId))
   }
 
   async getChannel(teamId: string, channelId: string): Promise<TeamsChannel> {
-    return this.request<TeamsChannel>(
-      'GET',
-      `/csa/api/v1/teams/${teamId}/channels/${channelId}`,
-      undefined,
-      CSA_API_BASE,
-    )
+    return graphChannel(await this.graph().request('GET', this.channelPath(teamId, channelId)), teamId)
   }
 
   async sendMessage(
@@ -770,49 +758,33 @@ export class TeamsClient {
     rootMessageId?: string,
     format: TeamsMessageFormat = 'text',
   ): Promise<TeamsMessage> {
-    const body = formatContent(content, format)
-
-    if (rootMessageId) {
-      const response = await this.request<RawTeamsMessage>(
-        'POST',
-        `/csa/${this.region}/api/v2/teams/${teamId}/channels/${channelId}/messages/${rootMessageId}/replies`,
-        { content: body, parentMessageId: rootMessageId },
-        CSA_API_BASE,
-      )
-      return withThreadMetadata(response, rootMessageId)
-    }
-
-    return this.request<TeamsMessage>(
-      'POST',
-      `/csa/${this.region}/api/v2/teams/${teamId}/channels/${channelId}/messages`,
-      { content: body },
-      CSA_API_BASE,
-    )
+    const path =
+      this.channelPath(teamId, channelId) + '/messages' + (rootMessageId ? `/${segment(rootMessageId)}/replies` : '')
+    const raw = await this.graph().request('POST', path, {
+      body: { contentType: 'html', content: formatContent(content, format) },
+    })
+    return graphMessage(raw, channelId, rootMessageId)
   }
 
-  async getMessages(teamId: string, channelId: string, limit: number = 50): Promise<TeamsMessage[]> {
-    const messages = await this.request<RawTeamsMessage[]>(
-      'GET',
-      `/csa/${this.region}/api/v2/teams/${teamId}/channels/${channelId}/messages?limit=${limit}`,
-      undefined,
-      CSA_API_BASE,
+  async getMessages(teamId: string, channelId: string, limit = 50): Promise<TeamsMessage[]> {
+    const values = await this.graph().collection(
+      this.channelPath(teamId, channelId) + `/messages?$top=${Math.min(limit, 50)}`,
+      limit,
     )
-    return messages.map((message) => withThreadMetadata(message))
+    return values.map((raw) => graphMessage(raw, channelId))
   }
 
   async getThreadReplies(
     teamId: string,
     channelId: string,
     rootMessageId: string,
-    limit: number = 50,
+    limit = 50,
   ): Promise<TeamsMessage[]> {
-    const replies = await this.request<RawTeamsMessage[]>(
-      'GET',
-      `/csa/${this.region}/api/v2/teams/${teamId}/channels/${channelId}/messages/${rootMessageId}/replies?limit=${limit}`,
-      undefined,
-      CSA_API_BASE,
+    const values = await this.graph().collection(
+      this.channelPath(teamId, channelId) + `/messages/${segment(rootMessageId)}/replies?$top=${Math.min(limit, 50)}`,
+      limit,
     )
-    return replies.map((reply) => withThreadMetadata(reply, rootMessageId))
+    return values.map((raw) => graphMessage(raw, channelId, rootMessageId))
   }
 
   async searchMessages(query: string, opts: { limit?: number; from?: number } = {}): Promise<TeamsSearchResult[]> {
@@ -828,19 +800,28 @@ export class TeamsClient {
       headers: {
         Authorization: `Bearer ${substrateToken}`,
         'Content-Type': 'application/json',
+        'X-Client-Flights': 'SearchV2Flight,SubstrateSearchFanoutFlight,lutmsearchmsg,TMSParseRefiningQueries',
+        'X-Client-UI-Language': 'en-US',
         'x-anchormailbox': `Oid:${userId}@${tenantId}`,
       },
       body: JSON.stringify({
         cvid: randomUUID(),
         logicalId: randomUUID(),
-        query: { queryString: query },
+        scenario: { Name: 'powerbar', Dimensions: [{ DimensionName: 'QueryType', DimensionValue: 'Messages' }] },
         entityRequests: [
           {
             entityType: 'Message',
             contentSources: ['Teams'],
+            propertySet: 'Optimized',
+            fields: [
+              'Extension_SkypeSpaces_ConversationPost_Extension_FromSkypeInternalId_String',
+              'Extension_SkypeSpaces_ConversationPost_Extension_ThreadType_String',
+              'Extension_SkypeSpaces_ConversationPost_Extension_SkypeGroupId_String',
+              'Extension_SkypeSpaces_ConversationPost_Extension_SenderTenantId_String',
+            ],
             from,
             size,
-            query: { queryString: query },
+            query: { queryString: query, displayQueryString: query },
           },
         ],
       }),
@@ -863,70 +844,63 @@ export class TeamsClient {
   }
 
   async getMessage(teamId: string, channelId: string, messageId: string): Promise<TeamsMessage> {
-    return this.request<TeamsMessage>(
-      'GET',
-      `/csa/${this.region}/api/v2/teams/${teamId}/channels/${channelId}/messages/${messageId}`,
-      undefined,
-      CSA_API_BASE,
+    return graphMessage(
+      await this.graph().request('GET', this.channelPath(teamId, channelId) + `/messages/${segment(messageId)}`),
+      channelId,
     )
   }
 
   async deleteMessage(teamId: string, channelId: string, messageId: string): Promise<void> {
-    return this.request<void>(
-      'DELETE',
-      `/csa/${this.region}/api/v2/teams/${teamId}/channels/${channelId}/messages/${messageId}`,
-      undefined,
-      CSA_API_BASE,
+    await this.graph().request(
+      'POST',
+      this.channelPath(teamId, channelId) + `/messages/${segment(messageId)}/softDelete`,
     )
   }
 
   async addReaction(teamId: string, channelId: string, messageId: string, emoji: string): Promise<void> {
-    return this.request<void>(
+    await this.graph().request(
       'POST',
-      `/csa/${this.region}/api/v2/teams/${teamId}/channels/${channelId}/messages/${messageId}/reactions`,
-      { emoji },
-      CSA_API_BASE,
+      this.channelPath(teamId, channelId) + `/messages/${segment(messageId)}/setReaction`,
+      { reactionType: emoji },
     )
   }
 
   async removeReaction(teamId: string, channelId: string, messageId: string, emoji: string): Promise<void> {
-    return this.request<void>(
-      'DELETE',
-      `/csa/${this.region}/api/v2/teams/${teamId}/channels/${channelId}/messages/${messageId}/reactions/${emoji}`,
-      undefined,
-      CSA_API_BASE,
+    await this.graph().request(
+      'POST',
+      this.channelPath(teamId, channelId) + `/messages/${segment(messageId)}/unsetReaction`,
+      { reactionType: emoji },
     )
   }
 
   async listUsers(teamId: string): Promise<TeamsUser[]> {
-    return this.request<TeamsUser[]>('GET', `/csa/api/v1/teams/${teamId}/members`, undefined, CSA_API_BASE)
+    return (await this.graph().collection(`/teams/${segment(teamId)}/members`)).map(graphUser)
   }
 
   async getUser(userId: string): Promise<TeamsUser> {
-    return this.request<TeamsUser>('GET', `/csa/api/v1/users/${userId}`, undefined, CSA_API_BASE)
+    return graphUser(await this.graph().request('GET', `/users/${segment(userId)}`))
+  }
+
+  private async fileFolder(teamId: string, channelId: string): Promise<{ id: string; driveId: string }> {
+    const folder = await this.graph().request('GET', this.channelPath(teamId, channelId) + '/filesFolder')
+    if (!folder.id || !folder.parentReference?.driveId)
+      throw new TeamsError('Channel drive folder unavailable.', 'file_folder_missing')
+    return { id: folder.id, driveId: folder.parentReference.driveId }
   }
 
   async uploadFile(teamId: string, channelId: string, filePath: string): Promise<TeamsFile> {
-    const fileBuffer = await readFile(filePath)
-    const filename = basename(filePath) || 'file'
-
-    const formData = new FormData()
-    formData.append('file', new Blob([fileBuffer]), filename)
-
-    return this.requestFormData<TeamsFile>(
-      `/csa/${this.region}/api/v2/teams/${teamId}/channels/${channelId}/files`,
-      formData,
-      CSA_API_BASE,
-    )
+    const folder = await this.fileFolder(teamId, channelId)
+    const bytes = await readFile(filePath)
+    const path = `/drives/${segment(folder.driveId)}/items/${segment(folder.id)}:/${segment(basename(filePath))}:/content`
+    const raw = await this.graph().request('PUT', path, undefined, new Uint8Array(bytes))
+    return graphFile(raw, folder.driveId)
   }
 
   async listFiles(teamId: string, channelId: string): Promise<TeamsFile[]> {
-    return this.request<TeamsFile[]>(
-      'GET',
-      `/csa/${this.region}/api/v2/teams/${teamId}/channels/${channelId}/files`,
-      undefined,
-      CSA_API_BASE,
-    )
+    const folder = await this.fileFolder(teamId, channelId)
+    return (
+      await this.graph().collection(`/drives/${segment(folder.driveId)}/items/${segment(folder.id)}/children`)
+    ).map((raw) => graphFile(raw, folder.driveId))
   }
 
   async downloadFile(teamId: string, channelId: string, fileId: string): Promise<{ buffer: Buffer; file: TeamsFile }> {
@@ -936,6 +910,15 @@ export class TeamsClient {
       throw new TeamsError(`File not found: ${fileId}`, 'file_not_found')
     }
 
+    if (file.drive_id) {
+      if (file.is_folder) throw new TeamsError('Cannot download a folder as a file.', 'file_is_folder')
+      const token = await this.getTokenProvider().getGraphToken()
+      const response = await fetch(
+        `${GRAPH_API_BASE}/drives/${segment(file.drive_id)}/items/${segment(file.id)}/content`,
+        { headers: { Authorization: `Bearer ${token}` }, redirect: 'follow' },
+      )
+      return { buffer: await readDownloadResponse(response, 'graph_download'), file }
+    }
     const source = getFileDownloadSource(file)
     if (source.route === 'graph') {
       const graphToken = await new TeamsTokenProvider(this.credManager).getGraphToken()

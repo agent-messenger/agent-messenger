@@ -8,17 +8,22 @@ description: Complete reference for the agent-teams CLI.
 ## Quick Start
 
 ```bash
-# 1. Extract credentials from Teams desktop app or browser (zero-config!)
-agent-teams auth extract
+# 1. Sign in with Microsoft device code (required for channels and search)
+agent-teams auth login --account-type work
 
 # 2. Get team snapshot
 agent-teams snapshot
 
 # 3. Send a message
-agent-teams message send <channel-id> "Hello from AI agent!"
+agent-teams message send <team-id> <channel-id> "Hello from AI agent!"
 ```
 
 ## Authentication
+
+Use `auth login` for work/school channel, directory, search and file operations. These use Microsoft bearer tokens from the saved device-code account. `auth extract` supplies only a Skype token for chat operations. Your tenant policies and delegated permissions still apply.
+
+An expired device-code login is refreshed for the same account. If refresh fails, the CLI does not replace it with a different desktop/browser identity. Run `auth login` explicitly to reconnect.
+
 
 ### Seamless Token Extraction
 
@@ -399,3 +404,18 @@ teams_cmd() {
 # Usage
 teams_cmd message send $CHANNEL "Hello!"
 ```
+
+## Message fidelity and pagination
+
+History and message commands retain the legacy text fields and additionally return `raw_content`, `content_type`, `mentions`, `attachments`, and the original server `raw` object. Chat history includes media and system records. Search returns an indexed preview with its original result in `raw`; fetch the exact message for the full body.
+
+Channel history and replies follow Graph pagination up to `--limit`. Chat history follows message pages by default; resumable single-page output is explicit:
+
+```bash
+agent-teams chat history <chat-id> --page --limit 50
+agent-teams chat history <chat-id> --cursor '<next_cursor>' --limit 50
+```
+
+Single-page output is `{ messages, next_cursor }`. Ordinary history output remains an array.
+
+Writes are attempted once, without automatic retries on HTTP 429 or 5xx. A timeout or server error can mean a message was delivered. Read the target history before deciding on another send; the CLI does not provide server-side idempotency.
