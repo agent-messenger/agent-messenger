@@ -1,6 +1,7 @@
 import { WebClient } from '@slack/web-api'
 
 import { SlackBotCredentialManager } from './credential-manager'
+import { mapSlackMessage } from './message-mapper'
 import { SlackBotError, type SlackChannel, type SlackFile, type SlackMessage, type SlackUser } from './types'
 
 const MAX_RETRIES = 3
@@ -151,33 +152,7 @@ export class SlackBotClient {
       })
       this.checkResponse(response)
 
-      return (response.messages || []).map((msg) => ({
-        ts: msg.ts!,
-        text: msg.text || '',
-        type: msg.type || 'message',
-        user: msg.user,
-        username: msg.username,
-        thread_ts: msg.thread_ts,
-        reply_count: msg.reply_count,
-        replies: (msg as any).replies,
-        edited: msg.edited
-          ? {
-              user: msg.edited.user || '',
-              ts: msg.edited.ts || '',
-            }
-          : undefined,
-        files: (msg as any).files?.map((f: any) => ({
-          id: f.id!,
-          name: f.name!,
-          title: f.title || f.name || '',
-          mimetype: f.mimetype || 'application/octet-stream',
-          size: f.size || 0,
-          url_private: f.url_private || '',
-          created: f.created || 0,
-          user: f.user || '',
-          channels: f.channels,
-        })),
-      }))
+      return (response.messages || []).map(mapSlackMessage)
     })
   }
 
@@ -196,33 +171,7 @@ export class SlackBotClient {
         return null
       }
 
-      return {
-        ts: msg.ts!,
-        text: msg.text || '',
-        type: msg.type || 'message',
-        user: msg.user,
-        username: msg.username,
-        thread_ts: msg.thread_ts,
-        reply_count: msg.reply_count,
-        replies: (msg as any).replies,
-        edited: msg.edited
-          ? {
-              user: msg.edited.user || '',
-              ts: msg.edited.ts || '',
-            }
-          : undefined,
-        files: (msg as any).files?.map((f: any) => ({
-          id: f.id!,
-          name: f.name!,
-          title: f.title || f.name || '',
-          mimetype: f.mimetype || 'application/octet-stream',
-          size: f.size || 0,
-          url_private: f.url_private || '',
-          created: f.created || 0,
-          user: f.user || '',
-          channels: f.channels,
-        })),
-      }
+      return mapSlackMessage(msg)
     })
   }
 
@@ -456,32 +405,7 @@ export class SlackBotClient {
       })
       this.checkResponse(response)
 
-      return (response.messages || []).map((msg: any) => ({
-        ts: msg.ts!,
-        text: msg.text || '',
-        type: msg.type || 'message',
-        user: msg.user,
-        username: msg.username,
-        thread_ts: msg.thread_ts,
-        reply_count: msg.reply_count,
-        edited: msg.edited
-          ? {
-              user: msg.edited.user || '',
-              ts: msg.edited.ts || '',
-            }
-          : undefined,
-        files: msg.files?.map((f: any) => ({
-          id: f.id!,
-          name: f.name!,
-          title: f.title || f.name || '',
-          mimetype: f.mimetype || 'application/octet-stream',
-          size: f.size || 0,
-          url_private: f.url_private || '',
-          created: f.created || 0,
-          user: f.user || '',
-          channels: f.channels,
-        })),
-      }))
+      return (response.messages || []).map(mapSlackMessage)
     })
   }
 

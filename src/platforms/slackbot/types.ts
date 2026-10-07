@@ -74,6 +74,8 @@ export interface SlackMessage {
     ts: string
   }
   files?: SlackFile[]
+  attachments?: unknown[]
+  blocks?: unknown[]
 }
 
 export interface SlackUser {

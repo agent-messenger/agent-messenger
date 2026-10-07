@@ -324,6 +324,27 @@ describe('SlackBotClient', () => {
       expect(messages.length).toBeGreaterThan(0)
       expect(messages[0].ts).toBe('1234567890.123456')
     })
+
+    it('passes through attachments and blocks of integration messages with empty text', async () => {
+      // given
+      const attachments = [{ fallback: '[FIRING:1] HighLoad', title: '[FIRING:1] HighLoad', text: 'load is 42' }]
+      const blocks = [{ type: 'section', text: { type: 'mrkdwn', text: 'details' } }]
+      mockConversations.history.mockImplementationOnce(
+        () =>
+          Promise.resolve({
+            ok: true,
+            messages: [{ ts: '1234567890.000002', text: '', type: 'message', bot_id: 'B1', attachments, blocks }],
+          }) as any,
+      )
+      const client = await new SlackBotClient().login({ token: 'xoxb-test-token' })
+
+      // when
+      const messages = await client.getConversationHistory('C123')
+
+      // then
+      expect(messages[0].attachments).toEqual(attachments)
+      expect(messages[0].blocks).toEqual(blocks)
+    })
   })
 
   describe('getMessage', () => {
