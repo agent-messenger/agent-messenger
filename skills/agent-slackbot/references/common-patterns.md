@@ -234,7 +234,7 @@ Integration posts (Alertmanager, incoming webhooks, CI bots) often carry an empt
 
 ```bash
 agent-slackbot message list "$CHANNEL" --limit 5 \
-  | jq -r '.[] | .text, (.attachments // [] | .[] | .title, .text), (.blocks // [] | .[] | .text.text // empty)'
+  | jq -r '.[] | .text, (.attachments // [] | .[] | .pretext, .title, .text, (.fields // [] | .[] | "\(.title): \(.value)"), .fallback | values), (.blocks // [] | .[] | .text.text // empty)'
 ```
 
 **When to use**: Fetching specific messages for processing, reading full threads.
