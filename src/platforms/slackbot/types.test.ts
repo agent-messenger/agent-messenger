@@ -6,6 +6,7 @@ import {
   type SlackBotCredentials,
   SlackBotCredentialsSchema,
   SlackBotError,
+  SlackMessageSchema,
 } from './types'
 
 describe('SlackBotError', () => {
@@ -53,6 +54,26 @@ describe('SlackBotCredentialsSchema', () => {
 
     const result = SlackBotCredentialsSchema.safeParse(creds)
     expect(result.success).toBe(false)
+  })
+})
+
+describe('SlackMessageSchema', () => {
+  it('keeps attachments and blocks of an empty-text integration message', () => {
+    // given
+    const message = {
+      ts: '1234567890.000002',
+      text: '',
+      type: 'message',
+      attachments: [{ title: '[FIRING:1] HighLoad', text: 'load is 42' }],
+      blocks: [{ type: 'section', text: { type: 'mrkdwn', text: 'details' } }],
+    }
+
+    // when
+    const parsed = SlackMessageSchema.parse(message)
+
+    // then
+    expect(parsed.attachments).toEqual(message.attachments)
+    expect(parsed.blocks).toEqual(message.blocks)
   })
 })
 

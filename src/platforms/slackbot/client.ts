@@ -1,25 +1,11 @@
 import { WebClient } from '@slack/web-api'
 
 import { SlackBotCredentialManager } from './credential-manager'
-import { mapSlackMessage } from './message-mapper'
+import { mapSlackFile, mapSlackMessage } from './message-mapper'
 import { SlackBotError, type SlackChannel, type SlackFile, type SlackMessage, type SlackUser } from './types'
 
 const MAX_RETRIES = 3
 const RATE_LIMIT_ERROR_CODE = 'slack_webapi_rate_limited_error'
-
-function mapSlackFile(f: any): SlackFile {
-  return {
-    id: f?.id || '',
-    name: f?.name || '',
-    title: f?.title || f?.name || '',
-    mimetype: f?.mimetype || 'application/octet-stream',
-    size: f?.size || 0,
-    url_private: f?.url_private || '',
-    created: f?.created || 0,
-    user: f?.user || '',
-    channels: f?.channels,
-  }
-}
 
 export class SlackBotClient {
   private client: WebClient | null = null

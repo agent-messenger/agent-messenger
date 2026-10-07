@@ -188,6 +188,8 @@ export const SlackMessageSchema = z.object({
       ts: z.string(),
     })
     .optional(),
+  attachments: z.array(z.unknown()).optional(),
+  blocks: z.array(z.unknown()).optional(),
 })
 
 export const SlackUserSchema = z.object({
