@@ -648,4 +648,6 @@ bun run build  # Build
 
 ## License
 
-MIT
+[MIT](LICENSE)
+
+Vendored code under `src/vendor/` (`linejs`, `linejs-types`, `loose-types`) is MIT-licensed by Evex Developers; see the `LICENSE` file in each directory. Third-party projects consulted for the KakaoTalk protocol are listed in [`src/platforms/kakaotalk/protocol/NOTICE.md`](src/platforms/kakaotalk/protocol/NOTICE.md).
