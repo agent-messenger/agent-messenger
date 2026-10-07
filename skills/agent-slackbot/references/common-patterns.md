@@ -228,6 +228,15 @@ REPLY_COUNT=$(echo "$REPLIES" | jq 'length')
 echo "Thread has $REPLY_COUNT replies"
 ```
 
+### Reading alert and webhook posts
+
+Integration posts (Alertmanager, incoming webhooks, CI bots) often carry an empty `text` and put their content in `attachments` (legacy `title`/`text`/`fields`/`fallback`) or Block Kit `blocks`. `message list`, `get` and `replies` include both arrays when Slack returns them:
+
+```bash
+agent-slackbot message list "$CHANNEL" --limit 5 \
+  | jq -r '.[] | .text, (.attachments // [] | .[] | .pretext, .title, .text, (.fields // [] | .[] | "\(.title): \(.value)"), .fallback | values), (.blocks // [] | .[] | .text.text // empty)'
+```
+
 **When to use**: Fetching specific messages for processing, reading full threads.
 
 ## Best Practices

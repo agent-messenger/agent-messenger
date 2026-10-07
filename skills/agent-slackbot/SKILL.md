@@ -206,6 +206,9 @@ agent-slackbot message get <channel> <ts>
 agent-slackbot message replies <channel> <thread_ts>
 agent-slackbot message replies C0ACZKTDDC0 1234567890.123456 --limit 50
 
+# Integration posts (alerting webhooks, CI bots) often have an empty "text";
+# list/get/replies then include their content in "attachments" and "blocks"
+
 # Edit a message (bot's own messages only)
 agent-slackbot message edit <channel> <ts> <new-text>
 
