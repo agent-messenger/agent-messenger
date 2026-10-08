@@ -1,6 +1,6 @@
 import { Binary, Long } from 'bson'
 
-import { KAKAO_MESSAGE_TYPE, type KakaoDeviceType } from '../types'
+import { KAKAO_MESSAGE_TYPE, type KakaoDeviceType, type KakaoReplyExtra } from '../types'
 import {
   BOOKING_HOST,
   BOOKING_PORT,
@@ -15,8 +15,28 @@ import {
   getLocoDeviceConfig,
 } from './config'
 import { LocoConnection } from './connection'
+import { exactInteger, stringifyWithExactIntegers } from './exact-json'
 import { validateLoginListResponse } from './login-response'
 import type { BookingResponse, CheckinResponse, LoginListResponse, LocoPacket, SyncState } from './types'
+
+// Builds the WRITE body for a quoted reply. The id fields must reach the wire
+// as bare 64-bit integer tokens, exactly as official clients write them, so
+// they never pass through a JS number (real log ids exceed 2^53).
+export function buildReplyWriteBody(chatId: Long, text: string, extra: KakaoReplyExtra): Record<string, unknown> {
+  const wireExtra = {
+    ...extra,
+    src_logId: exactInteger(extra.src_logId),
+    src_userId: exactInteger(extra.src_userId),
+    ...(extra.src_linkId !== undefined ? { src_linkId: exactInteger(extra.src_linkId) } : {}),
+  }
+  return {
+    chatId,
+    msg: text,
+    type: KAKAO_MESSAGE_TYPE.REPLY,
+    noSeen: false,
+    extra: stringifyWithExactIntegers(wireExtra),
+  }
+}
 
 // LOCO opcode string emitted on the wire for typing indicator pulses.
 // Reverse-engineered from KakaoTalk 25.x — see `LocoSession.sendTyping` docs.
@@ -167,15 +187,9 @@ export class LocoSession {
   // Quoted reply — a WRITE with message_type 26 (REPLY) whose `extra` JSON
   // carries the source-message reference. The reply semantics ride entirely on
   // `type` + `extra`; no extra top-level WRITE fields are needed.
-  async sendReply(chatId: Long, text: string, extra: Record<string, unknown>): Promise<LocoPacket> {
+  async sendReply(chatId: Long, text: string, extra: KakaoReplyExtra): Promise<LocoPacket> {
     if (!this.connection) throw new Error('Not connected')
-    return this.connection.sendPacket('WRITE', {
-      chatId,
-      msg: text,
-      type: KAKAO_MESSAGE_TYPE.REPLY,
-      noSeen: false,
-      extra: JSON.stringify(extra),
-    })
+    return this.connection.sendPacket('WRITE', buildReplyWriteBody(chatId, text, extra))
   }
 
   // Sends a WRITE with non-text message_type plus the JSON-stringified `extra`

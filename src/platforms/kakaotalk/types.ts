@@ -211,7 +211,7 @@ export interface KakaoReplyExtra {
   attach_only: boolean
   attach_type: number
   src_logId: string
-  src_userId: number
+  src_userId: string
   src_message: string
   src_type: number
   src_mentions: unknown[]
@@ -221,7 +221,7 @@ export interface KakaoReplyExtra {
 
 export interface KakaoReplyTarget {
   log_id: string
-  author_id: number
+  author_id: number | string
   message: string
   type: number
 }

@@ -7,6 +7,7 @@ import { isOpenKakaoChatType } from './chat-classifier'
 import { detectImageDimensions } from './image-meta'
 import { sha1Hex } from './media-upload'
 import { LANG, PC_OS_NAME, getLocoDeviceConfig } from './protocol/config'
+import { exactInteger, parseJsonPreservingIntegers } from './protocol/exact-json'
 import { isSyntheticConnectionClose } from './protocol/login-response'
 import { uploadMediaToLoco, uploadMultiMediaEntry } from './protocol/media-uploader'
 import { LocoSession } from './protocol/session'
@@ -182,7 +183,7 @@ function longToString(v: unknown): string {
 function parseAttachmentJson(raw: unknown): Record<string, unknown> | null {
   if (typeof raw !== 'string' || raw.length === 0) return null
   try {
-    const parsed = JSON.parse(raw) as unknown
+    const parsed = parseJsonPreservingIntegers(raw)
     if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return null
     const attachment = parsed as Record<string, unknown>
     return Object.keys(attachment).length > 0 ? attachment : null
@@ -772,8 +773,8 @@ function buildReplyExtra(target: KakaoReplyTarget): KakaoReplyExtra {
   return {
     attach_only: false,
     attach_type: target.type,
-    src_logId: target.log_id,
-    src_userId: target.author_id,
+    src_logId: exactInteger(target.log_id).digits,
+    src_userId: exactInteger(target.author_id).digits,
     src_message: target.message,
     src_type: target.type,
     src_mentions: [],
@@ -1401,11 +1402,7 @@ export class KakaoTalkClient {
     return this.executeWithReconnect(async ({ session }) => {
       try {
         const response = options?.replyTo
-          ? await session.sendReply(
-              parseLong(chatId),
-              text,
-              buildReplyExtra(options.replyTo) as unknown as Record<string, unknown>,
-            )
+          ? await session.sendReply(parseLong(chatId), text, buildReplyExtra(options.replyTo))
           : await session.sendMessage(parseLong(chatId), text)
 
         return {
