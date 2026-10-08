@@ -219,9 +219,11 @@ export interface KakaoReplyExtra {
   src_linkId?: string
 }
 
+// author_id accepts every exact id shape the SDK surfaces: safe numbers (normal
+// chats), decimal strings, bigint, and BSON Long / { low, high } (open-chat authors).
 export interface KakaoReplyTarget {
   log_id: string
-  author_id: number | string
+  author_id: number | string | bigint | { low: number; high: number; unsigned?: boolean }
   message: string
   type: number
 }

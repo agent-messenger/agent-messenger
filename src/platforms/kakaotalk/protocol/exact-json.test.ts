@@ -28,6 +28,13 @@ describe('exactInteger', () => {
     expect(() => exactInteger(Number(BIG_LOG_ID))).toThrow()
   })
 
+  it('rejects ids outside the signed 64-bit range', () => {
+    expect(() => exactInteger('9223372036854775808')).toThrow()
+    expect(() => exactInteger(Long.fromString('9223372036854775808', true))).toThrow()
+    expect(exactInteger('9223372036854775807').digits).toBe('9223372036854775807')
+    expect(exactInteger('-9223372036854775808').digits).toBe('-9223372036854775808')
+  })
+
   it('rejects malformed ids', () => {
     expect(() => exactInteger('12a')).toThrow()
     expect(() => exactInteger('')).toThrow()

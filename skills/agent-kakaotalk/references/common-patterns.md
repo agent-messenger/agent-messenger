@@ -396,6 +396,20 @@ send_with_retry "9876543210" "Important message!"
 
 **When to use**: Production scripts, critical notifications, unreliable networks.
 
+## Pattern 12: 64-bit IDs (log ids, open-chat user ids)
+
+KakaoTalk ids are signed 64-bit integers, and real `log_id`s (~3.9e18) are larger than `Number.MAX_SAFE_INTEGER`. The SDK keeps them exact:
+
+- `log_id` is always a decimal string. Compare and store it as a string (or `BigInt`), never as a JS number.
+- Integers inside `attachment` that exceed `Number.MAX_SAFE_INTEGER` (for example a quoted reply's `src_logId`, or an open-chat `src_userId`) come back as exact decimal strings; smaller integers stay numbers.
+- For `sendMessage(..., { replyTo })`, pass `author_id` exactly as you received it: a safe number, a decimal string, a `bigint`, or the `Long` that open-chat events carry. The SDK writes `src_logId`/`src_userId` into the reply as bare integer tokens and rejects a number that has already lost precision.
+
+```bash
+# Is this message a reply to one of my messages? Compare as strings.
+agent-kakaotalk message list <chat-id> -n 50 \
+  | jq -r --arg me "$MY_USER_ID" '.[] | select(.type == 26 and ((.attachment.src_userId | tostring) == $me)) | .log_id'
+```
+
 ## Best Practices
 
 ### 1. Cache Chat IDs

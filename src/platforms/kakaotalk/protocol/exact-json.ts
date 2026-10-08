@@ -7,7 +7,7 @@
 
 const INTEGER_DIGITS = /^-?(0|[1-9]\d*)$/
 const INT64_MIN = -(2n ** 63n)
-const UINT64_MAX = 2n ** 64n - 1n
+const INT64_MAX = 2n ** 63n - 1n
 
 export class JsonInteger {
   readonly digits: string
@@ -15,7 +15,7 @@ export class JsonInteger {
   constructor(digits: string) {
     if (!INTEGER_DIGITS.test(digits)) throw new Error(`Not an integer id: ${JSON.stringify(digits)}`)
     const value = BigInt(digits)
-    if (value < INT64_MIN || value > UINT64_MAX) throw new Error(`Id ${digits} is outside the 64-bit range`)
+    if (value < INT64_MIN || value > INT64_MAX) throw new Error(`Id ${digits} is outside the signed 64-bit range`)
     this.digits = digits
   }
 }
