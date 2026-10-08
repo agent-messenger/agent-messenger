@@ -2265,6 +2265,21 @@ describe('KakaoTalkClient', () => {
       client.close()
     })
 
+    it('reports failure for a zero log id even when WRITE acknowledges success', async () => {
+      mockSendMessage.mockResolvedValueOnce({ statusCode: 0, body: { logId: makeLong(0), sendAt: 0 } })
+      mockSendReply.mockResolvedValueOnce({ statusCode: 0, body: { logId: Long.ZERO, sendAt: 0 } })
+      const client = await new KakaoTalkClient().login({ oauthToken: 'token', userId: 'user1', deviceUuid: 'device1' })
+
+      const message = await client.sendMessage('100', 'hello')
+      const reply = await client.sendMessage('100', 'reply', {
+        replyTo: { log_id: '42', author_id: 7, message: 'original', type: 1 },
+      })
+
+      expect(message).toMatchObject({ success: false, status_code: 0, log_id: '0' })
+      expect(reply).toMatchObject({ success: false, status_code: 0, log_id: '0' })
+      client.close()
+    })
+
     it('wraps transport errors as KakaoTalkError', async () => {
       mockSendMessage.mockRejectedValue(new Error('Socket closed'))
 
@@ -2314,6 +2329,35 @@ describe('KakaoTalkClient', () => {
         sent_at: 1700000100,
       })
 
+      client.close()
+    })
+
+    it('includes the target open chat link id in reply metadata without losing precision', async () => {
+      const linkId = Long.fromString('9007199254740993')
+      mockLogin.mockResolvedValueOnce({
+        ...DEFAULT_LOGIN_RESULT,
+        chatDatas: [{ c: 300, t: 'OM', li: linkId }],
+      })
+      mockSendReply.mockResolvedValueOnce({ statusCode: 0, body: { logId: makeLong(53), sendAt: 1700000103 } })
+      const client = await new KakaoTalkClient().login({ oauthToken: 'token', userId: 'user1', deviceUuid: 'device1' })
+
+      const result = await client.sendMessage('300', 'reply', {
+        replyTo: { log_id: '42', author_id: 7, message: 'original', type: 1 },
+      })
+
+      expect(mockSendReply).toHaveBeenCalledWith(Long.fromString('300'), 'reply', {
+        attach_only: false,
+        attach_type: 1,
+        src_logId: '42',
+        src_userId: '7',
+        src_message: 'original',
+        src_type: 1,
+        src_mentions: [],
+        mentions: [],
+        src_linkId: linkId.toString(),
+      })
+      expect(mockSendMessage).not.toHaveBeenCalled()
+      expect(result.success).toBe(true)
       client.close()
     })
 
