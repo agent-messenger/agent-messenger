@@ -127,6 +127,7 @@ describe('reply WRITE wire contract', () => {
 
     expect(body.type).toBe(26)
     expect(body.msg).toBe('hi')
+    expect(body).not.toHaveProperty('li')
     expect(body.extra).toBe(
       '{"attach_only":false,"attach_type":1,"src_logId":3947068532267313155,"src_userId":7467363552057858123,"src_message":"q","src_type":1,"src_mentions":[],"mentions":[]}',
     )
@@ -142,9 +143,10 @@ describe('reply WRITE wire contract', () => {
       src_type: 1,
       src_mentions: [],
       mentions: [],
-      src_linkId: '474619593',
+      src_linkId: '9007199254740993',
     })
 
-    expect(body.extra).toContain('"src_linkId":474619593')
+    expect(body.extra).toContain('"src_linkId":9007199254740993')
+    expect(body).not.toHaveProperty('li')
   })
 })

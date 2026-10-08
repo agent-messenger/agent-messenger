@@ -769,7 +769,7 @@ function buildMessagePage(
   }
 }
 
-function buildReplyExtra(target: KakaoReplyTarget): KakaoReplyExtra {
+function buildReplyExtra(target: KakaoReplyTarget, linkId?: Long | null): KakaoReplyExtra {
   return {
     attach_only: false,
     attach_type: target.type,
@@ -779,6 +779,7 @@ function buildReplyExtra(target: KakaoReplyTarget): KakaoReplyExtra {
     src_type: target.type,
     src_mentions: [],
     mentions: [],
+    ...(linkId ? { src_linkId: linkId.toString() } : {}),
   }
 }
 
@@ -1399,17 +1400,20 @@ export class KakaoTalkClient {
   }
 
   async sendMessage(chatId: string, text: string, options?: { replyTo?: KakaoReplyTarget }): Promise<KakaoSendResult> {
-    return this.executeWithReconnect(async ({ session }) => {
+    return this.executeWithReconnect(async ({ session, loginResult }) => {
       try {
+        const chat = (loginResult.chatDatas ?? []).find((entry) => longToString(entry.c) === chatId)
+        const linkId = chat ? getOpenLinkId(chat) : null
         const response = options?.replyTo
-          ? await session.sendReply(parseLong(chatId), text, buildReplyExtra(options.replyTo))
+          ? await session.sendReply(parseLong(chatId), text, buildReplyExtra(options.replyTo, linkId))
           : await session.sendMessage(parseLong(chatId), text)
+        const logId = longToString(response.body.logId)
 
         return {
-          success: response.statusCode === 0,
+          success: response.statusCode === 0 && logId !== '0',
           status_code: response.statusCode,
           chat_id: chatId,
-          log_id: longToString(response.body.logId),
+          log_id: logId,
           sent_at: response.body.sendAt as number,
         }
       } catch (error) {
