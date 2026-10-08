@@ -3,6 +3,8 @@ import { mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
+import { Long } from 'bson'
+
 import { KakaoTalkClient, KakaoTalkError } from './client'
 
 // Mock LocoSession at module level
@@ -2168,6 +2170,37 @@ describe('KakaoTalkClient', () => {
       client.close()
     })
 
+    it('keeps 64-bit ids inside attachment JSON exact', async () => {
+      mockGetChatLogs.mockResolvedValueOnce({
+        body: {
+          status: 0,
+          chatLogs: [
+            {
+              logId: makeLong(21),
+              chatId: 100,
+              type: 26,
+              authorId: 42,
+              message: 'reply',
+              sendAt: 1700000011,
+              attachment: '{"src_logId":3947068532267313155,"src_userId":-9110477831976617123,"src_linkId":474619593}',
+            },
+          ],
+          eof: true,
+        },
+      })
+
+      const client = await new KakaoTalkClient().login({ oauthToken: 'token', userId: 'user1', deviceUuid: 'device1' })
+      const messages = await client.getMessages('100')
+
+      expect(messages[0].attachment).toEqual({
+        src_logId: '3947068532267313155',
+        src_userId: '-9110477831976617123',
+        src_linkId: 474619593,
+      })
+
+      client.close()
+    })
+
     it('returns null attachment for malformed JSON', async () => {
       mockGetChatLogs.mockResolvedValueOnce({
         body: {
@@ -2267,7 +2300,7 @@ describe('KakaoTalkClient', () => {
         attach_only: false,
         attach_type: 1,
         src_logId: '42',
-        src_userId: 7,
+        src_userId: '7',
         src_message: 'original',
         src_type: 1,
         src_mentions: [],
@@ -2298,6 +2331,40 @@ describe('KakaoTalkClient', () => {
       const [, , extra] = mockSendReply.mock.calls[0] as [unknown, string, Record<string, unknown>]
       expect(extra.attach_type).toBe(2)
       expect(extra.src_type).toBe(2)
+
+      client.close()
+    })
+
+    it('keeps 64-bit reply ids exact, including a Long open-chat author id', async () => {
+      // given — real log ids and open-profile user ids exceed Number.MAX_SAFE_INTEGER
+      mockSendReply.mockResolvedValueOnce({ statusCode: 0, body: { logId: makeLong(52), sendAt: 1700000102 } })
+      const client = await new KakaoTalkClient().login({ oauthToken: 'token', userId: 'user1', deviceUuid: 'device1' })
+      const openChatAuthor = Long.fromString('7467363552057858123') as unknown as number
+
+      // when
+      await client.sendMessage('100', 'reply', {
+        replyTo: { log_id: '3947068532267313155', author_id: openChatAuthor, message: 'q', type: 1 },
+      })
+
+      // then
+      const [, , extra] = mockSendReply.mock.calls[0] as [unknown, string, Record<string, unknown>]
+      expect(extra.src_logId).toBe('3947068532267313155')
+      expect(extra.src_userId).toBe('7467363552057858123')
+
+      client.close()
+    })
+
+    it('rejects a reply target whose author id already lost precision', async () => {
+      // given
+      const client = await new KakaoTalkClient().login({ oauthToken: 'token', userId: 'user1', deviceUuid: 'device1' })
+
+      // when / then
+      await expect(
+        client.sendMessage('100', 'reply', {
+          replyTo: { log_id: '1', author_id: Number('7467363552057858123'), message: 'q', type: 1 },
+        }),
+      ).rejects.toThrow()
+      expect(mockSendReply).not.toHaveBeenCalled()
 
       client.close()
     })

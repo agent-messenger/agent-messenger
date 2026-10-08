@@ -444,6 +444,29 @@ describe('KakaoTalkListener', () => {
       })
     })
 
+    it('keeps 64-bit ids inside a pushed reply attachment exact', async () => {
+      const { listener: l, client } = createListener()
+      listener = l
+
+      const messages: KakaoTalkPushMessageEvent[] = []
+      listener.on('message', (event) => messages.push(event))
+
+      await listener.start()
+      client.emitPush('MSG', {
+        chatId: { high: 0, low: 100 },
+        chatLog: {
+          logId: { high: 0, low: 201 },
+          authorId: 42,
+          message: 'reply',
+          type: 26,
+          sendAt: 1700000000,
+          attachment: '{"src_logId":3947068532267313155,"src_userId":446784507,"src_type":1}',
+        },
+      })
+
+      expect(messages[0].attachment).toEqual({ src_logId: '3947068532267313155', src_userId: 446784507, src_type: 1 })
+    })
+
     it('returns null when attachment is "{}" (text messages have no payload)', async () => {
       const { listener: l, client } = createListener()
       listener = l

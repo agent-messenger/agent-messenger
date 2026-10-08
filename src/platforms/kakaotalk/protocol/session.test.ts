@@ -2,7 +2,7 @@ import { describe, expect, it, mock } from 'bun:test'
 
 import { Long } from 'bson'
 
-import { buildTypingActionBody, sendTypingPacket, TYPING_ACTION_METHOD } from './session'
+import { buildReplyWriteBody, buildTypingActionBody, sendTypingPacket, TYPING_ACTION_METHOD } from './session'
 import type { LocoPacket } from './types'
 
 type SentPacket = { method: string; body: Record<string, unknown> }
@@ -109,5 +109,42 @@ describe('sendTypingPacket → sendPacket wire boundary', () => {
     const packet = sent[0]!
     expect(packet.method).toBe(TYPING_ACTION_METHOD)
     expect(packet.body).toEqual(buildTypingActionBody(Long.fromString('123'), Long.fromString('456')))
+  })
+})
+
+describe('reply WRITE wire contract', () => {
+  it('writes src_logId and src_userId as exact bare integers in the extra JSON', () => {
+    const body = buildReplyWriteBody(Long.fromString('459750513901477'), 'hi', {
+      attach_only: false,
+      attach_type: 1,
+      src_logId: '3947068532267313155',
+      src_userId: '7467363552057858123',
+      src_message: 'q',
+      src_type: 1,
+      src_mentions: [],
+      mentions: [],
+    })
+
+    expect(body.type).toBe(26)
+    expect(body.msg).toBe('hi')
+    expect(body.extra).toBe(
+      '{"attach_only":false,"attach_type":1,"src_logId":3947068532267313155,"src_userId":7467363552057858123,"src_message":"q","src_type":1,"src_mentions":[],"mentions":[]}',
+    )
+  })
+
+  it('writes src_linkId as a bare integer when present', () => {
+    const body = buildReplyWriteBody(Long.fromString('1'), 'hi', {
+      attach_only: false,
+      attach_type: 1,
+      src_logId: '2',
+      src_userId: '3',
+      src_message: '',
+      src_type: 1,
+      src_mentions: [],
+      mentions: [],
+      src_linkId: '474619593',
+    })
+
+    expect(body.extra).toContain('"src_linkId":474619593')
   })
 })

@@ -1,6 +1,7 @@
 import { EventEmitter } from 'events'
 
 import type { KakaoSessionEvent, KakaoTalkClient } from './client'
+import { parseJsonPreservingIntegers } from './protocol/exact-json'
 import type { LocoPacket } from './protocol/types'
 import {
   KAKAO_EMOTICON_KIND_BY_TYPE,
@@ -30,7 +31,7 @@ function isEmoticonType(type: number): type is KakaoEmoticonMessageType {
 function parseAttachmentJson(raw: unknown): Record<string, unknown> | null {
   if (typeof raw !== 'string' || raw.length === 0) return null
   try {
-    const parsed = JSON.parse(raw) as unknown
+    const parsed = parseJsonPreservingIntegers(raw)
     if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return null
     const attachment = parsed as Record<string, unknown>
     return Object.keys(attachment).length > 0 ? attachment : null
