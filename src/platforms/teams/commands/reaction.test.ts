@@ -18,6 +18,7 @@ beforeEach(() => {
   )
 
   consoleLogSpy = spyOn(console, 'log').mockImplementation(() => {})
+  consoleLogSpy.mockClear()
   processExitSpy = spyOn(process, 'exit').mockImplementation((_code?: number) => {
     throw new Error(`process.exit(${_code})`)
   })
@@ -32,10 +33,9 @@ afterEach(() => {
 })
 
 it('add: sends correct POST request with emoji', async () => {
-  try {
-    await addAction('team123', 'ch123', 'msg123', 'like', { pretty: false })
-  } catch {}
+  await addAction('team123', 'ch123', 'msg123', 'like', { pretty: false })
 
+  expect(addReactionSpy).toHaveBeenCalledWith('team123', 'ch123', 'msg123', 'like', undefined)
   expect(consoleLogSpy).toHaveBeenCalled()
   const output = JSON.parse(consoleLogSpy.mock.calls[0][0])
   expect(output.success).toBe(true)
@@ -46,10 +46,9 @@ it('add: sends correct POST request with emoji', async () => {
 })
 
 it('remove: sends correct DELETE request with emoji', async () => {
-  try {
-    await removeAction('team123', 'ch123', 'msg123', 'like', { pretty: false })
-  } catch {}
+  await removeAction('team123', 'ch123', 'msg123', 'like', { pretty: false })
 
+  expect(removeReactionSpy).toHaveBeenCalledWith('team123', 'ch123', 'msg123', 'like', undefined)
   expect(consoleLogSpy).toHaveBeenCalled()
   const output = JSON.parse(consoleLogSpy.mock.calls[0][0])
   expect(output.success).toBe(true)
@@ -70,4 +69,11 @@ it('add: handles missing token gracefully', async () => {
   const output = JSON.parse(consoleLogSpy.mock.calls[0][0])
   expect(output.error).toBeDefined()
   expect(processExitSpy).toHaveBeenCalledWith(1)
+})
+
+it('add and remove: preserve the root ID when reacting to a reply', async () => {
+  await addAction('team123', 'ch123', 'reply123', '👍', { thread: 'root123' })
+  await removeAction('team123', 'ch123', 'reply123', '👍', { thread: 'root123' })
+  expect(addReactionSpy).toHaveBeenCalledWith('team123', 'ch123', 'reply123', '👍', 'root123')
+  expect(removeReactionSpy).toHaveBeenCalledWith('team123', 'ch123', 'reply123', '👍', 'root123')
 })

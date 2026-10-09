@@ -10,7 +10,16 @@ export async function listAction(options: { pretty?: boolean }): Promise<void> {
   try {
     const credManager = new TeamsCredentialManager()
     const account = await credManager.getCurrentAccount()
-    const teams = account?.teams ? Object.values(account.teams) : []
+    let teams = account?.teams ? Object.values(account.teams) : []
+    if (account?.auth_method === 'device-code' && account.account_type === 'work') {
+      const client = await new TeamsClient(credManager).login({
+        token: account.token,
+        tokenExpiresAt: account.token_expires_at,
+        accountType: account.account_type,
+        region: account.region,
+      })
+      teams = (await client.listJoinedTeams()).map((team) => ({ team_id: team.id, team_name: team.name }))
+    }
 
     const output = teams.map((team) => ({
       id: team.team_id,

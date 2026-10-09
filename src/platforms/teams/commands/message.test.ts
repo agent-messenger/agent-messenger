@@ -208,6 +208,13 @@ it('delete: returns success', async () => {
   expect(output).toContain('deleted')
 })
 
+it('get and delete: preserve the root ID when targeting a reply', async () => {
+  await getAction('team_123', 'ch_456', 'reply_123', { thread: 'root_123' })
+  await deleteAction('team_123', 'ch_456', 'reply_123', { force: true, thread: 'root_123' })
+  expect(clientGetMessageSpy).toHaveBeenCalledWith('team_123', 'ch_456', 'reply_123', 'root_123')
+  expect(clientDeleteMessageSpy).toHaveBeenCalledWith('team_123', 'ch_456', 'reply_123', 'root_123')
+})
+
 it('send: passes markdown format to the client', async () => {
   const consoleSpy = mock((_msg: string) => {})
   console.log = consoleSpy

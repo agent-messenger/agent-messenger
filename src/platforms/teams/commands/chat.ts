@@ -39,7 +39,10 @@ export async function listAction(options: { pretty?: boolean }): Promise<void> {
   }
 }
 
-export async function historyAction(chatId: string, options: { limit?: number; pretty?: boolean }): Promise<void> {
+export async function historyAction(
+  chatId: string,
+  options: { limit?: number; pretty?: boolean; page?: boolean; cursor?: string },
+): Promise<void> {
   try {
     const credManager = new TeamsCredentialManager()
     const cred = await credManager.getTokenWithExpiry()
@@ -56,16 +59,19 @@ export async function historyAction(chatId: string, options: { limit?: number; p
       region: cred.region,
     })
     const limit = options.limit && options.limit > 0 ? options.limit : 50
-    const messages = await client.getChatMessages(chatId, limit)
+    const page =
+      options.page || options.cursor ? await client.getChatMessagesPage(chatId, limit, options.cursor) : undefined
+    const messages = page?.messages ?? (await client.getChatMessages(chatId, limit))
 
     const output = messages.map((msg) => ({
+      ...msg,
       id: msg.id,
       author: msg.author.displayName,
       content: msg.content,
       timestamp: msg.timestamp,
     }))
 
-    console.log(formatOutput(output, options.pretty))
+    console.log(formatOutput(page ? { messages: output, next_cursor: page.next_cursor } : output, options.pretty))
   } catch (error) {
     handleError(error as Error)
   }
@@ -96,6 +102,7 @@ export async function sendAction(
     const message = await client.sendChatMessage(chatId, content, format)
 
     const output = {
+      ...message,
       id: message.id,
       content: message.content,
       timestamp: message.timestamp,
@@ -133,6 +140,7 @@ export async function editAction(
     const message = await client.editChatMessage(chatId, messageId, content, format)
 
     const output = {
+      ...message,
       id: message.id,
       content: message.content,
       timestamp: message.timestamp,
@@ -157,11 +165,15 @@ export const chatCommand = new Command('chat')
       .description('Get chat message history')
       .argument('<chat-id>', 'Chat ID')
       .option('--limit <n>', 'Number of messages to fetch', '50')
+      .option('--page', 'Return one archive page with next_cursor')
+      .option('--cursor <url>', 'Continue from a returned archive cursor')
       .option('--pretty', 'Pretty print JSON output')
       .action((chatId, options) => {
         return historyAction(chatId, {
           limit: parseInt(options.limit, 10),
           pretty: options.pretty,
+          page: options.page,
+          cursor: options.cursor,
         })
       }),
   )
