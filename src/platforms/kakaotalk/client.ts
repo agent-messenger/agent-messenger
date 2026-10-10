@@ -1782,8 +1782,10 @@ export class KakaoTalkClient {
   /**
    * Per-member read watermarks for a chat, from CHATONROOM. Note that CHATONROOM
    * is the room-entry command: the server may clear the caller's own unread count
-   * for this chat (see #315), so do not call it from passive polling. For a
-   * side-effect-free feed, listen for DECUNREAD `read` events instead.
+   * for this chat (see #315), so do not call it from passive polling. The server
+   * returns watermarks only on the first CHATONROOM for a chat per LOCO session;
+   * a repeat call throws `get_read_watermarks_failed`. Seed once, then apply
+   * DECUNREAD `read` events (watermark only moves forward).
    */
   async getReadWatermarks(chatId: string): Promise<KakaoReadWatermarks> {
     const parsedChatId = parseChatId(chatId)

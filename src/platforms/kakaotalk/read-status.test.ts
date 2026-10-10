@@ -20,8 +20,12 @@ describe('extractReadWatermarks', () => {
     })
   })
 
-  it('falls back to the mi id list used by large rooms', () => {
-    expect(extractReadWatermarks({ mi: [1], w: [5] }, '1').watermarks).toEqual([{ user_id: '1', watermark: '5' }])
+  it('does not treat the mi member list as watermark keys', () => {
+    expect(() => extractReadWatermarks({ mi: [1], w: [5] }, '1')).toThrow('read watermarks unavailable')
+  })
+
+  it('names the keys of a repeat-call response that omits a/w', () => {
+    expect(() => extractReadWatermarks({ c: 1, m: [], l: 2 }, '1')).toThrow('(keys: c,m,l)')
   })
 
   it('throws when watermarks are missing or misaligned', () => {

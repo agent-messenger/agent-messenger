@@ -9,13 +9,16 @@ function idToString(v: unknown): string {
   throw new Error('CHATONROOM read watermarks unavailable')
 }
 
-// CHATONROOM lists member IDs (`a`, or `mi` for large rooms) with a parallel
-// array of per-member read watermarks (`w`, the last log ID each one read).
+// CHATONROOM may carry two parallel arrays: `a` (watermark user ids) and `w`
+// (the last log ID each one read). `mi` is the >100-member id list, not
+// watermark keys. The server includes a/w only on the first CHATONROOM for a
+// chat within a LOCO session; later calls omit them, so callers should seed
+// once and then follow DECUNREAD `read` events.
 export function extractReadWatermarks(body: Record<string, unknown>, chatId: string): KakaoReadWatermarks {
-  const ids = Array.isArray(body.a) ? body.a : Array.isArray(body.mi) ? body.mi : null
+  const ids = Array.isArray(body.a) ? body.a : null
   const marks = Array.isArray(body.w) ? body.w : null
   if (!ids || !marks || ids.length !== marks.length) {
-    throw new Error('CHATONROOM read watermarks unavailable')
+    throw new Error(`CHATONROOM read watermarks unavailable (keys: ${Object.keys(body).join(',')})`)
   }
   return {
     chat_id: chatId,
