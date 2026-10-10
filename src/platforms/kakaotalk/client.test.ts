@@ -2723,6 +2723,38 @@ describe('KakaoTalkClient', () => {
     })
   })
 
+  describe('getReadWatermarks', () => {
+    it('returns per-member watermarks from CHATONROOM', async () => {
+      mockGetChatInfo.mockResolvedValue({
+        statusCode: 0,
+        body: { a: [makeLong(7), makeLong(9)], w: [makeLong(120), makeLong(80)] },
+      })
+      const client = await new KakaoTalkClient().login({ oauthToken: 'token', userId: 'user1', deviceUuid: 'device1' })
+      const result = await client.getReadWatermarks('100')
+      expect(result).toEqual({
+        chat_id: '100',
+        watermarks: [
+          { user_id: '7', watermark: '120' },
+          { user_id: '9', watermark: '80' },
+        ],
+      })
+      // The one deliberate room entry; the afterEach guard forbids any other.
+      expect(mockGetChatInfo).toHaveBeenCalledTimes(1)
+      mockGetChatInfo.mockClear()
+      client.close()
+    })
+
+    it('wraps a rejected CHATONROOM as get_read_watermarks_failed', async () => {
+      mockGetChatInfo.mockResolvedValue({ statusCode: -805, body: {} })
+      const client = await new KakaoTalkClient().login({ oauthToken: 'token', userId: 'user1', deviceUuid: 'device1' })
+      const error = await client.getReadWatermarks('100').catch((e: unknown) => e)
+      expect(error).toBeInstanceOf(KakaoTalkError)
+      expect((error as KakaoTalkError).code).toBe('get_read_watermarks_failed')
+      mockGetChatInfo.mockClear()
+      client.close()
+    })
+  })
+
   describe('getMembers / getMembersByIds', () => {
     it('returns formatted members from GETMEM with normalized fields', async () => {
       mockGetChannelInfo.mockResolvedValueOnce(memberChannelInfo(2)).mockResolvedValueOnce(memberChannelInfo(2))

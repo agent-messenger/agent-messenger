@@ -235,6 +235,25 @@ export interface KakaoMarkReadResult {
   watermark: string
 }
 
+export interface KakaoReadWatermark {
+  user_id: string
+  /** Highest log ID this member has read in the chat. */
+  watermark: string
+}
+
+export interface KakaoReadWatermarks {
+  chat_id: string
+  watermarks: KakaoReadWatermark[]
+}
+
+export interface KakaoReadStatus {
+  chat_id: string
+  log_id: string
+  unread_count: number
+  read_by: string[]
+  unread_by: string[]
+}
+
 export interface KakaoLeaveChatResult {
   success: boolean
   status_code: number
