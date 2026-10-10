@@ -136,6 +136,38 @@ state. Any malformed, partial, or changing snapshot fails closed.
 
 Each `KakaoMember` includes `user_id`, `nickname`, profile image URLs, `status_message`, `country_iso`, `user_type` (nullable; `null` when the server omits the field), and open-chat-only fields (`open_token`, `open_profile_link_id`, `open_permission` — the last is the OpenChannelUserPerm bitfield: `1`=OWNER, `2`=NONE, `4`=MANAGER, `8`=BOT).
 
+### Read Status
+
+```typescript
+import { KakaoTalkClient, computeReadStatus } from 'agent-messenger/kakaotalk'
+
+// Seed: the last log ID each member has read in the chat
+const watermarks = await client.getReadWatermarks('9876543210')
+// → KakaoReadWatermarks {
+//     chat_id: '9876543210',
+//     watermarks: [
+//       { user_id: '1234567890', watermark: '3846830417126748160' },
+//       { user_id: '2345678901', watermark: '3846830417126000000' },
+//     ],
+//   }
+
+// Who has read a specific message
+const status = computeReadStatus(watermarks, '3846830417126748160', {
+  senderId: '1234567890', // the message's author — never counted
+})
+// → KakaoReadStatus {
+//     chat_id: '9876543210',
+//     log_id: '3846830417126748160',
+//     unread_count: 1,
+//     read_by: [],
+//     unread_by: ['2345678901'],
+//   }
+```
+
+A member has read the message once their watermark is at or past its log ID (`watermark >= log_id`, compared exactly as 64-bit integers). Pass the message's sender as `senderId` (and optionally `excludeUserIds`, e.g. yourself) — excluded members are never counted, so `unread_count` matches the number KakaoTalk shows next to the message.
+
+`getReadWatermarks` sends CHATONROOM, the room-entry command: the server may clear your own unread count for that chat (see #315), so call it on demand — never from passive polling. It is also a seed-once call: the server includes the `a` (member ids) / `w` (watermarks) arrays only on the first CHATONROOM for a chat within a LOCO session, so a repeat call throws `KakaoTalkError('get_read_watermarks_failed')`. Seed once per session, then advance watermarks from `KakaoTalkListener` `read` events (DECUNREAD pushes; a watermark only moves forward). When the listener emits `disconnected`, drop the seed so the next call re-seeds in the new session. For a side-effect-free live feed, rely on `read` events instead of polling CHATONROOM.
+
 ### Sending
 
 ```typescript
@@ -357,6 +389,9 @@ import type {
   KakaoChat,
   KakaoMember,
   KakaoMessage,
+  KakaoReadStatus,
+  KakaoReadWatermark,
+  KakaoReadWatermarks,
   KakaoSendResult,
   KakaoTypingResult,
   KakaoAccountCredentials,

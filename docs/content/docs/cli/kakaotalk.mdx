@@ -230,6 +230,8 @@ agent-kakaotalk message send <chat-id> "Hello" --account <account-id>
 agent-kakaotalk message upload <chat-id> ./photo.jpg --account <account-id>
 ```
 
+> **SDK-only**: `KakaoTalkClient.getReadWatermarks(chatId)` + `computeReadStatus(...)` answer "who has read this message?". They are intentionally not exposed via the CLI: CHATONROOM enters the room and may clear your own unread count (#315), and the server returns the `a`/`w` watermark arrays only on the first CHATONROOM per LOCO session — so the intended pattern is to seed once and then follow listener `read` events (see the KakaoTalk SDK reference).
+
 #### Sending Attachments
 
 `message upload` sends photos, videos, audio, and arbitrary files to a chat. The CLI sniffs the MIME type from the filename and dispatches to the matching KakaoTalk message type, so the common case is a single command and a file path:
