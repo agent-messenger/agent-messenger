@@ -12,6 +12,7 @@ import { isSyntheticConnectionClose } from './protocol/login-response'
 import { uploadMediaToLoco, uploadMultiMediaEntry } from './protocol/media-uploader'
 import { LocoSession } from './protocol/session'
 import type { ChatListResponse, LocoPacket, LoginListResponse, SyncState } from './protocol/types'
+import { extractReadWatermarks } from './read-status'
 import { KakaoSyncStateStore } from './sync-state-store'
 import {
   KAKAO_MESSAGE_TYPE,
@@ -25,6 +26,7 @@ import {
   type KakaoMessagePage,
   type KakaoMultiPhotoExtra,
   type KakaoProfile,
+  type KakaoReadWatermarks,
   type KakaoReplyExtra,
   type KakaoReplyTarget,
   type KakaoSendResult,
@@ -1773,6 +1775,27 @@ export class KakaoTalkClient {
         }
       } catch (error) {
         throw wrapError(error, 'mark_read_failed')
+      }
+    })
+  }
+
+  /**
+   * Per-member read watermarks for a chat, from CHATONROOM. Note that CHATONROOM
+   * is the room-entry command: the server may clear the caller's own unread count
+   * for this chat (see #315), so do not call it from passive polling. The server
+   * returns watermarks only on the first CHATONROOM for a chat per LOCO session;
+   * a repeat call throws `get_read_watermarks_failed`. Seed once, then apply
+   * DECUNREAD `read` events (watermark only moves forward).
+   */
+  async getReadWatermarks(chatId: string): Promise<KakaoReadWatermarks> {
+    const parsedChatId = parseChatId(chatId)
+    return this.executeWithReconnect(async ({ session }) => {
+      try {
+        const response = await session.getChatInfo(parsedChatId)
+        assertLocoOk(response, 'CHATONROOM')
+        return extractReadWatermarks(response.body as Record<string, unknown>, longToString(parsedChatId))
+      } catch (error) {
+        throw wrapError(error, 'get_read_watermarks_failed')
       }
     })
   }

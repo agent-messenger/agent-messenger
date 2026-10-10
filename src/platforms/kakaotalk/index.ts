@@ -1,4 +1,5 @@
 export { KakaoTalkClient, KakaoTalkError } from './client'
+export { computeReadStatus } from './read-status'
 export type {
   KakaoTalkGetChatFailureReason,
   KakaoTalkResponseFailureKind,
@@ -31,6 +32,9 @@ export type {
   KakaoMultiPhotoExtra,
   KakaoPhotoExtra,
   KakaoProfile,
+  KakaoReadStatus,
+  KakaoReadWatermark,
+  KakaoReadWatermarks,
   KakaoReplyExtra,
   KakaoReplyTarget,
   KakaoSendResult,
