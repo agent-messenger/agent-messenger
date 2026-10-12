@@ -8,17 +8,21 @@ description: Complete reference for the agent-teams CLI.
 ## Quick Start
 
 ```bash
-# 1. Extract credentials from Teams desktop app or browser (zero-config!)
-agent-teams auth extract
+# 1. Sign in with Microsoft device code (required for channels and search)
+agent-teams auth login --account-type work
 
 # 2. Get team snapshot
 agent-teams snapshot
 
 # 3. Send a message
-agent-teams message send <channel-id> "Hello from AI agent!"
+agent-teams message send <team-id> <channel-id> "Hello from AI agent!"
 ```
 
 ## Authentication
+
+Use `auth login` for work/school channel, directory, search and file operations. These use Microsoft bearer tokens from the saved device-code account. `auth extract` supplies only a Skype token for chat operations. Your tenant policies and delegated permissions still apply.
+
+An expired device-code login is refreshed for the same account. If refresh fails, the CLI does not replace it with a different desktop/browser identity. Run `auth login` explicitly to reconnect.
 
 ### Seamless Token Extraction
 
@@ -44,23 +48,17 @@ This command:
 - Stores credentials securely in `~/.config/agent-messenger/`
 - Supports `--browser-profile <path>` for agent-browser profiles, custom Chrome user data dirs, or portable browser profiles
 
-### TOKEN EXPIRY WARNING
+### Refresh and expiry
 
-**Teams tokens expire in 60-90 minutes!** Unlike Slack and Discord tokens which last much longer, Microsoft Teams uses short-lived OAuth tokens.
+Extracted Skype tokens commonly expire in 60-90 minutes and only support chat routes. Device-code accounts refresh silently for the selected identity. If this fails, run `auth login` explicitly for the same account. Do not wrap channel/search operations with `auth extract`, which can discard the AAD refresh credential.
 
 ```bash
-# Check if your token is still valid
 agent-teams auth status
-
-# Re-extract when expired (just run extract again)
-agent-teams auth extract
+# Explicit reconnect when silent device-code refresh fails:
+agent-teams auth login --account-type work
 ```
 
-**Best practices for AI agents:**
-
-- Always check `auth status` before operations
-- Re-run `auth extract` if you get 401 errors
-- Consider automating token refresh in long-running workflows
+Any stored device-code account prevents automatic extraction, including when another account type is selected. Explicit `auth extract` remains available for deliberate Skype-only authentication.
 
 ### Authentication Commands
 
@@ -306,20 +304,14 @@ logged in. It reconnects automatically and re-authenticates on token expiry.
 
 ### Token Expired (401 Unauthorized)
 
-```bash
-# Teams tokens expire in 60-90 minutes! To refresh:
-# 1. Open Microsoft Teams desktop app (or log in via browser)
-# 2. Send any message (this refreshes your session cookies)
-# 3. Re-extract:
-agent-teams auth extract
-```
+Device-code accounts refresh silently. Reconnect with `auth login` when refresh fails. For Skype-only extraction accounts, re-extract only the intended chat identity. Authentication repair does not establish whether a prior write succeeded; inspect history before resending.
 
 ### "No teams found"
 
-Ensure you're a member of at least one team in the Teams desktop app, then:
+For device-code work accounts, verify your joined teams live:
 
 ```bash
-agent-teams auth extract --debug
+agent-teams --account work team list
 ```
 
 ### "Channel not found"
@@ -333,7 +325,7 @@ agent-teams channel list --pretty
 
 ### Rate Limiting (429 Too Many Requests)
 
-Teams API has strict rate limits. Wait and retry:
+GET requests retry transient 429/5xx responses. Writes and search POST run once. After a write error or lost response, reconcile actual history before another attempt. Pace independent operations:
 
 ```bash
 # Add delays between operations in scripts
@@ -368,34 +360,44 @@ See [`skills/agent-teams/`](https://github.com/agent-messenger/agent-messenger/t
 
 ### Example: AI Agent Workflow
 
+Sign in once with `auth login` before running the automation. CLI reads refresh the same device-code account when needed:
+
 ```bash
 #!/bin/bash
-# Example: Daily standup automation
-
-# 1. Check auth (re-extract if needed)
-if ! agent-teams auth status | grep -q "valid"; then
-  agent-teams auth extract
-fi
-
-# 2. Get team context
-agent-teams snapshot > /tmp/teams-context.json
-
-# 3. Send standup reminder
-agent-teams message send $STANDUP_CHANNEL "Good morning! Time for standup."
+set -euo pipefail
+agent-teams --account work snapshot
+# Send only after resolving the authorized team and channel.
+agent-teams --account work message send "$TEAM_ID" "$CHANNEL_ID" "Standup reminder"
 ```
 
-### Token Refresh Pattern for Long-Running Agents
+Preserve the server receipt. If a write fails or its response is lost, inspect exact history before attempting another send. Applications that resume jobs need their own durable reservation/receipt/uncertain state; the upstream CLI does not provide a persistent send ledger.
+
+## Message fidelity and pagination
+
+History and message commands retain the legacy text fields and additionally return `raw_content`, `content_type`, `mentions`, `attachments`, and the original server `raw` object. Chat history includes media and system records. Search returns an indexed preview with its original result in `raw`; fetch the exact message for the full body.
+
+Channel history and replies follow Graph pagination up to `--limit`. Chat history follows message pages by default; resumable single-page output is explicit:
 
 ```bash
-# Wrapper function for token-aware operations
-teams_cmd() {
-  # Check token validity
-  if ! agent-teams auth status 2>/dev/null | grep -q "valid"; then
-    agent-teams auth extract
-  fi
-  agent-teams "$@"
-}
-
-# Usage
-teams_cmd message send $CHANNEL "Hello!"
+agent-teams chat history <chat-id> --page --limit 50
+agent-teams chat history <chat-id> --cursor '<next_cursor>' --limit 50
 ```
+
+Single-page output is `{ messages, next_cursor }`. Ordinary history output remains an array.
+
+Writes are attempted once, without automatic retries on HTTP 429 or 5xx. A timeout or server error can mean a message was delivered. Read the target history before deciding on another send; the CLI does not provide server-side idempotency.
+
+## Replies, reactions and permissions
+
+Reply get/delete/reaction calls need the parent root ID:
+
+```bash
+agent-teams message get <team-id> <channel-id> <reply-id> --thread <root-id>
+agent-teams reaction add <team-id> <channel-id> <reply-id> '👍' --thread <root-id>
+agent-teams reaction remove <team-id> <channel-id> <reply-id> like --thread <root-id>
+agent-teams message delete <team-id> <channel-id> <reply-id> --thread <root-id> --force
+```
+
+Reaction input accepts Unicode and `like`, `heart`, `laugh`, `surprised`, `sad`, `angry` aliases. Graph requires Unicode, so names are converted. Channel reactions use `ChannelMessage.Send`. Deletion resolves the exact Graph message or reply, then calls Chat Service with the existing Skype token. This avoids adding Graph `ChannelMessage.ReadWrite` consent. Teams ownership and deletion policy still apply. A delete write is attempted once with no fallback write; reread the exact target before deciding what happened.
+
+Device-code work `team list` uses live Graph display names. Extraction account names and `team current` are cached; verify ambiguous labels with `team info`. The send interface does not expose a Graph `mentions` payload, so raw `<at>` markup is not a verified notification mention.

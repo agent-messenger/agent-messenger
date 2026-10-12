@@ -15,6 +15,9 @@ export async function ensureTeamsAuth(): Promise<void> {
 
     if (config && (await trySilentRefresh(config, credManager))) return
 
+    // A deliberate login must not be replaced by another desktop/browser identity.
+    if (Object.values(config?.accounts ?? {}).some((account) => account.auth_method === 'device-code')) return
+
     const extractor = new TeamsTokenExtractor()
     const extracted = await extractor.extract()
     if (extracted.length === 0) return

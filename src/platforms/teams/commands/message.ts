@@ -35,6 +35,7 @@ export async function sendAction(
     const message = await client.sendMessage(teamId, channelId, content, options.thread, format)
 
     const output = {
+      ...message,
       id: message.id,
       content: message.content,
       author: message.author.displayName,
@@ -73,6 +74,7 @@ export async function listAction(
     const messages = await client.getMessages(teamId, channelId, limit)
 
     const output = messages.map((msg: TeamsMessage) => ({
+      ...msg,
       id: msg.id,
       content: msg.content,
       author: msg.author.displayName,
@@ -112,6 +114,7 @@ export async function repliesAction(
     const replies = await client.getThreadReplies(teamId, channelId, messageId, limit)
 
     const output = replies.map((msg: TeamsMessage) => ({
+      ...msg,
       id: msg.id,
       content: msg.content,
       author: msg.author.displayName,
@@ -156,6 +159,7 @@ export async function searchAction(
     const results = await client.searchMessages(query, { limit: options.limit, from: options.from })
 
     const output = results.map((result) => ({
+      ...result,
       id: result.id,
       content: result.content,
       author: result.author.displayName,
@@ -197,7 +201,7 @@ export async function getAction(
   teamId: string,
   channelId: string,
   messageId: string,
-  options: { pretty?: boolean },
+  options: { pretty?: boolean; thread?: string },
 ): Promise<void> {
   try {
     const credManager = new TeamsCredentialManager()
@@ -214,7 +218,7 @@ export async function getAction(
       accountType: cred.accountType,
       region: cred.region,
     })
-    const message = await client.getMessage(teamId, channelId, messageId)
+    const message = await client.getMessage(teamId, channelId, messageId, options.thread)
 
     if (!message) {
       console.log(formatOutput({ error: `Message not found: ${messageId}` }, options.pretty))
@@ -222,6 +226,7 @@ export async function getAction(
     }
 
     const output = {
+      ...message,
       id: message.id,
       content: message.content,
       author: message.author.displayName,
@@ -238,7 +243,7 @@ export async function deleteAction(
   teamId: string,
   channelId: string,
   messageId: string,
-  options: { force?: boolean; pretty?: boolean },
+  options: { force?: boolean; pretty?: boolean; thread?: string },
 ): Promise<void> {
   try {
     const credManager = new TeamsCredentialManager()
@@ -260,7 +265,7 @@ export async function deleteAction(
       accountType: cred.accountType,
       region: cred.region,
     })
-    await client.deleteMessage(teamId, channelId, messageId)
+    await client.deleteMessage(teamId, channelId, messageId, options.thread)
 
     console.log(formatOutput({ deleted: messageId }, options.pretty))
   } catch (error) {
@@ -331,6 +336,7 @@ export const messageCommand = new Command('message')
       .argument('<team-id>', 'Team ID')
       .argument('<channel-id>', 'Channel ID')
       .argument('<message-id>', 'Message ID')
+      .option('--thread <message-id>', 'Root message ID when reading a reply')
       .option('--pretty', 'Pretty print JSON output')
       .action(getAction),
   )
@@ -340,6 +346,7 @@ export const messageCommand = new Command('message')
       .argument('<team-id>', 'Team ID')
       .argument('<channel-id>', 'Channel ID')
       .argument('<message-id>', 'Message ID')
+      .option('--thread <message-id>', 'Root message ID when deleting a reply')
       .option('--force', 'Skip confirmation')
       .option('--pretty', 'Pretty print JSON output')
       .action(deleteAction),

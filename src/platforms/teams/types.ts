@@ -29,9 +29,17 @@ export interface TeamsMessage {
   root_message_id?: string
   parent_message_id?: string
   is_thread_reply?: boolean
+  raw_content?: string
+  content_type?: string
+  mentions?: unknown[]
+  attachments?: unknown[]
+  edited_at?: string
+  deleted_at?: string
+  raw?: Record<string, unknown>
 }
 
 export interface TeamsSearchResult {
+  raw?: Record<string, unknown>
   id: string
   content: string
   author: {
@@ -76,6 +84,8 @@ export interface TeamsFile {
   contentType?: string
   sharepoint_url?: string
   object_url?: string
+  drive_id?: string
+  is_folder?: boolean
 }
 
 export interface TeamsCredentials {
@@ -156,9 +166,17 @@ export const TeamsMessageSchema = z.object({
   root_message_id: z.string().optional(),
   parent_message_id: z.string().optional(),
   is_thread_reply: z.boolean().optional(),
+  raw_content: z.string().optional(),
+  content_type: z.string().optional(),
+  mentions: z.array(z.unknown()).optional(),
+  attachments: z.array(z.unknown()).optional(),
+  edited_at: z.string().optional(),
+  deleted_at: z.string().optional(),
+  raw: z.record(z.string(), z.unknown()).optional(),
 })
 
 export const TeamsSearchResultSchema = z.object({
+  raw: z.record(z.string(), z.unknown()).optional(),
   id: z.string(),
   content: z.string(),
   author: z.object({
@@ -203,6 +221,8 @@ export const TeamsFileSchema = z.object({
   contentType: z.string().optional(),
   sharepoint_url: z.string().optional(),
   object_url: z.string().optional(),
+  drive_id: z.string().optional(),
+  is_folder: z.boolean().optional(),
 })
 
 export const TeamsCredentialsSchema = z.object({
@@ -302,7 +322,7 @@ export class TeamsError extends Error {
 export class TeamsAuthCapabilityError extends Error {
   constructor() {
     super(
-      'Requires `agent-teams auth login` — cookie-based auth (`auth extract`) can only provide a Skype token, not the Microsoft token needed for search or SharePoint/OneDrive file downloads.',
+      'Requires `agent-teams auth login`. Cookie-based auth (`auth extract`) provides only a Skype token, not the Microsoft token needed for channels, directory, search or SharePoint/OneDrive files.',
     )
     this.name = 'TeamsAuthCapabilityError'
   }
