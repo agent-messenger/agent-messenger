@@ -283,6 +283,33 @@ describe('TeamsClient', () => {
         'https://msgapi.teams.live.com/v1/users/ME/conversations?view=msnp24Equivalent&pageSize=500',
       )
     })
+    it('classifies untitled group chats as group, not oneOnOne', async () => {
+      mockResponse({
+        conversations: [
+          {
+            id: '19:aaa_bbb@unq.gbl.spaces',
+            threadProperties: { threadType: 'chat', productThreadType: 'OneToOneChat', uniquerosterthread: 'true' },
+          },
+          {
+            id: '19:40ac1fee18394793954c62576998dedc@thread.v2',
+            threadProperties: { threadType: 'chat', productThreadType: 'Chat' },
+          },
+          { id: '19:untitled@thread.v2', threadProperties: { threadType: 'chat' } },
+          { id: '19:legacy_pair@unq.gbl.spaces' },
+          { id: '19:meeting@thread.v2', threadProperties: { threadType: 'meeting', topic: 'Standup' } },
+        ],
+      })
+
+      const client = await new TeamsClient().login({ token: 'test-token', accountType: 'personal' })
+      const chats = await client.listChats()
+
+      expect(chats.map((chat) => [chat.id, chat.type])).toEqual([
+        ['19:aaa_bbb@unq.gbl.spaces', 'oneOnOne'],
+        ['19:40ac1fee18394793954c62576998dedc@thread.v2', 'group'],
+        ['19:untitled@thread.v2', 'group'],
+        ['19:legacy_pair@unq.gbl.spaces', 'oneOnOne'],
+      ])
+    })
   })
 
   describe('getChatMessages', () => {

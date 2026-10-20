@@ -349,15 +349,19 @@ function withCsaContent(message: RawTeamsMessage, rootMessageId?: string): Teams
 
 // groupId => Teams/channel thread (handled by listTeams). "48:notes"/
 // streamofnotes => the user's self ("to me") chat. Anything else without a
-// non-chat threadType is a normal 1:1 (no topic) or group (has topic) chat.
+// non-chat threadType is a chat: 1:1 chats are productThreadType
+// "OneToOneChat" with an "@unq.gbl.spaces" id; everything else (including
+// untitled "@thread.v2" group chats) is a group. Topic presence is not a
+// signal — unnamed group chats have no topic either.
 function classifyChat(
   id: string,
-  tp?: { topic?: string; threadType?: string; groupId?: string },
+  tp?: { topic?: string; threadType?: string; productThreadType?: string; groupId?: string },
 ): TeamsChatType | null {
   if (tp?.groupId) return null
   if (id === '48:notes' || tp?.threadType === 'streamofnotes') return 'self'
   if (tp?.threadType && tp.threadType !== 'chat') return null
-  return tp?.topic ? 'group' : 'oneOnOne'
+  if (tp?.productThreadType) return tp.productThreadType === 'OneToOneChat' ? 'oneOnOne' : 'group'
+  return id.endsWith('@unq.gbl.spaces') ? 'oneOnOne' : 'group'
 }
 
 export class TeamsClient {
@@ -726,6 +730,7 @@ export class TeamsClient {
       threadProperties?: {
         topic?: string
         threadType?: string
+        productThreadType?: string
         groupId?: string
       }
       lastMessage?: ConversationMessage
