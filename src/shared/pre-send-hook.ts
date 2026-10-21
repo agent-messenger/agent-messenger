@@ -83,6 +83,10 @@ async function loadConfig(): Promise<HookConfig | undefined> {
   return { command: hook.command, timeoutMs }
 }
 
+export async function isPreSendHookConfigured(): Promise<boolean> {
+  return (await loadConfig()) !== undefined
+}
+
 export async function runPreSendHook(event: PreSendEvent): Promise<void> {
   const config = await loadConfig()
   if (!config) return

@@ -1,3 +1,5 @@
+import { isPreSendHookConfigured, runPreSendHook, type PreSendEvent } from '@/shared/pre-send-hook'
+
 import { WebClient } from '@slack/web-api'
 
 import {
@@ -50,11 +52,13 @@ const RATE_LIMIT_ERROR_CODE = 'slack_webapi_rate_limited_error'
 
 export class SlackClient {
   private client: WebClient | null = null
+  private teamId: string | undefined
   private token: string | null = null
   private cookie: string | null = null
 
   async login(credentials?: { token: string; cookie: string }): Promise<this> {
     if (credentials) {
+      this.teamId = undefined
       if (!credentials.token) {
         throw new SlackError('Token is required', 'missing_token')
       }
@@ -81,6 +85,16 @@ export class SlackClient {
       )
     }
     return this.login({ token: workspace.token, cookie: workspace.cookie })
+  }
+
+  private async authorizeWrite(event: PreSendEvent): Promise<void> {
+    if (!(await isPreSendHookConfigured())) return
+    const team_id = this.teamId ?? (await this.testAuth()).team_id
+    this.teamId = team_id
+    const target = event.target.kind === 'channel'
+      ? { ...event.target, id: await this.resolveChannel(event.target.id) }
+      : event.target
+    await runPreSendHook({ ...event, account: team_id, target })
   }
 
   private ensureAuth(): WebClient {
@@ -216,6 +230,7 @@ export class SlackClient {
   }
 
   async sendMessage(channel: string, text: string, threadTs?: string): Promise<SlackMessage> {
+    await this.authorizeWrite({ version: 1, platform: 'slack', action: (threadTs ? 'reply' : 'send'), target: { kind: 'channel', id: channel, threadId: threadTs }, text, })
     return this.withRetry(async () => {
       const response = await this.ensureAuth().chat.postMessage({
         channel,
@@ -268,6 +283,7 @@ export class SlackClient {
   }
 
   async updateMessage(channel: string, ts: string, text: string): Promise<SlackMessage> {
+    await this.authorizeWrite({ version: 1, platform: 'slack', action: 'edit', target: { kind: 'channel', id: channel }, text, })
     return this.withRetry(async () => {
       const response = await this.ensureAuth().chat.update({
         channel,
@@ -281,6 +297,7 @@ export class SlackClient {
   }
 
   async deleteMessage(channel: string, ts: string): Promise<void> {
+    await this.authorizeWrite({ version: 1, platform: 'slack', action: 'delete', target: { kind: 'channel', id: channel },  })
     return this.withRetry(async () => {
       const response = await this.ensureAuth().chat.delete({
         channel,
@@ -291,6 +308,7 @@ export class SlackClient {
   }
 
   async addReaction(channel: string, ts: string, emoji: string): Promise<void> {
+    await this.authorizeWrite({ version: 1, platform: 'slack', action: 'react', target: { kind: 'channel', id: channel },  })
     return this.withRetry(async () => {
       const response = await this.ensureAuth().reactions.add({
         channel,
@@ -302,6 +320,7 @@ export class SlackClient {
   }
 
   async removeReaction(channel: string, ts: string, emoji: string): Promise<void> {
+    await this.authorizeWrite({ version: 1, platform: 'slack', action: 'react', target: { kind: 'channel', id: channel },  })
     return this.withRetry(async () => {
       const response = await this.ensureAuth().reactions.remove({
         channel,
@@ -376,6 +395,7 @@ export class SlackClient {
     filename: string,
     options?: { thread_ts?: string; title?: string; initial_comment?: string },
   ): Promise<SlackFile> {
+    await this.authorizeWrite({ version: 1, platform: 'slack', action: 'upload', target: { kind: 'channel', id: channels[0] ?? '', threadId: options?.thread_ts }, text: options?.initial_comment, })
     return this.withRetry(async () => {
       const response = await this.ensureAuth().files.uploadV2({
         channel_id: channels[0],
@@ -400,6 +420,7 @@ export class SlackClient {
     files: { file: Buffer; filename: string; title?: string }[],
     options: { channel: string; threadTs?: string; comment?: string; title?: string },
   ): Promise<SlackFile[]> {
+    await this.authorizeWrite({ version: 1, platform: 'slack', action: 'upload', target: { kind: 'channel', id: options.channel, threadId: options.threadTs }, text: options.comment, })
     return this.withRetry(async () => {
       const response = await this.ensureAuth().files.uploadV2({
         channel_id: options.channel,
@@ -561,6 +582,7 @@ export class SlackClient {
   }
 
   async markRead(channelId: string, ts: string): Promise<void> {
+    await this.authorizeWrite({ version: 1, platform: 'slack', action: 'markRead', target: { kind: 'channel', id: channelId },  })
     return this.withRetry(async () => {
       const response = await this.ensureAuth().conversations.mark({
         channel: channelId,
@@ -632,6 +654,7 @@ export class SlackClient {
   }
 
   async openConversation(users: string): Promise<{ channel_id: string; already_open: boolean }> {
+    await this.authorizeWrite({ version: 1, platform: 'slack', action: 'create', target: { id: users },  })
     return this.withRetry(async () => {
       const response = await this.ensureAuth().conversations.open({ users })
       this.checkResponse(response)
@@ -679,6 +702,7 @@ export class SlackClient {
   }
 
   async pinMessage(channel: string, ts: string): Promise<void> {
+    await this.authorizeWrite({ version: 1, platform: 'slack', action: 'pin', target: { kind: 'channel', id: channel },  })
     return this.withRetry(async () => {
       const response = await this.ensureAuth().pins.add({ channel, timestamp: ts })
       this.checkResponse(response)
@@ -686,6 +710,7 @@ export class SlackClient {
   }
 
   async unpinMessage(channel: string, ts: string): Promise<void> {
+    await this.authorizeWrite({ version: 1, platform: 'slack', action: 'unpin', target: { kind: 'channel', id: channel },  })
     return this.withRetry(async () => {
       const response = await this.ensureAuth().pins.remove({ channel, timestamp: ts })
       this.checkResponse(response)
@@ -709,6 +734,7 @@ export class SlackClient {
     link: string,
     options?: { type?: string; emoji?: string },
   ): Promise<SlackBookmark> {
+    await this.authorizeWrite({ version: 1, platform: 'slack', action: 'create', target: { kind: 'channel', id: channel }, text: title, })
     return this.withRetry(async () => {
       const response = await this.ensureAuth().apiCall('bookmarks.add', {
         channel_id: channel,
@@ -733,6 +759,7 @@ export class SlackClient {
     bookmarkId: string,
     options: Partial<Pick<SlackBookmark, 'title' | 'link' | 'emoji'>>,
   ): Promise<SlackBookmark> {
+    await this.authorizeWrite({ version: 1, platform: 'slack', action: 'edit', target: { kind: 'channel', id: channel }, text: options.title, })
     return this.withRetry(async () => {
       const response = await this.ensureAuth().apiCall('bookmarks.edit', {
         channel_id: channel,
@@ -746,6 +773,7 @@ export class SlackClient {
   }
 
   async removeBookmark(channel: string, bookmarkId: string): Promise<void> {
+    await this.authorizeWrite({ version: 1, platform: 'slack', action: 'delete', target: { kind: 'channel', id: channel },  })
     return this.withRetry(async () => {
       const response = await this.ensureAuth().apiCall('bookmarks.remove', {
         channel_id: channel,
@@ -772,6 +800,7 @@ export class SlackClient {
     postAt: number,
     threadTs?: string,
   ): Promise<SlackScheduledMessage> {
+    await this.authorizeWrite({ version: 1, platform: 'slack', action: 'schedule', target: { kind: 'channel', id: channel, threadId: threadTs }, text, })
     return this.withRetry(async () => {
       const response = await this.ensureAuth().chat.scheduleMessage({
         channel,
@@ -814,6 +843,7 @@ export class SlackClient {
   }
 
   async deleteScheduledMessage(channel: string, scheduledMessageId: string): Promise<void> {
+    await this.authorizeWrite({ version: 1, platform: 'slack', action: 'delete', target: { kind: 'channel', id: channel },  })
     return this.withRetry(async () => {
       const response = await this.ensureAuth().chat.deleteScheduledMessage({
         channel,
@@ -824,6 +854,7 @@ export class SlackClient {
   }
 
   async createChannel(name: string, isPrivate?: boolean): Promise<SlackChannel> {
+    await this.authorizeWrite({ version: 1, platform: 'slack', action: 'create', target: { id: name }, text: name, })
     return this.withRetry(async () => {
       const response = await this.ensureAuth().conversations.create({ name, is_private: isPrivate })
       this.checkResponse(response)
@@ -833,6 +864,7 @@ export class SlackClient {
   }
 
   async archiveChannel(channel: string): Promise<void> {
+    await this.authorizeWrite({ version: 1, platform: 'slack', action: 'archive', target: { kind: 'channel', id: channel },  })
     return this.withRetry(async () => {
       const response = await this.ensureAuth().conversations.archive({ channel })
       this.checkResponse(response)
@@ -840,6 +872,7 @@ export class SlackClient {
   }
 
   async setChannelTopic(channel: string, topic: string): Promise<{ topic: string }> {
+    await this.authorizeWrite({ version: 1, platform: 'slack', action: 'edit', target: { kind: 'channel', id: channel }, text: topic, })
     return this.withRetry(async () => {
       const response = await this.ensureAuth().conversations.setTopic({ channel, topic })
       this.checkResponse(response)
@@ -848,6 +881,7 @@ export class SlackClient {
   }
 
   async setChannelPurpose(channel: string, purpose: string): Promise<{ purpose: string }> {
+    await this.authorizeWrite({ version: 1, platform: 'slack', action: 'edit', target: { kind: 'channel', id: channel }, text: purpose, })
     return this.withRetry(async () => {
       const response = await this.ensureAuth().conversations.setPurpose({ channel, purpose })
       this.checkResponse(response)
@@ -856,6 +890,7 @@ export class SlackClient {
   }
 
   async inviteToChannel(channel: string, users: string): Promise<SlackChannel> {
+    await this.authorizeWrite({ version: 1, platform: 'slack', action: 'invite', target: { kind: 'channel', id: channel },  })
     return this.withRetry(async () => {
       const response = await this.ensureAuth().conversations.invite({ channel, users })
       this.checkResponse(response)
@@ -865,6 +900,7 @@ export class SlackClient {
   }
 
   async joinChannel(channel: string): Promise<SlackChannel> {
+    await this.authorizeWrite({ version: 1, platform: 'slack', action: 'join', target: { kind: 'channel', id: channel },  })
     return this.withRetry(async () => {
       const response = await this.ensureAuth().conversations.join({ channel })
       this.checkResponse(response)
@@ -874,6 +910,7 @@ export class SlackClient {
   }
 
   async leaveChannel(channel: string): Promise<void> {
+    await this.authorizeWrite({ version: 1, platform: 'slack', action: 'leave', target: { kind: 'channel', id: channel },  })
     return this.withRetry(async () => {
       const response = await this.ensureAuth().conversations.leave({ channel })
       this.checkResponse(response)
@@ -899,6 +936,7 @@ export class SlackClient {
   }
 
   async setUserProfile(profile: SlackUserProfile): Promise<SlackUserProfile> {
+    await this.authorizeWrite({ version: 1, platform: 'slack', action: 'edit', target: { id: '@me' }, text: profile.status_text, })
     return this.withRetry(async () => {
       const response = await this.ensureAuth().users.profile.set({ profile: profile as any })
       this.checkResponse(response)
@@ -908,6 +946,7 @@ export class SlackClient {
   }
 
   async postEphemeral(channel: string, user: string, text: string): Promise<string> {
+    await this.authorizeWrite({ version: 1, platform: 'slack', action: 'send', target: { kind: 'channel', id: channel }, text, })
     return this.withRetry(async () => {
       const response = await this.ensureAuth().chat.postEphemeral({ channel, user, text })
       this.checkResponse(response)
@@ -924,6 +963,7 @@ export class SlackClient {
   }
 
   async addReminder(text: string, time: number, options?: { user?: string }): Promise<SlackReminder> {
+    await this.authorizeWrite({ version: 1, platform: 'slack', action: 'create', target: { id: options?.user ?? '@me' }, text, })
     return this.withRetry(async () => {
       const response = await this.ensureAuth().reminders.add({ text, time: time as any, user: options?.user })
       this.checkResponse(response)
@@ -942,6 +982,7 @@ export class SlackClient {
   }
 
   async completeReminder(reminderId: string): Promise<void> {
+    await this.authorizeWrite({ version: 1, platform: 'slack', action: 'complete', target: { id: reminderId },  })
     return this.withRetry(async () => {
       const response = await this.ensureAuth().reminders.complete({ reminder: reminderId })
       this.checkResponse(response)
@@ -949,6 +990,7 @@ export class SlackClient {
   }
 
   async deleteReminder(reminderId: string): Promise<void> {
+    await this.authorizeWrite({ version: 1, platform: 'slack', action: 'delete', target: { id: reminderId },  })
     return this.withRetry(async () => {
       const response = await this.ensureAuth().reminders.delete({ reminder: reminderId })
       this.checkResponse(response)
@@ -956,6 +998,7 @@ export class SlackClient {
   }
 
   async deleteFile(fileId: string): Promise<void> {
+    await this.authorizeWrite({ version: 1, platform: 'slack', action: 'delete', target: { id: fileId },  })
     return this.withRetry(async () => {
       const response = await this.ensureAuth().files.delete({ file: fileId })
       this.checkResponse(response)
@@ -990,6 +1033,7 @@ export class SlackClient {
     name: string,
     options?: { handle?: string; description?: string; channels?: string[] },
   ): Promise<SlackUsergroup> {
+    await this.authorizeWrite({ version: 1, platform: 'slack', action: 'create', target: { id: name }, text: name, })
     return this.withRetry(async () => {
       const response = await this.ensureAuth().apiCall('usergroups.create', {
         name,
@@ -1006,6 +1050,7 @@ export class SlackClient {
     usergroupId: string,
     options: { name?: string; handle?: string; description?: string; channels?: string[] },
   ): Promise<SlackUsergroup> {
+    await this.authorizeWrite({ version: 1, platform: 'slack', action: 'edit', target: { id: usergroupId }, text: options.description, })
     return this.withRetry(async () => {
       const response = await this.ensureAuth().apiCall('usergroups.update', {
         usergroup: usergroupId,
@@ -1020,6 +1065,7 @@ export class SlackClient {
   }
 
   async disableUsergroup(usergroupId: string): Promise<SlackUsergroup> {
+    await this.authorizeWrite({ version: 1, platform: 'slack', action: 'disable', target: { id: usergroupId },  })
     return this.withRetry(async () => {
       const response = await this.ensureAuth().apiCall('usergroups.disable', {
         usergroup: usergroupId,
@@ -1030,6 +1076,7 @@ export class SlackClient {
   }
 
   async enableUsergroup(usergroupId: string): Promise<SlackUsergroup> {
+    await this.authorizeWrite({ version: 1, platform: 'slack', action: 'enable', target: { id: usergroupId },  })
     return this.withRetry(async () => {
       const response = await this.ensureAuth().apiCall('usergroups.enable', {
         usergroup: usergroupId,
@@ -1051,6 +1098,7 @@ export class SlackClient {
   }
 
   async updateUsergroupMembers(usergroupId: string, users: string[]): Promise<SlackUsergroup> {
+    await this.authorizeWrite({ version: 1, platform: 'slack', action: 'edit', target: { id: usergroupId },  })
     return this.withRetry(async () => {
       const response = await this.ensureAuth().apiCall('usergroups.users.update', {
         usergroup: usergroupId,
