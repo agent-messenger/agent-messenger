@@ -1,3 +1,5 @@
+import { runPreSendHook } from '@/shared/pre-send-hook'
+
 import { ChannelCredentialManager } from './credential-manager'
 import type {
   Channel,
@@ -139,6 +141,7 @@ export class ChannelClient {
     blocks: MessageBlock[],
     requestId?: string,
   ): Promise<ChannelMessage> {
+    await runPreSendHook({ version: 1, platform: 'channeltalk', action: 'send', target: { id: groupId }, account: channelId, text: blocks.map((block) => block.value ?? '').join('\n'), })
     return this.request<ChannelMessage>(
       'POST',
       `/desk/channels/${channelId}/groups/${groupId}/messages`,
@@ -175,6 +178,7 @@ export class ChannelClient {
     blocks: MessageBlock[],
     requestId?: string,
   ): Promise<ChannelMessage> {
+    await runPreSendHook({ version: 1, platform: 'channeltalk', action: 'send', target: { id: chatId }, account: channelId, text: blocks.map((block) => block.value ?? '').join('\n'), })
     return this.request<ChannelMessage>(
       'POST',
       `/desk/channels/${channelId}/direct-chats/${chatId}/messages`,
@@ -220,6 +224,7 @@ export class ChannelClient {
     blocks: MessageBlock[],
     requestId?: string,
   ): Promise<ChannelMessage> {
+    await runPreSendHook({ version: 1, platform: 'channeltalk', action: 'send', target: { id: chatId }, account: channelId, text: blocks.map((block) => block.value ?? '').join('\n'), })
     return this.request<ChannelMessage>(
       'POST',
       `/desk/channels/${channelId}/user-chats/${chatId}/messages`,

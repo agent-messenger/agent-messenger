@@ -1,3 +1,5 @@
+import { runPreSendHook } from '@/shared/pre-send-hook'
+
 import { ChannelBotCredentialManager } from './credential-manager'
 import { wrapTextInBlocks } from './message-utils'
 import type {
@@ -91,6 +93,7 @@ export class ChannelBotClient {
   }
 
   async sendUserChatMessage(chatId: string, blocks: MessageBlock[], botName?: string): Promise<ChannelBotMessage> {
+    await runPreSendHook({ version: 1, platform: 'channeltalkbot', action: 'send', target: { id: chatId }, text: blocks.map((block) => block.value ?? '').join('\n'), })
     return this.request<ChannelBotMessage>(
       'POST',
       this.buildPath(`/user-chats/${chatId}/messages`, botName ? { botName } : undefined),
@@ -100,6 +103,7 @@ export class ChannelBotClient {
   }
 
   async closeUserChat(chatId: string, botName: string): Promise<ChannelBotUserChat> {
+    await runPreSendHook({ version: 1, platform: 'channeltalkbot', action: 'close', target: { id: chatId },  })
     return this.request<ChannelBotUserChat>(
       'PATCH',
       this.buildPath(`/user-chats/${chatId}/close`, { botName }),
@@ -109,6 +113,7 @@ export class ChannelBotClient {
   }
 
   async deleteUserChat(chatId: string): Promise<void> {
+    await runPreSendHook({ version: 1, platform: 'channeltalkbot', action: 'delete', target: { id: chatId },  })
     return this.request<void>('DELETE', `/user-chats/${chatId}`)
   }
 
@@ -148,6 +153,7 @@ export class ChannelBotClient {
   }
 
   async sendGroupMessage(groupId: string, blocks: MessageBlock[], botName?: string): Promise<ChannelBotMessage> {
+    await runPreSendHook({ version: 1, platform: 'channeltalkbot', action: 'send', target: { id: groupId }, text: blocks.map((block) => block.value ?? '').join('\n'), })
     return this.request<ChannelBotMessage>(
       'POST',
       this.buildPath(`/groups/${groupId}/messages`, botName ? { botName } : undefined),
@@ -180,6 +186,7 @@ export class ChannelBotClient {
   }
 
   async createBot(name: string, options?: { color?: string; avatarUrl?: string }): Promise<ChannelBotBot> {
+    await runPreSendHook({ version: 1, platform: 'channeltalkbot', action: 'create', target: { id: name }, text: name, })
     return this.request<ChannelBotBot>(
       'POST',
       '/bots',
@@ -192,6 +199,7 @@ export class ChannelBotClient {
   }
 
   async deleteBot(botId: string): Promise<void> {
+    await runPreSendHook({ version: 1, platform: 'channeltalkbot', action: 'delete', target: { id: botId },  })
     return this.request<void>('DELETE', `/bots/${botId}`)
   }
 

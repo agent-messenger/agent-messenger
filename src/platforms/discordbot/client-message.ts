@@ -1,4 +1,7 @@
 import { readFile } from 'node:fs/promises'
+import { resolve } from 'node:path'
+
+import { runPreSendHook } from '@/shared/pre-send-hook'
 
 import type { DiscordCreateMessageOptions, DiscordFile, DiscordMessage } from './types'
 import { DiscordBotError } from './types'
@@ -38,6 +41,14 @@ export async function createMessage(
   if (options.content !== undefined) payload.content = options.content
   if (options.reply_to !== undefined) payload.message_reference = { message_id: options.reply_to }
 
+  await runPreSendHook({
+    version: 1,
+    platform: 'discordbot',
+    action: files.length > 0 ? 'upload' : options.reply_to ? 'reply' : 'send',
+    target: { id: target, threadId: options.thread_id },
+    text: options.content,
+    files: files.length > 0 ? files.map((file) => resolve(file.path)) : undefined,
+  })
   if (files.length === 0) return request<DiscordMessage>('POST', `/channels/${target}/messages`, payload)
 
   const formData = new FormData()
