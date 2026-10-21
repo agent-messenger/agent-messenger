@@ -3,7 +3,7 @@ import type { WebexMembership, WebexMessage, WebexPerson, WebexSpace } from '../
 import { WebexBotError } from './types'
 
 export class WebexBotClient {
-  private client = new WebexClient({ roomResolutionWarningPrefix: '[webexbot]' })
+  private client = new WebexClient({ roomResolutionWarningPrefix: '[webexbot]', platform: 'webexbot' })
   private token: string | null = null
 
   async login(credentials?: { token: string }): Promise<this> {
