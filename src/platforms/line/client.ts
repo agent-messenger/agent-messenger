@@ -1,3 +1,5 @@
+import { runPreSendHook } from '@/shared/pre-send-hook'
+
 import { mkdirSync } from 'node:fs'
 import { join } from 'node:path'
 
@@ -472,6 +474,7 @@ export class LineClient {
   }
 
   async sendMessage(chatId: string, text: string): Promise<LineSendResult> {
+    await runPreSendHook({ version: 1, platform: 'line', account: this.client?.base.profile?.mid, action: 'send', target: { id: chatId }, text, })
     try {
       const client = this.ensureClient()
       let sent

@@ -1,6 +1,7 @@
 import { type ChildProcessWithoutNullStreams, spawn } from 'node:child_process'
 import { createInterface, type Interface } from 'node:readline'
 
+import { runPreSendHook } from '@/shared/pre-send-hook'
 import { classifyImsgFailure } from './errors'
 import { IMessageError } from './types'
 
@@ -113,6 +114,15 @@ export class ImsgRpc {
 
   async request<T>(method: string, params: Record<string, unknown> = {}): Promise<T> {
     if (!this.child) throw new IMessageError('imsg rpc is not running. Call start() first.', 'rpc_error')
+    if (method === 'send') {
+      await runPreSendHook({
+        version: 1,
+        platform: 'imessage',
+        action: 'send',
+        target: { id: String(params.chat_id ?? params.chat_guid ?? params.chat_identifier ?? params.to ?? '') },
+        text: typeof params.text === 'string' ? params.text : undefined,
+      })
+    }
     const id = this.nextId++
     const frame = `${JSON.stringify({ jsonrpc: '2.0', id, method, params })}\n`
 

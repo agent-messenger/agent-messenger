@@ -1,3 +1,5 @@
+import { PreSendDeniedError, runPreSendHook } from '@/shared/pre-send-hook'
+
 import { Long } from 'bson'
 
 import { warn } from '@/shared/utils/stderr'
@@ -434,6 +436,7 @@ function wrapError(
   code: string,
   options?: { classifyResponseFailure?: boolean; classifyGetChatFailure?: boolean },
 ): KakaoTalkError {
+  if (error instanceof PreSendDeniedError) throw error
   if (error instanceof KakaoTalkError) {
     const responseFailureKind =
       error.responseFailureKind ?? (options?.classifyResponseFailure ? 'transient_or_unknown' : undefined)
@@ -1425,6 +1428,7 @@ export class KakaoTalkClient {
   }
 
   async sendMessage(chatId: string, text: string, options?: { replyTo?: KakaoReplyTarget }): Promise<KakaoSendResult> {
+    await runPreSendHook({ version: 1, platform: 'kakaotalk', action: options?.replyTo ? 'reply' : 'send', account: this.userId ?? undefined, target: { id: parseLong(chatId).toString(), threadId: options?.replyTo?.log_id }, text })
     return this.executeWithReconnect(async ({ session, loginResult }) => {
       try {
         const response = options?.replyTo
@@ -1453,6 +1457,7 @@ export class KakaoTalkClient {
     const parsedChatId = parseChatId(chatId)
     const parsedLinkId = opts?.linkId !== undefined ? parseLinkId(opts.linkId) : undefined
 
+    await runPreSendHook({ version: 1, platform: 'kakaotalk', action: 'typing', account: this.userId ?? undefined, target: { id: parsedChatId.toString() } })
     return this.executeWithReconnect(async ({ session }) => {
       try {
         const response = await session.sendTyping(parsedChatId, parsedLinkId)
@@ -1625,6 +1630,7 @@ export class KakaoTalkClient {
 
     const parsedChatId = parseChatId(chatId)
 
+    await runPreSendHook({ version: 1, platform: 'kakaotalk', action: 'upload', account: this.userId ?? undefined, target: { id: parsedChatId.toString() } })
     return this.executeWithReconnect(async ({ session }) => {
       try {
         const mshipResp = await session.shipMultiMedia(
@@ -1717,6 +1723,7 @@ export class KakaoTalkClient {
     errorCode: string
   }): Promise<KakaoSendResult> {
     const parsedChatId = parseChatId(opts.chatId)
+    await runPreSendHook({ version: 1, platform: 'kakaotalk', action: 'upload', account: this.userId ?? undefined, target: { id: parsedChatId.toString() } })
     return this.executeWithReconnect(async ({ session }) => {
       try {
         const shipResp = await session.shipMedia(
@@ -1786,6 +1793,7 @@ export class KakaoTalkClient {
     const parsedWatermark = parseLogId(logId)
     const parsedLinkId = opts?.linkId !== undefined ? parseLinkId(opts.linkId) : undefined
 
+    await runPreSendHook({ version: 1, platform: 'kakaotalk', action: 'markRead', account: this.userId ?? undefined, target: { id: parsedChatId.toString() } })
     return this.executeWithReconnect(async ({ session }) => {
       try {
         const response = await session.markRead(parsedChatId, parsedWatermark, parsedLinkId)
@@ -1818,6 +1826,7 @@ export class KakaoTalkClient {
    */
   async getReadWatermarks(chatId: string): Promise<KakaoReadWatermarks> {
     const parsedChatId = parseChatId(chatId)
+    await runPreSendHook({ version: 1, platform: 'kakaotalk', action: 'markRead', account: this.userId ?? undefined, target: { id: parsedChatId.toString() } })
     return this.executeWithReconnect(async ({ session }) => {
       try {
         const response = await session.getChatInfo(parsedChatId)
@@ -1832,6 +1841,7 @@ export class KakaoTalkClient {
   async leaveChat(chatId: string): Promise<KakaoLeaveChatResult> {
     const parsedChatId = parseChatId(chatId)
 
+    await runPreSendHook({ version: 1, platform: 'kakaotalk', action: 'leave', account: this.userId ?? undefined, target: { id: parsedChatId.toString() } })
     return this.executeWithReconnect(async ({ session, loginResult }) => {
       try {
         const response = await session.leaveChat(parsedChatId)
