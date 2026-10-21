@@ -82,6 +82,10 @@ describe('pre-send client transport gates', () => {
             ) {
               expect(events[0]?.account).toBe('account')
             }
+            if (['webex', 'webexbot'].includes(platform) && action === 'reply') expect(events[0]?.target.threadId).toBe('thread')
+            if (platform === 'telegrambot' && action === 'reply') expect(events[0]?.target.threadId).toBe('789')
+            if (platform === 'teams' && action === 'reply') expect(events[0]?.target.threadId).toBe('thread')
+            if (platform === 'discord' && action === 'reply') expect(events[0]?.target.threadId).toBe('message-id')
             if (methodName === 'postMessage' && args[2]) expect(events[0]?.target.threadId).toBe('thread')
             if (platform === 'slack' && methodName === 'sendMessage' && args[2]) {
               expect(events[0]?.target.threadId).toBe('thread')
