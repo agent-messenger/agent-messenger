@@ -59,17 +59,17 @@ The executable receives one JSON object on stdin:
 }
 ```
 
-| Field | Meaning |
-| --- | --- |
-| `version` | Event format version, currently `1`. |
-| `platform` | Client identifier, including bot variants such as `slackbot` or `telegrambot`. |
-| `action` | The mutation, such as `send`, `reply`, `edit`, `delete`, `react`, `upload`, `schedule`, `forward`, `create`, `pin`, `unpin`, `join`, `leave`, `invite`, `archive`, `typing`, or `markRead`. |
-| `account` | Optional workspace, server, bot, or account identifier already known to the client. Never an authentication token. |
-| `target.id` | Resolved destination or resource identifier used by the write. |
-| `target.threadId` | Optional destination thread identifier. |
-| `target.kind` | Optional target category, such as `channel`, `user`, or `message`. |
-| `text` | Optional final outgoing text. Rich-text transports may expose rendered markup. |
-| `files` | Optional absolute paths for local files being uploaded. |
+| Field             | Meaning                                                                                                                                                                                     |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `version`         | Event format version, currently `1`.                                                                                                                                                        |
+| `platform`        | Client identifier, including bot variants such as `slackbot` or `telegrambot`.                                                                                                              |
+| `action`          | The mutation, such as `send`, `reply`, `edit`, `delete`, `react`, `upload`, `schedule`, `forward`, `create`, `pin`, `unpin`, `join`, `leave`, `invite`, `archive`, `typing`, or `markRead`. |
+| `account`         | Optional workspace, server, bot, or account identifier already known to the client. Never an authentication token.                                                                          |
+| `target.id`       | Resolved destination or resource identifier used by the write.                                                                                                                              |
+| `target.threadId` | Optional destination thread identifier.                                                                                                                                                     |
+| `target.kind`     | Optional target category, such as `channel`, `user`, or `message`.                                                                                                                          |
+| `text`            | Optional final outgoing text. Rich-text transports may expose rendered markup.                                                                                                              |
+| `files`           | Optional absolute paths for local files being uploaded.                                                                                                                                     |
 
 Not all writes have a channel. Resource operations use the resource identifier; creation uses the supplied creation
 target because its remote identifier does not exist yet. A direct send may use a recipient identifier when the server

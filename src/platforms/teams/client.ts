@@ -1,9 +1,8 @@
-import { runPreSendHook } from '@/shared/pre-send-hook'
-
 import { randomUUID } from 'node:crypto'
 import { readFile } from 'node:fs/promises'
 import { basename, resolve } from 'node:path'
 
+import { runPreSendHook } from '@/shared/pre-send-hook'
 import { escapeHtml, markdownToHtml } from '@/shared/utils/markdown-to-html'
 
 import { SUBSTRATE_SEARCH_URL } from './app-config'
@@ -950,7 +949,14 @@ export class TeamsClient {
     const path =
       this.channelPath(teamId, channelId) + '/messages' + (rootMessageId ? `/${segment(rootMessageId)}/replies` : '')
     const html = formatContent(content, format)
-    await runPreSendHook({ version: 1, platform: 'teams', action: rootMessageId ? 'reply' : 'send', account: teamId, target: { id: channelId, threadId: rootMessageId }, text: html })
+    await runPreSendHook({
+      version: 1,
+      platform: 'teams',
+      action: rootMessageId ? 'reply' : 'send',
+      account: teamId,
+      target: { id: channelId, threadId: rootMessageId },
+      text: html,
+    })
     return this.withCsaFallback(
       async () =>
         graphMessage(
@@ -1106,7 +1112,13 @@ export class TeamsClient {
       message = await this.getMessage(teamId, channelId, messageId, rootMessageId)
     } catch (error) {
       if (!(error instanceof TeamsAuthCapabilityError)) throw error
-      await runPreSendHook({ version: 1, platform: 'teams', action: 'delete', account: teamId, target: { id: channelId, threadId: rootMessageId } })
+      await runPreSendHook({
+        version: 1,
+        platform: 'teams',
+        action: 'delete',
+        account: teamId,
+        target: { id: channelId, threadId: rootMessageId },
+      })
       await this.request<void>(
         'DELETE',
         `/csa/${this.region}/api/v2/teams/${teamId}/channels/${channelId}/messages/${messageId}`,
@@ -1119,7 +1131,13 @@ export class TeamsClient {
       throw new TeamsError('Delete target did not match the message.', 'delete_target_mismatch')
     if (message.deleted_at) return
     const conversationId = rootMessageId ? `${channelId};messageid=${rootMessageId}` : channelId
-    await runPreSendHook({ version: 1, platform: 'teams', action: 'delete', account: teamId, target: { id: channelId, threadId: rootMessageId } })
+    await runPreSendHook({
+      version: 1,
+      platform: 'teams',
+      action: 'delete',
+      account: teamId,
+      target: { id: channelId, threadId: rootMessageId },
+    })
     const result = await this.request<{ errorCode?: number | string } | undefined>(
       'DELETE',
       `/users/ME/conversations/${segment(conversationId)}/messages/${segment(messageId)}`,
@@ -1135,7 +1153,13 @@ export class TeamsClient {
     emoji: string,
     rootMessageId?: string,
   ): Promise<void> {
-    await runPreSendHook({ version: 1, platform: 'teams', action: 'react', account: teamId, target: { id: channelId, threadId: rootMessageId } })
+    await runPreSendHook({
+      version: 1,
+      platform: 'teams',
+      action: 'react',
+      account: teamId,
+      target: { id: channelId, threadId: rootMessageId },
+    })
     await this.withCsaFallback<unknown>(
       () =>
         this.graph().request('POST', this.messagePath(teamId, channelId, messageId, rootMessageId) + '/setReaction', {
@@ -1158,7 +1182,13 @@ export class TeamsClient {
     emoji: string,
     rootMessageId?: string,
   ): Promise<void> {
-    await runPreSendHook({ version: 1, platform: 'teams', action: 'react', account: teamId, target: { id: channelId, threadId: rootMessageId } })
+    await runPreSendHook({
+      version: 1,
+      platform: 'teams',
+      action: 'react',
+      account: teamId,
+      target: { id: channelId, threadId: rootMessageId },
+    })
     await this.withCsaFallback<unknown>(
       () =>
         this.graph().request('POST', this.messagePath(teamId, channelId, messageId, rootMessageId) + '/unsetReaction', {
@@ -1196,7 +1226,14 @@ export class TeamsClient {
   }
 
   async uploadFile(teamId: string, channelId: string, filePath: string): Promise<TeamsFile> {
-    await runPreSendHook({ version: 1, platform: 'teams', action: 'upload', account: teamId, target: { id: channelId }, files: [resolve(filePath)] })
+    await runPreSendHook({
+      version: 1,
+      platform: 'teams',
+      action: 'upload',
+      account: teamId,
+      target: { id: channelId },
+      files: [resolve(filePath)],
+    })
     const bytes = await readFile(filePath)
     const filename = basename(filePath) || 'file'
     return this.withCsaFallback(

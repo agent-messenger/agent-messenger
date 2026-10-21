@@ -1,6 +1,6 @@
-import { runPreSendHook } from '@/shared/pre-send-hook'
-
 import { spawn } from 'node:child_process'
+
+import { runPreSendHook } from '@/shared/pre-send-hook'
 
 import { classifyImsgFailure } from './errors'
 import { ImsgRpc } from './rpc'
@@ -213,7 +213,7 @@ export class ImsgClient {
         { suggestion: 'Enable the bridge with "imsg launch" (requires SIP disabled).' },
       )
     }
-    await runPreSendHook({ version: 1, platform: 'imessage', action: 'react', target: { id: String(chatId) },  })
+    await runPreSendHook({ version: 1, platform: 'imessage', action: 'react', target: { id: String(chatId) } })
     const result = await this.runner(this.binaryPath, [
       'react',
       '--chat-id',

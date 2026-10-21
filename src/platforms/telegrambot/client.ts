@@ -1,7 +1,7 @@
-import { isPreSendHookConfigured, runPreSendHook, type PreSendEvent } from '@/shared/pre-send-hook'
+import { readFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
 
-import { readFile } from 'node:fs/promises'
+import { isPreSendHookConfigured, runPreSendHook, type PreSendEvent } from '@/shared/pre-send-hook'
 
 import type {
   TelegramBotUser,
@@ -86,9 +86,10 @@ export class TelegramBotClient {
 
   private async authorizeWrite(event: PreSendEvent): Promise<void> {
     if (!(await isPreSendHookConfigured())) return
-    const target = event.target.kind !== 'resource' && !/^-?\d+$/.test(event.target.id)
-      ? { ...event.target, id: String((await this.getChat(event.target.id)).id) }
-      : event.target
+    const target =
+      event.target.kind !== 'resource' && !/^-?\d+$/.test(event.target.id)
+        ? { ...event.target, id: String((await this.getChat(event.target.id)).id) }
+        : event.target
     const account = this.token?.match(/^\d+(?=:)/)?.[0]
     await runPreSendHook({ ...event, account, target })
   }
@@ -300,7 +301,16 @@ export class TelegramBotClient {
   }
 
   async sendMessage(chatId: ChatId, text: string, options?: SendMessageOptions): Promise<TelegramMessage> {
-    await this.authorizeWrite({ version: 1, platform: 'telegrambot', action: (options?.reply_to_message_id ? 'reply' : 'send'), target: { id: String(chatId), threadId: options?.message_thread_id === undefined ? undefined : String(options.message_thread_id) }, text, })
+    await this.authorizeWrite({
+      version: 1,
+      platform: 'telegrambot',
+      action: options?.reply_to_message_id ? 'reply' : 'send',
+      target: {
+        id: String(chatId),
+        threadId: options?.message_thread_id === undefined ? undefined : String(options.message_thread_id),
+      },
+      text,
+    })
     return this.call<TelegramMessage>('sendMessage', { chat_id: chatId, text, ...options })
   }
 
@@ -309,7 +319,13 @@ export class TelegramBotClient {
     photo: string,
     options?: { caption?: string; parse_mode?: SendMessageOptions['parse_mode'] },
   ): Promise<TelegramMessage> {
-    await this.authorizeWrite({ version: 1, platform: 'telegrambot', action: 'send', target: { id: String(chatId) }, text: options?.caption, })
+    await this.authorizeWrite({
+      version: 1,
+      platform: 'telegrambot',
+      action: 'send',
+      target: { id: String(chatId) },
+      text: options?.caption,
+    })
     return this.call<TelegramMessage>('sendPhoto', { chat_id: chatId, photo, ...options })
   }
 
@@ -318,7 +334,14 @@ export class TelegramBotClient {
     filePath: string,
     options?: { caption?: string; parse_mode?: SendMessageOptions['parse_mode']; signal?: AbortSignal },
   ): Promise<TelegramMessage> {
-    await this.authorizeWrite({ version: 1, platform: 'telegrambot', action: 'upload', target: { id: String(chatId) }, text: options?.caption, files: [resolve(filePath)], })
+    await this.authorizeWrite({
+      version: 1,
+      platform: 'telegrambot',
+      action: 'upload',
+      target: { id: String(chatId) },
+      text: options?.caption,
+      files: [resolve(filePath)],
+    })
     const fileBuffer = await readFile(filePath)
     const filename = filePath.split('/').pop() || 'file'
 
@@ -337,7 +360,15 @@ export class TelegramBotClient {
     messageId: number,
     options?: { disable_notification?: boolean; protect_content?: boolean; message_thread_id?: number },
   ): Promise<TelegramMessage> {
-    await this.authorizeWrite({ version: 1, platform: 'telegrambot', action: 'forward', target: { id: String(chatId), threadId: options?.message_thread_id === undefined ? undefined : String(options.message_thread_id) },  })
+    await this.authorizeWrite({
+      version: 1,
+      platform: 'telegrambot',
+      action: 'forward',
+      target: {
+        id: String(chatId),
+        threadId: options?.message_thread_id === undefined ? undefined : String(options.message_thread_id),
+      },
+    })
     return this.call<TelegramMessage>('forwardMessage', {
       chat_id: chatId,
       from_chat_id: fromChatId,
@@ -351,12 +382,21 @@ export class TelegramBotClient {
     text: string,
     options?: SendMessageOptions,
   ): Promise<TelegramMessage | true> {
-    await this.authorizeWrite({ version: 1, platform: 'telegrambot', action: 'edit', target: { id: String(target.chat_id ?? target.inline_message_id ?? ''), kind: target.inline_message_id ? 'resource' : 'chat' }, text, })
+    await this.authorizeWrite({
+      version: 1,
+      platform: 'telegrambot',
+      action: 'edit',
+      target: {
+        id: String(target.chat_id ?? target.inline_message_id ?? ''),
+        kind: target.inline_message_id ? 'resource' : 'chat',
+      },
+      text,
+    })
     return this.call<TelegramMessage | true>('editMessageText', { ...target, text, ...options })
   }
 
   async deleteMessage(chatId: ChatId, messageId: number): Promise<boolean> {
-    await this.authorizeWrite({ version: 1, platform: 'telegrambot', action: 'delete', target: { id: String(chatId) },  })
+    await this.authorizeWrite({ version: 1, platform: 'telegrambot', action: 'delete', target: { id: String(chatId) } })
     return this.call<boolean>('deleteMessage', { chat_id: chatId, message_id: messageId })
   }
 
@@ -366,7 +406,7 @@ export class TelegramBotClient {
     reaction: BotReactionType[],
     options?: { is_big?: boolean },
   ): Promise<boolean> {
-    await this.authorizeWrite({ version: 1, platform: 'telegrambot', action: 'react', target: { id: String(chatId) },  })
+    await this.authorizeWrite({ version: 1, platform: 'telegrambot', action: 'react', target: { id: String(chatId) } })
     return this.call<boolean>('setMessageReaction', {
       chat_id: chatId,
       message_id: messageId,
@@ -381,7 +421,7 @@ export class TelegramBotClient {
     reaction: TelegramReactionType[],
     options?: { is_big?: boolean },
   ): Promise<boolean> {
-    await this.authorizeWrite({ version: 1, platform: 'telegrambot', action: 'react', target: { id: String(chatId) },  })
+    await this.authorizeWrite({ version: 1, platform: 'telegrambot', action: 'react', target: { id: String(chatId) } })
     return this.call<boolean>('setMessageReaction', {
       chat_id: chatId,
       message_id: messageId,
@@ -400,13 +440,24 @@ export class TelegramBotClient {
   }
 
   async deleteWebhook(options?: { drop_pending_updates?: boolean }): Promise<boolean> {
-    await this.authorizeWrite({ version: 1, platform: 'telegrambot', action: 'delete', target: { id: 'webhook', kind: 'resource' },  })
+    await this.authorizeWrite({
+      version: 1,
+      platform: 'telegrambot',
+      action: 'delete',
+      target: { id: 'webhook', kind: 'resource' },
+    })
     return this.call<boolean>('deleteWebhook', options)
   }
 
   async setWebhook(url: string, options?: Record<string, unknown>): Promise<boolean> {
     const body = { url, ...options }
-    await this.authorizeWrite({ version: 1, platform: 'telegrambot', action: 'edit', target: { id: 'webhook', kind: 'resource' }, text: body.url })
+    await this.authorizeWrite({
+      version: 1,
+      platform: 'telegrambot',
+      action: 'edit',
+      target: { id: 'webhook', kind: 'resource' },
+      text: body.url,
+    })
     return this.call<boolean>('setWebhook', body)
   }
 

@@ -1,6 +1,7 @@
 import { Long } from 'bson'
 
 import { runPreSendHook } from '@/shared/pre-send-hook'
+
 import type { KakaoDeviceType } from '../types'
 import { MCCMNC, getLocoDeviceConfig } from './config'
 import { LocoConnection } from './connection'
@@ -55,7 +56,13 @@ export async function uploadMultiMediaEntry(opts: UploadToLocoOptions): Promise<
 async function runPostStreamComplete(opts: UploadToLocoOptions, opcode: 'POST' | 'MPOST'): Promise<UploadToLocoResult> {
   const device = getLocoDeviceConfig(opts.deviceType)
 
-  await runPreSendHook({ version: 1, platform: 'kakaotalk', action: 'upload', account: opts.userId, target: { id: opts.chatId.toString() } })
+  await runPreSendHook({
+    version: 1,
+    platform: 'kakaotalk',
+    action: 'upload',
+    account: opts.userId,
+    target: { id: opts.chatId.toString() },
+  })
   const conn = new LocoConnection()
   await conn.connectSecure(opts.shipHost, opts.shipPort)
 

@@ -54,12 +54,16 @@ export const image = Buffer.from(
 
 function guardedRpc(transport: () => Promise<never>): ImsgRpc {
   const rpc = new ImsgRpc()
-  Object.defineProperty(rpc, 'child', { value: { stdin: {
-    write: (_frame: string, callback: (error: Error) => void) => {
-      transport().catch(callback)
-      return true
+  Object.defineProperty(rpc, 'child', {
+    value: {
+      stdin: {
+        write: (_frame: string, callback: (error: Error) => void) => {
+          transport().catch(callback)
+          return true
+        },
+      },
     },
-  } } })
+  })
   return rpc
 }
 
@@ -107,14 +111,18 @@ export function clientFor(platform: string, transport: () => Promise<never>): ob
     decodeConvUuid: { value: () => 'room' },
     findDirectRoomByEmail: { value: async () => 'room', configurable: true },
     buildEncryptedObject: { value: async () => ({ object: { displayName: 'message' } }) },
-    internalRequest: { value: async (_path: string, init?: RequestInit) => init?.method ? transport() : { target: { id: 'room' } }, configurable: true },
+    internalRequest: {
+      value: async (_path: string, init?: RequestInit) => (init?.method ? transport() : { target: { id: 'room' } }),
+      configurable: true,
+    },
     uploadFileInternal: { value: transport, configurable: true },
     ensureAuth: { value: () => (platform.startsWith('webex') ? 'credential' : sdk) },
   })
   const state = { session: platform === 'kakaotalk' ? guardedSession(transport) : sdk, loginResult: {} }
   if (platform === 'kakaotalk') Object.defineProperty(client, 'state', { value: state })
   if (platform === 'instagram') Object.defineProperty(client, 'ensureSession', { value: () => {} })
-  if (platform === 'line') Object.defineProperty(client, 'client', { value: { base: { talk: sdk, profile: { mid: 'account' } } } })
+  if (platform === 'line')
+    Object.defineProperty(client, 'client', { value: { base: { talk: sdk, profile: { mid: 'account' } } } })
   if (platform === 'webexbot') {
     Object.defineProperty(client, 'client', { value: clientFor('webexbot-inner', transport) })
   }

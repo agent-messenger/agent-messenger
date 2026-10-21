@@ -4,7 +4,13 @@ export function mobileCases(file: string): Record<string, () => Row[]> {
   return {
     telegrambot: () => [
       ['sendMessage', [123, 'message'], 'send', '123', 'message'],
-      ['sendMessage', [123, 'message', { reply_to_message_id: 456, message_thread_id: 789 }], 'reply', '123', 'message'],
+      [
+        'sendMessage',
+        [123, 'message', { reply_to_message_id: 456, message_thread_id: 789 }],
+        'reply',
+        '123',
+        'message',
+      ],
       ['sendPhoto', [123, 'media-id', { caption: 'message' }], 'send', '123', 'message'],
       ['sendDocument', [123, file, { caption: 'message' }], 'upload', '123', 'message'],
       ['forwardMessage', [123, 456, 789], 'forward', '123'],
@@ -28,7 +34,14 @@ export function mobileCases(file: string): Record<string, () => Row[]> {
       ['sendDirectMessage', ['recipient@example.org', 'message'], 'send', 'room', 'message', true],
       ['deleteMessage', ['message-id'], 'delete', 'room', undefined, true],
       ['editMessage', ['message-id', 'alias', 'message'], 'edit', 'room', 'message', true],
-      ['uploadFile', ['alias', { content: new Blob(['file']), filename: 'file.txt' }], 'upload', 'room', undefined, true],
+      [
+        'uploadFile',
+        ['alias', { content: new Blob(['file']), filename: 'file.txt' }],
+        'upload',
+        'room',
+        undefined,
+        true,
+      ],
     ],
     webexbot: () => [
       ['sendMessage', ['alias', 'message'], 'send', 'room', 'message'],
@@ -52,10 +65,22 @@ export function mobileCases(file: string): Record<string, () => Row[]> {
     ],
     whatsappbot: () => [
       ['sendTextMessage', ['recipient', 'message'], 'send', 'recipient', 'message'],
-      ['sendTemplateMessage', ['recipient', 'template', 'en'], 'send', 'recipient', '{"name":"template","language":"en"}'],
+      [
+        'sendTemplateMessage',
+        ['recipient', 'template', 'en'],
+        'send',
+        'recipient',
+        '{"name":"template","language":"en"}',
+      ],
       ['sendReaction', ['recipient', 'message-id', 'emoji'], 'react', 'recipient'],
       ['sendImageMessage', ['recipient', 'https://example.org/image', 'message'], 'send', 'recipient', 'message'],
-      ['sendDocumentMessage', ['recipient', 'https://example.org/file', 'file.txt', 'message'], 'send', 'recipient', 'message'],
+      [
+        'sendDocumentMessage',
+        ['recipient', 'https://example.org/file', 'file.txt', 'message'],
+        'send',
+        'recipient',
+        'message',
+      ],
     ],
   }
 }

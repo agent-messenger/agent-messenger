@@ -98,7 +98,9 @@ export async function runPreSendHook(event: PreSendEvent): Promise<void> {
     try {
       child = spawn(executable, args, { stdio: ['pipe', 'ignore', 'pipe'], shell: false })
     } catch (error) {
-      reject(new PreSendDeniedError(`Cannot start pre-send hook: ${error instanceof Error ? error.message : String(error)}`))
+      reject(
+        new PreSendDeniedError(`Cannot start pre-send hook: ${error instanceof Error ? error.message : String(error)}`),
+      )
       return
     }
     let firstLine = ''

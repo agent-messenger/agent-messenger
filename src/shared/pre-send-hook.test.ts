@@ -65,7 +65,9 @@ describe('pre-send hook', () => {
   })
 
   it('denies a nonzero exit with the first stderr line', async () => {
-    await configure("process.stdin.resume(); process.stdin.on('end', () => { process.stderr.write('policy denied\\nmore detail\\n'); process.exitCode = 3 });")
+    await configure(
+      "process.stdin.resume(); process.stdin.on('end', () => { process.stderr.write('policy denied\\nmore detail\\n'); process.exitCode = 3 });",
+    )
     const result = runPreSendHook(event)
     await expect(result).rejects.toBeInstanceOf(PreSendDeniedError)
     await expect(result).rejects.toMatchObject({ code: 'PRE_SEND_DENIED', message: 'policy denied' })
@@ -77,8 +79,11 @@ describe('pre-send hook', () => {
   })
 
   it('denies when the hook times out', async () => {
-    await configure("process.stdin.resume(); setInterval(() => {}, 1000)", { timeoutMs: 50 })
-    await expect(runPreSendHook(event)).rejects.toMatchObject({ code: 'PRE_SEND_DENIED', message: 'Pre-send hook timed out' })
+    await configure('process.stdin.resume(); setInterval(() => {}, 1000)', { timeoutMs: 50 })
+    await expect(runPreSendHook(event)).rejects.toMatchObject({
+      code: 'PRE_SEND_DENIED',
+      message: 'Pre-send hook timed out',
+    })
   })
 
   it('denies when the executable cannot be spawned', async () => {
@@ -117,7 +122,7 @@ describe('pre-send hook', () => {
   })
 
   it('denies an explicitly empty environment executable', async () => {
-    await configure("process.stdin.resume()")
+    await configure('process.stdin.resume()')
     process.env.AGENT_MESSENGER_PRE_SEND_HOOK = ''
     await expect(runPreSendHook(event)).rejects.toMatchObject({ code: 'PRE_SEND_DENIED' })
   })

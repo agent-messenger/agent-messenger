@@ -2,6 +2,7 @@ import { type ChildProcessWithoutNullStreams, spawn } from 'node:child_process'
 import { createInterface, type Interface } from 'node:readline'
 
 import { runPreSendHook } from '@/shared/pre-send-hook'
+
 import { classifyImsgFailure } from './errors'
 import { IMessageError } from './types'
 

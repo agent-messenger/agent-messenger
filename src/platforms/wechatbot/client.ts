@@ -93,7 +93,14 @@ export class WeChatBotClient {
   }
 
   async sendTextMessage(openId: string, text: string): Promise<void> {
-    await runPreSendHook({ version: 1, platform: 'wechatbot', action: 'send', target: { id: openId }, account: this.appId ?? undefined, text, })
+    await runPreSendHook({
+      version: 1,
+      platform: 'wechatbot',
+      action: 'send',
+      target: { id: openId },
+      account: this.appId ?? undefined,
+      text,
+    })
     await this.request<void>('POST', '/cgi-bin/message/custom/send', {
       touser: openId,
       msgtype: 'text',
@@ -102,7 +109,13 @@ export class WeChatBotClient {
   }
 
   async sendImageMessage(openId: string, mediaId: string): Promise<void> {
-    await runPreSendHook({ version: 1, platform: 'wechatbot', action: 'send', target: { id: openId }, account: this.appId ?? undefined, })
+    await runPreSendHook({
+      version: 1,
+      platform: 'wechatbot',
+      action: 'send',
+      target: { id: openId },
+      account: this.appId ?? undefined,
+    })
     await this.request<void>('POST', '/cgi-bin/message/custom/send', {
       touser: openId,
       msgtype: 'image',
@@ -111,7 +124,14 @@ export class WeChatBotClient {
   }
 
   async sendNewsMessage(openId: string, articles: WeChatBotNewsArticle[]): Promise<void> {
-    await runPreSendHook({ version: 1, platform: 'wechatbot', action: 'send', target: { id: openId }, account: this.appId ?? undefined, text: articles.map((article) => [article.title, article.description].filter(Boolean).join('\n')).join('\n'), })
+    await runPreSendHook({
+      version: 1,
+      platform: 'wechatbot',
+      action: 'send',
+      target: { id: openId },
+      account: this.appId ?? undefined,
+      text: articles.map((article) => [article.title, article.description].filter(Boolean).join('\n')).join('\n'),
+    })
     await this.request<void>('POST', '/cgi-bin/message/custom/send', {
       touser: openId,
       msgtype: 'news',
@@ -125,7 +145,16 @@ export class WeChatBotClient {
     data: Record<string, { value: string }>,
     url?: string,
   ): Promise<{ msgid: number }> {
-    await runPreSendHook({ version: 1, platform: 'wechatbot', action: 'send', target: { id: openId }, account: this.appId ?? undefined, text: Object.values(data).map((field) => field.value).join('\n'), })
+    await runPreSendHook({
+      version: 1,
+      platform: 'wechatbot',
+      action: 'send',
+      target: { id: openId },
+      account: this.appId ?? undefined,
+      text: Object.values(data)
+        .map((field) => field.value)
+        .join('\n'),
+    })
     return this.request<{ msgid: number }>('POST', '/cgi-bin/message/template/send', {
       touser: openId,
       template_id: templateId,
@@ -143,7 +172,13 @@ export class WeChatBotClient {
   }
 
   async deleteTemplate(templateId: string): Promise<void> {
-    await runPreSendHook({ version: 1, platform: 'wechatbot', action: 'delete', target: { id: templateId }, account: this.appId ?? undefined, })
+    await runPreSendHook({
+      version: 1,
+      platform: 'wechatbot',
+      action: 'delete',
+      target: { id: templateId },
+      account: this.appId ?? undefined,
+    })
     await this.request<void>('POST', '/cgi-bin/template/del_private_template', {
       template_id: templateId,
     })

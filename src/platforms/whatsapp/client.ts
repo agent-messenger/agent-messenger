@@ -1,5 +1,3 @@
-import { runPreSendHook } from '@/shared/pre-send-hook'
-
 import { existsSync } from 'node:fs'
 import { readFile, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
@@ -17,6 +15,8 @@ import makeWASocket, {
   type WASocket,
 } from '@whiskeysockets/baileys'
 import pino from 'pino'
+
+import { runPreSendHook } from '@/shared/pre-send-hook'
 
 import {
   extractMessageText,
@@ -621,7 +621,14 @@ export class WhatsAppClient {
     if (!this.sock) throw new WhatsAppError('Not connected', 'not_connected')
 
     const resolvedJid = resolveJid(jid)
-    await runPreSendHook({ version: 1, platform: 'whatsapp', action: 'send', target: { id: resolvedJid }, account: this.sock.user?.id, text, })
+    await runPreSendHook({
+      version: 1,
+      platform: 'whatsapp',
+      action: 'send',
+      target: { id: resolvedJid },
+      account: this.sock.user?.id,
+      text,
+    })
     const result = await this.sock.sendMessage(resolvedJid, { text })
 
     if (!result) {
@@ -662,7 +669,13 @@ export class WhatsAppClient {
     if (!this.sock) throw new WhatsAppError('Not connected', 'not_connected')
 
     const resolvedJid = resolveJid(jid)
-    await runPreSendHook({ version: 1, platform: 'whatsapp', action: 'react', target: { id: resolvedJid }, account: this.sock.user?.id, })
+    await runPreSendHook({
+      version: 1,
+      platform: 'whatsapp',
+      action: 'react',
+      target: { id: resolvedJid },
+      account: this.sock.user?.id,
+    })
     await this.sock.sendMessage(resolvedJid, {
       react: { text: emoji, key: { remoteJid: resolvedJid, fromMe, id: messageId } },
     })
@@ -672,7 +685,14 @@ export class WhatsAppClient {
     if (!this.sock) throw new WhatsAppError('Not connected', 'not_connected')
 
     const resolvedJid = resolveJid(jid)
-    await runPreSendHook({ version: 1, platform: 'whatsapp', action: 'edit', target: { id: resolvedJid }, account: this.sock.user?.id, text, })
+    await runPreSendHook({
+      version: 1,
+      platform: 'whatsapp',
+      action: 'edit',
+      target: { id: resolvedJid },
+      account: this.sock.user?.id,
+      text,
+    })
     const result = await this.sock.sendMessage(resolvedJid, {
       text,
       edit: { remoteJid: resolvedJid, fromMe: true, id: messageId },

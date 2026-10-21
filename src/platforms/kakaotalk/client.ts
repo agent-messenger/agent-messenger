@@ -1,7 +1,6 @@
-import { PreSendDeniedError } from '@/shared/pre-send-hook'
-
 import { Long } from 'bson'
 
+import { PreSendDeniedError } from '@/shared/pre-send-hook'
 import { warn } from '@/shared/utils/stderr'
 
 import { type AttachmentInput, type ResolvedAttachment, planAttachments } from './attachment-router'

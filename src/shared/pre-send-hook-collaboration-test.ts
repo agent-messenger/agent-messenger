@@ -26,7 +26,13 @@ export function collaborationCases(file: string): Record<string, () => Row[]> {
       ['uploadFile', ['channel', file], 'upload', 'channel'],
       ['createEmoji', ['server', 'expression', image, 'image.png'], 'create', 'server', 'expression'],
       ['deleteEmoji', ['server', 'expression'], 'delete', 'server'],
-      ['createSticker', ['server', { name: 'expression', tags: 'tag' }, image, 'image.png'], 'create', 'server', 'expression'],
+      [
+        'createSticker',
+        ['server', { name: 'expression', tags: 'tag' }, image, 'image.png'],
+        'create',
+        'server',
+        'expression',
+      ],
       ['deleteSticker', ['server', 'expression'], 'delete', 'server'],
       ['createDM', ['user'], 'create', 'user'],
       ['setUserNote', ['user', 'message'], 'edit', 'user', 'message'],
@@ -35,7 +41,13 @@ export function collaborationCases(file: string): Record<string, () => Row[]> {
     ],
     discordbot: () => [
       ['createMessage', ['channel', { content: 'message' }], 'send', 'channel', 'message'],
-      ['createMessage', ['channel', { content: 'message', files: [{ path: file }], thread_id: 'thread' }], 'upload', 'thread', 'message'],
+      [
+        'createMessage',
+        ['channel', { content: 'message', files: [{ path: file }], thread_id: 'thread' }],
+        'upload',
+        'thread',
+        'message',
+      ],
       ['sendMessage', ['channel', 'message'], 'send', 'channel', 'message'],
       ['uploadFile', ['channel', file], 'upload', 'channel'],
       ['editMessage', ['channel', 'message-id', 'message'], 'edit', 'channel', 'message'],
@@ -53,6 +65,5 @@ export function collaborationCases(file: string): Record<string, () => Row[]> {
       ['sendMessage', ['thread', 'message'], 'send', 'thread', 'message'],
       ['sendMessageToUser', ['user', 'message'], 'send', 'user', 'message'],
     ],
-
   }
 }

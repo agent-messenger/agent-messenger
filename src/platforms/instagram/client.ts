@@ -1,8 +1,8 @@
-import { runPreSendHook } from '@/shared/pre-send-hook'
-
 import { constants, createCipheriv, publicEncrypt, randomBytes, randomUUID } from 'node:crypto'
 import { existsSync } from 'node:fs'
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
+
+import { runPreSendHook } from '@/shared/pre-send-hook'
 
 import { InstagramCredentialManager } from './credential-manager'
 import {
@@ -568,7 +568,14 @@ export class InstagramClient {
   async sendMessageToUser(userPk: string, text: string): Promise<InstagramMessageSummary> {
     this.ensureSession()
 
-    await runPreSendHook({ version: 1, platform: 'instagram', action: 'send', target: { id: userPk, kind: 'user' }, account: this.userId ?? undefined, text, })
+    await runPreSendHook({
+      version: 1,
+      platform: 'instagram',
+      action: 'send',
+      target: { id: userPk, kind: 'user' },
+      account: this.userId ?? undefined,
+      text,
+    })
     const { data } = await this.request('POST', '/direct_v2/threads/broadcast/text/', {
       recipient_users: `[[${userPk}]]`,
       text,
@@ -685,7 +692,14 @@ export class InstagramClient {
   async sendMessage(threadId: string, text: string): Promise<InstagramMessageSummary> {
     this.ensureSession()
 
-    await runPreSendHook({ version: 1, platform: 'instagram', action: 'send', target: { id: threadId }, account: this.userId ?? undefined, text, })
+    await runPreSendHook({
+      version: 1,
+      platform: 'instagram',
+      action: 'send',
+      target: { id: threadId },
+      account: this.userId ?? undefined,
+      text,
+    })
     const { data } = await this.request('POST', '/direct_v2/threads/broadcast/text/', {
       thread_ids: `[${threadId}]`,
       text,

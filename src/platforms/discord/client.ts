@@ -1,7 +1,7 @@
-import { runPreSendHook } from '@/shared/pre-send-hook'
+import { readFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
 
-import { readFile } from 'node:fs/promises'
+import { runPreSendHook } from '@/shared/pre-send-hook'
 
 import type { ExpressionFormat } from './expression-format'
 import { EMOJI_FORMATS, STICKER_FORMATS, lottieError, mediaTypeOf, sniffFormat } from './expression-format'
@@ -298,7 +298,13 @@ export class DiscordClient {
   }
 
   async sendMessage(channelId: string, content: string, options?: { reply_to?: string }): Promise<DiscordMessage> {
-    await runPreSendHook({ version: 1, platform: 'discord', action: (options?.reply_to ? 'reply' : 'send'), target: { id: channelId, threadId: options?.reply_to }, text: content, })
+    await runPreSendHook({
+      version: 1,
+      platform: 'discord',
+      action: options?.reply_to ? 'reply' : 'send',
+      target: { id: channelId, threadId: options?.reply_to },
+      text: content,
+    })
     const body: Record<string, unknown> = { content }
     if (options?.reply_to) {
       body.message_reference = { message_id: options.reply_to }
@@ -325,29 +331,29 @@ export class DiscordClient {
   }
 
   async editMessage(channelId: string, messageId: string, content: string): Promise<DiscordMessage> {
-    await runPreSendHook({ version: 1, platform: 'discord', action: 'edit', target: { id: channelId }, text: content, })
+    await runPreSendHook({ version: 1, platform: 'discord', action: 'edit', target: { id: channelId }, text: content })
     return this.request<DiscordMessage>('PATCH', `/channels/${channelId}/messages/${messageId}`, { content })
   }
 
   async deleteMessage(channelId: string, messageId: string): Promise<void> {
-    await runPreSendHook({ version: 1, platform: 'discord', action: 'delete', target: { id: channelId },  })
+    await runPreSendHook({ version: 1, platform: 'discord', action: 'delete', target: { id: channelId } })
     return this.request<void>('DELETE', `/channels/${channelId}/messages/${messageId}`)
   }
 
   async addReaction(channelId: string, messageId: string, emoji: string): Promise<void> {
-    await runPreSendHook({ version: 1, platform: 'discord', action: 'react', target: { id: channelId },  })
+    await runPreSendHook({ version: 1, platform: 'discord', action: 'react', target: { id: channelId } })
     const encodedEmoji = encodeURIComponent(emoji)
     return this.request<void>('PUT', `/channels/${channelId}/messages/${messageId}/reactions/${encodedEmoji}/@me`)
   }
 
   async removeReaction(channelId: string, messageId: string, emoji: string): Promise<void> {
-    await runPreSendHook({ version: 1, platform: 'discord', action: 'react', target: { id: channelId },  })
+    await runPreSendHook({ version: 1, platform: 'discord', action: 'react', target: { id: channelId } })
     const encodedEmoji = encodeURIComponent(emoji)
     return this.request<void>('DELETE', `/channels/${channelId}/messages/${messageId}/reactions/${encodedEmoji}/@me`)
   }
 
   async ackMessage(channelId: string, messageId: string): Promise<void> {
-    await runPreSendHook({ version: 1, platform: 'discord', action: 'markRead', target: { id: channelId },  })
+    await runPreSendHook({ version: 1, platform: 'discord', action: 'markRead', target: { id: channelId } })
     return this.request<void>('POST', `/channels/${channelId}/messages/${messageId}/ack`, {
       token: null,
     })
@@ -366,7 +372,13 @@ export class DiscordClient {
   }
 
   async uploadFile(channelId: string, filePath: string, options?: { reply_to?: string }): Promise<DiscordFile> {
-    await runPreSendHook({ version: 1, platform: 'discord', action: 'upload', target: { id: channelId }, files: [resolve(filePath)], })
+    await runPreSendHook({
+      version: 1,
+      platform: 'discord',
+      action: 'upload',
+      target: { id: channelId },
+      files: [resolve(filePath)],
+    })
     const fileBuffer = await readFile(filePath)
     const filename = filePath.split('/').pop() || 'file'
 
@@ -432,7 +444,14 @@ export class DiscordClient {
     filename: string,
     roles: string[] = [],
   ): Promise<DiscordEmoji> {
-    await runPreSendHook({ version: 1, platform: 'discord', action: 'create', target: { id: guildId }, account: guildId, text: name, })
+    await runPreSendHook({
+      version: 1,
+      platform: 'discord',
+      action: 'create',
+      target: { id: guildId },
+      account: guildId,
+      text: name,
+    })
     return this.request<DiscordEmoji>('POST', `/guilds/${guildId}/emojis`, {
       name,
       image: `data:${this.mediaTypeOrThrow(image, EMOJI_FORMATS)};base64,${Buffer.from(image).toString('base64')}`,
@@ -441,7 +460,13 @@ export class DiscordClient {
   }
 
   async deleteEmoji(guildId: string, emojiId: string): Promise<void> {
-    await runPreSendHook({ version: 1, platform: 'discord', action: 'delete', target: { id: guildId }, account: guildId, })
+    await runPreSendHook({
+      version: 1,
+      platform: 'discord',
+      action: 'delete',
+      target: { id: guildId },
+      account: guildId,
+    })
     await this.request<void>('DELETE', `/guilds/${guildId}/emojis/${emojiId}`)
   }
 
@@ -455,7 +480,14 @@ export class DiscordClient {
     image: Uint8Array,
     filename: string,
   ): Promise<DiscordSticker> {
-    await runPreSendHook({ version: 1, platform: 'discord', action: 'create', target: { id: guildId }, account: guildId, text: fields.name, })
+    await runPreSendHook({
+      version: 1,
+      platform: 'discord',
+      action: 'create',
+      target: { id: guildId },
+      account: guildId,
+      text: fields.name,
+    })
     const formData = new FormData()
     formData.append('name', fields.name)
     formData.append('description', fields.description ?? '')
@@ -466,7 +498,13 @@ export class DiscordClient {
   }
 
   async deleteSticker(guildId: string, stickerId: string): Promise<void> {
-    await runPreSendHook({ version: 1, platform: 'discord', action: 'delete', target: { id: guildId }, account: guildId, })
+    await runPreSendHook({
+      version: 1,
+      platform: 'discord',
+      action: 'delete',
+      target: { id: guildId },
+      account: guildId,
+    })
     await this.request<void>('DELETE', `/guilds/${guildId}/stickers/${stickerId}`)
   }
 
@@ -475,7 +513,7 @@ export class DiscordClient {
   }
 
   async createDM(userId: string): Promise<DiscordDMChannel> {
-    await runPreSendHook({ version: 1, platform: 'discord', action: 'create', target: { id: userId },  })
+    await runPreSendHook({ version: 1, platform: 'discord', action: 'create', target: { id: userId } })
     return this.request<DiscordDMChannel>('POST', '/users/@me/channels', {
       recipient_id: userId,
     })
@@ -625,7 +663,7 @@ export class DiscordClient {
   }
 
   async setUserNote(userId: string, note: string): Promise<DiscordUserNote> {
-    await runPreSendHook({ version: 1, platform: 'discord', action: 'edit', target: { id: userId }, text: note, })
+    await runPreSendHook({ version: 1, platform: 'discord', action: 'edit', target: { id: userId }, text: note })
     return this.request<DiscordUserNote>('PUT', `/users/@me/notes/${userId}`, {
       note,
     })
@@ -739,7 +777,7 @@ export class DiscordClient {
       rate_limit_per_user?: number
     },
   ): Promise<DiscordChannel> {
-    await runPreSendHook({ version: 1, platform: 'discord', action: 'create', target: { id: channelId }, text: name, })
+    await runPreSendHook({ version: 1, platform: 'discord', action: 'create', target: { id: channelId }, text: name })
     return this.request<DiscordChannel>('POST', `/channels/${channelId}/threads`, {
       name,
       ...options,
@@ -747,7 +785,7 @@ export class DiscordClient {
   }
 
   async archiveThread(threadId: string, archived: boolean = true): Promise<DiscordChannel> {
-    await runPreSendHook({ version: 1, platform: 'discord', action: 'archive', target: { id: threadId },  })
+    await runPreSendHook({ version: 1, platform: 'discord', action: 'archive', target: { id: threadId } })
     return this.request<DiscordChannel>('PATCH', `/channels/${threadId}`, {
       archived,
     })

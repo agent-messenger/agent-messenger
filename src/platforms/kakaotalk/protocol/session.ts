@@ -1,6 +1,7 @@
 import { Binary, Long } from 'bson'
 
 import { runPreSendHook } from '@/shared/pre-send-hook'
+
 import { KAKAO_MESSAGE_TYPE, type KakaoDeviceType, type KakaoReplyExtra } from '../types'
 import {
   BOOKING_HOST,
@@ -67,7 +68,13 @@ export async function sendTypingPacket(
   linkId?: Long,
   account?: string,
 ): Promise<LocoPacket> {
-  await runPreSendHook({ version: 1, platform: 'kakaotalk', account, action: 'typing', target: { id: chatId.toString() } })
+  await runPreSendHook({
+    version: 1,
+    platform: 'kakaotalk',
+    account,
+    action: 'typing',
+    target: { id: chatId.toString() },
+  })
   return connection.sendPacket(TYPING_ACTION_METHOD, buildTypingActionBody(chatId, linkId))
 }
 
@@ -181,7 +188,14 @@ export class LocoSession {
 
   async sendMessage(chatId: Long, text: string): Promise<LocoPacket> {
     if (!this.connection) throw new Error('Not connected')
-    await runPreSendHook({ version: 1, platform: 'kakaotalk', account: this.accountId, action: 'send', target: { id: chatId.toString() }, text })
+    await runPreSendHook({
+      version: 1,
+      platform: 'kakaotalk',
+      account: this.accountId,
+      action: 'send',
+      target: { id: chatId.toString() },
+      text,
+    })
     return this.connection.sendPacket('WRITE', {
       chatId,
       msg: text,
@@ -195,7 +209,14 @@ export class LocoSession {
   // `type` + `extra`; no extra top-level WRITE fields are needed.
   async sendReply(chatId: Long, text: string, extra: KakaoReplyExtra): Promise<LocoPacket> {
     if (!this.connection) throw new Error('Not connected')
-    await runPreSendHook({ version: 1, platform: 'kakaotalk', account: this.accountId, action: 'reply', target: { id: chatId.toString(), threadId: extra.src_logId }, text })
+    await runPreSendHook({
+      version: 1,
+      platform: 'kakaotalk',
+      account: this.accountId,
+      action: 'reply',
+      target: { id: chatId.toString(), threadId: extra.src_logId },
+      text,
+    })
     return this.connection.sendPacket('WRITE', buildReplyWriteBody(chatId, text, extra))
   }
 
@@ -204,7 +225,14 @@ export class LocoSession {
   // See types.ts → KakaoPhotoExtra / KakaoFileExtra for the per-type shape.
   async sendAttachment(chatId: Long, type: number, extra: Record<string, unknown>, caption = ''): Promise<LocoPacket> {
     if (!this.connection) throw new Error('Not connected')
-    await runPreSendHook({ version: 1, platform: 'kakaotalk', account: this.accountId, action: 'send', target: { id: chatId.toString() }, text: caption })
+    await runPreSendHook({
+      version: 1,
+      platform: 'kakaotalk',
+      account: this.accountId,
+      action: 'send',
+      target: { id: chatId.toString() },
+      text: caption,
+    })
     return this.connection.sendPacket('WRITE', {
       chatId,
       msg: caption,
@@ -226,7 +254,13 @@ export class LocoSession {
       cs: checksum,
     }
     if (extension.length > 0) body.e = extension
-    await runPreSendHook({ version: 1, platform: 'kakaotalk', account: this.accountId, action: 'upload', target: { id: chatId.toString() } })
+    await runPreSendHook({
+      version: 1,
+      platform: 'kakaotalk',
+      account: this.accountId,
+      action: 'upload',
+      target: { id: chatId.toString() },
+    })
     return this.connection.sendPacket('SHIP', body)
   }
 
@@ -241,7 +275,13 @@ export class LocoSession {
     extensions: string[],
   ): Promise<LocoPacket> {
     if (!this.connection) throw new Error('Not connected')
-    await runPreSendHook({ version: 1, platform: 'kakaotalk', account: this.accountId, action: 'upload', target: { id: chatId.toString() } })
+    await runPreSendHook({
+      version: 1,
+      platform: 'kakaotalk',
+      account: this.accountId,
+      action: 'upload',
+      target: { id: chatId.toString() },
+    })
     return this.connection.sendPacket('MSHIP', {
       c: chatId,
       t: type,
@@ -256,7 +296,14 @@ export class LocoSession {
   // multi-media rendering (galleries, multi-photo posts).
   async forwardChat(chatId: Long, type: number, extra: Record<string, unknown>, caption = ''): Promise<LocoPacket> {
     if (!this.connection) throw new Error('Not connected')
-    await runPreSendHook({ version: 1, platform: 'kakaotalk', account: this.accountId, action: 'forward', target: { id: chatId.toString() }, text: caption })
+    await runPreSendHook({
+      version: 1,
+      platform: 'kakaotalk',
+      account: this.accountId,
+      action: 'forward',
+      target: { id: chatId.toString() },
+      text: caption,
+    })
     return this.connection.sendPacket('FORWARD', {
       chatId,
       msg: caption,
@@ -290,7 +337,13 @@ export class LocoSession {
 
   async getChatInfo(chatId: Long): Promise<LocoPacket> {
     if (!this.connection) throw new Error('Not connected')
-    await runPreSendHook({ version: 1, platform: 'kakaotalk', account: this.accountId, action: 'markRead', target: { id: chatId.toString() } })
+    await runPreSendHook({
+      version: 1,
+      platform: 'kakaotalk',
+      account: this.accountId,
+      action: 'markRead',
+      target: { id: chatId.toString() },
+    })
     return this.connection.sendPacket('CHATONROOM', { chatId })
   }
 
@@ -355,7 +408,13 @@ export class LocoSession {
    */
   async leaveChat(chatId: Long): Promise<LocoPacket> {
     if (!this.connection) throw new Error('Not connected')
-    await runPreSendHook({ version: 1, platform: 'kakaotalk', account: this.accountId, action: 'leave', target: { id: chatId.toString() } })
+    await runPreSendHook({
+      version: 1,
+      platform: 'kakaotalk',
+      account: this.accountId,
+      action: 'leave',
+      target: { id: chatId.toString() },
+    })
     return this.connection.sendPacket('LEAVE', { chatId })
   }
 
@@ -365,7 +424,13 @@ export class LocoSession {
     if (linkId !== undefined) {
       body.li = linkId
     }
-    await runPreSendHook({ version: 1, platform: 'kakaotalk', account: this.accountId, action: 'markRead', target: { id: chatId.toString() } })
+    await runPreSendHook({
+      version: 1,
+      platform: 'kakaotalk',
+      account: this.accountId,
+      action: 'markRead',
+      target: { id: chatId.toString() },
+    })
     return this.connection.sendPacket('NOTIREAD', body)
   }
 

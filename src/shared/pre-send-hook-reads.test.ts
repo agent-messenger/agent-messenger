@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, mock, spyOn } from 'bun:test'
 
-import { clientFor } from './pre-send-hook-client-test'
 import * as hooks from './pre-send-hook'
+import { clientFor } from './pre-send-hook-client-test'
 
 describe('pre-send hooks leave reads unhooked', () => {
   afterEach(() => mock.restore())

@@ -23,8 +23,20 @@ export function messagingCases(file: string): Record<string, () => Row[]> {
       ['deleteMessage', ['channel', 'message-id'], 'delete', 'channel'],
       ['addReaction', ['channel', 'message-id', 'emoji'], 'react', 'channel'],
       ['removeReaction', ['channel', 'message-id', 'emoji'], 'react', 'channel'],
-      ['uploadFile', [['channel'], Buffer.from('file'), 'file.txt', { initial_comment: 'message' }], 'upload', 'channel', 'message'],
-      ['uploadFiles', [[{ file: Buffer.from('file'), filename: 'file.txt' }], { channel: 'channel', comment: 'message' }], 'upload', 'channel', 'message'],
+      [
+        'uploadFile',
+        [['channel'], Buffer.from('file'), 'file.txt', { initial_comment: 'message' }],
+        'upload',
+        'channel',
+        'message',
+      ],
+      [
+        'uploadFiles',
+        [[{ file: Buffer.from('file'), filename: 'file.txt' }], { channel: 'channel', comment: 'message' }],
+        'upload',
+        'channel',
+        'message',
+      ],
       ['markRead', ['channel', 'message-id'], 'markRead', 'channel'],
       ['openConversation', ['user'], 'create', 'user'],
       ['pinMessage', ['channel', 'message-id'], 'pin', 'channel'],
@@ -79,6 +91,5 @@ export function messagingCases(file: string): Record<string, () => Row[]> {
       ['sendMessage', ['@recipient', 'message'], 'send', '123', 'message'],
       ['editMessage', ['@recipient', 456, 'message'], 'edit', '123', 'message'],
     ],
-
   }
 }

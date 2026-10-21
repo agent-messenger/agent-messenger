@@ -296,23 +296,29 @@ export class DiscordBotClient {
   }
 
   async editMessage(channelId: string, messageId: string, content: string): Promise<DiscordMessage> {
-    await runPreSendHook({ version: 1, platform: 'discordbot', action: 'edit', target: { id: channelId }, text: content, })
+    await runPreSendHook({
+      version: 1,
+      platform: 'discordbot',
+      action: 'edit',
+      target: { id: channelId },
+      text: content,
+    })
     return this.request<DiscordMessage>('PATCH', `/channels/${channelId}/messages/${messageId}`, { content })
   }
 
   async deleteMessage(channelId: string, messageId: string): Promise<void> {
-    await runPreSendHook({ version: 1, platform: 'discordbot', action: 'delete', target: { id: channelId },  })
+    await runPreSendHook({ version: 1, platform: 'discordbot', action: 'delete', target: { id: channelId } })
     return this.request<void>('DELETE', `/channels/${channelId}/messages/${messageId}`)
   }
 
   async addReaction(channelId: string, messageId: string, emoji: string): Promise<void> {
-    await runPreSendHook({ version: 1, platform: 'discordbot', action: 'react', target: { id: channelId },  })
+    await runPreSendHook({ version: 1, platform: 'discordbot', action: 'react', target: { id: channelId } })
     const encodedEmoji = encodeURIComponent(emoji)
     return this.request<void>('PUT', `/channels/${channelId}/messages/${messageId}/reactions/${encodedEmoji}/@me`)
   }
 
   async removeReaction(channelId: string, messageId: string, emoji: string): Promise<void> {
-    await runPreSendHook({ version: 1, platform: 'discordbot', action: 'react', target: { id: channelId },  })
+    await runPreSendHook({ version: 1, platform: 'discordbot', action: 'react', target: { id: channelId } })
     const encodedEmoji = encodeURIComponent(emoji)
     return this.request<void>('DELETE', `/channels/${channelId}/messages/${messageId}/reactions/${encodedEmoji}/@me`)
   }
@@ -358,7 +364,13 @@ export class DiscordBotClient {
       rate_limit_per_user?: number
     },
   ): Promise<DiscordChannel> {
-    await runPreSendHook({ version: 1, platform: 'discordbot', action: 'create', target: { id: channelId }, text: name, })
+    await runPreSendHook({
+      version: 1,
+      platform: 'discordbot',
+      action: 'create',
+      target: { id: channelId },
+      text: name,
+    })
     return this.request<DiscordChannel>('POST', `/channels/${channelId}/threads`, {
       name,
       ...options,
@@ -366,7 +378,7 @@ export class DiscordBotClient {
   }
 
   async archiveThread(threadId: string, archived: boolean = true): Promise<DiscordChannel> {
-    await runPreSendHook({ version: 1, platform: 'discordbot', action: 'archive', target: { id: threadId },  })
+    await runPreSendHook({ version: 1, platform: 'discordbot', action: 'archive', target: { id: threadId } })
     return this.request<DiscordChannel>('PATCH', `/channels/${threadId}`, { archived })
   }
 
