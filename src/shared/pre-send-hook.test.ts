@@ -89,10 +89,13 @@ describe('pre-send hook', () => {
     await expect(runPreSendHook(event)).rejects.toBeInstanceOf(PreSendDeniedError)
   })
 
-  it.each([undefined, [], [''], [17], 'not-an-array'])('denies a required hook with unusable command %j', async (command) => {
-    await writeFile(join(directory, 'hooks.json'), JSON.stringify({ preSend: { required: true, command } }))
-    await expect(runPreSendHook(event)).rejects.toMatchObject({ code: 'PRE_SEND_DENIED' })
-  })
+  it.each([undefined, [], [''], [17], 'not-an-array'].map((command) => ({ command })))(
+    'denies a required hook with unusable command %j',
+    async ({ command }) => {
+      await writeFile(join(directory, 'hooks.json'), JSON.stringify({ preSend: { required: true, command } }))
+      await expect(runPreSendHook(event)).rejects.toMatchObject({ code: 'PRE_SEND_DENIED' })
+    },
+  )
 
   it.each(['{', 'null', '{"preSend":false}', '{"preSend":{"required":"yes"}}'])(
     'denies malformed configuration %s',
