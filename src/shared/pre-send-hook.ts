@@ -130,8 +130,9 @@ export async function runPreSendHook(event: PreSendEvent): Promise<void> {
     })
     child.on('close', (code) => {
       clearTimeout(timer)
-      if (code !== 0 && firstLine) reject(new PreSendDeniedError(firstLine.replace(/\r$/, '')))
-      else if (failure) reject(failure)
+      if (code !== 0 && (lineComplete || firstLine.length > 0)) {
+        reject(new PreSendDeniedError(firstLine.replace(/\r$/, '')))
+      } else if (failure) reject(failure)
       else if (code === 0) resolve()
       else reject(inputFailure ?? new PreSendDeniedError(`Pre-send hook exited with code ${code}`))
     })

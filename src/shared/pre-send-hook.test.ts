@@ -73,6 +73,13 @@ describe('pre-send hook', () => {
     await expect(result).rejects.toMatchObject({ code: 'PRE_SEND_DENIED', message: 'policy denied' })
   })
 
+  it('preserves an empty first stderr line on denial', async () => {
+    await configure(
+      "process.stdin.resume(); process.stdin.on('end', () => { process.stderr.write('\\nmore detail\\n'); process.exitCode = 3 });",
+    )
+    await expect(runPreSendHook(event)).rejects.toMatchObject({ code: 'PRE_SEND_DENIED', message: '' })
+  })
+
   it('allows exit zero when the hook closes stdin without reading the event', async () => {
     await configure('process.exit(0)')
     await expect(runPreSendHook({ ...event, text: 'x'.repeat(2 ** 20) })).resolves.toBeUndefined()
