@@ -16,14 +16,6 @@ export function mobileCases(file: string): Record<string, () => Row[]> {
       ['deleteWebhook', [], 'delete', 'webhook'],
       ['setWebhook', ['https://example.org/webhook'], 'edit', 'webhook', 'https://example.org/webhook'],
     ],
-    'webex-internal': () => [
-      ['sendMessage', ['alias', 'message'], 'send', 'room', 'message'],
-      ['sendDirectMessage', ['recipient@example.org', 'message'], 'send', 'room', 'message'],
-      ['deleteMessage', ['message-id'], 'delete', 'room'],
-      ['editMessage', ['message-id', 'alias', 'message'], 'edit', 'room', 'message'],
-      ['setTyping', ['alias'], 'typing', 'room'],
-      ['uploadFile', ['alias', { content: new Blob(['file']), filename: 'file.txt' }], 'upload', 'room'],
-    ],
     webex: () => [
       ['sendMessage', ['alias', 'message'], 'send', 'room', 'message'],
       ['sendMessage', ['alias', 'message', { parentId: 'thread' }], 'reply', 'room', 'message'],

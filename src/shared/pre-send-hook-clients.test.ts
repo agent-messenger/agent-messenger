@@ -68,7 +68,7 @@ describe('pre-send client transport gates', () => {
             expect(events).toHaveLength(1)
             expect(events[0]).toMatchObject({
               version: 1,
-              platform: platform.replace('-internal', ''),
+              platform,
               action,
               target: { id },
               ...(text === undefined ? {} : { text }),
@@ -77,7 +77,7 @@ describe('pre-send client transport gates', () => {
               expect(events[0]?.files).toEqual([file])
             }
             if (
-              ['channeltalk', 'channeltalkbot', 'instagram', 'kakaotalk', 'line', 'slack', 'slackbot', 'teams', 'telegram', 'webex', 'webexbot', 'webex-internal', 'wechatbot', 'whatsapp', 'whatsappbot'].includes(platform) &&
+              ['channeltalk', 'channeltalkbot', 'instagram', 'kakaotalk', 'line', 'slack', 'slackbot', 'teams', 'telegram', 'webex', 'webexbot', 'wechatbot', 'whatsapp', 'whatsappbot'].includes(platform) &&
               (platform !== 'teams' || !['sendChatMessage', 'editChatMessage'].includes(methodName))
             ) {
               expect(events[0]?.account).toBe('account')
