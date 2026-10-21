@@ -1,4 +1,4 @@
-import { blocks, image, type Row } from './pre-send-hook-client-test'
+import { image, type Row } from './pre-send-hook-client-test'
 
 export function messagingCases(file: string): Record<string, () => Row[]> {
   return {
