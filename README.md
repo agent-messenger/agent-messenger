@@ -23,6 +23,7 @@ One CLI for Slack, Discord, Teams, Webex, Telegram, WhatsApp, LINE, WeChat, iMes
   - [Claude Code Plugin](#claude-code-plugin)
 - [Quick Start](#quick-start)
 - [SDK](#sdk)
+- [Pre-Send Hooks](#pre-send-hooks)
 - [TUI (Experimental)](#tui-experimental)
 - [Supported Platforms](#supported-platforms)
 - [Platform Guides](#platform-guides)
@@ -56,6 +57,29 @@ Agent Messenger reads session tokens from your Slack, Discord, Teams, KakaoTalk,
 - **Token Efficient** — CLI, not MCP. One skill file, one shell command per action. No server to run, no tool registration. ([Why not MCP?](#philosophy))
 - **Persistent Memory** — Stores workspace IDs, channel mappings, and preferences in ~/.config so your agent never asks twice
 - **TypeScript SDK** — Import clients directly into your app. Full type safety with Zod schemas
+
+## Pre-Send Hooks
+
+Organizations can enforce an outbound-message policy with a local executable hook. Client write methods run the hook
+before sending, editing, deleting, reacting, uploading, or otherwise changing remote state, including calls from the SDK
+and TUI.
+
+Set `AGENT_MESSENGER_PRE_SEND_HOOK` to an executable path, or place `hooks.json` beside the credential files:
+
+```json
+{
+  "preSend": {
+    "command": ["/opt/hooks/outbound-policy"],
+    "required": true,
+    "timeoutMs": 10000
+  }
+}
+```
+
+The hook receives a versioned JSON event on stdin. Exit `0` allows the write; a nonzero exit, timeout, or spawn failure
+denies it with error code `PRE_SEND_DENIED`. The first stderr line becomes the denial message. `required: true` also
+denies writes when the command is missing. With no hook configured, writes retain their existing behavior and no process
+is spawned. See the [configuration, event schema, and example](docs/content/docs/pre-send-hooks.mdx).
 
 ## Installation
 
