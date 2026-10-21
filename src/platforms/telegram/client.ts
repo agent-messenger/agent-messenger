@@ -1,3 +1,5 @@
+import { runPreSendHook } from '@/shared/pre-send-hook'
+
 import { mkdir } from 'node:fs/promises'
 
 import pkg from '../../../package.json' with { type: 'json' }
@@ -285,6 +287,7 @@ export class TelegramTdlibClient {
     await this.ensureReady()
     const chat = await this.resolveChat(reference)
 
+    await runPreSendHook({ version: 1, platform: 'telegram', account: this.account.account_id, action: 'send', target: { id: String(chat.id) }, text, })
     const message = (await this.call({
       '@type': 'sendMessage',
       chat_id: chat.id,
@@ -316,6 +319,7 @@ export class TelegramTdlibClient {
     await this.ensureReady()
     const chat = await this.resolveChat(reference)
 
+    await runPreSendHook({ version: 1, platform: 'telegram', account: this.account.account_id, action: 'edit', target: { id: String(chat.id) }, text, })
     const message = (await this.call({
       '@type': 'editMessageText',
       chat_id: chat.id,
