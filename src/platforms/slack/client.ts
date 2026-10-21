@@ -136,6 +136,7 @@ export class SlackClient {
     return this.withRetry(async () => {
       const response = await this.ensureAuth().auth.test()
       this.checkResponse(response)
+      this.teamId = response.team_id
       return {
         user_id: response.user_id!,
         team_id: response.team_id!,

@@ -298,7 +298,7 @@ export class DiscordClient {
   }
 
   async sendMessage(channelId: string, content: string, options?: { reply_to?: string }): Promise<DiscordMessage> {
-    await runPreSendHook({ version: 1, platform: 'discord', action: (options?.reply_to ? 'reply' : 'send'), target: { id: channelId }, text: content, })
+    await runPreSendHook({ version: 1, platform: 'discord', action: (options?.reply_to ? 'reply' : 'send'), target: { id: channelId, threadId: options?.reply_to }, text: content, })
     const body: Record<string, unknown> = { content }
     if (options?.reply_to) {
       body.message_reference = { message_id: options.reply_to }

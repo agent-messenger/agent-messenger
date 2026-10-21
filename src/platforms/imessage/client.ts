@@ -183,7 +183,6 @@ export class ImsgClient {
     else throw new IMessageError('A chat id, guid, or recipient is required to send.', 'chat_not_found')
     if (this.region) params.region = this.region
 
-    await runPreSendHook({ version: 1, platform: 'imessage', action: 'send', target: { id: String(target.chatId ?? target.chatGuid ?? target.chatIdentifier ?? target.to ?? '') }, text, })
     const result = await this.rpc.request<{ ok?: boolean; guid?: string; id?: number; service?: string }>(
       'send',
       params,
