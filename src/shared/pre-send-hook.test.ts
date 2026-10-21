@@ -71,6 +71,11 @@ describe('pre-send hook', () => {
     await expect(result).rejects.toMatchObject({ code: 'PRE_SEND_DENIED', message: 'policy denied' })
   })
 
+  it('allows exit zero when the hook closes stdin without reading the event', async () => {
+    await configure('process.exit(0)')
+    await expect(runPreSendHook({ ...event, text: 'x'.repeat(2 ** 20) })).resolves.toBeUndefined()
+  })
+
   it('denies when the hook times out', async () => {
     await configure("process.stdin.resume(); setInterval(() => {}, 1000)", { timeoutMs: 50 })
     await expect(runPreSendHook(event)).rejects.toMatchObject({ code: 'PRE_SEND_DENIED', message: 'Pre-send hook timed out' })

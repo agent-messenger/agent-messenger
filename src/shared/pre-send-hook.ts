@@ -104,6 +104,7 @@ export async function runPreSendHook(event: PreSendEvent): Promise<void> {
     let firstLine = ''
     let lineComplete = false
     let failure: PreSendDeniedError | undefined
+    let inputFailure: PreSendDeniedError | undefined
     const timer = setTimeout(() => {
       failure = new PreSendDeniedError('Pre-send hook timed out')
       child.kill('SIGKILL')
@@ -123,14 +124,14 @@ export async function runPreSendHook(event: PreSendEvent): Promise<void> {
       failure = new PreSendDeniedError(`Cannot start pre-send hook: ${error.message}`)
     })
     child.stdin.on('error', (error) => {
-      failure ??= new PreSendDeniedError(`Cannot write pre-send event: ${error.message}`)
+      inputFailure = new PreSendDeniedError(`Cannot write pre-send event: ${error.message}`)
     })
     child.on('close', (code) => {
       clearTimeout(timer)
       if (code !== 0 && firstLine) reject(new PreSendDeniedError(firstLine.replace(/\r$/, '')))
       else if (failure) reject(failure)
       else if (code === 0) resolve()
-      else reject(new PreSendDeniedError(firstLine.replace(/\r$/, '') || `Pre-send hook exited with code ${code}`))
+      else reject(inputFailure ?? new PreSendDeniedError(`Pre-send hook exited with code ${code}`))
     })
     child.stdin.end(JSON.stringify(event))
   })
