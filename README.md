@@ -23,6 +23,7 @@ One CLI for Slack, Discord, Teams, Webex, Telegram, WhatsApp, LINE, WeChat, iMes
   - [Claude Code Plugin](#claude-code-plugin)
 - [Quick Start](#quick-start)
 - [SDK](#sdk)
+- [Pre-Send Hooks](#pre-send-hooks)
 - [TUI (Experimental)](#tui-experimental)
 - [Supported Platforms](#supported-platforms)
 - [Platform Guides](#platform-guides)
@@ -56,6 +57,29 @@ Agent Messenger reads session tokens from your Slack, Discord, Teams, KakaoTalk,
 - **Token Efficient** — CLI, not MCP. One skill file, one shell command per action. No server to run, no tool registration. ([Why not MCP?](#philosophy))
 - **Persistent Memory** — Stores workspace IDs, channel mappings, and preferences in ~/.config so your agent never asks twice
 - **TypeScript SDK** — Import clients directly into your app. Full type safety with Zod schemas
+
+## Pre-Send Hooks
+
+Organizations can enforce an outbound-message policy with a local executable hook. Client write methods run the hook
+before sending, editing, deleting, reacting, uploading, or otherwise changing remote state, including calls from the SDK
+and TUI.
+
+Set `AGENT_MESSENGER_PRE_SEND_HOOK` to an executable path, or place `hooks.json` beside the credential files:
+
+```json
+{
+  "preSend": {
+    "command": ["/opt/hooks/outbound-policy"],
+    "required": true,
+    "timeoutMs": 10000
+  }
+}
+```
+
+The hook receives a versioned JSON event on stdin. Exit `0` allows the write; a nonzero exit, timeout, or spawn failure
+denies it with error code `PRE_SEND_DENIED`. The first stderr line becomes the denial message. `required: true` also
+denies writes when the command is missing. With no hook configured, writes retain their existing behavior and no process
+is spawned. See the [configuration, event schema, and example](docs/content/docs/pre-send-hooks.mdx).
 
 ## Installation
 
@@ -193,25 +217,25 @@ const slack = await new SlackClient().login({ token: 'xoxc-...', cookie: 'xoxd-.
 
 ### Available Imports
 
-| Import Path | Client |
-| --- | --- |
-| `agent-messenger/slack` | `SlackClient` |
-| `agent-messenger/slackbot` | `SlackBotClient` |
-| `agent-messenger/discord` | `DiscordClient` |
-| `agent-messenger/discordbot` | `DiscordBotClient` |
-| `agent-messenger/teams` | `TeamsClient` |
-| `agent-messenger/webex` | `WebexClient` |
-| `agent-messenger/webexbot` | `WebexBotClient` |
-| `agent-messenger/telegrambot` | `TelegramBotClient` |
-| `agent-messenger/whatsapp` | `WhatsAppClient` |
-| `agent-messenger/whatsappbot` | `WhatsAppBotClient` |
-| `agent-messenger/line` | `LineClient` |
-| `agent-messenger/wechatbot` | `WeChatBotClient` |
-| `agent-messenger/imessage` | `ImsgClient` |
-| `agent-messenger/instagram` | `InstagramClient` |
-| `agent-messenger/kakaotalk` | `KakaoTalkClient` |
-| `agent-messenger/channeltalk` | `ChannelClient` |
-| `agent-messenger/channeltalkbot` | `ChannelBotClient` |
+| Import Path                      | Client              |
+| -------------------------------- | ------------------- |
+| `agent-messenger/slack`          | `SlackClient`       |
+| `agent-messenger/slackbot`       | `SlackBotClient`    |
+| `agent-messenger/discord`        | `DiscordClient`     |
+| `agent-messenger/discordbot`     | `DiscordBotClient`  |
+| `agent-messenger/teams`          | `TeamsClient`       |
+| `agent-messenger/webex`          | `WebexClient`       |
+| `agent-messenger/webexbot`       | `WebexBotClient`    |
+| `agent-messenger/telegrambot`    | `TelegramBotClient` |
+| `agent-messenger/whatsapp`       | `WhatsAppClient`    |
+| `agent-messenger/whatsappbot`    | `WhatsAppBotClient` |
+| `agent-messenger/line`           | `LineClient`        |
+| `agent-messenger/wechatbot`      | `WeChatBotClient`   |
+| `agent-messenger/imessage`       | `ImsgClient`        |
+| `agent-messenger/instagram`      | `InstagramClient`   |
+| `agent-messenger/kakaotalk`      | `KakaoTalkClient`   |
+| `agent-messenger/channeltalk`    | `ChannelClient`     |
+| `agent-messenger/channeltalkbot` | `ChannelBotClient`  |
 
 Each module also exports its credential manager, Zod schemas, and TypeScript types (except `imessage`, which exports its client, credential manager, and TypeScript types — no Zod schemas):
 
@@ -478,6 +502,7 @@ agent-messenger tui
 ![Agent Messenger TUI](docs/public/tui.png)
 
 Key features:
+
 - **Multi-platform** — All 11 platforms in one sidebar, auto-login on startup
 - **Real-time messages** — Live message streaming for supported platforms
 - **Fuzzy pickers** — `Ctrl+K` for channels, `Ctrl+W` for workspaces
@@ -487,33 +512,33 @@ See the [TUI docs](https://agent-messenger.dev/docs/tui) for keybindings, archit
 
 ## Supported Platforms
 
-| Feature                    | Slack | Discord | Teams | Webex | Telegram | WhatsApp | LINE  | WeChat | Instagram | KakaoTalk | Channel Talk (beta) |
-| -------------------------- | :---: | :-----: | :---: | :---: | :------: | :------: | :---: | :----: | :-------: | :-------: | :-----------------: |
-| Auto credential extraction |  ✅   |   ✅    |  ✅   |  ✅   |    —     |    —     |   —   |   —    |    ✅     |    ✅     |         ✅          |
-| Send & list messages       |  ✅   |   ✅    |  ✅   |  ✅   |    ✅     |    ✅     |  ✅   |   —    |    ✅     |    ✅     |         ✅          |
-| Direct messages            |  ✅   |   ✅    |  ✅   |  ✅   |    ✅     |    ✅     |  ✅   |   ✅    |    ✅     |    ✅     |         ✅          |
-| Search messages            |  ✅   |   ✅    |   —   |   —   |    —     |    ✅     |   —   |   —    |    ✅     |    —      |         ✅          |
-| Message edit               |  ✅   |   ✅    |  ✅¹  |  ✅   |    —     |    —     |   —   |   —    |     —     |    —      |         —           |
-| Threads                    |  ✅   |   ✅    |   —   |   —   |    —     |    —     |   —   |   —    |     —     |    —      |         —           |
-| Channels & Users           |  ✅   |   ✅    |  ✅   |  ✅   | partial  |    —     |  ✅   |   ✅    |     —     |    —      |         ✅          |
-| Reactions                  |  ✅   |   ✅    |  ✅   |   —   |    —     |    ✅     |   —   |   —    |     —     |    —      |         —           |
-| Custom emoji & stickers    | partial³ |   ✅    |   —   |   —   |    —     |    —     |   —   |   —    |     —     |    —      |         —           |
-| File uploads               |  ✅   |   ✅    |  ✅   |  ✅   |    —     |    —     |   —   |   —    |     —     |    ✅     |         —           |
-| File downloads             |  ✅   |    —    |   —   |  ✅   |    —     |    —     |   —   |   —    |     —     |    —      |         —           |
-| Workspace snapshots        |  ✅   |   ✅    |  ✅   |  ✅   |    —     |    —     |   —   |   —    |     —     |    —      |         ✅          |
-| Multi-workspace / account  |  ✅   |   ✅    |  ✅   |   —   |    ✅     |    ✅     |  ✅   |   ✅    |    ✅     |    ✅     |         ✅          |
-| Activity feed              |  ✅   |    —    |   —   |   —   |    —     |    —     |   —   |   —    |     —     |    —      |         —           |
-| Drafts                     |  ✅   |    —    |   —   |   —   |    —     |    —     |   —   |   —    |     —     |    —      |         —           |
-| Saved items                |  ✅   |    —    |   —   |   —   |    —     |    —     |   —   |   —    |     —     |    —      |         —           |
-| Unread messages            |  ✅   |   ✅²   |   —   |   —   |    —     |    —     |   —   |   —    |     —     |    —      |         —           |
-| Sidebar sections           |  ✅   |    —    |   —   |   —   |    —     |    —     |   —   |   —    |     —     |    —      |         —           |
-| Pins & bookmarks           |  ✅   |    —    |   —   |   —   |    —     |    —     |   —   |   —    |     —     |    —      |         —           |
-| Scheduled messages         |  ✅   |    —    |   —   |   —   |    —     |    —     |   —   |   —    |     —     |    —      |         —           |
-| Channel management         |  ✅   |    —    |   —   |   —   |    —     |    —     |   —   |   —    |     —     |    —      |         —           |
-| Reminders                  |  ✅   |    —    |   —   |   —   |    —     |    —     |   —   |   —    |     —     |    —      |         —           |
-| User groups                |  ✅   |    —    |   —   |   —   |    —     |    —     |   —   |   —    |     —     |    —      |         —           |
-| Real-time events (SDK)     |  ✅   |    ✅    |  ✅   |  ✅   |    —     |    —     |  ✅   |   —    |    ✅     |    ✅      |         —           |
-| Bot support                |  ✅   |   ✅    |   —   |  ✅   |    ✅     |    ✅     |   —   |   ✅    |     —     |    —      |         ✅          |
+| Feature                    |  Slack   | Discord | Teams | Webex | Telegram | WhatsApp | LINE | WeChat | Instagram | KakaoTalk | Channel Talk (beta) |
+| -------------------------- | :------: | :-----: | :---: | :---: | :------: | :------: | :--: | :----: | :-------: | :-------: | :-----------------: |
+| Auto credential extraction |    ✅    |   ✅    |  ✅   |  ✅   |    —     |    —     |  —   |   —    |    ✅     |    ✅     |         ✅          |
+| Send & list messages       |    ✅    |   ✅    |  ✅   |  ✅   |    ✅    |    ✅    |  ✅  |   —    |    ✅     |    ✅     |         ✅          |
+| Direct messages            |    ✅    |   ✅    |  ✅   |  ✅   |    ✅    |    ✅    |  ✅  |   ✅   |    ✅     |    ✅     |         ✅          |
+| Search messages            |    ✅    |   ✅    |   —   |   —   |    —     |    ✅    |  —   |   —    |    ✅     |     —     |         ✅          |
+| Message edit               |    ✅    |   ✅    |  ✅¹  |  ✅   |    —     |    —     |  —   |   —    |     —     |     —     |          —          |
+| Threads                    |    ✅    |   ✅    |   —   |   —   |    —     |    —     |  —   |   —    |     —     |     —     |          —          |
+| Channels & Users           |    ✅    |   ✅    |  ✅   |  ✅   | partial  |    —     |  ✅  |   ✅   |     —     |     —     |         ✅          |
+| Reactions                  |    ✅    |   ✅    |  ✅   |   —   |    —     |    ✅    |  —   |   —    |     —     |     —     |          —          |
+| Custom emoji & stickers    | partial³ |   ✅    |   —   |   —   |    —     |    —     |  —   |   —    |     —     |     —     |          —          |
+| File uploads               |    ✅    |   ✅    |  ✅   |  ✅   |    —     |    —     |  —   |   —    |     —     |    ✅     |          —          |
+| File downloads             |    ✅    |    —    |   —   |  ✅   |    —     |    —     |  —   |   —    |     —     |     —     |          —          |
+| Workspace snapshots        |    ✅    |   ✅    |  ✅   |  ✅   |    —     |    —     |  —   |   —    |     —     |     —     |         ✅          |
+| Multi-workspace / account  |    ✅    |   ✅    |  ✅   |   —   |    ✅    |    ✅    |  ✅  |   ✅   |    ✅     |    ✅     |         ✅          |
+| Activity feed              |    ✅    |    —    |   —   |   —   |    —     |    —     |  —   |   —    |     —     |     —     |          —          |
+| Drafts                     |    ✅    |    —    |   —   |   —   |    —     |    —     |  —   |   —    |     —     |     —     |          —          |
+| Saved items                |    ✅    |    —    |   —   |   —   |    —     |    —     |  —   |   —    |     —     |     —     |          —          |
+| Unread messages            |    ✅    |   ✅²   |   —   |   —   |    —     |    —     |  —   |   —    |     —     |     —     |          —          |
+| Sidebar sections           |    ✅    |    —    |   —   |   —   |    —     |    —     |  —   |   —    |     —     |     —     |          —          |
+| Pins & bookmarks           |    ✅    |    —    |   —   |   —   |    —     |    —     |  —   |   —    |     —     |     —     |          —          |
+| Scheduled messages         |    ✅    |    —    |   —   |   —   |    —     |    —     |  —   |   —    |     —     |     —     |          —          |
+| Channel management         |    ✅    |    —    |   —   |   —   |    —     |    —     |  —   |   —    |     —     |     —     |          —          |
+| Reminders                  |    ✅    |    —    |   —   |   —   |    —     |    —     |  —   |   —    |     —     |     —     |          —          |
+| User groups                |    ✅    |    —    |   —   |   —   |    —     |    —     |  —   |   —    |     —     |     —     |          —          |
+| Real-time events (SDK)     |    ✅    |   ✅    |  ✅   |  ✅   |    —     |    —     |  ✅  |   —    |    ✅     |    ✅     |          —          |
+| Bot support                |    ✅    |   ✅    |   —   |  ✅   |    ✅    |    ✅    |  —   |   ✅   |     —     |     —     |         ✅          |
 
 > ⚠️ **Teams tokens expire in 60-90 minutes.** Re-run `agent-teams auth extract` to refresh. See [Teams Guide](skills/agent-teams/SKILL.md) for details.
 
@@ -607,11 +632,11 @@ These are just starting points. Your agent has full read/write access to Slack, 
 
 MCP servers expose all tools at once, bloating context and confusing agents.
 
-| MCP Approach | Agent Skills + CLI |
-| --- | --- |
-| All tools loaded at once | Load only what you need |
-| Bloated context window | Minimal token usage |
-| Agent confused by options | Focused, relevant tools |
+| MCP Approach              | Agent Skills + CLI           |
+| ------------------------- | ---------------------------- |
+| All tools loaded at once  | Load only what you need      |
+| Bloated context window    | Minimal token usage          |
+| Agent confused by options | Focused, relevant tools      |
 | Requires a running server | One shell command per action |
 
 With Agent Messenger, your agent loads the skill it needs, uses the CLI, and moves on. No wasted tokens. The SDK complements the CLI for when you need programmatic access—same credentials, same platform coverage, full type safety.

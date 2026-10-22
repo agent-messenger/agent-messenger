@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto'
 
+import { isPreSendHookConfigured, runPreSendHook } from '@/shared/pre-send-hook'
 import { escapeHtml, markdownToHtml, stripMarkdown } from '@/shared/utils/markdown-to-html'
 
 import { WebexCredentialManager } from './credential-manager'
@@ -28,10 +29,12 @@ interface RateLimitBucket {
 
 interface WebexClientOptions {
   roomResolutionWarningPrefix?: string
+  platform?: 'webex' | 'webexbot'
 }
 
 export class WebexClient {
   private token: string | null = null
+  private accountId: string | undefined
   private deviceUrl: string | null = null
   private tokenType: string | null = null
   private buckets: Map<string, RateLimitBucket> = new Map()
@@ -40,13 +43,16 @@ export class WebexClient {
   private clusteredRoomIds = new Map<string, string>()
   private roomIdLookups = new Map<string, Promise<string>>()
   private roomResolutionWarningPrefix: string
+  private platform: 'webex' | 'webexbot'
 
   constructor(options: WebexClientOptions = {}) {
     this.roomResolutionWarningPrefix = options.roomResolutionWarningPrefix ?? '[webex]'
+    this.platform = options.platform ?? 'webex'
   }
 
   async login(credentials?: { token: string; deviceUrl?: string; tokenType?: string }): Promise<this> {
     if (credentials) {
+      this.accountId = undefined
       if (!credentials.token) {
         throw new WebexError('Token is required', 'missing_token')
       }
@@ -66,6 +72,7 @@ export class WebexClient {
       throw new WebexError('No Webex credentials found. Run "auth login" to authenticate.', 'no_credentials')
     }
     this.token = token
+    this.accountId = config?.userId
     this.deviceUrl = config?.deviceUrl ?? null
     this.tokenType = config?.tokenType ?? null
     this.initializeEncryption(token, {
@@ -361,6 +368,14 @@ export class WebexClient {
     else body.text = text
     if (resolvedOptions?.parentId) body.parentId = resolvedOptions.parentId
     if (resolvedOptions?.files?.length) body.files = resolvedOptions.files
+    await runPreSendHook({
+      version: 1,
+      platform: this.platform,
+      account: this.accountId,
+      action: resolvedOptions?.parentId ? 'reply' : 'send',
+      target: { id: resolvedRoomId, threadId: resolvedOptions?.parentId },
+      text,
+    })
     return normalizeSdkMessage(await this.request<WebexMessage>('POST', '/messages', body))
   }
 
@@ -372,6 +387,13 @@ export class WebexClient {
     const resolvedRoomId = await this.resolveRoomId(roomId)
     const convUuid = this.decodeConvUuid(resolvedRoomId)
 
+    await runPreSendHook({
+      version: 1,
+      platform: this.platform,
+      account: this.accountId,
+      action: 'typing',
+      target: { id: resolvedRoomId },
+    })
     await this.internalRequest<void>(`/conversations/${convUuid}/status/typing`, {
       method: 'POST',
       body: JSON.stringify({
@@ -508,6 +530,14 @@ export class WebexClient {
       activity['encryptionKeyUrl'] = encryptionKeyUrl
     }
 
+    await runPreSendHook({
+      version: 1,
+      platform: this.platform,
+      account: this.accountId,
+      action: 'send',
+      target: { id: roomId },
+      text,
+    })
     const result = await this.internalRequest<InternalActivity>('/activities', {
       method: 'POST',
       body: JSON.stringify(activity),
@@ -526,6 +556,14 @@ export class WebexClient {
     const body = options?.markdown
       ? { toPersonEmail: personEmail, markdown: text }
       : { toPersonEmail: personEmail, text }
+    await runPreSendHook({
+      version: 1,
+      platform: this.platform,
+      account: this.accountId,
+      action: 'send',
+      target: { id: personEmail, kind: 'user' },
+      text,
+    })
     return normalizeSdkMessage(await this.request<WebexMessage>('POST', '/messages', body))
   }
 
@@ -587,6 +625,13 @@ export class WebexClient {
       const activity = await this.internalRequest<InternalActivity>(`/activities/${activityId}`)
       const convId = activity.target?.id
       if (!convId) throw new WebexError('Cannot determine conversation for activity', 'internal_error')
+      await runPreSendHook({
+        version: 1,
+        platform: this.platform,
+        account: this.accountId,
+        action: 'delete',
+        target: { id: convId },
+      })
       await this.internalRequest<unknown>('/activities', {
         method: 'POST',
         body: JSON.stringify({
@@ -596,6 +641,16 @@ export class WebexClient {
         }),
       })
       return
+    }
+    if (await isPreSendHookConfigured()) {
+      const message = await this.getMessage(messageId)
+      await runPreSendHook({
+        version: 1,
+        platform: this.platform,
+        account: this.accountId,
+        action: 'delete',
+        target: { id: message.roomId },
+      })
     }
     return this.request<void>('DELETE', `/messages/${this.resolveMessageId(messageId)}`)
   }
@@ -628,6 +683,14 @@ export class WebexClient {
         activity['encryptionKeyUrl'] = encryptionKeyUrl
       }
 
+      await runPreSendHook({
+        version: 1,
+        platform: this.platform,
+        account: this.accountId,
+        action: 'edit',
+        target: { id: resolvedRoomId },
+        text,
+      })
       const result = await this.internalRequest<InternalActivity>('/activities', {
         method: 'POST',
         body: JSON.stringify(activity),
@@ -645,6 +708,14 @@ export class WebexClient {
       return this.activityToMessage(result, resolvedRoomId)
     }
     const body = options?.markdown ? { roomId: resolvedRoomId, markdown: text } : { roomId: resolvedRoomId, text }
+    await runPreSendHook({
+      version: 1,
+      platform: this.platform,
+      account: this.accountId,
+      action: 'edit',
+      target: { id: resolvedRoomId },
+      text,
+    })
     return normalizeSdkMessage(
       await this.request<WebexMessage>('PUT', `/messages/${this.resolveMessageId(messageId)}`, body),
     )
@@ -695,6 +766,14 @@ export class WebexClient {
   ): Promise<WebexMessage> {
     const resolvedRoomId = await this.resolveRoomId(roomId)
 
+    await runPreSendHook({
+      version: 1,
+      platform: this.platform,
+      account: this.accountId,
+      action: 'upload',
+      target: { id: resolvedRoomId, threadId: options?.parentId ? this.resolveMessageId(options.parentId) : undefined },
+      text: options?.text,
+    })
     if (this.useInternalAPI) {
       return this.uploadFileInternal(resolvedRoomId, file, options)
     }

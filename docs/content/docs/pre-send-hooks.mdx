@@ -1,0 +1,126 @@
+---
+title: Pre-Send Hooks
+description: Enforce an outbound-message policy before client writes reach the transport.
+---
+
+Organizations can enforce an outbound-message policy using a local executable. The hook runs in the platform clients,
+so CLI commands, SDK calls, and the TUI use the same gate. Reads do not invoke the hook.
+
+## Configuration
+
+Create `hooks.json` in the configuration directory used for credentials:
+
+```json
+{
+  "preSend": {
+    "command": ["/opt/hooks/outbound-policy", "--mode", "enforce"],
+    "required": true,
+    "timeoutMs": 10000
+  }
+}
+```
+
+The default directory is `~/.config/agent-messenger`. `AGENT_MESSENGER_CONFIG_DIR` relocates both configuration and
+credentials.
+
+- `command` is an executable followed by its arguments. Arguments are passed directly, without a shell.
+- `required` defaults to `false`. When `true`, a missing or unusable command denies every write.
+- `timeoutMs` is a positive integer, defaults to `10000`, and cannot exceed `2147483647`.
+- Malformed JSON, invalid configuration, and unreadable configuration fail closed.
+- With no configuration, or no `preSend` entry, the hook is a no-op and spawns no process.
+
+Alternatively, set `AGENT_MESSENGER_PRE_SEND_HOOK` to an executable path:
+
+```sh
+export AGENT_MESSENGER_PRE_SEND_HOOK=/opt/hooks/outbound-policy
+```
+
+The environment variable takes precedence over the file and uses the default timeout. It is a single executable path,
+not a shell command: use `command` in `hooks.json` when arguments or an interpreter are needed. An explicitly empty
+environment variable is invalid and denies writes.
+
+## Event schema
+
+The executable receives one JSON object on stdin:
+
+```json
+{
+  "version": 1,
+  "platform": "slack",
+  "action": "reply",
+  "account": "account-id",
+  "target": {
+    "id": "channel-id",
+    "threadId": "thread-id",
+    "kind": "channel"
+  },
+  "text": "The final outgoing message",
+  "files": ["/absolute/path/to/attachment.txt"]
+}
+```
+
+| Field             | Meaning                                                                                                                                                                                     |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `version`         | Event format version, currently `1`.                                                                                                                                                        |
+| `platform`        | Client identifier, including bot variants such as `slackbot` or `telegrambot`.                                                                                                              |
+| `action`          | The mutation, such as `send`, `reply`, `edit`, `delete`, `react`, `upload`, `schedule`, `forward`, `create`, `pin`, `unpin`, `join`, `leave`, `invite`, `archive`, `typing`, or `markRead`. |
+| `account`         | Optional workspace, server, bot, or account identifier already known to the client. Never an authentication token.                                                                          |
+| `target.id`       | Resolved destination or resource identifier used by the write.                                                                                                                              |
+| `target.threadId` | Optional destination thread identifier.                                                                                                                                                     |
+| `target.kind`     | Optional target category, such as `channel`, `user`, or `message`.                                                                                                                          |
+| `text`            | Optional final outgoing text. Rich-text transports may expose rendered markup.                                                                                                              |
+| `files`           | Optional absolute paths for local files being uploaded.                                                                                                                                     |
+
+Not all writes have a channel. Resource operations use the resource identifier; creation uses the supplied creation
+target because its remote identifier does not exist yet. A direct send may use a recipient identifier when the server
+creates the conversation. Uploads accepting in-memory buffers or blobs omit `files`, since those inputs have no local
+path. Remote media references are not local file paths.
+
+Hooks also cover reactions, pins, membership changes, status updates, read-marker changes, and media-upload setup.
+Authentication handshakes, connection heartbeats, and listener subscriptions are transport maintenance rather than
+outbound-message mutations. Compound operations can invoke the hook at more than one write boundary; hooks should
+evaluate each event independently.
+
+## Exit-code contract
+
+- Exit `0` allows the write.
+- Any nonzero exit denies the write. The first line of stderr is included in the error message.
+- A timeout, inability to launch the executable, or inability to deliver the event denies the write.
+- Denials throw `PreSendDeniedError`, whose `code` is `PRE_SEND_DENIED`. The CLI reports the error through its normal
+  error-output path.
+
+Hook stdout is ignored. Read stdin through EOF before exiting, and keep denial messages suitable for display to the
+caller.
+
+## Example hook
+
+Save this script as `/opt/hooks/outbound-policy.cjs`:
+
+```js
+let input = ''
+process.stdin.setEncoding('utf8')
+process.stdin.on('data', (chunk) => {
+  input += chunk
+})
+process.stdin.on('end', () => {
+  const event = JSON.parse(input)
+  if (event.version !== 1 || event.text?.includes('[restricted]')) {
+    process.stderr.write('Outbound-message policy denied this write\n')
+    process.exitCode = 1
+  }
+})
+```
+
+Configure the interpreter explicitly:
+
+```json
+{
+  "preSend": {
+    "command": ["node", "/opt/hooks/outbound-policy.cjs"],
+    "required": true
+  }
+}
+```
+
+The hook can inspect the destination, text, and local attachment paths or consult an organization's own policy service.
+It is an allow/deny gate, not a message-rewriting interface.

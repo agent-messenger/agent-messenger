@@ -1,5 +1,6 @@
 import { Long } from 'bson'
 
+import { PreSendDeniedError } from '@/shared/pre-send-hook'
 import { warn } from '@/shared/utils/stderr'
 
 import { type AttachmentInput, type ResolvedAttachment, planAttachments } from './attachment-router'
@@ -434,6 +435,7 @@ function wrapError(
   code: string,
   options?: { classifyResponseFailure?: boolean; classifyGetChatFailure?: boolean },
 ): KakaoTalkError {
+  if (error instanceof PreSendDeniedError) throw error
   if (error instanceof KakaoTalkError) {
     const responseFailureKind =
       error.responseFailureKind ?? (options?.classifyResponseFailure ? 'transient_or_unknown' : undefined)

@@ -3,6 +3,7 @@ import { join } from 'node:path'
 
 import type { Operation as LineOperation } from '@jsr/evex__linejs-types'
 
+import { runPreSendHook } from '@/shared/pre-send-hook'
 import { getConfigDir } from '@/shared/utils/config-dir'
 import { FileStorage } from '@/vendor/linejs/base/storage/mod.js'
 import {
@@ -472,6 +473,14 @@ export class LineClient {
   }
 
   async sendMessage(chatId: string, text: string): Promise<LineSendResult> {
+    await runPreSendHook({
+      version: 1,
+      platform: 'line',
+      account: this.client?.base.profile?.mid,
+      action: 'send',
+      target: { id: chatId },
+      text,
+    })
     try {
       const client = this.ensureClient()
       let sent
