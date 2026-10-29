@@ -1,7 +1,7 @@
 ---
 name: agent-teams
 description: Interact with Microsoft Teams - send messages, read channels, manage reactions
-version: 2.39.1
+version: 2.40.0
 allowed-tools: Bash(agent-teams:*)
 metadata:
   openclaw:
