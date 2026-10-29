@@ -1,9 +1,25 @@
 import { beforeEach, describe, expect, spyOn, it } from 'bun:test'
+import { createCipheriv, pbkdf2Sync } from 'node:crypto'
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { homedir, tmpdir } from 'node:os'
 import { join } from 'node:path'
 
+import * as linuxKeyring from '@/shared/utils/linux-keyring'
+
 import { TeamsTokenExtractor } from './token-extractor'
+
+function encryptAESCBC(value: string, key: Buffer, prefix = 'v11'): Buffer {
+  const iv = Buffer.alloc(16, 0x20)
+  const cipher = createCipheriv('aes-128-cbc', key, iv)
+  const ciphertext = Buffer.concat([cipher.update(value, 'utf8'), cipher.final()])
+  return Buffer.concat([Buffer.from(prefix), ciphertext])
+}
+
+const unteamsPaths = (appDataBase: string) =>
+  ['Unteams', 'Unteams Debug', 'Unteams Dev'].flatMap((name) => [
+    { path: join(appDataBase, name, 'Cookies'), accountType: 'work' as const, accountTypeKnown: false },
+    { path: join(appDataBase, name, 'Network', 'Cookies'), accountType: 'work' as const, accountTypeKnown: false },
+  ])
 
 describe('TeamsTokenExtractor', () => {
   let extractor: TeamsTokenExtractor
@@ -53,6 +69,7 @@ describe('TeamsTokenExtractor', () => {
           accountType: 'work',
           accountTypeKnown: false,
         },
+        ...unteamsPaths(join(homedir(), 'Library', 'Application Support')),
       ])
     })
 
@@ -66,6 +83,7 @@ describe('TeamsTokenExtractor', () => {
           accountType: 'work',
           accountTypeKnown: false,
         },
+        ...unteamsPaths(join(homedir(), '.config')),
       ])
     })
 
@@ -100,12 +118,58 @@ describe('TeamsTokenExtractor', () => {
         { path: join(winEbWebView, 'Default', 'Cookies'), accountType: 'work', accountTypeKnown: false },
         { path: join(winEbWebView, 'Default', 'Network', 'Cookies'), accountType: 'work', accountTypeKnown: false },
         { path: join(appdata, 'Microsoft', 'Teams', 'Cookies'), accountType: 'work', accountTypeKnown: false },
+        ...unteamsPaths(appdata),
       ])
     })
 
     it('returns empty array for unsupported platform', () => {
       const unsupportedExtractor = new TeamsTokenExtractor('freebsd' as NodeJS.Platform)
       expect(unsupportedExtractor.getDesktopCookiesPaths()).toEqual([])
+    })
+  })
+
+  describe('getUnteamsCookiesPaths', () => {
+    it('returns Unteams Electron cookie paths on macOS with accountTypeKnown=false', () => {
+      const darwinExtractor = new TeamsTokenExtractor('darwin')
+      const paths = darwinExtractor.getUnteamsCookiesPaths()
+
+      const appSupport = join(homedir(), 'Library', 'Application Support')
+      expect(paths).toEqual(unteamsPaths(appSupport))
+      expect(paths.every((p) => p.accountTypeKnown === false)).toBe(true)
+    })
+
+    it('returns Unteams cookie paths on Linux under ~/.config when XDG_CONFIG_HOME is unset', () => {
+      const previous = process.env.XDG_CONFIG_HOME
+      delete process.env.XDG_CONFIG_HOME
+      try {
+        const linuxExtractor = new TeamsTokenExtractor('linux')
+        expect(linuxExtractor.getUnteamsCookiesPaths()).toEqual(unteamsPaths(join(homedir(), '.config')))
+      } finally {
+        if (previous !== undefined) process.env.XDG_CONFIG_HOME = previous
+      }
+    })
+
+    it('honors XDG_CONFIG_HOME for Unteams cookie paths on Linux', () => {
+      const previous = process.env.XDG_CONFIG_HOME
+      process.env.XDG_CONFIG_HOME = '/custom/xdg/config'
+      try {
+        const linuxExtractor = new TeamsTokenExtractor('linux')
+        expect(linuxExtractor.getUnteamsCookiesPaths()).toEqual(unteamsPaths('/custom/xdg/config'))
+      } finally {
+        if (previous === undefined) delete process.env.XDG_CONFIG_HOME
+        else process.env.XDG_CONFIG_HOME = previous
+      }
+    })
+
+    it('returns Unteams cookie paths on Windows (roaming AppData)', () => {
+      const winExtractor = new TeamsTokenExtractor('win32')
+      const appdata = process.env.APPDATA || join(homedir(), 'AppData', 'Roaming')
+      expect(winExtractor.getUnteamsCookiesPaths()).toEqual(unteamsPaths(appdata))
+    })
+
+    it('returns empty array for unsupported platform', () => {
+      const unsupportedExtractor = new TeamsTokenExtractor('freebsd' as NodeJS.Platform)
+      expect(unsupportedExtractor.getUnteamsCookiesPaths()).toEqual([])
     })
   })
 
@@ -255,6 +319,8 @@ describe('TeamsTokenExtractor', () => {
       })
       expect(variants).toContainEqual({ service: 'Microsoft Edge Safe Storage', account: 'Microsoft Edge' })
       expect(variants).toContainEqual({ service: 'Teams Safe Storage', account: 'Teams' })
+      expect(variants).toContainEqual({ service: 'Unteams Safe Storage', account: 'Unteams' })
+      expect(variants).toContainEqual({ service: 'Unteams Debug Safe Storage', account: 'Unteams Debug' })
     })
 
     it('includes browser keychain entries appended after Teams entries', () => {
@@ -276,6 +342,25 @@ describe('TeamsTokenExtractor', () => {
       const teamsIdx = variants.findIndex((v) => v.service === 'Microsoft Teams Safe Storage')
       const chromeIdx = variants.findIndex((v) => v.service === 'Chrome Safe Storage')
       expect(teamsIdx).toBeLessThan(chromeIdx)
+    })
+  })
+
+  describe('Linux v11 keyring decryption', () => {
+    it('decrypts a v11 Unteams cookie using the secret-store key instead of the peanuts fallback', () => {
+      // given: a v11 cookie encrypted with the key derived from the Unteams keyring secret
+      const keyringPassword = 'unteams-secret-store-password'
+      const key = pbkdf2Sync(keyringPassword, 'saltysalt', 1, 16, 'sha1')
+      const encrypted = encryptAESCBC('eyJhbGciOiJSUzI1NiJ9.unteams-skypetoken', key)
+      const spy = spyOn(linuxKeyring, 'lookupLinuxKeyringPassword').mockImplementation(() => keyringPassword)
+      const linuxExtractor = new TeamsTokenExtractor('linux')
+
+      // when
+      const decrypted = (linuxExtractor as any).decryptor.decryptCookieRaw(encrypted) as Buffer | null
+
+      // then
+      expect(spy).toHaveBeenCalledWith('Unteams')
+      expect(decrypted?.toString('utf8')).toBe('eyJhbGciOiJSUzI1NiJ9.unteams-skypetoken')
+      spy.mockRestore()
     })
   })
 
