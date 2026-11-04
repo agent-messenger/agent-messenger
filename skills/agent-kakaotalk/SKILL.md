@@ -374,11 +374,17 @@ agent-kakaotalk message mark-read <chat-id> <log-id>
 agent-kakaotalk message mark-read <chat-id> <log-id> --pretty
 agent-kakaotalk message mark-read <chat-id> <log-id> --link-id <li>   # open chats only
 
+# Show the typing indicator ("..." dots) in a chat room for ~5s
+agent-kakaotalk message typing <chat-id>
+agent-kakaotalk message typing <chat-id> --pretty
+agent-kakaotalk message typing <chat-id> --link-id <li>   # open chats only
+
 # Use a specific account
 agent-kakaotalk message list <chat-id> --account <account-id>
 agent-kakaotalk message send <chat-id> "Hello" --account <account-id>
 agent-kakaotalk message upload <chat-id> ./photo.jpg --account <account-id>
 agent-kakaotalk message mark-read <chat-id> <log-id> --account <account-id>
+agent-kakaotalk message typing <chat-id> --account <account-id>
 ```
 
 #### Replying to a Message
@@ -470,6 +476,26 @@ Notes:
 - Observed in testing on a sub-device tablet slot (the default `agent-messenger` slot). KakaoTalk does not support third-party clients; server behavior may vary by chat type, account region, or client version. Use sparingly; avoid tight loops.
 - The phone's home-screen OS unread badge may lag until the phone client foregrounds; the in-app counter updates faster. Observed quirk, not a guaranteed contract.
 - For open chats (오픈채팅) pass `--link-id <li>` (the `li` field on the open chat). Without it the server returns a non-zero `body.status`, which the CLI reports as `"success": false` with the server's status code, and exits non-zero.
+
+#### Typing Indicator
+
+`message typing` sends one LOCO `ACTION` packet (typing subtype) so the other members see the animated "..." indicator. It does not create a message and does not change read state.
+
+Output (JSON by default; `--pretty` pretty-prints the same JSON):
+
+```json
+{ "success": true, "status_code": 0, "chat_id": "9876543210" }
+```
+
+Errors are printed as `{"error": "..."}` and the process exits non-zero:
+- A non-zero LOCO status from the server is reported as `{"error": "ACTION failed: statusCode=<n>"}`.
+- A non-numeric `<chat-id>` or `--link-id` is rejected before the typing `ACTION` is sent (`invalid_chat_id` / `invalid_link_id`).
+
+Notes:
+- One pulse lasts about 5 seconds on the recipient's client. To keep the indicator up while you prepare a long reply, call it again every few seconds and stop once the reply is sent.
+- Each CLI invocation logs in and opens its own LOCO connection. For frequent pulses (for example re-firing every 3s), prefer the SDK (`client.sendTyping()` on one long-lived client) over calling the CLI repeatedly.
+- For open chats pass `--link-id <li>` (the `li` field on the open chat), the same value `mark-read` takes. The CLI does not look it up for you; for normal chats leave it out.
+- Like every LOCO write, this is an unofficial protocol call from a sub-device slot. Send it only when you are actually about to reply; avoid tight loops.
 
 #### Message List Output
 

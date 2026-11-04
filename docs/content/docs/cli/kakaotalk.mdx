@@ -224,10 +224,15 @@ agent-kakaotalk message upload <chat-id> ./data.bin --mime application/octet-str
 agent-kakaotalk message mark-read <chat-id> <log-id>
 agent-kakaotalk message mark-read <chat-id> <log-id> --link-id <li>   # open chats only
 
+# Show the typing indicator ("..." dots) for ~5s
+agent-kakaotalk message typing <chat-id>
+agent-kakaotalk message typing <chat-id> --link-id <li>   # open chats only
+
 # Use a specific account
 agent-kakaotalk message list <chat-id> --account <account-id>
 agent-kakaotalk message send <chat-id> "Hello" --account <account-id>
 agent-kakaotalk message upload <chat-id> ./photo.jpg --account <account-id>
+agent-kakaotalk message typing <chat-id> --account <account-id>
 ```
 
 > **No CLI command**: Read status is available only through the SDK: use [`getReadWatermarks` and `computeReadStatus`](../sdk/kakaotalk#read-status) to answer "who has read this message?". `getReadWatermarks` returns a one-time snapshot; the SDK does not keep it up to date. Because it sends `CHATONROOM`, which enters the room and may clear your own unread count (#315), call it once per chat per LOCO session. Your code owns the snapshot from then on: apply listener `read` events to your stored watermarks, only ever moving a watermark forward, instead of polling. On `disconnected`, discard the stored watermarks and seed each chat again after the reconnect.
@@ -268,6 +273,16 @@ Each message includes:
 - `message` — message text content (empty string for non-text messages like stickers)
 - `attachment` — parsed JSON metadata for non-text messages (e.g. photo URL/dimensions, sticker path), or `null` for plain text. Shape varies by `type`; treat as an opaque object and narrow per message type.
 - `sent_at` — Unix timestamp (milliseconds)
+
+#### Typing Indicator
+
+`message typing` sends a single LOCO `ACTION` (typing) pulse. Recipients see the animated "..." for about 5 seconds; no message is created.
+
+```json
+{ "success": true, "status_code": 0, "chat_id": "9876543210" }
+```
+
+Re-run it every few seconds to keep the indicator up while a long reply is being prepared. Each CLI call logs in on its own connection, so for frequent pulses use the SDK's [`sendTyping`](../sdk/kakaotalk#typing-indicator) on a long-lived client instead. Open chats need `--link-id <li>`, the same value `mark-read` takes. A non-zero server status is printed as `{"error": "ACTION failed: statusCode=<n>"}` with a non-zero exit code.
 
 #### Fetching More Messages
 
