@@ -110,6 +110,8 @@ Each `KakaoMessage` carries an `author_name: string | null`. The SDK auto-popula
 
 Each `KakaoMessage` also carries an `attachment: Record<string, unknown> | null`. For text messages this is `null`. For non-text messages (photos, videos, files, stickers, etc.) it is the parsed LOCO attachment payload — a JSON object whose shape varies by `type`. Photo messages use fields like `k` (CDN key), `w`/`h` (dimensions), `mt` (mime type), and `url`; sticker messages use `path`/`emoticonItemPath`. Treat it as opaque and narrow per `type`.
 
+When a message tags users, `KakaoMessage` (and the listener's `KakaoTalkPushMessageEvent`) also carries `mentions?: KakaoMention[]`, lifted out of the attachment: `{ user_id: string, at: number[], len: number }`. `user_id` is an exact decimal string (open-chat ids exceed 2^53), `at` lists the 1-based ordinals of the `@` characters in `message` that start the tag, and `len` is the tagged name's length without the `@`. The key is absent when there are no mentions.
+
 ### Members
 
 ```typescript
@@ -175,6 +177,24 @@ A member has read the message once their watermark is at or past its log ID (`wa
 const result = await client.sendMessage('9876543210', 'Hello from SDK!')
 // → KakaoSendResult { success, status_code, chat_id, log_id, sent_at }
 ```
+
+```typescript
+// Mention members — the text must contain @<name> for each one
+await client.sendMessage('9876543210', '@Alice @Bob standup in 5', {
+  mentions: [
+    { user_id: '1234567890', name: 'Alice' },
+    { user_id: '2345678901', name: 'Bob' },
+  ],
+})
+
+// Mentions combine with quoted replies
+await client.sendMessage('9876543210', '@Alice agreed', {
+  replyTo,
+  mentions: [{ user_id: '1234567890', name: 'Alice' }],
+})
+```
+
+`mentions` takes `KakaoMentionInput[]` (`{ user_id, name }`). The SDK finds each `@<name>` in the text, computes the `at`/`len` that KakaoTalk expects, and writes `user_id` as an exact 64-bit integer into the WRITE `extra`. If a name is not found in the text, `sendMessage` throws `KakaoTalkError('invalid_mention')` before anything is sent. When names share a prefix (`@Kim` vs `@Kimberly`), each `@` goes to the longest matching name. To tag by id only, resolve the nickname first, e.g. with `getMembersByIds(chatId, [userId])`.
 
 `success` is `true` only when `status_code` is `0` and the server returned a non-zero `log_id`. An acknowledgment with `status_code: 0` and `log_id: '0'` created no message, so it is reported as `success: false`. Quoted replies (`sendMessage(chatId, text, { replyTo })`) in open chats get the room's `src_linkId` automatically, from the login snapshot or, when the room is missing there, from a read-only `CHATINFO` lookup.
 

@@ -177,6 +177,36 @@ describe('KakaoTalkListener', () => {
     })
   })
 
+  describe('mentions', () => {
+    it('exposes normalized mentions on MSG events and omits the key when absent', async () => {
+      const { listener: l, client } = createListener()
+      listener = l
+
+      const messages: KakaoTalkPushMessageEvent[] = []
+      listener.on('message', (event) => messages.push(event))
+
+      await listener.start()
+      client.emitPush('MSG', {
+        chatId: { high: 0, low: 100 },
+        chatLog: {
+          logId: { high: 0, low: 300 },
+          authorId: 42,
+          message: '@Alice hi',
+          type: 1,
+          sendAt: 1700000000,
+          attachment: '{"mentions":[{"at":[1],"len":5,"user_id":7467363552057858123}]}',
+        },
+      })
+      client.emitPush('MSG', {
+        chatId: { high: 0, low: 100 },
+        chatLog: { logId: { high: 0, low: 301 }, authorId: 42, message: 'plain', type: 1, sendAt: 1700000001 },
+      })
+
+      expect(messages[0]!.mentions).toEqual([{ user_id: '7467363552057858123', at: [1], len: 5 }])
+      expect(messages[1]).not.toHaveProperty('mentions')
+    })
+  })
+
   describe('emoticon events', () => {
     it('emits emoticon on MSG push with type=20 (animated sticker)', async () => {
       const { listener: l, client } = createListener()

@@ -6,6 +6,7 @@ import { type AttachmentInput, type ResolvedAttachment, planAttachments } from '
 import { isOpenKakaoChatType } from './chat-classifier'
 import { detectImageDimensions } from './image-meta'
 import { sha1Hex } from './media-upload'
+import { buildMentions, extractMentions } from './mention'
 import { LANG, PC_OS_NAME, getLocoDeviceConfig } from './protocol/config'
 import { exactInteger, parseJsonPreservingIntegers } from './protocol/exact-json'
 import { isSyntheticConnectionClose } from './protocol/login-response'
@@ -22,6 +23,8 @@ import {
   type KakaoMarkReadResult,
   type KakaoMember,
   type KakaoMemberSnapshot,
+  type KakaoMention,
+  type KakaoMentionInput,
   type KakaoMessage,
   type KakaoMessagePage,
   type KakaoMultiPhotoExtra,
@@ -731,6 +734,14 @@ function channelMemberView(
   }
 }
 
+// Parsed attachment plus the normalized `mentions` lifted out of it. The
+// `mentions` key is only present when the message actually tags someone.
+function withAttachment(raw: unknown): Pick<KakaoMessage, 'attachment' | 'mentions'> {
+  const attachment = parseAttachmentJson(raw)
+  const mentions = extractMentions(attachment)
+  return mentions ? { attachment, mentions } : { attachment }
+}
+
 function formatMessages(
   logs: Array<Record<string, unknown>>,
   count: number,
@@ -745,7 +756,7 @@ function formatMessages(
     author_id: log.authorId as number,
     author_name: nameCache.lookup(chatId, log.authorId as number),
     message: log.message as string,
-    attachment: parseAttachmentJson(log.attachment),
+    ...withAttachment(log.attachment),
     sent_at: log.sendAt as number,
   }))
 }
@@ -757,7 +768,7 @@ function formatForwardMessage(log: Record<string, unknown>, chatId: string, name
     author_id: log.authorId as number,
     author_name: nameCache.lookup(chatId, log.authorId as number),
     message: log.message as string,
-    attachment: parseAttachmentJson(log.attachment),
+    ...withAttachment(log.attachment),
     sent_at: log.sendAt as number,
   }
 }
@@ -794,7 +805,11 @@ function buildMessagePage(
   }
 }
 
-function buildReplyExtra(target: KakaoReplyTarget, linkId?: Long | null): KakaoReplyExtra {
+function buildReplyExtra(
+  target: KakaoReplyTarget,
+  linkId?: Long | null,
+  mentions: KakaoMention[] = [],
+): KakaoReplyExtra {
   return {
     attach_only: false,
     attach_type: target.type,
@@ -803,7 +818,7 @@ function buildReplyExtra(target: KakaoReplyTarget, linkId?: Long | null): KakaoR
     src_message: target.message,
     src_type: target.type,
     src_mentions: [],
-    mentions: [],
+    mentions,
     ...(linkId ? { src_linkId: linkId.toString() } : {}),
   }
 }
@@ -1424,16 +1439,33 @@ export class KakaoTalkClient {
     })
   }
 
-  async sendMessage(chatId: string, text: string, options?: { replyTo?: KakaoReplyTarget }): Promise<KakaoSendResult> {
+  async sendMessage(
+    chatId: string,
+    text: string,
+    options?: { replyTo?: KakaoReplyTarget; mentions?: KakaoMentionInput[] },
+  ): Promise<KakaoSendResult> {
+    // Resolve mentions before touching the network so a missing `@name` never
+    // sends an untagged message.
+    let mentions: KakaoMention[] = []
+    if (options?.mentions && options.mentions.length > 0) {
+      try {
+        mentions = buildMentions(text, options.mentions)
+      } catch (cause) {
+        throw new KakaoTalkError((cause as Error).message, 'invalid_mention', { cause })
+      }
+    }
+
     return this.executeWithReconnect(async ({ session, loginResult }) => {
       try {
         const response = options?.replyTo
           ? await session.sendReply(
               parseLong(chatId),
               text,
-              buildReplyExtra(options.replyTo, await resolveReplyLinkId(session, loginResult, chatId)),
+              buildReplyExtra(options.replyTo, await resolveReplyLinkId(session, loginResult, chatId), mentions),
             )
-          : await session.sendMessage(parseLong(chatId), text)
+          : mentions.length > 0
+            ? await session.sendMessage(parseLong(chatId), text, mentions)
+            : await session.sendMessage(parseLong(chatId), text)
         const logId = longToString(response.body.logId)
 
         return {

@@ -6,7 +6,7 @@ import { Command } from 'commander'
 import { handleError } from '@/shared/utils/error-handler'
 import { formatOutput } from '@/shared/utils/output'
 
-import type { KakaoMessage, KakaoReplyTarget } from '../types'
+import type { KakaoMember, KakaoMentionInput, KakaoMessage, KakaoReplyTarget } from '../types'
 import { withKakaoClient } from './shared'
 
 async function listAction(
@@ -27,16 +27,17 @@ async function listAction(
 async function sendAction(
   chatId: string,
   text: string,
-  options: { account?: string; pretty?: boolean; replyTo?: string },
+  options: { account?: string; pretty?: boolean; replyTo?: string; mention?: string[] },
 ): Promise<void> {
   try {
     const result = await withKakaoClient(options, async (client) => {
+      const mentions = options.mention?.length ? await resolveMentions(client, chatId, options.mention) : undefined
       if (options.replyTo === undefined) {
-        return client.sendMessage(chatId, text)
+        return mentions ? client.sendMessage(chatId, text, { mentions }) : client.sendMessage(chatId, text)
       }
 
       const target = await resolveReplyTarget(client, chatId, options.replyTo)
-      return client.sendMessage(chatId, text, { replyTo: target })
+      return client.sendMessage(chatId, text, mentions ? { replyTo: target, mentions } : { replyTo: target })
     })
     console.log(formatOutput(result, options.pretty))
   } catch (error) {
@@ -64,6 +65,49 @@ async function resolveReplyTarget(
     message: source.message,
     type: source.type,
   }
+}
+
+function collect(value: string, previous: string[] = []): string[] {
+  return [...previous, value]
+}
+
+// `--mention <user-id>` or `--mention <user-id>:<name>`. Bare ids are resolved
+// to the member's in-chat nickname so the SDK can locate `@<nickname>` in the
+// text; an explicit name skips the lookup (and covers names the member list
+// does not report).
+async function resolveMentions(
+  client: { getMembersByIds: (chatId: string, userIds: string[]) => Promise<KakaoMember[]> },
+  chatId: string,
+  specs: string[],
+): Promise<KakaoMentionInput[]> {
+  const parsed = specs.map((spec) => {
+    const sep = spec.indexOf(':')
+    const userId = (sep === -1 ? spec : spec.slice(0, sep)).trim()
+    const name = sep === -1 ? undefined : spec.slice(sep + 1)
+    if (!/^-?\d+$/.test(userId)) {
+      throw new Error(`Invalid --mention value "${spec}": expected <user-id> or <user-id>:<name>`)
+    }
+    if (name !== undefined && name.length === 0) {
+      throw new Error(`Invalid --mention value "${spec}": name after ":" is empty`)
+    }
+    return { userId, name }
+  })
+
+  const unresolved = [...new Set(parsed.filter((p) => p.name === undefined).map((p) => p.userId))]
+  const nicknames = new Map<string, string>()
+  if (unresolved.length > 0) {
+    for (const member of await client.getMembersByIds(chatId, unresolved)) {
+      if (member.nickname) nicknames.set(member.user_id, member.nickname)
+    }
+  }
+
+  return parsed.map(({ userId, name }) => {
+    const resolved = name ?? nicknames.get(userId)
+    if (resolved === undefined) {
+      throw new Error(`Could not resolve a nickname for --mention ${userId} in chat ${chatId}; pass <user-id>:<name>`)
+    }
+    return { user_id: userId, name: resolved }
+  })
 }
 
 type UploadKind = 'auto' | 'photo' | 'video' | 'audio' | 'file' | 'multi'
@@ -153,6 +197,11 @@ export const messageCommand = new Command('message')
       .argument('<text>', 'Message text')
       .option('--account <id>', 'Use a specific KakaoTalk account')
       .option('--reply-to <log-id>', 'Send as a quoted reply to this message log ID')
+      .option(
+        '--mention <user-id[:name]>',
+        'Tag a user; the text must contain @<name> (name defaults to the member nickname). Repeatable',
+        collect,
+      )
       .option('--pretty', 'Pretty print JSON output')
       .action(sendAction),
   )
