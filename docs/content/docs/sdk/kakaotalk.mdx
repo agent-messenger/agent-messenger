@@ -110,6 +110,19 @@ Each `KakaoMessage` carries an `author_name: string | null`. The SDK auto-popula
 
 Each `KakaoMessage` also carries an `attachment: Record<string, unknown> | null`. For text messages this is `null`. For non-text messages (photos, videos, files, stickers, etc.) it is the parsed LOCO attachment payload — a JSON object whose shape varies by `type`. Photo messages use fields like `k` (CDN key), `w`/`h` (dimensions), `mt` (mime type), and `url`; sticker messages use `path`/`emoticonItemPath`. Treat it as opaque and narrow per `type`.
 
+`KakaoMessage` and the listener's `KakaoTalkPushMessageEvent` also expose three optional raw chat-log fields. Each is present only when the server sent it, so existing consumers see no change for messages without them:
+
+- `scope?: number` — the chat-log scope. Observed: `1` for ordinary messages, `3` for open-chat thread replies.
+- `thread_id?: string` — the chat-log thread id as an exact decimal string (omitted when absent or zero). Observed to equal the parent message's `log_id` for thread replies. It is read from the top-level `threadId` and, when that is missing, from the chat log's `supplement` JSON.
+- `prev_id?: string` — the chat-log previous log id as an exact decimal string (omitted when absent or zero).
+
+The SDK passes these through without interpreting them. The scope/thread mapping above is observed behavior, not a documented protocol contract. Thread replies are a different feature from quoted replies (`type: 26`, which carry `attachment.src_logId`).
+
+```typescript
+const messages = await client.getMessages('9876543210', { count: 100 })
+const threadReplies = messages.filter((m) => m.scope === 3 && m.thread_id !== undefined)
+```
+
 ### Members
 
 ```typescript

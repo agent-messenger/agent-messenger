@@ -4,6 +4,7 @@ import { warn } from '@/shared/utils/stderr'
 
 import { type AttachmentInput, type ResolvedAttachment, planAttachments } from './attachment-router'
 import { isOpenKakaoChatType } from './chat-classifier'
+import { extractThreadFields } from './chat-log-fields'
 import { detectImageDimensions } from './image-meta'
 import { sha1Hex } from './media-upload'
 import { LANG, PC_OS_NAME, getLocoDeviceConfig } from './protocol/config'
@@ -739,18 +740,10 @@ function formatMessages(
 ): KakaoMessage[] {
   logs.sort((a, b) => (a.sendAt as number) - (b.sendAt as number))
 
-  return logs.slice(-count).map((log) => ({
-    log_id: longToString(log.logId),
-    type: log.type as number,
-    author_id: log.authorId as number,
-    author_name: nameCache.lookup(chatId, log.authorId as number),
-    message: log.message as string,
-    attachment: parseAttachmentJson(log.attachment),
-    sent_at: log.sendAt as number,
-  }))
+  return logs.slice(-count).map((log) => formatMessage(log, chatId, nameCache))
 }
 
-function formatForwardMessage(log: Record<string, unknown>, chatId: string, nameCache: MemberNameCache): KakaoMessage {
+function formatMessage(log: Record<string, unknown>, chatId: string, nameCache: MemberNameCache): KakaoMessage {
   return {
     log_id: longToString(log.logId),
     type: log.type as number,
@@ -759,6 +752,7 @@ function formatForwardMessage(log: Record<string, unknown>, chatId: string, name
     message: log.message as string,
     attachment: parseAttachmentJson(log.attachment),
     sent_at: log.sendAt as number,
+    ...extractThreadFields(log),
   }
 }
 
@@ -788,7 +782,7 @@ function buildMessagePage(
   const nextCursor = selected.at(-1)?.[0] ?? null
 
   return {
-    messages: selected.map(([, log]) => formatForwardMessage(log, chatId, nameCache)),
+    messages: selected.map(([, log]) => formatMessage(log, chatId, nameCache)),
     next_cursor: nextCursor,
     complete: protocolComplete && ordered.length <= count,
   }

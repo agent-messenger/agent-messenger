@@ -104,6 +104,16 @@ export interface KakaoMessage {
   message: string
   attachment: Record<string, unknown> | null
   sent_at: number
+  /**
+   * Raw chatLog `scope`, present only when the server sent it. Thread replies
+   * in open chats have been observed with `scope: 3`; not a documented
+   * contract.
+   */
+  scope?: number
+  /** Raw chatLog `threadId` as an exact decimal string; omitted when absent or zero. Observed to be the parent message's `log_id` for thread replies. */
+  thread_id?: string
+  /** Raw chatLog `prevId` (the server's previous log id in the chat) as an exact decimal string; omitted when absent or zero. */
+  prev_id?: string
 }
 
 export interface KakaoMessagePage {
@@ -291,6 +301,9 @@ export const KakaoMessageSchema = z.object({
   message: z.string(),
   attachment: z.record(z.string(), z.unknown()).nullable(),
   sent_at: z.number(),
+  scope: z.number().int().optional(),
+  thread_id: z.string().optional(),
+  prev_id: z.string().optional(),
 })
 
 export const KakaoMessagePageSchema = z.object({
@@ -407,6 +420,16 @@ export interface KakaoTalkPushMessageEvent {
   message_type: number
   attachment: Record<string, unknown> | null
   sent_at: number
+  /**
+   * Raw chatLog `scope`, present only when the server sent it. Thread replies
+   * in open chats have been observed with `scope: 3`; not a documented
+   * contract.
+   */
+  scope?: number
+  /** Raw chatLog `threadId` as an exact decimal string; omitted when absent or zero. Observed to be the parent message's `log_id` for thread replies. */
+  thread_id?: string
+  /** Raw chatLog `prevId` (the server's previous log id in the chat) as an exact decimal string; omitted when absent or zero. */
+  prev_id?: string
 }
 
 export type KakaoEmoticonKind = 'sticker' | 'sticker_ani' | 'actioncon' | 'sticker_gif' | 'ditem_emoticon'
@@ -485,6 +508,9 @@ export const KakaoTalkPushMessageEventSchema = z.object({
   message_type: z.number(),
   attachment: z.record(z.string(), z.unknown()).nullable(),
   sent_at: z.number(),
+  scope: z.number().int().optional(),
+  thread_id: z.string().optional(),
+  prev_id: z.string().optional(),
 })
 
 export const KakaoTalkPushEmoticonEventSchema = z.object({

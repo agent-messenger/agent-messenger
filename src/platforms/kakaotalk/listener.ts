@@ -1,5 +1,6 @@
 import { EventEmitter } from 'events'
 
+import { extractThreadFields } from './chat-log-fields'
 import type { KakaoSessionEvent, KakaoTalkClient } from './client'
 import { parseJsonPreservingIntegers } from './protocol/exact-json'
 import type { LocoPacket } from './protocol/types'
@@ -160,6 +161,7 @@ export class KakaoTalkListener {
           message_type: messageType,
           attachment,
           sent_at: sentAt,
+          ...extractThreadFields(chatLog),
         }
         this.emitter.emit('message', messageEvent)
 
