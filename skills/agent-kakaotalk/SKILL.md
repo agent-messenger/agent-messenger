@@ -481,6 +481,9 @@ Each message includes:
 - `message` — message text content (empty string for non-text messages like stickers)
 - `attachment` — parsed JSON metadata for non-text messages (e.g. photo URL/dimensions, sticker path), or `null` for plain text. Shape varies by `type`; treat as an opaque object and narrow per message type.
 - `sent_at` — Unix timestamp (milliseconds)
+- `scope` — *(optional)* raw chat-log scope number, included only when the server sends it. Observed values: `1` for ordinary messages, `3` for open-chat thread replies. This mapping is observed behavior, not a documented contract.
+- `thread_id` — *(optional)* raw chat-log thread id as an exact decimal string, omitted when absent or zero. For open-chat thread replies it has been observed to equal the parent message's `log_id`.
+- `prev_id` — *(optional)* raw chat-log previous log id as an exact decimal string, omitted when absent or zero.
 
 #### Fetching More Messages
 

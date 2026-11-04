@@ -2201,6 +2201,71 @@ describe('KakaoTalkClient', () => {
       client.close()
     })
 
+    it('exposes raw scope, thread_id and prev_id from the chat log', async () => {
+      mockGetChatLogs.mockResolvedValueOnce({
+        body: {
+          status: 0,
+          chatLogs: [
+            {
+              logId: makeLong(30),
+              prevId: makeLong(29),
+              chatId: 100,
+              type: 1,
+              authorId: 42,
+              message: 'parent',
+              sendAt: 1700000030,
+              scope: 1,
+            },
+            {
+              logId: makeLong(31),
+              prevId: makeLong(30),
+              threadId: { high: 0x36c6cdea, low: 0xe9ea6803 | 0 },
+              chatId: 100,
+              type: 1,
+              authorId: 43,
+              message: 'thread reply',
+              sendAt: 1700000031,
+              scope: 3,
+            },
+          ],
+          eof: true,
+        },
+      })
+
+      const client = await new KakaoTalkClient().login({ oauthToken: 'token', userId: 'user1', deviceUuid: 'device1' })
+      const messages = await client.getMessages('100')
+
+      expect(messages[0]).toMatchObject({ log_id: '30', scope: 1, prev_id: '29' })
+      expect(messages[0]).not.toHaveProperty('thread_id')
+      expect(messages[1]).toMatchObject({
+        log_id: '31',
+        scope: 3,
+        thread_id: '3947068532267313155',
+        prev_id: '30',
+      })
+
+      client.close()
+    })
+
+    it('omits thread fields when the chat log does not carry them', async () => {
+      mockGetChatLogs.mockResolvedValueOnce({
+        body: {
+          status: 0,
+          chatLogs: [{ logId: makeLong(32), chatId: 100, type: 1, authorId: 42, message: 'plain', sendAt: 1700000032 }],
+          eof: true,
+        },
+      })
+
+      const client = await new KakaoTalkClient().login({ oauthToken: 'token', userId: 'user1', deviceUuid: 'device1' })
+      const messages = await client.getMessages('100')
+
+      expect(Object.keys(messages[0]).sort()).toEqual(
+        ['attachment', 'author_id', 'author_name', 'log_id', 'message', 'sent_at', 'type'].sort(),
+      )
+
+      client.close()
+    })
+
     it('returns null attachment for malformed JSON', async () => {
       mockGetChatLogs.mockResolvedValueOnce({
         body: {

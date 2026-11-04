@@ -405,11 +405,16 @@ KakaoTalk ids are signed 64-bit integers, and real `log_id`s (~3.9e18) are large
 - For `sendMessage(..., { replyTo })`, pass `author_id` exactly as you received it: a safe number, a decimal string, a `bigint`, or the `Long` that open-chat events carry. The SDK writes `src_logId`/`src_userId` into the reply as bare integer tokens and rejects a number that has already lost precision.
 - Replies in open chats also carry `src_linkId`, the room's open link id. The SDK fills it in automatically and writes it as an exact integer token. It reads the link id from the login snapshot, accepting both the plain number that packet decoding produces for safe values and the `Long` form for larger ones. If the room is missing from the snapshot, it falls back to a read-only `CHATINFO` lookup. Regular chats never get `src_linkId`. Live validation of the open-chat reply bubble is still pending.
 - A send whose acknowledgment has `log_id: "0"` is reported as `success: false` even when `status_code` is `0`: the server accepted the packet but created no message.
+- The optional raw chat-log fields `thread_id` and `prev_id` are exact decimal strings too, and are omitted when the server does not send them (or sends zero). `scope` is a plain number. Open-chat thread replies have been observed with `scope: 3` and a `thread_id` equal to the parent message's `log_id`; this is observed behavior, not a documented contract, and it is a different feature from quoted replies (`type: 26`).
 
 ```bash
 # Is this message a reply to one of my messages? Compare as strings.
 agent-kakaotalk message list <chat-id> -n 50 \
   | jq -r --arg me "$MY_USER_ID" '.[] | select(.type == 26 and ((.attachment.src_userId | tostring) == $me)) | .log_id'
+
+# Group open-chat thread replies under their parent message (observed scope 3 + thread_id).
+agent-kakaotalk message list <chat-id> -n 100 \
+  | jq 'map(select(.scope == 3 and .thread_id != null)) | group_by(.thread_id) | map({parent: .[0].thread_id, replies: map(.log_id)})'
 ```
 
 ## Best Practices
