@@ -4,6 +4,7 @@ import { warn } from '@/shared/utils/stderr'
 
 import { type AttachmentInput, type ResolvedAttachment, planAttachments } from './attachment-router'
 import { isOpenKakaoChatType } from './chat-classifier'
+import { extractThreadFields } from './chat-log-fields'
 import { detectImageDimensions } from './image-meta'
 import { sha1Hex } from './media-upload'
 import { LANG, PC_OS_NAME, getLocoDeviceConfig } from './protocol/config'
@@ -237,6 +238,23 @@ function parseLinkId(linkId: string): Long {
   }
 }
 
+// A caller-supplied reply link id skips every lookup and goes straight into
+// src_linkId, so it is checked strictly: exact decimal syntax, signed 64-bit
+// range, and positive. parseLong alone would turn '' into 0 and wrap
+// out-of-range values.
+function parseReplyLinkId(linkId: string): Long {
+  let digits: string
+  try {
+    digits = exactInteger(linkId).digits
+  } catch (cause) {
+    throw new KakaoTalkError(`Invalid linkId: ${linkId}`, 'invalid_link_id', { cause })
+  }
+  if (BigInt(digits) <= 0n) {
+    throw new KakaoTalkError(`Invalid linkId: ${linkId}`, 'invalid_link_id')
+  }
+  return parseLong(digits)
+}
+
 function formatChat(chat: ChatData, title: string | null, nameCache: MemberNameCache): KakaoChat {
   const memberNames = (chat.k ?? []) as string[]
   const lastLog = chat.l as Record<string, unknown> | null
@@ -443,6 +461,16 @@ function formatKickedMember(entry: Record<string, unknown>): KakaoKickedMember |
     chat_id: isNonZeroLong(chatId) ? longToString(chatId) : null,
     kicked_at: nullableNumber(entry.kickedAt),
   }
+}
+
+// Open chats carry no TITLE meta; their name lives on the open link. The login
+// snapshot may omit the room or its `li`, so fall back to the CHATINFO payload
+// already fetched for the title instead of issuing another request.
+function getTitleOpenLinkId(chat: ChatData | undefined, info: ChannelInfoData | undefined): Long | null {
+  const infoIsObject = info !== null && typeof info === 'object' && !Array.isArray(info)
+  const isOpen = (chat !== undefined && isOpenChat(chat)) || (infoIsObject && isOpenKakaoChatType(info.type))
+  if (!isOpen) return null
+  return (chat ? getOpenLinkId(chat) : null) ?? (infoIsObject ? getOpenLinkId({ li: info.li }) : null)
 }
 
 function getLoginMaxLogId(loginResult: LoginListResponse, chatId: string): Long | null {
@@ -787,18 +815,10 @@ function formatMessages(
 ): KakaoMessage[] {
   logs.sort((a, b) => (a.sendAt as number) - (b.sendAt as number))
 
-  return logs.slice(-count).map((log) => ({
-    log_id: longToString(log.logId),
-    type: log.type as number,
-    author_id: log.authorId as number,
-    author_name: nameCache.lookup(chatId, log.authorId as number),
-    message: log.message as string,
-    attachment: parseAttachmentJson(log.attachment),
-    sent_at: log.sendAt as number,
-  }))
+  return logs.slice(-count).map((log) => formatMessage(log, chatId, nameCache))
 }
 
-function formatForwardMessage(log: Record<string, unknown>, chatId: string, nameCache: MemberNameCache): KakaoMessage {
+function formatMessage(log: Record<string, unknown>, chatId: string, nameCache: MemberNameCache): KakaoMessage {
   return {
     log_id: longToString(log.logId),
     type: log.type as number,
@@ -807,6 +827,7 @@ function formatForwardMessage(log: Record<string, unknown>, chatId: string, name
     message: log.message as string,
     attachment: parseAttachmentJson(log.attachment),
     sent_at: log.sendAt as number,
+    ...extractThreadFields(log),
   }
 }
 
@@ -836,7 +857,7 @@ function buildMessagePage(
   const nextCursor = selected.at(-1)?.[0] ?? null
 
   return {
-    messages: selected.map(([, log]) => formatForwardMessage(log, chatId, nameCache)),
+    messages: selected.map(([, log]) => formatMessage(log, chatId, nameCache)),
     next_cursor: nextCursor,
     complete: protocolComplete && ordered.length <= count,
   }
@@ -1229,17 +1250,19 @@ export class KakaoTalkClient {
 
   private async fetchChatTitle(session: LocoSession, chatId: Long, chat: ChatData | undefined): Promise<string | null> {
     let title: string | null = null
+    let info: ChannelInfoData | undefined
     try {
       const response = await session.getChannelInfo(chatId)
-      title = extractTitle(response.body as Record<string, unknown>)
+      const body = response.body as Record<string, unknown>
+      info = (body as ChannelInfoResponse).chatInfo
+      title = extractTitle(body)
     } catch {
       title = null
     }
 
     if (title) return title
-    if (!chat || !isOpenChat(chat)) return null
 
-    const linkId = getOpenLinkId(chat)
+    const linkId = getTitleOpenLinkId(chat, info)
     if (!linkId) return null
 
     try {
@@ -1473,13 +1496,16 @@ export class KakaoTalkClient {
   }
 
   async sendMessage(chatId: string, text: string, options?: { replyTo?: KakaoReplyTarget }): Promise<KakaoSendResult> {
+    const replyTo = options?.replyTo
+    const replyLinkId = replyTo?.link_id !== undefined ? parseReplyLinkId(replyTo.link_id) : undefined
+
     return this.executeWithReconnect(async ({ session, loginResult }) => {
       try {
-        const response = options?.replyTo
+        const response = replyTo
           ? await session.sendReply(
               parseLong(chatId),
               text,
-              buildReplyExtra(options.replyTo, await resolveOpenLinkId(session, loginResult, chatId)),
+              buildReplyExtra(replyTo, replyLinkId ?? (await resolveOpenLinkId(session, loginResult, chatId))),
             )
           : await session.sendMessage(parseLong(chatId), text)
         const logId = longToString(response.body.logId)
