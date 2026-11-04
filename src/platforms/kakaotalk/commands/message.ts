@@ -91,11 +91,15 @@ function parseReplyTargetJson(raw: string): KakaoReplyTarget {
   }
 
   const { log_id, author_id, type, link_id } = value as Record<string, unknown>
-  // Media rows from `message list` can carry a null message; quote them with empty text.
-  const message = (value as Record<string, unknown>).message ?? ''
-  if (typeof message !== 'string') {
+  const rawMessage = (value as Record<string, unknown>).message
+  if (rawMessage === undefined) {
+    throw new Error('--reply-to-json is missing message')
+  }
+  if (rawMessage !== null && typeof rawMessage !== 'string') {
     throw new Error('--reply-to-json message must be a string')
   }
+  // Media rows from `message list` can carry a null message; quote them with empty text.
+  const message = rawMessage ?? ''
   if (typeof type !== 'number' || !Number.isInteger(type)) {
     throw new Error('--reply-to-json type must be an integer')
   }

@@ -234,6 +234,7 @@ describe('message commands', () => {
       ['a non-object', '[1,2]'],
       ['a missing log_id', '{"author_id":7,"message":"q","type":1}'],
       ['a missing author_id', '{"log_id":"42","message":"q","type":1}'],
+      ['a missing message', '{"log_id":"42","author_id":7,"type":1}'],
       ['a non-string message', '{"log_id":"42","author_id":7,"message":3,"type":1}'],
       ['a non-integer type', '{"log_id":"42","author_id":7,"message":"q","type":"1"}'],
       ['a non-integer link_id', '{"log_id":"42","author_id":7,"message":"q","type":1,"link_id":"abc"}'],

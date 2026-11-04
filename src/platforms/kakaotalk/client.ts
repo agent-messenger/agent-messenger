@@ -233,6 +233,23 @@ function parseLinkId(linkId: string): Long {
   }
 }
 
+// A caller-supplied reply link id skips every lookup and goes straight into
+// src_linkId, so it is checked strictly: exact decimal syntax, signed 64-bit
+// range, and positive. parseLong alone would turn '' into 0 and wrap
+// out-of-range values.
+function parseReplyLinkId(linkId: string): Long {
+  let digits: string
+  try {
+    digits = exactInteger(linkId).digits
+  } catch (cause) {
+    throw new KakaoTalkError(`Invalid linkId: ${linkId}`, 'invalid_link_id', { cause })
+  }
+  if (BigInt(digits) <= 0n) {
+    throw new KakaoTalkError(`Invalid linkId: ${linkId}`, 'invalid_link_id')
+  }
+  return parseLong(digits)
+}
+
 function formatChat(chat: ChatData, title: string | null, nameCache: MemberNameCache): KakaoChat {
   const memberNames = (chat.k ?? []) as string[]
   const lastLog = chat.l as Record<string, unknown> | null
@@ -1426,7 +1443,7 @@ export class KakaoTalkClient {
 
   async sendMessage(chatId: string, text: string, options?: { replyTo?: KakaoReplyTarget }): Promise<KakaoSendResult> {
     const replyTo = options?.replyTo
-    const replyLinkId = replyTo?.link_id !== undefined ? parseLinkId(replyTo.link_id) : undefined
+    const replyLinkId = replyTo?.link_id !== undefined ? parseReplyLinkId(replyTo.link_id) : undefined
 
     return this.executeWithReconnect(async ({ session, loginResult }) => {
       try {
