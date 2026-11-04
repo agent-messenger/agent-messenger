@@ -73,7 +73,8 @@ const results = await client.getChats({ search: 'Alice' })
 // link name via an additional INFOLINK call (only for OM / OD chats).
 const titled = await client.getChats({ resolveTitles: true })
 
-// Resolve a single chat's title directly (returns null on error or missing title)
+// Resolve a single chat's title directly (returns null on error or missing title).
+// Open chats absent from the login snapshot use the link id from CHATINFO.
 const title = await client.getChatTitle('9876543210')
 
 // Fetch one complete KakaoChat directly via read-only CHATINFO.
