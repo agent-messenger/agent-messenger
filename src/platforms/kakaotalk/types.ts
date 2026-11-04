@@ -236,6 +236,9 @@ export interface KakaoReplyTarget {
   author_id: number | string | bigint | { low: number; high: number; unsigned?: boolean }
   message: string
   type: number
+  // Open-chat link id as a decimal string. When omitted, the SDK resolves it
+  // from the login snapshot or a read-only CHATINFO lookup.
+  link_id?: string
 }
 
 export interface KakaoMarkReadResult {

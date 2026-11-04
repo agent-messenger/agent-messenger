@@ -2659,6 +2659,61 @@ describe('KakaoTalkClient', () => {
         expect(mockSendReply.mock.calls[0]?.[2]).toMatchObject({ src_linkId: '474619593' })
         client.close()
       })
+
+      it('uses a caller-supplied link_id exactly and skips CHATINFO', async () => {
+        mockLogin.mockResolvedValueOnce({ ...DEFAULT_LOGIN_RESULT, chatDatas: [] })
+        mockSendReply.mockResolvedValueOnce({ statusCode: 0, body: { logId: makeLong(58), sendAt: 1700000108 } })
+        const client = await new KakaoTalkClient().login({
+          oauthToken: 'token',
+          userId: 'user1',
+          deviceUuid: 'device1',
+        })
+
+        const result = await client.sendMessage('300', 'reply', {
+          replyTo: { ...replyTo, link_id: '9007199254740993' },
+        })
+
+        expect(mockGetChannelInfo).not.toHaveBeenCalled()
+        expect(mockSendReply.mock.calls[0]?.[2]).toMatchObject({ src_linkId: '9007199254740993' })
+        expect(result.success).toBe(true)
+        client.close()
+      })
+    })
+
+    it('rejects an invalid reply link_id before sending', async () => {
+      const client = await new KakaoTalkClient().login({ oauthToken: 'token', userId: 'user1', deviceUuid: 'device1' })
+
+      const error = await client
+        .sendMessage('300', 'reply', {
+          replyTo: { log_id: '42', author_id: 7, message: 'original', type: 1, link_id: 'not-a-number' },
+        })
+        .catch((e: unknown) => e)
+
+      expect(error).toBeInstanceOf(KakaoTalkError)
+      expect((error as KakaoTalkError).code).toBe('invalid_link_id')
+      expect(mockSendReply).not.toHaveBeenCalled()
+      client.close()
+    })
+
+    it.each([
+      ['an empty string', ''],
+      ['zero', '0'],
+      ['a negative id', '-5'],
+      ['an id above the signed 64-bit range', '18446744073709551617'],
+    ])('rejects a reply link_id that is %s without CHATINFO or WRITE', async (_label, linkId) => {
+      const client = await new KakaoTalkClient().login({ oauthToken: 'token', userId: 'user1', deviceUuid: 'device1' })
+
+      const error = await client
+        .sendMessage('300', 'reply', {
+          replyTo: { log_id: '42', author_id: 7, message: 'original', type: 1, link_id: linkId },
+        })
+        .catch((e: unknown) => e)
+
+      expect(error).toBeInstanceOf(KakaoTalkError)
+      expect((error as KakaoTalkError).code).toBe('invalid_link_id')
+      expect(mockGetChannelInfo).not.toHaveBeenCalled()
+      expect(mockSendReply).not.toHaveBeenCalled()
+      client.close()
     })
 
     it('mirrors the source message type into attach_type/src_type', async () => {

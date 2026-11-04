@@ -207,6 +207,13 @@ agent-kakaotalk message list <chat-id> --pretty
 agent-kakaotalk message send <chat-id> "Hello world"
 agent-kakaotalk message send <chat-id> "Hello world" --pretty
 
+# Send a quoted reply (looks the target up in the latest 100 messages)
+agent-kakaotalk message send <chat-id> "Replying to this" --reply-to <log-id>
+
+# Send a quoted reply to a target you already have (no history lookup)
+agent-kakaotalk message send <chat-id> "Replying to this" \
+  --reply-to-json '{"log_id":"<log-id>","author_id":<author-id>,"message":"<target text>","type":1}'
+
 # Send a file (auto-routes by MIME: photo / video / audio / generic file)
 agent-kakaotalk message upload <chat-id> ./photo.jpg
 agent-kakaotalk message upload <chat-id> ./clip.mp4
@@ -234,6 +241,8 @@ agent-kakaotalk message send <chat-id> "Hello" --account <account-id>
 agent-kakaotalk message upload <chat-id> ./photo.jpg --account <account-id>
 agent-kakaotalk message typing <chat-id> --account <account-id>
 ```
+
+`--reply-to <log-id>` builds the quote from the chat's latest 100 messages and errors out if the target is not there. `--reply-to-json` takes the target as a JSON object (`log_id`, `author_id`, `message`, `type`, optional `link_id` for open chats) and sends without reading history, so it also works for older messages. Ids may be decimal strings or bare integers; large ids are parsed exactly. The two flags cannot be combined.
 
 > **No CLI command**: Read status is available only through the SDK: use [`getReadWatermarks` and `computeReadStatus`](../sdk/kakaotalk#read-status) to answer "who has read this message?". `getReadWatermarks` returns a one-time snapshot; the SDK does not keep it up to date. Because it sends `CHATONROOM`, which enters the room and may clear your own unread count (#315), call it once per chat per LOCO session. Your code owns the snapshot from then on: apply listener `read` events to your stored watermarks, only ever moving a watermark forward, instead of polling. On `disconnected`, discard the stored watermarks and seed each chat again after the reconnect.
 
