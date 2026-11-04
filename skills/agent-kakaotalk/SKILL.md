@@ -341,7 +341,7 @@ Each member includes:
 
 ### Open Chat Moderation (Kick)
 
-Open chats (오픈채팅) only. The account must be the room's host or a co-host. The open chat link ID is resolved from the chat ID automatically; regular chats fail with `Chat <chat-id> is not an open chat` before anything is sent.
+Open chats (오픈채팅) only. The account must be the room's host or a co-host. The open chat link ID is resolved from the chat ID automatically; regular chats fail with `Chat <chat-id> is not an open chat` before any moderation packet is sent. Only `member kick` (`KICKMEM`) has been used against a live server; the `member kick-list` (`KLSYNC`) and `member unkick` (`KLDELITEM`) request shapes and the kick-list response fields are unverified.
 
 ```bash
 # Preview only: without --force, prints a warning and exits 1 without connecting
@@ -395,6 +395,7 @@ Get `<user-id>` from `member list` (`user_id`) or from `message list` (`author_i
 
 - `nickname`, `chat_id`, `kicked_at` are `null` when the server omits them.
 - When the server rejects the request (for example, the account is not the host or a co-host), the output has `success: false` and the server's non-zero `status_code`, and the process exits non-zero. `kick-list` returns an empty `members` array in that case.
+- If a successful `kick-list` response has no `kickMembers` array, the command fails with `get_kick_list_failed` instead of reporting an empty list, because the response shape is unverified.
 
 **Agent rule**: Never pass `--force` to `member kick` unless the user explicitly asked to kick that specific member. Confirm the target with `member list` first.
 

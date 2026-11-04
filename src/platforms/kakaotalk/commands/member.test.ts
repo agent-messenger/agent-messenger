@@ -93,9 +93,11 @@ describe('member commands', () => {
     process.exit = originalExit
   })
 
+  const EXIT_SENTINEL = 'process.exit called'
+
   function stubExit(): ReturnType<typeof mock> {
     const exitSpy = mock((_code?: number): never => {
-      throw new Error('process.exit called')
+      throw new Error(EXIT_SENTINEL)
     })
     process.exit = exitSpy as unknown as typeof process.exit
     return exitSpy
@@ -104,8 +106,9 @@ describe('member commands', () => {
   async function parseExpectingExit(args: string[]): Promise<void> {
     try {
       await memberCommand.parseAsync(args, { from: 'user' })
-    } catch {
-      // process.exit stub throws to abort the action
+    } catch (error) {
+      // The process.exit stub throws to abort the action; anything else is a real failure.
+      if (!(error instanceof Error) || error.message !== EXIT_SENTINEL) throw error
     }
   }
 
@@ -146,6 +149,7 @@ describe('member commands', () => {
       await parseExpectingExit(['kick', '300', '42'])
 
       expect(exitSpy).toHaveBeenCalledWith(1)
+      expect(exitSpy).toHaveBeenCalledTimes(1)
       expect(mockWithKakaoClient).not.toHaveBeenCalled()
       expect(mockKickMember).not.toHaveBeenCalled()
       const output = JSON.parse(consoleLogSpy.mock.calls[0][0])
@@ -183,9 +187,29 @@ describe('member commands', () => {
       await parseExpectingExit(['kick', '300', '42', '--force'])
 
       expect(exitSpy).toHaveBeenCalledWith(1)
+      expect(exitSpy).toHaveBeenCalledTimes(1)
       const output = JSON.parse(consoleLogSpy.mock.calls[0][0])
       expect(output.success).toBe(false)
       expect(output.status_code).toBe(-805)
+    })
+
+    it('reports a thrown client error on stderr and exits 1', async () => {
+      mockKickMember.mockImplementationOnce(() => Promise.reject(new Error('KICKMEM failed: connection closed')))
+      const exitSpy = stubExit()
+      const originalStderrWrite = process.stderr.write
+      const stderrSpy = mock((_chunk: unknown) => true)
+      process.stderr.write = stderrSpy as unknown as typeof process.stderr.write
+
+      try {
+        await parseExpectingExit(['kick', '300', '42', '--force'])
+      } finally {
+        process.stderr.write = originalStderrWrite
+      }
+
+      expect(exitSpy).toHaveBeenCalledWith(1)
+      expect(exitSpy).toHaveBeenCalledTimes(1)
+      expect(consoleLogSpy).not.toHaveBeenCalled()
+      expect(String(stderrSpy.mock.calls[0][0])).toContain('KICKMEM failed: connection closed')
     })
   })
 
@@ -208,6 +232,7 @@ describe('member commands', () => {
       await parseExpectingExit(['kick-list', '300'])
 
       expect(exitSpy).toHaveBeenCalledWith(1)
+      expect(exitSpy).toHaveBeenCalledTimes(1)
     })
   })
 
@@ -229,6 +254,7 @@ describe('member commands', () => {
       await parseExpectingExit(['unkick', '300', '42'])
 
       expect(exitSpy).toHaveBeenCalledWith(1)
+      expect(exitSpy).toHaveBeenCalledTimes(1)
     })
   })
 })

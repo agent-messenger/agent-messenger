@@ -47,14 +47,18 @@ async function kickAction(
     process.exit(1)
   }
 
+  let success: boolean
   try {
     const result = await withKakaoClient(options, (client) => client.kickMember(chatId, userId))
     console.log(formatOutput(result, options.pretty))
-    if (!result.success) {
-      process.exit(1)
-    }
+    success = result.success
   } catch (error) {
     handleError(error as Error)
+    return
+  }
+  // Exit outside the try so a server rejection is not also reported by handleError.
+  if (!success) {
+    process.exit(1)
   }
 }
 
@@ -65,14 +69,18 @@ async function kickListAction(
     pretty?: boolean
   },
 ): Promise<void> {
+  let success: boolean
   try {
     const result = await withKakaoClient(options, (client) => client.getKickList(chatId))
     console.log(formatOutput(result, options.pretty))
-    if (!result.success) {
-      process.exit(1)
-    }
+    success = result.success
   } catch (error) {
     handleError(error as Error)
+    return
+  }
+  // Exit outside the try so a server rejection is not also reported by handleError.
+  if (!success) {
+    process.exit(1)
   }
 }
 
@@ -84,14 +92,18 @@ async function unkickAction(
     pretty?: boolean
   },
 ): Promise<void> {
+  let success: boolean
   try {
     const result = await withKakaoClient(options, (client) => client.unkickMember(chatId, userId))
     console.log(formatOutput(result, options.pretty))
-    if (!result.success) {
-      process.exit(1)
-    }
+    success = result.success
   } catch (error) {
     handleError(error as Error)
+    return
+  }
+  // Exit outside the try so a server rejection is not also reported by handleError.
+  if (!success) {
+    process.exit(1)
   }
 }
 

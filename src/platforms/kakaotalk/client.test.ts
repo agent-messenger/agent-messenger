@@ -2954,14 +2954,25 @@ describe('KakaoTalkClient', () => {
         client.close()
       })
 
-      it('returns an empty list when kickMembers is absent', async () => {
+      it('returns an empty list when kickMembers is an empty array', async () => {
         mockLogin.mockResolvedValueOnce(openChatLogin())
-        mockGetKickList.mockResolvedValueOnce({ statusCode: 0, body: { status: 0 } })
+        mockGetKickList.mockResolvedValueOnce({ statusCode: 0, body: { status: 0, kickMembers: [] } })
         const client = await loginClient()
 
         const result = await client.getKickList('300')
 
         expect(result).toEqual({ success: true, status_code: 0, chat_id: '300', members: [] })
+        client.close()
+      })
+
+      it('throws when a successful response has no kickMembers array', async () => {
+        mockLogin.mockResolvedValueOnce(openChatLogin())
+        mockGetKickList.mockResolvedValueOnce({ statusCode: 0, body: { status: 0 } })
+        const client = await loginClient()
+
+        const error = await expectKakaoError(client.getKickList('300'), 'get_kick_list_failed')
+
+        expect(error.message).toContain('kickMembers')
         client.close()
       })
 

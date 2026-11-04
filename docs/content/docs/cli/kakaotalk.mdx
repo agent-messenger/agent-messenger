@@ -252,7 +252,10 @@ agent-kakaotalk member unkick <chat-id> <user-id> --account <account-id>
 `nickname`, `chat_id`, and `kicked_at` are `null` when the server omits them.
 A server rejection (for example, missing host or co-host permission) is
 reported as `success: false` with the server's non-zero `status_code`, and the
-process exits non-zero.
+process exits non-zero. Only `member kick` has been used against a live server;
+the `KLSYNC` and `KLDELITEM` request shapes and the kick-list response fields
+are unverified, so a successful `kick-list` response without a `kickMembers`
+array fails with `get_kick_list_failed` instead of returning an empty list.
 
 | Command            | LOCO opcode |
 | ------------------ | ----------- |

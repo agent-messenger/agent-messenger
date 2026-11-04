@@ -1952,6 +1952,11 @@ export class KakaoTalkClient {
         const response = await session.getKickList(linkId)
         const status = moderationStatus(response, 'KLSYNC')
         const raw = status === 0 ? response.body.kickMembers : undefined
+        // The KLSYNC response shape is unverified against a live server. Fail loudly
+        // instead of reporting an empty list when the field is missing or renamed.
+        if (status === 0 && !Array.isArray(raw)) {
+          throw new LocoResponseError('KLSYNC failed: kickMembers missing from response', 'transient_or_unknown')
+        }
         const members = Array.isArray(raw)
           ? raw
               .filter((entry): entry is Record<string, unknown> => !!entry && typeof entry === 'object')

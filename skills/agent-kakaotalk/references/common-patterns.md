@@ -436,8 +436,15 @@ fi
 agent-kakaotalk member kick "$CHAT_ID" "$USER_ID"
 
 # Irreversible: removes the member and blocks them from rejoining via the link
+# A server rejection prints JSON with status_code on stdout; auth or transport
+# failures print nothing on stdout (the error goes to stderr).
 if ! RESULT=$(agent-kakaotalk member kick "$CHAT_ID" "$USER_ID" --force); then
-  echo "Kick rejected: $(echo "$RESULT" | jq -r '.status_code // empty')" >&2
+  STATUS=$(echo "$RESULT" | jq -r '.status_code // empty' 2>/dev/null)
+  if [ -n "$STATUS" ]; then
+    echo "Kick rejected by server: status_code=$STATUS" >&2
+  else
+    echo "Kick failed before reaching the server (see error above)" >&2
+  fi
   exit 1
 fi
 
@@ -452,6 +459,7 @@ Notes:
 
 - Only works in open chats, and only when the account is the host or a co-host. Regular chats fail with `Chat <chat-id> is not an open chat`; missing permission comes back as `success: false` with a non-zero `status_code`.
 - Match members by `user_id`, not nickname: open-chat nicknames are not unique.
+- Only `member kick` (`KICKMEM`) has been used against a live server. The `member kick-list` (`KLSYNC`) and `member unkick` (`KLDELITEM`) request shapes and the kick-list response fields are unverified; a successful `kick-list` response without a `kickMembers` array fails with `get_kick_list_failed` rather than returning an empty list.
 - Agents must not add `--force` unless the user explicitly asked to kick that member.
 
 ## Best Practices

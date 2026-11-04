@@ -243,6 +243,7 @@ Errors:
 
 - Regular (non-open) chats throw `KakaoTalkError('not_open_chat')` before any moderation packet is sent.
 - Server rejections (for example, missing host or co-host permission) do not throw: they return `success: false` with the server's non-zero `status_code`. `getKickList` returns an empty `members` array in that case.
+- A successful `KLSYNC` response without a `kickMembers` array throws `get_kick_list_failed` instead of returning an empty list. Only `kickMember` (`KICKMEM`) has been used against a live server; the `KLSYNC` and `KLDELITEM` request shapes and the kick-list response fields are unverified.
 - Transport failures, including the synthetic `-1` LocoConnection emits on disconnect, throw `kick_member_failed` / `get_kick_list_failed` / `unkick_member_failed` so `executeWithReconnect` can retry on a fresh session.
 - Non-numeric `chatId` / `userId` throw `invalid_chat_id` / `invalid_user_id`.
 
