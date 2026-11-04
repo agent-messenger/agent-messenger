@@ -489,7 +489,7 @@ Output (JSON by default; `--pretty` pretty-prints the same JSON):
 
 Errors are printed as `{"error": "..."}` and the process exits non-zero:
 - A non-zero LOCO status from the server is reported as `{"error": "ACTION failed: statusCode=<n>"}`.
-- A non-numeric `<chat-id>` or `--link-id` is rejected before anything is sent (`invalid_chat_id` / `invalid_link_id`).
+- A non-numeric `<chat-id>` or `--link-id` is rejected before the typing `ACTION` is sent (`invalid_chat_id` / `invalid_link_id`).
 
 Notes:
 - One pulse lasts about 5 seconds on the recipient's client. To keep the indicator up while you prepare a long reply, call it again every few seconds and stop once the reply is sent.

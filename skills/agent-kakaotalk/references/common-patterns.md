@@ -404,19 +404,32 @@ send_with_retry "9876543210" "Important message!"
 #!/bin/bash
 
 CHAT_ID="9876543210"
+LINK_ID=""   # open chats only: the room's `li`; leave empty for normal chats
+
+TYPING_ARGS=("$CHAT_ID")
+if [ -n "$LINK_ID" ]; then
+  TYPING_ARGS+=(--link-id "$LINK_ID")
+fi
 
 # One pulse shows the "..." indicator for about 5 seconds
-agent-kakaotalk message typing "$CHAT_ID"
+agent-kakaotalk message typing "${TYPING_ARGS[@]}" > /dev/null
 
-# Keep it up while the reply is generated, then stop
-( while true; do agent-kakaotalk message typing "$CHAT_ID" > /dev/null; sleep 4; done ) &
+# Keep it up while the reply is generated
+( while true; do agent-kakaotalk message typing "${TYPING_ARGS[@]}" > /dev/null; sleep 4; done ) &
 TYPING_PID=$!
-REPLY=$(generate_reply)   # your slow step
-kill "$TYPING_PID"
-agent-kakaotalk message send "$CHAT_ID" "$REPLY"
 
-# Open chats need the room's link id
-agent-kakaotalk message typing "$CHAT_ID" --link-id "$LINK_ID"
+# Stop the loop on normal exit and on Ctrl-C / kill, so it never outlives the script
+stop_typing() {
+  kill "$TYPING_PID" 2>/dev/null
+  wait "$TYPING_PID" 2>/dev/null
+}
+trap stop_typing EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
+
+REPLY=$(generate_reply)   # your slow step
+stop_typing
+agent-kakaotalk message send "$CHAT_ID" "$REPLY"
 ```
 
 **When to use**: Only right before you actually reply. An indicator with no message after it looks broken.

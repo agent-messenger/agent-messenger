@@ -257,9 +257,13 @@ describe('message commands', () => {
       })
       process.exit = exitSpy as unknown as typeof process.exit
 
-      await messageCommand.parseAsync(['typing', 'chat-123'], { from: 'user' })
+      try {
+        await messageCommand.parseAsync(['typing', 'chat-123'], { from: 'user' })
 
-      expect(exitSpy).not.toHaveBeenCalled()
+        expect(exitSpy).not.toHaveBeenCalled()
+      } finally {
+        process.exit = originalExit
+      }
     })
 
     it('exits non-zero when result.success is false', async () => {
@@ -272,12 +276,16 @@ describe('message commands', () => {
       )
 
       try {
-        await messageCommand.parseAsync(['typing', 'chat-123'], { from: 'user' })
-      } catch {
-        // process.exit stub throws to abort the action
-      }
+        try {
+          await messageCommand.parseAsync(['typing', 'chat-123'], { from: 'user' })
+        } catch {
+          // process.exit stub throws to abort the action
+        }
 
-      expect(exitSpy).toHaveBeenCalledWith(1)
+        expect(exitSpy).toHaveBeenCalledWith(1)
+      } finally {
+        process.exit = originalExit
+      }
     })
 
     it('routes SDK errors through handleError and exits non-zero', async () => {
@@ -288,13 +296,17 @@ describe('message commands', () => {
       mockSendTyping.mockImplementationOnce(() => Promise.reject(new Error('ACTION failed: statusCode=-500')))
 
       try {
-        await messageCommand.parseAsync(['typing', 'chat-123'], { from: 'user' })
-      } catch {
-        // process.exit stub throws to abort the action
-      }
+        try {
+          await messageCommand.parseAsync(['typing', 'chat-123'], { from: 'user' })
+        } catch {
+          // process.exit stub throws to abort the action
+        }
 
-      expect(exitSpy).toHaveBeenCalledWith(1)
-      expect(consoleLogSpy).not.toHaveBeenCalled()
+        expect(exitSpy).toHaveBeenCalledWith(1)
+        expect(consoleLogSpy).not.toHaveBeenCalled()
+      } finally {
+        process.exit = originalExit
+      }
     })
 
     it('passes account option to withKakaoClient', async () => {
