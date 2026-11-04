@@ -401,9 +401,11 @@ If the `log_id` is not found in the latest 100 messages, the command errors out 
 
 In open chats (오픈채팅) the reply also carries the room's link id as `src_linkId`. The CLI resolves it on its own: from the login snapshot when the room is there, otherwise through a read-only `CHATINFO` lookup that does not change read state. You never pass `--link-id` for a reply. The open-chat reply bubble itself has not been checked against a live server yet.
 
+A send counts as delivered only when the server returns a non-zero `log_id`. A `WRITE` acknowledgment with `status_code: 0` but `log_id: "0"` is reported as `"success": false` and the process exits non-zero, because no message was created.
+
 #### Mentioning Users
 
-`--mention <user-id>` tags a member so KakaoTalk renders the `@name` as a mention and notifies them. The text must already contain `@<name>` for every mentioned user. Repeat the flag to tag several users, and combine it with `--reply-to` to mention someone inside a quoted reply.
+`--mention <user-id>` tags a member so KakaoTalk renders the `@name` as a mention and notifies them. The text must already contain `@<name>` for every mentioned user. Repeat the flag to tag several users. The CLI also accepts `--mention` together with `--reply-to`, but mentions inside a quoted reply have not yet been verified against a live server.
 
 ```bash
 # Name is looked up from the chat's member list (the member's nickname in this chat)
@@ -417,11 +419,10 @@ agent-kakaotalk message send <chat-id> "@Alice agreed" --reply-to <log-id> --men
 ```
 
 - A bare `<user-id>` is resolved to that member's nickname in the chat. If the nickname cannot be resolved, the command errors out without sending; pass `<user-id>:<name>` instead.
-- Every mentioned `@<name>` must appear in the text. If one is missing, the command errors out (`invalid_mention`) without sending.
+- Every mentioned `@<name>` must appear in the text as a whole tag. If one is missing, the command errors out without sending and names the missing `@<name>`. A Latin name followed directly by another Latin letter or digit does not count (`@Kimberly` does not tag `Kim`).
+- Two different users with the same name cannot be told apart, so the command errors out without sending.
 - The same user can be tagged more than once in one message; each `@<name>` occurrence is tagged.
 - Output is the same send result as a plain `message send`.
-
-A send counts as delivered only when the server returns a non-zero `log_id`. A `WRITE` acknowledgment with `status_code: 0` but `log_id: "0"` is reported as `"success": false` and the process exits non-zero, because no message was created.
 
 #### Sending Attachments
 
@@ -594,7 +595,7 @@ Common errors:
 - `registration_timeout` — passcode expired before user confirmed on phone.
 - `login_http_error` — network issue reaching KakaoTalk servers.
 - `LOCO packet timeout` — messaging protocol timed out (server may be overloaded).
-- `invalid_mention` / `Could not resolve a nickname for --mention ...` — a `--mention` target's `@<name>` is not in the text, or its nickname could not be looked up. Nothing was sent. Fix the text or pass `--mention <user-id>:<name>`.
+- `Message text does not contain "@<name>" for user ...` / `Could not resolve a nickname for --mention ...` — a `--mention` target's `@<name>` is not in the text, or its nickname could not be looked up. Nothing was sent. Fix the text or pass `--mention <user-id>:<name>`.
 
 ## Configuration
 

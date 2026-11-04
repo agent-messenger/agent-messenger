@@ -242,7 +242,7 @@ agent-kakaotalk message upload <chat-id> ./photo.jpg --account <account-id>
 
 #### Mentioning Users
 
-`--mention <user-id>` tags a member so KakaoTalk renders the `@name` as a mention and notifies them. The text must already contain `@<name>` for every mentioned user. Repeat the flag to tag several users, and combine it with `--reply-to` to mention someone inside a quoted reply.
+`--mention <user-id>` tags a member so KakaoTalk renders the `@name` as a mention and notifies them. The text must already contain `@<name>` for every mentioned user. Repeat the flag to tag several users. The CLI also accepts `--mention` together with `--reply-to`, but mentions inside a quoted reply have not yet been verified against a live server.
 
 ```bash
 # Name is looked up from the chat's member list (the member's nickname in this chat)
@@ -256,7 +256,8 @@ agent-kakaotalk message send <chat-id> "@Alice agreed" --reply-to <log-id> --men
 ```
 
 - A bare `<user-id>` is resolved to that member's nickname in the chat. If the nickname cannot be resolved, the command errors out without sending; pass `<user-id>:<name>` instead.
-- Every mentioned `@<name>` must appear in the text. If one is missing, the command errors out (`invalid_mention`) without sending.
+- Every mentioned `@<name>` must appear in the text as a whole tag. If one is missing, the command errors out without sending and names the missing `@<name>`. A Latin name followed directly by another Latin letter or digit does not count (`@Kimberly` does not tag `Kim`).
+- Two different users with the same name cannot be told apart, so the command errors out without sending.
 - The same user can be tagged more than once in one message; each `@<name>` occurrence is tagged.
 - Output is the same send result as a plain `message send`.
 

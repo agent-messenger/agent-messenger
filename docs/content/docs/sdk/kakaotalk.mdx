@@ -187,14 +187,16 @@ await client.sendMessage('9876543210', '@Alice @Bob standup in 5', {
   ],
 })
 
-// Mentions combine with quoted replies
+// Mentions combine with quoted replies (not yet verified against a live server)
+const recent = await client.getMessages('9876543210', { count: 100 })
+const replyTo = recent.find((m) => m.log_id === '123456789')! // KakaoMessage satisfies KakaoReplyTarget
 await client.sendMessage('9876543210', '@Alice agreed', {
   replyTo,
   mentions: [{ user_id: '1234567890', name: 'Alice' }],
 })
 ```
 
-`mentions` takes `KakaoMentionInput[]` (`{ user_id, name }`). The SDK finds each `@<name>` in the text, computes the `at`/`len` that KakaoTalk expects, and writes `user_id` as an exact 64-bit integer into the WRITE `extra`. If a name is not found in the text, `sendMessage` throws `KakaoTalkError('invalid_mention')` before anything is sent. When names share a prefix (`@Kim` vs `@Kimberly`), each `@` goes to the longest matching name. To tag by id only, resolve the nickname first, e.g. with `getMembersByIds(chatId, [userId])`.
+`mentions` takes `KakaoMentionInput[]` (`{ user_id, name }`). The SDK finds each `@<name>` in the text, computes the `at`/`len` that KakaoTalk expects, and writes `user_id` as an exact 64-bit integer into the WRITE `extra`. If a name is not found in the text, or two different users share the same name, `sendMessage` throws `KakaoTalkError('invalid_mention')` before anything is sent. When names share a prefix (`@Kim` vs `@Kimberly`), each `@` goes to the longest matching name, and a name ending in a Latin letter or digit only matches when the next character is not another one (`@Kimberly` alone does not tag `Kim`). To tag by id only, resolve the nickname first, e.g. with `getMembersByIds(chatId, [userId])`. `len` counts code points; that is verified for Hangul and Latin names, but not yet for names with characters outside the BMP (such as emoji). Mentions inside a quoted reply (`replyTo`, a `KakaoReplyTarget`; a `KakaoMessage` from `getMessages` fits it) are built the same way but have not yet been verified against a live server.
 
 `success` is `true` only when `status_code` is `0` and the server returned a non-zero `log_id`. An acknowledgment with `status_code: 0` and `log_id: '0'` created no message, so it is reported as `success: false`. Quoted replies (`sendMessage(chatId, text, { replyTo })`) in open chats get the room's `src_linkId` automatically, from the login snapshot or, when the room is missing there, from a read-only `CHATINFO` lookup.
 

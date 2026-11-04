@@ -3,7 +3,10 @@ import type { KakaoMention, KakaoMentionInput } from './types'
 
 // Counts a display name the way KakaoTalk's `len` field does for the names we
 // have verified (BMP-only, e.g. Hangul/Latin): one unit per code point. For BMP
-// text this is identical to UTF-16 length.
+// text this is identical to UTF-16 length. The unit for names with characters
+// outside the BMP (e.g. emoji) has not been verified against a live server;
+// code points are the best guess, since rejecting such names would block
+// common nicknames.
 function nameLength(name: string): number {
   return [...name].length
 }
@@ -15,6 +18,20 @@ function nameLength(name: string): number {
 // text) that start that user's tag, and `len` is the tagged name's length
 // without the `@`. When two targets' names share a prefix, the longest name
 // that matches at an `@` wins, so `@Kimberly` is never attributed to `Kim`.
+//
+// A match must also end the tag: when the name ends in a Latin letter or a
+// digit, the next character must not be one, so `@Kimberly` alone does not tag
+// `Kim`. Any other character may follow, because Korean particles attach
+// directly to a name, Latin or Hangul, with no space in between.
+const WORD_CONTINUATION = /[\p{Script=Latin}\p{N}_]/u
+
+function endsTag(text: string, end: number, name: string): boolean {
+  const next = text[end]
+  if (next === undefined) return true
+  const last = [...name].at(-1)!
+  return !(WORD_CONTINUATION.test(last) && WORD_CONTINUATION.test(next))
+}
+
 export function buildMentions(text: string, inputs: ReadonlyArray<KakaoMentionInput>): KakaoMention[] {
   const targets = new Map<string, { name: string; at: number[] }>()
   for (const input of inputs) {
@@ -31,14 +48,24 @@ export function buildMentions(text: string, inputs: ReadonlyArray<KakaoMentionIn
     if (existing && existing.name !== input.name) {
       throw new Error(`User ${userId} is mentioned with two different names`)
     }
-    if (!existing) targets.set(userId, { name: input.name, at: [] })
+    if (!existing) {
+      const sameName = [...targets].find(([, t]) => t.name === input.name)
+      if (sameName) {
+        throw new Error(
+          `Users ${sameName[0]} and ${userId} share the name "${input.name}", so their @ tags cannot be told apart`,
+        )
+      }
+      targets.set(userId, { name: input.name, at: [] })
+    }
   }
 
   const byLongestName = [...targets.values()].sort((a, b) => b.name.length - a.name.length)
   let ordinal = 0
   for (let i = text.indexOf('@'); i !== -1; i = text.indexOf('@', i + 1)) {
     ordinal++
-    byLongestName.find((t) => text.startsWith(t.name, i + 1))?.at.push(ordinal)
+    byLongestName
+      .find((t) => text.startsWith(t.name, i + 1) && endsTag(text, i + 1 + t.name.length, t.name))
+      ?.at.push(ordinal)
   }
 
   return [...targets].map(([userId, target]) => {

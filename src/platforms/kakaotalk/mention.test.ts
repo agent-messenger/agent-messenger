@@ -80,6 +80,42 @@ describe('buildMentions', () => {
       ]),
     ).toThrow('mentioned with two different names')
   })
+
+  it('does not attribute a longer Latin word to a shorter name', () => {
+    expect(() => buildMentions('@Kimberly hi', [{ user_id: '1', name: 'Kim' }])).toThrow(
+      'Message text does not contain "@Kim" for user 1',
+    )
+    expect(buildMentions('@Kimberly, @Kim: hi', [{ user_id: '1', name: 'Kim' }])).toEqual([
+      { user_id: '1', at: [2], len: 3 },
+    ])
+  })
+
+  it('accepts a tag followed by punctuation, whitespace, or end of text', () => {
+    expect(buildMentions('@Kim, @Kim. @Kim', [{ user_id: '1', name: 'Kim' }])).toEqual([
+      { user_id: '1', at: [1, 2, 3], len: 3 },
+    ])
+  })
+
+  it('accepts a Hangul particle attached directly after the name', () => {
+    expect(
+      buildMentions('@Alice님 @홍길동아', [
+        { user_id: '1', name: 'Alice' },
+        { user_id: '2', name: '홍길동' },
+      ]),
+    ).toEqual([
+      { user_id: '1', at: [1], len: 5 },
+      { user_id: '2', at: [2], len: 3 },
+    ])
+  })
+
+  it('throws when two different users share the same name', () => {
+    expect(() =>
+      buildMentions('@Kim @Kim', [
+        { user_id: '1', name: 'Kim' },
+        { user_id: '2', name: 'Kim' },
+      ]),
+    ).toThrow('Users 1 and 2 share the name "Kim"')
+  })
 })
 
 describe('extractMentions', () => {
