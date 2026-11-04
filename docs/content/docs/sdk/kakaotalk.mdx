@@ -119,7 +119,7 @@ Each `KakaoMessage` also carries an `attachment: Record<string, unknown> | null`
 The SDK passes these through without interpreting them. The scope/thread mapping above is observed behavior, not a documented protocol contract. Thread replies are a different feature from quoted replies (`type: 26`, which carry `attachment.src_logId`).
 
 ```typescript
-const messages = await client.getMessages(chatId, { count: 100 })
+const messages = await client.getMessages('9876543210', { count: 100 })
 const threadReplies = messages.filter((m) => m.scope === 3 && m.thread_id !== undefined)
 ```
 
