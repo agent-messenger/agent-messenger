@@ -16,12 +16,15 @@ const mockMarkRead = mock(() =>
   Promise.resolve({ success: true, status_code: 0, chat_id: 'chat-123', watermark: '42' }),
 )
 
+const mockSendTyping = mock(() => Promise.resolve({ success: true, status_code: 0, chat_id: 'chat-123' }))
+
 const originalExit = process.exit
 
 const mockClient = {
   getMessages: mockGetMessages,
   sendMessage: mockSendMessage,
   markRead: mockMarkRead,
+  sendTyping: mockSendTyping,
 }
 
 mock.module('./shared', () => ({
@@ -38,6 +41,7 @@ describe('message commands', () => {
     mockGetMessages.mockReset()
     mockSendMessage.mockReset()
     mockMarkRead.mockReset()
+    mockSendTyping.mockReset()
 
     mockWithKakaoClient.mockImplementation(async (_options: unknown, fn: (client: unknown) => Promise<unknown>) => {
       return fn(mockClient)
@@ -49,6 +53,7 @@ describe('message commands', () => {
     mockMarkRead.mockImplementation(() =>
       Promise.resolve({ success: true, status_code: 0, chat_id: 'chat-123', watermark: '42' }),
     )
+    mockSendTyping.mockImplementation(() => Promise.resolve({ success: true, status_code: 0, chat_id: 'chat-123' }))
 
     consoleLogSpy = mock((..._args: unknown[]) => {})
     console.log = consoleLogSpy
@@ -215,6 +220,85 @@ describe('message commands', () => {
 
     it('passes account option to withKakaoClient', async () => {
       await messageCommand.parseAsync(['mark-read', 'chat-123', '42', '--account', 'my-account'], { from: 'user' })
+
+      expect(mockWithKakaoClient).toHaveBeenCalledWith(
+        expect.objectContaining({ account: 'my-account' }),
+        expect.any(Function),
+      )
+    })
+  })
+
+  describe('typing', () => {
+    it('calls sendTyping with chat-id and no opts for normal chat', async () => {
+      await messageCommand.parseAsync(['typing', 'chat-123'], { from: 'user' })
+
+      expect(mockSendTyping).toHaveBeenCalledWith('chat-123', undefined)
+      const output = JSON.parse(consoleLogSpy.mock.calls[0][0])
+      expect(output).toEqual({ success: true, status_code: 0, chat_id: 'chat-123' })
+    })
+
+    it('forwards --link-id when provided (open chat)', async () => {
+      await messageCommand.parseAsync(['typing', 'chat-123', '--link-id', '77777'], { from: 'user' })
+
+      expect(mockSendTyping).toHaveBeenCalledWith('chat-123', { linkId: '77777' })
+    })
+
+    it('--pretty prints pretty-formatted JSON (consistent with send/mark-read)', async () => {
+      await messageCommand.parseAsync(['typing', 'chat-123', '--pretty'], { from: 'user' })
+
+      const printed = consoleLogSpy.mock.calls[0][0] as string
+      expect(printed).toContain('\n')
+      expect(JSON.parse(printed)).toEqual({ success: true, status_code: 0, chat_id: 'chat-123' })
+    })
+
+    it('exits zero on success', async () => {
+      const exitSpy = mock((_code?: number): never => {
+        throw new Error('process.exit called')
+      })
+      process.exit = exitSpy as unknown as typeof process.exit
+
+      await messageCommand.parseAsync(['typing', 'chat-123'], { from: 'user' })
+
+      expect(exitSpy).not.toHaveBeenCalled()
+    })
+
+    it('exits non-zero when result.success is false', async () => {
+      const exitSpy = mock((_code?: number): never => {
+        throw new Error('process.exit called')
+      })
+      process.exit = exitSpy as unknown as typeof process.exit
+      mockSendTyping.mockImplementationOnce(() =>
+        Promise.resolve({ success: false, status_code: -500, chat_id: 'chat-123' }),
+      )
+
+      try {
+        await messageCommand.parseAsync(['typing', 'chat-123'], { from: 'user' })
+      } catch {
+        // process.exit stub throws to abort the action
+      }
+
+      expect(exitSpy).toHaveBeenCalledWith(1)
+    })
+
+    it('routes SDK errors through handleError and exits non-zero', async () => {
+      const exitSpy = mock((_code?: number): never => {
+        throw new Error('process.exit called')
+      })
+      process.exit = exitSpy as unknown as typeof process.exit
+      mockSendTyping.mockImplementationOnce(() => Promise.reject(new Error('ACTION failed: statusCode=-500')))
+
+      try {
+        await messageCommand.parseAsync(['typing', 'chat-123'], { from: 'user' })
+      } catch {
+        // process.exit stub throws to abort the action
+      }
+
+      expect(exitSpy).toHaveBeenCalledWith(1)
+      expect(consoleLogSpy).not.toHaveBeenCalled()
+    })
+
+    it('passes account option to withKakaoClient', async () => {
+      await messageCommand.parseAsync(['typing', 'chat-123', '--account', 'my-account'], { from: 'user' })
 
       expect(mockWithKakaoClient).toHaveBeenCalledWith(
         expect.objectContaining({ account: 'my-account' }),

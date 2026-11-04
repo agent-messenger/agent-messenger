@@ -134,6 +134,23 @@ async function markReadAction(
   }
 }
 
+async function typingAction(
+  chatId: string,
+  options: { account?: string; linkId?: string; pretty?: boolean },
+): Promise<void> {
+  try {
+    const result = await withKakaoClient(options, (client) =>
+      client.sendTyping(chatId, options.linkId !== undefined ? { linkId: options.linkId } : undefined),
+    )
+    console.log(formatOutput(result, options.pretty))
+    if (!result.success) {
+      process.exit(1)
+    }
+  } catch (error) {
+    handleError(error as Error)
+  }
+}
+
 export const messageCommand = new Command('message')
   .description('KakaoTalk message commands')
   .addCommand(
@@ -178,4 +195,13 @@ export const messageCommand = new Command('message')
       .option('--link-id <li>', 'Open-chat link ID (REQUIRED for open chats / 오픈채팅)')
       .option('--pretty', 'Pretty print JSON output')
       .action(markReadAction),
+  )
+  .addCommand(
+    new Command('typing')
+      .description('Send a single typing-indicator pulse to a chat room (shows the "..." dots for ~5s)')
+      .argument('<chat-id>', 'Chat room ID')
+      .option('--account <id>', 'Use a specific KakaoTalk account')
+      .option('--link-id <li>', 'Open-chat link ID (open chats only)')
+      .option('--pretty', 'Pretty print JSON output')
+      .action(typingAction),
   )

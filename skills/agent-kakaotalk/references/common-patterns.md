@@ -396,7 +396,34 @@ send_with_retry "9876543210" "Important message!"
 
 **When to use**: Production scripts, critical notifications, unreliable networks.
 
-## Pattern 12: 64-bit IDs (log ids, open-chat user ids)
+## Pattern 12: Show "Typing..." While Preparing a Slow Reply
+
+**Use case**: A reply takes more than a few seconds to produce (search, summarization) and the room should see that something is happening.
+
+```bash
+#!/bin/bash
+
+CHAT_ID="9876543210"
+
+# One pulse shows the "..." indicator for about 5 seconds
+agent-kakaotalk message typing "$CHAT_ID"
+
+# Keep it up while the reply is generated, then stop
+( while true; do agent-kakaotalk message typing "$CHAT_ID" > /dev/null; sleep 4; done ) &
+TYPING_PID=$!
+REPLY=$(generate_reply)   # your slow step
+kill "$TYPING_PID"
+agent-kakaotalk message send "$CHAT_ID" "$REPLY"
+
+# Open chats need the room's link id
+agent-kakaotalk message typing "$CHAT_ID" --link-id "$LINK_ID"
+```
+
+**When to use**: Only right before you actually reply. An indicator with no message after it looks broken.
+
+**Note**: Each CLI call opens its own LOCO connection. If you pulse often, use the SDK (`client.sendTyping()` on one long-lived client) instead of a shell loop.
+
+## Pattern 13: 64-bit IDs (log ids, open-chat user ids)
 
 KakaoTalk ids are signed 64-bit integers, and real `log_id`s (~3.9e18) are larger than `Number.MAX_SAFE_INTEGER`. The SDK keeps them exact:
 
