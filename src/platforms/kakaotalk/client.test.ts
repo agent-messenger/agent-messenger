@@ -1150,6 +1150,145 @@ describe('KakaoTalkClient', () => {
       client.close()
     })
 
+    describe('open chat title without a link id in the login snapshot', () => {
+      it.each([
+        ['absent from the snapshot', []],
+        [
+          'present without li',
+          [{ c: 500, t: 'OM', k: [], i: [], a: 1, n: 0, o: 1700000000, l: null, ll: makeLong(1) }],
+        ],
+      ])('reads the link id from the CHATINFO response when the room is %s', async (_label, chatDatas) => {
+        mockLogin.mockResolvedValue({ ...DEFAULT_LOGIN_RESULT, chatDatas })
+        mockGetChannelInfo.mockResolvedValueOnce({
+          statusCode: 0,
+          body: { chatInfo: { chatId: 500, type: 'OM', li: 474619593, chatMetas: [] } },
+        })
+        mockGetOpenLinkInfo.mockResolvedValueOnce({ body: { ols: [{ ln: 'Open Group Title' }] } })
+
+        const client = await new KakaoTalkClient().login({
+          oauthToken: 'token',
+          userId: 'user1',
+          deviceUuid: 'device1',
+        })
+        const title = await client.getChatTitle('500')
+
+        expect(title).toBe('Open Group Title')
+        expect(mockGetChannelInfo).toHaveBeenCalledTimes(1)
+        expect(mockGetOpenLinkInfo).toHaveBeenCalledTimes(1)
+        expect(mockGetOpenLinkInfo).toHaveBeenCalledWith([Long.fromNumber(474619593)])
+
+        client.close()
+      })
+
+      it('prefers the snapshot link id when both are present', async () => {
+        mockLogin.mockResolvedValue({
+          ...DEFAULT_LOGIN_RESULT,
+          chatDatas: [{ c: 500, t: 'OM', li: makeLong(7777), k: [], i: [], a: 1, n: 0, o: 1700000000, l: null }],
+        })
+        mockGetChannelInfo.mockResolvedValueOnce({
+          statusCode: 0,
+          body: { chatInfo: { chatId: 500, type: 'OM', li: 8888, chatMetas: [] } },
+        })
+        mockGetOpenLinkInfo.mockResolvedValueOnce({ body: { ols: [{ ln: 'Open Group Title' }] } })
+
+        const client = await new KakaoTalkClient().login({
+          oauthToken: 'token',
+          userId: 'user1',
+          deviceUuid: 'device1',
+        })
+        const title = await client.getChatTitle('500')
+
+        expect(title).toBe('Open Group Title')
+        expect(mockGetOpenLinkInfo).toHaveBeenCalledWith([Long.fromNumber(7777)])
+
+        client.close()
+      })
+
+      it('does not call INFOLINK when CHATINFO reports a regular chat', async () => {
+        mockLogin.mockResolvedValue({ ...DEFAULT_LOGIN_RESULT, chatDatas: [] })
+        mockGetChannelInfo.mockResolvedValueOnce({
+          statusCode: 0,
+          body: { chatInfo: { chatId: 500, type: 'MultiChat', li: 474619593, chatMetas: [] } },
+        })
+
+        const client = await new KakaoTalkClient().login({
+          oauthToken: 'token',
+          userId: 'user1',
+          deviceUuid: 'device1',
+        })
+        const title = await client.getChatTitle('500')
+
+        expect(title).toBeNull()
+        expect(mockGetOpenLinkInfo).not.toHaveBeenCalled()
+
+        client.close()
+      })
+
+      it.each([
+        ['missing', undefined],
+        ['zero', 0],
+      ])('returns null without INFOLINK when the CHATINFO link id is %s', async (_label, li) => {
+        mockLogin.mockResolvedValue({ ...DEFAULT_LOGIN_RESULT, chatDatas: [] })
+        mockGetChannelInfo.mockResolvedValueOnce({
+          statusCode: 0,
+          body: { chatInfo: { chatId: 500, type: 'OD', li, chatMetas: [] } },
+        })
+
+        const client = await new KakaoTalkClient().login({
+          oauthToken: 'token',
+          userId: 'user1',
+          deviceUuid: 'device1',
+        })
+        const title = await client.getChatTitle('500')
+
+        expect(title).toBeNull()
+        expect(mockGetOpenLinkInfo).not.toHaveBeenCalled()
+
+        client.close()
+      })
+
+      it('returns null without INFOLINK when CHATINFO fails and the room is absent', async () => {
+        mockLogin.mockResolvedValue({ ...DEFAULT_LOGIN_RESULT, chatDatas: [] })
+        mockGetChannelInfo.mockRejectedValueOnce(new Error('Network error'))
+
+        const client = await new KakaoTalkClient().login({
+          oauthToken: 'token',
+          userId: 'user1',
+          deviceUuid: 'device1',
+        })
+        const title = await client.getChatTitle('500')
+
+        expect(title).toBeNull()
+        expect(mockGetOpenLinkInfo).not.toHaveBeenCalled()
+
+        client.close()
+      })
+
+      it('resolves open chat titles from CHATINFO in getChats({ resolveTitles })', async () => {
+        mockLogin.mockResolvedValue({
+          ...DEFAULT_LOGIN_RESULT,
+          chatDatas: [{ c: 500, t: 'OM', k: [], i: [], a: 1, n: 0, o: 1700000000, l: null, ll: makeLong(1) }],
+        })
+        mockGetChannelInfo.mockResolvedValueOnce({
+          statusCode: 0,
+          body: { chatInfo: { chatId: 500, type: 'OM', li: 474619593, chatMetas: [] } },
+        })
+        mockGetOpenLinkInfo.mockResolvedValueOnce({ body: { ols: [{ ln: 'Open Group Title' }] } })
+
+        const client = await new KakaoTalkClient().login({
+          oauthToken: 'token',
+          userId: 'user1',
+          deviceUuid: 'device1',
+        })
+        const chats = await client.getChats({ resolveTitles: true })
+
+        expect(chats.find((chat) => chat.chat_id === '500')?.title).toBe('Open Group Title')
+        expect(mockGetChannelInfo).toHaveBeenCalledTimes(1)
+
+        client.close()
+      })
+    })
+
     it('wraps getChatList failure as KakaoTalkError with code get_chats_failed', async () => {
       const loginResult = { ...DEFAULT_LOGIN_RESULT, eof: false }
       mockLogin.mockResolvedValue(loginResult)

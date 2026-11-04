@@ -398,6 +398,16 @@ async function resolveReplyLinkId(
   return getOpenLinkId({ li: info.li })
 }
 
+// Open chats carry no TITLE meta; their name lives on the open link. The login
+// snapshot may omit the room or its `li`, so fall back to the CHATINFO payload
+// already fetched for the title instead of issuing another request.
+function getTitleOpenLinkId(chat: ChatData | undefined, info: ChannelInfoData | undefined): Long | null {
+  const infoIsObject = info !== null && typeof info === 'object' && !Array.isArray(info)
+  const isOpen = (chat !== undefined && isOpenChat(chat)) || (infoIsObject && isOpenKakaoChatType(info.type))
+  if (!isOpen) return null
+  return (chat ? getOpenLinkId(chat) : null) ?? (infoIsObject ? getOpenLinkId({ li: info.li }) : null)
+}
+
 function getLoginMaxLogId(loginResult: LoginListResponse, chatId: string): Long | null {
   const chat = (loginResult.chatDatas ?? []).find((entry) => longToString(entry.c) === chatId)
   if (!chat) return null
@@ -1175,17 +1185,19 @@ export class KakaoTalkClient {
 
   private async fetchChatTitle(session: LocoSession, chatId: Long, chat: ChatData | undefined): Promise<string | null> {
     let title: string | null = null
+    let info: ChannelInfoData | undefined
     try {
       const response = await session.getChannelInfo(chatId)
-      title = extractTitle(response.body as Record<string, unknown>)
+      const body = response.body as Record<string, unknown>
+      info = (body as ChannelInfoResponse).chatInfo
+      title = extractTitle(body)
     } catch {
       title = null
     }
 
     if (title) return title
-    if (!chat || !isOpenChat(chat)) return null
 
-    const linkId = getOpenLinkId(chat)
+    const linkId = getTitleOpenLinkId(chat, info)
     if (!linkId) return null
 
     try {

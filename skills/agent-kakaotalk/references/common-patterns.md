@@ -304,7 +304,7 @@ echo "$UNREAD" | jq -r '.[] | "  \(.display_name // "Unknown") — \(.unread_cou
 
 By default, `chat list` returns `display_name` built from the chat's "display members" (a comma-joined nickname list — e.g. `"Alice, Bob, Charlie"`). The `--resolve-titles` flag fetches each chat's user-set title via the LOCO `CHATINFO` command and surfaces it in a separate `title` field.
 
-For open chats (`OM` / `OD`) without a user-set title, the CLI additionally consults the OpenLink record via `INFOLINK` and uses the link name as a fallback. This matches what KakaoTalk shows for open-chat rooms in the app sidebar.
+For open chats (`OM` / `OD`) without a user-set title, the CLI additionally consults the OpenLink record via `INFOLINK` and uses the link name as a fallback. This matches what KakaoTalk shows for open-chat rooms in the app sidebar. The open-chat type and link id are read from the chat data already in hand (login snapshot or `LCHATLIST` page) when present, and otherwise from the same `CHATINFO` response, so rooms missing from the login snapshot (or listed there without a link id) still resolve without an extra request.
 
 ```bash
 #!/bin/bash
