@@ -505,7 +505,7 @@ Each message includes:
 - `message` — message text content (empty string for non-text messages like stickers)
 - `attachment` — parsed JSON metadata for non-text messages (e.g. photo URL/dimensions, sticker path), or `null` for plain text. Shape varies by `type`; treat as an opaque object and narrow per message type.
 - `sent_at` — Unix timestamp (milliseconds)
-- `mentions` — present only when the message tags users: `[{ "user_id": "1234567890", "at": [1], "len": 5 }]`. `user_id` is the tagged user as an exact decimal string, `at` lists which `@` characters in `message` (1-based, counting every `@`) start that user's tag, and `len` is the tagged name's length without the `@`.
+- `mentions` — present only when the message tags users: `[{ "user_id": "1234567890", "at": [1], "len": 5 }]`. `user_id` is the tagged user as an exact decimal string, `at` lists which `@` characters in `message` (1-based, counting every `@`) start that user's tag, and `len` is the tagged name's length without the `@`. (Observed live only for a single leading mention, `at: [1]`; the ordinal rule for multiple `@` characters is not yet verified.)
 
 #### Fetching More Messages
 
