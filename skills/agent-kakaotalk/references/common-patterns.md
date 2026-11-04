@@ -412,6 +412,48 @@ agent-kakaotalk message list <chat-id> -n 50 \
   | jq -r --arg me "$MY_USER_ID" '.[] | select(.type == 26 and ((.attachment.src_userId | tostring) == $me)) | .log_id'
 ```
 
+## Pattern 13: Open Chat Moderation (Kick and Kick List)
+
+**Use case**: Remove a member from an open chat you host or co-host, review who is blocked, and let someone back in.
+
+```bash
+#!/bin/bash
+
+CHAT_ID="9876543210"
+NICKNAME="Spammer"
+
+# Resolve the user id from the member list. Use the string user_id field:
+# open-chat user ids can exceed 2^53, so do not round-trip them through a JS/jq number.
+USER_ID=$(agent-kakaotalk member list "$CHAT_ID" \
+  | jq -r --arg n "$NICKNAME" '[.[] | select(.nickname == $n)] | if length == 1 then .[0].user_id else empty end')
+
+if [ -z "$USER_ID" ]; then
+  echo "No unique member named $NICKNAME" >&2
+  exit 1
+fi
+
+# Without --force this only prints a preview and exits 1
+agent-kakaotalk member kick "$CHAT_ID" "$USER_ID"
+
+# Irreversible: removes the member and blocks them from rejoining via the link
+if ! RESULT=$(agent-kakaotalk member kick "$CHAT_ID" "$USER_ID" --force); then
+  echo "Kick rejected: $(echo "$RESULT" | jq -r '.status_code // empty')" >&2
+  exit 1
+fi
+
+# Who is blocked from rejoining?
+agent-kakaotalk member kick-list "$CHAT_ID" | jq -r '.members[] | "\(.user_id)\t\(.nickname // "-")"'
+
+# Allow them to rejoin (they must join again themselves)
+agent-kakaotalk member unkick "$CHAT_ID" "$USER_ID"
+```
+
+Notes:
+
+- Only works in open chats, and only when the account is the host or a co-host. Regular chats fail with `Chat <chat-id> is not an open chat`; missing permission comes back as `success: false` with a non-zero `status_code`.
+- Match members by `user_id`, not nickname: open-chat nicknames are not unique.
+- Agents must not add `--force` unless the user explicitly asked to kick that member.
+
 ## Best Practices
 
 ### 1. Cache Chat IDs

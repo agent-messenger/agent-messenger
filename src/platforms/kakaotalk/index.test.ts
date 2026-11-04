@@ -9,6 +9,9 @@ import {
   KakaoCredentialManager,
   KakaoChatSchema,
   KakaoConfigSchema,
+  KakaoKickedMemberSchema,
+  KakaoKickListSchema,
+  KakaoKickMemberResultSchema,
   KakaoLeaveChatResultSchema,
   KakaoMessagePageSchema,
   KakaoMessageSchema,
@@ -22,6 +25,7 @@ import {
   KakaoProfileSchema,
   KakaoTalkPushReadEventSchema,
   KakaoTypingResultSchema,
+  KakaoUnkickMemberResultSchema,
   refreshKakaoOAuthToken,
 } from '@/platforms/kakaotalk/index'
 
@@ -128,6 +132,20 @@ it('KakaoLeaveChatResultSchema is exported from barrel', () => {
 
 it('KakaoTypingResultSchema is exported from barrel', () => {
   expect(typeof KakaoTypingResultSchema.parse).toBe('function')
+})
+
+it('open chat moderation result schemas are exported from barrel', () => {
+  expect(typeof KakaoKickMemberResultSchema.parse).toBe('function')
+  expect(typeof KakaoUnkickMemberResultSchema.parse).toBe('function')
+  expect(typeof KakaoKickedMemberSchema.parse).toBe('function')
+  expect(
+    KakaoKickListSchema.parse({
+      success: true,
+      status_code: 0,
+      chat_id: '100',
+      members: [{ user_id: '42', nickname: null, chat_id: null, kicked_at: null }],
+    }).members,
+  ).toHaveLength(1)
 })
 
 it('Kakao OAuth refresh API is exported from barrel', () => {

@@ -219,6 +219,33 @@ const result = await client.leaveChat('9876543210')
 
 Leaves a chat room by its chat ID. Works on 1:1, group, open, and PlusChat rooms. Returns `success: true` on a successful leave. The departed chat is immediately evicted from the client's cached chat list — a subsequent `getChats()` call will not include it.
 
+### Open Chat Moderation
+
+```typescript
+// Kick a member (irreversible; also blocks them from rejoining via the link)
+const kicked = await client.kickMember('9876543210', '1234567890')
+// → KakaoKickMemberResult { success: true, status_code: 0, chat_id: '9876543210', user_id: '1234567890' }
+
+// List members on the kick list
+const kickList = await client.getKickList('9876543210')
+// → KakaoKickList { success: true, status_code: 0, chat_id: '9876543210', members: KakaoKickedMember[] }
+
+// Remove a member from the kick list so they can rejoin (does not re-add them)
+const unkicked = await client.unkickMember('9876543210', '1234567890')
+// → KakaoUnkickMemberResult { success: true, status_code: 0, chat_id: '9876543210', user_id: '1234567890' }
+```
+
+Open chats only; the account must be the room's host or a co-host. The open chat link ID is resolved from the chat ID (login snapshot first, then read-only `CHATINFO`), so callers pass only the chat ID. `kickMember` performs no confirmation of its own — gate it in your application.
+
+Each `KakaoKickedMember` has `user_id`, plus `nickname`, `chat_id`, and `kicked_at`, which are `null` when the server omits them.
+
+Errors:
+
+- Regular (non-open) chats throw `KakaoTalkError('not_open_chat')` before any moderation packet is sent.
+- Server rejections (for example, missing host or co-host permission) do not throw: they return `success: false` with the server's non-zero `status_code`. `getKickList` returns an empty `members` array in that case.
+- Transport failures, including the synthetic `-1` LocoConnection emits on disconnect, throw `kick_member_failed` / `get_kick_list_failed` / `unkick_member_failed` so `executeWithReconnect` can retry on a fresh session.
+- Non-numeric `chatId` / `userId` throw `invalid_chat_id` / `invalid_user_id`.
+
 ### Typing Indicator
 
 ```typescript
@@ -396,6 +423,10 @@ import type {
   KakaoReadWatermarks,
   KakaoSendResult,
   KakaoTypingResult,
+  KakaoKickMemberResult,
+  KakaoKickList,
+  KakaoKickedMember,
+  KakaoUnkickMemberResult,
   KakaoAccountCredentials,
   KakaoConfig,
   KakaoDeviceType,
@@ -414,6 +445,10 @@ import {
   KakaoMessageSchema,
   KakaoSendResultSchema,
   KakaoTypingResultSchema,
+  KakaoKickMemberResultSchema,
+  KakaoKickListSchema,
+  KakaoKickedMemberSchema,
+  KakaoUnkickMemberResultSchema,
   KakaoAccountCredentialsSchema,
   KakaoConfigSchema,
 } from 'agent-messenger/kakaotalk'

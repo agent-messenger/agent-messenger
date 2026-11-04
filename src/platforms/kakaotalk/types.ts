@@ -266,6 +266,34 @@ export interface KakaoTypingResult {
   chat_id: string
 }
 
+export interface KakaoKickMemberResult {
+  success: boolean
+  status_code: number
+  chat_id: string
+  user_id: string
+}
+
+export interface KakaoUnkickMemberResult {
+  success: boolean
+  status_code: number
+  chat_id: string
+  user_id: string
+}
+
+export interface KakaoKickedMember {
+  user_id: string
+  nickname: string | null
+  chat_id: string | null
+  kicked_at: number | null
+}
+
+export interface KakaoKickList {
+  success: boolean
+  status_code: number
+  chat_id: string
+  members: KakaoKickedMember[]
+}
+
 export const KakaoChatSchema = z.object({
   chat_id: z.string(),
   type: z.union([z.number(), z.string().min(1)]),
@@ -346,6 +374,34 @@ export const KakaoTypingResultSchema = z.object({
   success: z.boolean(),
   status_code: z.number(),
   chat_id: z.string(),
+})
+
+export const KakaoKickMemberResultSchema = z.object({
+  success: z.boolean(),
+  status_code: z.number(),
+  chat_id: z.string(),
+  user_id: z.string(),
+})
+
+export const KakaoUnkickMemberResultSchema = z.object({
+  success: z.boolean(),
+  status_code: z.number(),
+  chat_id: z.string(),
+  user_id: z.string(),
+})
+
+export const KakaoKickedMemberSchema = z.object({
+  user_id: z.string(),
+  nickname: z.string().nullable(),
+  chat_id: z.string().nullable(),
+  kicked_at: z.number().nullable(),
+})
+
+export const KakaoKickListSchema = z.object({
+  success: z.boolean(),
+  status_code: z.number(),
+  chat_id: z.string(),
+  members: z.array(KakaoKickedMemberSchema),
 })
 
 export interface KakaoProfile {

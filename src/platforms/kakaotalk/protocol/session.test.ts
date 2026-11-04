@@ -2,7 +2,15 @@ import { describe, expect, it, mock } from 'bun:test'
 
 import { Long } from 'bson'
 
-import { buildReplyWriteBody, buildTypingActionBody, sendTypingPacket, TYPING_ACTION_METHOD } from './session'
+import {
+  buildKickListDeleteBody,
+  buildKickListSyncBody,
+  buildKickMemberBody,
+  buildReplyWriteBody,
+  buildTypingActionBody,
+  sendTypingPacket,
+  TYPING_ACTION_METHOD,
+} from './session'
 import type { LocoPacket } from './types'
 
 type SentPacket = { method: string; body: Record<string, unknown> }
@@ -148,5 +156,40 @@ describe('reply WRITE wire contract', () => {
 
     expect(body.extra).toContain('"src_linkId":9007199254740993')
     expect(body).not.toHaveProperty('li')
+  })
+})
+
+describe('open chat moderation wire contract', () => {
+  it('KICKMEM body uses the short c/li/mid keys with full-width Longs', () => {
+    const body = buildKickMemberBody(
+      Long.fromString('459750513901477'),
+      Long.fromString('280368495100000'),
+      Long.fromString('7467363552057858123'),
+    )
+
+    expect(Object.keys(body).sort()).toEqual(['c', 'li', 'mid'])
+    expect((body.c as Long).toString()).toBe('459750513901477')
+    expect((body.li as Long).toString()).toBe('280368495100000')
+    expect((body.mid as Long).toString()).toBe('7467363552057858123')
+  })
+
+  it('KLSYNC body only carries the link id', () => {
+    const body = buildKickListSyncBody(Long.fromString('280368495100000'))
+
+    expect(Object.keys(body)).toEqual(['li'])
+    expect((body.li as Long).toString()).toBe('280368495100000')
+  })
+
+  it('KLDELITEM body uses the short li/c/kid keys with full-width Longs', () => {
+    const body = buildKickListDeleteBody(
+      Long.fromString('280368495100000'),
+      Long.fromString('459750513901477'),
+      Long.fromString('7467363552057858123'),
+    )
+
+    expect(Object.keys(body).sort()).toEqual(['c', 'kid', 'li'])
+    expect((body.li as Long).toString()).toBe('280368495100000')
+    expect((body.c as Long).toString()).toBe('459750513901477')
+    expect((body.kid as Long).toString()).toBe('7467363552057858123')
   })
 })

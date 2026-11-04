@@ -22,6 +22,9 @@ const mockSendReply = mock(() => Promise.resolve({}))
 const mockMarkRead = mock(() => Promise.resolve({}))
 const mockLeaveChat = mock(() => Promise.resolve({}))
 const mockSendTyping = mock(() => Promise.resolve({}))
+const mockKickMember = mock(() => Promise.resolve({}))
+const mockGetKickList = mock(() => Promise.resolve({}))
+const mockDeleteKickListItem = mock(() => Promise.resolve({}))
 const mockClose = mock(() => {})
 const mockOnClose = mock((_handler: () => void) => {})
 const mockOnPush = mock((_handler: (packet: unknown) => void) => {})
@@ -42,6 +45,9 @@ mock.module('./protocol/session', () => ({
     markRead = mockMarkRead
     leaveChat = mockLeaveChat
     sendTyping = mockSendTyping
+    kickMember = mockKickMember
+    getKickList = mockGetKickList
+    deleteKickListItem = mockDeleteKickListItem
     close = mockClose
     onClose = mockOnClose
     onPush = mockOnPush
@@ -84,6 +90,9 @@ function resetAllMocks() {
   mockMarkRead.mockReset()
   mockLeaveChat.mockReset()
   mockSendTyping.mockReset()
+  mockKickMember.mockReset()
+  mockGetKickList.mockReset()
+  mockDeleteKickListItem.mockReset()
   mockClose.mockReset()
   mockOnClose.mockReset()
   mockOnPush.mockReset()
@@ -2772,6 +2781,256 @@ describe('KakaoTalkClient', () => {
       }
 
       client.close()
+    })
+  })
+
+  describe('open chat moderation', () => {
+    const OPEN_CHAT = { c: 300, t: 'OM', k: ['Host'], i: [1], a: 2, n: 0, li: 474619593, ll: makeLong(10) }
+    const openChatLogin = () => ({ ...structuredClone(DEFAULT_LOGIN_RESULT), chatDatas: [OPEN_CHAT] })
+    const openChatInfo = {
+      statusCode: 0,
+      body: { chatInfo: { chatId: 300, type: 'OM', activeMembersCount: 2, li: 474619593 } },
+    }
+    const loginClient = () =>
+      new KakaoTalkClient().login({ oauthToken: 'token', userId: 'user1', deviceUuid: 'device1' })
+
+    async function expectKakaoError(promise: Promise<unknown>, code: string): Promise<KakaoTalkError> {
+      try {
+        await promise
+      } catch (e) {
+        expect(e).toBeInstanceOf(KakaoTalkError)
+        expect((e as KakaoTalkError).code).toBe(code)
+        return e as KakaoTalkError
+      }
+      throw new Error('expected to throw')
+    }
+
+    describe('kickMember', () => {
+      it('sends KICKMEM with the chat id, resolved link id, and user id', async () => {
+        mockLogin.mockResolvedValueOnce(openChatLogin())
+        mockKickMember.mockResolvedValueOnce({ statusCode: 0, body: { status: 0 } })
+        const client = await loginClient()
+
+        const result = await client.kickMember('300', '7467363552057858123')
+
+        expect(result).toEqual({ success: true, status_code: 0, chat_id: '300', user_id: '7467363552057858123' })
+        const [chatId, linkId, userId] = mockKickMember.mock.calls[0] as unknown as [Long, Long, Long]
+        expect(chatId.toString()).toBe('300')
+        expect(linkId.toString()).toBe('474619593')
+        expect(userId.toString()).toBe('7467363552057858123')
+        expect(mockGetChannelInfo).not.toHaveBeenCalled()
+        client.close()
+      })
+
+      it('resolves the link id through CHATINFO when the room is absent from LOGINLIST', async () => {
+        mockLogin.mockResolvedValueOnce({ ...structuredClone(DEFAULT_LOGIN_RESULT), chatDatas: [] })
+        mockGetChannelInfo.mockResolvedValueOnce(openChatInfo)
+        mockKickMember.mockResolvedValueOnce({ statusCode: 0, body: { status: 0 } })
+        const client = await loginClient()
+
+        const result = await client.kickMember('300', '42')
+
+        expect(mockGetChannelInfo).toHaveBeenCalledWith(Long.fromString('300'))
+        expect((mockKickMember.mock.calls[0] as unknown as Long[])[1]!.toString()).toBe('474619593')
+        expect(result.success).toBe(true)
+        client.close()
+      })
+
+      it('refuses regular chats with not_open_chat without sending KICKMEM', async () => {
+        const client = await loginClient()
+
+        await expectKakaoError(client.kickMember('100', '42'), 'not_open_chat')
+
+        expect(mockKickMember).not.toHaveBeenCalled()
+        client.close()
+      })
+
+      it('reports a body-level rejection (e.g. no host permission) as success: false', async () => {
+        mockLogin.mockResolvedValueOnce(openChatLogin())
+        mockKickMember.mockResolvedValueOnce({ statusCode: 0, body: { status: -805 } })
+        const client = await loginClient()
+
+        const result = await client.kickMember('300', '42')
+
+        expect(result).toEqual({ success: false, status_code: -805, chat_id: '300', user_id: '42' })
+        client.close()
+      })
+
+      it('reports a packet-level rejection as success: false', async () => {
+        mockLogin.mockResolvedValueOnce(openChatLogin())
+        mockKickMember.mockResolvedValueOnce({ statusCode: -500, body: {} })
+        const client = await loginClient()
+
+        const result = await client.kickMember('300', '42')
+
+        expect(result.success).toBe(false)
+        expect(result.status_code).toBe(-500)
+        client.close()
+      })
+
+      it('treats the synthetic disconnect packet as a transport failure (throws)', async () => {
+        mockLogin.mockResolvedValueOnce(openChatLogin())
+        mockKickMember.mockResolvedValueOnce({ statusCode: -1, body: { error: 'connection closed' } })
+        const client = await loginClient()
+
+        const error = await expectKakaoError(client.kickMember('300', '42'), 'kick_member_failed')
+
+        expect(error.responseFailureKind).toBe('transient_or_unknown')
+        client.close()
+      })
+
+      it('throws invalid_user_id for a non-numeric user id', async () => {
+        const client = await loginClient()
+
+        await expectKakaoError(client.kickMember('300', 'alice'), 'invalid_user_id')
+
+        expect(mockKickMember).not.toHaveBeenCalled()
+        client.close()
+      })
+
+      it('throws invalid_chat_id for a non-numeric chat id', async () => {
+        const client = await loginClient()
+
+        await expectKakaoError(client.kickMember('room', '42'), 'invalid_chat_id')
+        client.close()
+      })
+    })
+
+    describe('getKickList', () => {
+      it('sends KLSYNC with the resolved link id and maps long field names', async () => {
+        mockLogin.mockResolvedValueOnce(openChatLogin())
+        mockGetKickList.mockResolvedValueOnce({
+          statusCode: 0,
+          body: {
+            status: 0,
+            kickMembers: [
+              {
+                userId: { low: 0x4b, high: 0x67a0b3c1 },
+                nickName: 'Spammer',
+                kickedChannelId: 300,
+                kickedAt: 1700000000,
+              },
+            ],
+          },
+        })
+        const client = await loginClient()
+
+        const result = await client.getKickList('300')
+
+        expect((mockGetKickList.mock.calls[0] as unknown as Long[])[0]!.toString()).toBe('474619593')
+        expect(result).toEqual({
+          success: true,
+          status_code: 0,
+          chat_id: '300',
+          members: [
+            {
+              user_id: Long.fromBits(0x4b, 0x67a0b3c1).toString(),
+              nickname: 'Spammer',
+              chat_id: '300',
+              kicked_at: 1700000000,
+            },
+          ],
+        })
+        client.close()
+      })
+
+      it('accepts the short wire keys (kid, nickname, c) and nulls missing fields', async () => {
+        mockLogin.mockResolvedValueOnce(openChatLogin())
+        mockGetKickList.mockResolvedValueOnce({
+          statusCode: 0,
+          body: {
+            status: 0,
+            kickMembers: [{ kid: 42, nickname: 'Bob', c: 300 }, { kid: 43 }, { nickName: 'no id' }, null],
+          },
+        })
+        const client = await loginClient()
+
+        const result = await client.getKickList('300')
+
+        expect(result.members).toEqual([
+          { user_id: '42', nickname: 'Bob', chat_id: '300', kicked_at: null },
+          { user_id: '43', nickname: null, chat_id: null, kicked_at: null },
+        ])
+        client.close()
+      })
+
+      it('returns an empty list when kickMembers is absent', async () => {
+        mockLogin.mockResolvedValueOnce(openChatLogin())
+        mockGetKickList.mockResolvedValueOnce({ statusCode: 0, body: { status: 0 } })
+        const client = await loginClient()
+
+        const result = await client.getKickList('300')
+
+        expect(result).toEqual({ success: true, status_code: 0, chat_id: '300', members: [] })
+        client.close()
+      })
+
+      it('reports a rejection as success: false with no members', async () => {
+        mockLogin.mockResolvedValueOnce(openChatLogin())
+        mockGetKickList.mockResolvedValueOnce({ statusCode: 0, body: { status: -805, kickMembers: [{ kid: 1 }] } })
+        const client = await loginClient()
+
+        const result = await client.getKickList('300')
+
+        expect(result).toEqual({ success: false, status_code: -805, chat_id: '300', members: [] })
+        client.close()
+      })
+
+      it('refuses regular chats with not_open_chat', async () => {
+        const client = await loginClient()
+
+        await expectKakaoError(client.getKickList('100'), 'not_open_chat')
+
+        expect(mockGetKickList).not.toHaveBeenCalled()
+        client.close()
+      })
+    })
+
+    describe('unkickMember', () => {
+      it('sends KLDELITEM with the resolved link id, chat id, and user id', async () => {
+        mockLogin.mockResolvedValueOnce(openChatLogin())
+        mockDeleteKickListItem.mockResolvedValueOnce({ statusCode: 0, body: { status: 0 } })
+        const client = await loginClient()
+
+        const result = await client.unkickMember('300', '42')
+
+        expect(result).toEqual({ success: true, status_code: 0, chat_id: '300', user_id: '42' })
+        const [linkId, chatId, userId] = mockDeleteKickListItem.mock.calls[0] as unknown as [Long, Long, Long]
+        expect(linkId.toString()).toBe('474619593')
+        expect(chatId.toString()).toBe('300')
+        expect(userId.toString()).toBe('42')
+        client.close()
+      })
+
+      it('reports a rejection as success: false', async () => {
+        mockLogin.mockResolvedValueOnce(openChatLogin())
+        mockDeleteKickListItem.mockResolvedValueOnce({ statusCode: 0, body: { status: -805 } })
+        const client = await loginClient()
+
+        const result = await client.unkickMember('300', '42')
+
+        expect(result.success).toBe(false)
+        expect(result.status_code).toBe(-805)
+        client.close()
+      })
+
+      it('wraps transport errors as unkick_member_failed', async () => {
+        mockLogin.mockResolvedValueOnce(openChatLogin())
+        mockDeleteKickListItem.mockRejectedValue(new Error('Socket closed'))
+        const client = await loginClient()
+
+        await expectKakaoError(client.unkickMember('300', '42'), 'unkick_member_failed')
+        client.close()
+      })
+
+      it('refuses regular chats with not_open_chat', async () => {
+        const client = await loginClient()
+
+        await expectKakaoError(client.unkickMember('100', '42'), 'not_open_chat')
+
+        expect(mockDeleteKickListItem).not.toHaveBeenCalled()
+        client.close()
+      })
     })
   })
 
