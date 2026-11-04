@@ -176,7 +176,14 @@ const result = await client.sendMessage('9876543210', 'Hello from SDK!')
 // → KakaoSendResult { success, status_code, chat_id, log_id, sent_at }
 ```
 
-`success` is `true` only when `status_code` is `0` and the server returned a non-zero `log_id`. An acknowledgment with `status_code: 0` and `log_id: '0'` created no message, so it is reported as `success: false`. Quoted replies (`sendMessage(chatId, text, { replyTo })`) in open chats get the room's `src_linkId` automatically, from the login snapshot or, when the room is missing there, from a read-only `CHATINFO` lookup.
+`success` is `true` only when `status_code` is `0` and the server returned a non-zero `log_id`. An acknowledgment with `status_code: 0` and `log_id: '0'` created no message, so it is reported as `success: false`. Quoted replies (`sendMessage(chatId, text, { replyTo })`) in open chats get the room's `src_linkId` automatically, from the login snapshot or, when the room is missing there, from a read-only `CHATINFO` lookup. Pass `replyTo.link_id` (a decimal string) to supply the link id yourself and skip that lookup; an invalid value is rejected with `invalid_link_id` before anything is sent.
+
+```typescript
+// Reply to a message you already received, e.g. from the listener
+await client.sendMessage(chatId, 'Got it', {
+  replyTo: { log_id: event.log_id, author_id: event.author_id, message: event.message, type: event.message_type },
+})
+```
 
 #### Attachments
 

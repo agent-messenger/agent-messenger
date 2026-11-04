@@ -1,5 +1,7 @@
 import { afterEach, beforeEach, describe, expect, mock, it } from 'bun:test'
 
+import type { Command } from 'commander'
+
 const originalConsoleLog = console.log
 
 const mockWithKakaoClient = mock(async (_options: unknown, fn: (client: unknown) => Promise<unknown>) => {
@@ -30,10 +32,24 @@ mock.module('./shared', () => ({
 
 import { messageCommand } from './message'
 
+// Commander keeps parsed option values on the command instance, so a flag from
+// one test (e.g. --reply-to) would leak into the next parseAsync call.
+function resetCommandState(cmd: Command): void {
+  for (const sub of cmd.commands) {
+    const state = sub as unknown as {
+      _optionValues: Record<string, unknown>
+      _optionValueSources: Record<string, unknown>
+    }
+    state._optionValues = {}
+    state._optionValueSources = {}
+  }
+}
+
 describe('message commands', () => {
   let consoleLogSpy: ReturnType<typeof mock>
 
   beforeEach(() => {
+    resetCommandState(messageCommand)
     mockWithKakaoClient.mockReset()
     mockGetMessages.mockReset()
     mockSendMessage.mockReset()
@@ -151,6 +167,120 @@ describe('message commands', () => {
         // process.exit stub throws to abort the action
       }
 
+      expect(mockSendMessage).not.toHaveBeenCalled()
+      expect(exitSpy).toHaveBeenCalled()
+    })
+
+    it('sends a quoted reply from --reply-to-json without reading chat history', async () => {
+      // when
+      await messageCommand.parseAsync(
+        [
+          'send',
+          'chat-123',
+          'replying',
+          '--reply-to-json',
+          '{"log_id":"42","author_id":7,"message":"target","type":2,"author_name":"ignored"}',
+        ],
+        { from: 'user' },
+      )
+
+      // then
+      expect(mockGetMessages).not.toHaveBeenCalled()
+      expect(mockSendMessage).toHaveBeenCalledWith('chat-123', 'replying', {
+        replyTo: { log_id: '42', author_id: 7, message: 'target', type: 2 },
+      })
+    })
+
+    it('quotes a --reply-to-json target with a null message as empty text', async () => {
+      // when
+      await messageCommand.parseAsync(
+        ['send', 'chat-123', 'nice pic', '--reply-to-json', '{"log_id":"99","author_id":3,"message":null,"type":2}'],
+        { from: 'user' },
+      )
+
+      // then
+      expect(mockSendMessage).toHaveBeenCalledWith('chat-123', 'nice pic', {
+        replyTo: { log_id: '99', author_id: 3, message: '', type: 2 },
+      })
+    })
+
+    it('keeps 64-bit ids in --reply-to-json exact, including bare integer tokens', async () => {
+      // when
+      await messageCommand.parseAsync(
+        [
+          'send',
+          'chat-123',
+          'replying',
+          '--reply-to-json',
+          '{"log_id":3947068532267313155,"author_id":7467363552057858123,"message":"q","type":1,"link_id":474619593}',
+        ],
+        { from: 'user' },
+      )
+
+      // then
+      expect(mockSendMessage).toHaveBeenCalledWith('chat-123', 'replying', {
+        replyTo: {
+          log_id: '3947068532267313155',
+          author_id: '7467363552057858123',
+          message: 'q',
+          type: 1,
+          link_id: '474619593',
+        },
+      })
+    })
+
+    it.each([
+      ['malformed JSON', '{"log_id":'],
+      ['a non-object', '[1,2]'],
+      ['a missing log_id', '{"author_id":7,"message":"q","type":1}'],
+      ['a missing author_id', '{"log_id":"42","message":"q","type":1}'],
+      ['a non-string message', '{"log_id":"42","author_id":7,"message":3,"type":1}'],
+      ['a non-integer type', '{"log_id":"42","author_id":7,"message":"q","type":"1"}'],
+      ['a non-integer link_id', '{"log_id":"42","author_id":7,"message":"q","type":1,"link_id":"abc"}'],
+    ])('rejects --reply-to-json with %s', async (_label, json) => {
+      // given
+      const exitSpy = mock((_code?: number): never => {
+        throw new Error('process.exit called')
+      })
+      process.exit = exitSpy as unknown as typeof process.exit
+
+      // when / then
+      try {
+        await messageCommand.parseAsync(['send', 'chat-123', 'replying', '--reply-to-json', json], { from: 'user' })
+      } catch {
+        // process.exit stub throws to abort the action
+      }
+
+      expect(mockSendMessage).not.toHaveBeenCalled()
+      expect(exitSpy).toHaveBeenCalled()
+    })
+
+    it('rejects --reply-to together with --reply-to-json', async () => {
+      // given
+      const exitSpy = mock((_code?: number): never => {
+        throw new Error('process.exit called')
+      })
+      process.exit = exitSpy as unknown as typeof process.exit
+
+      // when / then
+      try {
+        await messageCommand.parseAsync(
+          [
+            'send',
+            'chat-123',
+            'replying',
+            '--reply-to',
+            '42',
+            '--reply-to-json',
+            '{"log_id":"42","author_id":7,"message":"q","type":1}',
+          ],
+          { from: 'user' },
+        )
+      } catch {
+        // process.exit stub throws to abort the action
+      }
+
+      expect(mockGetMessages).not.toHaveBeenCalled()
       expect(mockSendMessage).not.toHaveBeenCalled()
       expect(exitSpy).toHaveBeenCalled()
     })

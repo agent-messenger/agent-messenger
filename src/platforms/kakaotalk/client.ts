@@ -1425,13 +1425,16 @@ export class KakaoTalkClient {
   }
 
   async sendMessage(chatId: string, text: string, options?: { replyTo?: KakaoReplyTarget }): Promise<KakaoSendResult> {
+    const replyTo = options?.replyTo
+    const replyLinkId = replyTo?.link_id !== undefined ? parseLinkId(replyTo.link_id) : undefined
+
     return this.executeWithReconnect(async ({ session, loginResult }) => {
       try {
-        const response = options?.replyTo
+        const response = replyTo
           ? await session.sendReply(
               parseLong(chatId),
               text,
-              buildReplyExtra(options.replyTo, await resolveReplyLinkId(session, loginResult, chatId)),
+              buildReplyExtra(replyTo, replyLinkId ?? (await resolveReplyLinkId(session, loginResult, chatId))),
             )
           : await session.sendMessage(parseLong(chatId), text)
         const logId = longToString(response.body.logId)
