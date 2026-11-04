@@ -6,6 +6,7 @@ import { Command } from 'commander'
 import { handleError } from '@/shared/utils/error-handler'
 import { formatOutput } from '@/shared/utils/output'
 
+import { exactInteger, parseJsonPreservingIntegers } from '../protocol/exact-json'
 import type { KakaoMember, KakaoMentionInput, KakaoMessage, KakaoReplyTarget } from '../types'
 import { withKakaoClient } from './shared'
 
@@ -27,11 +28,23 @@ async function listAction(
 async function sendAction(
   chatId: string,
   text: string,
-  options: { account?: string; pretty?: boolean; replyTo?: string; mention?: string[] },
+  options: { account?: string; pretty?: boolean; replyTo?: string; replyToJson?: string; mention?: string[] },
 ): Promise<void> {
   try {
+    if (options.replyTo !== undefined && options.replyToJson !== undefined) {
+      throw new Error('Use either --reply-to or --reply-to-json, not both')
+    }
+    const directTarget = options.replyToJson !== undefined ? parseReplyTargetJson(options.replyToJson) : undefined
+
     const result = await withKakaoClient(options, async (client) => {
       const mentions = options.mention?.length ? await resolveMentions(client, chatId, options.mention) : undefined
+      if (directTarget) {
+        return client.sendMessage(
+          chatId,
+          text,
+          mentions ? { replyTo: directTarget, mentions } : { replyTo: directTarget },
+        )
+      }
       if (options.replyTo === undefined) {
         return mentions ? client.sendMessage(chatId, text, { mentions }) : client.sendMessage(chatId, text)
       }
@@ -110,6 +123,59 @@ async function resolveMentions(
   })
 }
 
+// --reply-to-json lets a caller that already holds the target message (from a
+// listener event or an earlier `message list`) skip the history lookup, which
+// only sees the latest 100 messages and costs extra round trips. Integer tokens
+// are parsed exactly so 64-bit ids survive.
+function parseReplyTargetJson(raw: string): KakaoReplyTarget {
+  let value: unknown
+  try {
+    value = parseJsonPreservingIntegers(raw)
+  } catch {
+    throw new Error('--reply-to-json must be valid JSON')
+  }
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    throw new Error('--reply-to-json must be a JSON object')
+  }
+
+  const { log_id, author_id, type, link_id } = value as Record<string, unknown>
+  const rawMessage = (value as Record<string, unknown>).message
+  if (rawMessage === undefined) {
+    throw new Error('--reply-to-json is missing message')
+  }
+  if (rawMessage !== null && typeof rawMessage !== 'string') {
+    throw new Error('--reply-to-json message must be a string')
+  }
+  // Media rows from `message list` can carry a null message; quote them with empty text.
+  const message = rawMessage ?? ''
+  if (typeof type !== 'number' || !Number.isInteger(type)) {
+    throw new Error('--reply-to-json type must be an integer')
+  }
+
+  return {
+    log_id: replyTargetId(log_id, 'log_id'),
+    // Safe numbers stay numbers, matching `message list` output; larger ids arrive as exact strings.
+    author_id:
+      typeof author_id === 'number'
+        ? Number(replyTargetId(author_id, 'author_id'))
+        : replyTargetId(author_id, 'author_id'),
+    message,
+    type,
+    ...(link_id !== undefined && link_id !== null ? { link_id: replyTargetId(link_id, 'link_id') } : {}),
+  }
+}
+
+function replyTargetId(value: unknown, field: string): string {
+  if (value === undefined || value === null) {
+    throw new Error(`--reply-to-json is missing ${field}`)
+  }
+  try {
+    return exactInteger(value).digits
+  } catch {
+    throw new Error(`--reply-to-json ${field} must be an integer id`)
+  }
+}
+
 type UploadKind = 'auto' | 'photo' | 'video' | 'audio' | 'file' | 'multi'
 
 async function uploadAction(
@@ -178,6 +244,23 @@ async function markReadAction(
   }
 }
 
+async function typingAction(
+  chatId: string,
+  options: { account?: string; linkId?: string; pretty?: boolean },
+): Promise<void> {
+  try {
+    const result = await withKakaoClient(options, (client) =>
+      client.sendTyping(chatId, options.linkId !== undefined ? { linkId: options.linkId } : undefined),
+    )
+    console.log(formatOutput(result, options.pretty))
+    if (!result.success) {
+      process.exit(1)
+    }
+  } catch (error) {
+    handleError(error as Error)
+  }
+}
+
 export const messageCommand = new Command('message')
   .description('KakaoTalk message commands')
   .addCommand(
@@ -197,6 +280,10 @@ export const messageCommand = new Command('message')
       .argument('<text>', 'Message text')
       .option('--account <id>', 'Use a specific KakaoTalk account')
       .option('--reply-to <log-id>', 'Send as a quoted reply to this message log ID')
+      .option(
+        '--reply-to-json <json>',
+        'Send as a quoted reply to this target {log_id, author_id, message, type, link_id?} without a history lookup',
+      )
       .option(
         '--mention <user-id[:name]>',
         'Tag a user; the text must contain @<name> (name defaults to the member nickname). Repeatable',
@@ -227,4 +314,13 @@ export const messageCommand = new Command('message')
       .option('--link-id <li>', 'Open-chat link ID (REQUIRED for open chats / 오픈채팅)')
       .option('--pretty', 'Pretty print JSON output')
       .action(markReadAction),
+  )
+  .addCommand(
+    new Command('typing')
+      .description('Send a single typing-indicator pulse to a chat room (shows the "..." dots for ~5s)')
+      .argument('<chat-id>', 'Chat room ID')
+      .option('--account <id>', 'Use a specific KakaoTalk account')
+      .option('--link-id <li>', 'Open-chat link ID (open chats only)')
+      .option('--pretty', 'Pretty print JSON output')
+      .action(typingAction),
   )

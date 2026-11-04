@@ -359,6 +359,10 @@ agent-kakaotalk message send <chat-id> "Replying to this" --reply-to <log-id>
 agent-kakaotalk message send <chat-id> "@Alice hello" --mention <user-id>
 agent-kakaotalk message send <chat-id> "@Alice hello" --mention <user-id>:Alice
 
+# Send a quoted reply when you already have the target message (no history lookup)
+agent-kakaotalk message send <chat-id> "Replying to this" \
+  --reply-to-json '{"log_id":"<log-id>","author_id":<author-id>,"message":"<target text>","type":1}'
+
 # Send a file (auto-routes by MIME: photo / video / audio / generic file)
 agent-kakaotalk message upload <chat-id> ./photo.jpg
 agent-kakaotalk message upload <chat-id> ./clip.mp4
@@ -378,11 +382,17 @@ agent-kakaotalk message mark-read <chat-id> <log-id>
 agent-kakaotalk message mark-read <chat-id> <log-id> --pretty
 agent-kakaotalk message mark-read <chat-id> <log-id> --link-id <li>   # open chats only
 
+# Show the typing indicator ("..." dots) in a chat room for ~5s
+agent-kakaotalk message typing <chat-id>
+agent-kakaotalk message typing <chat-id> --pretty
+agent-kakaotalk message typing <chat-id> --link-id <li>   # open chats only
+
 # Use a specific account
 agent-kakaotalk message list <chat-id> --account <account-id>
 agent-kakaotalk message send <chat-id> "Hello" --account <account-id>
 agent-kakaotalk message upload <chat-id> ./photo.jpg --account <account-id>
 agent-kakaotalk message mark-read <chat-id> <log-id> --account <account-id>
+agent-kakaotalk message typing <chat-id> --account <account-id>
 ```
 
 #### Replying to a Message
@@ -398,6 +408,22 @@ agent-kakaotalk message send <chat-id> "Good point!" --reply-to 1234567890
 ```
 
 If the `log_id` is not found in the latest 100 messages, the command errors out without sending.
+
+`--reply-to-json <json>` skips that lookup when you already hold the target message, for example a `message` event from the listener or a row from an earlier `message list`. Pass a JSON object with `log_id`, `author_id`, `message`, and `type` (the listener event calls it `message_type`). Extra fields such as `author_name` are ignored, so a `message list` row works as is. Because nothing is looked up, the target can be older than the latest 100 messages, and the send needs no `MCHATLOGS`/`SYNCMSG` round trips. The CLI does not check that the target exists or that the fields match it: the quote shows whatever you pass.
+
+```bash
+# Reply to a message you already have, even an old one
+agent-kakaotalk message send <chat-id> "Good point!" \
+  --reply-to-json '{"log_id":"3947068532267313155","author_id":7,"message":"original text","type":1}'
+
+# Pipe a row straight from message list
+TARGET=$(agent-kakaotalk message list <chat-id> -n 1 | jq -c '.[0]')
+agent-kakaotalk message send <chat-id> "Replying to the latest message" --reply-to-json "$TARGET"
+```
+
+- Ids may be decimal strings or bare JSON integers. Integers larger than `Number.MAX_SAFE_INTEGER` (real `log_id`s, open-chat `author_id`s) are parsed exactly, never rounded.
+- The optional `link_id` is the open chat's link id. Leave it out and the CLI resolves it the same way as for `--reply-to`; pass it only for open chats, because the CLI writes it as given.
+- `--reply-to` and `--reply-to-json` cannot be combined. A malformed object (bad JSON, a missing or non-integer id, a `message` that is neither a string nor null, a non-integer `type`) errors out without sending.
 
 In open chats (오픈채팅) the reply also carries the room's link id as `src_linkId`. The CLI resolves it on its own: from the login snapshot when the room is there, otherwise through a read-only `CHATINFO` lookup that does not change read state. You never pass `--link-id` for a reply. The open-chat reply bubble itself has not been checked against a live server yet.
 
@@ -496,6 +522,26 @@ Notes:
 - The phone's home-screen OS unread badge may lag until the phone client foregrounds; the in-app counter updates faster. Observed quirk, not a guaranteed contract.
 - For open chats (오픈채팅) pass `--link-id <li>` (the `li` field on the open chat). Without it the server returns a non-zero `body.status`, which the CLI reports as `"success": false` with the server's status code, and exits non-zero.
 
+#### Typing Indicator
+
+`message typing` sends one LOCO `ACTION` packet (typing subtype) so the other members see the animated "..." indicator. It does not create a message and does not change read state.
+
+Output (JSON by default; `--pretty` pretty-prints the same JSON):
+
+```json
+{ "success": true, "status_code": 0, "chat_id": "9876543210" }
+```
+
+Errors are printed as `{"error": "..."}` and the process exits non-zero:
+- A non-zero LOCO status from the server is reported as `{"error": "ACTION failed: statusCode=<n>"}`.
+- A non-numeric `<chat-id>` or `--link-id` is rejected before the typing `ACTION` is sent (`invalid_chat_id` / `invalid_link_id`).
+
+Notes:
+- One pulse lasts about 5 seconds on the recipient's client. To keep the indicator up while you prepare a long reply, call it again every few seconds and stop once the reply is sent.
+- Each CLI invocation logs in and opens its own LOCO connection. For frequent pulses (for example re-firing every 3s), prefer the SDK (`client.sendTyping()` on one long-lived client) over calling the CLI repeatedly.
+- For open chats pass `--link-id <li>` (the `li` field on the open chat), the same value `mark-read` takes. The CLI does not look it up for you; for normal chats leave it out.
+- Like every LOCO write, this is an unofficial protocol call from a sub-device slot. Send it only when you are actually about to reply; avoid tight loops.
+
 #### Message List Output
 
 Each message includes:
@@ -507,6 +553,9 @@ Each message includes:
 - `attachment` — parsed JSON metadata for non-text messages (e.g. photo URL/dimensions, sticker path), or `null` for plain text. Shape varies by `type`; treat as an opaque object and narrow per message type.
 - `sent_at` — Unix timestamp (milliseconds)
 - `mentions` — present only when the message tags users: `[{ "user_id": "1234567890", "at": [1], "len": 5 }]`. `user_id` is the tagged user as an exact decimal string, `at` lists which `@` characters in `message` (1-based, counting every `@`) start that user's tag, and `len` is the tagged name's length without the `@`. (Observed live only for a single leading mention, `at: [1]`; the ordinal rule for multiple `@` characters is not yet verified.)
+- `scope` — *(optional)* raw chat-log scope number, included only when the server sends it. Observed values: `1` for ordinary messages, `3` for open-chat thread replies. This mapping is observed behavior, not a documented contract.
+- `thread_id` — *(optional)* raw chat-log thread id as an exact decimal string, omitted when absent or zero. For open-chat thread replies it has been observed to equal the parent message's `log_id`.
+- `prev_id` — *(optional)* raw chat-log previous log id as an exact decimal string, omitted when absent or zero.
 
 #### Fetching More Messages
 
@@ -699,6 +748,7 @@ try {
   await client.sendMessage(chatId, 'Replying to your last message', {
     replyTo: { log_id: target.log_id, author_id: target.author_id, message: target.message, type: target.type },
   })
+  // Optional: pass link_id (open chats) to skip the link id lookup
 } finally {
   // Always close when done (LOCO TCP connection)
   client.close()
