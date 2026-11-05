@@ -31,6 +31,7 @@
   "homepage": "https://github.com/agent-messenger/agent-messenger",
   "repository": "https://github.com/agent-messenger/agent-messenger",
   "skills": [
+    "./skills/agent-messenger",
     "./skills/agent-slack",
     "./skills/agent-slackbot",
     "./skills/agent-discord",
