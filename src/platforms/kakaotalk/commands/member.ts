@@ -20,6 +20,93 @@ async function listAction(
   }
 }
 
+async function kickAction(
+  chatId: string,
+  userId: string,
+  options: {
+    account?: string
+    force?: boolean
+    pretty?: boolean
+  },
+): Promise<void> {
+  // Kicking cannot be undone and also blocks the member from rejoining, so a
+  // scripted call must opt in explicitly. Without --force, print what would
+  // happen and exit without connecting.
+  if (!options.force) {
+    console.log(
+      formatOutput(
+        {
+          warning: 'Kicking is irreversible and blocks the member from rejoining. Use --force to confirm.',
+          action: 'kick',
+          chat_id: chatId,
+          user_id: userId,
+        },
+        options.pretty,
+      ),
+    )
+    process.exit(1)
+  }
+
+  let success: boolean
+  try {
+    const result = await withKakaoClient(options, (client) => client.kickMember(chatId, userId))
+    console.log(formatOutput(result, options.pretty))
+    success = result.success
+  } catch (error) {
+    handleError(error as Error)
+    return
+  }
+  // Exit outside the try so a server rejection is not also reported by handleError.
+  if (!success) {
+    process.exit(1)
+  }
+}
+
+async function kickListAction(
+  chatId: string,
+  options: {
+    account?: string
+    pretty?: boolean
+  },
+): Promise<void> {
+  let success: boolean
+  try {
+    const result = await withKakaoClient(options, (client) => client.getKickList(chatId))
+    console.log(formatOutput(result, options.pretty))
+    success = result.success
+  } catch (error) {
+    handleError(error as Error)
+    return
+  }
+  // Exit outside the try so a server rejection is not also reported by handleError.
+  if (!success) {
+    process.exit(1)
+  }
+}
+
+async function unkickAction(
+  chatId: string,
+  userId: string,
+  options: {
+    account?: string
+    pretty?: boolean
+  },
+): Promise<void> {
+  let success: boolean
+  try {
+    const result = await withKakaoClient(options, (client) => client.unkickMember(chatId, userId))
+    console.log(formatOutput(result, options.pretty))
+    success = result.success
+  } catch (error) {
+    handleError(error as Error)
+    return
+  }
+  // Exit outside the try so a server rejection is not also reported by handleError.
+  if (!success) {
+    process.exit(1)
+  }
+}
+
 export const memberCommand = new Command('member')
   .description('KakaoTalk member commands')
   .addCommand(
@@ -29,4 +116,31 @@ export const memberCommand = new Command('member')
       .option('--account <id>', 'Use a specific KakaoTalk account')
       .option('--pretty', 'Pretty print JSON output')
       .action(listAction),
+  )
+  .addCommand(
+    new Command('kick')
+      .description('Kick a member from an open chat (irreversible; requires host or co-host)')
+      .argument('<chat-id>', 'Open chat room ID')
+      .argument('<user-id>', 'User ID to kick')
+      .option('--force', 'Confirm the kick')
+      .option('--account <id>', 'Use a specific KakaoTalk account')
+      .option('--pretty', 'Pretty print JSON output')
+      .action(kickAction),
+  )
+  .addCommand(
+    new Command('kick-list')
+      .description('List members kicked from an open chat (blocked from rejoining)')
+      .argument('<chat-id>', 'Open chat room ID')
+      .option('--account <id>', 'Use a specific KakaoTalk account')
+      .option('--pretty', 'Pretty print JSON output')
+      .action(kickListAction),
+  )
+  .addCommand(
+    new Command('unkick')
+      .description('Remove a member from an open chat kick list so they can rejoin')
+      .argument('<chat-id>', 'Open chat room ID')
+      .argument('<user-id>', 'User ID to remove from the kick list')
+      .option('--account <id>', 'Use a specific KakaoTalk account')
+      .option('--pretty', 'Pretty print JSON output')
+      .action(unkickAction),
   )

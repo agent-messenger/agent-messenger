@@ -90,6 +90,23 @@ export async function sendTypingPacket(
   return connection.sendPacket(TYPING_ACTION_METHOD, buildTypingActionBody(chatId, linkId))
 }
 
+// Open chat moderation bodies. Wire key names follow node-kakao's open channel
+// and open link sessions (see protocol/NOTICE.md): these opcodes use the short
+// keys `c`/`li`/`mid`/`kid` rather than `chatId`, so they must not be
+// "normalized" to match LEAVE/NOTIREAD. Exported so protocol tests can lock
+// the exact field shape.
+export function buildKickMemberBody(chatId: Long, linkId: Long, userId: Long): Record<string, unknown> {
+  return { c: chatId, li: linkId, mid: userId }
+}
+
+export function buildKickListSyncBody(linkId: Long): Record<string, unknown> {
+  return { li: linkId }
+}
+
+export function buildKickListDeleteBody(linkId: Long, chatId: Long, userId: Long): Record<string, unknown> {
+  return { li: linkId, c: chatId, kid: userId }
+}
+
 export class LocoSession {
   private connection: LocoConnection | null = null
   private pingTimer: ReturnType<typeof setInterval> | null = null
@@ -361,6 +378,35 @@ export class LocoSession {
   async leaveChat(chatId: Long): Promise<LocoPacket> {
     if (!this.connection) throw new Error('Not connected')
     return this.connection.sendPacket('LEAVE', { chatId })
+  }
+
+  /**
+   * Kick a member from an open chat (KICKMEM). The server answers with a
+   * non-zero status when the caller is not the host or a co-host, or when the
+   * room is not an open chat. A kicked member cannot rejoin through the same
+   * link until removed from the kick list (`deleteKickListItem`).
+   */
+  async kickMember(chatId: Long, linkId: Long, userId: Long): Promise<LocoPacket> {
+    if (!this.connection) throw new Error('Not connected')
+    return this.connection.sendPacket('KICKMEM', buildKickMemberBody(chatId, linkId, userId))
+  }
+
+  /**
+   * Fetch the kick list of an open chat link (KLSYNC). The response body
+   * carries `kickMembers`, one entry per member blocked from rejoining.
+   */
+  async getKickList(linkId: Long): Promise<LocoPacket> {
+    if (!this.connection) throw new Error('Not connected')
+    return this.connection.sendPacket('KLSYNC', buildKickListSyncBody(linkId))
+  }
+
+  /**
+   * Remove a member from an open chat link's kick list (KLDELITEM) so they
+   * can rejoin. This does not add them back to the room.
+   */
+  async deleteKickListItem(linkId: Long, chatId: Long, userId: Long): Promise<LocoPacket> {
+    if (!this.connection) throw new Error('Not connected')
+    return this.connection.sendPacket('KLDELITEM', buildKickListDeleteBody(linkId, chatId, userId))
   }
 
   async markRead(chatId: Long, watermark: Long, linkId?: Long): Promise<LocoPacket> {

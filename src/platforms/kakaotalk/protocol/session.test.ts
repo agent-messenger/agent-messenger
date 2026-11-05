@@ -3,6 +3,9 @@ import { describe, expect, it, mock } from 'bun:test'
 import { Long } from 'bson'
 
 import {
+  buildKickListDeleteBody,
+  buildKickListSyncBody,
+  buildKickMemberBody,
   buildReplyWriteBody,
   buildTextWriteBody,
   buildTypingActionBody,
@@ -192,5 +195,40 @@ describe('mention WRITE wire contract', () => {
 
     expect(body.type).toBe(26)
     expect(body.extra).toContain('"mentions":[{"at":[1],"len":5,"user_id":7467363552057858123}]')
+  })
+})
+
+describe('open chat moderation wire contract', () => {
+  it('KICKMEM body uses the short c/li/mid keys with full-width Longs', () => {
+    const body = buildKickMemberBody(
+      Long.fromString('459750513901477'),
+      Long.fromString('280368495100000'),
+      Long.fromString('7467363552057858123'),
+    )
+
+    expect(Object.keys(body).sort()).toEqual(['c', 'li', 'mid'])
+    expect((body.c as Long).toString()).toBe('459750513901477')
+    expect((body.li as Long).toString()).toBe('280368495100000')
+    expect((body.mid as Long).toString()).toBe('7467363552057858123')
+  })
+
+  it('KLSYNC body only carries the link id', () => {
+    const body = buildKickListSyncBody(Long.fromString('280368495100000'))
+
+    expect(Object.keys(body)).toEqual(['li'])
+    expect((body.li as Long).toString()).toBe('280368495100000')
+  })
+
+  it('KLDELITEM body uses the short li/c/kid keys with full-width Longs', () => {
+    const body = buildKickListDeleteBody(
+      Long.fromString('280368495100000'),
+      Long.fromString('459750513901477'),
+      Long.fromString('7467363552057858123'),
+    )
+
+    expect(Object.keys(body).sort()).toEqual(['c', 'kid', 'li'])
+    expect((body.li as Long).toString()).toBe('280368495100000')
+    expect((body.c as Long).toString()).toBe('459750513901477')
+    expect((body.kid as Long).toString()).toBe('7467363552057858123')
   })
 })

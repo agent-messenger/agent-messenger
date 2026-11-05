@@ -20,6 +20,9 @@ import {
   KAKAO_MESSAGE_TYPE,
   type KakaoChat,
   type KakaoDeviceType,
+  type KakaoKickedMember,
+  type KakaoKickList,
+  type KakaoKickMemberResult,
   type KakaoLeaveChatResult,
   type KakaoMarkReadResult,
   type KakaoMember,
@@ -35,6 +38,7 @@ import {
   type KakaoReplyTarget,
   type KakaoSendResult,
   type KakaoTypingResult,
+  type KakaoUnkickMemberResult,
 } from './types'
 
 export type KakaoSessionEvent =
@@ -400,10 +404,11 @@ function getOpenLinkId(chat: ChatData): Long | null {
   return linkId && !linkId.isZero() ? linkId : null
 }
 
-// Quoted replies in open chats need the room's link id. LOGINLIST may omit the room
-// (new device, partial snapshot), so fall back to read-only CHATINFO, which never
-// touches read state, instead of assuming the room is a regular chat.
-async function resolveReplyLinkId(
+// Quoted replies and moderation commands in open chats need the room's link id.
+// LOGINLIST may omit the room (new device, partial snapshot), so fall back to
+// read-only CHATINFO, which never touches read state, instead of assuming the
+// room is a regular chat.
+async function resolveOpenLinkId(
   session: LocoSession,
   loginResult: LoginListResponse,
   chatId: string,
@@ -416,6 +421,49 @@ async function resolveReplyLinkId(
   assertLocoOk(response, 'CHATINFO')
   const info = extractChannelInfo(response.body as Record<string, unknown>, longToString(parsedChatId))
   return getOpenLinkId({ li: info.li })
+}
+
+// Kick-list operations are scoped to an open chat link. Refuse locally instead of
+// sending a moderation opcode for a regular chat, which has no link id.
+async function requireOpenLinkId(session: LocoSession, loginResult: LoginListResponse, chatId: string): Promise<Long> {
+  const linkId = await resolveOpenLinkId(session, loginResult, chatId)
+  if (!linkId) {
+    throw new KakaoTalkError(`Chat ${chatId} is not an open chat`, 'not_open_chat')
+  }
+  return linkId
+}
+
+// Moderation opcodes (KICKMEM, KLSYNC, KLDELITEM) report rejections — caller is
+// not the host or a co-host, unknown member, and so on — through a non-zero
+// status. Only transport failures throw, so executeWithReconnect can retry on a
+// fresh session; rejections come back as `success: false` with that status.
+function moderationStatus(response: LocoPacket, command: string): number {
+  if (typeof response.statusCode !== 'number' || !Number.isFinite(response.statusCode)) {
+    throw new LocoResponseError(`${command} failed: response status unavailable`, 'transient_or_unknown')
+  }
+  if (isSyntheticConnectionClose(response)) {
+    throw new LocoResponseError(`${command} failed: connection closed`, 'transient_or_unknown', {
+      serverStatus: response.statusCode,
+      responseStatusSource: 'packet',
+    })
+  }
+  if (response.statusCode !== 0) return response.statusCode
+  const bodyStatus = response.body.status
+  return typeof bodyStatus === 'number' ? bodyStatus : 0
+}
+
+// KLSYNC entry field names are not documented; accept both the long names and
+// the short wire keys used by the KLDELITEM request.
+function formatKickedMember(entry: Record<string, unknown>): KakaoKickedMember | null {
+  const userId = entry.userId ?? entry.kid
+  if (userId === undefined || userId === null) return null
+  const chatId = entry.kickedChannelId ?? entry.c
+  return {
+    user_id: longToString(userId),
+    nickname: nullableString(entry.nickName ?? entry.nickname),
+    chat_id: isNonZeroLong(chatId) ? longToString(chatId) : null,
+    kicked_at: nullableNumber(entry.kickedAt),
+  }
 }
 
 // Open chats carry no TITLE meta; their name lives on the open link. The login
@@ -1489,7 +1537,7 @@ export class KakaoTalkClient {
               text,
               buildReplyExtra(
                 replyTo,
-                replyLinkId ?? (await resolveReplyLinkId(session, loginResult, chatId)),
+                replyLinkId ?? (await resolveOpenLinkId(session, loginResult, chatId)),
                 mentions,
               ),
             )
@@ -1919,6 +1967,98 @@ export class KakaoTalkClient {
         }
       } catch (error) {
         throw wrapError(error, 'leave_chat_failed')
+      }
+    })
+  }
+
+  /**
+   * Kick a member from an open chat (KICKMEM). This cannot be undone: the member
+   * is removed and blocked from rejoining through the room's link until
+   * `unkickMember` clears them from the kick list. Requires host or co-host
+   * permission; the server reports a rejection as `success: false` with a
+   * non-zero `status_code`. Throws `not_open_chat` for regular chats.
+   */
+  async kickMember(chatId: string, userId: string): Promise<KakaoKickMemberResult> {
+    const parsedChatId = parseChatId(chatId)
+    const parsedUserId = parseUserId(userId)
+    const normalizedChatId = longToString(parsedChatId)
+
+    return this.executeWithReconnect(async ({ session, loginResult }) => {
+      try {
+        const linkId = await requireOpenLinkId(session, loginResult, normalizedChatId)
+        const response = await session.kickMember(parsedChatId, linkId, parsedUserId)
+        const status = moderationStatus(response, 'KICKMEM')
+        return {
+          success: status === 0,
+          status_code: status,
+          chat_id: chatId,
+          user_id: userId,
+        }
+      } catch (error) {
+        throw wrapError(error, 'kick_member_failed')
+      }
+    })
+  }
+
+  /**
+   * List members kicked from an open chat (KLSYNC). Kicked members cannot rejoin
+   * through the room's link until removed with `unkickMember`.
+   */
+  async getKickList(chatId: string): Promise<KakaoKickList> {
+    const parsedChatId = parseChatId(chatId)
+    const normalizedChatId = longToString(parsedChatId)
+
+    return this.executeWithReconnect(async ({ session, loginResult }) => {
+      try {
+        const linkId = await requireOpenLinkId(session, loginResult, normalizedChatId)
+        const response = await session.getKickList(linkId)
+        const status = moderationStatus(response, 'KLSYNC')
+        const raw = status === 0 ? response.body.kickMembers : undefined
+        // The KLSYNC response shape is unverified against a live server. Fail loudly
+        // instead of reporting an empty list when the field is missing or renamed.
+        if (status === 0 && !Array.isArray(raw)) {
+          throw new LocoResponseError('KLSYNC failed: kickMembers missing from response', 'transient_or_unknown')
+        }
+        const members = Array.isArray(raw)
+          ? raw
+              .filter((entry): entry is Record<string, unknown> => !!entry && typeof entry === 'object')
+              .map(formatKickedMember)
+              .filter((member): member is KakaoKickedMember => member !== null)
+          : []
+        return {
+          success: status === 0,
+          status_code: status,
+          chat_id: chatId,
+          members,
+        }
+      } catch (error) {
+        throw wrapError(error, 'get_kick_list_failed')
+      }
+    })
+  }
+
+  /**
+   * Remove a member from an open chat's kick list (KLDELITEM) so they can rejoin
+   * through the room's link. This does not add them back to the room.
+   */
+  async unkickMember(chatId: string, userId: string): Promise<KakaoUnkickMemberResult> {
+    const parsedChatId = parseChatId(chatId)
+    const parsedUserId = parseUserId(userId)
+    const normalizedChatId = longToString(parsedChatId)
+
+    return this.executeWithReconnect(async ({ session, loginResult }) => {
+      try {
+        const linkId = await requireOpenLinkId(session, loginResult, normalizedChatId)
+        const response = await session.deleteKickListItem(linkId, parsedChatId, parsedUserId)
+        const status = moderationStatus(response, 'KLDELITEM')
+        return {
+          success: status === 0,
+          status_code: status,
+          chat_id: chatId,
+          user_id: userId,
+        }
+      } catch (error) {
+        throw wrapError(error, 'unkick_member_failed')
       }
     })
   }

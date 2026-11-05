@@ -22,6 +22,9 @@ export type {
   KakaoEmoticonKind,
   KakaoEmoticonMessageType,
   KakaoFileExtra,
+  KakaoKickedMember,
+  KakaoKickList,
+  KakaoKickMemberResult,
   KakaoLeaveChatResult,
   KakaoLoginResult,
   KakaoMarkReadResult,
@@ -48,6 +51,7 @@ export type {
   KakaoTalkPushMessageEvent,
   KakaoTalkPushReadEvent,
   KakaoTypingResult,
+  KakaoUnkickMemberResult,
 } from './types'
 export {
   KAKAO_EMOTICON_KIND_BY_TYPE,
@@ -56,6 +60,9 @@ export {
   KakaoAccountCredentialsSchema,
   KakaoChatSchema,
   KakaoConfigSchema,
+  KakaoKickedMemberSchema,
+  KakaoKickListSchema,
+  KakaoKickMemberResultSchema,
   KakaoLeaveChatResultSchema,
   KakaoMarkReadResultSchema,
   KakaoMemberSchema,
@@ -70,6 +77,7 @@ export {
   KakaoTalkPushMessageEventSchema,
   KakaoTalkPushReadEventSchema,
   KakaoTypingResultSchema,
+  KakaoUnkickMemberResultSchema,
 } from './types'
 export { attemptLogin, generateDeviceUuid, loginFlow, registerDevice, requestPasscode } from './auth/kakao-login'
 export type { LoginCredentials } from './auth/kakao-login'
