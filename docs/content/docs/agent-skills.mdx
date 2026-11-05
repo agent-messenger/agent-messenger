@@ -4,7 +4,7 @@ description: Teach your AI agent how to use Agent Messenger CLIs effectively.
 icon: Hexagon
 ---
 
-Agent Skills are instruction files that teach AI coding agents how to use tools effectively. Agent Messenger includes skills for Slack, Discord, Teams, Webex, Telegram, WhatsApp, LINE, iMessage (Mac-only), Instagram, KakaoTalk, and Channel Talk (beta).
+Agent Messenger includes an `agent-messenger` entry skill for selecting a platform and acting identity, resolving conversations, verifying delivery, and handling reply follow-ups. It routes to the existing platform skills, so agents do not need every platform's instructions in context.
 
 ## What Are Agent Skills?
 
@@ -19,15 +19,33 @@ Agent Skills provide this knowledge in a structured format that AI agents can un
 
 ## Installation
 
-### Skills CLI (OpenCode, Cline, etc.)
+### For AI agents
 
-The fastest way to add Agent Messenger skills to your project:
+When asked to use Agent Messenger, install the entry skill in the current project, unless it is already installed:
 
 ```bash
-npx skills add agent-messenger/agent-messenger
+npx -y skills add agent-messenger/agent-messenger --skill agent-messenger --yes
 ```
 
-This adds the skill files to your project's `.skills/` directory. See [skills.sh](https://skills.sh/) for more details.
+Read its `SKILL.md` at the path reported by the installer. To target a specific supported agent, append `--agent codex`, for example. Do not add `--global` unless requested.
+
+The entry skill explains how to install and read only the required platform skill, for example:
+
+```bash
+npx -y skills add agent-messenger/agent-messenger --skill agent-slackbot --yes
+```
+
+Skill installation does not install or authenticate the CLI, grant permission to send messages, or start listeners. Install the CLI through the [quick start](/docs/quick-start) if necessary, and preserve the user's account and approval constraints.
+
+### Skills CLI (interactive selection)
+
+To choose platform skills interactively instead:
+
+```bash
+npx -y skills add agent-messenger/agent-messenger
+```
+
+Installation paths depend on the selected agent and scope. See the installer's output and [skills.sh](https://skills.sh/) for details.
 
 ### Claude Code
 
@@ -48,13 +66,13 @@ Or from within Claude Code:
 
 ## How It Works
 
-Once installed, your AI agent can:
+Once installed and read, the skills guide your agent to:
 
-1. **Understand the CLI** - Know what commands exist and how to use them
-2. **Extract credentials** - Run `agent-slack auth extract` automatically
-3. **Send messages** - Compose and send messages on your behalf
-4. **Read context** - Get workspace snapshots to understand conversations
-5. **React appropriately** - Add reactions, reply in threads, etc.
+1. **Discover the CLI** - Check the installed version's commands and flags
+2. **Select the acting identity** - Reuse the intended user or bot account; set up authentication only when authorized
+3. **Resolve the destination** - Identify the recipient, conversation, and original thread
+4. **Perform the requested operation** - Send, read, reply, or react within the task's scope
+5. **Verify the result** - Retain the receipt, reconcile uncertain writes, and verify a reply-receiving mechanism before promising automatic follow-up
 
 ## Example Interaction
 
@@ -64,10 +82,10 @@ With Agent Messenger skills installed, you can ask your AI agent:
 
 The agent will:
 
-1. Check if credentials are configured
-2. Run `agent-slack auth extract` if needed
-3. Execute `agent-slack message send general "The build passed"`
-4. Confirm the message was sent
+1. Select the intended Slack user account and verify its identity
+2. Resolve the exact `general` channel and confirm the installed send syntax
+3. Execute the authorized `agent-slack message send general "The build passed"`
+4. Confirm the returned delivery result, without treating it as proof the recipient read it
 
 ## Skill Contents
 

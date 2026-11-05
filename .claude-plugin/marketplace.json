@@ -8,6 +8,19 @@
   },
   "plugins": [
     {
+      "name": "agent-messenger",
+      "description": "Common messaging workflow and platform skills: choose the correct user or bot identity, resolve recipients and threads, verify delivery, and handle reply follow-ups.",
+      "version": "2.41.0",
+      "author": {
+        "name": "agent-messenger",
+        "url": "https://github.com/agent-messenger"
+      },
+      "source": "./",
+      "category": "productivity",
+      "homepage": "https://github.com/agent-messenger/agent-messenger",
+      "keywords": ["messaging", "ai-agent", "cli", "communication"]
+    },
+    {
       "name": "agent-slack",
       "description": "Interact with Slack workspaces through a CLI interface. Features seamless token extraction from Slack desktop app, multi-workspace support, AI-friendly entity references (@c1, @m1, @u1), message operations, channel management, reactions, and file uploads.",
       "version": "1.15.0",
