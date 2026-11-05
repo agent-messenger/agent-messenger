@@ -194,6 +194,75 @@ Each member includes:
 
 > **SDK-only**: `KakaoTalkClient.getMembersByIds(chatId, userIds)` is available for the >100-member case where you already have specific user IDs to resolve (typically from a CHATONROOM `mi` array). It is intentionally not exposed via the CLI because acquiring those IDs requires a CHATONROOM call that is also SDK-only. Use `agent-kakaotalk member list` for the common case.
 
+### Open Chat Moderation
+
+Open chats only; the account must be the room's host or a co-host. The open
+chat link ID is resolved from the chat ID (login snapshot first, then read-only
+`CHATINFO`). Regular chats fail with `Chat <chat-id> is not an open chat`
+before any moderation packet is sent.
+
+```bash
+# Preview only: without --force, prints a warning and exits 1 without connecting
+agent-kakaotalk member kick <chat-id> <user-id>
+
+# Kick a member (irreversible; also blocks them from rejoining via the link)
+agent-kakaotalk member kick <chat-id> <user-id> --force
+agent-kakaotalk member kick <chat-id> <user-id> --force --pretty
+agent-kakaotalk member kick <chat-id> <user-id> --force --account <account-id>
+
+# List members on the room's kick list
+agent-kakaotalk member kick-list <chat-id>
+agent-kakaotalk member kick-list <chat-id> --pretty
+agent-kakaotalk member kick-list <chat-id> --account <account-id>
+
+# Remove a member from the kick list so they can rejoin (does not re-add them)
+agent-kakaotalk member unkick <chat-id> <user-id>
+agent-kakaotalk member unkick <chat-id> <user-id> --pretty
+agent-kakaotalk member unkick <chat-id> <user-id> --account <account-id>
+```
+
+`member kick` without `--force`:
+
+```json
+{
+  "warning": "Kicking is irreversible and blocks the member from rejoining. Use --force to confirm.",
+  "action": "kick",
+  "chat_id": "9876543210",
+  "user_id": "1234567890"
+}
+```
+
+`member kick --force` and `member unkick`:
+
+```json
+{ "success": true, "status_code": 0, "chat_id": "9876543210", "user_id": "1234567890" }
+```
+
+`member kick-list`:
+
+```json
+{
+  "success": true,
+  "status_code": 0,
+  "chat_id": "9876543210",
+  "members": [{ "user_id": "1234567890", "nickname": "Alice", "chat_id": "9876543210", "kicked_at": null }]
+}
+```
+
+`nickname`, `chat_id`, and `kicked_at` are `null` when the server omits them.
+A server rejection (for example, missing host or co-host permission) is
+reported as `success: false` with the server's non-zero `status_code`, and the
+process exits non-zero. Only `member kick` has been used against a live server;
+the `KLSYNC` and `KLDELITEM` request shapes and the kick-list response fields
+are unverified, so a successful `kick-list` response without a `kickMembers`
+array fails with `get_kick_list_failed` instead of returning an empty list.
+
+| Command            | LOCO opcode |
+| ------------------ | ----------- |
+| `member kick`      | `KICKMEM`   |
+| `member kick-list` | `KLSYNC`    |
+| `member unkick`    | `KLDELITEM` |
+
 ### Message Commands
 
 ```bash
@@ -356,7 +425,7 @@ Output includes:
 - No friend list management
 - No reactions or emoji
 - No message editing or deletion
-- No open chat browsing or joining
+- No open chat browsing or joining. Moderation is limited to kicking members and managing the kick list (`member kick`, `member kick-list`, `member unkick`)
 - No search across chats
 
 - Read-only for stickers: sticker / animated-sticker messages are exposed via the `attachment` field on each message, but sending stickers is not supported

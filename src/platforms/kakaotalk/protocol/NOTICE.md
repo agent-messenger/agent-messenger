@@ -39,7 +39,8 @@ Android sub-device login flow, and connection patterns.
 
 Referenced for: LOCO packet format, BSON command schemas, authentication flow,
 Android OAuth refresh request/response behavior, X-VC signature algorithm,
-channel/chat type enumerations.
+channel/chat type enumerations, open chat moderation commands (KICKMEM,
+KLSYNC, KLDELITEM) and their request keys.
 
 ---
 

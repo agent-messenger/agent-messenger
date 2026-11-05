@@ -339,6 +339,66 @@ Each member includes:
 
 > **SDK-only**: `KakaoTalkClient.getMembersByIds(chatId, userIds)` is available for the >100-member case where you already have specific user IDs to resolve (typically from a CHATONROOM `mi` array). It is intentionally not exposed via the CLI because acquiring those IDs requires a CHATONROOM call that is also SDK-only. Use `agent-kakaotalk member list` for the common case.
 
+### Open Chat Moderation (Kick)
+
+Open chats (오픈채팅) only. The account must be the room's host or a co-host. The open chat link ID is resolved from the chat ID automatically; regular chats fail with `Chat <chat-id> is not an open chat` before any moderation packet is sent. Only `member kick` (`KICKMEM`) has been used against a live server; the `member kick-list` (`KLSYNC`) and `member unkick` (`KLDELITEM`) request shapes and the kick-list response fields are unverified.
+
+```bash
+# Preview only: without --force, prints a warning and exits 1 without connecting
+agent-kakaotalk member kick <chat-id> <user-id>
+
+# Kick a member (IRREVERSIBLE — also blocks them from rejoining via the link)
+agent-kakaotalk member kick <chat-id> <user-id> --force
+agent-kakaotalk member kick <chat-id> <user-id> --force --pretty
+agent-kakaotalk member kick <chat-id> <user-id> --force --account <account-id>
+
+# List members on the room's kick list (blocked from rejoining)
+agent-kakaotalk member kick-list <chat-id>
+agent-kakaotalk member kick-list <chat-id> --pretty
+agent-kakaotalk member kick-list <chat-id> --account <account-id>
+
+# Remove a member from the kick list so they can rejoin (does not re-add them)
+agent-kakaotalk member unkick <chat-id> <user-id>
+agent-kakaotalk member unkick <chat-id> <user-id> --pretty
+agent-kakaotalk member unkick <chat-id> <user-id> --account <account-id>
+```
+
+Get `<user-id>` from `member list` (`user_id`) or from `message list` (`author_id`).
+
+`member kick` without `--force`:
+
+```json
+{
+  "warning": "Kicking is irreversible and blocks the member from rejoining. Use --force to confirm.",
+  "action": "kick",
+  "chat_id": "9876543210",
+  "user_id": "1234567890"
+}
+```
+
+`member kick --force` and `member unkick`:
+
+```json
+{ "success": true, "status_code": 0, "chat_id": "9876543210", "user_id": "1234567890" }
+```
+
+`member kick-list`:
+
+```json
+{
+  "success": true,
+  "status_code": 0,
+  "chat_id": "9876543210",
+  "members": [{ "user_id": "1234567890", "nickname": "Alice", "chat_id": "9876543210", "kicked_at": null }]
+}
+```
+
+- `nickname`, `chat_id`, `kicked_at` are `null` when the server omits them.
+- When the server rejects the request (for example, the account is not the host or a co-host), the output has `success: false` and the server's non-zero `status_code`, and the process exits non-zero. `kick-list` returns an empty `members` array in that case.
+- If a successful `kick-list` response has no `kickMembers` array, the command fails with `get_kick_list_failed` instead of reporting an empty list, because the response shape is unverified.
+
+**Agent rule**: Never pass `--force` to `member kick` unless the user explicitly asked to kick that specific member. Confirm the target with `member list` first.
+
 ### Message Commands
 
 ```bash
@@ -739,7 +799,7 @@ See the [KakaoTalk SDK documentation](https://agent-messenger.dev/docs/sdk/kakao
 - No friend list management
 - No reactions or emoji
 - No message editing or deletion
-- No open chat (오픈채팅) browsing or joining
+- No open chat (오픈채팅) browsing or joining. Moderation is limited to kicking members and managing the kick list (`member kick`, `member kick-list`, `member unkick`)
 - No search across chats
 - Stickers / emoticons cannot be sent (inbound stickers expose pack/path metadata, but the sticker store requires desktop-app purchase flows the SDK does not replicate). Photos, videos, audio, and arbitrary files can both be received and sent — see [`message upload`](#message-commands) and [`KakaoTalkClient.sendAttachment`](#sdk-programmatic-usage).
 - Chat IDs are numeric and not human-readable — use `chat list` to discover them
