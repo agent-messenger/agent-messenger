@@ -283,6 +283,11 @@ agent-kakaotalk message send <chat-id> "Replying to this" --reply-to <log-id>
 agent-kakaotalk message send <chat-id> "Replying to this" \
   --reply-to-json '{"log_id":"<log-id>","author_id":<author-id>,"message":"<target text>","type":1}'
 
+# Mention (tag) members; the text must contain @<name> for each one
+agent-kakaotalk message send <chat-id> "@Alice hello" --mention <user-id>
+agent-kakaotalk message send <chat-id> "@Alice @Bob hello" --mention <user-id>:Alice --mention <user-id>:Bob
+agent-kakaotalk message send <chat-id> "@Alice agreed" --reply-to <log-id> --mention <user-id>:Alice
+
 # Send a file (auto-routes by MIME: photo / video / audio / generic file)
 agent-kakaotalk message upload <chat-id> ./photo.jpg
 agent-kakaotalk message upload <chat-id> ./clip.mp4
@@ -314,6 +319,27 @@ agent-kakaotalk message typing <chat-id> --account <account-id>
 `--reply-to <log-id>` builds the quote from the chat's latest 100 messages and errors out if the target is not there. `--reply-to-json` takes the target as a JSON object (`log_id`, `author_id`, `message`, `type`, optional `link_id` for open chats) and sends without reading history, so it also works for older messages. Ids may be decimal strings or bare integers; large ids are parsed exactly. The two flags cannot be combined.
 
 > **No CLI command**: Read status is available only through the SDK: use [`getReadWatermarks` and `computeReadStatus`](../sdk/kakaotalk#read-status) to answer "who has read this message?". `getReadWatermarks` returns a one-time snapshot; the SDK does not keep it up to date. Because it sends `CHATONROOM`, which enters the room and may clear your own unread count (#315), call it once per chat per LOCO session. Your code owns the snapshot from then on: apply listener `read` events to your stored watermarks, only ever moving a watermark forward, instead of polling. On `disconnected`, discard the stored watermarks and seed each chat again after the reconnect.
+
+#### Mentioning Users
+
+`--mention <user-id>` tags a member so KakaoTalk renders the `@name` as a mention and notifies them. The text must already contain `@<name>` for every mentioned user. Repeat the flag to tag several users. The CLI also accepts `--mention` together with `--reply-to`, but mentions inside a quoted reply have not yet been verified against a live server.
+
+```bash
+# Name is looked up from the chat's member list (the member's nickname in this chat)
+agent-kakaotalk message send <chat-id> "@Alice the build is green" --mention 1234567890
+
+# Pass the name explicitly as <user-id>:<name> (no member lookup)
+agent-kakaotalk message send <chat-id> "@Alice @Bob standup in 5" --mention 1234567890:Alice --mention 2345678901:Bob
+
+# Mention inside a quoted reply
+agent-kakaotalk message send <chat-id> "@Alice agreed" --reply-to <log-id> --mention 1234567890:Alice
+```
+
+- A bare `<user-id>` is resolved to that member's nickname in the chat. If the nickname cannot be resolved, the command errors out without sending; pass `<user-id>:<name>` instead.
+- Every mentioned `@<name>` must appear in the text as a whole tag. If one is missing, the command errors out without sending and names the missing `@<name>`. A Latin name followed directly by another Latin letter or digit does not count (`@Kimberly` does not tag `Kim`).
+- Two different users with the same name cannot be told apart, so the command errors out without sending.
+- The same user can be tagged more than once in one message; each `@<name>` occurrence is tagged.
+- Output is the same send result as a plain `message send`.
 
 #### Sending Attachments
 
@@ -351,6 +377,7 @@ Each message includes:
 - `message` — message text content (empty string for non-text messages like stickers)
 - `attachment` — parsed JSON metadata for non-text messages (e.g. photo URL/dimensions, sticker path), or `null` for plain text. Shape varies by `type`; treat as an opaque object and narrow per message type.
 - `sent_at` — Unix timestamp (milliseconds)
+- `mentions` — present only when the message tags users: `[{ "user_id": "1234567890", "at": [1], "len": 5 }]`. `user_id` is the tagged user as an exact decimal string, `at` lists which `@` characters in `message` (1-based, counting every `@`) start that user's tag, and `len` is the tagged name's length without the `@`.
 - `scope` — _(optional)_ raw chat-log scope number, included only when the server sends it. Observed values: `1` for ordinary messages, `3` for open-chat thread replies. This mapping is observed behavior, not a documented contract.
 - `thread_id` — _(optional)_ raw chat-log thread id as an exact decimal string, omitted when absent or zero. For open-chat thread replies it has been observed to equal the parent message's `log_id`.
 - `prev_id` — _(optional)_ raw chat-log previous log id as an exact decimal string, omitted when absent or zero.

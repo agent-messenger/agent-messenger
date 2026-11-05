@@ -7,6 +7,7 @@ import {
   buildKickListSyncBody,
   buildKickMemberBody,
   buildReplyWriteBody,
+  buildTextWriteBody,
   buildTypingActionBody,
   sendTypingPacket,
   TYPING_ACTION_METHOD,
@@ -156,6 +157,44 @@ describe('reply WRITE wire contract', () => {
 
     expect(body.extra).toContain('"src_linkId":9007199254740993')
     expect(body).not.toHaveProperty('li')
+  })
+})
+
+describe('mention WRITE wire contract', () => {
+  it('omits extra for a plain text message', () => {
+    const body = buildTextWriteBody(Long.fromString('1'), 'hello')
+
+    expect(body).toEqual({ chatId: Long.fromString('1'), msg: 'hello', type: 1, noSeen: false })
+    expect(body).not.toHaveProperty('extra')
+  })
+
+  it('carries mentions in the extra JSON of a type-1 WRITE with exact user ids', () => {
+    const body = buildTextWriteBody(Long.fromString('1'), '@Alice @Bob', [
+      { user_id: '7467363552057858123', at: [1], len: 5 },
+      { user_id: '42', at: [2], len: 3 },
+    ])
+
+    expect(body.type).toBe(1)
+    expect(body.msg).toBe('@Alice @Bob')
+    expect(body.extra).toBe(
+      '{"mentions":[{"at":[1],"len":5,"user_id":7467363552057858123},{"at":[2],"len":3,"user_id":42}]}',
+    )
+  })
+
+  it('writes reply mentions with exact user ids', () => {
+    const body = buildReplyWriteBody(Long.fromString('1'), '@Alice ok', {
+      attach_only: false,
+      attach_type: 1,
+      src_logId: '2',
+      src_userId: '3',
+      src_message: 'q',
+      src_type: 1,
+      src_mentions: [],
+      mentions: [{ user_id: '7467363552057858123', at: [1], len: 5 }],
+    })
+
+    expect(body.type).toBe(26)
+    expect(body.extra).toContain('"mentions":[{"at":[1],"len":5,"user_id":7467363552057858123}]')
   })
 })
 

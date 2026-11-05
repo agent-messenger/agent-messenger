@@ -415,6 +415,10 @@ agent-kakaotalk message send <chat-id> "Hello world" --pretty
 # Send a quoted reply to a specific message (use a log_id from `message list`)
 agent-kakaotalk message send <chat-id> "Replying to this" --reply-to <log-id>
 
+# Mention (tag) a member; the text must contain @<name>
+agent-kakaotalk message send <chat-id> "@Alice hello" --mention <user-id>
+agent-kakaotalk message send <chat-id> "@Alice hello" --mention <user-id>:Alice
+
 # Send a quoted reply when you already have the target message (no history lookup)
 agent-kakaotalk message send <chat-id> "Replying to this" \
   --reply-to-json '{"log_id":"<log-id>","author_id":<author-id>,"message":"<target text>","type":1}'
@@ -484,6 +488,27 @@ agent-kakaotalk message send <chat-id> "Replying to the latest message" --reply-
 In open chats (오픈채팅) the reply also carries the room's link id as `src_linkId`. The CLI resolves it on its own: from the login snapshot when the room is there, otherwise through a read-only `CHATINFO` lookup that does not change read state. You never pass `--link-id` for a reply. The open-chat reply bubble itself has not been checked against a live server yet.
 
 A send counts as delivered only when the server returns a non-zero `log_id`. A `WRITE` acknowledgment with `status_code: 0` but `log_id: "0"` is reported as `"success": false` and the process exits non-zero, because no message was created.
+
+#### Mentioning Users
+
+`--mention <user-id>` tags a member so KakaoTalk renders the `@name` as a mention and notifies them. The text must already contain `@<name>` for every mentioned user. Repeat the flag to tag several users. The CLI also accepts `--mention` together with `--reply-to`, but mentions inside a quoted reply have not yet been verified against a live server.
+
+```bash
+# Name is looked up from the chat's member list (the member's nickname in this chat)
+agent-kakaotalk message send <chat-id> "@Alice the build is green" --mention 1234567890
+
+# Pass the name explicitly as <user-id>:<name> (no member lookup)
+agent-kakaotalk message send <chat-id> "@Alice @Bob standup in 5" --mention 1234567890:Alice --mention 2345678901:Bob
+
+# Mention inside a quoted reply
+agent-kakaotalk message send <chat-id> "@Alice agreed" --reply-to <log-id> --mention 1234567890:Alice
+```
+
+- A bare `<user-id>` is resolved to that member's nickname in the chat. If the nickname cannot be resolved, the command errors out without sending; pass `<user-id>:<name>` instead.
+- Every mentioned `@<name>` must appear in the text as a whole tag. If one is missing, the command errors out without sending and names the missing `@<name>`. A Latin name followed directly by another Latin letter or digit does not count (`@Kimberly` does not tag `Kim`).
+- Two different users with the same name cannot be told apart, so the command errors out without sending.
+- The same user can be tagged more than once in one message; each `@<name>` occurrence is tagged.
+- Output is the same send result as a plain `message send`.
 
 #### Sending Attachments
 
@@ -587,6 +612,7 @@ Each message includes:
 - `message` — message text content (empty string for non-text messages like stickers)
 - `attachment` — parsed JSON metadata for non-text messages (e.g. photo URL/dimensions, sticker path), or `null` for plain text. Shape varies by `type`; treat as an opaque object and narrow per message type.
 - `sent_at` — Unix timestamp (milliseconds)
+- `mentions` — present only when the message tags users: `[{ "user_id": "1234567890", "at": [1], "len": 5 }]`. `user_id` is the tagged user as an exact decimal string, `at` lists which `@` characters in `message` (1-based, counting every `@`) start that user's tag, and `len` is the tagged name's length without the `@`. (Observed live only for a single leading mention, `at: [1]`; the ordinal rule for multiple `@` characters is not yet verified.)
 - `scope` — *(optional)* raw chat-log scope number, included only when the server sends it. Observed values: `1` for ordinary messages, `3` for open-chat thread replies. This mapping is observed behavior, not a documented contract.
 - `thread_id` — *(optional)* raw chat-log thread id as an exact decimal string, omitted when absent or zero. For open-chat thread replies it has been observed to equal the parent message's `log_id`.
 - `prev_id` — *(optional)* raw chat-log previous log id as an exact decimal string, omitted when absent or zero.
@@ -678,6 +704,7 @@ Common errors:
 - `registration_timeout` — passcode expired before user confirmed on phone.
 - `login_http_error` — network issue reaching KakaoTalk servers.
 - `LOCO packet timeout` — messaging protocol timed out (server may be overloaded).
+- `Message text does not contain "@<name>" for user ...` / `Could not resolve a nickname for --mention ...` — a `--mention` target's `@<name>` is not in the text, or its nickname could not be looked up. Nothing was sent. Fix the text or pass `--mention <user-id>:<name>`.
 
 ## Configuration
 

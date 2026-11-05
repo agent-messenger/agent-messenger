@@ -114,6 +114,23 @@ export interface KakaoMessage {
   thread_id?: string
   /** Raw chatLog `prevId` (the server's previous log id in the chat) as an exact decimal string; omitted when absent or zero. */
   prev_id?: string
+  /** Users tagged with `@name` in this message. Omitted when the message has no mentions. */
+  mentions?: KakaoMention[]
+}
+
+// A user tag inside a message. `at` holds the 1-based ordinals of the `@`
+// characters in the text that start this user's tag, `len` is the tagged
+// name's length (without the `@`), and `user_id` is the exact decimal id.
+export interface KakaoMention {
+  user_id: string
+  at: number[]
+  len: number
+}
+
+// Outgoing mention request. The message text must already contain `@<name>`.
+export interface KakaoMentionInput {
+  user_id: string
+  name: string
 }
 
 export interface KakaoMessagePage {
@@ -225,7 +242,7 @@ export interface KakaoReplyExtra {
   src_message: string
   src_type: number
   src_mentions: unknown[]
-  mentions: unknown[]
+  mentions: KakaoMention[]
   src_linkId?: string
 }
 
@@ -324,6 +341,12 @@ export const KakaoChatSchema = z.object({
     .nullable(),
 })
 
+export const KakaoMentionSchema = z.object({
+  user_id: z.string(),
+  at: z.array(z.number()),
+  len: z.number(),
+})
+
 export const KakaoMessageSchema = z.object({
   log_id: z.string(),
   type: z.number(),
@@ -335,6 +358,7 @@ export const KakaoMessageSchema = z.object({
   scope: z.number().int().optional(),
   thread_id: z.string().optional(),
   prev_id: z.string().optional(),
+  mentions: z.array(KakaoMentionSchema).optional(),
 })
 
 export const KakaoMessagePageSchema = z.object({
@@ -489,6 +513,8 @@ export interface KakaoTalkPushMessageEvent {
   thread_id?: string
   /** Raw chatLog `prevId` (the server's previous log id in the chat) as an exact decimal string; omitted when absent or zero. */
   prev_id?: string
+  /** Users tagged with `@name` in this message. Omitted when the message has no mentions. */
+  mentions?: KakaoMention[]
 }
 
 export type KakaoEmoticonKind = 'sticker' | 'sticker_ani' | 'actioncon' | 'sticker_gif' | 'ditem_emoticon'
@@ -570,6 +596,7 @@ export const KakaoTalkPushMessageEventSchema = z.object({
   scope: z.number().int().optional(),
   thread_id: z.string().optional(),
   prev_id: z.string().optional(),
+  mentions: z.array(KakaoMentionSchema).optional(),
 })
 
 export const KakaoTalkPushEmoticonEventSchema = z.object({

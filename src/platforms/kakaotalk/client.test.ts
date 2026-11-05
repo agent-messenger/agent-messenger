@@ -2349,6 +2349,43 @@ describe('KakaoTalkClient', () => {
       client.close()
     })
 
+    it('exposes normalized mentions from the attachment and omits the key otherwise', async () => {
+      mockGetChatLogs.mockResolvedValueOnce({
+        body: {
+          status: 0,
+          chatLogs: [
+            {
+              logId: makeLong(22),
+              chatId: 100,
+              type: 1,
+              authorId: 42,
+              message: '@Alice hi',
+              sendAt: 1700000012,
+              attachment: '{"mentions":[{"at":[1],"len":5,"user_id":7467363552057858123}]}',
+            },
+            {
+              logId: makeLong(23),
+              chatId: 100,
+              type: 1,
+              authorId: 42,
+              message: 'plain',
+              sendAt: 1700000013,
+              attachment: '',
+            },
+          ],
+          eof: true,
+        },
+      })
+
+      const client = await new KakaoTalkClient().login({ oauthToken: 'token', userId: 'user1', deviceUuid: 'device1' })
+      const messages = await client.getMessages('100')
+
+      expect(messages[0].mentions).toEqual([{ user_id: '7467363552057858123', at: [1], len: 5 }])
+      expect(messages[1]).not.toHaveProperty('mentions')
+
+      client.close()
+    })
+
     it('exposes raw scope, thread_id and prev_id from the chat log', async () => {
       mockGetChatLogs.mockResolvedValueOnce({
         body: {
@@ -2541,6 +2578,61 @@ describe('KakaoTalkClient', () => {
         log_id: '50',
         sent_at: 1700000100,
       })
+
+      client.close()
+    })
+
+    it('passes resolved mentions to a type-1 WRITE', async () => {
+      // given
+      mockSendMessage.mockResolvedValueOnce({ statusCode: 0, body: { logId: makeLong(60), sendAt: 1700000101 } })
+      const client = await new KakaoTalkClient().login({ oauthToken: 'token', userId: 'user1', deviceUuid: 'device1' })
+
+      // when
+      const result = await client.sendMessage('100', '@Alice hi', {
+        mentions: [{ user_id: '7467363552057858123', name: 'Alice' }],
+      })
+
+      // then
+      expect(mockSendReply).not.toHaveBeenCalled()
+      const [, text, mentions] = mockSendMessage.mock.calls[0] as unknown as [unknown, string, unknown]
+      expect(text).toBe('@Alice hi')
+      expect(mentions).toEqual([{ user_id: '7467363552057858123', at: [1], len: 5 }])
+      expect(result.success).toBe(true)
+
+      client.close()
+    })
+
+    it('adds mentions to the reply extra when combined with replyTo', async () => {
+      // given
+      mockSendReply.mockResolvedValueOnce({ statusCode: 0, body: { logId: makeLong(61), sendAt: 1700000102 } })
+      const client = await new KakaoTalkClient().login({ oauthToken: 'token', userId: 'user1', deviceUuid: 'device1' })
+
+      // when
+      await client.sendMessage('100', '@Bob agreed', {
+        replyTo: { log_id: '42', author_id: 7, message: 'original', type: 1 },
+        mentions: [{ user_id: '7', name: 'Bob' }],
+      })
+
+      // then
+      expect(mockSendMessage).not.toHaveBeenCalled()
+      const [, , extra] = mockSendReply.mock.calls[0] as [unknown, string, Record<string, unknown>]
+      expect(extra.src_mentions).toEqual([])
+      expect(extra.mentions).toEqual([{ user_id: '7', at: [1], len: 3 }])
+
+      client.close()
+    })
+
+    it('rejects with invalid_mention before sending when @name is missing from the text', async () => {
+      const client = await new KakaoTalkClient().login({ oauthToken: 'token', userId: 'user1', deviceUuid: 'device1' })
+
+      const error = await client
+        .sendMessage('100', 'hello Alice', { mentions: [{ user_id: '1', name: 'Alice' }] })
+        .catch((e: unknown) => e)
+
+      expect(error).toBeInstanceOf(KakaoTalkError)
+      expect((error as KakaoTalkError).code).toBe('invalid_mention')
+      expect(mockSendMessage).not.toHaveBeenCalled()
+      expect(mockSendReply).not.toHaveBeenCalled()
 
       client.close()
     })

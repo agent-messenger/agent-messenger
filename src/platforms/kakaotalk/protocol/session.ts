@@ -1,6 +1,6 @@
 import { Binary, Long } from 'bson'
 
-import { KAKAO_MESSAGE_TYPE, type KakaoDeviceType, type KakaoReplyExtra } from '../types'
+import { KAKAO_MESSAGE_TYPE, type KakaoDeviceType, type KakaoMention, type KakaoReplyExtra } from '../types'
 import {
   BOOKING_HOST,
   BOOKING_PORT,
@@ -19,6 +19,27 @@ import { exactInteger, stringifyWithExactIntegers } from './exact-json'
 import { validateLoginListResponse } from './login-response'
 import type { BookingResponse, CheckinResponse, LoginListResponse, LocoPacket, SyncState } from './types'
 
+// Mention user ids are 64-bit too (open-chat profile ids exceed 2^53), so they
+// get the same exact-integer treatment as the reply ids.
+function toWireMentions(mentions: ReadonlyArray<KakaoMention>): Array<Record<string, unknown>> {
+  return mentions.map((m) => ({ at: m.at, len: m.len, user_id: exactInteger(m.user_id) }))
+}
+
+// Builds the WRITE body for a plain text message. Mentions ride in the `extra`
+// JSON (`{"mentions":[{"at":[1],"len":3,"user_id":123}]}`) of the same type-1
+// WRITE; without mentions the body carries no `extra` at all.
+export function buildTextWriteBody(
+  chatId: Long,
+  text: string,
+  mentions: ReadonlyArray<KakaoMention> = [],
+): Record<string, unknown> {
+  const body: Record<string, unknown> = { chatId, msg: text, type: 1, noSeen: false }
+  if (mentions.length > 0) {
+    body.extra = stringifyWithExactIntegers({ mentions: toWireMentions(mentions) })
+  }
+  return body
+}
+
 // Builds the WRITE body for a quoted reply. The id fields must reach the wire
 // as bare 64-bit integer tokens, exactly as official clients write them, so
 // they never pass through a JS number (real log ids exceed 2^53).
@@ -27,6 +48,7 @@ export function buildReplyWriteBody(chatId: Long, text: string, extra: KakaoRepl
     ...extra,
     src_logId: exactInteger(extra.src_logId),
     src_userId: exactInteger(extra.src_userId),
+    mentions: toWireMentions(extra.mentions),
     ...(extra.src_linkId !== undefined ? { src_linkId: exactInteger(extra.src_linkId) } : {}),
   }
   return {
@@ -191,14 +213,9 @@ export class LocoSession {
     return { host: checkin.host, port: checkin.port }
   }
 
-  async sendMessage(chatId: Long, text: string): Promise<LocoPacket> {
+  async sendMessage(chatId: Long, text: string, mentions?: ReadonlyArray<KakaoMention>): Promise<LocoPacket> {
     if (!this.connection) throw new Error('Not connected')
-    return this.connection.sendPacket('WRITE', {
-      chatId,
-      msg: text,
-      type: 1,
-      noSeen: false,
-    })
+    return this.connection.sendPacket('WRITE', buildTextWriteBody(chatId, text, mentions))
   }
 
   // Quoted reply — a WRITE with message_type 26 (REPLY) whose `extra` JSON

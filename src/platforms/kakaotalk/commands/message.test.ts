@@ -18,6 +18,9 @@ const mockMarkRead = mock(() =>
   Promise.resolve({ success: true, status_code: 0, chat_id: 'chat-123', watermark: '42' }),
 )
 
+const mockGetMembersByIds = mock((_chatId: string, _ids: string[]) =>
+  Promise.resolve([{ user_id: '7467363552057858123', nickname: 'Alice' }]),
+)
 const mockSendTyping = mock(() => Promise.resolve({ success: true, status_code: 0, chat_id: 'chat-123' }))
 
 const originalExit = process.exit
@@ -26,6 +29,7 @@ const mockClient = {
   getMessages: mockGetMessages,
   sendMessage: mockSendMessage,
   markRead: mockMarkRead,
+  getMembersByIds: mockGetMembersByIds,
   sendTyping: mockSendTyping,
 }
 
@@ -57,6 +61,7 @@ describe('message commands', () => {
     mockGetMessages.mockReset()
     mockSendMessage.mockReset()
     mockMarkRead.mockReset()
+    mockGetMembersByIds.mockReset()
     mockSendTyping.mockReset()
 
     mockWithKakaoClient.mockImplementation(async (_options: unknown, fn: (client: unknown) => Promise<unknown>) => {
@@ -68,6 +73,9 @@ describe('message commands', () => {
     mockSendMessage.mockImplementation(() => Promise.resolve({ log_id: '2', message: 'Hi there', created_at: 2000 }))
     mockMarkRead.mockImplementation(() =>
       Promise.resolve({ success: true, status_code: 0, chat_id: 'chat-123', watermark: '42' }),
+    )
+    mockGetMembersByIds.mockImplementation(() =>
+      Promise.resolve([{ user_id: '7467363552057858123', nickname: 'Alice' }]),
     )
     mockSendTyping.mockImplementation(() => Promise.resolve({ success: true, status_code: 0, chat_id: 'chat-123' }))
 
@@ -287,6 +295,100 @@ describe('message commands', () => {
       }
 
       expect(mockGetMessages).not.toHaveBeenCalled()
+      expect(mockSendMessage).not.toHaveBeenCalled()
+      expect(exitSpy).toHaveBeenCalled()
+    })
+  })
+
+  describe('send --mention', () => {
+    // Commander keeps parsed option values on the shared command instance, so a
+    // repeatable option would accumulate across parseAsync calls without this.
+    beforeEach(() => {
+      for (const sub of messageCommand.commands) {
+        const state = sub as unknown as {
+          _optionValues: Record<string, unknown>
+          _optionValueSources: Record<string, unknown>
+        }
+        state._optionValues = {}
+        state._optionValueSources = {}
+      }
+    })
+
+    function stubExit(): ReturnType<typeof mock> {
+      const exitSpy = mock((_code?: number): never => {
+        throw new Error('process.exit called')
+      })
+      process.exit = exitSpy as unknown as typeof process.exit
+      return exitSpy
+    }
+
+    it('resolves a bare user id to the member nickname', async () => {
+      await messageCommand.parseAsync(['send', 'chat-123', '@Alice hi', '--mention', '7467363552057858123'], {
+        from: 'user',
+      })
+
+      expect(mockGetMembersByIds).toHaveBeenCalledWith('chat-123', ['7467363552057858123'])
+      expect(mockSendMessage).toHaveBeenCalledWith('chat-123', '@Alice hi', {
+        mentions: [{ user_id: '7467363552057858123', name: 'Alice' }],
+      })
+    })
+
+    it('uses an explicit <user-id>:<name> without a member lookup and accepts repeats', async () => {
+      await messageCommand.parseAsync(
+        ['send', 'chat-123', '@Bob and @Carol: dinner?', '--mention', '1:Bob', '--mention', '2:Carol'],
+        { from: 'user' },
+      )
+
+      expect(mockGetMembersByIds).not.toHaveBeenCalled()
+      expect(mockSendMessage).toHaveBeenCalledWith('chat-123', '@Bob and @Carol: dinner?', {
+        mentions: [
+          { user_id: '1', name: 'Bob' },
+          { user_id: '2', name: 'Carol' },
+        ],
+      })
+    })
+
+    it('combines with --reply-to', async () => {
+      mockGetMessages.mockImplementation(() =>
+        Promise.resolve([
+          { log_id: '42', type: 1, author_id: 7, author_name: null, message: 'target', attachment: null, sent_at: 2 },
+        ]),
+      )
+
+      await messageCommand.parseAsync(['send', 'chat-123', '@Bob ok', '--reply-to', '42', '--mention', '7:Bob'], {
+        from: 'user',
+      })
+
+      expect(mockSendMessage).toHaveBeenCalledWith('chat-123', '@Bob ok', {
+        replyTo: { log_id: '42', author_id: 7, message: 'target', type: 1 },
+        mentions: [{ user_id: '7', name: 'Bob' }],
+      })
+    })
+
+    it('errors without sending when the nickname cannot be resolved', async () => {
+      mockGetMembersByIds.mockImplementation(() => Promise.resolve([]))
+      const exitSpy = stubExit()
+
+      try {
+        await messageCommand.parseAsync(['send', 'chat-123', '@Alice hi', '--mention', '99'], { from: 'user' })
+      } catch {
+        // process.exit stub throws to abort the action
+      }
+
+      expect(mockSendMessage).not.toHaveBeenCalled()
+      expect(exitSpy).toHaveBeenCalled()
+    })
+
+    it('errors without sending on a malformed --mention value', async () => {
+      const exitSpy = stubExit()
+
+      try {
+        await messageCommand.parseAsync(['send', 'chat-123', '@Alice hi', '--mention', 'alice'], { from: 'user' })
+      } catch {
+        // process.exit stub throws to abort the action
+      }
+
+      expect(mockGetMembersByIds).not.toHaveBeenCalled()
       expect(mockSendMessage).not.toHaveBeenCalled()
       expect(exitSpy).toHaveBeenCalled()
     })
