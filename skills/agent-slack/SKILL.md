@@ -1,7 +1,7 @@
 ---
 name: agent-slack
 description: Interact with Slack workspaces - send messages, read channels, manage reactions
-version: 2.40.0
+version: 2.41.0
 allowed-tools: Bash(agent-slack:*)
 metadata:
   openclaw:
