@@ -344,34 +344,71 @@ const chats = await client.getChats({ resolveTitles: true })
 const title = await client.getChatTitle('9876543210')
 ```
 
-## Pattern 11: Retry only when non-delivery is established
+## Pattern 11: Error Handling and Retry
 
-**Use case**: Recover from retryable failures without replaying uncertain sends.
+**Use case**: Retry confirmed transient rejections while stopping uncertain sends.
 
-| Outcome | Caller action |
-| --- | --- |
-| Connection or authentication failed before the message request was dispatched | Correct the cause, then retry if transient; no message request was sent. |
-| Explicit provider rejection establishing non-acceptance | Retry with bounded backoff only if that specific rejection is known to be transient; otherwise correct the request or credentials. |
-| `delivery_unknown`, or another failure after dispatch whose acceptance is unconfirmed | Do not automatically resend. Inspect history and reconcile the outcome first. |
-| Acknowledged success | Do not resend. |
+### Case 1: Send with retry after confirmed non-acceptance
 
-A missing history entry immediately after a disconnect is not proof of failure.
-An error code other than `delivery_unknown` is **not** proof of non-delivery:
-for example, a timeout or write failure may surface under a generic send error.
-Do not use `code !== 'delivery_unknown'` as a retry condition, or put every failed
-send in a generic retry loop. Retry only when non-acceptance and the transient
-nature of the specific failure have been established.
+Use bounded backoff only for specific provider rejections that your application
+has established mean both **not accepted** and **transient**. The SDK does not
+provide a verified retryable-status allowlist; supply that policy explicitly.
+Do not classify every `success: false` or nonzero status as retryable.
 
-The SDK reconnects reads and establishes a session before dispatching a new
-send. It does not currently implement automatic send retries classified by
-pre-dispatch failure or transient provider rejection; callers must apply those
-conditions themselves. This guidance does not add persistent deduplication.
+```typescript
+import type { KakaoSendResult } from 'agent-messenger/kakaotalk'
+
+async function sendWithRetry(
+  send: () => Promise<KakaoSendResult>,
+  isConfirmedTransientRejection: (result: KakaoSendResult) => boolean,
+  maxAttempts = 3,
+): Promise<KakaoSendResult> {
+  for (let attempt = 1; ; attempt++) {
+    // Thrown errors propagate: they never enter this retry loop.
+    const result = await send()
+    if (result.success || attempt >= maxAttempts || !isConfirmedTransientRejection(result)) {
+      return result
+    }
+    await new Promise((resolve) => setTimeout(resolve, attempt * 1_000))
+  }
+}
+```
+
+Call this helper with your verified rejection classifier. If no status has been
+verified, use `() => false`: the helper then makes only one attempt. Connection
+or authentication failures before dispatch can be retried after correcting a
+retryable cause, but must be handled separately from replaying a sent request.
+
+### Case 2: Do not retry uncertain delivery
+
+A `delivery_unknown` error means the server may already have accepted the
+message. Inspect history and reconcile the outcome instead of sending again.
+Other errors, including timeouts after dispatch, can also leave delivery
+uncertain: `code !== 'delivery_unknown'` is not a safe retry condition.
+
+```typescript
+import { KakaoTalkError } from 'agent-messenger/kakaotalk'
+
+try {
+  await client.sendMessage(chatId, text)
+} catch (error) {
+  if (error instanceof KakaoTalkError && error.code === 'delivery_unknown') {
+    // Inspect history; do not call sendMessage again automatically.
+    console.error('Delivery is unknown; reconcile chat history before resending.')
+  }
+  // Preserve the failure for the caller; no generic retry for other errors either.
+  throw error
+}
+```
 
 ```bash
-agent-kakaotalk message send "9876543210" "Important message!"
-# If delivery is unknown, inspect history instead of automatically sending again:
 agent-kakaotalk message list "9876543210" --count 20
 ```
+
+A missing history entry immediately after a disconnect is not proof of failure.
+The SDK reconnects reads and establishes a session before a new send, but does
+not automatically classify and retry failed sends as in Case 1. The helper is
+caller-side policy, not an exactly-once or persistent deduplication guarantee.
 
 ## Pattern 12: Show "Typing..." While Preparing a Slow Reply
 
