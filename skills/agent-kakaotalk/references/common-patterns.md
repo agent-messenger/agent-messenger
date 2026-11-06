@@ -357,7 +357,7 @@ provider rejections should be handled according to their error codes.
 ```bash
 agent-kakaotalk message send "9876543210" "Important message!"
 # If delivery is unknown, inspect history instead of automatically sending again:
-agent-kakaotalk message list "9876543210" --limit 20
+agent-kakaotalk message list "9876543210" --count 20
 ```
 
 ## Pattern 12: Show "Typing..." While Preparing a Slow Reply
