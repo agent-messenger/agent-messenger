@@ -605,6 +605,10 @@ const timer = setInterval(poll, 10_000)
 
 ### Transport and interrupted sends
 
+On the measured Linux Node 24.14.1 / OpenSSL 3.5.5 and macOS arm64 Node 26.13.0 / OpenSSL 4.1.0 builds, tablet messaging selects a calibrated 228-byte ClientHello offer by default: nine AEAD cipher suites, OCSP status request, retained SNI, and respectively three/four signature schemes. Other platform/runtime combinations retain the previous broader offer. This is an exact-build calibration, not an assertion about all Node versions or an official-client fingerprint. Certificate verification remains enabled.
+
+The narrower signature lists can limit compatibility with future server certificates. An OCSP request is not itself OCSP validation; the tested server returned no stapled response. A 228-byte total does not make the internal offer identical to Android or prevent server-side differentiation. Revalidate the profile after runtime/server changes, including authenticated login; do not extend the runtime match merely to force a byte count.
+
 Android tablet messaging uses certificate-verified TLS on port 10009, preferring AES-128-GCM and X25519. The TLS service identity is `kakao.com`, used for both SNI and certificate hostname verification; it is distinct from the booking-provided routing host/IP. Existing desktop, booking, checkin, and media-upload transports are retained. Matching the negotiated cipher does not make this an official client or establish identical TLS handshakes.
 
 Read operations can reconnect and retry after a disconnect. By default, text/reply and media sends are not automatically replayed after an uncertain failure. A `delivery_unknown` error means the server may already have accepted the request: a retry may deliver a duplicate. Inspect history before manually retrying. Other errors, including timeouts after dispatch, can also leave acceptance uncertain; absence of `delivery_unknown` is not a safe retry signal.
