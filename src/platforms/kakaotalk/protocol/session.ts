@@ -1,6 +1,12 @@
 import { Binary, Long } from 'bson'
 
-import { KAKAO_MESSAGE_TYPE, type KakaoDeviceType, type KakaoMention, type KakaoReplyExtra } from '../types'
+import {
+  KAKAO_MESSAGE_TYPE,
+  type KakaoDeviceType,
+  type KakaoMention,
+  type KakaoReplyExtra,
+  type KakaoWriteOptions,
+} from '../types'
 import {
   BOOKING_HOST,
   BOOKING_PORT,
@@ -17,6 +23,7 @@ import {
 import { LocoConnection } from './connection'
 import { exactInteger, stringifyWithExactIntegers } from './exact-json'
 import { validateLoginListResponse } from './login-response'
+import { createMessageIdGenerator } from './message-id'
 import type { BookingResponse, CheckinResponse, LoginListResponse, LocoPacket, SyncState } from './types'
 
 // Mention user ids are 64-bit too (open-chat profile ids exceed 2^53), so they
@@ -107,7 +114,27 @@ export function buildKickListDeleteBody(linkId: Long, chatId: Long, userId: Long
   return { li: linkId, c: chatId, kid: userId }
 }
 
+// Shared headers must preserve reply, mention and attachment extras.
+export function buildWriteBody(
+  body: Record<string, unknown>,
+  msgId: Long,
+  options: KakaoWriteOptions = {},
+): Record<string, unknown> {
+  for (const key of ['silence', 'noSeen'] as const) {
+    if (options[key] !== undefined && typeof options[key] !== 'boolean') throw new TypeError(`${key} must be boolean`)
+  }
+  return {
+    ...body,
+    msgId,
+    scope: 1,
+    silence: options.silence ?? false,
+    noSeen: options.noSeen ?? body.noSeen ?? false,
+    extra: body.extra ?? '{}',
+  }
+}
+
 export class LocoSession {
+  constructor(private nextMessageId?: () => number) {}
   private connection: LocoConnection | null = null
   private pingTimer: ReturnType<typeof setInterval> | null = null
   private pushHandler: ((packet: LocoPacket) => void) | null = null
@@ -122,6 +149,7 @@ export class LocoSession {
     deviceType?: KakaoDeviceType,
   ): Promise<LoginListResponse> {
     this.deviceType = deviceType ?? 'tablet'
+    this.nextMessageId ??= createMessageIdGenerator(deviceUuid)
     const deviceConfig = getLocoDeviceConfig(this.deviceType)
 
     const { host, port } = await this.bookAndCheckin(userId, deviceConfig)
@@ -213,31 +241,55 @@ export class LocoSession {
     return { host: checkin.host, port: checkin.port }
   }
 
-  async sendMessage(chatId: Long, text: string, mentions?: ReadonlyArray<KakaoMention>): Promise<LocoPacket> {
+  private sendWrite(body: Record<string, unknown>, options?: KakaoWriteOptions): Promise<LocoPacket> {
+    if (!this.connection || !this.nextMessageId) throw new Error('Not connected')
+    return this.connection.sendPacket('WRITE', buildWriteBody(body, Long.fromNumber(this.nextMessageId()), options))
+  }
+
+  async sendMessage(
+    chatId: Long,
+    text: string,
+    mentions?: ReadonlyArray<KakaoMention>,
+    options?: KakaoWriteOptions,
+  ): Promise<LocoPacket> {
     if (!this.connection) throw new Error('Not connected')
-    return this.connection.sendPacket('WRITE', buildTextWriteBody(chatId, text, mentions))
+    return this.sendWrite(buildTextWriteBody(chatId, text, mentions), options)
   }
 
   // Quoted reply — a WRITE with message_type 26 (REPLY) whose `extra` JSON
   // carries the source-message reference. The reply semantics ride entirely on
-  // `type` + `extra`; no extra top-level WRITE fields are needed.
-  async sendReply(chatId: Long, text: string, extra: KakaoReplyExtra): Promise<LocoPacket> {
+  // `type` + `extra`; sendWrite adds the common headers.
+  async sendReply(
+    chatId: Long,
+    text: string,
+    extra: KakaoReplyExtra,
+    options?: KakaoWriteOptions,
+  ): Promise<LocoPacket> {
     if (!this.connection) throw new Error('Not connected')
-    return this.connection.sendPacket('WRITE', buildReplyWriteBody(chatId, text, extra))
+    return this.sendWrite(buildReplyWriteBody(chatId, text, extra), options)
   }
 
   // Sends a WRITE with non-text message_type plus the JSON-stringified `extra`
   // payload that KakaoTalk clients render as the attachment (photo, file, etc).
   // See types.ts → KakaoPhotoExtra / KakaoFileExtra for the per-type shape.
-  async sendAttachment(chatId: Long, type: number, extra: Record<string, unknown>, caption = ''): Promise<LocoPacket> {
+  async sendAttachment(
+    chatId: Long,
+    type: number,
+    extra: Record<string, unknown>,
+    caption = '',
+    options?: KakaoWriteOptions,
+  ): Promise<LocoPacket> {
     if (!this.connection) throw new Error('Not connected')
-    return this.connection.sendPacket('WRITE', {
-      chatId,
-      msg: caption,
-      type,
-      noSeen: false,
-      extra: JSON.stringify(extra),
-    })
+    return this.sendWrite(
+      {
+        chatId,
+        msg: caption,
+        type,
+        noSeen: false,
+        extra: JSON.stringify(extra),
+      },
+      options,
+    )
   }
 
   // SHIP — request a media-upload ticket. Reserves a slot on a media LOCO

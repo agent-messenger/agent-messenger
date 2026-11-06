@@ -2490,6 +2490,23 @@ describe('KakaoTalkClient', () => {
   })
 
   describe('sendMessage', () => {
+    it('passes explicit WRITE options without dropping reply or mention payloads', async () => {
+      mockSendMessage.mockResolvedValueOnce({ statusCode: 0, body: { logId: makeLong(42) } })
+      mockSendReply.mockResolvedValueOnce({ statusCode: 0, body: { logId: makeLong(43) } })
+      const client = await new KakaoTalkClient().login({ oauthToken: 'token', userId: 'user1', deviceUuid: 'device1' })
+      await client.sendMessage('100', 'hello', { silence: true, noSeen: true })
+      expect(mockSendMessage).toHaveBeenCalledWith(Long.fromNumber(100), 'hello', undefined, {
+        silence: true,
+        noSeen: true,
+      })
+      await client.sendMessage('100', 'reply', {
+        silence: true,
+        replyTo: { log_id: '42', author_id: 7, message: 'original', type: 1 },
+      })
+      expect(mockSendReply.mock.calls[0]?.[3]).toEqual({ silence: true, noSeen: undefined })
+      client.close()
+    })
+
     it('reports a body rejection even when the packet and log id look successful', async () => {
       mockSendMessage.mockResolvedValueOnce({ statusCode: 0, body: { status: -203, logId: makeLong(42) } })
       const client = await new KakaoTalkClient().login({ oauthToken: 'token', userId: 'user1', deviceUuid: 'device1' })

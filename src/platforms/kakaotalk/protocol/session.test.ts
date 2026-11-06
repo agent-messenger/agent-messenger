@@ -232,3 +232,17 @@ describe('open chat moderation wire contract', () => {
     expect((body.kid as Long).toString()).toBe('7467363552057858123')
   })
 })
+
+describe('common WRITE headers', () => {
+  it('preserves payload extras and validates boolean options', async () => {
+    const { buildWriteBody } = await import('./session')
+    const extra = '{"mentions":[{"user_id":9007199254740993}]}'
+    const body = buildWriteBody({ chatId: Long.ONE, type: 1, extra }, Long.fromNumber(123), { silence: true })
+    expect(body).toMatchObject({ scope: 1, silence: true, noSeen: false, extra })
+    expect((body.msgId as Long).toNumber()).toBe(123)
+    expect(buildWriteBody({ type: 26, extra }, Long.ONE).extra).toBe(extra)
+    expect(buildWriteBody({ type: 18, extra: '{"name":"fixture.txt"}' }, Long.ONE).extra).toContain('fixture.txt')
+    expect(buildWriteBody({}, Long.ONE).extra).toBe('{}')
+    expect(() => buildWriteBody({}, Long.ONE, { silence: 'true' as unknown as boolean })).toThrow(TypeError)
+  })
+})

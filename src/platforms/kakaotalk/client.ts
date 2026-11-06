@@ -12,6 +12,7 @@ import { LANG, PC_OS_NAME, getLocoDeviceConfig } from './protocol/config'
 import { exactInteger, parseJsonPreservingIntegers } from './protocol/exact-json'
 import { isSyntheticConnectionClose } from './protocol/login-response'
 import { uploadMediaToLoco, uploadMultiMediaEntry } from './protocol/media-uploader'
+import { createMessageIdGenerator } from './protocol/message-id'
 import { formatSendResult } from './protocol/send-response'
 import { LocoSession } from './protocol/session'
 import type { ChatListResponse, LocoPacket, LoginListResponse, SyncState } from './protocol/types'
@@ -38,6 +39,7 @@ import {
   type KakaoReplyExtra,
   type KakaoReplyTarget,
   type KakaoSendResult,
+  type KakaoWriteOptions,
   type KakaoTypingResult,
   type KakaoUnkickMemberResult,
 } from './types'
@@ -901,6 +903,7 @@ export class KakaoTalkClient {
   private state: SessionState | null = null
   private initPromise: Promise<SessionState> | null = null
   private closed = false
+  private nextMessageId: (() => number) | null = null
   private pushHandlers = new Set<KakaoPushHandler>()
   private sessionEventHandlers = new Set<KakaoSessionEventHandler>()
   private nameCache = new MemberNameCache()
@@ -1032,7 +1035,8 @@ export class KakaoTalkClient {
   }
 
   private async connect(): Promise<SessionState> {
-    const session = new LocoSession()
+    this.nextMessageId ??= createMessageIdGenerator(this.deviceUuid!)
+    const session = new LocoSession(this.nextMessageId)
     session.onPush((packet) => this.dispatchPush(session, packet))
     session.onClose(() => {
       session.close()
@@ -1521,8 +1525,12 @@ export class KakaoTalkClient {
   async sendMessage(
     chatId: string,
     text: string,
-    options?: { replyTo?: KakaoReplyTarget; mentions?: KakaoMentionInput[] },
+    options?: KakaoWriteOptions & { replyTo?: KakaoReplyTarget; mentions?: KakaoMentionInput[] },
   ): Promise<KakaoSendResult> {
+    const writeOptions =
+      options?.silence !== undefined || options?.noSeen !== undefined
+        ? { silence: options.silence, noSeen: options.noSeen }
+        : undefined
     const replyTo = options?.replyTo
     const replyLinkId = replyTo?.link_id !== undefined ? parseReplyLinkId(replyTo.link_id) : undefined
 
@@ -1548,10 +1556,13 @@ export class KakaoTalkClient {
                 replyLinkId ?? (await resolveOpenLinkId(session, loginResult, chatId)),
                 mentions,
               ),
+              ...(writeOptions ? [writeOptions] : []),
             )
           : mentions.length > 0
-            ? await session.sendMessage(parseLong(chatId), text, mentions)
-            : await session.sendMessage(parseLong(chatId), text)
+            ? await session.sendMessage(parseLong(chatId), text, mentions, ...(writeOptions ? [writeOptions] : []))
+            : writeOptions
+              ? await session.sendMessage(parseLong(chatId), text, undefined, writeOptions)
+              : await session.sendMessage(parseLong(chatId), text)
         return formatSendResult(response, chatId)
       } catch (error) {
         throw wrapError(error, 'send_message_failed')

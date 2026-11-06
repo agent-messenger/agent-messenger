@@ -164,6 +164,11 @@ export interface KakaoMemberSnapshot {
   consistency_basis: 'stable_double_read_chatinfo_getmem'
 }
 
+export interface KakaoWriteOptions {
+  silence?: boolean
+  noSeen?: boolean
+}
+
 export interface KakaoSendResult {
   success: boolean
   status_code: number

@@ -43,6 +43,7 @@ export type {
   KakaoReplyExtra,
   KakaoReplyTarget,
   KakaoSendResult,
+  KakaoWriteOptions,
   KakaoTalkListenerEventMap,
   KakaoTalkPushEmoticonEvent,
   KakaoTalkPushEvent,
