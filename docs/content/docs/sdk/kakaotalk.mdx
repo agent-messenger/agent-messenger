@@ -658,6 +658,12 @@ await client.sendMessage(chatId, text, { scope: 1, silence: false, noSeen: false
 
 These are SDK options; the CLI does not currently expose all low-level login/WRITE overrides. Typed attachment flows continue to construct their own payloads. There is no promise that changing a wire option is sufficient to enable an unsupported product workflow.
 
+#### Which account switch does `isSw` describe?
+
+The preserved supplier name is `isAccountSwitching`, but the located Android setup callers both supply constant-false providers. No true-producing setup caller was found in this APK. The tablet/PC role is separately represented by `dtype`, `useSub`, and `os`; selecting that role is not evidence for setting `isSw=true`. No connection from multi-profile selection or a desktop multi-account UI to this supplier was established. Account-switch strings elsewhere in the APK include KakaoPay flows and must not be treated as evidence for this LOCO flag without a call/data-flow link.
+
+Consequently, this baseline does not identify an enabled product workflow for true. `isSwitching` is an advanced wire override, not an SDK account-switch API, and must not be enabled merely when changing display profiles, using a tablet, or choosing another stored SDK account. Establish the relevant account/authentication transition before using true. The false/omission login tests do not validate such a transition.
+
 #### Why not load block revisions from an existing database?
 
 The official app does load its own revisions from local storage: Android DataStore (`blockRevision`, `plusBlockRevision`), with migration paths from preferences. The SDK's current `SyncState` stores chat-list synchronization fields, not block-list contents/revisions, and has no implemented block-list synchronization lifecycle. Its chat `revision` is a different field and must not be substituted for either block revision.
