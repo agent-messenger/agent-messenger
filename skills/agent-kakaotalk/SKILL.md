@@ -401,6 +401,20 @@ Get `<user-id>` from `member list` (`user_id`) or from `message list` (`author_i
 
 ### Message Commands
 
+Uncertain sends are not automatically replayed by default. `delivery_unknown`
+means the message may already have been delivered. Explicitly opt into one retry
+only when duplicate delivery is acceptable:
+
+```bash
+agent-kakaotalk message send <chat-id> "Hello" --retry-unknown-delivery
+agent-kakaotalk message upload <chat-id> ./report.pdf --retry-unknown-delivery
+```
+
+The opt-in can duplicate messages or uploads; it does not retry every provider
+rejection or generic error. See Pattern 11 in `references/common-patterns.md`.
+SDK protocol-field defaults/overrides and evidence limits are documented in
+[the SDK guide](../../docs/content/docs/sdk/kakaotalk.mdx#protocol-fields-meaning-defaults-and-evidence-limits).
+
 ```bash
 # List messages in a chat room
 agent-kakaotalk message list <chat-id>

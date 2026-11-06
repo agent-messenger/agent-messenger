@@ -40,6 +40,7 @@ import {
   type KakaoReplyTarget,
   type KakaoSendResult,
   type KakaoWriteOptions,
+  type KakaoTalkClientOptions,
   type KakaoTypingResult,
   type KakaoUnkickMemberResult,
 } from './types'
@@ -918,7 +919,7 @@ export class KakaoTalkClient {
   private sessionEventHandlers = new Set<KakaoSessionEventHandler>()
   private nameCache = new MemberNameCache()
 
-  constructor(private readonly options: { retryUnknownDelivery?: boolean } = {}) {}
+  constructor(private readonly options: KakaoTalkClientOptions = {}) {}
 
   async login(
     credentials?: { oauthToken: string; userId: string; deviceUuid?: string; deviceType?: KakaoDeviceType },
@@ -1056,7 +1057,7 @@ export class KakaoTalkClient {
 
   private async connect(): Promise<SessionState> {
     this.nextMessageId ??= createMessageIdGenerator(this.deviceUuid!)
-    const session = new LocoSession(this.nextMessageId)
+    const session = new LocoSession(this.nextMessageId, this.options)
     session.onPush((packet) => this.dispatchPush(session, packet))
     session.onClose(() => {
       session.close()
@@ -1547,10 +1548,11 @@ export class KakaoTalkClient {
     text: string,
     options?: KakaoWriteOptions & { replyTo?: KakaoReplyTarget; mentions?: KakaoMentionInput[] },
   ): Promise<KakaoSendResult> {
-    const writeOptions =
-      options?.silence !== undefined || options?.noSeen !== undefined
-        ? { silence: options.silence, noSeen: options.noSeen }
-        : undefined
+    const writeOptions: KakaoWriteOptions = {}
+    for (const key of ['silence', 'noSeen', 'scope', 'threadId', 'extra'] as const) {
+      if (options?.[key] !== undefined) Object.assign(writeOptions, { [key]: options[key] })
+    }
+    const hasWriteOptions = Object.keys(writeOptions).length > 0
     const replyTo = options?.replyTo
     const replyLinkId = replyTo?.link_id !== undefined ? parseReplyLinkId(replyTo.link_id) : undefined
 
@@ -1576,11 +1578,11 @@ export class KakaoTalkClient {
                 replyLinkId ?? (await resolveOpenLinkId(session, loginResult, chatId)),
                 mentions,
               ),
-              ...(writeOptions ? [writeOptions] : []),
+              ...(hasWriteOptions ? [writeOptions] : []),
             )
           : mentions.length > 0
-            ? await session.sendMessage(parseLong(chatId), text, mentions, ...(writeOptions ? [writeOptions] : []))
-            : writeOptions
+            ? await session.sendMessage(parseLong(chatId), text, mentions, ...(hasWriteOptions ? [writeOptions] : []))
+            : hasWriteOptions
               ? await session.sendMessage(parseLong(chatId), text, undefined, writeOptions)
               : await session.sendMessage(parseLong(chatId), text)
         assertSendConnectionOpen(response)

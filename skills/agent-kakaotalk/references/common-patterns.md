@@ -394,10 +394,12 @@ correct permanent errors instead. Initial connection/authentication failures
 before dispatch are separate from replaying a sent message. Read reconnection
 is retained. Neither policy provides exactly-once or persistent deduplication.
 
-**Maintainer decision requested:** This PR proposes no replay by default and an
-explicit opt-in. Earlier SDK behavior automatically retried disconnected sends.
-The default, option shape, and retry scope are policy proposals for the maintainer
-to decide; they can be revised to preserve the project's intended compatibility.
+For field meanings and evidence boundaries (scope/thread visibility, silence,
+noSeen, extra, CHECKIN country, LOGINLIST switching and block revisions), see the
+SDK documentation's “Protocol fields: meaning, defaults, and evidence limits”.
+These are configurable inputs, not claims that every official request uses the
+same defaults. In particular, the client does not implement account switching
+or block-list synchronization just by accepting those options.
 
 ## Pattern 12: Show "Typing..." While Preparing a Slow Reply
 

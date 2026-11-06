@@ -2604,6 +2604,15 @@ describe('KakaoTalkClient', () => {
       client.close()
     })
 
+    it('passes visibility, thread and raw-extra options through the SDK', async () => {
+      mockSendMessage.mockResolvedValueOnce({ statusCode: 0, body: { logId: makeLong(42) } })
+      const client = await new KakaoTalkClient().login({ oauthToken: 'token', userId: 'user1', deviceUuid: 'device1' })
+      const options = { scope: 3 as const, threadId: '9007199254740993', extra: '{"custom":1}' }
+      await client.sendMessage('100', 'hello', options)
+      expect(mockSendMessage).toHaveBeenCalledWith(Long.fromNumber(100), 'hello', undefined, options)
+      client.close()
+    })
+
     it('returns send result on success', async () => {
       mockSendMessage.mockResolvedValueOnce({
         statusCode: 0,

@@ -3,6 +3,7 @@ import { Binary, Long } from 'bson'
 import {
   KAKAO_MESSAGE_TYPE,
   type KakaoDeviceType,
+  type KakaoLoginOptions,
   type KakaoMention,
   type KakaoReplyExtra,
   type KakaoWriteOptions,
@@ -12,6 +13,7 @@ import {
   BOOKING_PORT,
   CHECKIN_HOST,
   CHECKIN_PORT,
+  COUNTRY_ISO,
   DTYPE,
   LANG,
   MCCMNC,
@@ -124,13 +126,27 @@ export function buildWriteBody(
   for (const key of ['silence', 'noSeen'] as const) {
     if (options[key] !== undefined && typeof options[key] !== 'boolean') throw new TypeError(`${key} must be boolean`)
   }
+  const scope = options.scope ?? 1
+  if (![1, 2, 3].includes(scope)) throw new RangeError('scope must be 1, 2, or 3')
+  let threadId: Long | undefined
+  if (options.threadId !== undefined) {
+    const digits = exactInteger(options.threadId).digits
+    if (BigInt(digits) <= 0n) throw new RangeError('threadId must be positive')
+    threadId = Long.fromString(digits)
+  }
+  if (options.extra !== undefined) {
+    if (body.extra !== undefined) throw new TypeError('extra cannot replace generated mention/reply payloads')
+    const extra: unknown = JSON.parse(options.extra)
+    if (!extra || typeof extra !== 'object' || Array.isArray(extra)) throw new TypeError('extra must be a JSON object')
+  }
   return {
     ...body,
     msgId,
-    scope: 1,
+    scope,
+    ...(threadId ? { threadId } : {}),
     silence: options.silence ?? false,
     noSeen: options.noSeen ?? body.noSeen ?? false,
-    extra: body.extra ?? '{}',
+    extra: options.extra ?? body.extra ?? '{}',
   }
 }
 
@@ -145,8 +161,43 @@ export function connectMessagingServer(
     : connection.connectSecure(host, port)
 }
 
+export function buildLoginFields(options: KakaoLoginOptions = {}): {
+  checkin: Record<string, unknown>
+  login: Record<string, unknown>
+} {
+  // KR preserves the SDK's historical default; Android's inspected CHECKIN
+  // builder omits this key. Neither choice is required by the tested server.
+  const countryISO = options.countryISO === undefined ? COUNTRY_ISO : options.countryISO
+  if (countryISO !== null && (typeof countryISO !== 'string' || !/^[A-Z]{2}$/.test(countryISO))) {
+    throw new TypeError('countryISO must be an uppercase two-letter code or null')
+  }
+  const isSwitching = options.isSwitching === undefined ? false : options.isSwitching
+  if (isSwitching !== null && typeof isSwitching !== 'boolean')
+    throw new TypeError('isSwitching must be boolean or null')
+  const revisions = [options.blockRevision ?? 0, options.plusBlockRevision ?? 0]
+  for (const revision of revisions) {
+    if (!Number.isInteger(revision) || revision < 0 || revision > 0xffff) {
+      throw new RangeError('Block revisions must be unsigned 16-bit integers')
+    }
+  }
+  const rp = Buffer.alloc(6)
+  rp.writeUInt16LE(revisions[0]!, 0)
+  rp.writeInt16LE(-1, 2)
+  rp.writeUInt16LE(revisions[1]!, 4)
+  return {
+    checkin: countryISO === null ? {} : { countryISO },
+    login: { rp: new Binary(rp), ...(isSwitching === null ? {} : { isSw: isSwitching }) },
+  }
+}
+
 export class LocoSession {
-  constructor(private nextMessageId?: () => number) {}
+  private readonly loginFields: ReturnType<typeof buildLoginFields>
+  constructor(
+    private nextMessageId?: () => number,
+    options: KakaoLoginOptions = {},
+  ) {
+    this.loginFields = buildLoginFields(options)
+  }
   private connection: LocoConnection | null = null
   private pingTimer: ReturnType<typeof setInterval> | null = null
   private pushHandler: ((packet: LocoPacket) => void) | null = null
@@ -197,9 +248,8 @@ export class LocoSession {
         maxIds,
         lastTokenId,
         lbk,
-        rp: new Binary(Buffer.from([0x00, 0x00, 0xff, 0xff, 0x00, 0x00])),
+        ...this.loginFields.login,
         bg: false,
-        isSw: false,
       })
 
       const loginResult = validateLoginListResponse(response)
@@ -242,6 +292,7 @@ export class LocoSession {
       MCCMNC: MCCMNC,
       lang: LANG,
       useSub: deviceConfig.useSub,
+      ...this.loginFields.checkin,
     })
     checkinConn.close()
 

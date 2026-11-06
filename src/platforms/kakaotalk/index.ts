@@ -44,6 +44,8 @@ export type {
   KakaoReplyTarget,
   KakaoSendResult,
   KakaoWriteOptions,
+  KakaoLoginOptions,
+  KakaoTalkClientOptions,
   KakaoTalkListenerEventMap,
   KakaoTalkPushEmoticonEvent,
   KakaoTalkPushEvent,

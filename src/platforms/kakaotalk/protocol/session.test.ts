@@ -274,3 +274,48 @@ describe('messaging transport selection', () => {
     expect(calls[1]).toEqual({ kind: 'legacy', port: 5242 })
   })
 })
+
+describe('configurable protocol fields', () => {
+  it('keeps login defaults while allowing explicit identity and revision values', async () => {
+    const { buildLoginFields } = await import('./session')
+    const defaults = buildLoginFields()
+    expect(defaults.checkin).toEqual({ countryISO: 'KR' })
+    expect(defaults.login.isSw).toBe(false)
+    expect((defaults.login.rp as import('bson').Binary).buffer.toString('hex')).toBe('0000ffff0000')
+    const overridden = buildLoginFields({
+      countryISO: 'US',
+      isSwitching: true,
+      blockRevision: 65535,
+      plusBlockRevision: 42,
+    })
+    expect(overridden.checkin).toEqual({ countryISO: 'US' })
+    expect(overridden.login.isSw).toBe(true)
+    expect((overridden.login.rp as import('bson').Binary).buffer.toString('hex')).toBe('ffffffff2a00')
+    const omitted = buildLoginFields({ countryISO: null, isSwitching: null })
+    expect(omitted.checkin).toEqual({})
+    expect(omitted.login).not.toHaveProperty('isSw')
+    for (const value of [-1, 65536, 1.5, NaN]) expect(() => buildLoginFields({ blockRevision: value })).toThrow()
+    expect(() => buildLoginFields({ countryISO: 'usa' })).toThrow()
+    expect(() => buildLoginFields({ isSwitching: 'false' as unknown as boolean })).toThrow()
+  })
+
+  it('preserves explicit visibility, thread ids and raw extras without replacing typed payloads', async () => {
+    const { buildWriteBody } = await import('./session')
+    const extra = '{"custom":9007199254740993}'
+    for (const scope of [1, 2, 3] as const) {
+      const body = buildWriteBody({}, Long.ONE, {
+        scope,
+        threadId: '9007199254740993',
+        extra,
+        silence: true,
+        noSeen: true,
+      })
+      expect(body).toMatchObject({ scope, extra, silence: true, noSeen: true })
+      expect((body.threadId as Long).toString()).toBe('9007199254740993')
+    }
+    expect(() => buildWriteBody({}, Long.ONE, { scope: 0 as 1 })).toThrow()
+    expect(() => buildWriteBody({}, Long.ONE, { threadId: '9223372036854775808' })).toThrow()
+    expect(() => buildWriteBody({}, Long.ONE, { extra: '[]' })).toThrow()
+    expect(() => buildWriteBody({ extra: '{"src_logId":9007199254740993}' }, Long.ONE, { extra })).toThrow()
+  })
+})
