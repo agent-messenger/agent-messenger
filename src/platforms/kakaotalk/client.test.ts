@@ -2503,7 +2503,14 @@ describe('KakaoTalkClient', () => {
         silence: true,
         replyTo: { log_id: '42', author_id: 7, message: 'original', type: 1 },
       })
+      expect(mockSendReply.mock.calls[0]?.[2]).toMatchObject({ src_logId: '42', src_message: 'original', mentions: [] })
       expect(mockSendReply.mock.calls[0]?.[3]).toEqual({ silence: true, noSeen: undefined })
+      mockSendMessage.mockResolvedValueOnce({ statusCode: 0, body: { logId: makeLong(44) } })
+      await client.sendMessage('100', 'hello @Bob', {
+        silence: true,
+        mentions: [{ user_id: '7', name: 'Bob' }],
+      })
+      expect(mockSendMessage.mock.calls.at(-1)?.[2]).toEqual([{ at: [1], len: 3, user_id: '7' }])
       client.close()
     })
 
@@ -2521,13 +2528,34 @@ describe('KakaoTalkClient', () => {
       })
       mockSendMessage.mockImplementationOnce(() => {
         onClose?.()
-        return Promise.reject(new Error('response lost after acceptance'))
+        return Promise.resolve({
+          packetId: 0,
+          statusCode: -1,
+          method: '',
+          bodyType: 0,
+          body: { error: 'connection closed' },
+        })
       })
       const client = await new KakaoTalkClient().login({ oauthToken: 'token', userId: 'user1', deviceUuid: 'device1' })
       await expect(client.sendMessage('100', 'hello')).rejects.toMatchObject({ code: 'delivery_unknown' })
       expect(mockSendMessage).toHaveBeenCalledTimes(1)
       expect(mockLogin).toHaveBeenCalledTimes(1)
       expect(mockClose).toHaveBeenCalled()
+      client.close()
+    })
+
+    it('reports synthetic close as unknown even before the session close callback', async () => {
+      mockSendMessage.mockResolvedValueOnce({
+        packetId: 0,
+        statusCode: -1,
+        method: '',
+        bodyType: 0,
+        body: { error: 'connection closed' },
+      })
+      const client = await new KakaoTalkClient().login({ oauthToken: 'token', userId: 'user1', deviceUuid: 'device1' })
+      await expect(client.sendMessage('100', 'hello')).rejects.toMatchObject({ code: 'delivery_unknown' })
+      expect(mockSendMessage).toHaveBeenCalledTimes(1)
+      expect(mockLogin).toHaveBeenCalledTimes(1)
       client.close()
     })
 

@@ -660,6 +660,16 @@ function isNonZeroLong(v: unknown): boolean {
   return v !== undefined && v !== null
 }
 
+// Media completion can fail on a separate socket while the main session stays up.
+function assertSendConnectionOpen(response: LocoPacket | null | undefined): void {
+  if (response && isSyntheticConnectionClose(response)) {
+    throw new KakaoTalkError(
+      'Connection closed during send; delivery is unknown. Check history before resending.',
+      'delivery_unknown',
+    )
+  }
+}
+
 // Reject synthetic LocoConnection close packets ({ statusCode: -1, body.error: 'connection closed' })
 // and explicit body-level failures. Required for any SDK method whose response body has no
 // caller-visible error channel (e.g. GETMEM/MEMBER return `[]` for both empty rooms and dead
@@ -1563,6 +1573,7 @@ export class KakaoTalkClient {
             : writeOptions
               ? await session.sendMessage(parseLong(chatId), text, undefined, writeOptions)
               : await session.sendMessage(parseLong(chatId), text)
+        assertSendConnectionOpen(response)
         return formatSendResult(response, chatId)
       } catch (error) {
         throw wrapError(error, 'send_message_failed')
@@ -1813,6 +1824,7 @@ export class KakaoTalkClient {
           extra as unknown as Record<string, unknown>,
         )
 
+        assertSendConnectionOpen(forwardResp)
         return formatSendResult(forwardResp, chatId)
       } catch (error) {
         throw wrapError(error, 'send_multi_photo_failed')
@@ -1872,6 +1884,7 @@ export class KakaoTalkClient {
           deviceType: this.deviceType,
         })
 
+        assertSendConnectionOpen(uploadRes.completePacket)
         const completeBody = uploadRes.completePacket?.body as Record<string, unknown> | undefined
         const chatLog = completeBody?.chatLog as Record<string, unknown> | undefined
         return formatSendResult(

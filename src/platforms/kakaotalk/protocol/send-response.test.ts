@@ -13,9 +13,10 @@ describe('send response validation', () => {
         status_code: -203,
       })
     }
-    for (const logId of [undefined, 0, 'bad', Long.NEG_ONE]) {
+    for (const logId of [undefined, 0, 'bad', Long.NEG_ONE, '9223372036854775808', '18446744073709551615']) {
       expect(formatSendResult({ statusCode: 0, body: { logId } }, '100').success).toBe(false)
     }
+    expect(formatSendResult({ statusCode: 0, body: { logId: '9223372036854775807' } }, '100').success).toBe(true)
     expect(formatSendResult(null, '100').success).toBe(false)
     expect(formatSendResult({ statusCode: 0, body: { status: '0', logId: 7 } }, '100').success).toBe(false)
   })

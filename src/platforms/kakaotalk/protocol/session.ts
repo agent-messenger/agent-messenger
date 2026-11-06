@@ -35,7 +35,7 @@ function toWireMentions(mentions: ReadonlyArray<KakaoMention>): Array<Record<str
 
 // Builds the WRITE body for a plain text message. Mentions ride in the `extra`
 // JSON (`{"mentions":[{"at":[1],"len":3,"user_id":123}]}`) of the same type-1
-// WRITE; without mentions the body carries no `extra` at all.
+// WRITE; the shared WRITE header adds an empty `extra` when none is set.
 export function buildTextWriteBody(
   chatId: Long,
   text: string,

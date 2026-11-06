@@ -23,7 +23,7 @@ export function formatSendResult(response: Response, chatId: string): KakaoSendR
       : String(raw ?? 0)
   const status = readResponseStatus(response)
   return {
-    success: status === 0 && /^[1-9][0-9]*$/.test(logId) && BigInt(logId) <= 0xffffffffffffffffn,
+    success: status === 0 && /^[1-9][0-9]*$/.test(logId) && BigInt(logId) <= 0x7fffffffffffffffn,
     status_code: status,
     chat_id: chatId,
     log_id: logId,

@@ -344,57 +344,21 @@ const chats = await client.getChats({ resolveTitles: true })
 const title = await client.getChatTitle('9876543210')
 ```
 
-## Pattern 11: Error Handling and Retry
+## Pattern 11: Handle uncertain delivery without replay
 
-**Use case**: Robust message sending with retries
+**Use case**: Avoid duplicate messages when a connection fails during sending.
+
+Send once. A `delivery_unknown` error means the server may already have accepted
+that message. Inspect the room history before deciding whether to resend; a
+missing history entry immediately after a disconnect is not proof of failure.
+Do not put message sends in a generic retry loop. Authentication and definite
+provider rejections should be handled according to their error codes.
 
 ```bash
-#!/bin/bash
-
-send_with_retry() {
-  local chat_id=$1
-  local message=$2
-  local max_attempts=3
-  local attempt=1
-
-  while [ $attempt -le $max_attempts ]; do
-    echo "Attempt $attempt/$max_attempts..."
-
-    RESULT=$(agent-kakaotalk message send "$chat_id" "$message" 2>&1)
-    SUCCESS=$(echo "$RESULT" | jq -r '.success // false')
-
-    if [ "$SUCCESS" = "true" ]; then
-      echo "Message sent!"
-      return 0
-    fi
-
-    ERROR=$(echo "$RESULT" | jq -r '.error // "Unknown error"')
-    echo "Failed: $ERROR"
-
-    # Don't retry auth errors
-    if echo "$ERROR" | grep -q "No KakaoTalk credentials"; then
-      echo "Not authenticated. Run: agent-kakaotalk auth login"
-      return 1
-    fi
-
-    if [ $attempt -lt $max_attempts ]; then
-      SLEEP_TIME=$((attempt * 3))
-      echo "Retrying in ${SLEEP_TIME}s..."
-      sleep $SLEEP_TIME
-    fi
-
-    attempt=$((attempt + 1))
-  done
-
-  echo "Failed after $max_attempts attempts"
-  return 1
-}
-
-# Usage
-send_with_retry "9876543210" "Important message!"
+agent-kakaotalk message send "9876543210" "Important message!"
+# If delivery is unknown, inspect history instead of automatically sending again:
+agent-kakaotalk message list "9876543210" --limit 20
 ```
-
-**When to use**: Production scripts, critical notifications, unreliable networks.
 
 ## Pattern 12: Show "Typing..." While Preparing a Slow Reply
 
@@ -642,9 +606,9 @@ The `deviceType` determines the LOCO protocol identity: `'tablet'` sends `os: 'a
 
 ### Auto-Reconnect
 
-`getChats`, `getMessages`, `sendMessage`, and `sendAttachment` (plus the underlying typed helpers `sendPhoto` / `sendVideo` / `sendAudio` / `sendFile` / `sendMultiPhoto`) automatically reconnect once when the LOCO session dies (e.g. the KakaoTalk desktop app reclaims the session or the network drops). The reconnect is transparent — callers don't need to handle session-drop errors.
+Read operations such as `getChats` and `getMessages` reconnect once when the LOCO session dies. A new independent request can establish a replacement session. Sends (`sendMessage`, replies, and media helpers) are not automatically replayed after an ambiguous disconnect; callers must handle `delivery_unknown`.
 
-Reconnect only triggers on actual session death. Operation-level errors (invalid chat ID, server rejection, etc.) are thrown immediately without retry, so side effects like `sendMessage` or `sendAttachment` are never duplicated.
+Read retries only trigger on actual session death. Operation-level errors are not automatically retried. Avoiding send replay reduces duplicate side effects but is not an exactly-once or cross-process deduplication guarantee.
 
 Initial `LOGINLIST` failures are classified separately from reconnectable session death:
 

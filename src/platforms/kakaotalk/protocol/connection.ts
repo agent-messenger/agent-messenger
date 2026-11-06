@@ -25,6 +25,9 @@ export class LocoConnection {
 
   async connectTls(host: string, port: number, options: ConnectionOptions = {}): Promise<void> {
     await new Promise<void>((resolve, reject) => {
+      // A supplied servername is the TLS service identity for both SNI and
+      // certificate hostname verification. Tablet endpoints are verified as
+      // kakao.com, not as the booking server's routing host/IP.
       const socket = tlsConnect({ ...options, host, port, rejectUnauthorized: true }, () => resolve())
       this.socket = socket
       socket.on('error', reject)

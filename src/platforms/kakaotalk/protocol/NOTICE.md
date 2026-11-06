@@ -71,7 +71,10 @@ implementations are based on.
 ## Android interoperability observations
 
 The tablet TLS endpoint, WRITE metadata, client-message ID derivation, new-device
-identifier derivation, and LOGINLIST defaults were independently checked against
-Android 26.9.2 protocol behavior and local static inspection. Implementations here
+identifier derivation, and LOGINLIST defaults were compared with Android 26.9.2
+using packet captures and static inspection. The official TLS payload was not
+decrypted; complete handshake equality and some runtime field values remain
+unconfirmed. Tablet TLS verifies the service identity kakao.com (also used for
+SNI), rather than the booking-provided routing host/IP. Implementations here
 are written for this project. No application binaries, session captures, account
 identifiers, or private device settings are included.

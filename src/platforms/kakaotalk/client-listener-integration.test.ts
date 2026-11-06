@@ -361,7 +361,7 @@ describe('KakaoTalkClient + KakaoTalkListener integration (shared LOCO session)'
       dead.sendMessageImpl = async function () {
         attempts++
         dead.simulateRemoteClose()
-        throw new Error('socket closed')
+        return { packetId: 0, statusCode: -1, method: '', bodyType: 0, body: { error: 'connection closed' } }
       }
 
       const interrupted = await Promise.allSettled([
@@ -369,7 +369,10 @@ describe('KakaoTalkClient + KakaoTalkListener integration (shared LOCO session)'
         client.sendMessage('100', 'b'),
         client.sendMessage('100', 'c'),
       ])
-      expect(interrupted.every((result) => result.status === 'rejected')).toBe(true)
+      for (const result of interrupted) {
+        expect(result.status).toBe('rejected')
+        if (result.status === 'rejected') expect(result.reason).toMatchObject({ code: 'delivery_unknown' })
+      }
       expect(attempts).toBe(3)
       expect(loginCalls.length).toBe(1)
 
