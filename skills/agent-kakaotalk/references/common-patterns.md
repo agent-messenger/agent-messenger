@@ -344,15 +344,28 @@ const chats = await client.getChats({ resolveTitles: true })
 const title = await client.getChatTitle('9876543210')
 ```
 
-## Pattern 11: Handle uncertain delivery without replay
+## Pattern 11: Retry only when non-delivery is established
 
-**Use case**: Avoid duplicate messages when a connection fails during sending.
+**Use case**: Recover from retryable failures without replaying uncertain sends.
 
-Send once. A `delivery_unknown` error means the server may already have accepted
-that message. Inspect the room history before deciding whether to resend; a
-missing history entry immediately after a disconnect is not proof of failure.
-Do not put message sends in a generic retry loop. Authentication and definite
-provider rejections should be handled according to their error codes.
+| Outcome | Caller action |
+| --- | --- |
+| Connection or authentication failed before the message request was dispatched | Correct the cause, then retry if transient; no message request was sent. |
+| Explicit provider rejection establishing non-acceptance | Retry with bounded backoff only if that specific rejection is known to be transient; otherwise correct the request or credentials. |
+| `delivery_unknown`, or another failure after dispatch whose acceptance is unconfirmed | Do not automatically resend. Inspect history and reconcile the outcome first. |
+| Acknowledged success | Do not resend. |
+
+A missing history entry immediately after a disconnect is not proof of failure.
+An error code other than `delivery_unknown` is **not** proof of non-delivery:
+for example, a timeout or write failure may surface under a generic send error.
+Do not use `code !== 'delivery_unknown'` as a retry condition, or put every failed
+send in a generic retry loop. Retry only when non-acceptance and the transient
+nature of the specific failure have been established.
+
+The SDK reconnects reads and establishes a session before dispatching a new
+send. It does not currently implement automatic send retries classified by
+pre-dispatch failure or transient provider rejection; callers must apply those
+conditions themselves. This guidance does not add persistent deduplication.
 
 ```bash
 agent-kakaotalk message send "9876543210" "Important message!"
@@ -608,7 +621,7 @@ The `deviceType` determines the LOCO protocol identity: `'tablet'` sends `os: 'a
 
 Read operations such as `getChats` and `getMessages` reconnect once when the LOCO session dies. A new independent request can establish a replacement session. Sends (`sendMessage`, replies, and media helpers) are not automatically replayed after an ambiguous disconnect; callers must handle `delivery_unknown`.
 
-Read retries only trigger on actual session death. Operation-level errors are not automatically retried. Avoiding send replay reduces duplicate side effects but is not an exactly-once or cross-process deduplication guarantee.
+Read retries only trigger on actual session death. Operation-level errors are not automatically retried. Callers may retry a send after established non-delivery and a retryable cause, as described in Pattern 11; absence of `delivery_unknown` alone is insufficient. Avoiding send replay reduces duplicate side effects but is not an exactly-once or cross-process deduplication guarantee.
 
 Initial `LOGINLIST` failures are classified separately from reconnectable session death:
 
