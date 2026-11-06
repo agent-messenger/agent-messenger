@@ -332,7 +332,7 @@ describe('KakaoTalkClient + KakaoTalkListener integration (shared LOCO session)'
     client.close()
   })
 
-  it('does not open duplicate LOGINLIST when concurrent calls trigger executeWithReconnect retry', async () => {
+  it('does not replay ambiguous concurrent sends and shares the next replacement session', async () => {
     // given — a client+listener with a slow LOGINLIST so concurrent reconnects can collide
     let inflight = 0
     let peakInflight = 0
@@ -355,23 +355,32 @@ describe('KakaoTalkClient + KakaoTalkListener integration (shared LOCO session)'
       expect(loginCalls.length).toBe(1)
 
       // Make the live session's sendMessage drop the socket and then throw — modeling a
-      // mid-flight TCP reset where the remote-close handler nulls this.state synchronously
-      // before the operation rejection bubbles up to executeWithReconnect's catch block.
-      // This is the precise window the executeWithReconnect retry path was designed for.
+      // mid-flight reset after the server may already have received a write.
       const dead = sessions[0]!
+      let attempts = 0
       dead.sendMessageImpl = async function () {
+        attempts++
         dead.simulateRemoteClose()
         throw new Error('socket closed')
       }
 
-      // when — three concurrent sendMessage calls all hit the dead session and retry
-      await Promise.all([
+      const interrupted = await Promise.allSettled([
         client.sendMessage('100', 'a'),
         client.sendMessage('100', 'b'),
         client.sendMessage('100', 'c'),
       ])
+      expect(interrupted.every((result) => result.status === 'rejected')).toBe(true)
+      expect(attempts).toBe(3)
+      expect(loginCalls.length).toBe(1)
 
-      // then — exactly ONE replacement LOGINLIST regardless of retry collisions
+      // New, independent requests can reconnect, but share one replacement login.
+      await Promise.all([
+        client.sendMessage('100', 'new-a'),
+        client.sendMessage('100', 'new-b'),
+        client.sendMessage('100', 'new-c'),
+      ])
+
+      // then — exactly ONE replacement LOGINLIST regardless of concurrent callers
       expect(peakInflight).toBe(1)
       expect(loginCalls.length).toBe(2)
       expect(sessions.length).toBe(2)

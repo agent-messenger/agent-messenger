@@ -12,6 +12,7 @@ import { LANG, PC_OS_NAME, getLocoDeviceConfig } from './protocol/config'
 import { exactInteger, parseJsonPreservingIntegers } from './protocol/exact-json'
 import { isSyntheticConnectionClose } from './protocol/login-response'
 import { uploadMediaToLoco, uploadMultiMediaEntry } from './protocol/media-uploader'
+import { formatSendResult } from './protocol/send-response'
 import { LocoSession } from './protocol/session'
 import type { ChatListResponse, LocoPacket, LoginListResponse, SyncState } from './protocol/types'
 import { extractReadWatermarks } from './read-status'
@@ -998,11 +999,21 @@ export class KakaoTalkClient {
     return this.state !== null && !this.closed
   }
 
-  private async executeWithReconnect<T>(operation: (state: SessionState) => Promise<T>): Promise<T> {
+  private async executeWithReconnect<T>(
+    operation: (state: SessionState) => Promise<T>,
+    retryOnDisconnect = true,
+  ): Promise<T> {
     let state = await this.ensureSession()
     try {
       return await operation(state)
     } catch (error) {
+      if (!retryOnDisconnect && this.state?.session !== state.session) {
+        throw new KakaoTalkError(
+          'Connection interrupted; delivery is unknown. Check history before resending.',
+          'delivery_unknown',
+          { cause: error },
+        )
+      }
       // Only retry when the session we started with is dead (desktop app eviction,
       // network drop, etc.). Comparing session identity (not just null) handles the case
       // where a concurrent call already reconnected and replaced this.state.
@@ -1024,6 +1035,7 @@ export class KakaoTalkClient {
     const session = new LocoSession()
     session.onPush((packet) => this.dispatchPush(session, packet))
     session.onClose(() => {
+      session.close()
       if (this.state?.session === session) {
         this.state = null
         this.initPromise = null
@@ -1544,19 +1556,11 @@ export class KakaoTalkClient {
           : mentions.length > 0
             ? await session.sendMessage(parseLong(chatId), text, mentions)
             : await session.sendMessage(parseLong(chatId), text)
-        const logId = longToString(response.body.logId)
-
-        return {
-          success: response.statusCode === 0 && logId !== '0',
-          status_code: response.statusCode,
-          chat_id: chatId,
-          log_id: logId,
-          sent_at: response.body.sendAt as number,
-        }
+        return formatSendResult(response, chatId)
       } catch (error) {
         throw wrapError(error, 'send_message_failed')
       }
-    })
+    }, false)
   }
 
   async sendTyping(chatId: string, opts?: { linkId?: string }): Promise<KakaoTypingResult> {
@@ -1802,17 +1806,11 @@ export class KakaoTalkClient {
           extra as unknown as Record<string, unknown>,
         )
 
-        return {
-          success: forwardResp.statusCode === 0,
-          status_code: forwardResp.statusCode,
-          chat_id: chatId,
-          log_id: longToString((forwardResp.body as Record<string, unknown>).logId),
-          sent_at: ((forwardResp.body as Record<string, unknown>).sendAt as number | undefined) ?? 0,
-        }
+        return formatSendResult(forwardResp, chatId)
       } catch (error) {
         throw wrapError(error, 'send_multi_photo_failed')
       }
-    })
+    }, false)
   }
 
   private async sendMediaViaLoco(opts: {
@@ -1869,19 +1867,18 @@ export class KakaoTalkClient {
 
         const completeBody = uploadRes.completePacket?.body as Record<string, unknown> | undefined
         const chatLog = completeBody?.chatLog as Record<string, unknown> | undefined
-        const logId = chatLog?.logId
-
-        return {
-          success: uploadRes.completePacket !== null && uploadRes.postStatusCode === 0,
-          status_code: uploadRes.postStatusCode,
-          chat_id: opts.chatId,
-          log_id: longToString(logId),
-          sent_at: (chatLog?.sendAt as number | undefined) ?? 0,
-        }
+        return formatSendResult(
+          {
+            statusCode:
+              uploadRes.postStatusCode !== 0 ? uploadRes.postStatusCode : (uploadRes.completePacket?.statusCode ?? -1),
+            body: { ...chatLog, status: completeBody?.status },
+          },
+          opts.chatId,
+        )
       } catch (error) {
         throw wrapError(error, opts.errorCode)
       }
-    })
+    }, false)
   }
 
   /**
