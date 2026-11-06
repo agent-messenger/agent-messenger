@@ -246,3 +246,31 @@ describe('common WRITE headers', () => {
     expect(() => buildWriteBody({}, Long.ONE, { silence: 'true' as unknown as boolean })).toThrow(TypeError)
   })
 })
+
+describe('messaging transport selection', () => {
+  it('uses verified TLS settings for tablets and preserves the desktop transport', async () => {
+    const { connectMessagingServer } = await import('./session')
+    const calls: Array<{ kind: string; port: number; options?: import('node:tls').ConnectionOptions }> = []
+    const connection = {
+      connectTls: async (_host: string, port: number, options?: import('node:tls').ConnectionOptions) => {
+        calls.push({ kind: 'tls', port, options })
+      },
+      connectSecure: async (_host: string, port: number) => {
+        calls.push({ kind: 'legacy', port })
+      },
+    }
+    await connectMessagingServer(connection, 'fixture.invalid', 5242, 'tablet')
+    expect(calls[0]).toMatchObject({
+      kind: 'tls',
+      port: 10009,
+      options: { servername: 'kakao.com', ecdhCurve: 'X25519:P-256:P-384' },
+    })
+    expect(calls[0]!.options!.ciphers!.split(':').slice(0, 3)).toEqual([
+      'TLS_AES_128_GCM_SHA256',
+      'TLS_AES_256_GCM_SHA384',
+      'TLS_CHACHA20_POLY1305_SHA256',
+    ])
+    await connectMessagingServer(connection, 'fixture.invalid', 5242, 'pc')
+    expect(calls[1]).toEqual({ kind: 'legacy', port: 5242 })
+  })
+})

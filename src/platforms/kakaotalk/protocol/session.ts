@@ -12,10 +12,11 @@ import {
   BOOKING_PORT,
   CHECKIN_HOST,
   CHECKIN_PORT,
-  COUNTRY_ISO,
   DTYPE,
   LANG,
   MCCMNC,
+  MESSAGING_TLS_PORT,
+  MESSAGING_TLS_OPTIONS,
   PING_INTERVAL_MS,
   PROTOCOL_VERSION,
   getLocoDeviceConfig,
@@ -133,6 +134,17 @@ export function buildWriteBody(
   }
 }
 
+export function connectMessagingServer(
+  connection: Pick<LocoConnection, 'connectTls' | 'connectSecure'>,
+  host: string,
+  port: number,
+  deviceType: KakaoDeviceType,
+): Promise<void> {
+  return deviceType === 'tablet'
+    ? connection.connectTls(host, MESSAGING_TLS_PORT, MESSAGING_TLS_OPTIONS)
+    : connection.connectSecure(host, port)
+}
+
 export class LocoSession {
   constructor(private nextMessageId?: () => number) {}
   private connection: LocoConnection | null = null
@@ -155,7 +167,7 @@ export class LocoSession {
     const { host, port } = await this.bookAndCheckin(userId, deviceConfig)
 
     this.connection = new LocoConnection()
-    await this.connection.connectSecure(host, port)
+    await connectMessagingServer(this.connection, host, port, this.deviceType)
 
     if (this.pushHandler) {
       this.connection.onPush(this.pushHandler)
@@ -187,6 +199,7 @@ export class LocoSession {
         lbk,
         rp: new Binary(Buffer.from([0x00, 0x00, 0xff, 0xff, 0x00, 0x00])),
         bg: false,
+        isSw: false,
       })
 
       const loginResult = validateLoginListResponse(response)
@@ -228,7 +241,6 @@ export class LocoSession {
       appVer: deviceConfig.appVersion,
       MCCMNC: MCCMNC,
       lang: LANG,
-      countryISO: COUNTRY_ISO,
       useSub: deviceConfig.useSub,
     })
     checkinConn.close()

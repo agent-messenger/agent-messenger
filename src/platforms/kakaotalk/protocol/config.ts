@@ -1,3 +1,4 @@
+import { DEFAULT_CIPHERS, type ConnectionOptions } from 'node:tls'
 // Protocol constants for KakaoTalk LOCO.
 // See protocol/NOTICE.md for attribution of protocol knowledge.
 
@@ -49,4 +50,18 @@ export function getLocoDeviceConfig(deviceType: KakaoDeviceType): LocoDeviceConf
     return { os: ANDROID_OS, appVersion: ANDROID_APP_VERSION, useSub: true }
   }
   return { os: PC_OS, appVersion: PC_APP_VERSION, useSub: false }
+}
+
+// Android tablet messaging supports TLS on this port. Booking, checkin and
+// media-upload transports keep their existing paths.
+export const MESSAGING_TLS_PORT = 10009
+export const MESSAGING_TLS_OPTIONS: ConnectionOptions = {
+  servername: 'kakao.com',
+  ecdhCurve: 'X25519:P-256:P-384',
+  ciphers: [
+    'TLS_AES_128_GCM_SHA256',
+    'TLS_AES_256_GCM_SHA384',
+    'TLS_CHACHA20_POLY1305_SHA256',
+    ...DEFAULT_CIPHERS.split(':').filter((cipher) => !cipher.startsWith('TLS_')),
+  ].join(':'),
 }

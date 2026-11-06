@@ -214,7 +214,7 @@ await client.sendMessage('9876543210', '@Alice agreed', {
 
 `sendMessage` also accepts boolean `silence` and `noSeen` options. Omit them to keep the defaults (`false`). Shared WRITE headers preserve the existing mention, quoted-reply, and attachment `extra` data. Client message IDs are generated per device and retained across reconnects; they are not durable job IDs and do not provide cross-process deduplication.
 
-`success` is `true` only when `status_code` is `0` and the server returned a non-zero `log_id`. An acknowledgment with `status_code: 0` and `log_id: '0'` created no message, so it is reported as `success: false`. Quoted replies (`sendMessage(chatId, text, { replyTo })`) in open chats get the room's `src_linkId` automatically, from the login snapshot or, when the room is missing there, from a read-only `CHATINFO` lookup. Pass `replyTo.link_id` (a decimal string) to supply the link id yourself and skip that lookup; a value that is not a positive signed 64-bit decimal is rejected with `invalid_link_id` before anything is sent.
+`success` requires successful packet and body statuses and a valid positive `log_id`. Body rejections are returned in `status_code` even if the outer packet status is zero. An acknowledgment with `status_code: 0` and `log_id: '0'` created no message, so it is reported as `success: false`. Quoted replies (`sendMessage(chatId, text, { replyTo })`) in open chats get the room's `src_linkId` automatically, from the login snapshot or, when the room is missing there, from a read-only `CHATINFO` lookup. Pass `replyTo.link_id` (a decimal string) to supply the link id yourself and skip that lookup; a value that is not a positive signed 64-bit decimal is rejected with `invalid_link_id` before anything is sent.
 
 ```typescript
 // Reply to a message you already received, e.g. from the listener
@@ -602,3 +602,11 @@ const timer = setInterval(poll, 10_000)
 
 // To stop: clearInterval(timer); client.close()
 ```
+
+### Transport and interrupted sends
+
+Android tablet messaging uses certificate-verified TLS on port 10009, preferring AES-128-GCM and X25519. Existing desktop, booking, checkin, and media-upload transports are retained. Matching the negotiated cipher does not make this an official client or establish identical TLS handshakes.
+
+Read operations can reconnect and retry after a disconnect. Message, quoted-reply, and media-send operations are not automatically replayed once a session is lost. A thrown `delivery_unknown` means the server may already have accepted the request: inspect chat history before manually retrying. A returned failure for a closed connection is likewise not proof that nothing was delivered. This is not an exactly-once or cross-process deduplication guarantee.
+
+New Android device identifiers use the observed salted SHA-256 UUID/time derivation. Previously registered device identifiers are reused unchanged. Login keeps the existing tablet identity/version, adds `isSw: false`, and uses the default zero block-list revisions in `rp`; it does not copy another device's private settings.

@@ -1,5 +1,5 @@
 import { type Socket, connect as netConnect } from 'node:net'
-import { connect as tlsConnect } from 'node:tls'
+import { connect as tlsConnect, type ConnectionOptions } from 'node:tls'
 
 import { debug } from '@/shared/utils/stderr'
 
@@ -23,9 +23,9 @@ export class LocoConnection {
   private pushHandler: ((packet: LocoPacket) => void) | null = null
   private closeHandler: (() => void) | null = null
 
-  async connectTls(host: string, port: number): Promise<void> {
+  async connectTls(host: string, port: number, options: ConnectionOptions = {}): Promise<void> {
     await new Promise<void>((resolve, reject) => {
-      const socket = tlsConnect({ host, port, rejectUnauthorized: true }, () => resolve())
+      const socket = tlsConnect({ ...options, host, port, rejectUnauthorized: true }, () => resolve())
       this.socket = socket
       socket.on('error', reject)
       socket.on('data', (data: Buffer) => this.onData(data))

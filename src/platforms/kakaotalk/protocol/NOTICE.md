@@ -65,3 +65,13 @@ behavior only; no source code was copied or adapted.
 
 The foundational reverse engineering of the LOCO protocol that all subsequent
 implementations are based on.
+
+---
+
+## Android interoperability observations
+
+The tablet TLS endpoint, WRITE metadata, client-message ID derivation, new-device
+identifier derivation, and LOGINLIST defaults were independently checked against
+Android 26.9.2 protocol behavior and local static inspection. Implementations here
+are written for this project. No application binaries, session captures, account
+identifiers, or private device settings are included.
