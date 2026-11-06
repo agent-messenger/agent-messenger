@@ -6,6 +6,7 @@ import { KakaoCredentialManager } from '../credential-manager'
 export interface AccountOption {
   account?: string
   pretty?: boolean
+  retryUnknownDelivery?: boolean
 }
 
 export async function withKakaoClient<T>(
@@ -29,7 +30,7 @@ export async function withKakaoClient<T>(
     process.exit(1)
   }
 
-  const client = new KakaoTalkClient()
+  const client = new KakaoTalkClient({ retryUnknownDelivery: options.retryUnknownDelivery })
   await client.login(undefined, account.account_id)
   try {
     return await fn(client)

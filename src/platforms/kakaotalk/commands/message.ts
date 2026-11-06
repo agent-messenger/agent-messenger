@@ -28,7 +28,14 @@ async function listAction(
 async function sendAction(
   chatId: string,
   text: string,
-  options: { account?: string; pretty?: boolean; replyTo?: string; replyToJson?: string; mention?: string[] },
+  options: {
+    account?: string
+    pretty?: boolean
+    retryUnknownDelivery?: boolean
+    replyTo?: string
+    replyToJson?: string
+    mention?: string[]
+  },
 ): Promise<void> {
   try {
     if (options.replyTo !== undefined && options.replyToJson !== undefined) {
@@ -181,7 +188,7 @@ type UploadKind = 'auto' | 'photo' | 'video' | 'audio' | 'file' | 'multi'
 async function uploadAction(
   chatId: string,
   filePaths: string[],
-  options: { account?: string; pretty?: boolean; as?: UploadKind; mime?: string },
+  options: { account?: string; pretty?: boolean; retryUnknownDelivery?: boolean; as?: UploadKind; mime?: string },
 ): Promise<void> {
   try {
     const kind: UploadKind = options.as ?? (filePaths.length > 1 ? 'multi' : 'auto')
@@ -290,6 +297,7 @@ export const messageCommand = new Command('message')
         collect,
       )
       .option('--pretty', 'Pretty print JSON output')
+      .option('--retry-unknown-delivery', 'Retry an uncertain send once; may deliver duplicate messages')
       .action(sendAction),
   )
   .addCommand(
@@ -303,6 +311,7 @@ export const messageCommand = new Command('message')
       .option('--as <kind>', 'Force a specific kind: auto | photo | video | audio | file | multi')
       .option('--mime <type>', 'Override MIME type (otherwise inferred from filename)')
       .option('--pretty', 'Pretty print JSON output')
+      .option('--retry-unknown-delivery', 'Retry an uncertain upload/send once; may deliver duplicate messages')
       .action(uploadAction),
   )
   .addCommand(

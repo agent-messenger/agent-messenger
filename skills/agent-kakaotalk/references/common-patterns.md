@@ -346,69 +346,58 @@ const title = await client.getChatTitle('9876543210')
 
 ## Pattern 11: Error Handling and Retry
 
-**Use case**: Retry confirmed transient rejections while stopping uncertain sends.
+**Use case**: Choose whether uncertain sends may be retried, with duplicate risk explicit.
 
-### Case 1: Send with retry after confirmed non-acceptance
+### Case 1: Explicitly opt into send with retry
 
-Use bounded backoff only for specific provider rejections that your application
-has established mean both **not accepted** and **transient**. The SDK does not
-provide a verified retryable-status allowlist; supply that policy explicitly.
-Do not classify every `success: false` or nonzero status as retryable.
-
-```typescript
-import type { KakaoSendResult } from 'agent-messenger/kakaotalk'
-
-async function sendWithRetry(
-  send: () => Promise<KakaoSendResult>,
-  isConfirmedTransientRejection: (result: KakaoSendResult) => boolean,
-  maxAttempts = 3,
-): Promise<KakaoSendResult> {
-  for (let attempt = 1; ; attempt++) {
-    // Thrown errors propagate: they never enter this retry loop.
-    const result = await send()
-    if (result.success || attempt >= maxAttempts || !isConfirmedTransientRejection(result)) {
-      return result
-    }
-    await new Promise((resolve) => setTimeout(resolve, attempt * 1_000))
-  }
-}
-```
-
-Call this helper with your verified rejection classifier. If no status has been
-verified, use `() => false`: the helper then makes only one attempt. Connection
-or authentication failures before dispatch can be retried after correcting a
-retryable cause, but must be handled separately from replaying a sent request.
-
-### Case 2: Do not retry uncertain delivery
-
-A `delivery_unknown` error means the server may already have accepted the
-message. Inspect history and reconcile the outcome instead of sending again.
-Other errors, including timeouts after dispatch, can also leave delivery
-uncertain: `code !== 'delivery_unknown'` is not a safe retry condition.
-
-```typescript
-import { KakaoTalkError } from 'agent-messenger/kakaotalk'
-
-try {
-  await client.sendMessage(chatId, text)
-} catch (error) {
-  if (error instanceof KakaoTalkError && error.code === 'delivery_unknown') {
-    // Inspect history; do not call sendMessage again automatically.
-    console.error('Delivery is unknown; reconcile chat history before resending.')
-  }
-  // Preserve the failure for the caller; no generic retry for other errors either.
-  throw error
-}
-```
+Use `--retry-unknown-delivery` only when avoiding a missed message matters more
+than avoiding a duplicate. It retries an uncertain send **once**, reconnecting
+if the main session was lost. It also covers uncertain media completion while
+the main session remains connected. It does not retry every provider rejection
+or every generic timeout/error. Replaying an upload can repeat uploads as well
+as messages; the retry is not guaranteed to recover a failed send.
 
 ```bash
+send_with_retry() {
+  agent-kakaotalk message send "$1" "$2" --retry-unknown-delivery
+}
+
+# Explicitly accept duplicate-delivery risk:
+send_with_retry "9876543210" "Important message!"
+# The same opt-in is available for message upload:
+# agent-kakaotalk message upload "9876543210" ./report.pdf --retry-unknown-delivery
+```
+
+The SDK equivalent is `new KakaoTalkClient({ retryUnknownDelivery: true })`.
+This client-level option applies to its text/reply and media sends. A successful
+retry does not prove the first attempt was not delivered. Do not wrap this in
+another unconditional retry loop.
+
+### Case 2: Default — stop on uncertain delivery
+
+Without the opt-in flag (or with the SDK option omitted/false), an uncertain
+send is not automatically replayed. A `delivery_unknown` error means the server
+may already have accepted the message: retrying could create a duplicate, not
+necessarily fail. The default favors avoiding duplicates over automatic recovery.
+
+```bash
+agent-kakaotalk message send "9876543210" "Important message!"
+# If delivery is unknown, inspect history before deciding whether to resend:
 agent-kakaotalk message list "9876543210" --count 20
 ```
 
 A missing history entry immediately after a disconnect is not proof of failure.
-The SDK reconnects reads and establishes a session before a new send, but does
-not automatically classify and retry failed sends as in Case 1. The helper is
-caller-side policy, not an exactly-once or persistent deduplication guarantee.
+Other errors, such as timeouts after dispatch, may also leave acceptance unknown;
+`code !== 'delivery_unknown'` is not a safe retry condition. For a known provider
+rejection, retry only when non-acceptance and a transient cause are established;
+correct permanent errors instead. Initial connection/authentication failures
+before dispatch are separate from replaying a sent message. Read reconnection
+is retained. Neither policy provides exactly-once or persistent deduplication.
+
+**Maintainer decision requested:** This PR proposes no replay by default and an
+explicit opt-in. Earlier SDK behavior automatically retried disconnected sends.
+The default, option shape, and retry scope are policy proposals for the maintainer
+to decide; they can be revised to preserve the project's intended compatibility.
 
 ## Pattern 12: Show "Typing..." While Preparing a Slow Reply
 
@@ -656,7 +645,7 @@ The `deviceType` determines the LOCO protocol identity: `'tablet'` sends `os: 'a
 
 ### Auto-Reconnect
 
-Read operations such as `getChats` and `getMessages` reconnect once when the LOCO session dies. A new independent request can establish a replacement session. Sends (`sendMessage`, replies, and media helpers) are not automatically replayed after an ambiguous disconnect; callers must handle `delivery_unknown`.
+Read operations such as `getChats` and `getMessages` reconnect once when the LOCO session dies. A new independent request can establish a replacement session. Sends (`sendMessage`, replies, and media helpers) are not automatically replayed after an ambiguous disconnect by default; callers must handle `delivery_unknown`. Explicit `retryUnknownDelivery: true` retries an uncertain send once and accepts duplicate-delivery risk.
 
 Read retries only trigger on actual session death. Operation-level errors are not automatically retried. Callers may retry a send after established non-delivery and a retryable cause, as described in Pattern 11; absence of `delivery_unknown` alone is insufficient. Avoiding send replay reduces duplicate side effects but is not an exactly-once or cross-process deduplication guarantee.
 

@@ -607,7 +607,20 @@ const timer = setInterval(poll, 10_000)
 
 Android tablet messaging uses certificate-verified TLS on port 10009, preferring AES-128-GCM and X25519. The TLS service identity is `kakao.com`, used for both SNI and certificate hostname verification; it is distinct from the booking-provided routing host/IP. Existing desktop, booking, checkin, and media-upload transports are retained. Matching the negotiated cipher does not make this an official client or establish identical TLS handshakes.
 
-Read operations can reconnect and retry after a disconnect. Message, quoted-reply, and media-send operations are not automatically replayed once a session is lost. A thrown `delivery_unknown` means the server may already have accepted the request: inspect chat history before manually retrying. Synthetic connection-close responses are also reported as `delivery_unknown`. Other errors, including timeouts after dispatch, can also leave acceptance uncertain; the absence of `delivery_unknown` is not a safe retry signal. Callers may retry after non-dispatch or explicit non-acceptance is established and the cause is retryable. The SDK does not currently automate those classified send retries. This is not an exactly-once or cross-process deduplication guarantee.
+Read operations can reconnect and retry after a disconnect. By default, text/reply and media sends are not automatically replayed after an uncertain failure. A `delivery_unknown` error means the server may already have accepted the request: a retry may deliver a duplicate. Inspect history before manually retrying. Other errors, including timeouts after dispatch, can also leave acceptance uncertain; absence of `delivery_unknown` is not a safe retry signal.
+
+Explicit opt-in retries an uncertain send once, reconnecting if the main session was lost:
+
+```typescript
+const client = new KakaoTalkClient({ retryUnknownDelivery: true })
+await client.login()
+// Applies to this client's text/reply and media sends; duplicates are possible.
+await client.sendMessage(chatId, text)
+```
+
+The CLI equivalent is `message send ... --retry-unknown-delivery` or `message upload ... --retry-unknown-delivery`. The opt-in does not retry every server rejection or generic error, and repeated media operations can repeat uploads. Known provider rejections need their own verified transient/non-acceptance policy. This is not an exactly-once or cross-process deduplication guarantee.
+
+**Maintainer decision requested:** The no-replay default and explicit opt-in change the earlier automatic-disconnect-retry policy. They are proposed defaults, not an assumption about the project's intended policy; the maintainer should decide whether to retain, revise, or reject them.
 
 New Android device identifiers generated during auth registration use the observed salted SHA-256 UUID/time derivation. Previously registered device identifiers are reused unchanged. Direct SDK `login()` without `deviceUuid` retains its `agent-messenger-${userId}` fallback; pass the registered identifier explicitly. Login keeps the existing tablet identity/version, adds `isSw: false`, and uses the default zero block-list revisions in `rp`; it does not copy another device's private settings.
 

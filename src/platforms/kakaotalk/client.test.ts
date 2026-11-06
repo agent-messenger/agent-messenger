@@ -2559,6 +2559,51 @@ describe('KakaoTalkClient', () => {
       client.close()
     })
 
+    for (const disconnect of [false, true]) {
+      it(`retries an uncertain send once only with explicit opt-in (disconnect=${disconnect})`, async () => {
+        let onClose: (() => void) | undefined
+        mockOnClose.mockImplementation((handler: () => void) => {
+          onClose = handler
+        })
+        mockSendMessage.mockImplementationOnce(async () => {
+          if (disconnect) onClose?.()
+          return { packetId: 0, statusCode: -1, method: '', bodyType: 0, body: { error: 'connection closed' } }
+        })
+        mockSendMessage.mockResolvedValueOnce({ statusCode: 0, body: { logId: makeLong(42) } })
+        const client = await new KakaoTalkClient({ retryUnknownDelivery: true }).login({
+          oauthToken: 'token',
+          userId: 'user1',
+          deviceUuid: 'device1',
+        })
+        expect(await client.sendMessage('100', 'hello')).toMatchObject({ success: true })
+        expect(mockSendMessage).toHaveBeenCalledTimes(2)
+        expect(mockLogin).toHaveBeenCalledTimes(disconnect ? 2 : 1)
+        client.close()
+      })
+    }
+
+    it('caps opted-in retries and does not retry provider rejections', async () => {
+      mockSendMessage.mockResolvedValue({
+        packetId: 0,
+        statusCode: -1,
+        method: '',
+        bodyType: 0,
+        body: { error: 'connection closed' },
+      })
+      const client = await new KakaoTalkClient({ retryUnknownDelivery: true }).login({
+        oauthToken: 'token',
+        userId: 'user1',
+        deviceUuid: 'device1',
+      })
+      await expect(client.sendMessage('100', 'hello')).rejects.toMatchObject({ code: 'delivery_unknown' })
+      expect(mockSendMessage).toHaveBeenCalledTimes(2)
+      mockSendMessage.mockClear()
+      mockSendMessage.mockResolvedValueOnce({ statusCode: 0, body: { status: -203 } })
+      expect(await client.sendMessage('100', 'hello')).toMatchObject({ success: false, status_code: -203 })
+      expect(mockSendMessage).toHaveBeenCalledTimes(1)
+      client.close()
+    })
+
     it('returns send result on success', async () => {
       mockSendMessage.mockResolvedValueOnce({
         statusCode: 0,

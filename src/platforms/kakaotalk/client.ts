@@ -918,6 +918,8 @@ export class KakaoTalkClient {
   private sessionEventHandlers = new Set<KakaoSessionEventHandler>()
   private nameCache = new MemberNameCache()
 
+  constructor(private readonly options: { retryUnknownDelivery?: boolean } = {}) {}
+
   async login(
     credentials?: { oauthToken: string; userId: string; deviceUuid?: string; deviceType?: KakaoDeviceType },
     accountId?: string,
@@ -1020,12 +1022,20 @@ export class KakaoTalkClient {
     try {
       return await operation(state)
     } catch (error) {
-      if (!retryOnDisconnect && this.state?.session !== state.session) {
-        throw new KakaoTalkError(
-          'Connection interrupted; delivery is unknown. Check history before resending.',
-          'delivery_unknown',
-          { cause: error },
-        )
+      const sessionLost = this.state?.session !== state.session
+      if (!retryOnDisconnect) {
+        const unknownDelivery = sessionLost || (error instanceof KakaoTalkError && error.code === 'delivery_unknown')
+        if (!unknownDelivery) throw error
+        if (this.options.retryUnknownDelivery !== true) {
+          throw new KakaoTalkError(
+            'Connection interrupted; delivery is unknown. Check history before resending.',
+            'delivery_unknown',
+            { cause: error },
+          )
+        }
+        // Explicit opt-in accepts duplicate delivery risk. Retry at most once,
+        // including media socket loss while the main session remains connected.
+        if (!sessionLost) return operation(state)
       }
       // Only retry when the session we started with is dead (desktop app eviction,
       // network drop, etc.). Comparing session identity (not just null) handles the case
