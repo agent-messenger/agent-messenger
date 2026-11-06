@@ -565,6 +565,7 @@ describe('KakaoTalkClient', () => {
     })
 
     it('filters by search term', async () => {
+      mockGetChatList.mockResolvedValueOnce({ statusCode: 0, body: { chatDatas: [], eof: true } })
       const client = await new KakaoTalkClient().login({ oauthToken: 'token', userId: 'user1', deviceUuid: 'device1' })
       const chats = await client.getChats({ search: 'alice' })
 
@@ -812,6 +813,15 @@ describe('KakaoTalkClient', () => {
       client.close()
     })
 
+    it('starts an explicit full listing at zero even when the login snapshot is EOF', async () => {
+      mockLogin.mockResolvedValue({ ...DEFAULT_LOGIN_RESULT, chatDatas: [], lastTokenId: makeLong(77), eof: true })
+      mockGetChatList.mockResolvedValueOnce({ statusCode: 0, body: { status: 0, chatDatas: [], eof: true } })
+      const client = await new KakaoTalkClient().login({ oauthToken: 'token', userId: 'user1', deviceUuid: 'device1' })
+      expect(await client.getChats({ all: true })).toEqual([])
+      expect(mockGetChatList).toHaveBeenCalledWith(Long.ZERO, Long.ZERO)
+      client.close()
+    })
+
     it('advances LCHATLIST pagination when cursor fields are plain numbers', async () => {
       // LOCO sends lastTokenId/lastChatId as plain numbers when they fit in a safe
       // integer (bson promotes them). The mocked session ignores its arguments, so
@@ -871,7 +881,7 @@ describe('KakaoTalkClient', () => {
       expect(mockGetChatList).toHaveBeenCalledTimes(2)
       const cursors = mockGetChatList.mock.calls.map((call) => (call as unknown[]).map((v) => String(v)))
       expect(cursors).toEqual([
-        ['7', '200'],
+        ['0', '0'],
         ['8', '300'],
       ])
 
