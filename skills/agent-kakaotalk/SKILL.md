@@ -413,7 +413,7 @@ agent-kakaotalk message upload <chat-id> ./report.pdf --retry-unknown-delivery
 The opt-in can duplicate messages or uploads; it does not retry every provider
 rejection or generic error. See Pattern 11 in `references/common-patterns.md`.
 SDK protocol-field defaults/overrides and evidence limits are documented in
-[the SDK guide](../../docs/content/docs/sdk/kakaotalk.mdx#protocol-fields-meaning-defaults-and-evidence-limits).
+[the SDK guide](https://agent-messenger.dev/docs/sdk/kakaotalk#protocol-fields-meaning-defaults-and-evidence-limits).
 
 ```bash
 # List messages in a chat room
