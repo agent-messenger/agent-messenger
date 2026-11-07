@@ -173,7 +173,10 @@ export function connectMessagingServer(
     : connection.connectSecure(host, port)
 }
 
-export function buildLoginFields(options: KakaoLoginOptions = {}): {
+export function buildLoginFields(
+  options: KakaoLoginOptions = {},
+  deviceType: KakaoDeviceType = 'tablet',
+): {
   checkin: Record<string, unknown>
   login: Record<string, unknown>
 } {
@@ -183,7 +186,8 @@ export function buildLoginFields(options: KakaoLoginOptions = {}): {
   if (countryISO !== null && (typeof countryISO !== 'string' || !/^[A-Z]{2}$/.test(countryISO))) {
     throw new TypeError('countryISO must be an uppercase two-letter code or null')
   }
-  const isSwitching = options.isSwitching === undefined ? false : options.isSwitching
+  // isSw=false was verified live on the tablet role only; PC omits it as before.
+  const isSwitching = options.isSwitching === undefined ? (deviceType === 'tablet' ? false : null) : options.isSwitching
   if (isSwitching !== null && typeof isSwitching !== 'boolean')
     throw new TypeError('isSwitching must be boolean or null')
   const revisions = [options.blockRevision ?? 0, options.plusBlockRevision ?? 0]
@@ -206,9 +210,9 @@ export class LocoSession {
   private readonly loginFields: ReturnType<typeof buildLoginFields>
   constructor(
     private nextMessageId?: () => number,
-    options: KakaoLoginOptions = {},
+    private readonly loginOptions: KakaoLoginOptions = {},
   ) {
-    this.loginFields = buildLoginFields(options)
+    this.loginFields = buildLoginFields(loginOptions)
   }
   private connection: LocoConnection | null = null
   private pingTimer: ReturnType<typeof setInterval> | null = null
@@ -260,7 +264,7 @@ export class LocoSession {
         maxIds,
         lastTokenId,
         lbk,
-        ...this.loginFields.login,
+        ...buildLoginFields(this.loginOptions, this.deviceType).login,
         bg: false,
       })
 

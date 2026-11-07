@@ -270,6 +270,14 @@ describe('role-specific protocol fields', () => {
     })
     expect(issued).toBe(2)
   })
+
+  it('omits isSw on PC unless it is set explicitly', async () => {
+    const { buildLoginFields } = await import('./session')
+    expect(buildLoginFields({}, 'pc').login).not.toHaveProperty('isSw')
+    expect(buildLoginFields({}, 'tablet').login.isSw).toBe(false)
+    expect(buildLoginFields({ isSwitching: false }, 'pc').login.isSw).toBe(false)
+    expect((buildLoginFields({}, 'pc').login.rp as import('bson').Binary).buffer.toString('hex')).toBe('0000ffff0000')
+  })
 })
 
 describe('messaging transport selection', () => {
