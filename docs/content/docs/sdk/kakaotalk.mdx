@@ -611,7 +611,7 @@ The narrower signature lists can limit compatibility with future server certific
 
 Android tablet messaging uses certificate-verified TLS on port 10009, preferring AES-128-GCM and X25519. The TLS service identity is `kakao.com`, used for both SNI and certificate hostname verification; it is distinct from the booking-provided routing host/IP. Existing desktop, booking, checkin, and media-upload transports are retained. Matching the negotiated cipher does not make this an official client or establish identical TLS handshakes.
 
-Read operations can reconnect and retry after a disconnect. By default, text/reply and media sends are not automatically replayed after an uncertain failure. A `delivery_unknown` error means the server may already have accepted the request: a retry may deliver a duplicate. Inspect history before manually retrying. Other errors, including timeouts after dispatch, can also leave acceptance uncertain; absence of `delivery_unknown` is not a safe retry signal.
+Read operations can reconnect and retry after a disconnect. By default, text/reply and media sends are not automatically replayed after an uncertain failure. A `delivery_unknown` error means the server may already have accepted the request: a retry may deliver a duplicate. Inspect history before manually retrying. A send that was written but not acknowledged before the packet timeout, and a media upload whose completion notice never arrives, are also reported as `delivery_unknown`. Other errors can still leave acceptance uncertain; absence of `delivery_unknown` is not a safe retry signal.
 
 Explicit opt-in retries an uncertain send once, reconnecting if the main session was lost:
 
