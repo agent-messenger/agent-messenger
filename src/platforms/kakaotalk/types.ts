@@ -164,6 +164,28 @@ export interface KakaoMemberSnapshot {
   consistency_basis: 'stable_double_read_chatinfo_getmem'
 }
 
+/** Versioned login defaults; null omits the optional wire field. */
+export interface KakaoLoginOptions {
+  countryISO?: string | null
+  isSwitching?: boolean | null
+  blockRevision?: number
+  plusBlockRevision?: number
+}
+
+export interface KakaoTalkClientOptions extends KakaoLoginOptions {
+  retryUnknownDelivery?: boolean
+}
+
+export interface KakaoWriteOptions {
+  /** 1: chat room; 2: thread detail; 3: both. Default: 1. */
+  scope?: 1 | 2 | 3
+  threadId?: string
+  /** Raw JSON for plain sends only; cannot replace generated mention/reply extras. */
+  extra?: string
+  silence?: boolean
+  noSeen?: boolean
+}
+
 export interface KakaoSendResult {
   success: boolean
   status_code: number

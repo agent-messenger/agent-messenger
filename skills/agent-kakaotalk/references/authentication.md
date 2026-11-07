@@ -118,7 +118,7 @@ agent-kakaotalk auth login --force
 
 Each device is identified by a UUID. The CLI generates one on first login and reuses it for subsequent logins. This avoids re-triggering passcode verification.
 
-The UUID is stored in the credentials file alongside the OAuth token.
+The UUID is stored in the credentials file alongside the OAuth token. New identifiers generated during auth registration use salted SHA-256 over a UUID/time input; saved identifiers are reused unchanged. Direct SDK `login()` without `deviceUuid` retains the `agent-messenger-${userId}` fallback; supply the registered identifier explicitly.
 
 ## Credential Storage
 

@@ -565,6 +565,7 @@ describe('KakaoTalkClient', () => {
     })
 
     it('filters by search term', async () => {
+      mockGetChatList.mockResolvedValueOnce({ statusCode: 0, body: { chatDatas: [], eof: true } })
       const client = await new KakaoTalkClient().login({ oauthToken: 'token', userId: 'user1', deviceUuid: 'device1' })
       const chats = await client.getChats({ search: 'alice' })
 
@@ -812,6 +813,15 @@ describe('KakaoTalkClient', () => {
       client.close()
     })
 
+    it('starts an explicit full listing at zero even when the login snapshot is EOF', async () => {
+      mockLogin.mockResolvedValue({ ...DEFAULT_LOGIN_RESULT, chatDatas: [], lastTokenId: makeLong(77), eof: true })
+      mockGetChatList.mockResolvedValueOnce({ statusCode: 0, body: { status: 0, chatDatas: [], eof: true } })
+      const client = await new KakaoTalkClient().login({ oauthToken: 'token', userId: 'user1', deviceUuid: 'device1' })
+      expect(await client.getChats({ all: true })).toEqual([])
+      expect(mockGetChatList).toHaveBeenCalledWith(Long.ZERO, Long.ZERO)
+      client.close()
+    })
+
     it('advances LCHATLIST pagination when cursor fields are plain numbers', async () => {
       // LOCO sends lastTokenId/lastChatId as plain numbers when they fit in a safe
       // integer (bson promotes them). The mocked session ignores its arguments, so
@@ -871,7 +881,7 @@ describe('KakaoTalkClient', () => {
       expect(mockGetChatList).toHaveBeenCalledTimes(2)
       const cursors = mockGetChatList.mock.calls.map((call) => (call as unknown[]).map((v) => String(v)))
       expect(cursors).toEqual([
-        ['7', '200'],
+        ['0', '0'],
         ['8', '300'],
       ])
 
@@ -2480,6 +2490,129 @@ describe('KakaoTalkClient', () => {
   })
 
   describe('sendMessage', () => {
+    it('passes explicit WRITE options without dropping reply or mention payloads', async () => {
+      mockSendMessage.mockResolvedValueOnce({ statusCode: 0, body: { logId: makeLong(42) } })
+      mockSendReply.mockResolvedValueOnce({ statusCode: 0, body: { logId: makeLong(43) } })
+      const client = await new KakaoTalkClient().login({ oauthToken: 'token', userId: 'user1', deviceUuid: 'device1' })
+      await client.sendMessage('100', 'hello', { silence: true, noSeen: true })
+      expect(mockSendMessage).toHaveBeenCalledWith(Long.fromNumber(100), 'hello', undefined, {
+        silence: true,
+        noSeen: true,
+      })
+      await client.sendMessage('100', 'reply', {
+        silence: true,
+        replyTo: { log_id: '42', author_id: 7, message: 'original', type: 1 },
+      })
+      expect(mockSendReply.mock.calls[0]?.[2]).toMatchObject({ src_logId: '42', src_message: 'original', mentions: [] })
+      expect(mockSendReply.mock.calls[0]?.[3]).toEqual({ silence: true, noSeen: undefined })
+      mockSendMessage.mockResolvedValueOnce({ statusCode: 0, body: { logId: makeLong(44) } })
+      await client.sendMessage('100', 'hello @Bob', {
+        silence: true,
+        mentions: [{ user_id: '7', name: 'Bob' }],
+      })
+      expect(mockSendMessage.mock.calls.at(-1)?.[2]).toEqual([{ at: [1], len: 3, user_id: '7' }])
+      client.close()
+    })
+
+    it('reports a body rejection even when the packet and log id look successful', async () => {
+      mockSendMessage.mockResolvedValueOnce({ statusCode: 0, body: { status: -203, logId: makeLong(42) } })
+      const client = await new KakaoTalkClient().login({ oauthToken: 'token', userId: 'user1', deviceUuid: 'device1' })
+      expect(await client.sendMessage('100', 'hello')).toMatchObject({ success: false, status_code: -203 })
+      client.close()
+    })
+
+    it('does not replay a send after losing the session and cleans up the old session', async () => {
+      let onClose: (() => void) | undefined
+      mockOnClose.mockImplementation((handler: () => void) => {
+        onClose = handler
+      })
+      mockSendMessage.mockImplementationOnce(() => {
+        onClose?.()
+        return Promise.resolve({
+          packetId: 0,
+          statusCode: -1,
+          method: '',
+          bodyType: 0,
+          body: { error: 'connection closed' },
+        })
+      })
+      const client = await new KakaoTalkClient().login({ oauthToken: 'token', userId: 'user1', deviceUuid: 'device1' })
+      await expect(client.sendMessage('100', 'hello')).rejects.toMatchObject({ code: 'delivery_unknown' })
+      expect(mockSendMessage).toHaveBeenCalledTimes(1)
+      expect(mockLogin).toHaveBeenCalledTimes(1)
+      expect(mockClose).toHaveBeenCalled()
+      client.close()
+    })
+
+    it('reports synthetic close as unknown even before the session close callback', async () => {
+      mockSendMessage.mockResolvedValueOnce({
+        packetId: 0,
+        statusCode: -1,
+        method: '',
+        bodyType: 0,
+        body: { error: 'connection closed' },
+      })
+      const client = await new KakaoTalkClient().login({ oauthToken: 'token', userId: 'user1', deviceUuid: 'device1' })
+      await expect(client.sendMessage('100', 'hello')).rejects.toMatchObject({ code: 'delivery_unknown' })
+      expect(mockSendMessage).toHaveBeenCalledTimes(1)
+      expect(mockLogin).toHaveBeenCalledTimes(1)
+      client.close()
+    })
+
+    for (const disconnect of [false, true]) {
+      it(`retries an uncertain send once only with explicit opt-in (disconnect=${disconnect})`, async () => {
+        let onClose: (() => void) | undefined
+        mockOnClose.mockImplementation((handler: () => void) => {
+          onClose = handler
+        })
+        mockSendMessage.mockImplementationOnce(async () => {
+          if (disconnect) onClose?.()
+          return { packetId: 0, statusCode: -1, method: '', bodyType: 0, body: { error: 'connection closed' } }
+        })
+        mockSendMessage.mockResolvedValueOnce({ statusCode: 0, body: { logId: makeLong(42) } })
+        const client = await new KakaoTalkClient({ retryUnknownDelivery: true }).login({
+          oauthToken: 'token',
+          userId: 'user1',
+          deviceUuid: 'device1',
+        })
+        expect(await client.sendMessage('100', 'hello')).toMatchObject({ success: true })
+        expect(mockSendMessage).toHaveBeenCalledTimes(2)
+        expect(mockLogin).toHaveBeenCalledTimes(disconnect ? 2 : 1)
+        client.close()
+      })
+    }
+
+    it('caps opted-in retries and does not retry provider rejections', async () => {
+      mockSendMessage.mockResolvedValue({
+        packetId: 0,
+        statusCode: -1,
+        method: '',
+        bodyType: 0,
+        body: { error: 'connection closed' },
+      })
+      const client = await new KakaoTalkClient({ retryUnknownDelivery: true }).login({
+        oauthToken: 'token',
+        userId: 'user1',
+        deviceUuid: 'device1',
+      })
+      await expect(client.sendMessage('100', 'hello')).rejects.toMatchObject({ code: 'delivery_unknown' })
+      expect(mockSendMessage).toHaveBeenCalledTimes(2)
+      mockSendMessage.mockClear()
+      mockSendMessage.mockResolvedValueOnce({ statusCode: 0, body: { status: -203 } })
+      expect(await client.sendMessage('100', 'hello')).toMatchObject({ success: false, status_code: -203 })
+      expect(mockSendMessage).toHaveBeenCalledTimes(1)
+      client.close()
+    })
+
+    it('passes visibility, thread and raw-extra options through the SDK', async () => {
+      mockSendMessage.mockResolvedValueOnce({ statusCode: 0, body: { logId: makeLong(42) } })
+      const client = await new KakaoTalkClient().login({ oauthToken: 'token', userId: 'user1', deviceUuid: 'device1' })
+      const options = { scope: 3 as const, threadId: '9007199254740993', extra: '{"custom":1}' }
+      await client.sendMessage('100', 'hello', options)
+      expect(mockSendMessage).toHaveBeenCalledWith(Long.fromNumber(100), 'hello', undefined, options)
+      client.close()
+    })
+
     it('returns send result on success', async () => {
       mockSendMessage.mockResolvedValueOnce({
         statusCode: 0,

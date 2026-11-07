@@ -12,6 +12,8 @@ import { LANG, PC_OS_NAME, getLocoDeviceConfig } from './protocol/config'
 import { exactInteger, parseJsonPreservingIntegers } from './protocol/exact-json'
 import { isSyntheticConnectionClose } from './protocol/login-response'
 import { uploadMediaToLoco, uploadMultiMediaEntry } from './protocol/media-uploader'
+import { createMessageIdGenerator } from './protocol/message-id'
+import { formatSendResult } from './protocol/send-response'
 import { LocoSession } from './protocol/session'
 import type { ChatListResponse, LocoPacket, LoginListResponse, SyncState } from './protocol/types'
 import { extractReadWatermarks } from './read-status'
@@ -37,6 +39,8 @@ import {
   type KakaoReplyExtra,
   type KakaoReplyTarget,
   type KakaoSendResult,
+  type KakaoWriteOptions,
+  type KakaoTalkClientOptions,
   type KakaoTypingResult,
   type KakaoUnkickMemberResult,
 } from './types'
@@ -657,6 +661,16 @@ function isNonZeroLong(v: unknown): boolean {
   return v !== undefined && v !== null
 }
 
+// Media completion can fail on a separate socket while the main session stays up.
+function assertSendConnectionOpen(response: LocoPacket | null | undefined): void {
+  if (response && isSyntheticConnectionClose(response)) {
+    throw new KakaoTalkError(
+      'Connection closed during send; delivery is unknown. Check history before resending.',
+      'delivery_unknown',
+    )
+  }
+}
+
 // Reject synthetic LocoConnection close packets ({ statusCode: -1, body.error: 'connection closed' })
 // and explicit body-level failures. Required for any SDK method whose response body has no
 // caller-visible error channel (e.g. GETMEM/MEMBER return `[]` for both empty rooms and dead
@@ -900,9 +914,12 @@ export class KakaoTalkClient {
   private state: SessionState | null = null
   private initPromise: Promise<SessionState> | null = null
   private closed = false
+  private nextMessageId: (() => number) | null = null
   private pushHandlers = new Set<KakaoPushHandler>()
   private sessionEventHandlers = new Set<KakaoSessionEventHandler>()
   private nameCache = new MemberNameCache()
+
+  constructor(private readonly options: KakaoTalkClientOptions = {}) {}
 
   async login(
     credentials?: { oauthToken: string; userId: string; deviceUuid?: string; deviceType?: KakaoDeviceType },
@@ -998,11 +1015,29 @@ export class KakaoTalkClient {
     return this.state !== null && !this.closed
   }
 
-  private async executeWithReconnect<T>(operation: (state: SessionState) => Promise<T>): Promise<T> {
+  private async executeWithReconnect<T>(
+    operation: (state: SessionState) => Promise<T>,
+    retryOnDisconnect = true,
+  ): Promise<T> {
     let state = await this.ensureSession()
     try {
       return await operation(state)
     } catch (error) {
+      const sessionLost = this.state?.session !== state.session
+      if (!retryOnDisconnect) {
+        const unknownDelivery = sessionLost || (error instanceof KakaoTalkError && error.code === 'delivery_unknown')
+        if (!unknownDelivery) throw error
+        if (this.options.retryUnknownDelivery !== true) {
+          throw new KakaoTalkError(
+            'Connection interrupted; delivery is unknown. Check history before resending.',
+            'delivery_unknown',
+            { cause: error },
+          )
+        }
+        // Explicit opt-in accepts duplicate delivery risk. Retry at most once,
+        // including media socket loss while the main session remains connected.
+        if (!sessionLost) return operation(state)
+      }
       // Only retry when the session we started with is dead (desktop app eviction,
       // network drop, etc.). Comparing session identity (not just null) handles the case
       // where a concurrent call already reconnected and replaced this.state.
@@ -1021,9 +1056,11 @@ export class KakaoTalkClient {
   }
 
   private async connect(): Promise<SessionState> {
-    const session = new LocoSession()
+    this.nextMessageId ??= createMessageIdGenerator(this.deviceUuid!)
+    const session = new LocoSession(this.nextMessageId, this.options)
     session.onPush((packet) => this.dispatchPush(session, packet))
     session.onClose(() => {
+      session.close()
       if (this.state?.session === session) {
         this.state = null
         this.initPromise = null
@@ -1126,16 +1163,12 @@ export class KakaoTalkClient {
         // device — LCHATLIST fetches the canonical chat list regardless of device history.
         const snapshotEmpty = allChats.length === 0
         if (options?.all || options?.search || snapshotEmpty) {
-          let cursor: ChatListResponse = loginResult
+          let cursor: ChatListResponse = { ...loginResult, lastTokenId: Long.ZERO, lastChatId: Long.ZERO, eof: false }
           let pages = 0
           const requireCompleteList = options?.all === true
 
           while (pages < MAX_PAGES) {
-            // Trust eof only when the snapshot had data. When the snapshot was empty
-            // (new device), ignore eof for the first iteration so we always attempt
-            // at least one LCHATLIST call.
-            if (cursor.eof && !snapshotEmpty) break
-            if (cursor.eof && snapshotEmpty && pages > 0) break
+            if (cursor.eof) break
 
             const lastTokenId = cursorToLong(cursor.lastTokenId)
             const lastChatId = cursorToLong(cursor.lastChatId)
@@ -1513,8 +1546,13 @@ export class KakaoTalkClient {
   async sendMessage(
     chatId: string,
     text: string,
-    options?: { replyTo?: KakaoReplyTarget; mentions?: KakaoMentionInput[] },
+    options?: KakaoWriteOptions & { replyTo?: KakaoReplyTarget; mentions?: KakaoMentionInput[] },
   ): Promise<KakaoSendResult> {
+    const writeOptions: KakaoWriteOptions = {}
+    for (const key of ['silence', 'noSeen', 'scope', 'threadId', 'extra'] as const) {
+      if (options?.[key] !== undefined) Object.assign(writeOptions, { [key]: options[key] })
+    }
+    const hasWriteOptions = Object.keys(writeOptions).length > 0
     const replyTo = options?.replyTo
     const replyLinkId = replyTo?.link_id !== undefined ? parseReplyLinkId(replyTo.link_id) : undefined
 
@@ -1540,23 +1578,19 @@ export class KakaoTalkClient {
                 replyLinkId ?? (await resolveOpenLinkId(session, loginResult, chatId)),
                 mentions,
               ),
+              ...(hasWriteOptions ? [writeOptions] : []),
             )
           : mentions.length > 0
-            ? await session.sendMessage(parseLong(chatId), text, mentions)
-            : await session.sendMessage(parseLong(chatId), text)
-        const logId = longToString(response.body.logId)
-
-        return {
-          success: response.statusCode === 0 && logId !== '0',
-          status_code: response.statusCode,
-          chat_id: chatId,
-          log_id: logId,
-          sent_at: response.body.sendAt as number,
-        }
+            ? await session.sendMessage(parseLong(chatId), text, mentions, ...(hasWriteOptions ? [writeOptions] : []))
+            : hasWriteOptions
+              ? await session.sendMessage(parseLong(chatId), text, undefined, writeOptions)
+              : await session.sendMessage(parseLong(chatId), text)
+        assertSendConnectionOpen(response)
+        return formatSendResult(response, chatId)
       } catch (error) {
         throw wrapError(error, 'send_message_failed')
       }
-    })
+    }, false)
   }
 
   async sendTyping(chatId: string, opts?: { linkId?: string }): Promise<KakaoTypingResult> {
@@ -1802,17 +1836,12 @@ export class KakaoTalkClient {
           extra as unknown as Record<string, unknown>,
         )
 
-        return {
-          success: forwardResp.statusCode === 0,
-          status_code: forwardResp.statusCode,
-          chat_id: chatId,
-          log_id: longToString((forwardResp.body as Record<string, unknown>).logId),
-          sent_at: ((forwardResp.body as Record<string, unknown>).sendAt as number | undefined) ?? 0,
-        }
+        assertSendConnectionOpen(forwardResp)
+        return formatSendResult(forwardResp, chatId)
       } catch (error) {
         throw wrapError(error, 'send_multi_photo_failed')
       }
-    })
+    }, false)
   }
 
   private async sendMediaViaLoco(opts: {
@@ -1867,21 +1896,21 @@ export class KakaoTalkClient {
           deviceType: this.deviceType,
         })
 
+        assertSendConnectionOpen(uploadRes.completePacket)
         const completeBody = uploadRes.completePacket?.body as Record<string, unknown> | undefined
         const chatLog = completeBody?.chatLog as Record<string, unknown> | undefined
-        const logId = chatLog?.logId
-
-        return {
-          success: uploadRes.completePacket !== null && uploadRes.postStatusCode === 0,
-          status_code: uploadRes.postStatusCode,
-          chat_id: opts.chatId,
-          log_id: longToString(logId),
-          sent_at: (chatLog?.sendAt as number | undefined) ?? 0,
-        }
+        return formatSendResult(
+          {
+            statusCode:
+              uploadRes.postStatusCode !== 0 ? uploadRes.postStatusCode : (uploadRes.completePacket?.statusCode ?? -1),
+            body: { ...chatLog, status: completeBody?.status },
+          },
+          opts.chatId,
+        )
       } catch (error) {
         throw wrapError(error, opts.errorCode)
       }
-    })
+    }, false)
   }
 
   /**

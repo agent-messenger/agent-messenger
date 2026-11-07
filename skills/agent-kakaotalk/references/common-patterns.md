@@ -346,55 +346,60 @@ const title = await client.getChatTitle('9876543210')
 
 ## Pattern 11: Error Handling and Retry
 
-**Use case**: Robust message sending with retries
+**Use case**: Choose whether uncertain sends may be retried, with duplicate risk explicit.
+
+### Case 1: Explicitly opt into send with retry
+
+Use `--retry-unknown-delivery` only when avoiding a missed message matters more
+than avoiding a duplicate. It retries an uncertain send **once**, reconnecting
+if the main session was lost. It also covers uncertain media completion while
+the main session remains connected. It does not retry every provider rejection
+or every generic timeout/error. Replaying an upload can repeat uploads as well
+as messages; the retry is not guaranteed to recover a failed send.
 
 ```bash
-#!/bin/bash
-
 send_with_retry() {
-  local chat_id=$1
-  local message=$2
-  local max_attempts=3
-  local attempt=1
-
-  while [ $attempt -le $max_attempts ]; do
-    echo "Attempt $attempt/$max_attempts..."
-
-    RESULT=$(agent-kakaotalk message send "$chat_id" "$message" 2>&1)
-    SUCCESS=$(echo "$RESULT" | jq -r '.success // false')
-
-    if [ "$SUCCESS" = "true" ]; then
-      echo "Message sent!"
-      return 0
-    fi
-
-    ERROR=$(echo "$RESULT" | jq -r '.error // "Unknown error"')
-    echo "Failed: $ERROR"
-
-    # Don't retry auth errors
-    if echo "$ERROR" | grep -q "No KakaoTalk credentials"; then
-      echo "Not authenticated. Run: agent-kakaotalk auth login"
-      return 1
-    fi
-
-    if [ $attempt -lt $max_attempts ]; then
-      SLEEP_TIME=$((attempt * 3))
-      echo "Retrying in ${SLEEP_TIME}s..."
-      sleep $SLEEP_TIME
-    fi
-
-    attempt=$((attempt + 1))
-  done
-
-  echo "Failed after $max_attempts attempts"
-  return 1
+  agent-kakaotalk message send "$1" "$2" --retry-unknown-delivery
 }
 
-# Usage
+# Explicitly accept duplicate-delivery risk:
 send_with_retry "9876543210" "Important message!"
+# The same opt-in is available for message upload:
+# agent-kakaotalk message upload "9876543210" ./report.pdf --retry-unknown-delivery
 ```
 
-**When to use**: Production scripts, critical notifications, unreliable networks.
+The SDK equivalent is `new KakaoTalkClient({ retryUnknownDelivery: true })`.
+This client-level option applies to its text/reply and media sends. A successful
+retry does not prove the first attempt was not delivered. Do not wrap this in
+another unconditional retry loop.
+
+### Case 2: Default — stop on uncertain delivery
+
+Without the opt-in flag (or with the SDK option omitted/false), an uncertain
+send is not automatically replayed. A `delivery_unknown` error means the server
+may already have accepted the message: retrying could create a duplicate, not
+necessarily fail. The default favors avoiding duplicates over automatic recovery.
+
+```bash
+agent-kakaotalk message send "9876543210" "Important message!"
+# If delivery is unknown, inspect history before deciding whether to resend:
+agent-kakaotalk message list "9876543210" --count 20
+```
+
+A missing history entry immediately after a disconnect is not proof of failure.
+Other errors, such as timeouts after dispatch, may also leave acceptance unknown;
+`code !== 'delivery_unknown'` is not a safe retry condition. For a known provider
+rejection, retry only when non-acceptance and a transient cause are established;
+correct permanent errors instead. Initial connection/authentication failures
+before dispatch are separate from replaying a sent message. Read reconnection
+is retained. Neither policy provides exactly-once or persistent deduplication.
+
+For field meanings and evidence boundaries (scope/thread visibility, silence,
+noSeen, extra, CHECKIN country, LOGINLIST switching and block revisions), see the
+SDK documentation's “Protocol fields: meaning, defaults, and evidence limits”.
+These are configurable inputs, not claims that every official request uses the
+same defaults. In particular, the client does not implement account switching
+or block-list synchronization just by accepting those options.
 
 ## Pattern 12: Show "Typing..." While Preparing a Slow Reply
 
@@ -642,9 +647,9 @@ The `deviceType` determines the LOCO protocol identity: `'tablet'` sends `os: 'a
 
 ### Auto-Reconnect
 
-`getChats`, `getMessages`, `sendMessage`, and `sendAttachment` (plus the underlying typed helpers `sendPhoto` / `sendVideo` / `sendAudio` / `sendFile` / `sendMultiPhoto`) automatically reconnect once when the LOCO session dies (e.g. the KakaoTalk desktop app reclaims the session or the network drops). The reconnect is transparent — callers don't need to handle session-drop errors.
+Read operations such as `getChats` and `getMessages` reconnect once when the LOCO session dies. A new independent request can establish a replacement session. Sends (`sendMessage`, replies, and media helpers) are not automatically replayed after an ambiguous disconnect by default; callers must handle `delivery_unknown`. Explicit `retryUnknownDelivery: true` retries an uncertain send once and accepts duplicate-delivery risk.
 
-Reconnect only triggers on actual session death. Operation-level errors (invalid chat ID, server rejection, etc.) are thrown immediately without retry, so side effects like `sendMessage` or `sendAttachment` are never duplicated.
+Read retries only trigger on actual session death. Operation-level errors are not automatically retried. Callers may retry a send after established non-delivery and a retryable cause, as described in Pattern 11; absence of `delivery_unknown` alone is insufficient. Avoiding send replay reduces duplicate side effects but is not an exactly-once or cross-process deduplication guarantee.
 
 Initial `LOGINLIST` failures are classified separately from reconnectable session death:
 

@@ -1,6 +1,13 @@
 import { Binary, Long } from 'bson'
 
-import { KAKAO_MESSAGE_TYPE, type KakaoDeviceType, type KakaoMention, type KakaoReplyExtra } from '../types'
+import {
+  KAKAO_MESSAGE_TYPE,
+  type KakaoDeviceType,
+  type KakaoLoginOptions,
+  type KakaoMention,
+  type KakaoReplyExtra,
+  type KakaoWriteOptions,
+} from '../types'
 import {
   BOOKING_HOST,
   BOOKING_PORT,
@@ -10,6 +17,8 @@ import {
   DTYPE,
   LANG,
   MCCMNC,
+  MESSAGING_TLS_PORT,
+  MESSAGING_TLS_OPTIONS,
   PING_INTERVAL_MS,
   PROTOCOL_VERSION,
   getLocoDeviceConfig,
@@ -17,6 +26,7 @@ import {
 import { LocoConnection } from './connection'
 import { exactInteger, stringifyWithExactIntegers } from './exact-json'
 import { validateLoginListResponse } from './login-response'
+import { createMessageIdGenerator } from './message-id'
 import type { BookingResponse, CheckinResponse, LoginListResponse, LocoPacket, SyncState } from './types'
 
 // Mention user ids are 64-bit too (open-chat profile ids exceed 2^53), so they
@@ -27,7 +37,7 @@ function toWireMentions(mentions: ReadonlyArray<KakaoMention>): Array<Record<str
 
 // Builds the WRITE body for a plain text message. Mentions ride in the `extra`
 // JSON (`{"mentions":[{"at":[1],"len":3,"user_id":123}]}`) of the same type-1
-// WRITE; without mentions the body carries no `extra` at all.
+// WRITE; the shared WRITE header adds an empty `extra` when none is set.
 export function buildTextWriteBody(
   chatId: Long,
   text: string,
@@ -107,7 +117,87 @@ export function buildKickListDeleteBody(linkId: Long, chatId: Long, userId: Long
   return { li: linkId, c: chatId, kid: userId }
 }
 
+// Shared headers must preserve reply, mention and attachment extras.
+export function buildWriteBody(
+  body: Record<string, unknown>,
+  msgId: Long,
+  options: KakaoWriteOptions = {},
+): Record<string, unknown> {
+  for (const key of ['silence', 'noSeen'] as const) {
+    if (options[key] !== undefined && typeof options[key] !== 'boolean') throw new TypeError(`${key} must be boolean`)
+  }
+  const scope = options.scope ?? 1
+  if (![1, 2, 3].includes(scope)) throw new RangeError('scope must be 1, 2, or 3')
+  let threadId: Long | undefined
+  if (options.threadId !== undefined) {
+    const digits = exactInteger(options.threadId).digits
+    if (BigInt(digits) <= 0n) throw new RangeError('threadId must be positive')
+    threadId = Long.fromString(digits)
+  }
+  if (options.extra !== undefined) {
+    if (body.extra !== undefined) throw new TypeError('extra cannot replace generated mention/reply payloads')
+    const extra: unknown = JSON.parse(options.extra)
+    if (!extra || typeof extra !== 'object' || Array.isArray(extra)) throw new TypeError('extra must be a JSON object')
+  }
+  return {
+    ...body,
+    msgId,
+    scope,
+    ...(threadId ? { threadId } : {}),
+    silence: options.silence ?? false,
+    noSeen: options.noSeen ?? body.noSeen ?? false,
+    extra: options.extra ?? body.extra ?? '{}',
+  }
+}
+
+export function connectMessagingServer(
+  connection: Pick<LocoConnection, 'connectTls' | 'connectSecure'>,
+  host: string,
+  port: number,
+  deviceType: KakaoDeviceType,
+): Promise<void> {
+  return deviceType === 'tablet'
+    ? connection.connectTls(host, MESSAGING_TLS_PORT, MESSAGING_TLS_OPTIONS)
+    : connection.connectSecure(host, port)
+}
+
+export function buildLoginFields(options: KakaoLoginOptions = {}): {
+  checkin: Record<string, unknown>
+  login: Record<string, unknown>
+} {
+  // KR preserves the SDK's historical default; Android's inspected CHECKIN
+  // builder omits this key. Neither choice is required by the tested server.
+  const countryISO = options.countryISO === undefined ? COUNTRY_ISO : options.countryISO
+  if (countryISO !== null && (typeof countryISO !== 'string' || !/^[A-Z]{2}$/.test(countryISO))) {
+    throw new TypeError('countryISO must be an uppercase two-letter code or null')
+  }
+  const isSwitching = options.isSwitching === undefined ? false : options.isSwitching
+  if (isSwitching !== null && typeof isSwitching !== 'boolean')
+    throw new TypeError('isSwitching must be boolean or null')
+  const revisions = [options.blockRevision ?? 0, options.plusBlockRevision ?? 0]
+  for (const revision of revisions) {
+    if (!Number.isInteger(revision) || revision < 0 || revision > 0xffff) {
+      throw new RangeError('Block revisions must be unsigned 16-bit integers')
+    }
+  }
+  const rp = Buffer.alloc(6)
+  rp.writeUInt16LE(revisions[0]!, 0)
+  rp.writeInt16LE(-1, 2)
+  rp.writeUInt16LE(revisions[1]!, 4)
+  return {
+    checkin: countryISO === null ? {} : { countryISO },
+    login: { rp: new Binary(rp), ...(isSwitching === null ? {} : { isSw: isSwitching }) },
+  }
+}
+
 export class LocoSession {
+  private readonly loginFields: ReturnType<typeof buildLoginFields>
+  constructor(
+    private nextMessageId?: () => number,
+    options: KakaoLoginOptions = {},
+  ) {
+    this.loginFields = buildLoginFields(options)
+  }
   private connection: LocoConnection | null = null
   private pingTimer: ReturnType<typeof setInterval> | null = null
   private pushHandler: ((packet: LocoPacket) => void) | null = null
@@ -122,12 +212,13 @@ export class LocoSession {
     deviceType?: KakaoDeviceType,
   ): Promise<LoginListResponse> {
     this.deviceType = deviceType ?? 'tablet'
+    this.nextMessageId ??= createMessageIdGenerator(deviceUuid)
     const deviceConfig = getLocoDeviceConfig(this.deviceType)
 
     const { host, port } = await this.bookAndCheckin(userId, deviceConfig)
 
     this.connection = new LocoConnection()
-    await this.connection.connectSecure(host, port)
+    await connectMessagingServer(this.connection, host, port, this.deviceType)
 
     if (this.pushHandler) {
       this.connection.onPush(this.pushHandler)
@@ -157,7 +248,7 @@ export class LocoSession {
         maxIds,
         lastTokenId,
         lbk,
-        rp: new Binary(Buffer.from([0x00, 0x00, 0xff, 0xff, 0x00, 0x00])),
+        ...this.loginFields.login,
         bg: false,
       })
 
@@ -200,8 +291,8 @@ export class LocoSession {
       appVer: deviceConfig.appVersion,
       MCCMNC: MCCMNC,
       lang: LANG,
-      countryISO: COUNTRY_ISO,
       useSub: deviceConfig.useSub,
+      ...this.loginFields.checkin,
     })
     checkinConn.close()
 
@@ -213,31 +304,55 @@ export class LocoSession {
     return { host: checkin.host, port: checkin.port }
   }
 
-  async sendMessage(chatId: Long, text: string, mentions?: ReadonlyArray<KakaoMention>): Promise<LocoPacket> {
+  private sendWrite(body: Record<string, unknown>, options?: KakaoWriteOptions): Promise<LocoPacket> {
+    if (!this.connection || !this.nextMessageId) throw new Error('Not connected')
+    return this.connection.sendPacket('WRITE', buildWriteBody(body, Long.fromNumber(this.nextMessageId()), options))
+  }
+
+  async sendMessage(
+    chatId: Long,
+    text: string,
+    mentions?: ReadonlyArray<KakaoMention>,
+    options?: KakaoWriteOptions,
+  ): Promise<LocoPacket> {
     if (!this.connection) throw new Error('Not connected')
-    return this.connection.sendPacket('WRITE', buildTextWriteBody(chatId, text, mentions))
+    return this.sendWrite(buildTextWriteBody(chatId, text, mentions), options)
   }
 
   // Quoted reply — a WRITE with message_type 26 (REPLY) whose `extra` JSON
   // carries the source-message reference. The reply semantics ride entirely on
-  // `type` + `extra`; no extra top-level WRITE fields are needed.
-  async sendReply(chatId: Long, text: string, extra: KakaoReplyExtra): Promise<LocoPacket> {
+  // `type` + `extra`; sendWrite adds the common headers.
+  async sendReply(
+    chatId: Long,
+    text: string,
+    extra: KakaoReplyExtra,
+    options?: KakaoWriteOptions,
+  ): Promise<LocoPacket> {
     if (!this.connection) throw new Error('Not connected')
-    return this.connection.sendPacket('WRITE', buildReplyWriteBody(chatId, text, extra))
+    return this.sendWrite(buildReplyWriteBody(chatId, text, extra), options)
   }
 
   // Sends a WRITE with non-text message_type plus the JSON-stringified `extra`
   // payload that KakaoTalk clients render as the attachment (photo, file, etc).
   // See types.ts → KakaoPhotoExtra / KakaoFileExtra for the per-type shape.
-  async sendAttachment(chatId: Long, type: number, extra: Record<string, unknown>, caption = ''): Promise<LocoPacket> {
+  async sendAttachment(
+    chatId: Long,
+    type: number,
+    extra: Record<string, unknown>,
+    caption = '',
+    options?: KakaoWriteOptions,
+  ): Promise<LocoPacket> {
     if (!this.connection) throw new Error('Not connected')
-    return this.connection.sendPacket('WRITE', {
-      chatId,
-      msg: caption,
-      type,
-      noSeen: false,
-      extra: JSON.stringify(extra),
-    })
+    return this.sendWrite(
+      {
+        chatId,
+        msg: caption,
+        type,
+        noSeen: false,
+        extra: JSON.stringify(extra),
+      },
+      options,
+    )
   }
 
   // SHIP — request a media-upload ticket. Reserves a slot on a media LOCO

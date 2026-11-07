@@ -1,4 +1,4 @@
-import { createHash, randomBytes } from 'node:crypto'
+import { createHash, randomUUID } from 'node:crypto'
 
 import type { KakaoDeviceType, KakaoLoginResult } from '../types'
 
@@ -15,8 +15,9 @@ const ANDROID_REGISTER_URL = 'https://katalk.kakao.com/android/account/passcodeL
 
 const DEVICE_NAME = 'SM-T870'
 
-function generateDeviceUuid(): string {
-  return randomBytes(32).toString('hex')
+function generateDeviceUuid(uuid = randomUUID(), now = Date.now()): string {
+  const input = `${uuid}-${now}`
+  return createHash('sha256').update(`dkljleskljfeisflssljeif ${input}`, 'utf8').digest('hex')
 }
 
 // X-VC for Android: SHA512("BARD|{userAgent}|DANTE|{email}|SIAN")[:16]

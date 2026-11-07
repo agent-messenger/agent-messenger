@@ -88,6 +88,11 @@ describe('message commands', () => {
     process.exit = originalExit
   })
 
+  it('passes explicit unknown-delivery retry opt-in to the client factory', async () => {
+    await messageCommand.parseAsync(['send', 'chat-123', 'hello', '--retry-unknown-delivery'], { from: 'user' })
+    expect(mockWithKakaoClient.mock.calls.at(-1)?.[0]).toMatchObject({ retryUnknownDelivery: true })
+  })
+
   describe('list', () => {
     it('fetches messages for a chat room with default count', async () => {
       await messageCommand.parseAsync(['list', 'chat-123', '--count', '20'], { from: 'user' })
