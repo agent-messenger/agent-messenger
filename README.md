@@ -65,7 +65,8 @@ Organizations can enforce an outbound-message policy with a local executable hoo
 before sending, editing, deleting, reacting, uploading, or otherwise changing remote state, including calls from the SDK
 and TUI.
 
-Set `AGENT_MESSENGER_PRE_SEND_HOOK` to an executable path, or place `hooks.json` beside the credential files:
+Set `AGENT_MESSENGER_PRE_SEND_HOOK` to an executable path, or place `hooks.json` in the shared configuration directory
+(`~/.config/agent-messenger`, or the directory selected by `AGENT_MESSENGER_CONFIG_DIR`):
 
 ```json
 {

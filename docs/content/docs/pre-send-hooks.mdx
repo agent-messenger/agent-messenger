@@ -8,7 +8,7 @@ so CLI commands, SDK calls, and the TUI use the same gate. Reads do not invoke t
 
 ## Configuration
 
-Create `hooks.json` in the configuration directory used for credentials:
+Create `hooks.json` in the shared configuration directory:
 
 ```json
 {
@@ -21,7 +21,11 @@ Create `hooks.json` in the configuration directory used for credentials:
 ```
 
 The default directory is `~/.config/agent-messenger`. `AGENT_MESSENGER_CONFIG_DIR` relocates both configuration and
-credentials.
+credentials. This shared hook applies to every client in the process, wherever its credentials come from.
+
+SDK clients that accept a credential manager (Teams, LINE, Instagram) also read `hooks.json` from that manager's
+`configDir` when it differs from the shared directory. That hook runs after the shared one, in addition to it, never
+instead of it; a write proceeds only when every configured hook allows it.
 
 - `command` is an executable followed by its arguments. Arguments are passed directly, without a shell.
 - `required` defaults to `false`. When `true`, a missing or unusable command denies every write.
@@ -55,21 +59,23 @@ The executable receives one JSON object on stdin:
     "kind": "channel"
   },
   "text": "The final outgoing message",
-  "files": ["/absolute/path/to/attachment.txt"]
+  "files": ["/absolute/path/to/attachment.txt"],
+  "richContent": { "blocks": [] }
 }
 ```
 
-| Field             | Meaning                                                                                                                                                                                     |
-| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `version`         | Event format version, currently `1`.                                                                                                                                                        |
-| `platform`        | Client identifier, including bot variants such as `slackbot` or `telegrambot`.                                                                                                              |
-| `action`          | The mutation, such as `send`, `reply`, `edit`, `delete`, `react`, `upload`, `schedule`, `forward`, `create`, `pin`, `unpin`, `join`, `leave`, `invite`, `archive`, `typing`, or `markRead`. |
-| `account`         | Optional workspace, server, bot, or account identifier already known to the client. Never an authentication token.                                                                          |
-| `target.id`       | Resolved destination or resource identifier used by the write.                                                                                                                              |
-| `target.threadId` | Optional destination thread identifier.                                                                                                                                                     |
-| `target.kind`     | Optional target category, such as `channel`, `user`, or `message`.                                                                                                                          |
-| `text`            | Optional final outgoing text. Rich-text transports may expose rendered markup.                                                                                                              |
-| `files`           | Optional absolute paths for local files being uploaded.                                                                                                                                     |
+| Field             | Meaning                                                                                                                                                                                                       |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `version`         | Event format version, currently `1`.                                                                                                                                                                          |
+| `platform`        | Client identifier, including bot variants such as `slackbot` or `telegrambot`.                                                                                                                                |
+| `action`          | The mutation, such as `send`, `reply`, `edit`, `delete`, `react`, `upload`, `schedule`, `forward`, `create`, `pin`, `unpin`, `join`, `leave`, `invite`, `archive`, `typing`, `kick`, `unkick`, or `markRead`. |
+| `account`         | Optional workspace, server, bot, or account identifier already known to the client. Never an authentication token.                                                                                            |
+| `target.id`       | Resolved destination or resource identifier used by the write.                                                                                                                                                |
+| `target.threadId` | Optional destination thread identifier.                                                                                                                                                                       |
+| `target.kind`     | Optional target category, such as `channel`, `user`, or `message`.                                                                                                                                            |
+| `text`            | Optional final outgoing text. Rich-text transports may expose rendered markup. When the write carries structured content, `text` also includes every human-readable string inside it.                         |
+| `files`           | Optional absolute paths for local files being uploaded.                                                                                                                                                       |
+| `richContent`     | Optional structured payload sent with the write, such as Slack bot `blocks` and `attachments` or Channel Talk `blocks`.                                                                                       |
 
 Not all writes have a channel. Resource operations use the resource identifier; creation uses the supplied creation
 target because its remote identifier does not exist yet. A direct send may use a recipient identifier when the server

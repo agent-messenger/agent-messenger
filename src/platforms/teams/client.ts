@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto'
 import { readFile } from 'node:fs/promises'
 import { basename, resolve } from 'node:path'
 
-import { runPreSendHook } from '@/shared/pre-send-hook'
+import { type PreSendEvent, runPreSendHook } from '@/shared/pre-send-hook'
 import { escapeHtml, markdownToHtml } from '@/shared/utils/markdown-to-html'
 
 import { SUBSTRATE_SEARCH_URL } from './app-config'
@@ -376,6 +376,11 @@ export class TeamsClient {
   private globalRateLimitUntil: number = 0
 
   constructor(private credManager: TeamsCredentialManager = new TeamsCredentialManager()) {}
+
+  // A hooks.json beside injected credentials runs in addition to the shared hook.
+  private runHook(event: PreSendEvent): Promise<void> {
+    return runPreSendHook(event, { configDir: this.credManager.configDir })
+  }
 
   async login(credentials?: {
     token: string
@@ -836,7 +841,7 @@ export class TeamsClient {
     }
     const encodedChatId = encodeURIComponent(chatId)
     const html = formatContent(content, format)
-    await runPreSendHook({ version: 1, platform: 'teams', action: 'send', target: { id: chatId }, text: html })
+    await this.runHook({ version: 1, platform: 'teams', action: 'send', target: { id: chatId }, text: html })
     const response = await this.request<SendResponse>('POST', `/users/ME/conversations/${encodedChatId}/messages`, {
       content: html,
       messagetype: 'RichText/Html',
@@ -865,7 +870,7 @@ export class TeamsClient {
     const encodedChatId = encodeURIComponent(chatId)
     const encodedMessageId = encodeURIComponent(messageId)
     const html = formatContent(content, format)
-    await runPreSendHook({ version: 1, platform: 'teams', action: 'edit', target: { id: chatId }, text: html })
+    await this.runHook({ version: 1, platform: 'teams', action: 'edit', target: { id: chatId }, text: html })
     // Skype messaging backend requires skypeeditedid to duplicate the URL message id.
     const response = await this.request<EditResponse>(
       'PUT',
@@ -949,7 +954,7 @@ export class TeamsClient {
     const path =
       this.channelPath(teamId, channelId) + '/messages' + (rootMessageId ? `/${segment(rootMessageId)}/replies` : '')
     const html = formatContent(content, format)
-    await runPreSendHook({
+    await this.runHook({
       version: 1,
       platform: 'teams',
       action: rootMessageId ? 'reply' : 'send',
@@ -1112,7 +1117,7 @@ export class TeamsClient {
       message = await this.getMessage(teamId, channelId, messageId, rootMessageId)
     } catch (error) {
       if (!(error instanceof TeamsAuthCapabilityError)) throw error
-      await runPreSendHook({
+      await this.runHook({
         version: 1,
         platform: 'teams',
         action: 'delete',
@@ -1131,7 +1136,7 @@ export class TeamsClient {
       throw new TeamsError('Delete target did not match the message.', 'delete_target_mismatch')
     if (message.deleted_at) return
     const conversationId = rootMessageId ? `${channelId};messageid=${rootMessageId}` : channelId
-    await runPreSendHook({
+    await this.runHook({
       version: 1,
       platform: 'teams',
       action: 'delete',
@@ -1153,7 +1158,7 @@ export class TeamsClient {
     emoji: string,
     rootMessageId?: string,
   ): Promise<void> {
-    await runPreSendHook({
+    await this.runHook({
       version: 1,
       platform: 'teams',
       action: 'react',
@@ -1182,7 +1187,7 @@ export class TeamsClient {
     emoji: string,
     rootMessageId?: string,
   ): Promise<void> {
-    await runPreSendHook({
+    await this.runHook({
       version: 1,
       platform: 'teams',
       action: 'react',
@@ -1226,7 +1231,7 @@ export class TeamsClient {
   }
 
   async uploadFile(teamId: string, channelId: string, filePath: string): Promise<TeamsFile> {
-    await runPreSendHook({
+    await this.runHook({
       version: 1,
       platform: 'teams',
       action: 'upload',

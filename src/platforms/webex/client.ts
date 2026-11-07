@@ -514,7 +514,7 @@ export class WebexClient {
   private async sendMessageInternal(
     roomId: string,
     text: string,
-    options?: { markdown?: boolean },
+    options?: { markdown?: boolean; parentId?: string },
   ): Promise<WebexMessage> {
     const convUuid = this.decodeConvUuid(roomId)
     const { object, encryptionKeyUrl } = await this.buildEncryptedObject(convUuid, text, options)
@@ -529,13 +529,16 @@ export class WebexClient {
     if (encryptionKeyUrl) {
       activity['encryptionKeyUrl'] = encryptionKeyUrl
     }
+    if (options?.parentId) {
+      activity['parent'] = { id: this.toMessageRef(options.parentId), type: 'reply' }
+    }
 
     await runPreSendHook({
       version: 1,
       platform: this.platform,
       account: this.accountId,
-      action: 'send',
-      target: { id: roomId },
+      action: options?.parentId ? 'reply' : 'send',
+      target: { id: roomId, threadId: options?.parentId },
       text,
     })
     const result = await this.internalRequest<InternalActivity>('/activities', {

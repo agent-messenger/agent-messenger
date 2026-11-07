@@ -68,7 +68,7 @@ function guardedRpc(transport: () => Promise<never>): ImsgRpc {
 }
 
 function guardedSession(transport: () => Promise<never>) {
-  const session = new LocoSession()
+  const session = new LocoSession(() => 1)
   Object.defineProperties(session, {
     connection: { value: { sendPacket: transport } },
     accountId: { value: 'account' },
@@ -78,7 +78,9 @@ function guardedSession(transport: () => Promise<never>) {
 
 export function clientFor(platform: string, transport: () => Promise<never>): object {
   const client: object = Object.create(prototypes[platform])
-  const sdk: () => Promise<never> = new Proxy(transport, { get: () => sdk })
+  // Every property resolves to the transport, except `then`: SDK clients are not thenables, and clients may return them
+  // from async methods.
+  const sdk: () => Promise<never> = new Proxy(transport, { get: (_target, key) => (key === 'then' ? undefined : sdk) })
   Object.defineProperties(client, {
     request: { value: transport },
     requestFormData: { value: transport },
@@ -88,6 +90,8 @@ export function clientFor(platform: string, transport: () => Promise<never>): ob
     call: { value: transport },
     callMultipart: { value: transport },
     ensureReady: { value: async () => {} },
+    credManager: { value: { configDir: undefined }, configurable: true },
+    credentialManager: { value: { configDir: undefined }, configurable: true },
     resolveChat: { value: async () => ({ id: 123 }) },
     account: { value: { account_id: 'account' } },
     ensureSession: { value: async () => state, configurable: true },

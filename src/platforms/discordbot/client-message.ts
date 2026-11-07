@@ -45,7 +45,7 @@ export async function createMessage(
     version: 1,
     platform: 'discordbot',
     action: files.length > 0 ? 'upload' : options.reply_to ? 'reply' : 'send',
-    target: { id: target, threadId: options.thread_id },
+    target: { id: target, threadId: options.thread_id ?? options.reply_to },
     text: options.content,
     files: files.length > 0 ? files.map((file) => resolve(file.path)) : undefined,
   })

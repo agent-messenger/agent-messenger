@@ -376,7 +376,7 @@ export class DiscordClient {
       version: 1,
       platform: 'discord',
       action: 'upload',
-      target: { id: channelId },
+      target: { id: channelId, threadId: options?.reply_to },
       files: [resolve(filePath)],
     })
     const fileBuffer = await readFile(filePath)

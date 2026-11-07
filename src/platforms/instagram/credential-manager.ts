@@ -12,7 +12,7 @@ import {
 } from './types'
 
 export class InstagramCredentialManager {
-  private configDir: string
+  readonly configDir: string
   private credentialsPath: string
   private instagramRootDir: string
   private devicePath: string

@@ -114,7 +114,8 @@ export class ImsgRpc {
   }
 
   async request<T>(method: string, params: Record<string, unknown> = {}): Promise<T> {
-    if (!this.child) throw new IMessageError('imsg rpc is not running. Call start() first.', 'rpc_error')
+    const child = this.child
+    if (!child) throw new IMessageError('imsg rpc is not running. Call start() first.', 'rpc_error')
     if (method === 'send') {
       await runPreSendHook({
         version: 1,
@@ -123,13 +124,17 @@ export class ImsgRpc {
         target: { id: String(params.chat_id ?? params.chat_guid ?? params.chat_identifier ?? params.to ?? '') },
         text: typeof params.text === 'string' ? params.text : undefined,
       })
+      // close() or an exit can replace the process while the hook runs; never write to a different one.
+      if (this.child !== child) {
+        throw new IMessageError('imsg rpc stopped while authorizing the send.', 'rpc_error')
+      }
     }
     const id = this.nextId++
     const frame = `${JSON.stringify({ jsonrpc: '2.0', id, method, params })}\n`
 
     return await new Promise<T>((resolve, reject) => {
       this.pending.set(id, { resolve: resolve as (v: unknown) => void, reject })
-      this.child!.stdin.write(frame, (err) => {
+      child.stdin.write(frame, (err) => {
         if (err) {
           this.pending.delete(id)
           reject(err)

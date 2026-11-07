@@ -1,4 +1,4 @@
-import { runPreSendHook } from '@/shared/pre-send-hook'
+import { collectPayloadText, runPreSendHook } from '@/shared/pre-send-hook'
 
 import { ChannelBotCredentialManager } from './credential-manager'
 import { wrapTextInBlocks } from './message-utils'
@@ -29,17 +29,18 @@ export class ChannelBotClient {
   private rateLimitRemaining: number | null = null
   private rateLimitResetAt: number = 0
 
-  async login(credentials?: { accessKey: string; accessSecret: string }): Promise<this> {
+  async login(credentials?: { accessKey: string; accessSecret: string; workspaceId?: string }): Promise<this> {
     if (credentials) {
-      this.accountId = undefined
       if (!credentials.accessKey) {
         throw new ChannelBotErrorClass('Access key is required', 'missing_access_key')
       }
       if (!credentials.accessSecret) {
         throw new ChannelBotErrorClass('Access secret is required', 'missing_access_secret')
       }
+      // Replace keys and their workspace together, only after the new credentials validate.
       this.accessKey = credentials.accessKey
       this.accessSecret = credentials.accessSecret
+      this.accountId = credentials.workspaceId
       return this
     }
 
@@ -50,9 +51,11 @@ export class ChannelBotClient {
         'no_credentials',
       )
     }
-    await this.login({ accessKey: creds.access_key, accessSecret: creds.access_secret })
-    this.accountId = creds.workspace_id
-    return this
+    return this.login({
+      accessKey: creds.access_key,
+      accessSecret: creds.access_secret,
+      workspaceId: creds.workspace_id,
+    })
   }
 
   private ensureAuth(): void {
@@ -103,7 +106,8 @@ export class ChannelBotClient {
       account: this.accountId,
       action: 'send',
       target: { id: chatId },
-      text: blocks.map((block) => block.value ?? '').join('\n'),
+      text: collectPayloadText(blocks).join('\n'),
+      richContent: { blocks },
     })
     return this.request<ChannelBotMessage>(
       'POST',
@@ -182,7 +186,8 @@ export class ChannelBotClient {
       account: this.accountId,
       action: 'send',
       target: { id: groupId },
-      text: blocks.map((block) => block.value ?? '').join('\n'),
+      text: collectPayloadText(blocks).join('\n'),
+      richContent: { blocks },
     })
     return this.request<ChannelBotMessage>(
       'POST',

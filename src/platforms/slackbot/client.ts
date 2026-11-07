@@ -1,6 +1,6 @@
 import { WebClient } from '@slack/web-api'
 
-import { isPreSendHookConfigured, runPreSendHook, type PreSendEvent } from '@/shared/pre-send-hook'
+import { collectPayloadText, isPreSendHookConfigured, runPreSendHook, type PreSendEvent } from '@/shared/pre-send-hook'
 
 import { SlackBotCredentialManager } from './credential-manager'
 import { mapSlackFile, mapSlackMessage } from './message-mapper'
@@ -11,12 +11,12 @@ const RATE_LIMIT_ERROR_CODE = 'slack_webapi_rate_limited_error'
 
 export class SlackBotClient {
   private client: WebClient | null = null
-  private teamId: string | undefined
+  private authTeam: { client: WebClient; teamId: string } | undefined
   private token: string | null = null
 
   async login(credentials?: { token: string }): Promise<this> {
     if (credentials) {
-      this.teamId = undefined
+      this.authTeam = undefined
       const { token } = credentials
       if (!token) {
         throw new SlackBotError('Token is required', 'missing_token')
@@ -37,15 +37,26 @@ export class SlackBotClient {
     return this
   }
 
-  private async authorizeWrite(event: PreSendEvent): Promise<void> {
-    if (!(await isPreSendHookConfigured())) return
-    const team_id = this.teamId ?? (await this.testAuth()).team_id
-    this.teamId = team_id
+  // Authorizes a write and returns the client it was authorized for. Callers send through that client, so a
+  // concurrent login() cannot make the hook approve one workspace while the transport writes to another.
+  private async authorizeWrite(event: PreSendEvent): Promise<WebClient> {
+    const client = this.ensureAuth()
+    if (!(await isPreSendHookConfigured())) return client
+    const teamId = this.authTeam?.client === client ? this.authTeam.teamId : (await this.testAuth()).team_id
     const target =
       event.target.kind === 'channel'
         ? { ...event.target, id: await this.resolveChannel(event.target.id) }
         : event.target
-    await runPreSendHook({ ...event, account: team_id, target })
+    this.assertCurrentClient(client)
+    await runPreSendHook({ ...event, account: teamId, target })
+    this.assertCurrentClient(client)
+    return client
+  }
+
+  private assertCurrentClient(client: WebClient): void {
+    if (this.client !== client) {
+      throw new SlackBotError('Authentication changed while authorizing the write. Retry the request.', 'auth_changed')
+    }
   }
 
   private ensureAuth(): WebClient {
@@ -92,10 +103,12 @@ export class SlackBotClient {
     user?: string
     team?: string
   }> {
+    const client = this.ensureAuth()
     return this.withRetry(async () => {
-      const response = await this.ensureAuth().auth.test()
+      const response = await client.auth.test()
       this.checkResponse(response)
-      this.teamId = response.team_id
+      // Cache the team only for the client that answered, so a stale result cannot survive a re-login.
+      if (this.client === client && response.team_id) this.authTeam = { client, teamId: response.team_id }
       return {
         user_id: response.user_id!,
         team_id: response.team_id!,
@@ -118,15 +131,22 @@ export class SlackBotClient {
       mrkdwn?: boolean
     },
   ): Promise<SlackMessage> {
-    await this.authorizeWrite({
+    // Blocks and attachments are published alongside the fallback text, so the policy sees all of it.
+    const richContent = {
+      ...(options?.blocks === undefined ? {} : { blocks: options.blocks }),
+      ...(options?.attachments === undefined ? {} : { attachments: options.attachments }),
+    }
+    const hasRichContent = Object.keys(richContent).length > 0
+    const client = await this.authorizeWrite({
       version: 1,
       platform: 'slackbot',
       action: options?.thread_ts ? 'reply' : 'send',
       target: { kind: 'channel', id: channel, threadId: options?.thread_ts },
-      text,
+      text: hasRichContent ? [text, ...collectPayloadText(richContent)].filter(Boolean).join('\n') : text,
+      ...(hasRichContent ? { richContent } : {}),
     })
     return this.withRetry(async () => {
-      const response = await this.ensureAuth().chat.postMessage({
+      const response = await client.chat.postMessage({
         channel,
         text,
         thread_ts: options?.thread_ts,
@@ -188,14 +208,14 @@ export class SlackBotClient {
     // Normalize emoji (remove colons if present)
     const normalizedEmoji = emoji.replace(/^:|:$/g, '')
 
-    await this.authorizeWrite({
+    const client = await this.authorizeWrite({
       version: 1,
       platform: 'slackbot',
       action: 'react',
       target: { kind: 'channel', id: channel },
     })
     return this.withRetry(async () => {
-      const response = await this.ensureAuth().reactions.add({
+      const response = await client.reactions.add({
         channel,
         timestamp,
         name: normalizedEmoji,
@@ -208,14 +228,14 @@ export class SlackBotClient {
     // Normalize emoji (remove colons if present)
     const normalizedEmoji = emoji.replace(/^:|:$/g, '')
 
-    await this.authorizeWrite({
+    const client = await this.authorizeWrite({
       version: 1,
       platform: 'slackbot',
       action: 'react',
       target: { kind: 'channel', id: channel },
     })
     return this.withRetry(async () => {
-      const response = await this.ensureAuth().reactions.remove({
+      const response = await client.reactions.remove({
         channel,
         timestamp,
         name: normalizedEmoji,
@@ -399,7 +419,7 @@ export class SlackBotClient {
   }
 
   async updateMessage(channel: string, ts: string, text: string): Promise<SlackMessage> {
-    await this.authorizeWrite({
+    const client = await this.authorizeWrite({
       version: 1,
       platform: 'slackbot',
       action: 'edit',
@@ -407,7 +427,7 @@ export class SlackBotClient {
       text,
     })
     return this.withRetry(async () => {
-      const response = await this.ensureAuth().chat.update({ channel, ts, text })
+      const response = await client.chat.update({ channel, ts, text })
       this.checkResponse(response)
       const msg = (response as any).message
       return {
@@ -438,7 +458,7 @@ export class SlackBotClient {
   }
 
   async setAssistantStatus(channel: string, threadTs: string, status: string): Promise<void> {
-    await this.authorizeWrite({
+    const client = await this.authorizeWrite({
       version: 1,
       platform: 'slackbot',
       action: 'edit',
@@ -446,7 +466,7 @@ export class SlackBotClient {
       text: status,
     })
     return this.withRetry(async () => {
-      const response = await this.ensureAuth().assistant.threads.setStatus({
+      const response = await client.assistant.threads.setStatus({
         channel_id: channel,
         thread_ts: threadTs,
         status,
@@ -456,27 +476,27 @@ export class SlackBotClient {
   }
 
   async joinChannel(channel: string): Promise<void> {
-    await this.authorizeWrite({
+    const client = await this.authorizeWrite({
       version: 1,
       platform: 'slackbot',
       action: 'join',
       target: { kind: 'channel', id: channel },
     })
     return this.withRetry(async () => {
-      const response = await this.ensureAuth().conversations.join({ channel })
+      const response = await client.conversations.join({ channel })
       this.checkResponse(response)
     })
   }
 
   async deleteMessage(channel: string, ts: string): Promise<void> {
-    await this.authorizeWrite({
+    const client = await this.authorizeWrite({
       version: 1,
       platform: 'slackbot',
       action: 'delete',
       target: { kind: 'channel', id: channel },
     })
     return this.withRetry(async () => {
-      const response = await this.ensureAuth().chat.delete({ channel, ts })
+      const response = await client.chat.delete({ channel, ts })
       this.checkResponse(response)
     })
   }
@@ -487,7 +507,7 @@ export class SlackBotClient {
     filename: string,
     options?: { thread_ts?: string; title?: string; initial_comment?: string },
   ): Promise<SlackFile> {
-    await this.authorizeWrite({
+    const client = await this.authorizeWrite({
       version: 1,
       platform: 'slackbot',
       action: 'upload',
@@ -495,7 +515,7 @@ export class SlackBotClient {
       text: options?.initial_comment,
     })
     return this.withRetry(async () => {
-      const response = await this.ensureAuth().files.uploadV2({
+      const response = await client.files.uploadV2({
         channel_id: channel,
         file,
         filename,
@@ -563,9 +583,14 @@ export class SlackBotClient {
   }
 
   async deleteFile(fileId: string): Promise<void> {
-    await this.authorizeWrite({ version: 1, platform: 'slackbot', action: 'delete', target: { id: fileId } })
+    const client = await this.authorizeWrite({
+      version: 1,
+      platform: 'slackbot',
+      action: 'delete',
+      target: { id: fileId },
+    })
     return this.withRetry(async () => {
-      const response = await this.ensureAuth().files.delete({ file: fileId })
+      const response = await client.files.delete({ file: fileId })
       this.checkResponse(response)
     })
   }

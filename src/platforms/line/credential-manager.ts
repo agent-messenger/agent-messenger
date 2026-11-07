@@ -6,7 +6,7 @@ import { getConfigDir } from '../../shared/utils/config-dir'
 import type { LineAccountCredentials, LineConfig } from './types'
 
 export class LineCredentialManager {
-  private configDir: string
+  readonly configDir: string
   private credentialsPath: string
 
   constructor(configDir?: string) {

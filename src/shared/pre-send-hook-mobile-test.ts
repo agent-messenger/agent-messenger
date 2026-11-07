@@ -19,8 +19,6 @@ export function mobileCases(file: string): Record<string, () => Row[]> {
       ['deleteMessage', [123, 456], 'delete', '123'],
       ['setMessageReaction', [123, 456, [{ type: 'emoji', emoji: 'emoji' }]], 'react', '123'],
       ['setMessageReactionRaw', [123, 456, []], 'react', '123'],
-      ['deleteWebhook', [], 'delete', 'webhook'],
-      ['setWebhook', ['https://example.org/webhook'], 'edit', 'webhook', 'https://example.org/webhook'],
     ],
     webex: () => [
       ['sendMessage', ['alias', 'message'], 'send', 'room', 'message'],
@@ -31,6 +29,7 @@ export function mobileCases(file: string): Record<string, () => Row[]> {
       ['uploadFile', ['alias', { content: new Blob(['file']), filename: 'file.txt' }], 'upload', 'room'],
       ['setTyping', ['alias'], 'typing', 'room', undefined, true],
       ['sendMessage', ['alias', 'message'], 'send', 'room', 'message', true],
+      ['sendMessage', ['alias', 'message', { parentId: 'thread' }], 'reply', 'room', 'message', true],
       ['sendDirectMessage', ['recipient@example.org', 'message'], 'send', 'room', 'message', true],
       ['deleteMessage', ['message-id'], 'delete', 'room', undefined, true],
       ['editMessage', ['message-id', 'alias', 'message'], 'edit', 'room', 'message', true],

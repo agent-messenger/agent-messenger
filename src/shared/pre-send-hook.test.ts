@@ -117,9 +117,17 @@ describe('pre-send hook', () => {
     },
   )
 
-  it.each([0, -1, 1.5, '1000', 2147483648])('denies invalid timeout %j', async (timeoutMs) => {
+  it.each([0, -1, 1.5, '1000', 2147483648, null])('denies invalid timeout %j', async (timeoutMs) => {
     await configure('', { timeoutMs })
     await expect(runPreSendHook(event)).rejects.toMatchObject({ code: 'PRE_SEND_DENIED' })
+  })
+
+  it.each([null, -1, '1000'])('denies an optional hook without a command when its timeout is %j', async (timeoutMs) => {
+    await writeFile(join(directory, 'hooks.json'), JSON.stringify({ preSend: { timeoutMs } }))
+    await expect(runPreSendHook(event)).rejects.toMatchObject({
+      code: 'PRE_SEND_DENIED',
+      message: 'Invalid pre-send hook timeout',
+    })
   })
 
   it('uses the environment executable instead of the file configuration', async () => {

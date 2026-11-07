@@ -33,7 +33,7 @@ describe('pre-send auxiliary transport gates', () => {
   const packet = { packetId: 1, method: 'response', bodyType: 0, statusCode: 0, body: {} }
   const rows: Array<[string, unknown[], string]> = [
     ['sendMessage', [chatId, 'message'], 'send'],
-    ['sendReply', [chatId, 'message', { src_logId: '456', src_userId: '789' }], 'reply'],
+    ['sendReply', [chatId, 'message', { src_logId: '456', src_userId: '789', mentions: [] }], 'reply'],
     ['sendAttachment', [chatId, 2, {}, 'message'], 'send'],
     ['shipMedia', [chatId, 2, 10, 'checksum', 'png'], 'upload'],
     ['shipMultiMedia', [chatId, 2, [10, 10], ['a', 'b'], ['png', 'png']], 'upload'],
@@ -48,7 +48,7 @@ describe('pre-send auxiliary transport gates', () => {
     it.each(rows)(`${denied ? 'denies' : 'allows'} protocol %s`, async (methodName, args, action) => {
       const hook = authorize(denied, action)
       const transport = mock(async () => packet)
-      const session = new LocoSession()
+      const session = new LocoSession(() => 1)
       Object.defineProperty(session, 'connection', { value: { sendPacket: transport } })
       const method: unknown = Reflect.get(session, methodName)
       if (typeof method !== 'function') throw new Error('Missing protocol method')

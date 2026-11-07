@@ -439,26 +439,13 @@ export class TelegramBotClient {
     return this.call<TelegramUpdate[]>('getUpdates', params, signal)
   }
 
+  // Webhook setup and teardown are listener subscriptions, not outbound-message writes, so they stay unhooked.
   async deleteWebhook(options?: { drop_pending_updates?: boolean }): Promise<boolean> {
-    await this.authorizeWrite({
-      version: 1,
-      platform: 'telegrambot',
-      action: 'delete',
-      target: { id: 'webhook', kind: 'resource' },
-    })
     return this.call<boolean>('deleteWebhook', options)
   }
 
   async setWebhook(url: string, options?: Record<string, unknown>): Promise<boolean> {
-    const body = { url, ...options }
-    await this.authorizeWrite({
-      version: 1,
-      platform: 'telegrambot',
-      action: 'edit',
-      target: { id: 'webhook', kind: 'resource' },
-      text: body.url,
-    })
-    return this.call<boolean>('setWebhook', body)
+    return this.call<boolean>('setWebhook', { url, ...options })
   }
 
   async resolveChatId(chat: ChatId): Promise<ChatId> {

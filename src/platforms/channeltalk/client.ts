@@ -1,4 +1,4 @@
-import { runPreSendHook } from '@/shared/pre-send-hook'
+import { collectPayloadText, runPreSendHook } from '@/shared/pre-send-hook'
 
 import { ChannelCredentialManager } from './credential-manager'
 import type {
@@ -147,7 +147,8 @@ export class ChannelClient {
       action: 'send',
       target: { id: groupId },
       account: channelId,
-      text: blocks.map((block) => block.value ?? '').join('\n'),
+      text: collectPayloadText(blocks).join('\n'),
+      richContent: { blocks },
     })
     return this.request<ChannelMessage>(
       'POST',
@@ -191,7 +192,8 @@ export class ChannelClient {
       action: 'send',
       target: { id: chatId },
       account: channelId,
-      text: blocks.map((block) => block.value ?? '').join('\n'),
+      text: collectPayloadText(blocks).join('\n'),
+      richContent: { blocks },
     })
     return this.request<ChannelMessage>(
       'POST',
@@ -244,7 +246,8 @@ export class ChannelClient {
       action: 'send',
       target: { id: chatId },
       account: channelId,
-      text: blocks.map((block) => block.value ?? '').join('\n'),
+      text: collectPayloadText(blocks).join('\n'),
+      richContent: { blocks },
     })
     return this.request<ChannelMessage>(
       'POST',
