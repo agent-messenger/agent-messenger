@@ -23,6 +23,11 @@ Or within Claude Code:
 
 Enables AI agents to interact with messaging platforms through CLI interfaces:
 
+Start with the `agent-messenger` entry skill for platform/account selection,
+recipient and thread resolution, delivery verification, and reply follow-ups.
+It routes to the existing platform skills below. Installing the plugin does not
+authenticate an account, send a message, or start a listener.
+
 ### Slack (`agent-slack`)
 - **QR code sign-in** — recommended, safest auth (no credential extraction)
 - **Send messages** to channels and threads

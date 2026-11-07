@@ -9,6 +9,9 @@ import {
   KakaoCredentialManager,
   KakaoChatSchema,
   KakaoConfigSchema,
+  KakaoKickedMemberSchema,
+  KakaoKickListSchema,
+  KakaoKickMemberResultSchema,
   KakaoLeaveChatResultSchema,
   KakaoMessagePageSchema,
   KakaoMessageSchema,
@@ -22,6 +25,7 @@ import {
   KakaoProfileSchema,
   KakaoTalkPushReadEventSchema,
   KakaoTypingResultSchema,
+  KakaoUnkickMemberResultSchema,
   refreshKakaoOAuthToken,
 } from '@/platforms/kakaotalk/index'
 
@@ -80,6 +84,36 @@ it('KakaoMessageSchema is exported from barrel', () => {
   expect(typeof KakaoMessageSchema.parse).toBe('function')
 })
 
+const baseMessage = {
+  log_id: '3812345678901234567',
+  type: 1,
+  author_id: 42,
+  author_name: 'Alice',
+  message: 'hello',
+  attachment: null,
+  sent_at: 1700000000,
+}
+
+it('KakaoMessageSchema keeps scope, thread_id and prev_id when present', () => {
+  const parsed = KakaoMessageSchema.parse({
+    ...baseMessage,
+    scope: 3,
+    thread_id: '3812345678901234500',
+    prev_id: '3812345678901234499',
+  })
+  expect(parsed.scope).toBe(3)
+  expect(parsed.thread_id).toBe('3812345678901234500')
+  expect(parsed.prev_id).toBe('3812345678901234499')
+})
+
+it('KakaoMessageSchema parses a message without thread fields', () => {
+  const parsed = KakaoMessageSchema.parse(baseMessage)
+  expect(parsed).toEqual(baseMessage)
+  expect('scope' in parsed).toBe(false)
+  expect('thread_id' in parsed).toBe(false)
+  expect('prev_id' in parsed).toBe(false)
+})
+
 it('KakaoMessagePageSchema is exported from barrel', () => {
   expect(typeof KakaoMessagePageSchema.parse).toBe('function')
 })
@@ -98,6 +132,38 @@ it('KakaoConfigSchema is exported from barrel', () => {
 
 it('KakaoTalkPushMessageEventSchema is exported from barrel', () => {
   expect(typeof KakaoTalkPushMessageEventSchema.parse).toBe('function')
+})
+
+const basePushMessage = {
+  type: 'MSG' as const,
+  chat_id: '18400000000000001',
+  log_id: '3812345678901234567',
+  author_id: 42,
+  author_name: 'Alice',
+  message: 'hello',
+  message_type: 1,
+  attachment: null,
+  sent_at: 1700000000,
+}
+
+it('KakaoTalkPushMessageEventSchema keeps scope, thread_id and prev_id when present', () => {
+  const parsed = KakaoTalkPushMessageEventSchema.parse({
+    ...basePushMessage,
+    scope: 3,
+    thread_id: '3812345678901234500',
+    prev_id: '3812345678901234499',
+  })
+  expect(parsed.scope).toBe(3)
+  expect(parsed.thread_id).toBe('3812345678901234500')
+  expect(parsed.prev_id).toBe('3812345678901234499')
+})
+
+it('KakaoTalkPushMessageEventSchema parses an event without thread fields', () => {
+  const parsed = KakaoTalkPushMessageEventSchema.parse(basePushMessage)
+  expect(parsed).toEqual(basePushMessage)
+  expect('scope' in parsed).toBe(false)
+  expect('thread_id' in parsed).toBe(false)
+  expect('prev_id' in parsed).toBe(false)
 })
 
 it('KakaoTalkPushMemberEventSchema is exported from barrel', () => {
@@ -128,6 +194,20 @@ it('KakaoLeaveChatResultSchema is exported from barrel', () => {
 
 it('KakaoTypingResultSchema is exported from barrel', () => {
   expect(typeof KakaoTypingResultSchema.parse).toBe('function')
+})
+
+it('open chat moderation result schemas are exported from barrel', () => {
+  expect(typeof KakaoKickMemberResultSchema.parse).toBe('function')
+  expect(typeof KakaoUnkickMemberResultSchema.parse).toBe('function')
+  expect(typeof KakaoKickedMemberSchema.parse).toBe('function')
+  expect(
+    KakaoKickListSchema.parse({
+      success: true,
+      status_code: 0,
+      chat_id: '100',
+      members: [{ user_id: '42', nickname: null, chat_id: null, kicked_at: null }],
+    }).members,
+  ).toHaveLength(1)
 })
 
 it('Kakao OAuth refresh API is exported from barrel', () => {

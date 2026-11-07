@@ -104,6 +104,33 @@ export interface KakaoMessage {
   message: string
   attachment: Record<string, unknown> | null
   sent_at: number
+  /**
+   * Raw chatLog `scope`, present only when the server sent it. Thread replies
+   * in open chats have been observed with `scope: 3`; not a documented
+   * contract.
+   */
+  scope?: number
+  /** Raw chatLog `threadId` as an exact decimal string; omitted when absent or zero. Observed to be the parent message's `log_id` for thread replies. */
+  thread_id?: string
+  /** Raw chatLog `prevId` (the server's previous log id in the chat) as an exact decimal string; omitted when absent or zero. */
+  prev_id?: string
+  /** Users tagged with `@name` in this message. Omitted when the message has no mentions. */
+  mentions?: KakaoMention[]
+}
+
+// A user tag inside a message. `at` holds the 1-based ordinals of the `@`
+// characters in the text that start this user's tag, `len` is the tagged
+// name's length (without the `@`), and `user_id` is the exact decimal id.
+export interface KakaoMention {
+  user_id: string
+  at: number[]
+  len: number
+}
+
+// Outgoing mention request. The message text must already contain `@<name>`.
+export interface KakaoMentionInput {
+  user_id: string
+  name: string
 }
 
 export interface KakaoMessagePage {
@@ -135,6 +162,28 @@ export interface KakaoMemberSnapshot {
   members: KakaoMember[]
   complete: true
   consistency_basis: 'stable_double_read_chatinfo_getmem'
+}
+
+/** Versioned login defaults; null omits the optional wire field. */
+export interface KakaoLoginOptions {
+  countryISO?: string | null
+  isSwitching?: boolean | null
+  blockRevision?: number
+  plusBlockRevision?: number
+}
+
+export interface KakaoTalkClientOptions extends KakaoLoginOptions {
+  retryUnknownDelivery?: boolean
+}
+
+export interface KakaoWriteOptions {
+  /** 1: chat room; 2: thread detail; 3: both. Default: 1. */
+  scope?: 1 | 2 | 3
+  threadId?: string
+  /** Raw JSON for plain sends only; cannot replace generated mention/reply extras. */
+  extra?: string
+  silence?: boolean
+  noSeen?: boolean
 }
 
 export interface KakaoSendResult {
@@ -215,7 +264,7 @@ export interface KakaoReplyExtra {
   src_message: string
   src_type: number
   src_mentions: unknown[]
-  mentions: unknown[]
+  mentions: KakaoMention[]
   src_linkId?: string
 }
 
@@ -226,6 +275,9 @@ export interface KakaoReplyTarget {
   author_id: number | string | bigint | { low: number; high: number; unsigned?: boolean }
   message: string
   type: number
+  // Open-chat link id as a decimal string. When omitted, the SDK resolves it
+  // from the login snapshot or a read-only CHATINFO lookup.
+  link_id?: string
 }
 
 export interface KakaoMarkReadResult {
@@ -266,6 +318,34 @@ export interface KakaoTypingResult {
   chat_id: string
 }
 
+export interface KakaoKickMemberResult {
+  success: boolean
+  status_code: number
+  chat_id: string
+  user_id: string
+}
+
+export interface KakaoUnkickMemberResult {
+  success: boolean
+  status_code: number
+  chat_id: string
+  user_id: string
+}
+
+export interface KakaoKickedMember {
+  user_id: string
+  nickname: string | null
+  chat_id: string | null
+  kicked_at: number | null
+}
+
+export interface KakaoKickList {
+  success: boolean
+  status_code: number
+  chat_id: string
+  members: KakaoKickedMember[]
+}
+
 export const KakaoChatSchema = z.object({
   chat_id: z.string(),
   type: z.union([z.number(), z.string().min(1)]),
@@ -283,6 +363,12 @@ export const KakaoChatSchema = z.object({
     .nullable(),
 })
 
+export const KakaoMentionSchema = z.object({
+  user_id: z.string(),
+  at: z.array(z.number()),
+  len: z.number(),
+})
+
 export const KakaoMessageSchema = z.object({
   log_id: z.string(),
   type: z.number(),
@@ -291,6 +377,10 @@ export const KakaoMessageSchema = z.object({
   message: z.string(),
   attachment: z.record(z.string(), z.unknown()).nullable(),
   sent_at: z.number(),
+  scope: z.number().int().optional(),
+  thread_id: z.string().optional(),
+  prev_id: z.string().optional(),
+  mentions: z.array(KakaoMentionSchema).optional(),
 })
 
 export const KakaoMessagePageSchema = z.object({
@@ -346,6 +436,34 @@ export const KakaoTypingResultSchema = z.object({
   success: z.boolean(),
   status_code: z.number(),
   chat_id: z.string(),
+})
+
+export const KakaoKickMemberResultSchema = z.object({
+  success: z.boolean(),
+  status_code: z.number(),
+  chat_id: z.string(),
+  user_id: z.string(),
+})
+
+export const KakaoUnkickMemberResultSchema = z.object({
+  success: z.boolean(),
+  status_code: z.number(),
+  chat_id: z.string(),
+  user_id: z.string(),
+})
+
+export const KakaoKickedMemberSchema = z.object({
+  user_id: z.string(),
+  nickname: z.string().nullable(),
+  chat_id: z.string().nullable(),
+  kicked_at: z.number().nullable(),
+})
+
+export const KakaoKickListSchema = z.object({
+  success: z.boolean(),
+  status_code: z.number(),
+  chat_id: z.string(),
+  members: z.array(KakaoKickedMemberSchema),
 })
 
 export interface KakaoProfile {
@@ -407,6 +525,18 @@ export interface KakaoTalkPushMessageEvent {
   message_type: number
   attachment: Record<string, unknown> | null
   sent_at: number
+  /**
+   * Raw chatLog `scope`, present only when the server sent it. Thread replies
+   * in open chats have been observed with `scope: 3`; not a documented
+   * contract.
+   */
+  scope?: number
+  /** Raw chatLog `threadId` as an exact decimal string; omitted when absent or zero. Observed to be the parent message's `log_id` for thread replies. */
+  thread_id?: string
+  /** Raw chatLog `prevId` (the server's previous log id in the chat) as an exact decimal string; omitted when absent or zero. */
+  prev_id?: string
+  /** Users tagged with `@name` in this message. Omitted when the message has no mentions. */
+  mentions?: KakaoMention[]
 }
 
 export type KakaoEmoticonKind = 'sticker' | 'sticker_ani' | 'actioncon' | 'sticker_gif' | 'ditem_emoticon'
@@ -485,6 +615,10 @@ export const KakaoTalkPushMessageEventSchema = z.object({
   message_type: z.number(),
   attachment: z.record(z.string(), z.unknown()).nullable(),
   sent_at: z.number(),
+  scope: z.number().int().optional(),
+  thread_id: z.string().optional(),
+  prev_id: z.string().optional(),
+  mentions: z.array(KakaoMentionSchema).optional(),
 })
 
 export const KakaoTalkPushEmoticonEventSchema = z.object({

@@ -1,6 +1,6 @@
-import { describe, expect, it } from 'bun:test'
+import { describe, expect, it, jest } from 'bun:test'
 
-import { LocoConnection } from './connection'
+import { LocoConnection, LocoPacketTimeoutError } from './connection'
 import { encodePacket } from './packet'
 import type { LocoPacket } from './types'
 
@@ -18,6 +18,35 @@ function internals(connection: LocoConnection): ConnectionInternals {
 }
 
 describe('LocoConnection.sendPacket', () => {
+  for (const written of [true, false]) {
+    it(`reports whether a timed-out packet was written (written=${written})`, async () => {
+      jest.useFakeTimers()
+      try {
+        // given
+        const connection = new LocoConnection()
+        internals(connection).socket = {
+          write: (_data, callback) => {
+            if (written) callback()
+            return true
+          },
+        }
+
+        // when
+        const pending = connection.sendPacket('WRITE')
+        const settled = pending.catch((error: unknown) => error)
+        await Promise.resolve()
+        jest.advanceTimersByTime(15_000)
+
+        // then
+        const error = await settled
+        expect(error).toBeInstanceOf(LocoPacketTimeoutError)
+        expect(error).toMatchObject({ method: 'WRITE', written })
+      } finally {
+        jest.useRealTimers()
+      }
+    })
+  }
+
   it('resolves a response delivered synchronously during write without double settlement', async () => {
     const connection = new LocoConnection()
     const owned = internals(connection)

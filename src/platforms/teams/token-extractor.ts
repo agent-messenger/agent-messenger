@@ -55,6 +55,22 @@ const TEAMS_HOST_PATTERNS = [
 const AUTHTOKEN_COOKIE_NAME = 'authtoken'
 const AUTHTOKEN_HOST_PATTERNS = ['teams.live.com', 'teams.microsoft.com']
 
+// Unteams (https://github.com/devxoul/unteams) is an Electron wrapper that loads Teams on the
+// web (teams.cloud.microsoft), so it keeps a normal Chromium cookie store in its userData dir
+// and encrypts cookie values with an OSCrypt key Electron's safeStorage stores in the keychain
+// under "<app name> Safe Storage". The packaged app is "Unteams", the debug build "Unteams
+// Debug", and running from source names itself "Unteams" but stores data under "Unteams Dev".
+const UNTEAMS_APP_DIR_NAMES = ['Unteams', 'Unteams Debug', 'Unteams Dev']
+
+const UNTEAMS_KEYCHAIN_VARIANTS: KeychainVariant[] = [
+  { service: 'Unteams Safe Storage', account: 'Unteams' },
+  { service: 'Unteams Debug Safe Storage', account: 'Unteams Debug' },
+]
+
+// On Linux, Electron's safeStorage stores the OSCrypt v11 key in the Secret Service under the
+// app name, so the decryptor needs these to look it up instead of the "peanuts" fallback.
+const UNTEAMS_LINUX_KEYRING_APP_NAMES = ['Unteams', 'unteams', 'Unteams Debug']
+
 const TEAMS_KEYCHAIN_VARIANTS: KeychainVariant[] = [
   { service: 'Microsoft Teams Safe Storage', account: 'Microsoft Teams' },
   {
@@ -62,6 +78,7 @@ const TEAMS_KEYCHAIN_VARIANTS: KeychainVariant[] = [
     account: 'Microsoft Teams (work or school)',
   },
   { service: 'Teams Safe Storage', account: 'Teams' },
+  ...UNTEAMS_KEYCHAIN_VARIANTS,
 ]
 
 export class TeamsTokenExtractor {
@@ -87,6 +104,7 @@ export class TeamsTokenExtractor {
       appKeychainVariants: TEAMS_KEYCHAIN_VARIANTS,
       keyCache: resolvedKeyCache,
       keyCachePlatform: 'teams',
+      linuxKeyringAppNames: UNTEAMS_LINUX_KEYRING_APP_NAMES,
     })
     this.cookieReader = new ChromiumCookieReader()
   }
@@ -134,6 +152,7 @@ export class TeamsTokenExtractor {
             accountType: 'work',
             accountTypeKnown: false,
           },
+          ...this.getUnteamsCookiesPaths(),
         ]
       }
       case 'linux':
@@ -143,6 +162,7 @@ export class TeamsTokenExtractor {
             accountType: 'work',
             accountTypeKnown: false,
           },
+          ...this.getUnteamsCookiesPaths(),
         ]
       case 'win32': {
         const localAppData = process.env.LOCALAPPDATA || join(homedir(), 'AppData', 'Local')
@@ -176,11 +196,40 @@ export class TeamsTokenExtractor {
           { path: join(ebWebViewBase, 'Default', 'Cookies'), accountType: 'work', accountTypeKnown: false },
           { path: join(ebWebViewBase, 'Default', 'Network', 'Cookies'), accountType: 'work', accountTypeKnown: false },
           { path: join(appdata, 'Microsoft', 'Teams', 'Cookies'), accountType: 'work', accountTypeKnown: false },
+          ...this.getUnteamsCookiesPaths(),
         ]
       }
       default:
         return []
     }
+  }
+
+  // Unteams is an Electron app; its cookie store lives in the standard Electron userData
+  // location per platform. The account type is unknown (web Teams doesn't encode work vs
+  // personal in the path), so these get probed at validation like browser paths.
+  getUnteamsCookiesPaths(): TeamsCookiePath[] {
+    let appDataBase: string
+    switch (this.platform) {
+      case 'darwin':
+        appDataBase = join(homedir(), 'Library', 'Application Support')
+        break
+      case 'linux':
+        appDataBase = process.env.XDG_CONFIG_HOME || join(homedir(), '.config')
+        break
+      case 'win32':
+        appDataBase = process.env.APPDATA || join(homedir(), 'AppData', 'Roaming')
+        break
+      default:
+        return []
+    }
+
+    const paths: TeamsCookiePath[] = []
+    for (const appName of UNTEAMS_APP_DIR_NAMES) {
+      const appBase = join(appDataBase, appName)
+      paths.push({ path: join(appBase, 'Cookies'), accountType: 'work', accountTypeKnown: false })
+      paths.push({ path: join(appBase, 'Network', 'Cookies'), accountType: 'work', accountTypeKnown: false })
+    }
+    return paths
   }
 
   getBrowserCookiesPaths(): TeamsCookiePath[] {

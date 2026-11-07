@@ -18,6 +18,7 @@ One CLI for Slack, Discord, Teams, Webex, Telegram, WhatsApp, LINE, WeChat, iMes
 - [Why Agent Messenger?](#why-agent-messenger)
 - [Installation](#installation)
 - [Agent Skills](#agent-skills)
+  - [For AI agents](#for-ai-agents)
   - [SkillPad](#skillpad)
   - [Skills CLI](#skills-cli)
   - [Claude Code Plugin](#claude-code-plugin)
@@ -120,7 +121,22 @@ This installs:
 
 ## Agent Skills
 
-Agent Messenger includes [Agent Skills](https://agentskills.io/) that teach your AI agent how to use each CLI above. One skill per CLI — install only what you need.
+Agent Messenger includes [Agent Skills](https://agentskills.io/) for the common messaging workflow and each platform CLI. Start with `agent-messenger`, then load only the platform skills you need.
+
+### For AI agents
+
+When asked to use Agent Messenger, install and read its entry skill before performing messaging operations. If the skill is already installed, read that copy instead of reinstalling it:
+
+```bash
+npx -y skills add agent-messenger/agent-messenger --skill agent-messenger --yes
+```
+
+Run this from the current project for project-local installation. To target a specific supported agent, append its selector, for example `--agent codex`. Do not use `--global` unless the user requests a global installation. Follow the installer's reported path and read `SKILL.md`; do not assume every harness stores skills in the same directory.
+
+The [entry skill](skills/agent-messenger/SKILL.md) guides you to the correct platform and user/bot identity, then explains how to install the corresponding platform skill. It also covers recipient and thread resolution, delivery receipts, uncertain sends, and reply follow-ups. Install the CLI separately using [Installation](#installation) if it is missing.
+
+Skill installation is not authentication or permission to send messages, switch accounts, extract credentials, or start listeners. Preserve the user's requested identity and the host's approval rules. These are instructions for an agent reading this README, not an executable README hook.
+
 
 ### SkillPad
 

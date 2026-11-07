@@ -175,6 +175,79 @@ describe('KakaoTalkListener', () => {
 
       expect(messages[0].author_name).toBe('Alice')
     })
+
+    it('exposes raw scope, thread_id and prev_id on pushed messages', async () => {
+      const { listener: l, client } = createListener()
+      listener = l
+
+      const messages: KakaoTalkPushMessageEvent[] = []
+      listener.on('message', (event) => messages.push(event))
+
+      await listener.start()
+      client.emitPush('MSG', {
+        chatId: { high: 0, low: 100 },
+        chatLog: {
+          logId: { high: 0, low: 202 },
+          prevId: { high: 0, low: 201 },
+          threadId: { high: 0x36c6cdea, low: 0xe9ea6803 | 0 },
+          scope: 3,
+          authorId: 42,
+          message: 'thread reply',
+          type: 1,
+          sendAt: 1700000000,
+        },
+      })
+
+      expect(messages[0]).toMatchObject({ scope: 3, thread_id: '3947068532267313155', prev_id: '201' })
+    })
+
+    it('omits thread fields on pushed messages that do not carry them', async () => {
+      const { listener: l, client } = createListener()
+      listener = l
+
+      const messages: KakaoTalkPushMessageEvent[] = []
+      listener.on('message', (event) => messages.push(event))
+
+      await listener.start()
+      client.emitPush('MSG', {
+        chatId: { high: 0, low: 100 },
+        chatLog: { logId: { high: 0, low: 203 }, authorId: 42, message: 'plain', type: 1, sendAt: 1700000000 },
+      })
+
+      expect(messages[0]).not.toHaveProperty('scope')
+      expect(messages[0]).not.toHaveProperty('thread_id')
+      expect(messages[0]).not.toHaveProperty('prev_id')
+    })
+  })
+
+  describe('mentions', () => {
+    it('exposes normalized mentions on MSG events and omits the key when absent', async () => {
+      const { listener: l, client } = createListener()
+      listener = l
+
+      const messages: KakaoTalkPushMessageEvent[] = []
+      listener.on('message', (event) => messages.push(event))
+
+      await listener.start()
+      client.emitPush('MSG', {
+        chatId: { high: 0, low: 100 },
+        chatLog: {
+          logId: { high: 0, low: 300 },
+          authorId: 42,
+          message: '@Alice hi',
+          type: 1,
+          sendAt: 1700000000,
+          attachment: '{"mentions":[{"at":[1],"len":5,"user_id":7467363552057858123}]}',
+        },
+      })
+      client.emitPush('MSG', {
+        chatId: { high: 0, low: 100 },
+        chatLog: { logId: { high: 0, low: 301 }, authorId: 42, message: 'plain', type: 1, sendAt: 1700000001 },
+      })
+
+      expect(messages[0]!.mentions).toEqual([{ user_id: '7467363552057858123', at: [1], len: 5 }])
+      expect(messages[1]).not.toHaveProperty('mentions')
+    })
   })
 
   describe('emoticon events', () => {

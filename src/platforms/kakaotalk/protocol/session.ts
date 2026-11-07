@@ -2,7 +2,14 @@ import { Binary, Long } from 'bson'
 
 import { runPreSendHook } from '@/shared/pre-send-hook'
 
-import { KAKAO_MESSAGE_TYPE, type KakaoDeviceType, type KakaoReplyExtra } from '../types'
+import {
+  KAKAO_MESSAGE_TYPE,
+  type KakaoDeviceType,
+  type KakaoLoginOptions,
+  type KakaoMention,
+  type KakaoReplyExtra,
+  type KakaoWriteOptions,
+} from '../types'
 import {
   BOOKING_HOST,
   BOOKING_PORT,
@@ -12,6 +19,8 @@ import {
   DTYPE,
   LANG,
   MCCMNC,
+  MESSAGING_TLS_PORT,
+  MESSAGING_TLS_OPTIONS,
   PING_INTERVAL_MS,
   PROTOCOL_VERSION,
   getLocoDeviceConfig,
@@ -19,7 +28,29 @@ import {
 import { LocoConnection } from './connection'
 import { exactInteger, stringifyWithExactIntegers } from './exact-json'
 import { validateLoginListResponse } from './login-response'
+import { createMessageIdGenerator } from './message-id'
 import type { BookingResponse, CheckinResponse, LoginListResponse, LocoPacket, SyncState } from './types'
+
+// Mention user ids are 64-bit too (open-chat profile ids exceed 2^53), so they
+// get the same exact-integer treatment as the reply ids.
+function toWireMentions(mentions: ReadonlyArray<KakaoMention>): Array<Record<string, unknown>> {
+  return mentions.map((m) => ({ at: m.at, len: m.len, user_id: exactInteger(m.user_id) }))
+}
+
+// Builds the WRITE body for a plain text message. Mentions ride in the `extra`
+// JSON (`{"mentions":[{"at":[1],"len":3,"user_id":123}]}`) of the same type-1
+// WRITE; the shared WRITE header adds an empty `extra` when none is set.
+export function buildTextWriteBody(
+  chatId: Long,
+  text: string,
+  mentions: ReadonlyArray<KakaoMention> = [],
+): Record<string, unknown> {
+  const body: Record<string, unknown> = { chatId, msg: text, type: 1, noSeen: false }
+  if (mentions.length > 0) {
+    body.extra = stringifyWithExactIntegers({ mentions: toWireMentions(mentions) })
+  }
+  return body
+}
 
 // Builds the WRITE body for a quoted reply. The id fields must reach the wire
 // as bare 64-bit integer tokens, exactly as official clients write them, so
@@ -29,6 +60,7 @@ export function buildReplyWriteBody(chatId: Long, text: string, extra: KakaoRepl
     ...extra,
     src_logId: exactInteger(extra.src_logId),
     src_userId: exactInteger(extra.src_userId),
+    mentions: toWireMentions(extra.mentions),
     ...(extra.src_linkId !== undefined ? { src_linkId: exactInteger(extra.src_linkId) } : {}),
   }
   return {
@@ -78,7 +110,120 @@ export async function sendTypingPacket(
   return connection.sendPacket(TYPING_ACTION_METHOD, buildTypingActionBody(chatId, linkId))
 }
 
+// Open chat moderation bodies. Wire key names follow node-kakao's open channel
+// and open link sessions (see protocol/NOTICE.md): these opcodes use the short
+// keys `c`/`li`/`mid`/`kid` rather than `chatId`, so they must not be
+// "normalized" to match LEAVE/NOTIREAD. Exported so protocol tests can lock
+// the exact field shape.
+export function buildKickMemberBody(chatId: Long, linkId: Long, userId: Long): Record<string, unknown> {
+  return { c: chatId, li: linkId, mid: userId }
+}
+
+export function buildKickListSyncBody(linkId: Long): Record<string, unknown> {
+  return { li: linkId }
+}
+
+export function buildKickListDeleteBody(linkId: Long, chatId: Long, userId: Long): Record<string, unknown> {
+  return { li: linkId, c: chatId, kid: userId }
+}
+
+// Shared headers must preserve reply, mention and attachment extras.
+export function buildWriteBody(
+  body: Record<string, unknown>,
+  msgId: Long,
+  options: KakaoWriteOptions = {},
+): Record<string, unknown> {
+  for (const key of ['silence', 'noSeen'] as const) {
+    if (options[key] !== undefined && typeof options[key] !== 'boolean') throw new TypeError(`${key} must be boolean`)
+  }
+  const scope = options.scope ?? 1
+  if (![1, 2, 3].includes(scope)) throw new RangeError('scope must be 1, 2, or 3')
+  let threadId: Long | undefined
+  if (options.threadId !== undefined) {
+    const digits = exactInteger(options.threadId).digits
+    if (BigInt(digits) <= 0n) throw new RangeError('threadId must be positive')
+    threadId = Long.fromString(digits)
+  }
+  if (options.extra !== undefined) {
+    if (body.extra !== undefined) throw new TypeError('extra cannot replace generated mention/reply payloads')
+    const extra: unknown = JSON.parse(options.extra)
+    if (!extra || typeof extra !== 'object' || Array.isArray(extra)) throw new TypeError('extra must be a JSON object')
+  }
+  return {
+    ...body,
+    msgId,
+    scope,
+    ...(threadId ? { threadId } : {}),
+    silence: options.silence ?? false,
+    noSeen: options.noSeen ?? body.noSeen ?? false,
+    extra: options.extra ?? body.extra ?? '{}',
+  }
+}
+
+// The common headers were verified live on the tablet role only. PC keeps the
+// earlier WRITE shape unless the caller explicitly passes WRITE options.
+export function buildRoleWriteBody(
+  deviceType: KakaoDeviceType,
+  body: Record<string, unknown>,
+  nextMsgId: () => Long,
+  options?: KakaoWriteOptions,
+): Record<string, unknown> {
+  if (deviceType !== 'tablet' && options === undefined) return body
+  return buildWriteBody(body, nextMsgId(), options)
+}
+
+export function connectMessagingServer(
+  connection: Pick<LocoConnection, 'connectTls' | 'connectSecure'>,
+  host: string,
+  port: number,
+  deviceType: KakaoDeviceType,
+): Promise<void> {
+  return deviceType === 'tablet'
+    ? connection.connectTls(host, MESSAGING_TLS_PORT, MESSAGING_TLS_OPTIONS)
+    : connection.connectSecure(host, port)
+}
+
+export function buildLoginFields(
+  options: KakaoLoginOptions = {},
+  deviceType: KakaoDeviceType = 'tablet',
+): {
+  checkin: Record<string, unknown>
+  login: Record<string, unknown>
+} {
+  // KR preserves the SDK's historical default; Android's inspected CHECKIN
+  // builder omits this key. Neither choice is required by the tested server.
+  const countryISO = options.countryISO === undefined ? COUNTRY_ISO : options.countryISO
+  if (countryISO !== null && (typeof countryISO !== 'string' || !/^[A-Z]{2}$/.test(countryISO))) {
+    throw new TypeError('countryISO must be an uppercase two-letter code or null')
+  }
+  // isSw=false was verified live on the tablet role only; PC omits it as before.
+  const isSwitching = options.isSwitching === undefined ? (deviceType === 'tablet' ? false : null) : options.isSwitching
+  if (isSwitching !== null && typeof isSwitching !== 'boolean')
+    throw new TypeError('isSwitching must be boolean or null')
+  const revisions = [options.blockRevision ?? 0, options.plusBlockRevision ?? 0]
+  for (const revision of revisions) {
+    if (!Number.isInteger(revision) || revision < 0 || revision > 0xffff) {
+      throw new RangeError('Block revisions must be unsigned 16-bit integers')
+    }
+  }
+  const rp = Buffer.alloc(6)
+  rp.writeUInt16LE(revisions[0]!, 0)
+  rp.writeInt16LE(-1, 2)
+  rp.writeUInt16LE(revisions[1]!, 4)
+  return {
+    checkin: countryISO === null ? {} : { countryISO },
+    login: { rp: new Binary(rp), ...(isSwitching === null ? {} : { isSw: isSwitching }) },
+  }
+}
+
 export class LocoSession {
+  private readonly loginFields: ReturnType<typeof buildLoginFields>
+  constructor(
+    private nextMessageId?: () => number,
+    private readonly loginOptions: KakaoLoginOptions = {},
+  ) {
+    this.loginFields = buildLoginFields(loginOptions)
+  }
   private connection: LocoConnection | null = null
   private pingTimer: ReturnType<typeof setInterval> | null = null
   private pushHandler: ((packet: LocoPacket) => void) | null = null
@@ -95,12 +240,13 @@ export class LocoSession {
   ): Promise<LoginListResponse> {
     this.accountId = userId
     this.deviceType = deviceType ?? 'tablet'
+    this.nextMessageId ??= createMessageIdGenerator(deviceUuid)
     const deviceConfig = getLocoDeviceConfig(this.deviceType)
 
     const { host, port } = await this.bookAndCheckin(userId, deviceConfig)
 
     this.connection = new LocoConnection()
-    await this.connection.connectSecure(host, port)
+    await connectMessagingServer(this.connection, host, port, this.deviceType)
 
     if (this.pushHandler) {
       this.connection.onPush(this.pushHandler)
@@ -130,7 +276,7 @@ export class LocoSession {
         maxIds,
         lastTokenId,
         lbk,
-        rp: new Binary(Buffer.from([0x00, 0x00, 0xff, 0xff, 0x00, 0x00])),
+        ...buildLoginFields(this.loginOptions, this.deviceType).login,
         bg: false,
       })
 
@@ -173,8 +319,8 @@ export class LocoSession {
       appVer: deviceConfig.appVersion,
       MCCMNC: MCCMNC,
       lang: LANG,
-      countryISO: COUNTRY_ISO,
       useSub: deviceConfig.useSub,
+      ...this.loginFields.checkin,
     })
     checkinConn.close()
 
@@ -186,7 +332,21 @@ export class LocoSession {
     return { host: checkin.host, port: checkin.port }
   }
 
-  async sendMessage(chatId: Long, text: string): Promise<LocoPacket> {
+  private sendWrite(body: Record<string, unknown>, options?: KakaoWriteOptions): Promise<LocoPacket> {
+    if (!this.connection || !this.nextMessageId) throw new Error('Not connected')
+    const nextMessageId = this.nextMessageId
+    return this.connection.sendPacket(
+      'WRITE',
+      buildRoleWriteBody(this.deviceType, body, () => Long.fromNumber(nextMessageId()), options),
+    )
+  }
+
+  async sendMessage(
+    chatId: Long,
+    text: string,
+    mentions?: ReadonlyArray<KakaoMention>,
+    options?: KakaoWriteOptions,
+  ): Promise<LocoPacket> {
     if (!this.connection) throw new Error('Not connected')
     await runPreSendHook({
       version: 1,
@@ -196,18 +356,18 @@ export class LocoSession {
       target: { id: chatId.toString() },
       text,
     })
-    return this.connection.sendPacket('WRITE', {
-      chatId,
-      msg: text,
-      type: 1,
-      noSeen: false,
-    })
+    return this.sendWrite(buildTextWriteBody(chatId, text, mentions), options)
   }
 
   // Quoted reply — a WRITE with message_type 26 (REPLY) whose `extra` JSON
   // carries the source-message reference. The reply semantics ride entirely on
-  // `type` + `extra`; no extra top-level WRITE fields are needed.
-  async sendReply(chatId: Long, text: string, extra: KakaoReplyExtra): Promise<LocoPacket> {
+  // `type` + `extra`; sendWrite adds the common headers.
+  async sendReply(
+    chatId: Long,
+    text: string,
+    extra: KakaoReplyExtra,
+    options?: KakaoWriteOptions,
+  ): Promise<LocoPacket> {
     if (!this.connection) throw new Error('Not connected')
     await runPreSendHook({
       version: 1,
@@ -217,13 +377,19 @@ export class LocoSession {
       target: { id: chatId.toString(), threadId: extra.src_logId },
       text,
     })
-    return this.connection.sendPacket('WRITE', buildReplyWriteBody(chatId, text, extra))
+    return this.sendWrite(buildReplyWriteBody(chatId, text, extra), options)
   }
 
   // Sends a WRITE with non-text message_type plus the JSON-stringified `extra`
   // payload that KakaoTalk clients render as the attachment (photo, file, etc).
   // See types.ts → KakaoPhotoExtra / KakaoFileExtra for the per-type shape.
-  async sendAttachment(chatId: Long, type: number, extra: Record<string, unknown>, caption = ''): Promise<LocoPacket> {
+  async sendAttachment(
+    chatId: Long,
+    type: number,
+    extra: Record<string, unknown>,
+    caption = '',
+    options?: KakaoWriteOptions,
+  ): Promise<LocoPacket> {
     if (!this.connection) throw new Error('Not connected')
     await runPreSendHook({
       version: 1,
@@ -233,13 +399,16 @@ export class LocoSession {
       target: { id: chatId.toString() },
       text: caption,
     })
-    return this.connection.sendPacket('WRITE', {
-      chatId,
-      msg: caption,
-      type,
-      noSeen: false,
-      extra: JSON.stringify(extra),
-    })
+    return this.sendWrite(
+      {
+        chatId,
+        msg: caption,
+        type,
+        noSeen: false,
+        extra: JSON.stringify(extra),
+      },
+      options,
+    )
   }
 
   // SHIP — request a media-upload ticket. Reserves a slot on a media LOCO
@@ -416,6 +585,35 @@ export class LocoSession {
       target: { id: chatId.toString() },
     })
     return this.connection.sendPacket('LEAVE', { chatId })
+  }
+
+  /**
+   * Kick a member from an open chat (KICKMEM). The server answers with a
+   * non-zero status when the caller is not the host or a co-host, or when the
+   * room is not an open chat. A kicked member cannot rejoin through the same
+   * link until removed from the kick list (`deleteKickListItem`).
+   */
+  async kickMember(chatId: Long, linkId: Long, userId: Long): Promise<LocoPacket> {
+    if (!this.connection) throw new Error('Not connected')
+    return this.connection.sendPacket('KICKMEM', buildKickMemberBody(chatId, linkId, userId))
+  }
+
+  /**
+   * Fetch the kick list of an open chat link (KLSYNC). The response body
+   * carries `kickMembers`, one entry per member blocked from rejoining.
+   */
+  async getKickList(linkId: Long): Promise<LocoPacket> {
+    if (!this.connection) throw new Error('Not connected')
+    return this.connection.sendPacket('KLSYNC', buildKickListSyncBody(linkId))
+  }
+
+  /**
+   * Remove a member from an open chat link's kick list (KLDELITEM) so they
+   * can rejoin. This does not add them back to the room.
+   */
+  async deleteKickListItem(linkId: Long, chatId: Long, userId: Long): Promise<LocoPacket> {
+    if (!this.connection) throw new Error('Not connected')
+    return this.connection.sendPacket('KLDELITEM', buildKickListDeleteBody(linkId, chatId, userId))
   }
 
   async markRead(chatId: Long, watermark: Long, linkId?: Long): Promise<LocoPacket> {

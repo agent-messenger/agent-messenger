@@ -1,7 +1,7 @@
 ---
 name: agent-kakaotalk
 description: Interact with KakaoTalk - send messages, read chats, manage conversations
-version: 2.39.1
+version: 2.42.0
 allowed-tools: Bash(agent-kakaotalk:*)
 metadata:
   openclaw:
@@ -339,7 +339,81 @@ Each member includes:
 
 > **SDK-only**: `KakaoTalkClient.getMembersByIds(chatId, userIds)` is available for the >100-member case where you already have specific user IDs to resolve (typically from a CHATONROOM `mi` array). It is intentionally not exposed via the CLI because acquiring those IDs requires a CHATONROOM call that is also SDK-only. Use `agent-kakaotalk member list` for the common case.
 
+### Open Chat Moderation (Kick)
+
+Open chats (오픈채팅) only. The account must be the room's host or a co-host. The open chat link ID is resolved from the chat ID automatically; regular chats fail with `Chat <chat-id> is not an open chat` before any moderation packet is sent. Only `member kick` (`KICKMEM`) has been used against a live server; the `member kick-list` (`KLSYNC`) and `member unkick` (`KLDELITEM`) request shapes and the kick-list response fields are unverified.
+
+```bash
+# Preview only: without --force, prints a warning and exits 1 without connecting
+agent-kakaotalk member kick <chat-id> <user-id>
+
+# Kick a member (IRREVERSIBLE — also blocks them from rejoining via the link)
+agent-kakaotalk member kick <chat-id> <user-id> --force
+agent-kakaotalk member kick <chat-id> <user-id> --force --pretty
+agent-kakaotalk member kick <chat-id> <user-id> --force --account <account-id>
+
+# List members on the room's kick list (blocked from rejoining)
+agent-kakaotalk member kick-list <chat-id>
+agent-kakaotalk member kick-list <chat-id> --pretty
+agent-kakaotalk member kick-list <chat-id> --account <account-id>
+
+# Remove a member from the kick list so they can rejoin (does not re-add them)
+agent-kakaotalk member unkick <chat-id> <user-id>
+agent-kakaotalk member unkick <chat-id> <user-id> --pretty
+agent-kakaotalk member unkick <chat-id> <user-id> --account <account-id>
+```
+
+Get `<user-id>` from `member list` (`user_id`) or from `message list` (`author_id`).
+
+`member kick` without `--force`:
+
+```json
+{
+  "warning": "Kicking is irreversible and blocks the member from rejoining. Use --force to confirm.",
+  "action": "kick",
+  "chat_id": "9876543210",
+  "user_id": "1234567890"
+}
+```
+
+`member kick --force` and `member unkick`:
+
+```json
+{ "success": true, "status_code": 0, "chat_id": "9876543210", "user_id": "1234567890" }
+```
+
+`member kick-list`:
+
+```json
+{
+  "success": true,
+  "status_code": 0,
+  "chat_id": "9876543210",
+  "members": [{ "user_id": "1234567890", "nickname": "Alice", "chat_id": "9876543210", "kicked_at": null }]
+}
+```
+
+- `nickname`, `chat_id`, `kicked_at` are `null` when the server omits them.
+- When the server rejects the request (for example, the account is not the host or a co-host), the output has `success: false` and the server's non-zero `status_code`, and the process exits non-zero. `kick-list` returns an empty `members` array in that case.
+- If a successful `kick-list` response has no `kickMembers` array, the command fails with `get_kick_list_failed` instead of reporting an empty list, because the response shape is unverified.
+
+**Agent rule**: Never pass `--force` to `member kick` unless the user explicitly asked to kick that specific member. Confirm the target with `member list` first.
+
 ### Message Commands
+
+Uncertain sends are not automatically replayed by default. `delivery_unknown`
+means the message may already have been delivered. Explicitly opt into one retry
+only when duplicate delivery is acceptable:
+
+```bash
+agent-kakaotalk message send <chat-id> "Hello" --retry-unknown-delivery
+agent-kakaotalk message upload <chat-id> ./report.pdf --retry-unknown-delivery
+```
+
+The opt-in can duplicate messages or uploads; it does not retry every provider
+rejection or generic error. See Pattern 11 in `references/common-patterns.md`.
+SDK protocol-field defaults/overrides and evidence limits are documented in
+[the SDK guide](https://agent-messenger.dev/docs/sdk/kakaotalk#protocol-fields-meaning-defaults-and-evidence-limits).
 
 ```bash
 # List messages in a chat room
@@ -354,6 +428,14 @@ agent-kakaotalk message send <chat-id> "Hello world" --pretty
 
 # Send a quoted reply to a specific message (use a log_id from `message list`)
 agent-kakaotalk message send <chat-id> "Replying to this" --reply-to <log-id>
+
+# Mention (tag) a member; the text must contain @<name>
+agent-kakaotalk message send <chat-id> "@Alice hello" --mention <user-id>
+agent-kakaotalk message send <chat-id> "@Alice hello" --mention <user-id>:Alice
+
+# Send a quoted reply when you already have the target message (no history lookup)
+agent-kakaotalk message send <chat-id> "Replying to this" \
+  --reply-to-json '{"log_id":"<log-id>","author_id":<author-id>,"message":"<target text>","type":1}'
 
 # Send a file (auto-routes by MIME: photo / video / audio / generic file)
 agent-kakaotalk message upload <chat-id> ./photo.jpg
@@ -374,11 +456,17 @@ agent-kakaotalk message mark-read <chat-id> <log-id>
 agent-kakaotalk message mark-read <chat-id> <log-id> --pretty
 agent-kakaotalk message mark-read <chat-id> <log-id> --link-id <li>   # open chats only
 
+# Show the typing indicator ("..." dots) in a chat room for ~5s
+agent-kakaotalk message typing <chat-id>
+agent-kakaotalk message typing <chat-id> --pretty
+agent-kakaotalk message typing <chat-id> --link-id <li>   # open chats only
+
 # Use a specific account
 agent-kakaotalk message list <chat-id> --account <account-id>
 agent-kakaotalk message send <chat-id> "Hello" --account <account-id>
 agent-kakaotalk message upload <chat-id> ./photo.jpg --account <account-id>
 agent-kakaotalk message mark-read <chat-id> <log-id> --account <account-id>
+agent-kakaotalk message typing <chat-id> --account <account-id>
 ```
 
 #### Replying to a Message
@@ -395,9 +483,46 @@ agent-kakaotalk message send <chat-id> "Good point!" --reply-to 1234567890
 
 If the `log_id` is not found in the latest 100 messages, the command errors out without sending.
 
+`--reply-to-json <json>` skips that lookup when you already hold the target message, for example a `message` event from the listener or a row from an earlier `message list`. Pass a JSON object with `log_id`, `author_id`, `message`, and `type` (the listener event calls it `message_type`). Extra fields such as `author_name` are ignored, so a `message list` row works as is. Because nothing is looked up, the target can be older than the latest 100 messages, and the send needs no `MCHATLOGS`/`SYNCMSG` round trips. The CLI does not check that the target exists or that the fields match it: the quote shows whatever you pass.
+
+```bash
+# Reply to a message you already have, even an old one
+agent-kakaotalk message send <chat-id> "Good point!" \
+  --reply-to-json '{"log_id":"3947068532267313155","author_id":7,"message":"original text","type":1}'
+
+# Pipe a row straight from message list
+TARGET=$(agent-kakaotalk message list <chat-id> -n 1 | jq -c '.[0]')
+agent-kakaotalk message send <chat-id> "Replying to the latest message" --reply-to-json "$TARGET"
+```
+
+- Ids may be decimal strings or bare JSON integers. Integers larger than `Number.MAX_SAFE_INTEGER` (real `log_id`s, open-chat `author_id`s) are parsed exactly, never rounded.
+- The optional `link_id` is the open chat's link id. Leave it out and the CLI resolves it the same way as for `--reply-to`; pass it only for open chats, because the CLI writes it as given.
+- `--reply-to` and `--reply-to-json` cannot be combined. A malformed object (bad JSON, a missing or non-integer id, a `message` that is neither a string nor null, a non-integer `type`) errors out without sending.
+
 In open chats (오픈채팅) the reply also carries the room's link id as `src_linkId`. The CLI resolves it on its own: from the login snapshot when the room is there, otherwise through a read-only `CHATINFO` lookup that does not change read state. You never pass `--link-id` for a reply. The open-chat reply bubble itself has not been checked against a live server yet.
 
 A send counts as delivered only when the server returns a non-zero `log_id`. A `WRITE` acknowledgment with `status_code: 0` but `log_id: "0"` is reported as `"success": false` and the process exits non-zero, because no message was created.
+
+#### Mentioning Users
+
+`--mention <user-id>` tags a member so KakaoTalk renders the `@name` as a mention and notifies them. The text must already contain `@<name>` for every mentioned user. Repeat the flag to tag several users. The CLI also accepts `--mention` together with `--reply-to`, but mentions inside a quoted reply have not yet been verified against a live server.
+
+```bash
+# Name is looked up from the chat's member list (the member's nickname in this chat)
+agent-kakaotalk message send <chat-id> "@Alice the build is green" --mention 1234567890
+
+# Pass the name explicitly as <user-id>:<name> (no member lookup)
+agent-kakaotalk message send <chat-id> "@Alice @Bob standup in 5" --mention 1234567890:Alice --mention 2345678901:Bob
+
+# Mention inside a quoted reply
+agent-kakaotalk message send <chat-id> "@Alice agreed" --reply-to <log-id> --mention 1234567890:Alice
+```
+
+- A bare `<user-id>` is resolved to that member's nickname in the chat. If the nickname cannot be resolved, the command errors out without sending; pass `<user-id>:<name>` instead.
+- Every mentioned `@<name>` must appear in the text as a whole tag. If one is missing, the command errors out without sending and names the missing `@<name>`. A Latin name followed directly by another Latin letter or digit does not count (`@Kimberly` does not tag `Kim`).
+- Two different users with the same name cannot be told apart, so the command errors out without sending.
+- The same user can be tagged more than once in one message; each `@<name>` occurrence is tagged.
+- Output is the same send result as a plain `message send`.
 
 #### Sending Attachments
 
@@ -471,6 +596,26 @@ Notes:
 - The phone's home-screen OS unread badge may lag until the phone client foregrounds; the in-app counter updates faster. Observed quirk, not a guaranteed contract.
 - For open chats (오픈채팅) pass `--link-id <li>` (the `li` field on the open chat). Without it the server returns a non-zero `body.status`, which the CLI reports as `"success": false` with the server's status code, and exits non-zero.
 
+#### Typing Indicator
+
+`message typing` sends one LOCO `ACTION` packet (typing subtype) so the other members see the animated "..." indicator. It does not create a message and does not change read state.
+
+Output (JSON by default; `--pretty` pretty-prints the same JSON):
+
+```json
+{ "success": true, "status_code": 0, "chat_id": "9876543210" }
+```
+
+Errors are printed as `{"error": "..."}` and the process exits non-zero:
+- A non-zero LOCO status from the server is reported as `{"error": "ACTION failed: statusCode=<n>"}`.
+- A non-numeric `<chat-id>` or `--link-id` is rejected before the typing `ACTION` is sent (`invalid_chat_id` / `invalid_link_id`).
+
+Notes:
+- One pulse lasts about 5 seconds on the recipient's client. To keep the indicator up while you prepare a long reply, call it again every few seconds and stop once the reply is sent.
+- Each CLI invocation logs in and opens its own LOCO connection. For frequent pulses (for example re-firing every 3s), prefer the SDK (`client.sendTyping()` on one long-lived client) over calling the CLI repeatedly.
+- For open chats pass `--link-id <li>` (the `li` field on the open chat), the same value `mark-read` takes. The CLI does not look it up for you; for normal chats leave it out.
+- Like every LOCO write, this is an unofficial protocol call from a sub-device slot. Send it only when you are actually about to reply; avoid tight loops.
+
 #### Message List Output
 
 Each message includes:
@@ -481,6 +626,10 @@ Each message includes:
 - `message` — message text content (empty string for non-text messages like stickers)
 - `attachment` — parsed JSON metadata for non-text messages (e.g. photo URL/dimensions, sticker path), or `null` for plain text. Shape varies by `type`; treat as an opaque object and narrow per message type.
 - `sent_at` — Unix timestamp (milliseconds)
+- `mentions` — present only when the message tags users: `[{ "user_id": "1234567890", "at": [1], "len": 5 }]`. `user_id` is the tagged user as an exact decimal string, `at` lists which `@` characters in `message` (1-based, counting every `@`) start that user's tag, and `len` is the tagged name's length without the `@`. (Observed live only for a single leading mention, `at: [1]`; the ordinal rule for multiple `@` characters is not yet verified.)
+- `scope` — *(optional)* raw chat-log scope number, included only when the server sends it. Observed values: `1` for ordinary messages, `3` for open-chat thread replies. This mapping is observed behavior, not a documented contract.
+- `thread_id` — *(optional)* raw chat-log thread id as an exact decimal string, omitted when absent or zero. For open-chat thread replies it has been observed to equal the parent message's `log_id`.
+- `prev_id` — *(optional)* raw chat-log previous log id as an exact decimal string, omitted when absent or zero.
 
 #### Fetching More Messages
 
@@ -568,7 +717,8 @@ Common errors:
 - `passcode_request_failed` — failed to request device verification code.
 - `registration_timeout` — passcode expired before user confirmed on phone.
 - `login_http_error` — network issue reaching KakaoTalk servers.
-- `LOCO packet timeout` — messaging protocol timed out (server may be overloaded).
+- `LOCO packet timeout` — messaging protocol timed out (server may be overloaded). A send that was already written times out as `delivery_unknown` instead.
+- `Message text does not contain "@<name>" for user ...` / `Could not resolve a nickname for --mention ...` — a `--mention` target's `@<name>` is not in the text, or its nickname could not be looked up. Nothing was sent. Fix the text or pass `--mention <user-id>:<name>`.
 
 ## Configuration
 
@@ -672,6 +822,7 @@ try {
   await client.sendMessage(chatId, 'Replying to your last message', {
     replyTo: { log_id: target.log_id, author_id: target.author_id, message: target.message, type: target.type },
   })
+  // Optional: pass link_id (open chats) to skip the link id lookup
 } finally {
   // Always close when done (LOCO TCP connection)
   client.close()
@@ -689,7 +840,7 @@ See the [KakaoTalk SDK documentation](https://agent-messenger.dev/docs/sdk/kakao
 - No friend list management
 - No reactions or emoji
 - No message editing or deletion
-- No open chat (오픈채팅) browsing or joining
+- No open chat (오픈채팅) browsing or joining. Moderation is limited to kicking members and managing the kick list (`member kick`, `member kick-list`, `member unkick`)
 - No search across chats
 - Stickers / emoticons cannot be sent (inbound stickers expose pack/path metadata, but the sticker store requires desktop-app purchase flows the SDK does not replicate). Photos, videos, audio, and arbitrary files can both be received and sent — see [`message upload`](#message-commands) and [`KakaoTalkClient.sendAttachment`](#sdk-programmatic-usage).
 - Chat IDs are numeric and not human-readable — use `chat list` to discover them

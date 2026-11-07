@@ -304,7 +304,7 @@ echo "$UNREAD" | jq -r '.[] | "  \(.display_name // "Unknown") — \(.unread_cou
 
 By default, `chat list` returns `display_name` built from the chat's "display members" (a comma-joined nickname list — e.g. `"Alice, Bob, Charlie"`). The `--resolve-titles` flag fetches each chat's user-set title via the LOCO `CHATINFO` command and surfaces it in a separate `title` field.
 
-For open chats (`OM` / `OD`) without a user-set title, the CLI additionally consults the OpenLink record via `INFOLINK` and uses the link name as a fallback. This matches what KakaoTalk shows for open-chat rooms in the app sidebar.
+For open chats (`OM` / `OD`) without a user-set title, the CLI additionally consults the OpenLink record via `INFOLINK` and uses the link name as a fallback. This matches what KakaoTalk shows for open-chat rooms in the app sidebar. The open-chat type and link id are read from the chat data already in hand (login snapshot or `LCHATLIST` page) when present, and otherwise from the same `CHATINFO` response, so rooms missing from the login snapshot (or listed there without a link id) still resolve without an extra request.
 
 ```bash
 #!/bin/bash
@@ -346,71 +346,179 @@ const title = await client.getChatTitle('9876543210')
 
 ## Pattern 11: Error Handling and Retry
 
-**Use case**: Robust message sending with retries
+**Use case**: Choose whether uncertain sends may be retried, with duplicate risk explicit.
+
+### Case 1: Explicitly opt into send with retry
+
+Use `--retry-unknown-delivery` only when avoiding a missed message matters more
+than avoiding a duplicate. It retries an uncertain send **once**, reconnecting
+if the main session was lost. It also covers uncertain media completion while
+the main session remains connected. It does not retry every provider rejection
+or every generic timeout/error. Replaying an upload can repeat uploads as well
+as messages; the retry is not guaranteed to recover a failed send.
+
+```bash
+send_with_retry() {
+  agent-kakaotalk message send "$1" "$2" --retry-unknown-delivery
+}
+
+# Explicitly accept duplicate-delivery risk:
+send_with_retry "9876543210" "Important message!"
+# The same opt-in is available for message upload:
+# agent-kakaotalk message upload "9876543210" ./report.pdf --retry-unknown-delivery
+```
+
+The SDK equivalent is `new KakaoTalkClient({ retryUnknownDelivery: true })`.
+This client-level option applies to its text/reply and media sends. A successful
+retry does not prove the first attempt was not delivered. Do not wrap this in
+another unconditional retry loop.
+
+### Case 2: Default — stop on uncertain delivery
+
+Without the opt-in flag (or with the SDK option omitted/false), an uncertain
+send is not automatically replayed. A `delivery_unknown` error means the server
+may already have accepted the message: retrying could create a duplicate, not
+necessarily fail. The default favors avoiding duplicates over automatic recovery.
+
+```bash
+agent-kakaotalk message send "9876543210" "Important message!"
+# If delivery is unknown, inspect history before deciding whether to resend:
+agent-kakaotalk message list "9876543210" --count 20
+```
+
+A missing history entry immediately after a disconnect is not proof of failure.
+Timeouts after a send was written and uploads without a completion notice are
+reported as `delivery_unknown`. Other errors may still leave acceptance unknown;
+`code !== 'delivery_unknown'` is not a safe retry condition. For a known provider
+rejection, retry only when non-acceptance and a transient cause are established;
+correct permanent errors instead. Initial connection/authentication failures
+before dispatch are separate from replaying a sent message. Read reconnection
+is retained. Neither policy provides exactly-once or persistent deduplication.
+
+The WRITE header defaults (`msgId`, `scope`, `silence`, empty `extra`) and
+`isSw=false` at login apply to the tablet role, where they were verified live.
+On the PC role, a WRITE keeps the earlier shape unless WRITE options are passed,
+and login omits `isSw` unless `isSwitching` is set.
+
+For field meanings and evidence boundaries (scope/thread visibility, silence,
+noSeen, extra, CHECKIN country, LOGINLIST switching and block revisions), see the
+SDK documentation's “Protocol fields: meaning, defaults, and evidence limits”.
+These are configurable inputs, not claims that every official request uses the
+same defaults. In particular, the client does not implement account switching
+or block-list synchronization just by accepting those options.
+
+## Pattern 12: Show "Typing..." While Preparing a Slow Reply
+
+**Use case**: A reply takes more than a few seconds to produce (search, summarization) and the room should see that something is happening.
 
 ```bash
 #!/bin/bash
 
-send_with_retry() {
-  local chat_id=$1
-  local message=$2
-  local max_attempts=3
-  local attempt=1
+CHAT_ID="9876543210"
+LINK_ID=""   # open chats only: the room's `li`; leave empty for normal chats
 
-  while [ $attempt -le $max_attempts ]; do
-    echo "Attempt $attempt/$max_attempts..."
+TYPING_ARGS=("$CHAT_ID")
+if [ -n "$LINK_ID" ]; then
+  TYPING_ARGS+=(--link-id "$LINK_ID")
+fi
 
-    RESULT=$(agent-kakaotalk message send "$chat_id" "$message" 2>&1)
-    SUCCESS=$(echo "$RESULT" | jq -r '.success // false')
+# One pulse shows the "..." indicator for about 5 seconds
+agent-kakaotalk message typing "${TYPING_ARGS[@]}" > /dev/null
 
-    if [ "$SUCCESS" = "true" ]; then
-      echo "Message sent!"
-      return 0
-    fi
+# Keep it up while the reply is generated
+( while true; do agent-kakaotalk message typing "${TYPING_ARGS[@]}" > /dev/null; sleep 4; done ) &
+TYPING_PID=$!
 
-    ERROR=$(echo "$RESULT" | jq -r '.error // "Unknown error"')
-    echo "Failed: $ERROR"
-
-    # Don't retry auth errors
-    if echo "$ERROR" | grep -q "No KakaoTalk credentials"; then
-      echo "Not authenticated. Run: agent-kakaotalk auth login"
-      return 1
-    fi
-
-    if [ $attempt -lt $max_attempts ]; then
-      SLEEP_TIME=$((attempt * 3))
-      echo "Retrying in ${SLEEP_TIME}s..."
-      sleep $SLEEP_TIME
-    fi
-
-    attempt=$((attempt + 1))
-  done
-
-  echo "Failed after $max_attempts attempts"
-  return 1
+# Stop the loop on normal exit and on Ctrl-C / kill, so it never outlives the script
+stop_typing() {
+  kill "$TYPING_PID" 2>/dev/null
+  wait "$TYPING_PID" 2>/dev/null
 }
+trap stop_typing EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
 
-# Usage
-send_with_retry "9876543210" "Important message!"
+REPLY=$(generate_reply)   # your slow step
+stop_typing
+agent-kakaotalk message send "$CHAT_ID" "$REPLY"
 ```
 
-**When to use**: Production scripts, critical notifications, unreliable networks.
+**When to use**: Only right before you actually reply. An indicator with no message after it looks broken.
 
-## Pattern 12: 64-bit IDs (log ids, open-chat user ids)
+**Note**: Each CLI call opens its own LOCO connection. If you pulse often, use the SDK (`client.sendTyping()` on one long-lived client) instead of a shell loop.
+
+## Pattern 13: 64-bit IDs (log ids, open-chat user ids)
 
 KakaoTalk ids are signed 64-bit integers, and real `log_id`s (~3.9e18) are larger than `Number.MAX_SAFE_INTEGER`. The SDK keeps them exact:
 
 - `log_id` is always a decimal string. Compare and store it as a string (or `BigInt`), never as a JS number.
 - Integers inside `attachment` that exceed `Number.MAX_SAFE_INTEGER` (for example a quoted reply's `src_logId`, or an open-chat `src_userId`) come back as exact decimal strings; smaller integers stay numbers.
+- For `sendMessage(..., { mentions })`, the text must contain `@<name>` for every `{ user_id, name }`; the SDK throws `invalid_mention` before sending otherwise. Incoming tags arrive as `mentions: [{ user_id, at, len }]` on messages and listener events, with `user_id` as an exact string — compare ids as strings, not numbers.
 - For `sendMessage(..., { replyTo })`, pass `author_id` exactly as you received it: a safe number, a decimal string, a `bigint`, or the `Long` that open-chat events carry. The SDK writes `src_logId`/`src_userId` into the reply as bare integer tokens and rejects a number that has already lost precision.
-- Replies in open chats also carry `src_linkId`, the room's open link id. The SDK fills it in automatically and writes it as an exact integer token. It reads the link id from the login snapshot, accepting both the plain number that packet decoding produces for safe values and the `Long` form for larger ones. If the room is missing from the snapshot, it falls back to a read-only `CHATINFO` lookup. Regular chats never get `src_linkId`. Live validation of the open-chat reply bubble is still pending.
+- Replies in open chats also carry `src_linkId`, the room's open link id. The SDK fills it in automatically and writes it as an exact integer token. It reads the link id from the login snapshot, accepting both the plain number that packet decoding produces for safe values and the `Long` form for larger ones. If the room is missing from the snapshot, it falls back to a read-only `CHATINFO` lookup. Regular chats do not get `src_linkId` automatically. If you already know the link id, pass it as `replyTo.link_id` (a decimal string) and the SDK uses it as is, with no snapshot or `CHATINFO` lookup. Live validation of the open-chat reply bubble is still pending.
+- On the CLI, `--reply-to-json` reads the target with the same exact-integer JSON parser, so you can paste a `log_id` or `author_id` as a bare integer token without losing digits.
 - A send whose acknowledgment has `log_id: "0"` is reported as `success: false` even when `status_code` is `0`: the server accepted the packet but created no message.
+- The optional raw chat-log fields `thread_id` and `prev_id` are exact decimal strings too, and are omitted when the server does not send them (or sends zero). `scope` is a plain number. Open-chat thread replies have been observed with `scope: 3` and a `thread_id` equal to the parent message's `log_id`; this is observed behavior, not a documented contract, and it is a different feature from quoted replies (`type: 26`).
 
 ```bash
 # Is this message a reply to one of my messages? Compare as strings.
 agent-kakaotalk message list <chat-id> -n 50 \
   | jq -r --arg me "$MY_USER_ID" '.[] | select(.type == 26 and ((.attachment.src_userId | tostring) == $me)) | .log_id'
+
+# Group open-chat thread replies under their parent message (observed scope 3 + thread_id).
+agent-kakaotalk message list <chat-id> -n 100 \
+  | jq 'map(select(.scope == 3 and .thread_id != null)) | group_by(.thread_id) | map({parent: .[0].thread_id, replies: map(.log_id)})'
 ```
+
+## Pattern 13: Open Chat Moderation (Kick and Kick List)
+
+**Use case**: Remove a member from an open chat you host or co-host, review who is blocked, and let someone back in.
+
+```bash
+#!/bin/bash
+
+CHAT_ID="9876543210"
+NICKNAME="Spammer"
+
+# Resolve the user id from the member list. Use the string user_id field:
+# open-chat user ids can exceed 2^53, so do not round-trip them through a JS/jq number.
+USER_ID=$(agent-kakaotalk member list "$CHAT_ID" \
+  | jq -r --arg n "$NICKNAME" '[.[] | select(.nickname == $n)] | if length == 1 then .[0].user_id else empty end')
+
+if [ -z "$USER_ID" ]; then
+  echo "No unique member named $NICKNAME" >&2
+  exit 1
+fi
+
+# Without --force this only prints a preview and exits 1
+agent-kakaotalk member kick "$CHAT_ID" "$USER_ID"
+
+# Irreversible: removes the member and blocks them from rejoining via the link
+# A server rejection prints JSON with status_code on stdout; auth or transport
+# failures print nothing on stdout (the error goes to stderr).
+if ! RESULT=$(agent-kakaotalk member kick "$CHAT_ID" "$USER_ID" --force); then
+  STATUS=$(echo "$RESULT" | jq -r '.status_code // empty' 2>/dev/null)
+  if [ -n "$STATUS" ]; then
+    echo "Kick rejected by server: status_code=$STATUS" >&2
+  else
+    echo "Kick failed before reaching the server (see error above)" >&2
+  fi
+  exit 1
+fi
+
+# Who is blocked from rejoining?
+agent-kakaotalk member kick-list "$CHAT_ID" | jq -r '.members[] | "\(.user_id)\t\(.nickname // "-")"'
+
+# Allow them to rejoin (they must join again themselves)
+agent-kakaotalk member unkick "$CHAT_ID" "$USER_ID"
+```
+
+Notes:
+
+- Only works in open chats, and only when the account is the host or a co-host. Regular chats fail with `Chat <chat-id> is not an open chat`; missing permission comes back as `success: false` with a non-zero `status_code`.
+- Match members by `user_id`, not nickname: open-chat nicknames are not unique.
+- Only `member kick` (`KICKMEM`) has been used against a live server. The `member kick-list` (`KLSYNC`) and `member unkick` (`KLDELITEM`) request shapes and the kick-list response fields are unverified; a successful `kick-list` response without a `kickMembers` array fails with `get_kick_list_failed` rather than returning an empty list.
+- Agents must not add `--force` unless the user explicitly asked to kick that member.
 
 ## Best Practices
 
@@ -545,9 +653,9 @@ The `deviceType` determines the LOCO protocol identity: `'tablet'` sends `os: 'a
 
 ### Auto-Reconnect
 
-`getChats`, `getMessages`, `sendMessage`, and `sendAttachment` (plus the underlying typed helpers `sendPhoto` / `sendVideo` / `sendAudio` / `sendFile` / `sendMultiPhoto`) automatically reconnect once when the LOCO session dies (e.g. the KakaoTalk desktop app reclaims the session or the network drops). The reconnect is transparent — callers don't need to handle session-drop errors.
+Read operations such as `getChats` and `getMessages` reconnect once when the LOCO session dies. A new independent request can establish a replacement session. Sends (`sendMessage`, replies, and media helpers) are not automatically replayed after an ambiguous disconnect by default; callers must handle `delivery_unknown`. Explicit `retryUnknownDelivery: true` retries an uncertain send once and accepts duplicate-delivery risk.
 
-Reconnect only triggers on actual session death. Operation-level errors (invalid chat ID, server rejection, etc.) are thrown immediately without retry, so side effects like `sendMessage` or `sendAttachment` are never duplicated.
+Read retries only trigger on actual session death. Operation-level errors are not automatically retried. Callers may retry a send after established non-delivery and a retryable cause, as described in Pattern 11; absence of `delivery_unknown` alone is insufficient. Avoiding send replay reduces duplicate side effects but is not an exactly-once or cross-process deduplication guarantee.
 
 Initial `LOGINLIST` failures are classified separately from reconnectable session death:
 

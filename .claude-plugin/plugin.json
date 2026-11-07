@@ -1,6 +1,6 @@
 {
   "name": "agent-messenger",
-  "version": "2.39.1",
+  "version": "2.42.0",
   "description": "Messaging platform interaction skills for AI agents. Interact with Slack, Discord, Microsoft Teams, Webex, Telegram, Telegram Bot, WhatsApp, LINE, iMessage, Instagram, KakaoTalk, and Channel Talk - send messages, read channels, manage reactions, upload files, and more through simple CLI interfaces.",
   "author": {
     "name": "agent-messenger",
@@ -31,6 +31,7 @@
   "homepage": "https://github.com/agent-messenger/agent-messenger",
   "repository": "https://github.com/agent-messenger/agent-messenger",
   "skills": [
+    "./skills/agent-messenger",
     "./skills/agent-slack",
     "./skills/agent-slackbot",
     "./skills/agent-discord",

@@ -1,5 +1,5 @@
 import { type Socket, connect as netConnect } from 'node:net'
-import { connect as tlsConnect } from 'node:tls'
+import { connect as tlsConnect, type ConnectionOptions } from 'node:tls'
 
 import { debug } from '@/shared/utils/stderr'
 
@@ -8,6 +8,18 @@ import { decodePacket, encodePacket } from './packet'
 import type { LocoPacket } from './types'
 
 const DEFAULT_SEND_TIMEOUT_MS = 15_000
+
+// `written` is true when the packet reached the socket before the response timed out,
+// so the server may have acted on it.
+export class LocoPacketTimeoutError extends Error {
+  constructor(
+    readonly method: string,
+    readonly written: boolean,
+  ) {
+    super(`LOCO packet timeout: ${method} (${DEFAULT_SEND_TIMEOUT_MS}ms)`)
+    this.name = 'LocoPacketTimeoutError'
+  }
+}
 
 export class LocoConnection {
   private socket: Socket | null = null
@@ -23,9 +35,12 @@ export class LocoConnection {
   private pushHandler: ((packet: LocoPacket) => void) | null = null
   private closeHandler: (() => void) | null = null
 
-  async connectTls(host: string, port: number): Promise<void> {
+  async connectTls(host: string, port: number, options: ConnectionOptions = {}): Promise<void> {
     await new Promise<void>((resolve, reject) => {
-      const socket = tlsConnect({ host, port, rejectUnauthorized: true }, () => resolve())
+      // A supplied servername is the TLS service identity for both SNI and
+      // certificate hostname verification. Tablet endpoints are verified as
+      // kakao.com, not as the booking server's routing host/IP.
+      const socket = tlsConnect({ ...options, host, port, rejectUnauthorized: true }, () => resolve())
       this.socket = socket
       socket.on('error', reject)
       socket.on('data', (data: Buffer) => this.onData(data))
@@ -75,6 +90,7 @@ export class LocoConnection {
     const data = this.crypto ? this.crypto.encrypt(raw) : raw
 
     return new Promise((resolve, reject) => {
+      let written = false
       let entry: {
         resolve: (packet: LocoPacket) => void
         timer: ReturnType<typeof setTimeout>
@@ -83,18 +99,23 @@ export class LocoConnection {
         if (this.pendingResolvers.get(packetId) !== entry) return
         this.pendingResolvers.delete(packetId)
         this.timedOutIds.add(packetId)
-        reject(new Error(`LOCO packet timeout: ${method} (${DEFAULT_SEND_TIMEOUT_MS}ms)`))
+        reject(new LocoPacketTimeoutError(method, written))
       }, DEFAULT_SEND_TIMEOUT_MS)
       entry = { resolve, timer }
       this.pendingResolvers.set(packetId, entry)
 
-      void this.write(data).catch((error: unknown) => {
-        if (this.pendingResolvers.get(packetId) !== entry) return
-        clearTimeout(entry.timer)
-        this.pendingResolvers.delete(packetId)
-        this.timedOutIds.add(packetId)
-        reject(error)
-      })
+      void this.write(data).then(
+        () => {
+          written = true
+        },
+        (error: unknown) => {
+          if (this.pendingResolvers.get(packetId) !== entry) return
+          clearTimeout(entry.timer)
+          this.pendingResolvers.delete(packetId)
+          this.timedOutIds.add(packetId)
+          reject(error)
+        },
+      )
     })
   }
 

@@ -73,7 +73,8 @@ const results = await client.getChats({ search: 'Alice' })
 // link name via an additional INFOLINK call (only for OM / OD chats).
 const titled = await client.getChats({ resolveTitles: true })
 
-// Resolve a single chat's title directly (returns null on error or missing title)
+// Resolve a single chat's title directly (returns null on error or missing title).
+// Open chats absent from the login snapshot use the link id from CHATINFO.
 const title = await client.getChatTitle('9876543210')
 
 // Fetch one complete KakaoChat directly via read-only CHATINFO.
@@ -109,6 +110,21 @@ do {
 Each `KakaoMessage` carries an `author_name: string | null`. The SDK auto-populates this from the same chat-list response that already arrives at login (no extra LOCO calls). It resolves for "display members" — the small set of nicknames KakaoTalk includes in the chat list — and is `null` for everyone else.
 
 Each `KakaoMessage` also carries an `attachment: Record<string, unknown> | null`. For text messages this is `null`. For non-text messages (photos, videos, files, stickers, etc.) it is the parsed LOCO attachment payload — a JSON object whose shape varies by `type`. Photo messages use fields like `k` (CDN key), `w`/`h` (dimensions), `mt` (mime type), and `url`; sticker messages use `path`/`emoticonItemPath`. Treat it as opaque and narrow per `type`.
+
+When a message tags users, `KakaoMessage` (and the listener's `KakaoTalkPushMessageEvent`) also carries `mentions?: KakaoMention[]`, lifted out of the attachment: `{ user_id: string, at: number[], len: number }`. `user_id` is an exact decimal string (open-chat ids exceed 2^53), `at` lists the 1-based ordinals of the `@` characters in `message` that start the tag, and `len` is the tagged name's length without the `@`. The key is absent when there are no mentions.
+
+`KakaoMessage` and the listener's `KakaoTalkPushMessageEvent` also expose three optional raw chat-log fields. Each is present only when the server sent it, so existing consumers see no change for messages without them:
+
+- `scope?: number` — the chat-log scope. Observed: `1` for ordinary messages, `3` for open-chat thread replies.
+- `thread_id?: string` — the chat-log thread id as an exact decimal string (omitted when absent or zero). Observed to equal the parent message's `log_id` for thread replies. It is read from the top-level `threadId` and, when that is missing, from the chat log's `supplement` JSON.
+- `prev_id?: string` — the chat-log previous log id as an exact decimal string (omitted when absent or zero).
+
+The SDK passes these through without interpreting them. The scope/thread mapping above is observed behavior, not a documented protocol contract. Thread replies are a different feature from quoted replies (`type: 26`, which carry `attachment.src_logId`).
+
+```typescript
+const messages = await client.getMessages('9876543210', { count: 100 })
+const threadReplies = messages.filter((m) => m.scope === 3 && m.thread_id !== undefined)
+```
 
 ### Members
 
@@ -176,7 +192,36 @@ const result = await client.sendMessage('9876543210', 'Hello from SDK!')
 // → KakaoSendResult { success, status_code, chat_id, log_id, sent_at }
 ```
 
-`success` is `true` only when `status_code` is `0` and the server returned a non-zero `log_id`. An acknowledgment with `status_code: 0` and `log_id: '0'` created no message, so it is reported as `success: false`. Quoted replies (`sendMessage(chatId, text, { replyTo })`) in open chats get the room's `src_linkId` automatically, from the login snapshot or, when the room is missing there, from a read-only `CHATINFO` lookup.
+```typescript
+// Mention members — the text must contain @<name> for each one
+await client.sendMessage('9876543210', '@Alice @Bob standup in 5', {
+  mentions: [
+    { user_id: '1234567890', name: 'Alice' },
+    { user_id: '2345678901', name: 'Bob' },
+  ],
+})
+
+// Mentions combine with quoted replies (not yet verified against a live server)
+const recent = await client.getMessages('9876543210', { count: 100 })
+const replyTo = recent.find((m) => m.log_id === '123456789')! // KakaoMessage satisfies KakaoReplyTarget
+await client.sendMessage('9876543210', '@Alice agreed', {
+  replyTo,
+  mentions: [{ user_id: '1234567890', name: 'Alice' }],
+})
+```
+
+`mentions` takes `KakaoMentionInput[]` (`{ user_id, name }`). The SDK finds each `@<name>` in the text, computes the `at`/`len` that KakaoTalk expects, and writes `user_id` as an exact 64-bit integer into the WRITE `extra`. If a name is not found in the text, or two different users share the same name, `sendMessage` throws `KakaoTalkError('invalid_mention')` before anything is sent. When names share a prefix (`@Kim` vs `@Kimberly`), each `@` goes to the longest matching name, and a name ending in a Latin letter or digit only matches when the next character is not another one (`@Kimberly` alone does not tag `Kim`). To tag by id only, resolve the nickname first, e.g. with `getMembersByIds(chatId, [userId])`. `len` counts code points; that is verified for Hangul and Latin names, but not yet for names with characters outside the BMP (such as emoji). Mentions inside a quoted reply (`replyTo`, a `KakaoReplyTarget`; a `KakaoMessage` from `getMessages` fits it) are built the same way but have not yet been verified against a live server.
+
+`sendMessage` also accepts boolean `silence` and `noSeen` options. Omit them to keep the defaults (`false`). Shared WRITE headers preserve the existing mention, quoted-reply, and attachment `extra` data. Client message IDs are generated per device and retained across reconnects; they are not durable job IDs and do not provide cross-process deduplication.
+
+`success` requires successful packet and body statuses and a valid positive `log_id`. Body rejections are returned in `status_code` even if the outer packet status is zero. An acknowledgment with `status_code: 0` and `log_id: '0'` created no message, so it is reported as `success: false`. Quoted replies (`sendMessage(chatId, text, { replyTo })`) in open chats get the room's `src_linkId` automatically, from the login snapshot or, when the room is missing there, from a read-only `CHATINFO` lookup. Pass `replyTo.link_id` (a decimal string) to supply the link id yourself and skip that lookup; a value that is not a positive signed 64-bit decimal is rejected with `invalid_link_id` before anything is sent.
+
+```typescript
+// Reply to a message you already received, e.g. from the listener
+await client.sendMessage(chatId, 'Got it', {
+  replyTo: { log_id: event.log_id, author_id: event.author_id, message: event.message, type: event.message_type },
+})
+```
 
 #### Attachments
 
@@ -218,6 +263,34 @@ const result = await client.leaveChat('9876543210')
 ```
 
 Leaves a chat room by its chat ID. Works on 1:1, group, open, and PlusChat rooms. Returns `success: true` on a successful leave. The departed chat is immediately evicted from the client's cached chat list — a subsequent `getChats()` call will not include it.
+
+### Open Chat Moderation
+
+```typescript
+// Kick a member (irreversible; also blocks them from rejoining via the link)
+const kicked = await client.kickMember('9876543210', '1234567890')
+// → KakaoKickMemberResult { success: true, status_code: 0, chat_id: '9876543210', user_id: '1234567890' }
+
+// List members on the kick list
+const kickList = await client.getKickList('9876543210')
+// → KakaoKickList { success: true, status_code: 0, chat_id: '9876543210', members: KakaoKickedMember[] }
+
+// Remove a member from the kick list so they can rejoin (does not re-add them)
+const unkicked = await client.unkickMember('9876543210', '1234567890')
+// → KakaoUnkickMemberResult { success: true, status_code: 0, chat_id: '9876543210', user_id: '1234567890' }
+```
+
+Open chats only; the account must be the room's host or a co-host. The open chat link ID is resolved from the chat ID (login snapshot first, then read-only `CHATINFO`), so callers pass only the chat ID. `kickMember` performs no confirmation of its own — gate it in your application.
+
+Each `KakaoKickedMember` has `user_id`, plus `nickname`, `chat_id`, and `kicked_at`, which are `null` when the server omits them.
+
+Errors:
+
+- Regular (non-open) chats throw `KakaoTalkError('not_open_chat')` before any moderation packet is sent.
+- Server rejections (for example, missing host or co-host permission) do not throw: they return `success: false` with the server's non-zero `status_code`. `getKickList` returns an empty `members` array in that case.
+- A successful `KLSYNC` response without a `kickMembers` array throws `get_kick_list_failed` instead of returning an empty list. Only `kickMember` (`KICKMEM`) has been used against a live server; the `KLSYNC` and `KLDELITEM` request shapes and the kick-list response fields are unverified.
+- Transport failures, including the synthetic `-1` LocoConnection emits on disconnect, throw `kick_member_failed` / `get_kick_list_failed` / `unkick_member_failed` so `executeWithReconnect` can retry on a fresh session.
+- Non-numeric `chatId` / `userId` throw `invalid_chat_id` / `invalid_user_id`.
 
 ### Typing Indicator
 
@@ -396,6 +469,10 @@ import type {
   KakaoReadWatermarks,
   KakaoSendResult,
   KakaoTypingResult,
+  KakaoKickMemberResult,
+  KakaoKickList,
+  KakaoKickedMember,
+  KakaoUnkickMemberResult,
   KakaoAccountCredentials,
   KakaoConfig,
   KakaoDeviceType,
@@ -414,6 +491,10 @@ import {
   KakaoMessageSchema,
   KakaoSendResultSchema,
   KakaoTypingResultSchema,
+  KakaoKickMemberResultSchema,
+  KakaoKickListSchema,
+  KakaoKickedMemberSchema,
+  KakaoUnkickMemberResultSchema,
   KakaoAccountCredentialsSchema,
   KakaoConfigSchema,
 } from 'agent-messenger/kakaotalk'
@@ -521,3 +602,82 @@ const timer = setInterval(poll, 10_000)
 
 // To stop: clearInterval(timer); client.close()
 ```
+
+### Transport and interrupted sends
+
+On the measured Linux Node 24.14.1 / OpenSSL 3.5.5 and macOS arm64 Node 26.13.0 / OpenSSL 4.1.0 builds, tablet messaging selects a calibrated 228-byte ClientHello offer by default: nine AEAD cipher suites, OCSP status request, retained SNI, and respectively three/four signature schemes. Other platform/runtime combinations retain the previous broader offer. This is an exact-build calibration, not an assertion about all Node versions or an official-client fingerprint. Certificate verification remains enabled.
+
+The narrower signature lists can limit compatibility with future server certificates. An OCSP request is not itself OCSP validation; the tested server returned no stapled response. A 228-byte total does not make the internal offer identical to Android or prevent server-side differentiation. Revalidate the profile after runtime/server changes, including authenticated login; do not extend the runtime match merely to force a byte count.
+
+Android tablet messaging uses certificate-verified TLS on port 10009, preferring AES-128-GCM and X25519. The TLS service identity is `kakao.com`, used for both SNI and certificate hostname verification; it is distinct from the booking-provided routing host/IP. Existing desktop, booking, checkin, and media-upload transports are retained. Matching the negotiated cipher does not make this an official client or establish identical TLS handshakes.
+
+Read operations can reconnect and retry after a disconnect. By default, text/reply and media sends are not automatically replayed after an uncertain failure. A `delivery_unknown` error means the server may already have accepted the request: a retry may deliver a duplicate. Inspect history before manually retrying. A send that was written but not acknowledged before the packet timeout, and a media upload whose completion notice never arrives, are also reported as `delivery_unknown`. Other errors can still leave acceptance uncertain; absence of `delivery_unknown` is not a safe retry signal.
+
+Explicit opt-in retries an uncertain send once, reconnecting if the main session was lost:
+
+```typescript
+const client = new KakaoTalkClient({ retryUnknownDelivery: true })
+await client.login()
+// Applies to this client's text/reply and media sends; duplicates are possible.
+await client.sendMessage(chatId, text)
+```
+
+The CLI equivalent is `message send ... --retry-unknown-delivery` or `message upload ... --retry-unknown-delivery`. The opt-in does not retry every server rejection or generic error, and repeated media operations can repeat uploads. Known provider rejections need their own verified transient/non-acceptance policy. This is not an exactly-once or cross-process deduplication guarantee.
+
+New Android device identifiers generated during auth registration use the observed salted SHA-256 UUID/time derivation. Previously registered device identifiers are reused unchanged. Direct SDK `login()` without `deviceUuid` retains its `agent-messenger-${userId}` fallback; pass the registered identifier explicitly. Login keeps the existing role-specific identity/version (tablet on the tablet role and PC on the PC role), defaults `isSw` to `false` on the tablet role (configurable/omittable; the PC role omits it unless set), and defaults to zero block-list revisions in `rp`; it does not copy another device's private settings.
+
+Client message IDs normalize the device suffix to 0–99 and retain an unwrapped counter across time/integer boundaries. This deliberately avoids negative IDs and immediate wrap collisions; the finite ID space and process-local generator are not a durable deduplication mechanism.
+
+### Protocol fields: meaning, defaults, and evidence limits
+
+The transport flow has three different requests: **GETCONF (booking)** discovers routing endpoints, **CHECKIN** supplies the user/device/network context and returns the messaging host/port, and **LOGINLIST** authenticates that messaging connection and exchanges synchronization state. CHECKIN is not a room check-in, message send, or proof of login completion. A field seen in one stage is not automatically required in another.
+
+This baseline uses Android 26.9.2 request builders and preserved Kotlin metadata, with searches across all 39 DEX files. Static references were traced to the relevant request writers and callers; this is not exhaustive dynamic coverage of every feature/server/account. The official TLS application payload was not decrypted. The table distinguishes observed behavior from SDK policy.
+
+The WRITE header defaults (`msgId`, `scope`, `silence`, empty `extra`) and the `isSw` default apply to the tablet role, where they were verified live. On the PC role, a WRITE keeps the earlier SDK shape unless WRITE options are passed, and LOGINLIST omits `isSw` unless `isSwitching` is set.
+
+| Field                 | Meaning and observed source                                                                                                     | SDK default and override                                                                        | Limits                                                                                                                                                 |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| WRITE `scope`         | 1: room only; 2: thread detail only; 3: both. The sending object supplies it; notification reply explicitly uses 2.             | Per-send scope accepts 1, 2 or 3; default 1. Optional exact-int64 threadId.                     | Alternate scopes are builder-tested, not live thread E2E. Caller supplies valid thread context.                                                        |
+| WRITE `silence`       | Sending-object isSilence boolean. WRITE writes it; a media builder omits null.                                                  | Per-send silence, default false.                                                                | Not a universal constant. Recipient effects of true are not separately live-tested.                                                                    |
+| WRITE `noSeen`        | Sending-context boolean. Room/thread and notification-reply branches calculate seen-related behavior.                           | Per-send noSeen, default false for earlier SDK compatibility.                                   | False does not match all official sends or guarantee unread-state preservation.                                                                        |
+| WRITE `extra`         | JSON string from message/attachment data; an empty object becomes {}.                                                           | Preserve generated extras. Plain sends can supply raw JSON-object extra; empty default {}.      | Raw extra cannot replace generated mention/reply payloads; exact integer tokens are preserved. Empty-extra alignment is not a required plain-send fix. |
+| LOGINLIST `isSw`      | Model isSwitching receives supplier isAccountSwitching; located setup callers provide false.                                    | Client isSwitching defaults false on tablet, omitted on PC; boolean override; null omits.       | No true-producing setup path found. Product workflow and true server effects are unconfirmed; not an account-switch implementation.                    |
+| CHECKIN `countryISO`  | Absent from inspected CHECKIN model and exact-key search of all 39 DEX files. Earlier SDK sent KR.                              | Client countryISO defaults KR for SDK compatibility; uppercase two-letter override; null omits. | Not inferred user location or an Android requirement. Only KR/omission were live-tested.                                                               |
+| LOGINLIST `rp`        | Little-endian shorts [blockRevision, -1, plusBlockRevision]. Official revisions come from Android DataStore; missing default 0. | Advanced client revision inputs: unsigned 16-bit wire values, default 0.                        | Use matching block-state snapshots, not arbitrary/copied values. Nonzero encoding tested; live block sync not implemented.                             |
+| WRITE `msgId`         | Android uses stored device identity and time.                                                                                   | Generate per client; retain generator across reconnects.                                        | SDK deliberately normalizes suffix/range/rollover. No server-deduplication or cross-process guarantee.                                                 |
+| New device identifier | Stored d_id feeds message IDs and located auth device_uuid requests; salted SHA-256 over UUID/time.                             | New registration only; reuse saved IDs. Explicit SDK deviceUuid remains available.              | Do not regenerate registered IDs. New registration is not live-tested.                                                                                 |
+
+Login options are supplied once when constructing the client and reused when it reconnects:
+
+```typescript
+const client = new KakaoTalkClient({
+  countryISO: null, // omit the optional key; 'KR' is the legacy SDK default
+  isSwitching: false, // normal observed login; null omits the key
+  // Advanced: use only revisions from your own matching block-state store.
+  blockRevision: 0,
+  plusBlockRevision: 0,
+})
+await client.login()
+await client.sendMessage(chatId, text, { scope: 1, silence: false, noSeen: false })
+```
+
+These are SDK options; the CLI does not currently expose all low-level login/WRITE overrides. Typed attachment flows continue to construct their own payloads. There is no promise that changing a wire option is sufficient to enable an unsupported product workflow.
+
+#### Which account switch does `isSw` describe?
+
+The preserved supplier name is `isAccountSwitching`, but the located Android setup callers both supply constant-false providers. No true-producing setup caller was found in this APK. The tablet/PC role is separately represented by `dtype`, `useSub`, and `os`; selecting that role is not evidence for setting `isSw=true`. No connection from multi-profile selection or a desktop multi-account UI to this supplier was established. Account-switch strings elsewhere in the APK include KakaoPay flows and must not be treated as evidence for this LOCO flag without a call/data-flow link.
+
+Consequently, this baseline does not identify an enabled product workflow for true. `isSwitching` is an advanced wire override, not an SDK account-switch API, and must not be enabled merely when changing display profiles, using a tablet, or choosing another stored SDK account. Establish the relevant account/authentication transition before using true. The false/omission login tests do not validate such a transition.
+
+#### Why not load block revisions from an existing database?
+
+The official app does load its own revisions from local storage: Android DataStore (`blockRevision`, `plusBlockRevision`), with migration paths from preferences. The SDK's current `SyncState` stores chat-list synchronization fields, not block-list contents/revisions, and has no implemented block-list synchronization lifecycle. Its chat `revision` is a different field and must not be substituted for either block revision.
+
+The SDK therefore has no authoritative local block snapshot from which to infer nonzero values. Zero describes the missing-state baseline; advanced callers with a matching block-state implementation can supply their saved snapshot instead of being forced to zero. These are session inputs, not values a caller should invent for each request. Future SDK block-list synchronization should persist and load its account/device-scoped revisions automatically together with the corresponding lists. Reading another app's private storage, or only copying its revision while omitting its list state, is not an equivalent implementation.
+
+#### What the compatibility tests establish
+
+All four combinations of `isSw` omitted/false and `countryISO` KR/omitted passed real tablet-role login and PING on the same existing account/identity, with zero messages sent. This establishes acceptance for that tested environment, not universal equivalence or a requirement to change the earlier fields. `isSwitching: true`, non-KR routing, nonzero block revisions, and thread visibility are not live-certified by that matrix.
+
+These field choices are a configurable compatibility baseline, not evidence that the earlier SDK could not work otherwise. Reliability behavior (acknowledgement validation and uncertain-send policy) has separate evidence. Default alignment alone does not establish a required bug fix.

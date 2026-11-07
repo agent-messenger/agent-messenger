@@ -39,7 +39,8 @@ Android sub-device login flow, and connection patterns.
 
 Referenced for: LOCO packet format, BSON command schemas, authentication flow,
 Android OAuth refresh request/response behavior, X-VC signature algorithm,
-channel/chat type enumerations.
+channel/chat type enumerations, open chat moderation commands (KICKMEM,
+KLSYNC, KLDELITEM) and their request keys.
 
 ---
 
@@ -64,3 +65,16 @@ behavior only; no source code was copied or adapted.
 
 The foundational reverse engineering of the LOCO protocol that all subsequent
 implementations are based on.
+
+---
+
+## Android interoperability observations
+
+The tablet TLS endpoint, WRITE metadata, client-message ID derivation, new-device
+identifier derivation, and LOGINLIST defaults were compared with Android 26.9.2
+using packet captures and static inspection. The official TLS payload was not
+decrypted; complete handshake equality and some runtime field values remain
+unconfirmed. Tablet TLS verifies the service identity kakao.com (also used for
+SNI), rather than the booking-provided routing host/IP. Implementations here
+are written for this project. No application binaries, session captures, account
+identifiers, or private device settings are included.

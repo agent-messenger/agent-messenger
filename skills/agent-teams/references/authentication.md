@@ -51,7 +51,7 @@ agent-teams auth extract --browser-profile ~/browser-data
 agent-teams auth extract --browser-profile ~/work-profile --browser-profile ~/personal-profile
 ```
 
-Extraction searches supported desktop/Chromium cookie stores for `skypetoken_asm`, validates it and stores a Skype-only account. Extracted tokens commonly last 60-90 minutes. Automatic re-extraction requires the local app/browser to remain signed in and no stored device-code account. It does not mint Graph/Substrate tokens: channel, member, reaction and file commands fall back to the older Teams CSA routes, while `message search` and other Graph-only features still require `auth login`.
+Extraction searches supported desktop/Chromium cookie stores for `skypetoken_asm`, validates it and stores a Skype-only account. Supported desktop sources include the official Microsoft Teams app, Chromium-based browsers, and the [Unteams](https://github.com/devxoul/unteams) app (a Teams-on-web Electron wrapper); for Unteams the cookie values are decrypted with its `Unteams Safe Storage` keychain key on macOS and its secret-store key on Linux. Extracted tokens commonly last 60-90 minutes. Automatic re-extraction requires the local app/browser to remain signed in and no stored device-code account. It does not mint Graph/Substrate tokens: channel, member, reaction and file commands fall back to the older Teams CSA routes, while `message search` and other Graph-only features still require `auth login`.
 
 SDK real-time `TeamsListener` additionally needs an extracted `authtoken`/id_token for its WebSocket. That token is read on demand, not supplied by device-code login. An API-only server therefore needs a separately verified real-time design.
 

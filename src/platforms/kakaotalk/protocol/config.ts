@@ -1,3 +1,4 @@
+import { DEFAULT_CIPHERS, type ConnectionOptions, type TLSSocketOptions } from 'node:tls'
 // Protocol constants for KakaoTalk LOCO.
 // See protocol/NOTICE.md for attribution of protocol knowledge.
 
@@ -50,3 +51,51 @@ export function getLocoDeviceConfig(deviceType: KakaoDeviceType): LocoDeviceConf
   }
   return { os: PC_OS, appVersion: PC_APP_VERSION, useSub: false }
 }
+
+// Android tablet messaging supports TLS on this port. Booking, checkin and
+// media-upload transports keep their existing paths.
+export const MESSAGING_TLS_PORT = 10009
+const DEFAULT_MESSAGING_TLS_OPTIONS: ConnectionOptions = {
+  servername: 'kakao.com',
+  ecdhCurve: 'X25519:P-256:P-384',
+  ciphers: [
+    'TLS_AES_128_GCM_SHA256',
+    'TLS_AES_256_GCM_SHA384',
+    'TLS_CHACHA20_POLY1305_SHA256',
+    ...DEFAULT_CIPHERS.split(':').filter((cipher) => !cipher.startsWith('TLS_')),
+  ].join(':'),
+}
+
+// These exact runtime profiles produced a 228-byte ClientHello in wire tests.
+// Do not assume another Node/OpenSSL build has the same extension encoding.
+export function createMessagingTlsOptions(
+  platform: string = process.platform,
+  node: string = process.versions.node,
+  openssl: string = process.versions.openssl,
+): ConnectionOptions & Pick<TLSSocketOptions, 'requestOCSP'> {
+  const signatures =
+    platform === 'linux' && node === '24.14.1' && openssl === '3.5.5'
+      ? ['ecdsa_secp256r1_sha256', 'rsa_pss_rsae_sha256', 'rsa_pkcs1_sha256']
+      : platform === 'darwin' && node === '26.13.0' && openssl === '4.1.0'
+        ? ['ecdsa_secp256r1_sha256', 'rsa_pss_rsae_sha256', 'rsa_pkcs1_sha256', 'rsa_pss_pss_sha256']
+        : undefined
+  if (!signatures) return { ...DEFAULT_MESSAGING_TLS_OPTIONS }
+  return {
+    ...DEFAULT_MESSAGING_TLS_OPTIONS,
+    requestOCSP: true,
+    sigalgs: signatures.join(':'),
+    ciphers: [
+      'TLS_AES_128_GCM_SHA256',
+      'TLS_AES_256_GCM_SHA384',
+      'TLS_CHACHA20_POLY1305_SHA256',
+      'ECDHE-ECDSA-AES128-GCM-SHA256',
+      'ECDHE-ECDSA-AES256-GCM-SHA384',
+      'ECDHE-ECDSA-CHACHA20-POLY1305',
+      'ECDHE-RSA-AES128-GCM-SHA256',
+      'ECDHE-RSA-AES256-GCM-SHA384',
+      'ECDHE-RSA-CHACHA20-POLY1305',
+    ].join(':'),
+  }
+}
+
+export const MESSAGING_TLS_OPTIONS = createMessagingTlsOptions()
