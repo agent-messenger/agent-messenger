@@ -9,6 +9,7 @@ import { detectImageDimensions } from './image-meta'
 import { sha1Hex } from './media-upload'
 import { buildMentions, extractMentions } from './mention'
 import { LANG, PC_OS_NAME, getLocoDeviceConfig } from './protocol/config'
+import { LocoPacketTimeoutError } from './protocol/connection'
 import { exactInteger, parseJsonPreservingIntegers } from './protocol/exact-json'
 import { isSyntheticConnectionClose } from './protocol/login-response'
 import { uploadMediaToLoco, uploadMultiMediaEntry } from './protocol/media-uploader'
@@ -671,6 +672,26 @@ function assertSendConnectionOpen(response: LocoPacket | null | undefined): void
   }
 }
 
+function unknownDeliveryError(error: unknown, sessionLost: boolean): KakaoTalkError | null {
+  if (error instanceof KakaoTalkError && error.code === 'delivery_unknown') return error
+  if (!sessionLost && !isUnacknowledgedSend(error)) return null
+  return new KakaoTalkError(
+    sessionLost
+      ? 'Connection interrupted; delivery is unknown. Check history before resending.'
+      : 'Send was not acknowledged; delivery is unknown. Check history before resending.',
+    'delivery_unknown',
+    { cause: error },
+  )
+}
+
+// A message-creating packet that reached the socket but timed out may have been accepted.
+function isUnacknowledgedSend(error: unknown): boolean {
+  const cause = error instanceof KakaoTalkError ? error.cause : error
+  return (
+    cause instanceof LocoPacketTimeoutError && cause.written && (cause.method === 'WRITE' || cause.method === 'FORWARD')
+  )
+}
+
 // Reject synthetic LocoConnection close packets ({ statusCode: -1, body.error: 'connection closed' })
 // and explicit body-level failures. Required for any SDK method whose response body has no
 // caller-visible error channel (e.g. GETMEM/MEMBER return `[]` for both empty rooms and dead
@@ -1025,18 +1046,12 @@ export class KakaoTalkClient {
     } catch (error) {
       const sessionLost = this.state?.session !== state.session
       if (!retryOnDisconnect) {
-        const unknownDelivery = sessionLost || (error instanceof KakaoTalkError && error.code === 'delivery_unknown')
-        if (!unknownDelivery) throw error
-        if (this.options.retryUnknownDelivery !== true) {
-          throw new KakaoTalkError(
-            'Connection interrupted; delivery is unknown. Check history before resending.',
-            'delivery_unknown',
-            { cause: error },
-          )
-        }
+        const unknown = unknownDeliveryError(error, sessionLost)
+        if (!unknown) throw error
+        if (this.options.retryUnknownDelivery !== true) throw unknown
         // Explicit opt-in accepts duplicate delivery risk. Retry at most once,
         // including media socket loss while the main session remains connected.
-        if (!sessionLost) return operation(state)
+        if (!sessionLost) return this.retryUncertainSend(operation, state)
       }
       // Only retry when the session we started with is dead (desktop app eviction,
       // network drop, etc.). Comparing session identity (not just null) handles the case
@@ -1051,7 +1066,15 @@ export class KakaoTalkClient {
       // second LOGINLIST with the same duuid — re-introducing the very self-eviction
       // this layer prevents. Lifecycle paths (onClose / invalidateSession) own that field.
       state = await this.ensureSession()
-      return operation(state)
+      return retryOnDisconnect ? operation(state) : this.retryUncertainSend(operation, state)
+    }
+  }
+
+  private async retryUncertainSend<T>(operation: (state: SessionState) => Promise<T>, state: SessionState): Promise<T> {
+    try {
+      return await operation(state)
+    } catch (error) {
+      throw unknownDeliveryError(error, this.state?.session !== state.session) ?? error
     }
   }
 

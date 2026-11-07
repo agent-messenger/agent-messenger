@@ -6,6 +6,7 @@ import { join } from 'node:path'
 import { BSON, Long } from 'bson'
 
 import { KakaoTalkClient, KakaoTalkError } from './client'
+import { LocoPacketTimeoutError } from './protocol/connection'
 
 // Mock LocoSession at module level
 const mockLogin = mock(() => Promise.resolve({}))
@@ -2556,6 +2557,58 @@ describe('KakaoTalkClient', () => {
       await expect(client.sendMessage('100', 'hello')).rejects.toMatchObject({ code: 'delivery_unknown' })
       expect(mockSendMessage).toHaveBeenCalledTimes(1)
       expect(mockLogin).toHaveBeenCalledTimes(1)
+      client.close()
+    })
+
+    it('reports a written but unacknowledged WRITE as unknown without replaying it', async () => {
+      mockSendMessage.mockRejectedValueOnce(new LocoPacketTimeoutError('WRITE', true))
+      const client = await new KakaoTalkClient().login({ oauthToken: 'token', userId: 'user1', deviceUuid: 'device1' })
+      await expect(client.sendMessage('100', 'hello')).rejects.toMatchObject({ code: 'delivery_unknown' })
+      expect(mockSendMessage).toHaveBeenCalledTimes(1)
+      client.close()
+    })
+
+    it('retries an unacknowledged WRITE once with explicit opt-in', async () => {
+      mockSendMessage.mockRejectedValueOnce(new LocoPacketTimeoutError('WRITE', true))
+      mockSendMessage.mockResolvedValueOnce({ statusCode: 0, body: { logId: makeLong(42) } })
+      const client = await new KakaoTalkClient({ retryUnknownDelivery: true }).login({
+        oauthToken: 'token',
+        userId: 'user1',
+        deviceUuid: 'device1',
+      })
+      expect(await client.sendMessage('100', 'hello')).toMatchObject({ success: true })
+      expect(mockSendMessage).toHaveBeenCalledTimes(2)
+      expect(mockLogin).toHaveBeenCalledTimes(1)
+      client.close()
+    })
+
+    for (const reconnect of [false, true]) {
+      it(`reports unknown delivery when the opted-in retry also times out (reconnect=${reconnect})`, async () => {
+        let onClose: (() => void) | undefined
+        mockOnClose.mockImplementation((handler: () => void) => {
+          onClose = handler
+        })
+        mockSendMessage.mockImplementationOnce(async () => {
+          if (reconnect) onClose?.()
+          throw new LocoPacketTimeoutError('WRITE', true)
+        })
+        mockSendMessage.mockRejectedValueOnce(new LocoPacketTimeoutError('WRITE', true))
+        const client = await new KakaoTalkClient({ retryUnknownDelivery: true }).login({
+          oauthToken: 'token',
+          userId: 'user1',
+          deviceUuid: 'device1',
+        })
+        await expect(client.sendMessage('100', 'hello')).rejects.toMatchObject({ code: 'delivery_unknown' })
+        expect(mockSendMessage).toHaveBeenCalledTimes(2)
+        expect(mockLogin).toHaveBeenCalledTimes(reconnect ? 2 : 1)
+        client.close()
+      })
+    }
+
+    it('keeps a timeout before the WRITE was written as a plain send failure', async () => {
+      mockSendMessage.mockRejectedValueOnce(new LocoPacketTimeoutError('WRITE', false))
+      const client = await new KakaoTalkClient().login({ oauthToken: 'token', userId: 'user1', deviceUuid: 'device1' })
+      await expect(client.sendMessage('100', 'hello')).rejects.toMatchObject({ code: 'send_message_failed' })
       client.close()
     })
 
