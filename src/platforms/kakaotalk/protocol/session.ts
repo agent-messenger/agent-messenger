@@ -150,6 +150,18 @@ export function buildWriteBody(
   }
 }
 
+// The common headers were verified live on the tablet role only. PC keeps the
+// earlier WRITE shape unless the caller explicitly passes WRITE options.
+export function buildRoleWriteBody(
+  deviceType: KakaoDeviceType,
+  body: Record<string, unknown>,
+  nextMsgId: () => Long,
+  options?: KakaoWriteOptions,
+): Record<string, unknown> {
+  if (deviceType !== 'tablet' && options === undefined) return body
+  return buildWriteBody(body, nextMsgId(), options)
+}
+
 export function connectMessagingServer(
   connection: Pick<LocoConnection, 'connectTls' | 'connectSecure'>,
   host: string,
@@ -306,7 +318,11 @@ export class LocoSession {
 
   private sendWrite(body: Record<string, unknown>, options?: KakaoWriteOptions): Promise<LocoPacket> {
     if (!this.connection || !this.nextMessageId) throw new Error('Not connected')
-    return this.connection.sendPacket('WRITE', buildWriteBody(body, Long.fromNumber(this.nextMessageId()), options))
+    const nextMessageId = this.nextMessageId
+    return this.connection.sendPacket(
+      'WRITE',
+      buildRoleWriteBody(this.deviceType, body, () => Long.fromNumber(nextMessageId()), options),
+    )
   }
 
   async sendMessage(
