@@ -9,6 +9,18 @@ import type { LocoPacket } from './types'
 
 const DEFAULT_SEND_TIMEOUT_MS = 15_000
 
+// `written` is true when the packet reached the socket before the response timed out,
+// so the server may have acted on it.
+export class LocoPacketTimeoutError extends Error {
+  constructor(
+    readonly method: string,
+    readonly written: boolean,
+  ) {
+    super(`LOCO packet timeout: ${method} (${DEFAULT_SEND_TIMEOUT_MS}ms)`)
+    this.name = 'LocoPacketTimeoutError'
+  }
+}
+
 export class LocoConnection {
   private socket: Socket | null = null
   private crypto: LocoCrypto | null = null
@@ -78,6 +90,7 @@ export class LocoConnection {
     const data = this.crypto ? this.crypto.encrypt(raw) : raw
 
     return new Promise((resolve, reject) => {
+      let written = false
       let entry: {
         resolve: (packet: LocoPacket) => void
         timer: ReturnType<typeof setTimeout>
@@ -86,18 +99,23 @@ export class LocoConnection {
         if (this.pendingResolvers.get(packetId) !== entry) return
         this.pendingResolvers.delete(packetId)
         this.timedOutIds.add(packetId)
-        reject(new Error(`LOCO packet timeout: ${method} (${DEFAULT_SEND_TIMEOUT_MS}ms)`))
+        reject(new LocoPacketTimeoutError(method, written))
       }, DEFAULT_SEND_TIMEOUT_MS)
       entry = { resolve, timer }
       this.pendingResolvers.set(packetId, entry)
 
-      void this.write(data).catch((error: unknown) => {
-        if (this.pendingResolvers.get(packetId) !== entry) return
-        clearTimeout(entry.timer)
-        this.pendingResolvers.delete(packetId)
-        this.timedOutIds.add(packetId)
-        reject(error)
-      })
+      void this.write(data).then(
+        () => {
+          written = true
+        },
+        (error: unknown) => {
+          if (this.pendingResolvers.get(packetId) !== entry) return
+          clearTimeout(entry.timer)
+          this.pendingResolvers.delete(packetId)
+          this.timedOutIds.add(packetId)
+          reject(error)
+        },
+      )
     })
   }
 
