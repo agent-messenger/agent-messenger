@@ -1920,6 +1920,12 @@ export class KakaoTalkClient {
         })
 
         assertSendConnectionOpen(uploadRes.completePacket)
+        if (uploadRes.postStatusCode === 0 && uploadRes.completePacket === null) {
+          throw new KakaoTalkError(
+            'Upload was not acknowledged; delivery is unknown. Check history before resending.',
+            'delivery_unknown',
+          )
+        }
         const completeBody = uploadRes.completePacket?.body as Record<string, unknown> | undefined
         const chatLog = completeBody?.chatLog as Record<string, unknown> | undefined
         return formatSendResult(

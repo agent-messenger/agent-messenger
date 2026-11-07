@@ -29,6 +29,13 @@ const mockDeleteKickListItem = mock(() => Promise.resolve({}))
 const mockClose = mock(() => {})
 const mockOnClose = mock((_handler: () => void) => {})
 const mockOnPush = mock((_handler: (packet: unknown) => void) => {})
+const mockShipMedia = mock(() => Promise.resolve({}))
+const mockUploadMediaToLoco = mock(() => Promise.resolve({}))
+
+mock.module('./protocol/media-uploader', () => ({
+  uploadMediaToLoco: mockUploadMediaToLoco,
+  uploadMultiMediaEntry: mock(() => Promise.resolve({})),
+}))
 
 mock.module('./protocol/session', () => ({
   LocoSession: class MockLocoSession {
@@ -49,6 +56,7 @@ mock.module('./protocol/session', () => ({
     kickMember = mockKickMember
     getKickList = mockGetKickList
     deleteKickListItem = mockDeleteKickListItem
+    shipMedia = mockShipMedia
     close = mockClose
     onClose = mockOnClose
     onPush = mockOnPush
@@ -97,6 +105,8 @@ function resetAllMocks() {
   mockClose.mockReset()
   mockOnClose.mockReset()
   mockOnPush.mockReset()
+  mockShipMedia.mockReset()
+  mockUploadMediaToLoco.mockReset()
 }
 
 // LOCO protocol uses plain numbers for chat.c, but Long-like objects for logIds/cursors.
@@ -2486,6 +2496,32 @@ describe('KakaoTalkClient', () => {
 
       expect(messages[0].attachment).toBeNull()
 
+      client.close()
+    })
+  })
+
+  describe('sendFile', () => {
+    beforeEach(() => {
+      mockShipMedia.mockResolvedValue({ statusCode: 0, body: { k: 'ship-token', vh: 'media.example.com', p: 5223 } })
+    })
+
+    it('reports an accepted upload without COMPLETE as unknown and does not replay it', async () => {
+      mockUploadMediaToLoco.mockResolvedValue({ completePacket: null, postStatusCode: 0, postOffset: 0 })
+      const client = await new KakaoTalkClient().login({ oauthToken: 'token', userId: 'user1', deviceUuid: 'device1' })
+      await expect(client.sendFile('100', Buffer.from('data'), 'a.txt')).rejects.toMatchObject({
+        code: 'delivery_unknown',
+      })
+      expect(mockUploadMediaToLoco).toHaveBeenCalledTimes(1)
+      client.close()
+    })
+
+    it('keeps a rejected upload POST as a failed result', async () => {
+      mockUploadMediaToLoco.mockResolvedValue({ completePacket: null, postStatusCode: -500, postOffset: 0 })
+      const client = await new KakaoTalkClient().login({ oauthToken: 'token', userId: 'user1', deviceUuid: 'device1' })
+      expect(await client.sendFile('100', Buffer.from('data'), 'a.txt')).toMatchObject({
+        success: false,
+        status_code: -500,
+      })
       client.close()
     })
   })
