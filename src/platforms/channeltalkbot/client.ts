@@ -1,3 +1,5 @@
+import { collectPayloadText, runPreSendHook } from '@/shared/pre-send-hook'
+
 import { ChannelBotCredentialManager } from './credential-manager'
 import { wrapTextInBlocks } from './message-utils'
 import type {
@@ -22,11 +24,12 @@ interface ChannelBotFileUrlResponse {
 
 export class ChannelBotClient {
   private accessKey: string | null = null
+  private accountId: string | undefined
   private accessSecret: string | null = null
   private rateLimitRemaining: number | null = null
   private rateLimitResetAt: number = 0
 
-  async login(credentials?: { accessKey: string; accessSecret: string }): Promise<this> {
+  async login(credentials?: { accessKey: string; accessSecret: string; workspaceId?: string }): Promise<this> {
     if (credentials) {
       if (!credentials.accessKey) {
         throw new ChannelBotErrorClass('Access key is required', 'missing_access_key')
@@ -34,8 +37,10 @@ export class ChannelBotClient {
       if (!credentials.accessSecret) {
         throw new ChannelBotErrorClass('Access secret is required', 'missing_access_secret')
       }
+      // Replace keys and their workspace together, only after the new credentials validate.
       this.accessKey = credentials.accessKey
       this.accessSecret = credentials.accessSecret
+      this.accountId = credentials.workspaceId
       return this
     }
 
@@ -46,7 +51,11 @@ export class ChannelBotClient {
         'no_credentials',
       )
     }
-    return this.login({ accessKey: creds.access_key, accessSecret: creds.access_secret })
+    return this.login({
+      accessKey: creds.access_key,
+      accessSecret: creds.access_secret,
+      workspaceId: creds.workspace_id,
+    })
   }
 
   private ensureAuth(): void {
@@ -91,6 +100,15 @@ export class ChannelBotClient {
   }
 
   async sendUserChatMessage(chatId: string, blocks: MessageBlock[], botName?: string): Promise<ChannelBotMessage> {
+    await runPreSendHook({
+      version: 1,
+      platform: 'channeltalkbot',
+      account: this.accountId,
+      action: 'send',
+      target: { id: chatId },
+      text: collectPayloadText(blocks).join('\n'),
+      richContent: { blocks },
+    })
     return this.request<ChannelBotMessage>(
       'POST',
       this.buildPath(`/user-chats/${chatId}/messages`, botName ? { botName } : undefined),
@@ -100,6 +118,13 @@ export class ChannelBotClient {
   }
 
   async closeUserChat(chatId: string, botName: string): Promise<ChannelBotUserChat> {
+    await runPreSendHook({
+      version: 1,
+      platform: 'channeltalkbot',
+      account: this.accountId,
+      action: 'close',
+      target: { id: chatId },
+    })
     return this.request<ChannelBotUserChat>(
       'PATCH',
       this.buildPath(`/user-chats/${chatId}/close`, { botName }),
@@ -109,6 +134,13 @@ export class ChannelBotClient {
   }
 
   async deleteUserChat(chatId: string): Promise<void> {
+    await runPreSendHook({
+      version: 1,
+      platform: 'channeltalkbot',
+      account: this.accountId,
+      action: 'delete',
+      target: { id: chatId },
+    })
     return this.request<void>('DELETE', `/user-chats/${chatId}`)
   }
 
@@ -148,6 +180,15 @@ export class ChannelBotClient {
   }
 
   async sendGroupMessage(groupId: string, blocks: MessageBlock[], botName?: string): Promise<ChannelBotMessage> {
+    await runPreSendHook({
+      version: 1,
+      platform: 'channeltalkbot',
+      account: this.accountId,
+      action: 'send',
+      target: { id: groupId },
+      text: collectPayloadText(blocks).join('\n'),
+      richContent: { blocks },
+    })
     return this.request<ChannelBotMessage>(
       'POST',
       this.buildPath(`/groups/${groupId}/messages`, botName ? { botName } : undefined),
@@ -180,6 +221,14 @@ export class ChannelBotClient {
   }
 
   async createBot(name: string, options?: { color?: string; avatarUrl?: string }): Promise<ChannelBotBot> {
+    await runPreSendHook({
+      version: 1,
+      platform: 'channeltalkbot',
+      account: this.accountId,
+      action: 'create',
+      target: { id: name },
+      text: name,
+    })
     return this.request<ChannelBotBot>(
       'POST',
       '/bots',
@@ -192,6 +241,13 @@ export class ChannelBotClient {
   }
 
   async deleteBot(botId: string): Promise<void> {
+    await runPreSendHook({
+      version: 1,
+      platform: 'channeltalkbot',
+      account: this.accountId,
+      action: 'delete',
+      target: { id: botId },
+    })
     return this.request<void>('DELETE', `/bots/${botId}`)
   }
 

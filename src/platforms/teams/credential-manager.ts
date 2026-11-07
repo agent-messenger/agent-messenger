@@ -15,7 +15,7 @@ import type {
 export class TeamsCredentialManager {
   static accountOverride?: TeamsAccountType
 
-  private configDir: string
+  readonly configDir: string
   private credentialsPath: string
 
   constructor(configDir?: string) {
