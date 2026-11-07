@@ -247,6 +247,39 @@ describe('common WRITE headers', () => {
   })
 })
 
+describe('role-specific protocol fields', () => {
+  it('keeps the earlier WRITE shape on PC unless WRITE options are explicit', async () => {
+    const { buildRoleWriteBody } = await import('./session')
+    const body = { chatId: Long.ONE, msg: 'hello', type: 1, noSeen: false }
+    let issued = 0
+    const nextMsgId = () => Long.fromNumber(++issued)
+
+    expect(buildRoleWriteBody('pc', body, nextMsgId)).toEqual(body)
+    expect(issued).toBe(0)
+    expect(buildRoleWriteBody('pc', body, nextMsgId, { silence: true })).toMatchObject({
+      msgId: Long.ONE,
+      scope: 1,
+      silence: true,
+      extra: '{}',
+    })
+    expect(buildRoleWriteBody('tablet', body, nextMsgId)).toMatchObject({
+      msgId: Long.fromNumber(2),
+      scope: 1,
+      silence: false,
+      extra: '{}',
+    })
+    expect(issued).toBe(2)
+  })
+
+  it('omits isSw on PC unless it is set explicitly', async () => {
+    const { buildLoginFields } = await import('./session')
+    expect(buildLoginFields({}, 'pc').login).not.toHaveProperty('isSw')
+    expect(buildLoginFields({}, 'tablet').login.isSw).toBe(false)
+    expect(buildLoginFields({ isSwitching: false }, 'pc').login.isSw).toBe(false)
+    expect((buildLoginFields({}, 'pc').login.rp as import('bson').Binary).buffer.toString('hex')).toBe('0000ffff0000')
+  })
+})
+
 describe('messaging transport selection', () => {
   it('uses verified TLS settings for tablets and preserves the desktop transport', async () => {
     const { connectMessagingServer } = await import('./session')

@@ -395,6 +395,11 @@ correct permanent errors instead. Initial connection/authentication failures
 before dispatch are separate from replaying a sent message. Read reconnection
 is retained. Neither policy provides exactly-once or persistent deduplication.
 
+The WRITE header defaults (`msgId`, `scope`, `silence`, empty `extra`) and
+`isSw=false` at login apply to the tablet role, where they were verified live.
+On the PC role, a WRITE keeps the earlier shape unless WRITE options are passed,
+and login omits `isSw` unless `isSwitching` is set.
+
 For field meanings and evidence boundaries (scope/thread visibility, silence,
 noSeen, extra, CHECKIN country, LOGINLIST switching and block revisions), see the
 SDK documentation's “Protocol fields: meaning, defaults, and evidence limits”.
