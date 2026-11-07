@@ -717,7 +717,7 @@ Common errors:
 - `passcode_request_failed` — failed to request device verification code.
 - `registration_timeout` — passcode expired before user confirmed on phone.
 - `login_http_error` — network issue reaching KakaoTalk servers.
-- `LOCO packet timeout` — messaging protocol timed out (server may be overloaded).
+- `LOCO packet timeout` — messaging protocol timed out (server may be overloaded). A send that was already written times out as `delivery_unknown` instead.
 - `Message text does not contain "@<name>" for user ...` / `Could not resolve a nickname for --mention ...` — a `--mention` target's `@<name>` is not in the text, or its nickname could not be looked up. Nothing was sent. Fix the text or pass `--mention <user-id>:<name>`.
 
 ## Configuration

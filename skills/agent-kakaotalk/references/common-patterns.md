@@ -387,7 +387,8 @@ agent-kakaotalk message list "9876543210" --count 20
 ```
 
 A missing history entry immediately after a disconnect is not proof of failure.
-Other errors, such as timeouts after dispatch, may also leave acceptance unknown;
+Timeouts after a send was written and uploads without a completion notice are
+reported as `delivery_unknown`. Other errors may still leave acceptance unknown;
 `code !== 'delivery_unknown'` is not a safe retry condition. For a known provider
 rejection, retry only when non-acceptance and a transient cause are established;
 correct permanent errors instead. Initial connection/authentication failures
