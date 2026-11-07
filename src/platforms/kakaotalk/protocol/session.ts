@@ -595,6 +595,13 @@ export class LocoSession {
    */
   async kickMember(chatId: Long, linkId: Long, userId: Long): Promise<LocoPacket> {
     if (!this.connection) throw new Error('Not connected')
+    await runPreSendHook({
+      version: 1,
+      platform: 'kakaotalk',
+      account: this.accountId,
+      action: 'kick',
+      target: { id: chatId.toString() },
+    })
     return this.connection.sendPacket('KICKMEM', buildKickMemberBody(chatId, linkId, userId))
   }
 
@@ -613,6 +620,13 @@ export class LocoSession {
    */
   async deleteKickListItem(linkId: Long, chatId: Long, userId: Long): Promise<LocoPacket> {
     if (!this.connection) throw new Error('Not connected')
+    await runPreSendHook({
+      version: 1,
+      platform: 'kakaotalk',
+      account: this.accountId,
+      action: 'unkick',
+      target: { id: chatId.toString() },
+    })
     return this.connection.sendPacket('KLDELITEM', buildKickListDeleteBody(linkId, chatId, userId))
   }
 

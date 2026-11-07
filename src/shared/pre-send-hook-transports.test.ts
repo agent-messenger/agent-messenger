@@ -40,6 +40,8 @@ describe('pre-send auxiliary transport gates', () => {
     ['forwardChat', [chatId, 2, {}, 'message'], 'forward'],
     ['getChatInfo', [chatId], 'markRead'],
     ['leaveChat', [chatId], 'leave'],
+    ['kickMember', [chatId, Long.fromString('456'), Long.fromString('789')], 'kick'],
+    ['deleteKickListItem', [Long.fromString('456'), chatId, Long.fromString('789')], 'unkick'],
     ['markRead', [chatId, Long.fromString('456')], 'markRead'],
     ['sendTyping', [chatId], 'typing'],
   ]
