@@ -179,7 +179,7 @@ describe('TeamsClient', () => {
 
   describe('testAuth', () => {
     it.each([false, true])('authenticates an IC3 cookie token with region discovery=%s', async (discoverRegion) => {
-      // given: the messaging token now stored in UnTeams authtoken_asm cookies
+      // given: the messaging token now stored in Unteams authtoken_asm cookies
       const token = 'eyJhbGciOiJSUzI1NiJ9.eyJhdWQiOiJodHRwczovL2ljMy50ZWFtcy5vZmZpY2UuY29tIn0.signature'
       const client = await new TeamsClient().login({
         token,
