@@ -471,7 +471,7 @@ agent-kakaotalk message typing <chat-id> --account <account-id>
 
 #### Replying to a Message
 
-`--reply-to <log-id>` sends the text as a quoted reply that references an existing message. Get the `log_id` from `message list` output. The CLI looks up the target in the chat's recent history (latest 100 messages) to build the quote, so the target must be reasonably recent.
+`--reply-to <log-id>` sends the text as a quoted reply that references an existing message. Get the `log_id` from `message list` output. The CLI looks up the target in the chat's recent history (latest 100 messages) to build the quote, so the target must be reasonably recent. If it is not there, the command fails with `code: "reply_target_not_found"` without sending.
 
 ```bash
 # Find the message you want to reply to
@@ -606,7 +606,7 @@ Output (JSON by default; `--pretty` pretty-prints the same JSON):
 { "success": true, "status_code": 0, "chat_id": "9876543210" }
 ```
 
-Errors are printed as `{"error": "..."}` and the process exits non-zero:
+Errors are printed as `{"error": "..."}` (plus `code` when available, see [Error Handling](#error-handling)) and the process exits non-zero:
 - A non-zero LOCO status from the server is reported as `{"error": "ACTION failed: statusCode=<n>"}`.
 - A non-numeric `<chat-id>` or `--link-id` is rejected before the typing `ACTION` is sent (`invalid_chat_id` / `invalid_link_id`).
 
@@ -701,13 +701,31 @@ See `templates/` directory for runnable examples:
 
 ## Error Handling
 
-All commands return consistent error format:
+All commands print errors to stderr as JSON and exit non-zero:
 
 ```json
 {
   "error": "No KakaoTalk credentials found. Run:\n  agent-kakaotalk auth login     (recommended — registers as sub-device, desktop app stays running)"
 }
 ```
+
+When the underlying error carries a machine-readable code, it is included as `code`. Branch on `code` rather than matching the English `error` text, which may change. Errors without a code (like the one above) omit the field.
+
+```json
+{
+  "error": "Reply target log-id 1234567890 not found in the latest 100 messages of chat 9876543210",
+  "code": "reply_target_not_found"
+}
+```
+
+Codes you are likely to see:
+
+- `delivery_unknown` — a send was written but not confirmed. The message may have been delivered; check `message list` before resending.
+- `invalid_access_token` — the stored token was rejected (server status -950). Run `auth login`.
+- `login_rejected` — the server rejected the login with another status (see the message).
+- `invalid_mention` — a `--mention` target's `@<name>` is not in the text. Nothing was sent.
+- `reply_target_not_found` — the `--reply-to` log-id is not in the latest 100 messages. Nothing was sent; use `--reply-to-json` for older messages.
+- `invalid_chat_id` / `invalid_link_id` / `invalid_log_id` — a numeric argument was malformed. Nothing was sent.
 
 Common errors:
 

@@ -101,6 +101,15 @@ Learn once, use everywhere. The same commands work across Slack, Discord, Teams,
 
 When something goes wrong, tell the user exactly what and how to fix it. No cryptic error codes.
 
+CLI errors are printed to stderr as JSON and the process exits non-zero. The human-readable `error` message is always there; when the platform error carries a machine-readable reason, a string `code` is added next to it so scripts can branch without parsing the message:
+
+```json
+{
+  "error": "Reply target log-id 1234567890 not found in the latest 100 messages of chat 9876543210",
+  "code": "reply_target_not_found"
+}
+```
+
 ### Respect Privacy
 
 Tokens stay on your machine. Nothing is sent to external servers. Your credentials are yours.
