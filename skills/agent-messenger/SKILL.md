@@ -1,7 +1,7 @@
 ---
 name: agent-messenger
 description: Use Agent Messenger to read, send, reply to, or relay messages across platforms. Select the correct user or bot identity, load the matching platform skill, resolve recipients and threads, verify delivery, and handle reply follow-ups without inventing unsupported commands or monitoring.
-version: 2.42.0
+version: 2.42.1
 allowed-tools: Bash(agent-messenger:*)
 metadata:
   openclaw:
