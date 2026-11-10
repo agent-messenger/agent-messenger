@@ -23,10 +23,20 @@ const mockGetMembersByIds = mock((_chatId: string, _ids: string[]) =>
 )
 const mockSendTyping = mock(() => Promise.resolve({ success: true, status_code: 0, chat_id: 'chat-123' }))
 
+const defaultMessagePage = {
+  messages: [{ log_id: '1001', message: 'Hello', author_id: 42, sent_at: 1000 }],
+  next_cursor: '1001',
+  complete: false,
+}
+const mockGetMessagePage = mock((_chatId: string, _opts?: { count?: number; from?: string }) =>
+  Promise.resolve(defaultMessagePage),
+)
+
 const originalExit = process.exit
 
 const mockClient = {
   getMessages: mockGetMessages,
+  getMessagePage: mockGetMessagePage,
   sendMessage: mockSendMessage,
   markRead: mockMarkRead,
   getMembersByIds: mockGetMembersByIds,
@@ -63,7 +73,9 @@ describe('message commands', () => {
     mockMarkRead.mockReset()
     mockGetMembersByIds.mockReset()
     mockSendTyping.mockReset()
+    mockGetMessagePage.mockReset()
 
+    mockGetMessagePage.mockImplementation(() => Promise.resolve(defaultMessagePage))
     mockWithKakaoClient.mockImplementation(async (_options: unknown, fn: (client: unknown) => Promise<unknown>) => {
       return fn(mockClient)
     })
@@ -125,6 +137,106 @@ describe('message commands', () => {
         expect.objectContaining({ account: 'my-account' }),
         expect.any(Function),
       )
+    })
+  })
+
+  describe('page', () => {
+    it('defaults to a 100-message page from the start when no cursor is given', async () => {
+      await messageCommand.parseAsync(['page', 'chat-123'], { from: 'user' })
+
+      expect(mockGetMessagePage).toHaveBeenCalledWith('chat-123', { count: 100 })
+    })
+
+    it('forwards --from and --count to getMessagePage', async () => {
+      await messageCommand.parseAsync(['page', 'chat-123', '--from', '999', '-n', '50'], { from: 'user' })
+
+      expect(mockGetMessagePage).toHaveBeenCalledWith('chat-123', { count: 50, from: '999' })
+    })
+
+    it('preserves 64-bit log ids passed as --from', async () => {
+      await messageCommand.parseAsync(['page', 'chat-123', '--from', '3912345678901234567'], { from: 'user' })
+
+      expect(mockGetMessagePage).toHaveBeenCalledWith('chat-123', { count: 100, from: '3912345678901234567' })
+    })
+
+    it('prints the page object as returned by the SDK', async () => {
+      await messageCommand.parseAsync(['page', 'chat-123', '--from', '1000'], { from: 'user' })
+
+      const output = JSON.parse(consoleLogSpy.mock.calls[0][0])
+      expect(output).toEqual(defaultMessagePage)
+    })
+
+    it('prints complete: true with a null cursor when caught up', async () => {
+      mockGetMessagePage.mockImplementationOnce(() =>
+        Promise.resolve({ messages: [], next_cursor: null, complete: true }),
+      )
+
+      await messageCommand.parseAsync(['page', 'chat-123', '--from', '1001'], { from: 'user' })
+
+      const output = JSON.parse(consoleLogSpy.mock.calls[0][0])
+      expect(output).toEqual({ messages: [], next_cursor: null, complete: true })
+    })
+
+    it('--pretty prints pretty-formatted JSON', async () => {
+      await messageCommand.parseAsync(['page', 'chat-123', '--pretty'], { from: 'user' })
+
+      const printed = consoleLogSpy.mock.calls[0][0] as string
+      expect(printed).toContain('\n')
+      expect(JSON.parse(printed)).toEqual(defaultMessagePage)
+    })
+
+    it('passes account option to withKakaoClient', async () => {
+      await messageCommand.parseAsync(['page', 'chat-123', '--account', 'my-account'], { from: 'user' })
+
+      expect(mockWithKakaoClient).toHaveBeenCalledWith(
+        expect.objectContaining({ account: 'my-account' }),
+        expect.any(Function),
+      )
+    })
+
+    for (const bad of ['0', '101', 'abc', '5x', '-1', '1.5']) {
+      it(`rejects --count ${bad} before logging in`, async () => {
+        const exitSpy = mock((_code?: number): never => {
+          throw new Error('process.exit called')
+        })
+        process.exit = exitSpy as unknown as typeof process.exit
+
+        try {
+          try {
+            await messageCommand.parseAsync(['page', 'chat-123', '--count', bad], { from: 'user' })
+          } catch {
+            // process.exit stub throws to abort the action
+          }
+
+          expect(exitSpy).toHaveBeenCalledWith(1)
+          expect(mockWithKakaoClient).not.toHaveBeenCalled()
+          expect(mockGetMessagePage).not.toHaveBeenCalled()
+          expect(consoleLogSpy).not.toHaveBeenCalled()
+        } finally {
+          process.exit = originalExit
+        }
+      })
+    }
+
+    it('routes SDK errors through handleError and exits non-zero', async () => {
+      const exitSpy = mock((_code?: number): never => {
+        throw new Error('process.exit called')
+      })
+      process.exit = exitSpy as unknown as typeof process.exit
+      mockGetMessagePage.mockImplementationOnce(() => Promise.reject(new Error('MCHATLOGS failed: statusCode=-500')))
+
+      try {
+        try {
+          await messageCommand.parseAsync(['page', 'chat-123', '--from', '1000'], { from: 'user' })
+        } catch {
+          // process.exit stub throws to abort the action
+        }
+
+        expect(exitSpy).toHaveBeenCalledWith(1)
+        expect(consoleLogSpy).not.toHaveBeenCalled()
+      } finally {
+        process.exit = originalExit
+      }
     })
   })
 

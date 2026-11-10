@@ -25,6 +25,31 @@ async function listAction(
   }
 }
 
+// Mirrors the SDK bound so a bad value fails before the CLI logs in.
+function parsePageCount(raw: string | undefined): number {
+  if (raw === undefined) return 100
+  const count = /^\d+$/.test(raw) ? Number(raw) : Number.NaN
+  if (!Number.isInteger(count) || count < 1 || count > 100) {
+    throw new Error(`Invalid --count value "${raw}": expected an integer between 1 and 100`)
+  }
+  return count
+}
+
+async function pageAction(
+  chatId: string,
+  options: { account?: string; count?: string; from?: string; pretty?: boolean },
+): Promise<void> {
+  try {
+    const count = parsePageCount(options.count)
+    const page = await withKakaoClient(options, (client) =>
+      client.getMessagePage(chatId, options.from !== undefined ? { count, from: options.from } : { count }),
+    )
+    console.log(formatOutput(page, options.pretty))
+  } catch (error) {
+    handleError(error as Error)
+  }
+}
+
 async function sendAction(
   chatId: string,
   text: string,
@@ -279,6 +304,18 @@ export const messageCommand = new Command('message')
       .option('--from <log-id>', 'Fetch messages starting from this log ID')
       .option('--pretty', 'Pretty print JSON output')
       .action(listAction),
+  )
+  .addCommand(
+    new Command('page')
+      .description(
+        'Fetch one lossless, oldest-first page of messages after a log ID. Repeat with next_cursor until complete is true',
+      )
+      .argument('<chat-id>', 'Chat room ID')
+      .option('--account <id>', 'Use a specific KakaoTalk account')
+      .option('-n, --count <number>', 'Maximum messages in this page (1-100)', '100')
+      .option('--from <log-id>', 'Return messages strictly after this log ID (omit to start from the oldest)')
+      .option('--pretty', 'Pretty print JSON output')
+      .action(pageAction),
   )
   .addCommand(
     new Command('send')

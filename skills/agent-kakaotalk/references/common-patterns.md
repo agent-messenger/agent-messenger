@@ -194,7 +194,33 @@ LAST_SEEN="123456789"
 NEW_MESSAGES=$(agent-kakaotalk message list "$CHAT_ID" --from "$LAST_SEEN")
 ```
 
-**When to use**: Reading long chat histories, catching up on new messages since last check.
+`message list --from` keeps only the **latest** N messages after that point. If
+more than N arrived, the ones in between are silently skipped. To catch up on
+everything since a known point, page forward with `message page` and keep going
+until `complete` is true:
+
+```bash
+CHAT_ID="9876543210"
+CURSOR="123456789"   # last log_id you already processed
+
+while :; do
+  PAGE=$(agent-kakaotalk message page "$CHAT_ID" --from "$CURSOR" -n 100) || exit 1
+  echo "$PAGE" | jq -c '.messages[]' >> catchup.jsonl
+  [ "$(echo "$PAGE" | jq -r '.complete')" = "true" ] && break
+  NEXT=$(echo "$PAGE" | jq -r '.next_cursor // empty')
+  if [ -z "$NEXT" ]; then
+    echo "No forward progress; stopping" >&2
+    break
+  fi
+  CURSOR="$NEXT"
+done
+# Save the last next_cursor (or the last processed log_id) as LAST_SEEN for the next run.
+```
+
+Each `message page` call is a separate login, so keep `-n` at 100 (the maximum)
+for long gaps, or use the SDK loop below on one long-lived client.
+
+**When to use**: Reading long chat histories, catching up on new messages since last check. Use `message page` whenever missing messages in the middle of a range matters (summaries, archives, catch-up after downtime).
 
 **Pagination details**: The CLI prefers KakaoTalk's `MCHATLOGS` flow for history reads, fetching message batches from the requested `--from` point and returning the last N messages after deduplication and ascending sort. If that path cannot provide results, it reads the maximum log ID from the login chat-list watermark (`ll`, falling back to `l.logId`) and calls `SYNCMSG` directly only when that watermark is ahead of the current cursor. The history path never uses `CHATONROOM`, which avoids room-entry side effects. If the watermark is missing or is not ahead of the cursor, the fallback fails closed and returns `[]`. As a safety net, both message flows are capped at 50 internal pages. A warning is printed to stderr only when that cap is actually hit and the returned history may be incomplete.
 
