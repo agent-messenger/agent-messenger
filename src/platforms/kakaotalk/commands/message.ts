@@ -6,6 +6,7 @@ import { Command } from 'commander'
 import { handleError } from '@/shared/utils/error-handler'
 import { formatOutput } from '@/shared/utils/output'
 
+import { KakaoTalkError } from '../client'
 import { exactInteger, parseJsonPreservingIntegers } from '../protocol/exact-json'
 import type { KakaoMember, KakaoMentionInput, KakaoMessage, KakaoReplyTarget } from '../types'
 import { withKakaoClient } from './shared'
@@ -77,7 +78,10 @@ async function resolveReplyTarget(
   const messages = await client.getMessages(chatId, { count: 100 })
   const source = messages.find((m) => m.log_id === logId)
   if (!source) {
-    throw new Error(`Reply target log-id ${logId} not found in the latest 100 messages of chat ${chatId}`)
+    throw new KakaoTalkError(
+      `Reply target log-id ${logId} not found in the latest 100 messages of chat ${chatId}`,
+      'reply_target_not_found',
+    )
   }
   return {
     log_id: source.log_id,
