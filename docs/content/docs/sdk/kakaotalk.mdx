@@ -140,15 +140,55 @@ const snapshot = await client.getMemberSnapshot('9876543210')
 //     consistency_basis: 'stable_double_read_chatinfo_getmem'
 //   }
 
+// Accept an explicitly incomplete snapshot instead of an error
+const best = await client.getMemberSnapshot('9876543210', { allowPartial: true })
+// → KakaoMemberSnapshot | KakaoPartialMemberSnapshot
+if (!best.complete) {
+  console.warn(`partial roster: ${best.members.length}/${best.active_members} (${best.incomplete_reason})`)
+}
+
+// Opt in to room entry (CHATONROOM) when the read-only snapshot is incomplete
+const full = await client.getMemberSnapshot('9876543210', { allowRoomEntry: true })
+
 // Resolve a specific subset by user_id (LOCO MEMBER) — useful for >100-member rooms
 const subset = await client.getMembersByIds('9876543210', ['1234567890', '9876543210'])
 ```
 
-`getMemberSnapshot()` compares two read-only `CHATINFO` observations
-and two complete `GETMEM` observations. It succeeds only when the active
-count, display-member subset, and full member-ID set are stable. It does
-not call `CHATONROOM`, so it does not enter the room or advance unread
-state. Any malformed, partial, or changing snapshot fails closed.
+By default `getMemberSnapshot()` compares two read-only `CHATINFO`
+observations and two complete `GETMEM` observations. It succeeds only when
+the active count, display-member subset, and full member-ID set are stable
+and the member records match the active count. It does not call
+`CHATONROOM`, so it does not enter the room or advance unread state. Any
+malformed, partial, or changing snapshot fails closed with
+`get_member_snapshot_failed` (`getMembers()` reports the same failure as
+`get_members_failed`). In some large open chats `GETMEM` returns fewer
+records than the active member count, so the default call fails there.
+
+`KakaoMemberSnapshotOptions`:
+
+- `allowPartial` (default `false`) — return a `KakaoPartialMemberSnapshot`
+  (`complete: false`) instead of throwing when the snapshot cannot be
+  confirmed complete. `incomplete_reason` is `'member_count_mismatch'` (the
+  observations were stable, but the records do not match the active count)
+  or `'membership_changed'` (the observations disagreed, e.g. members joined
+  or left during collection). A mismatch alone does not say why records are
+  missing. Malformed responses (invalid or duplicate member IDs) still throw.
+  Without this option the return type stays `KakaoMemberSnapshot` with
+  `complete: true`.
+- `allowRoomEntry` (default `false`) — when the read-only snapshot is
+  incomplete, send `CHATONROOM` to read the room's member ID list (`mi`),
+  resolve the IDs `GETMEM` did not return with `MEMBER` in batches of 100,
+  and compare the result with `CHATINFO` taken before and after collection.
+  The logged-in account's own ID is added if `mi` omits it. The snapshot is
+  complete only when both `CHATINFO` observations agree and every member ID
+  resolved into exactly `active_members` records; its `consistency_basis` is
+  then `'chatonroom_ids_member_batch'`. Otherwise it throws, or returns a
+  partial snapshot when `allowPartial` is also set.
+
+> **Side effect**: `CHATONROOM` is the room-entry command and can advance the
+> account's unread state for the chat. `allowRoomEntry` sends it only after
+> the read-only snapshot comes back incomplete. Do not enable it from
+> passive polling.
 
 Each `KakaoMember` includes `user_id`, `nickname`, profile image URLs, `status_message`, `country_iso`, `user_type` (nullable; `null` when the server omits the field), and open-chat-only fields (`open_token`, `open_profile_link_id`, `open_permission` — the last is the OpenChannelUserPerm bitfield: `1`=OWNER, `2`=NONE, `4`=MANAGER, `8`=BOT).
 
@@ -463,6 +503,9 @@ await manager.setCurrentAccount('1234567890')
 import type {
   KakaoChat,
   KakaoMember,
+  KakaoMemberSnapshot,
+  KakaoMemberSnapshotOptions,
+  KakaoPartialMemberSnapshot,
   KakaoMessage,
   KakaoReadStatus,
   KakaoReadWatermark,
@@ -488,6 +531,8 @@ Runtime-validated schemas are also exported for parsing API responses:
 import {
   KakaoChatSchema,
   KakaoMemberSchema,
+  KakaoMemberSnapshotSchema,
+  KakaoPartialMemberSnapshotSchema,
   KakaoMessageSchema,
   KakaoSendResultSchema,
   KakaoTypingResultSchema,

@@ -40,8 +40,20 @@ const mockUnkickMember = mock((_chatId: string, _userId: string) =>
   Promise.resolve({ success: true, status_code: 0, chat_id: '300', user_id: '42' }),
 )
 
+const mockGetMemberSnapshot = mock((_chatId: string, _options?: unknown) =>
+  Promise.resolve({
+    chat_id: '9876543210',
+    active_members: 2,
+    members: [{ user_id: '42', nickname: 'Alice' }],
+    complete: false,
+    consistency_basis: 'stable_double_read_chatinfo_getmem',
+    incomplete_reason: 'member_count_mismatch',
+  } as Record<string, unknown>),
+)
+
 const mockClient = {
   getMembers: mockGetMembers,
+  getMemberSnapshot: mockGetMemberSnapshot,
   kickMember: mockKickMember,
   getKickList: mockGetKickList,
   unkickMember: mockUnkickMember,
@@ -59,6 +71,11 @@ describe('member commands', () => {
   beforeEach(() => {
     mockWithKakaoClient.mockReset()
     mockGetMembers.mockReset()
+    mockGetMemberSnapshot.mockClear()
+    // Commander keeps parsed option values on the command between parseAsync calls.
+    const listCommand = memberCommand.commands.find((command) => command.name() === 'list')
+    listCommand?.setOptionValue('allowPartial', undefined)
+    listCommand?.setOptionValue('allowRoomEntry', undefined)
     mockKickMember.mockClear()
     mockGetKickList.mockClear()
     mockUnkickMember.mockClear()
@@ -139,6 +156,54 @@ describe('member commands', () => {
 
       const output = JSON.parse(consoleLogSpy.mock.calls[0][0])
       expect(output).toEqual([])
+    })
+
+    it('does not request a partial or room-entry snapshot by default', async () => {
+      await memberCommand.parseAsync(['list', '9876543210'], { from: 'user' })
+
+      expect(mockGetMembers).toHaveBeenCalledTimes(1)
+      expect(mockGetMemberSnapshot).not.toHaveBeenCalled()
+    })
+
+    it('prints the snapshot object with complete and incomplete_reason for --allow-partial', async () => {
+      await memberCommand.parseAsync(['list', '9876543210', '--allow-partial'], { from: 'user' })
+
+      expect(mockGetMemberSnapshot).toHaveBeenCalledWith('9876543210', { allowPartial: true, allowRoomEntry: false })
+      expect(mockGetMembers).not.toHaveBeenCalled()
+      const output = JSON.parse(consoleLogSpy.mock.calls[0][0])
+      expect(output).toMatchObject({
+        chat_id: '9876543210',
+        active_members: 2,
+        complete: false,
+        incomplete_reason: 'member_count_mismatch',
+      })
+      expect(output.members).toHaveLength(1)
+    })
+
+    it('passes --allow-room-entry and keeps the member array output', async () => {
+      mockGetMemberSnapshot.mockImplementationOnce(() =>
+        Promise.resolve({
+          chat_id: '9876543210',
+          active_members: 1,
+          members: [{ user_id: '42', nickname: 'Alice' }],
+          complete: true,
+          consistency_basis: 'chatonroom_ids_member_batch',
+        }),
+      )
+
+      await memberCommand.parseAsync(['list', '9876543210', '--allow-room-entry'], { from: 'user' })
+
+      expect(mockGetMemberSnapshot).toHaveBeenCalledWith('9876543210', { allowRoomEntry: true })
+      const output = JSON.parse(consoleLogSpy.mock.calls[0][0])
+      expect(output).toEqual([{ user_id: '42', nickname: 'Alice' }])
+    })
+
+    it('combines --allow-partial and --allow-room-entry', async () => {
+      await memberCommand.parseAsync(['list', '9876543210', '--allow-partial', '--allow-room-entry'], { from: 'user' })
+
+      expect(mockGetMemberSnapshot).toHaveBeenCalledWith('9876543210', { allowPartial: true, allowRoomEntry: true })
+      const output = JSON.parse(consoleLogSpy.mock.calls[0][0])
+      expect(output.complete).toBe(false)
     })
   })
 

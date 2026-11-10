@@ -323,11 +323,58 @@ The process exits non-zero when `success` is `false`.
 ### Member Commands
 
 ```bash
-# List all members of a chat room (uses LOCO GETMEM — one call per invocation)
+# List all members of a chat room (read-only: CHATINFO + GETMEM, each read twice)
 agent-kakaotalk member list <chat-id>
 agent-kakaotalk member list <chat-id> --pretty
 agent-kakaotalk member list <chat-id> --account <account-id>
+
+# Return what could be read even if it is not confirmed complete
+agent-kakaotalk member list <chat-id> --allow-partial
+
+# Opt in to entering the room (CHATONROOM) when the read-only list is incomplete
+agent-kakaotalk member list <chat-id> --allow-room-entry
+agent-kakaotalk member list <chat-id> --allow-room-entry --allow-partial
 ```
+
+By default `member list` fails (non-zero exit, error on stderr) unless the
+member records match the chat's active member count and stay stable across
+both reads. In some large open chats GETMEM returns fewer records than the
+active member count, and members may also join or leave while the list is
+read; either way the default command fails rather than returning an
+incomplete list.
+
+- `--allow-partial` prints a snapshot object instead of a bare array, and
+  returns it even when it is incomplete:
+
+  ```json
+  {
+    "chat_id": "9876543210",
+    "active_members": 1414,
+    "members": [{ "user_id": "1234567890", "nickname": "Alice", "...": "..." }],
+    "complete": false,
+    "consistency_basis": "stable_double_read_chatinfo_getmem",
+    "incomplete_reason": "member_count_mismatch"
+  }
+  ```
+
+  `incomplete_reason` is `member_count_mismatch` (reads were stable but the
+  returned member set or count does not match the active roster, e.g. a
+  displayed member ID is missing) or `membership_changed` (the reads
+  disagreed, e.g. someone joined or left). It is absent when `complete` is
+  `true`. Always check `complete` before treating the list as the full roster.
+- `--allow-room-entry` lets an incomplete read-only list be filled from the
+  room's member id list (`CHATONROOM`), resolving ids GETMEM did not return
+  with `MEMBER` (100 ids per request). Output stays a bare array unless
+  `--allow-partial` is also given; `consistency_basis` is then
+  `chatonroom_ids_member_batch`. **Side effect**: `CHATONROOM` is the
+  room-entry command and can advance this account's unread state for the
+  chat (the chat may show as read). It is only sent when the read-only list
+  is incomplete.
+
+**Agent rule**: Do not pass `--allow-room-entry` unless the user accepts that
+the chat may be marked as read. Use `--allow-partial` when a best-effort
+roster is enough, and never treat a `complete: false` result as the full
+member list (for example, to decide that someone is not in the chat).
 
 Each member includes:
 - `user_id` — numeric user ID (string for safety)
@@ -337,7 +384,7 @@ Each member includes:
 - `user_type` — KakaoTalk's user type (100 = friend, 1000 = open profile, etc.); `null` when the server omits the field
 - `open_token`, `open_profile_link_id`, `open_permission` — open-chat-only fields (`null` for normal chats; `open_permission` is 1=OWNER, 2=NONE, 4=MANAGER, 8=BOT)
 
-> **SDK-only**: `KakaoTalkClient.getMembersByIds(chatId, userIds)` is available for the >100-member case where you already have specific user IDs to resolve (typically from a CHATONROOM `mi` array). It is intentionally not exposed via the CLI because acquiring those IDs requires a CHATONROOM call that is also SDK-only. Use `agent-kakaotalk member list` for the common case.
+> **SDK-only**: `KakaoTalkClient.getMembersByIds(chatId, userIds)` is available for the >100-member case where you already have specific user IDs to resolve (typically from a CHATONROOM `mi` array). It is not exposed as its own CLI command; `member list --allow-room-entry` uses it internally. Use `agent-kakaotalk member list` for the common case.
 
 ### Open Chat Moderation (Kick)
 
@@ -805,6 +852,7 @@ Common errors:
 - `login_http_error` — network issue reaching KakaoTalk servers.
 - `LOCO packet timeout` — messaging protocol timed out (server may be overloaded). A send that was already written times out as `delivery_unknown` instead.
 - `Message text does not contain "@<name>" for user ...` / `Could not resolve a nickname for --mention ...` — a `--mention` target's `@<name>` is not in the text, or its nickname could not be looked up. Nothing was sent. Fix the text or pass `--mention <user-id>:<name>`.
+- `member_snapshot_changed_or_incomplete` — `member list` could not confirm a complete, stable member list (membership changed during the read, or the server returned fewer member records than the active count). Retry once; if it keeps failing, use `--allow-partial` for a best-effort list, or `--allow-room-entry` if the user accepts that the chat may be marked as read.
 
 ## Configuration
 

@@ -156,12 +156,54 @@ export interface KakaoMember {
   open_permission: number | null
 }
 
+/**
+ * How a member snapshot was collected:
+ * - `stable_double_read_chatinfo_getmem`: two read-only CHATINFO + GETMEM observations.
+ * - `chatonroom_ids_member_batch`: GETMEM plus CHATONROOM member ids resolved with MEMBER
+ *   (only with `allowRoomEntry`).
+ */
+export type KakaoMemberSnapshotBasis = 'stable_double_read_chatinfo_getmem' | 'chatonroom_ids_member_batch'
+
 export interface KakaoMemberSnapshot {
   chat_id: string
   active_members: number
   members: KakaoMember[]
   complete: true
-  consistency_basis: 'stable_double_read_chatinfo_getmem'
+  consistency_basis: KakaoMemberSnapshotBasis
+}
+
+/**
+ * Why a member snapshot is incomplete:
+ * - `member_count_mismatch`: the observations were stable, but the member records
+ *   collected do not match CHATINFO `activeMembersCount`.
+ * - `membership_changed`: the observations disagree with each other (members joined
+ *   or left while the snapshot was being collected).
+ */
+export type KakaoMemberSnapshotIncompleteReason = 'member_count_mismatch' | 'membership_changed'
+
+/** Returned by `getMemberSnapshot(chatId, { allowPartial: true })` when the snapshot is not complete. */
+export interface KakaoPartialMemberSnapshot {
+  chat_id: string
+  active_members: number
+  members: KakaoMember[]
+  complete: false
+  consistency_basis: KakaoMemberSnapshotBasis
+  incomplete_reason: KakaoMemberSnapshotIncompleteReason
+}
+
+export interface KakaoMemberSnapshotOptions {
+  /**
+   * Return a `complete: false` snapshot instead of throwing when the member records
+   * cannot be confirmed complete. Default `false` (fail closed).
+   */
+  allowPartial?: boolean
+  /**
+   * When the read-only snapshot is incomplete, enter the room with CHATONROOM to read
+   * its member id list and resolve missing ids with MEMBER (100 per request).
+   * CHATONROOM is the room-entry command and can advance the account's unread state.
+   * Default `false`.
+   */
+  allowRoomEntry?: boolean
 }
 
 /** Versioned login defaults; null omits the optional wire field. */
@@ -408,7 +450,16 @@ export const KakaoMemberSnapshotSchema = z.object({
   active_members: z.number().int().nonnegative(),
   members: z.array(KakaoMemberSchema),
   complete: z.literal(true),
-  consistency_basis: z.literal('stable_double_read_chatinfo_getmem'),
+  consistency_basis: z.enum(['stable_double_read_chatinfo_getmem', 'chatonroom_ids_member_batch']),
+})
+
+export const KakaoPartialMemberSnapshotSchema = z.object({
+  chat_id: z.string(),
+  active_members: z.number().int().nonnegative(),
+  members: z.array(KakaoMemberSchema),
+  complete: z.literal(false),
+  consistency_basis: z.enum(['stable_double_read_chatinfo_getmem', 'chatonroom_ids_member_batch']),
+  incomplete_reason: z.enum(['member_count_mismatch', 'membership_changed']),
 })
 
 export const KakaoSendResultSchema = z.object({

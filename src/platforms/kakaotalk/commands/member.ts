@@ -10,10 +10,24 @@ async function listAction(
   options: {
     account?: string
     pretty?: boolean
+    allowPartial?: boolean
+    allowRoomEntry?: boolean
   },
 ): Promise<void> {
   try {
-    const members = await withKakaoClient(options, (client) => client.getMembers(chatId))
+    if (options.allowPartial) {
+      // Print the whole snapshot so `complete` and `incomplete_reason` stay visible.
+      const snapshot = await withKakaoClient(options, (client) =>
+        client.getMemberSnapshot(chatId, { allowPartial: true, allowRoomEntry: options.allowRoomEntry === true }),
+      )
+      console.log(formatOutput(snapshot, options.pretty))
+      return
+    }
+    const members = await withKakaoClient(options, async (client) =>
+      options.allowRoomEntry
+        ? (await client.getMemberSnapshot(chatId, { allowRoomEntry: true })).members
+        : client.getMembers(chatId),
+    )
     console.log(formatOutput(members, options.pretty))
   } catch (error) {
     handleError(error as Error)
@@ -113,6 +127,14 @@ export const memberCommand = new Command('member')
     new Command('list')
       .description('List members of a chat room')
       .argument('<chat-id>', 'Chat room ID')
+      .option(
+        '--allow-partial',
+        'Print the snapshot object and return members even when they cannot be confirmed complete (complete: false)',
+      )
+      .option(
+        '--allow-room-entry',
+        'If the read-only snapshot is incomplete, enter the room (CHATONROOM) to fill it; can advance unread state',
+      )
       .option('--account <id>', 'Use a specific KakaoTalk account')
       .option('--pretty', 'Pretty print JSON output')
       .action(listAction),
