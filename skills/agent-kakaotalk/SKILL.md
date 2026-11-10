@@ -358,7 +358,8 @@ incomplete list.
   ```
 
   `incomplete_reason` is `member_count_mismatch` (reads were stable but the
-  records do not match the active count) or `membership_changed` (the reads
+  returned member set or count does not match the active roster, e.g. a
+  displayed member ID is missing) or `membership_changed` (the reads
   disagreed, e.g. someone joined or left). It is absent when `complete` is
   `true`. Always check `complete` before treating the list as the full roster.
 - `--allow-room-entry` lets an incomplete read-only list be filled from the

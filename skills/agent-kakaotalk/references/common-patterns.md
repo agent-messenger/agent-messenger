@@ -550,7 +550,7 @@ fi
 Notes:
 
 - `--allow-partial` changes the output from a bare array to a snapshot object (`chat_id`, `active_members`, `members`, `complete`, `consistency_basis`, and `incomplete_reason` when incomplete).
-- `incomplete_reason: "member_count_mismatch"` means the reads were stable but the records did not match the active count; `"membership_changed"` means the reads disagreed. Retrying can help with `membership_changed`.
+- `incomplete_reason: "member_count_mismatch"` means the reads were stable but the returned records did not match the active count or the displayed member IDs; `"membership_changed"` means the reads disagreed. Retrying can help with `membership_changed`.
 - Never conclude that someone is not in the chat from a `complete: false` list.
 - `--allow-room-entry` sends `CHATONROOM` (room entry), which can advance this account's unread state. It is only sent when the read-only list is incomplete, but do not use it from scheduled or passive jobs unless that side effect is acceptable.
 

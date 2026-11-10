@@ -1656,7 +1656,7 @@ export class KakaoTalkClient {
         batch.map((id) => parseUserId(id)),
       )
       assertLocoOk(response, 'MEMBER')
-      const returned = exactMemberRecords(response.body.members ?? [], 'MEMBER')
+      const returned = exactMemberRecords(response.body.members, 'MEMBER')
       const requested = new Set(batch)
       for (const record of returned.records) {
         const id = memberIdKey(record)!
