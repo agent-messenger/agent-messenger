@@ -422,6 +422,11 @@ agent-kakaotalk message list <chat-id> -n 50
 agent-kakaotalk message list <chat-id> --from <log-id>
 agent-kakaotalk message list <chat-id> --pretty
 
+# Read history losslessly, oldest first, one page at a time
+agent-kakaotalk message page <chat-id> --from <log-id>
+agent-kakaotalk message page <chat-id> --from <log-id> -n 50
+agent-kakaotalk message page <chat-id> --pretty
+
 # Send a text message
 agent-kakaotalk message send <chat-id> "Hello world"
 agent-kakaotalk message send <chat-id> "Hello world" --pretty
@@ -463,6 +468,7 @@ agent-kakaotalk message typing <chat-id> --link-id <li>   # open chats only
 
 # Use a specific account
 agent-kakaotalk message list <chat-id> --account <account-id>
+agent-kakaotalk message page <chat-id> --from <log-id> --account <account-id>
 agent-kakaotalk message send <chat-id> "Hello" --account <account-id>
 agent-kakaotalk message upload <chat-id> ./photo.jpg --account <account-id>
 agent-kakaotalk message mark-read <chat-id> <log-id> --account <account-id>
@@ -648,6 +654,60 @@ agent-kakaotalk message list 9876543210 -n 200
 # Get messages newer than a known log ID (forward only)
 agent-kakaotalk message list 9876543210 --from 123456789
 ```
+
+`message list --from` returns the **latest** N messages after the cursor. If more than N messages arrived since that point, the older ones in between are not in the output. When you need every message after a known point (catching up, collecting a range for a summary), use `message page` instead.
+
+#### Paging History Without Gaps
+
+`message page` returns one page of messages strictly after `--from <log-id>`, sorted oldest first. It never drops the middle of a range: if more than `-n` messages are available, it returns the **oldest** `-n` and sets `complete` to `false`, so you continue from `next_cursor`.
+
+| Flag | Default | Description |
+| ---- | ------- | ----------- |
+| `--from <log-id>` | start of available history | Exclusive cursor. Only messages with a larger `log_id` are returned. |
+| `-n, --count <number>` | `100` | Page size, an integer from 1 to 100. Other values are rejected before login. |
+| `--account <id>` | current account | Use a specific KakaoTalk account. |
+| `--pretty` | off | Pretty print JSON output. |
+
+Output:
+
+```json
+{
+  "messages": [
+    {
+      "log_id": "123456790",
+      "type": 1,
+      "author_id": 1234567890,
+      "author_name": "Alice",
+      "message": "Hello",
+      "attachment": null,
+      "sent_at": 1700000000000
+    }
+  ],
+  "next_cursor": "123456790",
+  "complete": false
+}
+```
+
+- `messages` — same fields as `message list` (see Message List Output), oldest first.
+- `next_cursor` — `log_id` of the last message in this page. Pass it as the next `--from`. `null` when the page is empty.
+- `complete` — `true` when nothing newer than this page was available at read time. When `false`, call again with `--from <next_cursor>`.
+
+```bash
+CURSOR=123456789
+while :; do
+  PAGE=$(agent-kakaotalk message page 9876543210 --from "$CURSOR") || exit 1
+  echo "$PAGE" | jq -c '.messages[]'
+  [ "$(echo "$PAGE" | jq -r '.complete')" = "true" ] && break
+  NEXT=$(echo "$PAGE" | jq -r '.next_cursor // empty')
+  [ -z "$NEXT" ] && { echo "message page: complete=false but no next_cursor; history may be incomplete" >&2; exit 1; }
+  CURSOR=$NEXT
+done
+```
+
+Notes:
+- Each CLI call logs in once. For long catch-ups prefer larger pages (`-n 100`, the default) or the SDK's `client.getMessagePage()` on one long-lived client.
+- Reads use `MCHATLOGS`, falling back to `CHATINFO` + `SYNCMSG`. Neither enters the room (`CHATONROOM`), so paging does not change read state.
+- Errors are printed as `{"error": "..."}` and the process exits non-zero (for example an invalid `--count`, a non-numeric `<chat-id>`, an empty or non-numeric `--from`, or a non-zero LOCO status).
 
 ## Output Format
 

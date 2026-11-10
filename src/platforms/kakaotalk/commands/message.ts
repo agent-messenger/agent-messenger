@@ -26,6 +26,44 @@ async function listAction(
   }
 }
 
+const MAX_LOG_ID = 9223372036854775807n
+
+// Mirrors the SDK bound so a bad value fails before the CLI logs in.
+function parsePageCount(raw: string | undefined): number {
+  if (raw === undefined) return 100
+  const count = /^\d+$/.test(raw) ? Number(raw) : Number.NaN
+  if (!Number.isInteger(count) || count < 1 || count > 100) {
+    throw new Error(`Invalid --count value "${raw}": expected an integer between 1 and 100`)
+  }
+  return count
+}
+
+async function pageAction(
+  chatId: string,
+  options: { account?: string; count?: string; from?: string; pretty?: boolean },
+): Promise<void> {
+  try {
+    // The SDK treats an empty cursor as "from the oldest message", so an unset
+    // shell variable would silently replay the whole chat. Reject it up front.
+    // Log IDs are signed 64-bit; larger values would wrap when packed into a Long.
+    if (options.from !== undefined) {
+      if (!/^\d+$/.test(options.from)) {
+        throw new Error(`Invalid --from value "${options.from}": expected a numeric log ID`)
+      }
+      if (BigInt(options.from) > MAX_LOG_ID) {
+        throw new Error(`Invalid --from value "${options.from}": exceeds the maximum 64-bit log ID`)
+      }
+    }
+    const count = parsePageCount(options.count)
+    const page = await withKakaoClient(options, (client) =>
+      client.getMessagePage(chatId, options.from !== undefined ? { count, from: options.from } : { count }),
+    )
+    console.log(formatOutput(page, options.pretty))
+  } catch (error) {
+    handleError(error as Error)
+  }
+}
+
 async function sendAction(
   chatId: string,
   text: string,
@@ -283,6 +321,18 @@ export const messageCommand = new Command('message')
       .option('--from <log-id>', 'Fetch messages starting from this log ID')
       .option('--pretty', 'Pretty print JSON output')
       .action(listAction),
+  )
+  .addCommand(
+    new Command('page')
+      .description(
+        'Fetch one lossless, oldest-first page of messages after a log ID. Repeat with next_cursor until complete is true',
+      )
+      .argument('<chat-id>', 'Chat room ID')
+      .option('--account <id>', 'Use a specific KakaoTalk account')
+      .option('-n, --count <number>', 'Maximum messages in this page (1-100)', '100')
+      .option('--from <log-id>', 'Return messages strictly after this log ID (omit to start from the oldest)')
+      .option('--pretty', 'Pretty print JSON output')
+      .action(pageAction),
   )
   .addCommand(
     new Command('send')
