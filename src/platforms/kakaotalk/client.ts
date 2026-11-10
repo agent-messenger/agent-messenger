@@ -30,11 +30,14 @@ import {
   type KakaoMarkReadResult,
   type KakaoMember,
   type KakaoMemberSnapshot,
+  type KakaoMemberSnapshotIncompleteReason,
+  type KakaoMemberSnapshotOptions,
   type KakaoMention,
   type KakaoMentionInput,
   type KakaoMessage,
   type KakaoMessagePage,
   type KakaoMultiPhotoExtra,
+  type KakaoPartialMemberSnapshot,
   type KakaoProfile,
   type KakaoReadWatermarks,
   type KakaoReplyExtra,
@@ -825,6 +828,32 @@ function subsetIds(subset: Set<string>, superset: Set<string>): boolean {
   return [...subset].every((id) => superset.has(id))
 }
 
+// LOCO MEMBER request size used when resolving member ids in batches.
+const MEMBER_BATCH_SIZE = 100
+
+// CHATONROOM `mi`: the member id list of the room. Duplicates are collapsed;
+// a missing list or a malformed id fails closed.
+function roomEntryMemberIds(body: Record<string, unknown>): Set<string> {
+  if (!Array.isArray(body.mi)) {
+    throw new Error('CHATONROOM member ids missing')
+  }
+  const ids = new Set<string>()
+  for (const value of body.mi) {
+    const id = memberIdKey({ userId: value })
+    if (!id) {
+      throw new Error('CHATONROOM member ids invalid')
+    }
+    ids.add(id)
+  }
+  return ids
+}
+
+interface MemberSnapshotAttempt {
+  activeMembers: number
+  records: Array<Record<string, unknown>>
+  incompleteReason: KakaoMemberSnapshotIncompleteReason | null
+}
+
 function channelMemberView(
   body: Record<string, unknown>,
   expectedChatId: string,
@@ -1496,44 +1525,167 @@ export class KakaoTalkClient {
     })
   }
 
-  async getMemberSnapshot(chatId: string): Promise<KakaoMemberSnapshot> {
+  /**
+   * Member snapshot of a chat. By default it is read-only (CHATINFO + GETMEM, each
+   * observed twice) and throws `get_member_snapshot_failed` unless the result is
+   * confirmed complete. `allowPartial: true` returns a `complete: false` snapshot
+   * with an `incomplete_reason` instead. `allowRoomEntry: true` lets an incomplete
+   * read-only snapshot be completed through CHATONROOM member ids + MEMBER; CHATONROOM
+   * enters the room and can advance the account's unread state.
+   */
+  async getMemberSnapshot(
+    chatId: string,
+    options?: KakaoMemberSnapshotOptions & { allowPartial?: false },
+  ): Promise<KakaoMemberSnapshot>
+  async getMemberSnapshot(
+    chatId: string,
+    options: KakaoMemberSnapshotOptions,
+  ): Promise<KakaoMemberSnapshot | KakaoPartialMemberSnapshot>
+  async getMemberSnapshot(
+    chatId: string,
+    options: KakaoMemberSnapshotOptions = {},
+  ): Promise<KakaoMemberSnapshot | KakaoPartialMemberSnapshot> {
     const parsedChatId = parseChatId(chatId)
     const normalizedChatId = longToString(parsedChatId)
     return this.executeWithReconnect(async ({ session }) => {
       try {
-        const firstChatResponse = await session.getChannelInfo(parsedChatId)
-        assertLocoOk(firstChatResponse, 'CHATINFO')
-        const firstChat = channelMemberView(firstChatResponse.body as Record<string, unknown>, normalizedChatId)
-        const firstMemberResponse = await session.getAllMembers(parsedChatId)
-        assertLocoOk(firstMemberResponse, 'GETMEM')
-        const firstMembers = exactMemberRecords(firstMemberResponse.body.members ?? [], 'GETMEM')
-        const secondChatResponse = await session.getChannelInfo(parsedChatId)
-        assertLocoOk(secondChatResponse, 'CHATINFO')
-        const secondChat = channelMemberView(secondChatResponse.body as Record<string, unknown>, normalizedChatId)
-        const secondMemberResponse = await session.getAllMembers(parsedChatId)
-        assertLocoOk(secondMemberResponse, 'GETMEM')
-        const secondMembers = exactMemberRecords(secondMemberResponse.body.members ?? [], 'GETMEM')
-        if (
-          firstChat.activeMembers !== secondChat.activeMembers ||
-          firstMembers.records.length !== firstChat.activeMembers ||
-          secondMembers.records.length !== secondChat.activeMembers ||
-          !sameIds(firstChat.ids, secondChat.ids) ||
-          !sameIds(firstMembers.ids, secondMembers.ids) ||
-          !subsetIds(secondChat.ids, secondMembers.ids)
-        ) {
+        let basis: KakaoMemberSnapshot['consistency_basis'] = 'stable_double_read_chatinfo_getmem'
+        let attempt = await this.readOnlyMemberSnapshot(session, parsedChatId, normalizedChatId)
+        if (attempt.incompleteReason && options.allowRoomEntry) {
+          basis = 'chatonroom_ids_member_batch'
+          attempt = await this.roomEntryMemberSnapshot(session, parsedChatId, normalizedChatId)
+        }
+        const members = attempt.records.map(formatMember)
+        if (!attempt.incompleteReason) {
+          return {
+            chat_id: normalizedChatId,
+            active_members: attempt.activeMembers,
+            members,
+            complete: true,
+            consistency_basis: basis,
+          }
+        }
+        if (!options.allowPartial) {
           throw new Error('member_snapshot_changed_or_incomplete')
         }
         return {
           chat_id: normalizedChatId,
-          active_members: secondChat.activeMembers,
-          members: mergeMemberRecords(secondMembers.records, secondChat.records).map(formatMember),
-          complete: true,
-          consistency_basis: 'stable_double_read_chatinfo_getmem',
+          active_members: attempt.activeMembers,
+          members,
+          complete: false,
+          consistency_basis: basis,
+          incomplete_reason: attempt.incompleteReason,
         }
       } catch (error) {
         throw wrapError(error, 'get_member_snapshot_failed')
       }
     })
+  }
+
+  // Read-only: CHATINFO, GETMEM, CHATINFO, GETMEM. Complete only when the active
+  // count, the CHATINFO display members, and the GETMEM id set are stable and the
+  // GETMEM record count equals the active count.
+  private async readOnlyMemberSnapshot(
+    session: LocoSession,
+    parsedChatId: Long,
+    normalizedChatId: string,
+  ): Promise<MemberSnapshotAttempt> {
+    const firstChatResponse = await session.getChannelInfo(parsedChatId)
+    assertLocoOk(firstChatResponse, 'CHATINFO')
+    const firstChat = channelMemberView(firstChatResponse.body as Record<string, unknown>, normalizedChatId)
+    const firstMemberResponse = await session.getAllMembers(parsedChatId)
+    assertLocoOk(firstMemberResponse, 'GETMEM')
+    const firstMembers = exactMemberRecords(firstMemberResponse.body.members ?? [], 'GETMEM')
+    const secondChatResponse = await session.getChannelInfo(parsedChatId)
+    assertLocoOk(secondChatResponse, 'CHATINFO')
+    const secondChat = channelMemberView(secondChatResponse.body as Record<string, unknown>, normalizedChatId)
+    const secondMemberResponse = await session.getAllMembers(parsedChatId)
+    assertLocoOk(secondMemberResponse, 'GETMEM')
+    const secondMembers = exactMemberRecords(secondMemberResponse.body.members ?? [], 'GETMEM')
+
+    let incompleteReason: KakaoMemberSnapshotIncompleteReason | null = null
+    if (
+      firstChat.activeMembers !== secondChat.activeMembers ||
+      !sameIds(firstChat.ids, secondChat.ids) ||
+      !sameIds(firstMembers.ids, secondMembers.ids)
+    ) {
+      incompleteReason = 'membership_changed'
+    } else if (
+      secondMembers.records.length !== secondChat.activeMembers ||
+      !subsetIds(secondChat.ids, secondMembers.ids)
+    ) {
+      incompleteReason = 'member_count_mismatch'
+    }
+    return {
+      activeMembers: secondChat.activeMembers,
+      records: mergeMemberRecords(secondMembers.records, secondChat.records),
+      incompleteReason,
+    }
+  }
+
+  // Room entry: CHATINFO, GETMEM, CHATONROOM (`mi`), MEMBER for ids GETMEM did not
+  // return, then CHATINFO again. Complete only when both CHATINFO observations agree
+  // and every CHATONROOM id was resolved into exactly `activeMembersCount` records.
+  private async roomEntryMemberSnapshot(
+    session: LocoSession,
+    parsedChatId: Long,
+    normalizedChatId: string,
+  ): Promise<MemberSnapshotAttempt> {
+    const firstChatResponse = await session.getChannelInfo(parsedChatId)
+    assertLocoOk(firstChatResponse, 'CHATINFO')
+    const firstChat = channelMemberView(firstChatResponse.body as Record<string, unknown>, normalizedChatId)
+    const memberResponse = await session.getAllMembers(parsedChatId)
+    assertLocoOk(memberResponse, 'GETMEM')
+    const known = exactMemberRecords(memberResponse.body.members ?? [], 'GETMEM')
+    const roomResponse = await session.getChatInfo(parsedChatId)
+    assertLocoOk(roomResponse, 'CHATONROOM')
+    const roomIds = roomEntryMemberIds(roomResponse.body as Record<string, unknown>)
+    // `mi` may omit the caller's own id; the caller is still an active member.
+    if (this.userId && /^[1-9]\d*$/.test(this.userId)) roomIds.add(this.userId)
+
+    const recordsById = new Map<string, Record<string, unknown>>()
+    for (const record of known.records) {
+      const id = memberIdKey(record)!
+      if (roomIds.has(id)) recordsById.set(id, record)
+    }
+    const missingIds = [...roomIds].filter((id) => !recordsById.has(id))
+    for (let offset = 0; offset < missingIds.length; offset += MEMBER_BATCH_SIZE) {
+      const batch = missingIds.slice(offset, offset + MEMBER_BATCH_SIZE)
+      const response = await session.getMembersByIds(
+        parsedChatId,
+        batch.map((id) => parseUserId(id)),
+      )
+      assertLocoOk(response, 'MEMBER')
+      const returned = exactMemberRecords(response.body.members ?? [], 'MEMBER')
+      const requested = new Set(batch)
+      for (const record of returned.records) {
+        const id = memberIdKey(record)!
+        if (requested.has(id)) recordsById.set(id, record)
+      }
+    }
+
+    const secondChatResponse = await session.getChannelInfo(parsedChatId)
+    assertLocoOk(secondChatResponse, 'CHATINFO')
+    const secondChat = channelMemberView(secondChatResponse.body as Record<string, unknown>, normalizedChatId)
+
+    let incompleteReason: KakaoMemberSnapshotIncompleteReason | null = null
+    if (firstChat.activeMembers !== secondChat.activeMembers || !sameIds(firstChat.ids, secondChat.ids)) {
+      incompleteReason = 'membership_changed'
+    } else if (
+      recordsById.size !== roomIds.size ||
+      roomIds.size !== secondChat.activeMembers ||
+      !subsetIds(secondChat.ids, roomIds)
+    ) {
+      incompleteReason = 'member_count_mismatch'
+    }
+    return {
+      activeMembers: secondChat.activeMembers,
+      records: mergeMemberRecords(
+        [...recordsById.values()],
+        secondChat.records.filter((record) => roomIds.has(memberIdKey(record)!)),
+      ),
+      incompleteReason,
+    }
   }
 
   async getMembers(chatId: string): Promise<KakaoMember[]> {

@@ -4036,6 +4036,328 @@ describe('KakaoTalkClient', () => {
       client.close()
     })
 
+    describe('partial and room-entry snapshots', () => {
+      const memberRecord = (id: number) => ({ userId: makeLong(id), nickName: `Member ${id}` })
+      const memberRange = (from: number, to: number) =>
+        Array.from({ length: to - from + 1 }, (_, index) => memberRecord(from + index))
+      const getMemResponse = (members: Array<Record<string, unknown>>) => ({ statusCode: 0, body: { members } })
+      const roomEntryResponse = (ids: number[]) => ({ statusCode: 0, body: { mi: ids.map((id) => makeLong(id)) } })
+      const idRange = (from: number, to: number) => Array.from({ length: to - from + 1 }, (_, index) => from + index)
+
+      // MEMBER answers every requested id unless it is listed in `omit`.
+      function answerMemberRequests(omit: number[] = []) {
+        mockGetMembersByIds.mockImplementation(((_chatId: unknown, ids: Long[]) =>
+          Promise.resolve({
+            statusCode: 0,
+            body: {
+              members: ids
+                .map((id) => id.toNumber())
+                .filter((id) => !omit.includes(id))
+                .map(memberRecord),
+            },
+          })) as never)
+      }
+
+      function requestedBatchSizes(): number[] {
+        return mockGetMembersByIds.mock.calls.map((call) => (call as unknown as [unknown, Long[]])[1].length)
+      }
+
+      async function loggedInClient(userId = 'user1') {
+        return new KakaoTalkClient().login({ oauthToken: 'token', userId, deviceUuid: 'device1' })
+      }
+
+      it('keeps failing closed by default when GETMEM is stable but short of activeMembers', async () => {
+        mockGetChannelInfo.mockResolvedValue(memberChannelInfo(3))
+        mockGetAllMembers.mockResolvedValue(getMemResponse(memberRange(1, 2)))
+
+        const client = await loggedInClient()
+        await expect(client.getMemberSnapshot('100')).rejects.toMatchObject({
+          code: 'get_member_snapshot_failed',
+          message: 'member_snapshot_changed_or_incomplete',
+        })
+        await expect(client.getMemberSnapshot('100', { allowPartial: false })).rejects.toMatchObject({
+          code: 'get_member_snapshot_failed',
+        })
+        expect(mockGetMembersByIds).not.toHaveBeenCalled()
+
+        client.close()
+      })
+
+      it('returns a read-only partial snapshot with allowPartial', async () => {
+        mockGetChannelInfo.mockResolvedValue(memberChannelInfo(3))
+        mockGetAllMembers.mockResolvedValue(getMemResponse(memberRange(1, 2)))
+
+        const client = await loggedInClient()
+        const snapshot = await client.getMemberSnapshot('100', { allowPartial: true })
+
+        expect(snapshot).toMatchObject({
+          chat_id: '100',
+          active_members: 3,
+          complete: false,
+          consistency_basis: 'stable_double_read_chatinfo_getmem',
+          incomplete_reason: 'member_count_mismatch',
+        })
+        expect(snapshot.members.map((member) => member.user_id)).toEqual(['1', '2'])
+        expect(mockGetMembersByIds).not.toHaveBeenCalled()
+
+        client.close()
+      })
+
+      it('reports membership_changed when read-only observations disagree', async () => {
+        mockGetChannelInfo.mockResolvedValueOnce(memberChannelInfo(2)).mockResolvedValueOnce(memberChannelInfo(3))
+        mockGetAllMembers
+          .mockResolvedValueOnce(getMemResponse(memberRange(1, 2)))
+          .mockResolvedValueOnce(getMemResponse(memberRange(1, 3)))
+
+        const client = await loggedInClient()
+        const snapshot = await client.getMemberSnapshot('100', { allowPartial: true })
+
+        expect(snapshot).toMatchObject({
+          active_members: 3,
+          complete: false,
+          incomplete_reason: 'membership_changed',
+        })
+        expect(snapshot.members).toHaveLength(3)
+
+        client.close()
+      })
+
+      it('still fails closed on duplicate GETMEM ids with allowPartial', async () => {
+        mockGetChannelInfo.mockResolvedValue(memberChannelInfo(2))
+        mockGetAllMembers.mockResolvedValue(getMemResponse([memberRecord(1), memberRecord(1)]))
+
+        const client = await loggedInClient()
+        await expect(client.getMemberSnapshot('100', { allowPartial: true })).rejects.toMatchObject({
+          code: 'get_member_snapshot_failed',
+        })
+
+        client.close()
+      })
+
+      it('does not enter the room when the read-only snapshot is complete', async () => {
+        mockGetChannelInfo.mockResolvedValue(memberChannelInfo(2))
+        mockGetAllMembers.mockResolvedValue(getMemResponse(memberRange(1, 2)))
+
+        const client = await loggedInClient()
+        const snapshot = await client.getMemberSnapshot('100', { allowRoomEntry: true })
+
+        expect(snapshot).toMatchObject({ complete: true, consistency_basis: 'stable_double_read_chatinfo_getmem' })
+        expect(mockGetChatInfo).not.toHaveBeenCalled()
+        expect(mockGetMembersByIds).not.toHaveBeenCalled()
+
+        client.close()
+      })
+
+      it('fills missing ids from CHATONROOM with MEMBER batches of 100', async () => {
+        // 251 active members, GETMEM returns 50, so 201 ids need MEMBER: 100 + 100 + 1.
+        mockGetChannelInfo.mockResolvedValue(memberChannelInfo(251))
+        mockGetAllMembers.mockResolvedValue(getMemResponse(memberRange(1, 50)))
+        // Duplicate ids in `mi` are collapsed.
+        mockGetChatInfo.mockResolvedValue(roomEntryResponse([...idRange(1, 251), 7, 251]))
+        answerMemberRequests()
+
+        const client = await loggedInClient()
+        const snapshot = await client.getMemberSnapshot('100', { allowRoomEntry: true })
+
+        expect(snapshot).toMatchObject({
+          chat_id: '100',
+          active_members: 251,
+          complete: true,
+          consistency_basis: 'chatonroom_ids_member_batch',
+        })
+        expect(new Set(snapshot.members.map((member) => member.user_id)).size).toBe(251)
+        expect(requestedBatchSizes()).toEqual([100, 100, 1])
+        // GETMEM already returned ids 1..50, so MEMBER never asks for them.
+        const requested = mockGetMembersByIds.mock.calls.flatMap((call) =>
+          (call as unknown as [unknown, Long[]])[1].map((id) => id.toNumber()),
+        )
+        expect(requested).toEqual(idRange(51, 251))
+        expect(mockGetChatInfo).toHaveBeenCalledTimes(1)
+        mockGetChatInfo.mockClear()
+
+        client.close()
+      })
+
+      it('sends exactly one full MEMBER batch at the 100-id boundary', async () => {
+        mockGetChannelInfo.mockResolvedValue(memberChannelInfo(110))
+        mockGetAllMembers.mockResolvedValue(getMemResponse(memberRange(1, 10)))
+        mockGetChatInfo.mockResolvedValue(roomEntryResponse(idRange(1, 110)))
+        answerMemberRequests()
+
+        const client = await loggedInClient()
+        const snapshot = await client.getMemberSnapshot('100', { allowRoomEntry: true })
+
+        expect(snapshot.complete).toBe(true)
+        expect(requestedBatchSizes()).toEqual([100])
+        mockGetChatInfo.mockClear()
+
+        client.close()
+      })
+
+      it('adds the logged-in user when CHATONROOM omits it', async () => {
+        mockGetChannelInfo.mockResolvedValue(memberChannelInfo(3))
+        mockGetAllMembers.mockResolvedValue(getMemResponse([memberRecord(1)]))
+        mockGetChatInfo.mockResolvedValue(roomEntryResponse([1, 2]))
+        answerMemberRequests()
+
+        const client = await loggedInClient('3')
+        const snapshot = await client.getMemberSnapshot('100', { allowRoomEntry: true })
+
+        expect(snapshot.complete).toBe(true)
+        expect(snapshot.members.map((member) => member.user_id).sort()).toEqual(['1', '2', '3'])
+        mockGetChatInfo.mockClear()
+
+        client.close()
+      })
+
+      it('fails closed by default when MEMBER leaves an id unresolved', async () => {
+        mockGetChannelInfo.mockResolvedValue(memberChannelInfo(150))
+        mockGetAllMembers.mockResolvedValue(getMemResponse(memberRange(1, 20)))
+        mockGetChatInfo.mockResolvedValue(roomEntryResponse(idRange(1, 150)))
+        answerMemberRequests([99])
+
+        const client = await loggedInClient()
+        await expect(client.getMemberSnapshot('100', { allowRoomEntry: true })).rejects.toMatchObject({
+          code: 'get_member_snapshot_failed',
+          message: 'member_snapshot_changed_or_incomplete',
+        })
+        mockGetChatInfo.mockClear()
+
+        client.close()
+      })
+
+      it('returns a partial room-entry snapshot when MEMBER leaves an id unresolved', async () => {
+        mockGetChannelInfo.mockResolvedValue(memberChannelInfo(150))
+        mockGetAllMembers.mockResolvedValue(getMemResponse(memberRange(1, 20)))
+        mockGetChatInfo.mockResolvedValue(roomEntryResponse(idRange(1, 150)))
+        answerMemberRequests([99])
+
+        const client = await loggedInClient()
+        const snapshot = await client.getMemberSnapshot('100', { allowRoomEntry: true, allowPartial: true })
+
+        expect(snapshot).toMatchObject({
+          active_members: 150,
+          complete: false,
+          consistency_basis: 'chatonroom_ids_member_batch',
+          incomplete_reason: 'member_count_mismatch',
+        })
+        expect(snapshot.members).toHaveLength(149)
+        expect(snapshot.members.some((member) => member.user_id === '99')).toBe(false)
+        mockGetChatInfo.mockClear()
+
+        client.close()
+      })
+
+      it('ignores MEMBER records for ids that were not requested', async () => {
+        mockGetChannelInfo.mockResolvedValue(memberChannelInfo(3))
+        mockGetAllMembers.mockResolvedValue(getMemResponse([memberRecord(1)]))
+        mockGetChatInfo.mockResolvedValue(roomEntryResponse([1, 2, 3]))
+        mockGetMembersByIds.mockResolvedValue({
+          statusCode: 0,
+          body: { members: [memberRecord(2), memberRecord(3), memberRecord(404)] },
+        } as never)
+
+        const client = await loggedInClient()
+        const snapshot = await client.getMemberSnapshot('100', { allowRoomEntry: true })
+
+        expect(snapshot.members.map((member) => member.user_id).sort()).toEqual(['1', '2', '3'])
+        mockGetChatInfo.mockClear()
+
+        client.close()
+      })
+
+      it('fails closed on duplicate MEMBER ids even with allowPartial', async () => {
+        mockGetChannelInfo.mockResolvedValue(memberChannelInfo(3))
+        mockGetAllMembers.mockResolvedValue(getMemResponse([memberRecord(1)]))
+        mockGetChatInfo.mockResolvedValue(roomEntryResponse([1, 2, 3]))
+        mockGetMembersByIds.mockResolvedValue({
+          statusCode: 0,
+          body: { members: [memberRecord(2), memberRecord(2), memberRecord(3)] },
+        } as never)
+
+        const client = await loggedInClient()
+        await expect(
+          client.getMemberSnapshot('100', { allowRoomEntry: true, allowPartial: true }),
+        ).rejects.toMatchObject({ code: 'get_member_snapshot_failed' })
+        mockGetChatInfo.mockClear()
+
+        client.close()
+      })
+
+      it('fails closed when CHATONROOM has no member id list', async () => {
+        mockGetChannelInfo.mockResolvedValue(memberChannelInfo(3))
+        mockGetAllMembers.mockResolvedValue(getMemResponse([memberRecord(1)]))
+        mockGetChatInfo.mockResolvedValue({ statusCode: 0, body: {} })
+
+        const client = await loggedInClient()
+        await expect(
+          client.getMemberSnapshot('100', { allowRoomEntry: true, allowPartial: true }),
+        ).rejects.toMatchObject({ code: 'get_member_snapshot_failed' })
+        expect(mockGetMembersByIds).not.toHaveBeenCalled()
+        mockGetChatInfo.mockClear()
+
+        client.close()
+      })
+
+      it('reports membership_changed when CHATINFO changes during room-entry collection', async () => {
+        // Read-only pass: stable but short. Room-entry pass: 3 active before, 4 after.
+        mockGetChannelInfo
+          .mockResolvedValueOnce(memberChannelInfo(3))
+          .mockResolvedValueOnce(memberChannelInfo(3))
+          .mockResolvedValueOnce(memberChannelInfo(3))
+          .mockResolvedValueOnce(memberChannelInfo(4))
+        mockGetAllMembers.mockResolvedValue(getMemResponse([memberRecord(1)]))
+        mockGetChatInfo.mockResolvedValue(roomEntryResponse([1, 2, 3]))
+        answerMemberRequests()
+
+        const client = await loggedInClient()
+        const snapshot = await client.getMemberSnapshot('100', { allowRoomEntry: true, allowPartial: true })
+        expect(snapshot).toMatchObject({
+          active_members: 4,
+          complete: false,
+          consistency_basis: 'chatonroom_ids_member_batch',
+          incomplete_reason: 'membership_changed',
+        })
+        expect(mockGetChannelInfo).toHaveBeenCalledTimes(4)
+        mockGetChatInfo.mockClear()
+
+        client.close()
+      })
+
+      it('fails closed by default when CHATINFO changes during room-entry collection', async () => {
+        mockGetChannelInfo
+          .mockResolvedValueOnce(memberChannelInfo(3))
+          .mockResolvedValueOnce(memberChannelInfo(3))
+          .mockResolvedValueOnce(memberChannelInfo(3))
+          .mockResolvedValueOnce(memberChannelInfo(2))
+        mockGetAllMembers.mockResolvedValue(getMemResponse([memberRecord(1)]))
+        mockGetChatInfo.mockResolvedValue(roomEntryResponse([1, 2, 3]))
+        answerMemberRequests()
+
+        const client = await loggedInClient()
+        await expect(client.getMemberSnapshot('100', { allowRoomEntry: true })).rejects.toMatchObject({
+          code: 'get_member_snapshot_failed',
+        })
+        mockGetChatInfo.mockClear()
+
+        client.close()
+      })
+
+      it('reports member_count_mismatch when CHATONROOM ids exceed activeMembers', async () => {
+        mockGetChannelInfo.mockResolvedValue(memberChannelInfo(3))
+        mockGetAllMembers.mockResolvedValue(getMemResponse([memberRecord(1)]))
+        mockGetChatInfo.mockResolvedValue(roomEntryResponse([1, 2, 3, 4]))
+        answerMemberRequests()
+
+        const client = await loggedInClient()
+        const snapshot = await client.getMemberSnapshot('100', { allowRoomEntry: true, allowPartial: true })
+        expect(snapshot).toMatchObject({ complete: false, incomplete_reason: 'member_count_mismatch' })
+        mockGetChatInfo.mockClear()
+
+        client.close()
+      })
+    })
+
     it('normalizes missing user_type to null and treats pli=0 as absent', async () => {
       mockGetChannelInfo.mockResolvedValueOnce(memberChannelInfo(3)).mockResolvedValueOnce(memberChannelInfo(3))
       mockGetAllMembers.mockResolvedValue({

@@ -175,13 +175,57 @@ Output (JSON by default; `--pretty` pretty-prints the same JSON):
 agent-kakaotalk member list <chat-id>
 agent-kakaotalk member list <chat-id> --pretty
 agent-kakaotalk member list <chat-id> --account <account-id>
+
+# Return an explicitly partial snapshot instead of failing
+agent-kakaotalk member list <chat-id> --allow-partial
+
+# Opt in to room entry (CHATONROOM) when the read-only snapshot is incomplete
+agent-kakaotalk member list <chat-id> --allow-room-entry
+agent-kakaotalk member list <chat-id> --allow-room-entry --allow-partial
 ```
 
-Member listing uses two read-only `CHATINFO` observations and two
-`GETMEM` observations. The command returns only when the active count,
+By default, member listing uses two read-only `CHATINFO` observations and
+two `GETMEM` observations. The command returns only when the active count,
 display-member subset, and full member-ID set remain stable across the
-observations. It never enters the room with `CHATONROOM`; incomplete or
-changing snapshots fail instead of returning a guessed member list.
+observations and the member records match the active count. It does not
+enter the room with `CHATONROOM`; incomplete or changing snapshots fail
+(`member_snapshot_changed_or_incomplete`) instead of returning a guessed
+member list. In some large open chats `GETMEM` returns fewer records than
+the active member count, so the default command fails there.
+
+`--allow-partial` prints the whole snapshot object instead of a bare member
+array and returns it even when it is incomplete:
+
+```json
+{
+  "chat_id": "9876543210",
+  "active_members": 1414,
+  "members": [{ "user_id": "1234567890", "nickname": "Alice" }],
+  "complete": false,
+  "consistency_basis": "stable_double_read_chatinfo_getmem",
+  "incomplete_reason": "member_count_mismatch"
+}
+```
+
+`incomplete_reason` is `member_count_mismatch` when the observations were
+stable but the collected records do not match the active count, or
+`membership_changed` when the observations disagreed (members joined or left
+during the read). A mismatch alone does not say why records are missing.
+`incomplete_reason` is absent when `complete` is `true`.
+
+`--allow-room-entry` lets an incomplete read-only snapshot be filled from the
+room's member ID list: it sends `CHATONROOM`, resolves the IDs `GETMEM` did
+not return with `MEMBER` (100 IDs per request), and compares the result with
+`CHATINFO` taken before and after collection. The result is complete only
+when both `CHATINFO` observations agree and every member ID was resolved into
+exactly the active count; `consistency_basis` is then
+`chatonroom_ids_member_batch`. Without `--allow-partial` the output is still a
+bare member array and an incomplete result still fails.
+
+> **Side effect**: `CHATONROOM` is the room-entry command. Sending it can
+> advance this account's unread state for the chat, so the chat may show as
+> read. It is only sent with `--allow-room-entry`, and only when the
+> read-only snapshot is incomplete.
 
 Each member includes:
 
@@ -192,7 +236,7 @@ Each member includes:
 - `user_type` — KakaoTalk's user type (100 = friend, 1000 = open profile, etc.); `null` when the server omits the field
 - `open_token`, `open_profile_link_id`, `open_permission` — open-chat-only fields (`null` for normal chats; `open_permission` is 1=OWNER, 2=NONE, 4=MANAGER, 8=BOT)
 
-> **SDK-only**: `KakaoTalkClient.getMembersByIds(chatId, userIds)` is available for the >100-member case where you already have specific user IDs to resolve (typically from a CHATONROOM `mi` array). It is intentionally not exposed via the CLI because acquiring those IDs requires a CHATONROOM call that is also SDK-only. Use `agent-kakaotalk member list` for the common case.
+> **SDK-only**: `KakaoTalkClient.getMembersByIds(chatId, userIds)` is available for the >100-member case where you already have specific user IDs to resolve (typically from a CHATONROOM `mi` array). It is not exposed as its own CLI command; `member list --allow-room-entry` uses it internally. Use `agent-kakaotalk member list` for the common case.
 
 ### Open Chat Moderation
 

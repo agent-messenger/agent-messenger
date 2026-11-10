@@ -520,6 +520,40 @@ Notes:
 - Only `member kick` (`KICKMEM`) has been used against a live server. The `member kick-list` (`KLSYNC`) and `member unkick` (`KLDELITEM`) request shapes and the kick-list response fields are unverified; a successful `kick-list` response without a `kickMembers` array fails with `get_kick_list_failed` rather than returning an empty list.
 - Agents must not add `--force` unless the user explicitly asked to kick that member.
 
+## Pattern 14: Member Lists in Large or Busy Chats
+
+**Use case**: List members of a chat where the default read-only `member list` fails with `member_snapshot_changed_or_incomplete` (for example, a large open chat where `GETMEM` returns fewer records than the active member count, or a chat where members join and leave often).
+
+```bash
+#!/bin/bash
+
+CHAT_ID="9876543210"
+
+# 1. Default: read-only and fail-closed. Prints a bare array only when complete.
+if MEMBERS=$(agent-kakaotalk member list "$CHAT_ID"); then
+  echo "$MEMBERS" | jq length
+  exit 0
+fi
+
+# 2. Best effort without entering the room: inspect `complete` before using it.
+SNAPSHOT=$(agent-kakaotalk member list "$CHAT_ID" --allow-partial)
+echo "$SNAPSHOT" | jq '{complete, active_members, returned: (.members | length), incomplete_reason}'
+
+# 3. Only if the user accepts that the chat may be marked as read:
+#    fill the gap from the room's member id list (CHATONROOM + MEMBER).
+SNAPSHOT=$(agent-kakaotalk member list "$CHAT_ID" --allow-room-entry --allow-partial)
+if [ "$(echo "$SNAPSHOT" | jq -r '.complete')" != "true" ]; then
+  echo "Roster still incomplete: $(echo "$SNAPSHOT" | jq -r '.incomplete_reason')" >&2
+fi
+```
+
+Notes:
+
+- `--allow-partial` changes the output from a bare array to a snapshot object (`chat_id`, `active_members`, `members`, `complete`, `consistency_basis`, and `incomplete_reason` when incomplete).
+- `incomplete_reason: "member_count_mismatch"` means the reads were stable but the records did not match the active count; `"membership_changed"` means the reads disagreed. Retrying can help with `membership_changed`.
+- Never conclude that someone is not in the chat from a `complete: false` list.
+- `--allow-room-entry` sends `CHATONROOM` (room entry), which can advance this account's unread state. It is only sent when the read-only list is incomplete, but do not use it from scheduled or passive jobs unless that side effect is acceptable.
+
 ## Best Practices
 
 ### 1. Cache Chat IDs
