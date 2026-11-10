@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from 'bun:test'
+import { afterEach, beforeEach, describe, expect, it, spyOn } from 'bun:test'
 import { rmSync, unlinkSync } from 'node:fs'
 import { join } from 'node:path'
 
@@ -178,6 +178,36 @@ describe('TeamsClient', () => {
   })
 
   describe('testAuth', () => {
+    it.each([false, true])('authenticates an IC3 cookie token with region discovery=%s', async (discoverRegion) => {
+      // given: the messaging token now stored in UnTeams authtoken_asm cookies
+      const token = 'eyJhbGciOiJSUzI1NiJ9.eyJhdWQiOiJodHRwczovL2ljMy50ZWFtcy5vZmZpY2UuY29tIn0.signature'
+      const client = await new TeamsClient().login({
+        token,
+        accountType: 'work',
+        region: discoverRegion ? undefined : 'emea',
+      })
+      const fetchSpy = spyOn(globalThis, 'fetch').mockImplementation(async (_input, init) => {
+        const headers = new Headers(init?.headers)
+        if (headers.get('Authorization') !== `Bearer ${token}` || headers.has('X-Skypetoken')) {
+          return new Response('{}', { status: 401 })
+        }
+        return Response.json({ userDetails: JSON.stringify({ name: 'Alice' }) })
+      })
+
+      try {
+        // when
+        const user = await client.testAuth()
+
+        // then
+        expect(user.displayName).toBe('Alice')
+        for (const [, init] of fetchSpy.mock.calls) {
+          expect(new Headers(init?.headers).get('Authorization')).toBe(`Bearer ${token}`)
+        }
+      } finally {
+        fetchSpy.mockRestore()
+      }
+    })
+
     it('returns current user info', async () => {
       mockResponse({
         userDetails: JSON.stringify({ name: 'Test User' }),

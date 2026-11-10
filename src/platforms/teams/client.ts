@@ -506,20 +506,32 @@ export class TeamsClient {
     return `https://${this.region}.ng.msg.teams.microsoft.com/v1`
   }
 
+  private getMessagingAuthHeaders(): Record<string, string> {
+    const token = this.ensureAuth()
+    const payload = token.split('.')[1]
+    if (payload) {
+      try {
+        const claims: unknown = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8'))
+        if (isRecord(claims) && claims.aud === 'https://ic3.teams.office.com') {
+          return { Authorization: `Bearer ${token}` }
+        }
+      } catch (error) {
+        if (!(error instanceof SyntaxError)) throw error
+      }
+    }
+    return { 'X-Skypetoken': token }
+  }
+
   private async discoverRegion(): Promise<void> {
     if (this.isPersonalAccount) {
       this.regionDiscovered = true
       return
     }
 
-    const token = this.ensureAuth()
-
     for (const region of REGIONS) {
       try {
         const response = await fetch(`https://${region}.ng.msg.teams.microsoft.com/v1/users/ME/properties`, {
-          headers: {
-            'X-Skypetoken': token,
-          },
+          headers: this.getMessagingAuthHeaders(),
         })
 
         if (response.ok || response.status !== 403) {
@@ -548,7 +560,7 @@ export class TeamsClient {
       await this.waitForRateLimit(bucketKey)
 
       const headers: Record<string, string> = {
-        'X-Skypetoken': this.ensureAuth(),
+        ...this.getMessagingAuthHeaders(),
         'Content-Type': 'application/json',
       }
 
@@ -618,9 +630,7 @@ export class TeamsClient {
 
     const response = await fetch(url, {
       method: 'POST',
-      headers: {
-        'X-Skypetoken': this.ensureAuth(),
-      },
+      headers: this.getMessagingAuthHeaders(),
       body: formData,
     })
 

@@ -1,4 +1,5 @@
-import { beforeEach, describe, expect, spyOn, it } from 'bun:test'
+import { Database } from 'bun:sqlite'
+import { afterEach, beforeEach, describe, expect, spyOn, it } from 'bun:test'
 import { createCipheriv, pbkdf2Sync } from 'node:crypto'
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { homedir, tmpdir } from 'node:os'
@@ -473,6 +474,86 @@ describe('TeamsTokenExtractor', () => {
       expect(result).toEqual([])
 
       extractFromCookiesDBSpy.mockRestore()
+    })
+  })
+
+  describe('current Teams cookies', () => {
+    const token = 'eyJhbGciOiJSUzI1NiJ9.eyJhdWQiOiJodHRwczovL2ljMy50ZWFtcy5vZmZpY2UuY29tIn0.signature'
+    let workDir: string
+
+    beforeEach(() => {
+      workDir = mkdtempSync(join(tmpdir(), 'teams-cookie-test-'))
+    })
+
+    afterEach(() => {
+      rmSync(workDir, { recursive: true, force: true })
+    })
+
+    it.each([
+      ['skypetoken_asm', 'plaintext'],
+      ['authtoken_asm', 'plaintext'],
+      ['authtoken_asm_urlp', 'plaintext'],
+      ['authtoken_asm', 'encrypted'],
+    ])('extracts the %s messaging cookie stored as %s', async (name, storage) => {
+      // given: a signed-in web profile with only its current messaging cookie
+      const cookiesPath = join(workDir, 'Cookies')
+      const value = name === 'skypetoken_asm' ? token : encodeURIComponent(`Bearer ${token}`)
+      const encrypted = storage === 'encrypted'
+      const key = pbkdf2Sync('peanuts', 'saltysalt', 1, 16, 'sha1')
+      const db = new Database(cookiesPath)
+      db.run('CREATE TABLE cookies (host_key TEXT, name TEXT, value TEXT, encrypted_value BLOB)')
+      db.run('INSERT INTO cookies VALUES (?, ?, ?, ?)', [
+        '.asyncgw.teams.microsoft.com',
+        name,
+        encrypted ? '' : value,
+        encrypted ? encryptAESCBC('\0'.repeat(32) + value, key, 'v10') : Buffer.alloc(0),
+      ])
+      db.close()
+      const linuxExtractor = new TeamsTokenExtractor('linux')
+      const paths = spyOn(linuxExtractor, 'getTeamsCookiesPaths').mockReturnValue([
+        { path: cookiesPath, accountType: 'work', accountTypeKnown: false },
+      ])
+
+      try {
+        // when
+        const results = await linuxExtractor.extract()
+
+        // then
+        expect(results).toEqual([{ token, accountType: 'work', accountTypeKnown: false }])
+      } finally {
+        paths.mockRestore()
+      }
+    })
+
+    it('extracts the real-time bearer from the current Teams cloud domain', async () => {
+      // given: Teams stores its URL-encoded real-time token on teams.cloud.microsoft
+      const cookiesPath = join(workDir, 'Cookies')
+      const bearer = 'header.encrypted-key.iv.ciphertext.authentication-tag'
+      const db = new Database(cookiesPath)
+      db.run('CREATE TABLE cookies (host_key TEXT, name TEXT, value TEXT, encrypted_value BLOB)')
+      db.run('INSERT INTO cookies VALUES (?, ?, ?, ?)', [
+        'teams.cloud.microsoft',
+        'authtoken',
+        encodeURIComponent(`Bearer=${bearer}`),
+        Buffer.alloc(0),
+      ])
+      db.close()
+      const linuxExtractor = new TeamsTokenExtractor('linux')
+      const desktopPaths = spyOn(linuxExtractor, 'getDesktopCookiesPaths').mockReturnValue([
+        { path: cookiesPath, accountType: 'work', accountTypeKnown: false },
+      ])
+      const browserPaths = spyOn(linuxExtractor, 'getBrowserCookiesPaths').mockReturnValue([])
+
+      try {
+        // when
+        const result = await linuxExtractor.extractIdToken()
+
+        // then
+        expect(result).toBe(bearer)
+      } finally {
+        desktopPaths.mockRestore()
+        browserPaths.mockRestore()
+      }
     })
   })
 

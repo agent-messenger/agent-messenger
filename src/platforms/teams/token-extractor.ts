@@ -40,7 +40,7 @@ const TEAMS_PROCESS_NAMES: Record<string, string> = {
   linux: 'teams',
 }
 
-const SKYPETOKEN_COOKIE_NAME = 'skypetoken_asm'
+const MESSAGING_TOKEN_COOKIE_NAMES = ['skypetoken_asm', 'authtoken_asm', 'authtoken_asm_urlp']
 const TEAMS_HOST_PATTERNS = [
   '.asyncgw.teams.microsoft.com',
   '.asm.skype.com',
@@ -53,7 +53,7 @@ const TEAMS_HOST_PATTERNS = [
 // user.authenticate step. Teams stores it in the `authtoken` cookie, prefixed
 // with "Bearer=" and URL-encoded.
 const AUTHTOKEN_COOKIE_NAME = 'authtoken'
-const AUTHTOKEN_HOST_PATTERNS = ['teams.live.com', 'teams.microsoft.com']
+const AUTHTOKEN_HOST_PATTERNS = ['teams.live.com', 'teams.microsoft.com', 'teams.cloud.microsoft']
 
 // Unteams (https://github.com/devxoul/unteams) is an Electron wrapper that loads Teams on the
 // web (teams.cloud.microsoft), so it keeps a normal Chromium cookie store in its userData dir
@@ -366,7 +366,7 @@ export class TeamsTokenExtractor {
   private normalizeAuthToken(rawValue: string): string | null {
     if (!rawValue) return null
     const decoded = decodeURIComponent(rawValue)
-    const token = decoded.replace(/^Bearer=/i, '').trim()
+    const token = decoded.replace(/^Bearer(?:=|\s+)/i, '').trim()
     return token.length > 20 ? token : null
   }
 
@@ -462,8 +462,9 @@ export class TeamsTokenExtractor {
         const sql = `
           SELECT value, encrypted_value 
           FROM cookies 
-          WHERE name = '${SKYPETOKEN_COOKIE_NAME}' 
+          WHERE name IN ('${MESSAGING_TOKEN_COOKIE_NAMES.join("', '")}')
           AND host_key LIKE '%${hostPattern}%'
+          ORDER BY CASE name WHEN 'skypetoken_asm' THEN 0 WHEN 'authtoken_asm' THEN 1 ELSE 2 END
           LIMIT 1
         `
 
@@ -474,7 +475,7 @@ export class TeamsTokenExtractor {
 
         if (row.value && row.value.length >= 50) {
           this.debug(`    Found plaintext cookie for ${hostPattern} (${row.value.length} chars)`)
-          return row.value
+          return this.normalizeAuthToken(row.value)
         }
 
         if (!row.encrypted_value || row.encrypted_value.length === 0) {
@@ -495,10 +496,10 @@ export class TeamsTokenExtractor {
         }
 
         this.debug(`    Decrypted: ${decryptedBuf.length} bytes`)
-        const token = this.postProcessDecrypted(decryptedBuf)
-        if (this.isValidSkypeToken(token)) return token
+        const token = this.normalizeAuthToken(this.postProcessDecrypted(decryptedBuf))
+        if (token && this.isValidSkypeToken(token)) return token
 
-        this.debug(`    Post-process result not a valid token (${token.length} chars)`)
+        this.debug(`    Post-process result not a valid token (${token?.length ?? 0} chars)`)
       }
 
       return null
