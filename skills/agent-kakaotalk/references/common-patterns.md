@@ -29,6 +29,8 @@ fi
 
 **When to use**: Simple one-off messages where you know the chat ID.
 
+**Note**: `message send` also exits non-zero when `success` is `false`. Under `set -e`, a rejected send stops the script at the send line, including the captured `RESULT=$(...)` form above, so its `else` branch never runs. To inspect `.success` and handle the failure yourself under `set -e`, capture with `RESULT=$(agent-kakaotalk message send "$CHAT_ID" "Hello world") || true`.
+
 **Note**: You must know the chat ID. Use `agent-kakaotalk chat list` to discover chat IDs.
 
 ## Pattern 2: Discover Chat Rooms

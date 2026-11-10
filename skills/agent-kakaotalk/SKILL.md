@@ -522,6 +522,8 @@ agent-kakaotalk message mark-read <chat-id> <log-id> --account <account-id>
 agent-kakaotalk message typing <chat-id> --account <account-id>
 ```
 
+`message send` prints the send result (`success`, `status_code`, `chat_id`, `log_id`, `sent_at`). Like `upload`, `mark-read`, and `typing`, the process exits non-zero when `success` is `false`, so shell scripts can branch on the exit code as well as on the JSON.
+
 #### Replying to a Message
 
 `--reply-to <log-id>` sends the text as a quoted reply that references an existing message. Get the `log_id` from `message list` output. The CLI looks up the target in the chat's recent history (latest 100 messages) to build the quote, so the target must be reasonably recent. If it is not there, the command fails with `code: "reply_target_not_found"` without sending.
