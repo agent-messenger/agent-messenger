@@ -713,7 +713,8 @@ Some failures do not go through that handler, so check the exit code first and r
 
 - Missing or unknown account (`--account` not found, no stored account) prints `{"error": "..."}` to **stdout** and exits 1.
 - Missing credentials are checked before any non-`auth` command runs. That failure is printed to stderr as plain text (not JSON) and exits 1.
-- `auth` subcommands, `member kick` without `--force`, and `success: false` results from `message upload`, `message mark-read`, `message typing`, `member kick`, `member kick-list`, and `member unkick` print their result JSON to stdout and exit 1.
+- `auth` subcommands report their failures (and non-interactive `auth login` next-action steps) as result JSON on stdout; check that JSON rather than expecting the shared stderr format.
+- `member kick` without `--force`, and `success: false` results from `message upload`, `message mark-read`, `message typing`, `member kick`, `member kick-list`, and `member unkick` print their result JSON to stdout and exit 1.
 - `message send` prints its result JSON to stdout but currently exits 0 even when the result reports `success: false`. Check the `success` field of its output.
 
 When the underlying error carries a machine-readable code, it is included as `code`. Branch on `code` rather than matching the English `error` text, which may change. Errors without a code (like the one above) omit the field.

@@ -101,7 +101,7 @@ Learn once, use everywhere. The same commands work across Slack, Discord, Teams,
 
 When something goes wrong, tell the user exactly what and how to fix it. No cryptic error codes.
 
-CLI errors routed through the shared error handler are printed to stderr as JSON and the process exits non-zero. Platform commands may also report errors outside that handler, as JSON on stdout or as plain text; see the relevant CLI guide for command-specific behavior. The human-readable `error` message is always there; when the platform error carries a machine-readable reason, a string `code` is added next to it so scripts can branch without parsing the message:
+CLI errors routed through the shared error handler are printed to stderr as JSON and the process exits non-zero. Platform commands may also report errors outside that handler, as JSON on stdout or as plain text; see the relevant CLI guide for command-specific behavior. JSON from the shared handler always has a human-readable `error` message; when the platform error carries a machine-readable reason, a string `code` is added next to it so scripts can branch without parsing the message:
 
 ```json
 {
