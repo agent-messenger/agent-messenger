@@ -40,6 +40,11 @@ async function pageAction(
   options: { account?: string; count?: string; from?: string; pretty?: boolean },
 ): Promise<void> {
   try {
+    // The SDK treats an empty cursor as "from the oldest message", so an unset
+    // shell variable would silently replay the whole chat. Reject it up front.
+    if (options.from !== undefined && !/^\d+$/.test(options.from)) {
+      throw new Error(`Invalid --from value "${options.from}": expected a numeric log ID`)
+    }
     const count = parsePageCount(options.count)
     const page = await withKakaoClient(options, (client) =>
       client.getMessagePage(chatId, options.from !== undefined ? { count, from: options.from } : { count }),

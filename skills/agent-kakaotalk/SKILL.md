@@ -695,11 +695,11 @@ Output:
 ```bash
 CURSOR=123456789
 while :; do
-  PAGE=$(agent-kakaotalk message page 9876543210 --from "$CURSOR")
+  PAGE=$(agent-kakaotalk message page 9876543210 --from "$CURSOR") || exit 1
   echo "$PAGE" | jq -c '.messages[]'
   [ "$(echo "$PAGE" | jq -r '.complete')" = "true" ] && break
   NEXT=$(echo "$PAGE" | jq -r '.next_cursor // empty')
-  [ -z "$NEXT" ] && break   # no progress; stop instead of looping
+  [ -z "$NEXT" ] && { echo "message page: complete=false but no next_cursor; history may be incomplete" >&2; exit 1; }
   CURSOR=$NEXT
 done
 ```
@@ -707,7 +707,7 @@ done
 Notes:
 - Each CLI call logs in once. For long catch-ups prefer larger pages (`-n 100`, the default) or the SDK's `client.getMessagePage()` on one long-lived client.
 - Reads use `MCHATLOGS`, falling back to `CHATINFO` + `SYNCMSG`. Neither enters the room (`CHATONROOM`), so paging does not change read state.
-- Errors are printed as `{"error": "..."}` and the process exits non-zero (for example an invalid `--count`, a non-numeric `<chat-id>` or `--from`, or a non-zero LOCO status).
+- Errors are printed as `{"error": "..."}` and the process exits non-zero (for example an invalid `--count`, a non-numeric `<chat-id>`, an empty or non-numeric `--from`, or a non-zero LOCO status).
 
 ## Output Format
 

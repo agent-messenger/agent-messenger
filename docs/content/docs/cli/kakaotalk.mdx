@@ -422,12 +422,12 @@ agent-kakaotalk message list 9876543210 --from 123456789
 
 `message page` wraps the SDK's [`getMessagePage`](../sdk/kakaotalk#messages). It returns one page of messages strictly after `--from <log-id>`, oldest first. When more than `-n` messages are available it returns the oldest `-n` and sets `complete: false`; continue with `--from <next_cursor>` until `complete` is `true`.
 
-| Flag                   | Default                    | Description                                                          |
-| ---------------------- | -------------------------- | -------------------------------------------------------------------- |
-| `--from <log-id>`      | start of available history | Exclusive cursor. Only messages with a larger `log_id` are returned. |
-| `-n, --count <number>` | `100`                      | Page size, an integer from 1 to 100. Other values fail before login. |
-| `--account <id>`       | current account            | Use a specific KakaoTalk account.                                    |
-| `--pretty`             | off                        | Pretty print JSON output.                                            |
+| Flag                   | Default                    | Description                                                                                                            |
+| ---------------------- | -------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `--from <log-id>`      | start of available history | Exclusive cursor. Only messages with a larger `log_id` are returned. An empty or non-numeric value fails before login. |
+| `-n, --count <number>` | `100`                      | Page size, an integer from 1 to 100. Other values fail before login.                                                   |
+| `--account <id>`       | current account            | Use a specific KakaoTalk account.                                                                                      |
+| `--pretty`             | off                        | Pretty print JSON output.                                                                                              |
 
 ```json
 {
@@ -456,7 +456,7 @@ while :; do
   echo "$PAGE" | jq -c '.messages[]'
   [ "$(echo "$PAGE" | jq -r '.complete')" = "true" ] && break
   NEXT=$(echo "$PAGE" | jq -r '.next_cursor // empty')
-  [ -z "$NEXT" ] && break   # no progress; stop instead of looping
+  [ -z "$NEXT" ] && { echo "message page: complete=false but no next_cursor; history may be incomplete" >&2; exit 1; }
   CURSOR=$NEXT
 done
 ```

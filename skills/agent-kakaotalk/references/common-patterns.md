@@ -209,8 +209,8 @@ while :; do
   [ "$(echo "$PAGE" | jq -r '.complete')" = "true" ] && break
   NEXT=$(echo "$PAGE" | jq -r '.next_cursor // empty')
   if [ -z "$NEXT" ]; then
-    echo "No forward progress; stopping" >&2
-    break
+    echo "message page: complete=false but no next_cursor; history may be incomplete" >&2
+    exit 1
   fi
   CURSOR="$NEXT"
 done

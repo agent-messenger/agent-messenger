@@ -218,6 +218,36 @@ describe('message commands', () => {
       })
     }
 
+    for (const bad of ['', ' ', 'abc', '-5', '12x', '1.5']) {
+      it(`rejects --from ${JSON.stringify(bad)} before logging in`, async () => {
+        const exitSpy = mock((_code?: number): never => {
+          throw new Error('process.exit called')
+        })
+        process.exit = exitSpy as unknown as typeof process.exit
+
+        try {
+          try {
+            await messageCommand.parseAsync(['page', 'chat-123', '--from', bad], { from: 'user' })
+          } catch {
+            // process.exit stub throws to abort the action
+          }
+
+          expect(exitSpy).toHaveBeenCalledWith(1)
+          expect(mockWithKakaoClient).not.toHaveBeenCalled()
+          expect(mockGetMessagePage).not.toHaveBeenCalled()
+          expect(consoleLogSpy).not.toHaveBeenCalled()
+        } finally {
+          process.exit = originalExit
+        }
+      })
+    }
+
+    it('accepts --from 0 as an explicit start-of-history cursor', async () => {
+      await messageCommand.parseAsync(['page', 'chat-123', '--from', '0'], { from: 'user' })
+
+      expect(mockGetMessagePage).toHaveBeenCalledWith('chat-123', { count: 100, from: '0' })
+    })
+
     it('routes SDK errors through handleError and exits non-zero', async () => {
       const exitSpy = mock((_code?: number): never => {
         throw new Error('process.exit called')
