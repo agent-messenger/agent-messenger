@@ -5,7 +5,7 @@
 | Authentication | Credentials | Supported routes |
 | --- | --- | --- |
 | `auth login` | Skype token and AAD refresh token | Chats, Graph work/school channels/directory/files, Substrate search |
-| `auth extract` | Skype token from desktop/browser cookies | Chats, legacy discovery, and channel/member/reaction/file commands via the older CSA routes (no search) |
+| `auth extract` | Messaging token (legacy Skype or IC3 Bearer) from desktop/browser cookies | Chats and legacy discovery; legacy Skype credentials also support older CSA routes (no search) |
 
 Tenant policies and delegated scopes can restrict operations even after a successful login. Personal accounts support chats; Graph channel APIs require a work/school account.
 
@@ -51,9 +51,9 @@ agent-teams auth extract --browser-profile ~/browser-data
 agent-teams auth extract --browser-profile ~/work-profile --browser-profile ~/personal-profile
 ```
 
-Extraction searches supported desktop/Chromium cookie stores for `skypetoken_asm`, validates it and stores a Skype-only account. Supported desktop sources include the official Microsoft Teams app, Chromium-based browsers, and the [Unteams](https://github.com/devxoul/unteams) app (a Teams-on-web Electron wrapper); for Unteams the cookie values are decrypted with its `Unteams Safe Storage` keychain key on macOS and its secret-store key on Linux. Extracted tokens commonly last 60-90 minutes. Automatic re-extraction requires the local app/browser to remain signed in and no stored device-code account. It does not mint Graph/Substrate tokens: channel, member, reaction and file commands fall back to the older Teams CSA routes, while `message search` and other Graph-only features still require `auth login`.
+Extraction searches supported desktop/Chromium cookie stores for messaging tokens, validates candidates and stores a working token as an extracted account. It reads the legacy `skypetoken_asm` cookie and the newer `authtoken_asm`/`authtoken_asm_urlp` cookies, whose values are URL-encoded and prefixed with `Bearer`; the prefix is stripped after decoding. Other candidates remain available if a preferred cookie fails validation. Newer IC3 tokens (audience `https://ic3.teams.office.com`) are sent to the regional messaging API as `Authorization: Bearer`, while legacy Skype tokens keep the `X-Skypetoken` header. CSA requests retain their existing `X-Skypetoken` authentication contract; IC3 Bearer support is limited to regional messaging calls. Extracted accounts still have no `aad_refresh_token`, so Graph and Substrate capabilities still need `auth login`. Supported desktop sources include the official Microsoft Teams app, Chromium-based browsers, and the [Unteams](https://github.com/devxoul/unteams) app (a Teams-on-web Electron wrapper); for Unteams the cookie values are decrypted with its `Unteams Safe Storage` keychain key on macOS and its secret-store key on Linux. Extracted tokens commonly last 60-90 minutes. Automatic re-extraction requires the local app/browser to remain signed in and no stored device-code account. Channel, member, reaction and file commands retain the older Teams CSA fallback, while `message search` and other Graph-only features still require `auth login`.
 
-SDK real-time `TeamsListener` additionally needs an extracted `authtoken`/id_token for its WebSocket. That token is read on demand, not supplied by device-code login. An API-only server therefore needs a separately verified real-time design.
+SDK real-time `TeamsListener` additionally needs an extracted `authtoken`/id_token for its WebSocket, read from `teams.live.com`, `teams.microsoft.com` or `teams.cloud.microsoft` cookies (the last covers Unteams and Teams on the web). That token is read on demand, not supplied by device-code login. An API-only server therefore needs a separately verified real-time design.
 
 ## Storage
 

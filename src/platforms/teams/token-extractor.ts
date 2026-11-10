@@ -365,7 +365,13 @@ export class TeamsTokenExtractor {
 
   private normalizeAuthToken(rawValue: string): string | null {
     if (!rawValue) return null
-    const decoded = decodeURIComponent(rawValue)
+    let decoded: string
+    try {
+      decoded = decodeURIComponent(rawValue)
+    } catch (error) {
+      if (error instanceof URIError) return null
+      throw error
+    }
     const token = decoded.replace(/^Bearer(?:=|\s+)/i, '').trim()
     return token.length > 20 ? token : null
   }
@@ -398,26 +404,27 @@ export class TeamsTokenExtractor {
       const typeLabel = accountTypeKnown ? accountType : `${accountType}?`
       this.debug(`  [try]  ${dbPath} (${typeLabel})`)
 
-      const token = await this.copyAndExtract(dbPath)
-      if (!token || !this.isValidSkypeToken(token)) {
-        if (token) {
-          this.debug(`  [fail] Token too short (${token.length} chars, need >=50)`)
-        } else {
-          this.debug(`  [fail] No token extracted`)
+      const tokens = await this.copyAndExtract(dbPath)
+      if (tokens.length === 0) {
+        this.debug(`  [fail] No token extracted`)
+      }
+      for (const token of tokens) {
+        if (!this.isValidSkypeToken(token)) {
+          this.debug(`  [fail] Invalid token (${token.length} chars)`)
+          continue
         }
-        continue
-      }
 
-      if (seenTokens.has(token)) {
-        this.debug(`  [skip] Duplicate token (already extracted from another path)`)
-        continue
-      }
+        if (seenTokens.has(token)) {
+          this.debug(`  [skip] Duplicate token (already extracted from another path)`)
+          continue
+        }
 
-      this.debug(`  [ok]   Extracted valid token (${token.length} chars)`)
-      results.push({ token, accountType, accountTypeKnown })
-      seenTokens.add(token)
-      if (accountTypeKnown) {
-        seenKnownAccountTypes.add(accountType)
+        this.debug(`  [ok]   Extracted valid token (${token.length} chars)`)
+        results.push({ token, accountType, accountTypeKnown })
+        seenTokens.add(token)
+        if (accountTypeKnown) {
+          seenKnownAccountTypes.add(accountType)
+        }
       }
     }
 
@@ -425,7 +432,7 @@ export class TeamsTokenExtractor {
     return results
   }
 
-  private async copyAndExtract(dbPath: string): Promise<string | null> {
+  private async copyAndExtract(dbPath: string): Promise<string[]> {
     let tempPath = dbPath
 
     try {
@@ -450,62 +457,46 @@ export class TeamsTokenExtractor {
       return await this.extractFromSQLite(tempPath, localStatePath)
     } catch (error) {
       this.debug(`    Copy/extract error: ${(error as Error).message}`)
-      return null
+      return []
     } finally {
       this.cleanupTempFile(tempPath)
     }
   }
 
-  private async extractFromSQLite(dbPath: string, localStatePath?: string): Promise<string | null> {
+  private async extractFromSQLite(dbPath: string, localStatePath?: string): Promise<string[]> {
     try {
-      for (const hostPattern of TEAMS_HOST_PATTERNS) {
-        const sql = `
-          SELECT value, encrypted_value 
-          FROM cookies 
-          WHERE name IN ('${MESSAGING_TOKEN_COOKIE_NAMES.join("', '")}')
-          AND host_key LIKE '%${hostPattern}%'
-          ORDER BY CASE name WHEN 'skypetoken_asm' THEN 0 WHEN 'authtoken_asm' THEN 1 ELSE 2 END
-          LIMIT 1
-        `
+      const sql = `
+        SELECT name, value, encrypted_value
+        FROM cookies
+        WHERE name IN ('${MESSAGING_TOKEN_COOKIE_NAMES.join("', '")}')
+        AND (${TEAMS_HOST_PATTERNS.map((host) => `host_key LIKE '%${host}%'`).join(' OR ')})
+        ORDER BY CASE name WHEN 'skypetoken_asm' THEN 0 WHEN 'authtoken_asm' THEN 1 ELSE 2 END
+      `
 
-        type CookieRow = { value?: string; encrypted_value?: Uint8Array | Buffer } | null
+      type CookieRow = { name: string; value?: string; encrypted_value?: Uint8Array | Buffer }
+      const rows = await this.cookieReader.queryAll<CookieRow>(dbPath, sql)
+      const tokens: string[] = []
 
-        const row = await this.cookieReader.queryFirst<CookieRow>(dbPath, sql)
-        if (!row) continue
+      for (const row of rows) {
+        let token: string | null = null
 
         if (row.value && row.value.length >= 50) {
-          this.debug(`    Found plaintext cookie for ${hostPattern} (${row.value.length} chars)`)
-          return this.normalizeAuthToken(row.value)
+          this.debug(`    Found plaintext ${row.name} cookie (${row.value.length} chars)`)
+          token = this.normalizeAuthToken(row.value)
+        } else if (row.encrypted_value && row.encrypted_value.length > 0) {
+          const decrypted = this.decryptor.decryptCookieRaw(Buffer.from(row.encrypted_value), localStatePath)
+          if (decrypted) {
+            token = this.normalizeAuthToken(this.postProcessDecrypted(decrypted))
+          }
         }
 
-        if (!row.encrypted_value || row.encrypted_value.length === 0) {
-          this.debug(`    No cookie data for ${hostPattern}`)
-          continue
-        }
-
-        const encBuf = Buffer.from(row.encrypted_value)
-        const isEncrypted = this.isEncryptedValue(encBuf)
-        this.debug(
-          `    Found cookie for ${hostPattern}: ${encBuf.length} bytes, encrypted=${isEncrypted}, prefix=${encBuf.subarray(0, 3).toString('utf8')}`,
-        )
-
-        const decryptedBuf = this.decryptor.decryptCookieRaw(encBuf, localStatePath)
-        if (!decryptedBuf) {
-          this.debug(`    Decryption failed`)
-          continue
-        }
-
-        this.debug(`    Decrypted: ${decryptedBuf.length} bytes`)
-        const token = this.normalizeAuthToken(this.postProcessDecrypted(decryptedBuf))
-        if (token && this.isValidSkypeToken(token)) return token
-
-        this.debug(`    Post-process result not a valid token (${token?.length ?? 0} chars)`)
+        if (token && this.isValidSkypeToken(token)) tokens.push(token)
       }
 
-      return null
+      return tokens
     } catch (error) {
       this.debug(`    SQLite query error: ${(error as Error).message}`)
-      return null
+      return []
     }
   }
 

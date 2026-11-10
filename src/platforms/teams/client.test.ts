@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, spyOn } from 'bun:test'
-import { rmSync, unlinkSync } from 'node:fs'
+import { mkdtempSync, rmSync, unlinkSync } from 'node:fs'
+import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
 import { TeamsClient } from './client'
@@ -186,10 +187,13 @@ describe('TeamsClient', () => {
         accountType: 'work',
         region: discoverRegion ? undefined : 'emea',
       })
-      const fetchSpy = spyOn(globalThis, 'fetch').mockImplementation(async (_input, init) => {
+      const fetchSpy = spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
         const headers = new Headers(init?.headers)
         if (headers.get('Authorization') !== `Bearer ${token}` || headers.has('X-Skypetoken')) {
           return new Response('{}', { status: 401 })
+        }
+        if (new URL(input instanceof Request ? input.url : input.toString()).hostname.startsWith('amer.')) {
+          return new Response('{}', { status: 403 })
         }
         return Response.json({ userDetails: JSON.stringify({ name: 'Alice' }) })
       })
@@ -200,6 +204,7 @@ describe('TeamsClient', () => {
 
         // then
         expect(user.displayName).toBe('Alice')
+        expect(client.getRegion()).toBe('emea')
         for (const [, init] of fetchSpy.mock.calls) {
           expect(new Headers(init?.headers).get('Authorization')).toBe(`Bearer ${token}`)
         }
@@ -608,6 +613,33 @@ describe('TeamsClient', () => {
       }
       return client
     }
+
+    it('preserves CSA headers for JSON and multipart requests with an IC3 token', async () => {
+      // given: regional messaging uses a Bearer token, while CSA keeps its existing contract
+      const dir = mkdtempSync(join(tmpdir(), 'teams-ic3-csa-'))
+      TEMP_DIRS_TO_CLEANUP.push(dir)
+      const filePath = join(dir, 'fixture.txt')
+      await Bun.write(filePath, 'test')
+      const token = 'eyJhbGciOiJSUzI1NiJ9.eyJhdWQiOiJodHRwczovL2ljMy50ZWFtcy5vZmZpY2UuY29tIn0.signature'
+      const client = await new TeamsClient(new TeamsCredentialManager(dir)).login({ token, region: 'emea' })
+      mockResponse([{ id: 'ch1', team_id: '111', name: 'General' }])
+      mockResponse({ id: 'file1', name: 'fixture.txt', size: 4 })
+
+      // when
+      const channels = await client.listChannels('111')
+      const file = await client.uploadFile('111', 'ch1', filePath)
+
+      // then
+      expect(channels[0].name).toBe('General')
+      expect(file.id).toBe('file1')
+      expect(fetchCalls).toHaveLength(2)
+      for (const call of fetchCalls) {
+        const headers = new Headers(call.options?.headers)
+        expect(headers.get('X-Skypetoken')).toBe(token)
+        expect(headers.has('Authorization')).toBe(false)
+      }
+      expect(fetchCalls[1].options?.body).toBeInstanceOf(FormData)
+    })
 
     it('reads channels and channel messages through CSA when no Graph token is available', async () => {
       mockResponse([{ id: 'ch1', team_id: '111', name: 'General' }])

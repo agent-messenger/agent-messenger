@@ -555,6 +555,41 @@ describe('TeamsTokenExtractor', () => {
         browserPaths.mockRestore()
       }
     })
+
+    it('preserves the current cookie when a legacy token also needs validation', async () => {
+      // given: an expired but well-shaped legacy token alongside the current OAuth cookie
+      const legacy = 'eyJhbGciOiJSUzI1NiJ9.eyJleHAiOjEsInNreXBlaWQiOiJ0ZXN0In0.signature'
+      const cookiesPath = join(workDir, 'Cookies')
+      const db = new Database(cookiesPath)
+      db.run('CREATE TABLE cookies (host_key TEXT, name TEXT, value TEXT, encrypted_value BLOB)')
+      for (const [name, value] of [
+        ['skypetoken_asm', legacy],
+        ['authtoken_asm', encodeURIComponent(`Bearer ${token}`)],
+        ['authtoken_asm_urlp', 'Bearer%invalid' + 'x'.repeat(60)],
+      ]) {
+        db.run('INSERT INTO cookies VALUES (?, ?, ?, ?)', [
+          '.asyncgw.teams.microsoft.com',
+          name,
+          value,
+          Buffer.alloc(0),
+        ])
+      }
+      db.close()
+      const linuxExtractor = new TeamsTokenExtractor('linux')
+      const paths = spyOn(linuxExtractor, 'getTeamsCookiesPaths').mockReturnValue([
+        { path: cookiesPath, accountType: 'work', accountTypeKnown: false },
+      ])
+
+      try {
+        // when
+        const results = await linuxExtractor.extract()
+
+        // then: API validation can reject the old token without losing the current one
+        expect(results.map(({ token }) => token)).toEqual([legacy, token])
+      } finally {
+        paths.mockRestore()
+      }
+    })
   })
 
   describe('extractFromCookiesDB (Network/Cookies fallback)', () => {
@@ -586,7 +621,7 @@ describe('TeamsTokenExtractor', () => {
       const copyAndExtractSpy = spyOn(winExtractor as any, 'copyAndExtract').mockImplementation(async (...args) => {
         const path = args[0] as string
         tried.push(path)
-        return mockToken
+        return [mockToken]
       })
 
       // when
@@ -625,8 +660,8 @@ describe('TeamsTokenExtractor', () => {
       writeFileSync(secondPath, '')
 
       const copyAndExtractSpy = spyOn(winExtractor as any, 'copyAndExtract')
-        .mockResolvedValueOnce(clixmlGarbage)
-        .mockResolvedValueOnce(realToken)
+        .mockResolvedValueOnce([clixmlGarbage])
+        .mockResolvedValueOnce([realToken])
 
       // when
       const results = await (winExtractor as any).extractFromCookiesDB()
@@ -653,7 +688,7 @@ describe('TeamsTokenExtractor', () => {
       const getPathsSpy = spyOn(winExtractor, 'getTeamsCookiesPaths').mockReturnValue([
         { path: browserPath, accountType: 'work', accountTypeKnown: false },
       ])
-      const copyAndExtractSpy = spyOn(winExtractor as any, 'copyAndExtract').mockResolvedValue(mockToken)
+      const copyAndExtractSpy = spyOn(winExtractor as any, 'copyAndExtract').mockResolvedValue([mockToken])
 
       // when
       const results = await (winExtractor as any).extractFromCookiesDB()
@@ -687,8 +722,8 @@ describe('TeamsTokenExtractor', () => {
         { path: browserPath, accountType: 'work', accountTypeKnown: false },
       ])
       const copyAndExtractSpy = spyOn(winExtractor as any, 'copyAndExtract')
-        .mockResolvedValueOnce(desktopToken)
-        .mockResolvedValueOnce(browserToken)
+        .mockResolvedValueOnce([desktopToken])
+        .mockResolvedValueOnce([browserToken])
 
       // when
       const results = await (winExtractor as any).extractFromCookiesDB()
@@ -717,7 +752,7 @@ describe('TeamsTokenExtractor', () => {
         { path: path1, accountType: 'work', accountTypeKnown: false },
         { path: path2, accountType: 'work', accountTypeKnown: false },
       ])
-      const copyAndExtractSpy = spyOn(winExtractor as any, 'copyAndExtract').mockResolvedValue(mockToken)
+      const copyAndExtractSpy = spyOn(winExtractor as any, 'copyAndExtract').mockResolvedValue([mockToken])
 
       // when
       const results = await (winExtractor as any).extractFromCookiesDB()
@@ -745,7 +780,7 @@ describe('TeamsTokenExtractor', () => {
         { path: workCookies, accountType: 'work', accountTypeKnown: true },
         { path: workNetworkCookies, accountType: 'work', accountTypeKnown: true },
       ])
-      const copyAndExtractSpy = spyOn(winExtractor as any, 'copyAndExtract').mockResolvedValue(mockToken)
+      const copyAndExtractSpy = spyOn(winExtractor as any, 'copyAndExtract').mockResolvedValue([mockToken])
 
       // when
       const results = await (winExtractor as any).extractFromCookiesDB()
@@ -767,7 +802,7 @@ describe('TeamsTokenExtractor', () => {
       const darwinExtractor = new TeamsTokenExtractor('darwin')
 
       const copyFileSpy = spyOn(darwinExtractor as any, 'copyDatabaseToTemp').mockReturnValue('/tmp/test-cookies')
-      const extractSpy = spyOn(darwinExtractor as any, 'extractFromSQLite').mockResolvedValue('test_token')
+      const extractSpy = spyOn(darwinExtractor as any, 'extractFromSQLite').mockResolvedValue(['test_token'])
       const cleanupSpy = spyOn(darwinExtractor as any, 'cleanupTempFile').mockImplementation(() => {})
 
       const result = await (darwinExtractor as any).copyAndExtract('/path/to/Cookies')
@@ -775,14 +810,14 @@ describe('TeamsTokenExtractor', () => {
       expect(copyFileSpy).toHaveBeenCalled()
       expect(extractSpy).toHaveBeenCalled()
       expect(cleanupSpy).toHaveBeenCalled()
-      expect(result).toBe('test_token')
+      expect(result).toEqual(['test_token'])
 
       copyFileSpy.mockRestore()
       extractSpy.mockRestore()
       cleanupSpy.mockRestore()
     })
 
-    it('returns null when copy fails (file locked)', async () => {
+    it('returns no tokens when copy fails (file locked)', async () => {
       const darwinExtractor = new TeamsTokenExtractor('darwin')
 
       const copyFileSpy = spyOn(darwinExtractor as any, 'copyDatabaseToTemp').mockImplementation(() => {
@@ -791,7 +826,7 @@ describe('TeamsTokenExtractor', () => {
 
       const result = await (darwinExtractor as any).copyAndExtract('/path/to/Cookies')
 
-      expect(result).toBeNull()
+      expect(result).toEqual([])
 
       copyFileSpy.mockRestore()
     })
@@ -893,20 +928,20 @@ describe('TeamsTokenExtractor', () => {
   })
 
   describe('SQLite extraction', () => {
-    it('returns null when database path does not exist', async () => {
+    it('returns no tokens when database path does not exist', async () => {
       const darwinExtractor = new TeamsTokenExtractor('darwin')
 
       const result = await (darwinExtractor as any).extractFromSQLite('/nonexistent/path')
 
-      expect(result).toBeNull()
+      expect(result).toEqual([])
     })
 
-    it('returns null when extraction throws', async () => {
+    it('returns no tokens when extraction throws', async () => {
       const darwinExtractor = new TeamsTokenExtractor('darwin')
 
       const result = await (darwinExtractor as any).extractFromSQLite('/dev/null')
 
-      expect(result).toBeNull()
+      expect(result).toEqual([])
     })
   })
 })

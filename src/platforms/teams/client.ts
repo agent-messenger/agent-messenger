@@ -528,10 +528,11 @@ export class TeamsClient {
       return
     }
 
+    const headers = this.getMessagingAuthHeaders()
     for (const region of REGIONS) {
       try {
         const response = await fetch(`https://${region}.ng.msg.teams.microsoft.com/v1/users/ME/properties`, {
-          headers: this.getMessagingAuthHeaders(),
+          headers,
         })
 
         if (response.ok || response.status !== 403) {
@@ -560,7 +561,7 @@ export class TeamsClient {
       await this.waitForRateLimit(bucketKey)
 
       const headers: Record<string, string> = {
-        ...this.getMessagingAuthHeaders(),
+        ...(baseUrl === undefined ? this.getMessagingAuthHeaders() : { 'X-Skypetoken': this.ensureAuth() }),
         'Content-Type': 'application/json',
       }
 
@@ -630,7 +631,7 @@ export class TeamsClient {
 
     const response = await fetch(url, {
       method: 'POST',
-      headers: this.getMessagingAuthHeaders(),
+      headers: { 'X-Skypetoken': this.ensureAuth() },
       body: formData,
     })
 

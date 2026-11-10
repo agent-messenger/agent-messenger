@@ -13,7 +13,7 @@ agent-teams --account work team list
 agent-teams --account work channel list "$TEAM_ID"
 ```
 
-If refresh fails, reconnect with `auth login`. Do not run `auth extract` in a channel automation wrapper: it replaces refresh credentials with a Skype-only account. Automatic extraction is suppressed when any stored device-code account exists, including when another account type is selected.
+If refresh fails, reconnect with `auth login`. Do not run `auth extract` in a channel automation wrapper: it replaces refresh credentials with an extracted messaging token and no `aad_refresh_token`. Automatic extraction is suppressed when any stored device-code account exists, including when another account type is selected.
 
 `team list` uses live Graph display names for device-code work accounts. Extraction accounts retain cached team labels, which can be channel topics. SDK users can call `listJoinedTeams()` for authoritative Graph names; `listTeams()` remains the Skype discovery method.
 
