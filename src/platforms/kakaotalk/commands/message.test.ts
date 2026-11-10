@@ -218,7 +218,7 @@ describe('message commands', () => {
       })
     }
 
-    for (const bad of ['', ' ', 'abc', '-5', '12x', '1.5']) {
+    for (const bad of ['', ' ', 'abc', '-5', '12x', '1.5', '9223372036854775808', '18446744073709551616']) {
       it(`rejects --from ${JSON.stringify(bad)} before logging in`, async () => {
         const exitSpy = mock((_code?: number): never => {
           throw new Error('process.exit called')
@@ -241,6 +241,12 @@ describe('message commands', () => {
         }
       })
     }
+
+    it('accepts the largest signed 64-bit log id as --from', async () => {
+      await messageCommand.parseAsync(['page', 'chat-123', '--from', '9223372036854775807'], { from: 'user' })
+
+      expect(mockGetMessagePage).toHaveBeenCalledWith('chat-123', { count: 100, from: '9223372036854775807' })
+    })
 
     it('accepts --from 0 as an explicit start-of-history cursor', async () => {
       await messageCommand.parseAsync(['page', 'chat-123', '--from', '0'], { from: 'user' })

@@ -25,6 +25,8 @@ async function listAction(
   }
 }
 
+const MAX_LOG_ID = 9223372036854775807n
+
 // Mirrors the SDK bound so a bad value fails before the CLI logs in.
 function parsePageCount(raw: string | undefined): number {
   if (raw === undefined) return 100
@@ -42,8 +44,14 @@ async function pageAction(
   try {
     // The SDK treats an empty cursor as "from the oldest message", so an unset
     // shell variable would silently replay the whole chat. Reject it up front.
-    if (options.from !== undefined && !/^\d+$/.test(options.from)) {
-      throw new Error(`Invalid --from value "${options.from}": expected a numeric log ID`)
+    // Log IDs are signed 64-bit; larger values would wrap when packed into a Long.
+    if (options.from !== undefined) {
+      if (!/^\d+$/.test(options.from)) {
+        throw new Error(`Invalid --from value "${options.from}": expected a numeric log ID`)
+      }
+      if (BigInt(options.from) > MAX_LOG_ID) {
+        throw new Error(`Invalid --from value "${options.from}": exceeds the maximum 64-bit log ID`)
+      }
     }
     const count = parsePageCount(options.count)
     const page = await withKakaoClient(options, (client) =>
