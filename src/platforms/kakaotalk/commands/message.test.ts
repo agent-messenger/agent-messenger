@@ -12,7 +12,9 @@ const mockGetMessages = mock(() =>
   Promise.resolve([{ log_id: '1', message: 'Hello', sender_id: 'user-1', created_at: 1000 }]),
 )
 
-const mockSendMessage = mock(() => Promise.resolve({ log_id: '2', message: 'Hi there', created_at: 2000 }))
+const mockSendMessage = mock(() =>
+  Promise.resolve({ success: true, status_code: 0, chat_id: 'chat-123', log_id: '2', sent_at: 2000 }),
+)
 
 const mockMarkRead = mock(() =>
   Promise.resolve({ success: true, status_code: 0, chat_id: 'chat-123', watermark: '42' }),
@@ -70,7 +72,9 @@ describe('message commands', () => {
     mockGetMessages.mockImplementation(() =>
       Promise.resolve([{ log_id: '1', message: 'Hello', sender_id: 'user-1', created_at: 1000 }]),
     )
-    mockSendMessage.mockImplementation(() => Promise.resolve({ log_id: '2', message: 'Hi there', created_at: 2000 }))
+    mockSendMessage.mockImplementation(() =>
+      Promise.resolve({ success: true, status_code: 0, chat_id: 'chat-123', log_id: '2', sent_at: 2000 }),
+    )
     mockMarkRead.mockImplementation(() =>
       Promise.resolve({ success: true, status_code: 0, chat_id: 'chat-123', watermark: '42' }),
     )
@@ -135,7 +139,61 @@ describe('message commands', () => {
       expect(mockSendMessage).toHaveBeenCalledWith('chat-123', 'Hello world')
       const output = JSON.parse(consoleLogSpy.mock.calls[0][0])
       expect(output.log_id).toBe('2')
-      expect(output.message).toBe('Hi there')
+      expect(output.success).toBe(true)
+    })
+
+    it('exits zero on success', async () => {
+      const exitSpy = mock((_code?: number): never => {
+        throw new Error('process.exit called')
+      })
+      process.exit = exitSpy as unknown as typeof process.exit
+
+      await messageCommand.parseAsync(['send', 'chat-123', 'Hello world'], { from: 'user' })
+
+      expect(exitSpy).not.toHaveBeenCalled()
+    })
+
+    it('prints the result and exits non-zero when the server rejects the send', async () => {
+      const exitSpy = mock((_code?: number): never => {
+        throw new Error('process.exit called')
+      })
+      process.exit = exitSpy as unknown as typeof process.exit
+      mockSendMessage.mockImplementationOnce(() =>
+        Promise.resolve({ success: false, status_code: -500, chat_id: 'chat-123', log_id: '0', sent_at: 0 }),
+      )
+
+      try {
+        await messageCommand.parseAsync(['send', 'chat-123', 'Hello world'], { from: 'user' })
+      } catch {
+        // process.exit stub throws to abort the action
+      }
+
+      expect(JSON.parse(consoleLogSpy.mock.calls[0][0])).toEqual({
+        success: false,
+        status_code: -500,
+        chat_id: 'chat-123',
+        log_id: '0',
+        sent_at: 0,
+      })
+      expect(exitSpy).toHaveBeenCalledWith(1)
+    })
+
+    it('exits non-zero when the acknowledgment has status 0 but no log id', async () => {
+      const exitSpy = mock((_code?: number): never => {
+        throw new Error('process.exit called')
+      })
+      process.exit = exitSpy as unknown as typeof process.exit
+      mockSendMessage.mockImplementationOnce(() =>
+        Promise.resolve({ success: false, status_code: 0, chat_id: 'chat-123', log_id: '0', sent_at: 0 }),
+      )
+
+      try {
+        await messageCommand.parseAsync(['send', 'chat-123', 'Hello world'], { from: 'user' })
+      } catch {
+        // process.exit stub throws to abort the action
+      }
+
+      expect(exitSpy).toHaveBeenCalledWith(1)
     })
 
     it('passes account option to withKakaoClient', async () => {

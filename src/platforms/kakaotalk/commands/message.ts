@@ -60,6 +60,9 @@ async function sendAction(
       return client.sendMessage(chatId, text, mentions ? { replyTo: target, mentions } : { replyTo: target })
     })
     console.log(formatOutput(result, options.pretty))
+    if (!result.success) {
+      process.exit(1)
+    }
   } catch (error) {
     handleError(error as Error)
   }

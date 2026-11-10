@@ -29,6 +29,8 @@ fi
 
 **When to use**: Simple one-off messages where you know the chat ID.
 
+**Note**: `message send` also exits non-zero when `success` is `false`, so under `set -e` a rejected send stops the script right after printing the JSON result.
+
 **Note**: You must know the chat ID. Use `agent-kakaotalk chat list` to discover chat IDs.
 
 ## Pattern 2: Discover Chat Rooms
