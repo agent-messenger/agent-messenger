@@ -386,6 +386,17 @@ agent-kakaotalk message send "9876543210" "Important message!"
 agent-kakaotalk message list "9876543210" --count 20
 ```
 
+The error JSON on stderr carries the code, so a script can tell this case apart
+without matching the message text:
+
+```bash
+if ! agent-kakaotalk message send "9876543210" "Important message!" 2>err.json; then
+  if [ "$(jq -r '.code // empty' err.json)" = "delivery_unknown" ]; then
+    echo "Delivery unknown; check history before resending" >&2
+  fi
+fi
+```
+
 A missing history entry immediately after a disconnect is not proof of failure.
 Timeouts after a send was written and uploads without a completion notice are
 reported as `delivery_unknown`. Other errors may still leave acceptance unknown;

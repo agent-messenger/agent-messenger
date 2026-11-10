@@ -177,16 +177,27 @@ describe('message commands', () => {
         throw new Error('process.exit called')
       })
       process.exit = exitSpy as unknown as typeof process.exit
+      const originalStderrWrite = process.stderr.write
+      const stderrSpy = mock((_chunk: unknown) => true)
+      process.stderr.write = stderrSpy as unknown as typeof process.stderr.write
 
       // when / then
       try {
         await messageCommand.parseAsync(['send', 'chat-123', 'replying', '--reply-to', '999'], { from: 'user' })
       } catch {
         // process.exit stub throws to abort the action
+      } finally {
+        process.stderr.write = originalStderrWrite
       }
 
       expect(mockSendMessage).not.toHaveBeenCalled()
-      expect(exitSpy).toHaveBeenCalled()
+      expect(exitSpy).toHaveBeenCalledWith(1)
+      const line = String(stderrSpy.mock.calls[0][0])
+      const output = JSON.parse(line.slice(line.indexOf('{'), line.lastIndexOf('}') + 1))
+      expect(output).toEqual({
+        error: 'Reply target log-id 999 not found in the latest 100 messages of chat chat-123',
+        code: 'reply_target_not_found',
+      })
     })
 
     it('sends a quoted reply from --reply-to-json without reading chat history', async () => {

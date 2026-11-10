@@ -94,15 +94,16 @@ agent-kakaotalk auth logout
 agent-kakaotalk auth logout --account <account-id>
 ```
 
-`auth status` checks stored credential state only. Kakao validates the access token when a command opens a LOCO session. If the token has expired or been revoked, commands retain the existing error output shape with a specific message:
+`auth status` checks stored credential state only. Kakao validates the access token when a command opens a LOCO session. If the token has expired or been revoked, commands print an error with a specific message and code:
 
 ```json
 {
-  "error": "KakaoTalk LOGINLIST invalid access token (status -950)"
+  "error": "KakaoTalk LOGINLIST invalid access token (status -950)",
+  "code": "invalid_access_token"
 }
 ```
 
-Run `agent-kakaotalk auth login` before retrying. Other explicit server rejections identify the returned status in the error message. Connection closes and timeouts remain transport failures and keep their existing messages.
+Run `agent-kakaotalk auth login` before retrying. Other explicit server rejections use `code: "login_rejected"` and identify the returned status in the error message. Connection closes and timeouts remain transport failures and keep their existing messages.
 
 ## Multi-Account
 
@@ -316,7 +317,7 @@ agent-kakaotalk message upload <chat-id> ./photo.jpg --account <account-id>
 agent-kakaotalk message typing <chat-id> --account <account-id>
 ```
 
-`--reply-to <log-id>` builds the quote from the chat's latest 100 messages and errors out if the target is not there. `--reply-to-json` takes the target as a JSON object (`log_id`, `author_id`, `message`, `type`, optional `link_id` for open chats) and sends without reading history, so it also works for older messages. Ids may be decimal strings or bare integers; large ids are parsed exactly. The two flags cannot be combined.
+`--reply-to <log-id>` builds the quote from the chat's latest 100 messages and errors out with `code: "reply_target_not_found"` if the target is not there. `--reply-to-json` takes the target as a JSON object (`log_id`, `author_id`, `message`, `type`, optional `link_id` for open chats) and sends without reading history, so it also works for older messages. Ids may be decimal strings or bare integers; large ids are parsed exactly. The two flags cannot be combined.
 
 > **No CLI command**: Read status is available only through the SDK: use [`getReadWatermarks` and `computeReadStatus`](../sdk/kakaotalk#read-status) to answer "who has read this message?". `getReadWatermarks` returns a one-time snapshot; the SDK does not keep it up to date. Because it sends `CHATONROOM`, which enters the room and may clear your own unread count (#315), call it once per chat per LOCO session. Your code owns the snapshot from then on: apply listener `read` events to your stored watermarks, only ever moving a watermark forward, instead of polling. On `disconnected`, discard the stored watermarks and seed each chat again after the reconnect.
 
@@ -457,6 +458,19 @@ Output includes:
 
 - Read-only for stickers: sticker / animated-sticker messages are exposed via the `attachment` field on each message, but sending stickers is not supported
 - Chat IDs are numeric and not human-readable — use `chat list` to discover them
+
+## Error Output
+
+Errors raised while a command runs go through the shared error handler: they are printed to stderr as JSON and the process exits non-zero. A few failures bypass it, so check the exit code first and read both streams: a missing or unknown account prints `{"error": "..."}` to stdout; missing credentials (checked before any non-`auth` command) are printed to stderr as plain text; both of these exit 1. `auth` subcommands report failures (and non-interactive `auth login` next-action steps) as result JSON on stdout; `member kick` without `--force`, and `success: false` results from `message upload`, `message mark-read`, `message typing`, `member kick`, `member kick-list`, and `member unkick` print their JSON to stdout and exit 1. `message send` also prints its result JSON to stdout but currently exits 0 even when it reports `success: false`, so check the `success` field of its output. When the error carries a machine-readable code, it is included as `code`; otherwise only `error` is present. Branch on `code` instead of matching the message text.
+
+```json
+{
+  "error": "Reply target log-id 1234567890 not found in the latest 100 messages of chat 9876543210",
+  "code": "reply_target_not_found"
+}
+```
+
+Common codes: `delivery_unknown` (a send may or may not have been delivered; check history before resending), `invalid_access_token` and `login_rejected` (run `auth login`), `invalid_mention`, `reply_target_not_found`, `invalid_chat_id`, `invalid_link_id`.
 
 ## Troubleshooting
 
