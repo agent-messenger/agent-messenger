@@ -4299,6 +4299,18 @@ describe('KakaoTalkClient', () => {
         client.close()
       })
 
+      it('fails closed when a GETMEM response has no members field even with allowPartial', async () => {
+        mockGetChannelInfo.mockResolvedValue(memberChannelInfo(3))
+        mockGetAllMembers.mockResolvedValue({ statusCode: 0, body: {} } as never)
+
+        const client = await loggedInClient()
+        await expect(client.getMemberSnapshot('100', { allowPartial: true })).rejects.toMatchObject({
+          code: 'get_member_snapshot_failed',
+        })
+
+        client.close()
+      })
+
       it('fails closed when CHATONROOM has no member id list', async () => {
         mockGetChannelInfo.mockResolvedValue(memberChannelInfo(3))
         mockGetAllMembers.mockResolvedValue(getMemResponse([memberRecord(1)]))

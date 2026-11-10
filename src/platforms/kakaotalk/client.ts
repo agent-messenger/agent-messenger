@@ -1595,13 +1595,13 @@ export class KakaoTalkClient {
     const firstChat = channelMemberView(firstChatResponse.body as Record<string, unknown>, normalizedChatId)
     const firstMemberResponse = await session.getAllMembers(parsedChatId)
     assertLocoOk(firstMemberResponse, 'GETMEM')
-    const firstMembers = exactMemberRecords(firstMemberResponse.body.members ?? [], 'GETMEM')
+    const firstMembers = exactMemberRecords(firstMemberResponse.body.members, 'GETMEM')
     const secondChatResponse = await session.getChannelInfo(parsedChatId)
     assertLocoOk(secondChatResponse, 'CHATINFO')
     const secondChat = channelMemberView(secondChatResponse.body as Record<string, unknown>, normalizedChatId)
     const secondMemberResponse = await session.getAllMembers(parsedChatId)
     assertLocoOk(secondMemberResponse, 'GETMEM')
-    const secondMembers = exactMemberRecords(secondMemberResponse.body.members ?? [], 'GETMEM')
+    const secondMembers = exactMemberRecords(secondMemberResponse.body.members, 'GETMEM')
 
     let incompleteReason: KakaoMemberSnapshotIncompleteReason | null = null
     if (
@@ -1636,7 +1636,7 @@ export class KakaoTalkClient {
     const firstChat = channelMemberView(firstChatResponse.body as Record<string, unknown>, normalizedChatId)
     const memberResponse = await session.getAllMembers(parsedChatId)
     assertLocoOk(memberResponse, 'GETMEM')
-    const known = exactMemberRecords(memberResponse.body.members ?? [], 'GETMEM')
+    const known = exactMemberRecords(memberResponse.body.members, 'GETMEM')
     const roomResponse = await session.getChatInfo(parsedChatId)
     assertLocoOk(roomResponse, 'CHATONROOM')
     const roomIds = roomEntryMemberIds(roomResponse.body as Record<string, unknown>)
