@@ -701,13 +701,19 @@ See `templates/` directory for runnable examples:
 
 ## Error Handling
 
-All commands print errors to stderr as JSON and exit non-zero:
+Errors raised while a command runs go through the shared error handler: they are printed to stderr as JSON and the process exits non-zero:
 
 ```json
 {
-  "error": "No KakaoTalk credentials found. Run:\n  agent-kakaotalk auth login     (recommended — registers as sub-device, desktop app stays running)"
+  "error": "LOCO packet timeout: GETMEM (15000ms)"
 }
 ```
+
+Some failures do not go through that handler, so check the exit code first and read both streams:
+
+- Missing or unknown account (`--account` not found, no stored account) prints `{"error": "..."}` to **stdout** and exits 1.
+- Missing credentials are checked before any non-`auth` command runs. That failure is printed to stderr as plain text (not JSON) and exits 1.
+- `auth` subcommands, `member kick` without `--force`, and commands whose result reports `success: false` print their result JSON to stdout and exit 1.
 
 When the underlying error carries a machine-readable code, it is included as `code`. Branch on `code` rather than matching the English `error` text, which may change. Errors without a code (like the one above) omit the field.
 

@@ -461,7 +461,7 @@ Output includes:
 
 ## Error Output
 
-Errors are printed to stderr as JSON and the process exits non-zero. When the error carries a machine-readable code, it is included as `code`; otherwise only `error` is present. Branch on `code` instead of matching the message text.
+Errors raised while a command runs go through the shared error handler: they are printed to stderr as JSON and the process exits non-zero. A few failures bypass it, so check the exit code first and read both streams: a missing or unknown account prints `{"error": "..."}` to stdout; missing credentials (checked before any non-`auth` command) are printed to stderr as plain text; `auth` subcommands, `member kick` without `--force`, and results with `success: false` print their JSON to stdout. All of these exit 1. When the error carries a machine-readable code, it is included as `code`; otherwise only `error` is present. Branch on `code` instead of matching the message text.
 
 ```json
 {
