@@ -3,6 +3,7 @@ import { join } from 'node:path'
 
 import type { Operation as LineOperation } from '@jsr/evex__linejs-types'
 
+import { type PreSendEvent, runPreSendHook } from '@/shared/pre-send-hook'
 import { getConfigDir } from '@/shared/utils/config-dir'
 import { FileStorage } from '@/vendor/linejs/base/storage/mod.js'
 import {
@@ -113,6 +114,11 @@ export class LineClient {
 
   constructor(credManager?: LineCredentialManager) {
     this.credManager = credManager ?? new LineCredentialManager()
+  }
+
+  // A hooks.json beside injected credentials runs in addition to the shared hook.
+  private runHook(event: PreSendEvent): Promise<void> {
+    return runPreSendHook(event, { configDir: this.credManager.configDir })
   }
 
   async loginWithQR(options: {
@@ -472,8 +478,18 @@ export class LineClient {
   }
 
   async sendMessage(chatId: string, text: string): Promise<LineSendResult> {
+    // Check the connection first so a closed client never runs the hook; hook denials stay outside the
+    // transport error wrapper below.
+    const client = this.ensureClient()
+    await this.runHook({
+      version: 1,
+      platform: 'line',
+      account: client.base.profile?.mid,
+      action: 'send',
+      target: { id: chatId },
+      text,
+    })
     try {
-      const client = this.ensureClient()
       let sent
 
       try {

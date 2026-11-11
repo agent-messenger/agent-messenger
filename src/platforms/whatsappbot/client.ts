@@ -1,3 +1,5 @@
+import { runPreSendHook } from '@/shared/pre-send-hook'
+
 import type { WhatsAppBotMessageResponse, WhatsAppBotTemplate } from './types'
 import { WhatsAppBotError } from './types'
 
@@ -46,6 +48,14 @@ export class WhatsAppBotClient {
   }
 
   async sendTextMessage(to: string, text: string, previewUrl?: boolean): Promise<WhatsAppBotMessageResponse> {
+    await runPreSendHook({
+      version: 1,
+      platform: 'whatsappbot',
+      action: 'send',
+      target: { id: to },
+      account: this.phoneNumberId ?? undefined,
+      text,
+    })
     return this.request<WhatsAppBotMessageResponse>('POST', `/${this.phoneNumberId!}/messages`, {
       messaging_product: 'whatsapp',
       to,
@@ -60,6 +70,14 @@ export class WhatsAppBotClient {
     languageCode: string,
     components?: unknown[],
   ): Promise<WhatsAppBotMessageResponse> {
+    await runPreSendHook({
+      version: 1,
+      platform: 'whatsappbot',
+      action: 'send',
+      target: { id: to },
+      account: this.phoneNumberId ?? undefined,
+      text: JSON.stringify({ name: templateName, language: languageCode, components }),
+    })
     return this.request<WhatsAppBotMessageResponse>('POST', `/${this.phoneNumberId}/messages`, {
       messaging_product: 'whatsapp',
       to,
@@ -69,6 +87,13 @@ export class WhatsAppBotClient {
   }
 
   async sendReaction(to: string, messageId: string, emoji: string): Promise<WhatsAppBotMessageResponse> {
+    await runPreSendHook({
+      version: 1,
+      platform: 'whatsappbot',
+      action: 'react',
+      target: { id: to },
+      account: this.phoneNumberId ?? undefined,
+    })
     return this.request<WhatsAppBotMessageResponse>('POST', `/${this.phoneNumberId}/messages`, {
       messaging_product: 'whatsapp',
       to,
@@ -78,6 +103,14 @@ export class WhatsAppBotClient {
   }
 
   async sendImageMessage(to: string, imageUrl: string, caption?: string): Promise<WhatsAppBotMessageResponse> {
+    await runPreSendHook({
+      version: 1,
+      platform: 'whatsappbot',
+      action: 'send',
+      target: { id: to },
+      account: this.phoneNumberId ?? undefined,
+      text: caption,
+    })
     return this.request<WhatsAppBotMessageResponse>('POST', `/${this.phoneNumberId}/messages`, {
       messaging_product: 'whatsapp',
       to,
@@ -92,6 +125,14 @@ export class WhatsAppBotClient {
     filename?: string,
     caption?: string,
   ): Promise<WhatsAppBotMessageResponse> {
+    await runPreSendHook({
+      version: 1,
+      platform: 'whatsappbot',
+      action: 'send',
+      target: { id: to },
+      account: this.phoneNumberId ?? undefined,
+      text: caption,
+    })
     return this.request<WhatsAppBotMessageResponse>('POST', `/${this.phoneNumberId}/messages`, {
       messaging_product: 'whatsapp',
       to,

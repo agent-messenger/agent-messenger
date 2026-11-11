@@ -2,6 +2,8 @@ import { constants, createCipheriv, publicEncrypt, randomBytes, randomUUID } fro
 import { existsSync } from 'node:fs'
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 
+import { type PreSendEvent, runPreSendHook } from '@/shared/pre-send-hook'
+
 import { InstagramCredentialManager } from './credential-manager'
 import {
   InstagramError,
@@ -152,6 +154,11 @@ export class InstagramClient {
 
   constructor(credentialManager?: InstagramCredentialManager) {
     this.credentialManager = credentialManager ?? new InstagramCredentialManager()
+  }
+
+  // A hooks.json beside injected credentials runs in addition to the shared hook.
+  private runHook(event: PreSendEvent): Promise<void> {
+    return runPreSendHook(event, { configDir: this.credentialManager.configDir })
   }
 
   setCountryCode(code: string): void {
@@ -566,6 +573,14 @@ export class InstagramClient {
   async sendMessageToUser(userPk: string, text: string): Promise<InstagramMessageSummary> {
     this.ensureSession()
 
+    await this.runHook({
+      version: 1,
+      platform: 'instagram',
+      action: 'send',
+      target: { id: userPk, kind: 'user' },
+      account: this.userId ?? undefined,
+      text,
+    })
     const { data } = await this.request('POST', '/direct_v2/threads/broadcast/text/', {
       recipient_users: `[[${userPk}]]`,
       text,
@@ -682,6 +697,14 @@ export class InstagramClient {
   async sendMessage(threadId: string, text: string): Promise<InstagramMessageSummary> {
     this.ensureSession()
 
+    await this.runHook({
+      version: 1,
+      platform: 'instagram',
+      action: 'send',
+      target: { id: threadId },
+      account: this.userId ?? undefined,
+      text,
+    })
     const { data } = await this.request('POST', '/direct_v2/threads/broadcast/text/', {
       thread_ids: `[${threadId}]`,
       text,
