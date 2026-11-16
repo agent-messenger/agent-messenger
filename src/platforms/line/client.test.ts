@@ -1,6 +1,6 @@
 import { describe, expect, it, mock } from 'bun:test'
 
-import { LineClient } from './client'
+import { LineClient, getReplyToMessageId } from './client'
 import type { LineRawEvent } from './client'
 import { LineError } from './types'
 import type { LineChat, LineDevice, LineLoginResult, LineMessage, LineSendResult } from './types'
@@ -283,6 +283,37 @@ describe('LineClient', () => {
     })
   })
 
+  describe('getMessages() replies', () => {
+    it('exposes reply_to_message_id for quoted replies only', async () => {
+      const client = new LineClient()
+      ;(client as any).client = {
+        base: {
+          talk: {
+            getServerTime: async () => 1700000000000,
+            getPreviousMessagesV2WithRequest: async () => [
+              {
+                id: '21',
+                from: 'u1',
+                text: 'reply',
+                contentType: 'NONE',
+                createdTime: 2,
+                relatedMessageId: '20',
+                messageRelationType: 'REPLY',
+              },
+              { id: '20', from: 'u1', text: 'orig', contentType: 'NONE', createdTime: 1 },
+            ],
+            getContacts: async () => [],
+          },
+          e2ee: {},
+        },
+      }
+
+      const result = await client.getMessages('chat1', { count: 2 })
+      expect(result[0].reply_to_message_id).toBe('20')
+      expect(result[1]).not.toHaveProperty('reply_to_message_id')
+    })
+  })
+
   describe('sendMessage()', () => {
     function clientWithTalk(talk: Record<string, unknown>): LineClient {
       const client = new LineClient()
@@ -331,6 +362,64 @@ describe('LineClient', () => {
       const client = clientWithTalk({ sendMessage })
 
       await expect(client.sendMessage('chat1', 'hi')).rejects.toMatchObject({ code: 'send_message_failed' })
+    })
+
+    it('sends a quoted reply via relatedMessageId in E2EE mode', async () => {
+      const sendMessage = mock(async () => ({ id: '3', createdTime: 1700000002000 }))
+      const client = clientWithTalk({ sendMessage })
+      const result = await client.sendMessage('chat1', 'reply', { replyTo: '600000000000000001' })
+
+      expect(result.message_id).toBe('3')
+      expect(sendMessage.mock.calls[0][0]).toMatchObject({
+        to: 'chat1',
+        text: 'reply',
+        e2ee: true,
+        relatedMessageId: '600000000000000001',
+      })
+    })
+
+    it('keeps the reply target when falling back to plain text', async () => {
+      let call = 0
+      const sendMessage = mock(async () => {
+        call++
+        if (call === 1) throw new Error('E2EE Key has not been saved')
+        return { id: '4', createdTime: 1700000003000 }
+      })
+      const client = clientWithTalk({ sendMessage })
+      await client.sendMessage('chat1', 'reply', { replyTo: '42' })
+
+      expect(sendMessage.mock.calls[1][0]).toMatchObject({ e2ee: false, relatedMessageId: '42' })
+    })
+
+    it('omits relatedMessageId for a normal send', async () => {
+      const sendMessage = mock(async (_args: Record<string, unknown>) => ({ id: '5', createdTime: 1700000004000 }))
+      const client = clientWithTalk({ sendMessage })
+      await client.sendMessage('chat1', 'hi')
+
+      expect(sendMessage.mock.calls[0][0]).not.toHaveProperty('relatedMessageId')
+    })
+
+    it('rejects an invalid reply target before sending', async () => {
+      const sendMessage = mock(async () => ({ id: '6', createdTime: 1700000005000 }))
+      const client = clientWithTalk({ sendMessage })
+
+      await expect(client.sendMessage('chat1', 'hi', { replyTo: 'not-an-id' })).rejects.toMatchObject({
+        code: 'invalid_message_id',
+      })
+      expect(sendMessage).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('getReplyToMessageId()', () => {
+    it('returns the related message for REPLY relations (name or enum number)', () => {
+      expect(getReplyToMessageId({ relatedMessageId: '11', messageRelationType: 'REPLY' })).toBe('11')
+      expect(getReplyToMessageId({ relatedMessageId: '12', messageRelationType: 3 })).toBe('12')
+    })
+
+    it('ignores forwards and messages without a relation', () => {
+      expect(getReplyToMessageId({ relatedMessageId: '13', messageRelationType: 'FORWARD' })).toBeUndefined()
+      expect(getReplyToMessageId({ id: '14' })).toBeUndefined()
+      expect(getReplyToMessageId(null)).toBeUndefined()
     })
   })
 

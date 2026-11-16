@@ -1,5 +1,6 @@
 import { EventEmitter } from 'events'
 
+import { getReplyToMessageId } from './client'
 import type { LineClient, LineRawMessage } from './client'
 import type { LineListenerEventMap, LinePushGenericEvent, LinePushMessageEvent } from './types'
 
@@ -101,6 +102,7 @@ export class LineListener {
       const chatId = String(isGroupOrRoom ? msg.to.id : msg.isMyMessage ? msg.to.id : msg.from.id)
 
       const contentType = String(msg.raw.contentType ?? 'NONE')
+      const replyTo = getReplyToMessageId(msg.raw)
       const event: LinePushMessageEvent = {
         type: 'message',
         chat_id: chatId,
@@ -110,6 +112,7 @@ export class LineListener {
         ...(msg.decryption_error && { decryption_error: msg.decryption_error }),
         content_type: contentType,
         content_metadata: normalizeContentMetadata(msg.raw.contentMetadata),
+        ...(replyTo && { reply_to_message_id: replyTo }),
         sent_at: new Date(Number(msg.raw.createdTime)).toISOString(),
       }
       this.emitter.emit('message', event)

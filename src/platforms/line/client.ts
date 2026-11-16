@@ -14,6 +14,7 @@ import {
 
 import { LineCredentialManager } from './credential-manager'
 import { ensureSelfKeyForMid, migrateOwnE2EEKeys } from './e2ee-storage'
+import { assertMessageId } from './message-id'
 import type {
   LineAccountCredentials,
   LineChat,
@@ -39,6 +40,8 @@ export interface LineRawMessage {
     text?: unknown
     chunks?: unknown
     metadata?: unknown
+    relatedMessageId?: unknown
+    messageRelationType?: unknown
   }
   to: { id: unknown }
   from: { id: unknown }
@@ -399,6 +402,7 @@ export class LineClient {
           const { text, decryptionError } = await this.decryptMessageText(client, msg)
           const authorId = String(msg.from ?? '')
           const authorName = authorNames.get(authorId)
+          const replyTo = getReplyToMessageId(msg)
           return {
             message_id: String(msg.id),
             chat_id: chatId,
@@ -407,6 +411,7 @@ export class LineClient {
             text,
             ...(decryptionError && { decryption_error: decryptionError }),
             content_type: String(msg.contentType ?? 'NONE'),
+            ...(replyTo && { reply_to_message_id: replyTo }),
             sent_at: new Date(Number(msg.createdTime)).toISOString(),
           }
         }),
@@ -471,19 +476,24 @@ export class LineClient {
     return names
   }
 
-  async sendMessage(chatId: string, text: string): Promise<LineSendResult> {
+  // replyTo sends a quoted reply. LINE keeps the reply relation (relatedMessageId,
+  // messageRelationType REPLY) outside the encrypted chunks, so replies work the same
+  // in Letter Sealing chats and in the plain-text fallback.
+  async sendMessage(chatId: string, text: string, options?: { replyTo?: string }): Promise<LineSendResult> {
     try {
       const client = this.ensureClient()
+      const replyTo = options?.replyTo !== undefined ? assertMessageId(options.replyTo, 'reply target') : undefined
+      const relation = replyTo ? { relatedMessageId: replyTo } : {}
       let sent
 
       try {
-        sent = await client.base.talk.sendMessage({ to: chatId, text, e2ee: true })
+        sent = await client.base.talk.sendMessage({ to: chatId, text, e2ee: true, ...relation })
       } catch (e2eeError) {
         const msg = e2eeError instanceof Error ? e2eeError.message : String(e2eeError)
         if (!isE2EEUnavailableError(msg)) throw e2eeError
 
         try {
-          sent = await client.base.talk.sendMessage({ to: chatId, text, e2ee: false })
+          sent = await client.base.talk.sendMessage({ to: chatId, text, e2ee: false, ...relation })
         } catch (plainError) {
           const plainMsg = plainError instanceof Error ? plainError.message : String(plainError)
           // Some chats force Letter Sealing and reject plain mode. This session
@@ -581,6 +591,16 @@ export class LineClient {
     }
     return this.client
   }
+}
+
+// LINE marks quoted replies with messageRelationType REPLY (3); other relations
+// (FORWARD, AUTO_REPLY, SUBORDINATE) also set relatedMessageId but are not replies.
+export function getReplyToMessageId(raw: unknown): string | undefined {
+  if (!raw || typeof raw !== 'object') return undefined
+  const { relatedMessageId, messageRelationType } = raw as { relatedMessageId?: unknown; messageRelationType?: unknown }
+  if (relatedMessageId === undefined || relatedMessageId === null || relatedMessageId === '') return undefined
+  if (messageRelationType !== 'REPLY' && messageRelationType !== 3) return undefined
+  return String(relatedMessageId)
 }
 
 function getUndecryptableMessageError(raw: unknown): LineDecryptionError | undefined {

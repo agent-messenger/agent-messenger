@@ -290,6 +290,9 @@ agent-line message list <chat-id> --pretty
 # Send a text message
 agent-line message send <chat-id> "Hello world"
 agent-line message send <chat-id> "Hello world" --pretty
+
+# Reply to a message (quoted reply)
+agent-line message send <chat-id> "Sounds good" --reply-to <message-id>
 ```
 
 #### Message List Output
@@ -301,6 +304,7 @@ Each message includes:
 - `author_name` - sender's display name, resolved from contacts (omitted when unresolved)
 - `text` - message text content (E2EE messages are decrypted automatically when key material is available; null when undecryptable)
 - `decryption_error` - present only for E2EE messages that couldn't be decrypted (`code`: `missing_e2ee_key` or `decrypt_failed`)
+- `reply_to_message_id` - present only for quoted replies; the ID of the replied-to message
 - `sent_at` - Unix timestamp (milliseconds)
 
 ## Output Format
