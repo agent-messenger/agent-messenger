@@ -408,6 +408,14 @@ describe('LineClient', () => {
       })
       expect(sendMessage).not.toHaveBeenCalled()
     })
+
+    it('rejects an invalid reply target even before login', async () => {
+      const client = new LineClient()
+
+      await expect(client.sendMessage('chat1', 'hi', { replyTo: 'not-an-id' })).rejects.toMatchObject({
+        code: 'invalid_message_id',
+      })
+    })
   })
 
   describe('getReplyToMessageId()', () => {

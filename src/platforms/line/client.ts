@@ -14,7 +14,7 @@ import {
 
 import { LineCredentialManager } from './credential-manager'
 import { ensureSelfKeyForMid, migrateOwnE2EEKeys } from './e2ee-storage'
-import { assertMessageId } from './message-id'
+import { assertMessageId, MAX_MESSAGE_ID } from './message-id'
 import type {
   LineAccountCredentials,
   LineChat,
@@ -53,8 +53,6 @@ export interface LineRawMessage {
 export type LineRawEvent = { kind: 'message'; message: LineRawMessage } | { kind: 'event'; op: LineOperation }
 
 type VendorMessage = Parameters<Client['base']['e2ee']['decryptE2EEMessage']>[0]
-
-const MAX_MESSAGE_ID = 9223372036854775807n
 
 function wrapError(error: unknown, code: string): LineError {
   if (error instanceof LineError) return error
@@ -480,9 +478,11 @@ export class LineClient {
   // messageRelationType REPLY) outside the encrypted chunks, so replies work the same
   // in Letter Sealing chats and in the plain-text fallback.
   async sendMessage(chatId: string, text: string, options?: { replyTo?: string }): Promise<LineSendResult> {
+    // Validate input before the login check, so a bad reply ID fails the same way
+    // whether or not the client is connected.
+    const replyTo = options?.replyTo !== undefined ? assertMessageId(options.replyTo, 'reply target') : undefined
     try {
       const client = this.ensureClient()
-      const replyTo = options?.replyTo !== undefined ? assertMessageId(options.replyTo, 'reply target') : undefined
       const relation = replyTo ? { relatedMessageId: replyTo } : {}
       let sent
 
