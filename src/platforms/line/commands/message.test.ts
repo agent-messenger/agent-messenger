@@ -106,6 +106,14 @@ it('send: closes client after sending message', async () => {
   expect(closeSpy).toHaveBeenCalledTimes(1)
 })
 
+it('send: passes --reply-to as a quoted reply target', async () => {
+  // when
+  await messageCommand.parseAsync(['node', 'message', 'send', 'chat-1', 'Sure!', '--reply-to', '600000000000000001'])
+
+  // then
+  expect(sendMessageSpy).toHaveBeenCalledWith('chat-1', 'Sure!', { replyTo: '600000000000000001' })
+})
+
 it('list: outputs messages with metadata', async () => {
   // when
   await messageCommand.parseAsync(['node', 'message', 'list', 'chat-1'])

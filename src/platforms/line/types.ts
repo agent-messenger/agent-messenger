@@ -45,6 +45,8 @@ export interface LineMessage {
   text: string | null
   decryption_error?: LineDecryptionError
   content_type: string
+  // Present when the message is a quoted reply (LINE messageRelationType REPLY).
+  reply_to_message_id?: string
   sent_at: string
 }
 
@@ -119,6 +121,7 @@ export const LineMessageSchema = z.object({
     })
     .optional(),
   content_type: z.string(),
+  reply_to_message_id: z.string().optional(),
   sent_at: z.string(),
 })
 
@@ -153,6 +156,7 @@ export interface LinePushMessageEvent {
   content_type: string
   // Raw LINE contentMetadata (sticker IDs, file name/size, media URLs); empty for plain text.
   content_metadata: Record<string, string>
+  reply_to_message_id?: string
   sent_at: string
 }
 

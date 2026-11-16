@@ -119,9 +119,12 @@ const more = await client.getMessages('c1234abcd...', { count: 50 })
 ```typescript
 const result = await client.sendMessage('c1234abcd...', 'Hello from SDK!')
 // → LineSendResult { success, chat_id, message_id, sent_at }
+
+// Quoted reply to a message
+await client.sendMessage('c1234abcd...', 'Sounds good', { replyTo: '600000000000000001' })
 ```
 
-The client tries E2EE (end-to-end encryption) first and falls back to plaintext automatically.
+The client tries E2EE (end-to-end encryption) first and falls back to plaintext automatically. Replies work in both modes: LINE keeps the reply relation outside the encrypted payload. Messages that are replies carry `reply_to_message_id` in `getMessages()` results and listener `message` events.
 
 ### Cleanup
 

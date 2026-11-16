@@ -80,6 +80,37 @@ echo "$MESSAGES" | jq -r '.[] | "\(.author_name // .author_id): \(.text // .decr
 
 **E2EE note**: `message list` decrypts Letter Sealing (E2EE) messages when key material is available — restored from a prior QR/email login. When keys are missing, `text` is `null` and `decryption_error.code` is `missing_e2ee_key`; re-run `agent-line auth login` (QR) to provision keys.
 
+## Pattern 3b: Reply to a Message
+
+**Use case**: Answer a specific message as a quoted reply
+
+```bash
+#!/bin/bash
+
+CHAT_ID="c7a8b9c0d1e2f3a4b5c6d7e8"
+
+MY_ID=$(agent-line profile | jq -r '.mid')
+
+# Find the message to answer: here, the latest one from someone else
+TARGET_ID=$(agent-line message list "$CHAT_ID" -n 20 | jq -r --arg me "$MY_ID" '[.[] | select(.author_id != $me)][0].message_id')
+
+# Send a quoted reply
+agent-line message send "$CHAT_ID" "Thanks, on it!" --reply-to "$TARGET_ID"
+```
+
+From the SDK, pass `{ replyTo }` as the third argument:
+
+```typescript
+await client.sendMessage(chatId, 'Thanks, on it!', { replyTo: targetMessageId })
+```
+
+**When to use**: Answering a question in a busy group chat, where a plain message would lose its context.
+
+**Notes**:
+- Messages that are themselves replies carry `reply_to_message_id` (in `message list` and listener events), so you can follow a thread back to what it answers.
+- Replies work in Letter Sealing (E2EE) chats too: LINE keeps the reply relation outside the encrypted content.
+- A reply ID that is not a numeric LINE message ID fails with `invalid_message_id` before anything is sent.
+
 ## Pattern 4: Monitor for New Messages
 
 **Use case**: Watch a chat room and respond to new messages using the SDK
@@ -134,6 +165,7 @@ listener.on('connected', (info) => {
 
 listener.on('message', (event) => {
   // event.decryption_error?: { code: 'missing_e2ee_key' | 'decrypt_failed'; message: string }
+  // event.reply_to_message_id?: string — set when the message is a quoted reply
   const content = event.text ?? event.decryption_error?.message ?? '[non-text]'
   console.log(`[${event.chat_id}] ${event.author_id}: ${content}`)
 })
@@ -159,7 +191,7 @@ await listener.start()
 
 **E2EE note**: For LINE Letter Sealing messages that cannot be decrypted in the current session, `text` stays `null` and `decryption_error` explains whether E2EE key material is missing or decryption failed.
 
-Message listener payloads include `decryption_error` when encrypted content is present but unavailable. Check `event.decryption_error.code` for `missing_e2ee_key` or `decrypt_failed` before treating `text: null` as a non-text message.
+Message listener payloads include `reply_to_message_id` when the message is a quoted reply (the ID of the message it answers; absent otherwise). They include `decryption_error` when encrypted content is present but unavailable. Check `event.decryption_error.code` for `missing_e2ee_key` or `decrypt_failed` before treating `text: null` as a non-text message.
 
 ## Pattern 5: Get User Profile
 
