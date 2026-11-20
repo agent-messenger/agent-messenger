@@ -48,6 +48,17 @@ describe('ensureSelfKeyForMid', () => {
     expect(ok).toBe(true)
   })
 
+  it('supports the unparsed thrift struct shape (keyId under field id 2)', async () => {
+    // given: getE2EEPublicKeys is requested unparsed, so each E2EEPublicKey arrives
+    // as a plain object keyed by thrift field id: { 1: version, 2: keyId, 4: keyData, 5: createdTime }
+    const store = memStore({ 'e2eeKeys:100': JSON.stringify(SELF_A) })
+
+    const ok = await ensureSelfKeyForMid(store, 'midA', [{ 1: 1, 2: 100, 4: 'keyData', 5: 0n } as never])
+
+    expect(ok).toBe(true)
+    expect(JSON.parse(store.data['e2eeKeys:midA'])).toMatchObject({ privKey: 'privA' })
+  })
+
   it('never promotes a foreign-MID-addressed key (no advertised match)', async () => {
     // given: storage contaminated with another account's self-key under its MID
     const store = memStore({ 'e2eeKeys:midB': JSON.stringify(SELF_B) })
@@ -109,6 +120,22 @@ describe('migrateOwnE2EEKeys', () => {
     // foreign account B keys must not leak across
     expect(target.data['e2eeKeys:200']).toBeUndefined()
     expect(target.data['e2eePublicKeys:200']).toBeUndefined()
+  })
+
+  it('migrates own keys when the server returns unparsed thrift structs', async () => {
+    // given: a fresh QR login stored the self-key under its keyId in the shared store,
+    // and getE2EEPublicKeys returns { 2: keyId } structs (the real wire shape)
+    const source = memStore({
+      'e2eeKeys:100': JSON.stringify(SELF_A),
+      'e2eeKeys:200': JSON.stringify(SELF_B),
+    })
+    const target = memStore()
+
+    const count = await migrateOwnE2EEKeys(source, target, 'midA', [{ 1: 1, 2: 100, 4: 'keyData', 5: 0n } as never])
+
+    expect(count).toBe(1)
+    expect(JSON.parse(target.data['e2eeKeys:100'])).toMatchObject({ privKey: 'privA' })
+    expect(target.data['e2eeKeys:200']).toBeUndefined()
   })
 
   it('copies the MID-addressed self-key when present', async () => {
