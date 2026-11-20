@@ -16,12 +16,16 @@ import { LineCredentialManager } from './credential-manager'
 import { ensureSelfKeyForMid, migrateOwnE2EEKeys } from './e2ee-storage'
 import type {
   LineAccountCredentials,
+  LineAlbum,
+  LineAlbumPhoto,
   LineChat,
   LineDevice,
   LineDecryptionError,
   LineFriend,
   LineLoginResult,
   LineMessage,
+  LinePost,
+  LinePostMedia,
   LineProfile,
   LineSendResult,
 } from './types'
@@ -53,6 +57,15 @@ type VendorMessage = Parameters<Client['base']['e2ee']['decryptE2EEMessage']>[0]
 
 const MAX_MESSAGE_ID = 9223372036854775807n
 
+// Group/room Notes moved from /mh/api to the note gateway; the vendored
+// timeline.getPost/listPost still call /mh/api/v57 and get a 500 for chat homes.
+const NOTE_API = '/ext/note/nt/api/v57'
+const ALBUM_API = '/ext/album/api/v3'
+const OBS_ORIGIN = 'https://obs.line-apps.com'
+// Album photo downloads need a channel token issued for the album channel,
+// not the timeline channel the vendored client initialises.
+const ALBUM_CHANNEL_ID = '1375220249'
+const POSTS_PAGE_LIMIT = 50
 function wrapError(error: unknown, code: string): LineError {
   if (error instanceof LineError) return error
   const message = error instanceof Error ? error.message : String(error)
@@ -109,6 +122,7 @@ function createStorage(accountId?: string): FileStorage {
 
 export class LineClient {
   private client: Client | null = null
+  private albumChannelToken: string | null = null
   private credManager: LineCredentialManager
 
   constructor(credManager?: LineCredentialManager) {
@@ -571,8 +585,143 @@ export class LineClient {
     }
   }
 
+  async getPosts(chatId: string, options?: { count?: number }): Promise<LinePost[]> {
+    try {
+      const count = options?.count ?? 20
+      const posts: LinePost[] = []
+      let cursor: { postId?: string; updatedTime?: string } = {}
+
+      for (let page = 0; page < POSTS_PAGE_LIMIT && posts.length < count; page++) {
+        const result = await this.timelineGet<{
+          feeds?: Array<{ post?: RawPost }>
+          scrollInfo?: { postId?: string | number; updatedTime?: string | number }
+        }>(`${NOTE_API}/post/list.json`, { homeId: chatId, sourceType: 'TALKROOM', ...cursor })
+
+        const feeds = result.feeds ?? []
+        for (const feed of feeds) {
+          if (feed.post) posts.push(mapPost(feed.post, chatId))
+        }
+
+        const next = result.scrollInfo
+        if (feeds.length === 0 || !next?.postId) break
+        const nextCursor = { postId: String(next.postId), updatedTime: String(next.updatedTime ?? '') }
+        if (nextCursor.postId === cursor.postId) break
+        cursor = nextCursor
+      }
+
+      return posts.slice(0, count)
+    } catch (error) {
+      throw wrapError(error, 'get_posts_failed')
+    }
+  }
+
+  async getPost(chatId: string, postId: string): Promise<LinePost> {
+    try {
+      const result = await this.timelineGet<{ feed?: { post?: RawPost } }>(`${NOTE_API}/post/get.json`, {
+        homeId: chatId,
+        postId,
+        sourceType: 'TALKROOM',
+      })
+      if (!result.feed?.post) throw new LineError('post_not_found', `Post ${postId} not found in ${chatId}`)
+      return mapPost(result.feed.post, chatId)
+    } catch (error) {
+      throw wrapError(error, 'get_post_failed')
+    }
+  }
+
+  async getAlbums(chatId: string): Promise<LineAlbum[]> {
+    try {
+      const result = await this.timelineGet<{ items?: RawAlbum[] }>(`${ALBUM_API}/albums`, { homeId: chatId })
+      return (result.items ?? []).map((album) => mapAlbum(album, chatId))
+    } catch (error) {
+      throw wrapError(error, 'get_albums_failed')
+    }
+  }
+
+  async getAlbumPhotos(chatId: string, albumId: string): Promise<LineAlbumPhoto[]> {
+    try {
+      const result = await this.timelineGet<{ items?: RawAlbumPhoto[] }>(
+        `${ALBUM_API}/photos/${encodeURIComponent(albumId)}`,
+        { homeId: chatId },
+      )
+      return (result.items ?? []).map(mapAlbumPhoto)
+    } catch (error) {
+      throw wrapError(error, 'get_album_photos_failed')
+    }
+  }
+
+  async downloadAlbumPhoto(
+    chatId: string,
+    albumId: string,
+    objectId: string,
+  ): Promise<{ data: Uint8Array; contentType: string }> {
+    try {
+      const client = this.ensureClient()
+      const channelToken = await this.getAlbumChannelToken()
+      return await this.obsDownload(`album/a/${objectId}`, {
+        ...client.base.request.getHeader('GET'),
+        'x-line-album': albumId,
+        'x-line-mid': chatId,
+        'x-line-channeltoken': channelToken,
+      })
+    } catch (error) {
+      throw wrapError(error, 'download_failed')
+    }
+  }
+
+  async downloadPostMedia(media: LinePostMedia): Promise<{ data: Uint8Array; contentType: string }> {
+    try {
+      const client = this.ensureClient()
+      return await this.obsDownload(
+        `${media.service_name}/${media.obs_namespace}/${media.object_id}`,
+        client.base.request.getHeader('GET'),
+      )
+    } catch (error) {
+      throw wrapError(error, 'download_failed')
+    }
+  }
+
+  private async timelineGet<T>(path: string, params: Record<string, string>): Promise<T> {
+    const client = this.ensureClient()
+    await client.base.timeline.initTimeline()
+    const query = new URLSearchParams(Object.fromEntries(Object.entries(params).filter(([, v]) => v !== '')))
+    const response = await client.base.fetch(`https://${client.base.request.endpoint}${path}?${query}`, {
+      headers: { ...client.base.timeline.timelineHeaders, 'x-lhm': 'GET' },
+    })
+    const body = (await response.json()) as { code?: number; message?: string; result?: T }
+    if (body.code !== 0 || !body.result) {
+      throw new LineError('timeline_request_failed', `LINE ${path} failed: ${body.code} ${body.message ?? ''}`.trim())
+    }
+    return body.result
+  }
+
+  private async getAlbumChannelToken(): Promise<string> {
+    if (!this.albumChannelToken) {
+      const issued = await this.ensureClient().base.channel.approveChannelAndIssueChannelToken({
+        channelId: ALBUM_CHANNEL_ID,
+      })
+      this.albumChannelToken = issued.channelAccessToken as string
+    }
+    return this.albumChannelToken
+  }
+
+  private async obsDownload(
+    obsPath: string,
+    headers: Record<string, string>,
+  ): Promise<{ data: Uint8Array; contentType: string }> {
+    const response = await this.ensureClient().base.fetch(`${OBS_ORIGIN}/r/${obsPath}`, { headers })
+    if (!response.ok) {
+      throw new LineError('download_failed', `LINE media download failed with HTTP ${response.status}`)
+    }
+    return {
+      data: new Uint8Array(await response.arrayBuffer()),
+      contentType: response.headers.get('content-type') ?? 'application/octet-stream',
+    }
+  }
+
   close(): void {
     this.client = null
+    this.albumChannelToken = null
   }
 
   private ensureClient(): Client {
@@ -626,4 +775,94 @@ function hasE2EEMetadata(raw: unknown): boolean {
   if (!raw || typeof raw !== 'object') return false
   const metadata = raw as { e2eeMark?: unknown; e2eeVersion?: unknown }
   return metadata.e2eeMark !== undefined || metadata.e2eeVersion !== undefined
+}
+
+interface RawPost {
+  postInfo?: { postId?: string | number; createdTime?: string | number }
+  userInfo?: { mid?: string; writerMid?: string; nickname?: string }
+  contents?: {
+    text?: string
+    media?: Array<{
+      type?: string
+      objectId?: string
+      serviceName?: string
+      obsNamespace?: string
+      width?: number
+      height?: number
+    }>
+  }
+}
+
+interface RawAlbum {
+  id?: string | number
+  title?: string
+  photoCount?: string | number
+  owner?: { mid?: string }
+  created?: string | number
+  lastPosted?: string | number
+}
+
+interface RawAlbumPhoto {
+  id?: string | number
+  oid?: string
+  owner?: { mid?: string }
+  width?: string | number
+  height?: string | number
+  created?: string | number
+}
+
+function toIso(epochMs: unknown): string {
+  const ms = Number(epochMs)
+  return Number.isFinite(ms) && ms > 0 ? new Date(ms).toISOString() : ''
+}
+
+function toOptionalNumber(value: unknown): number | undefined {
+  const n = Number(value)
+  return Number.isFinite(n) && n > 0 ? n : undefined
+}
+
+function mapPost(post: RawPost, chatId: string): LinePost {
+  const authorName = post.userInfo?.nickname
+  return {
+    // postId exceeds Number.MAX_SAFE_INTEGER; only trust it when it arrives as a string.
+    post_id: String(post.postInfo?.postId ?? ''),
+    chat_id: chatId,
+    author_id: post.userInfo?.writerMid ?? post.userInfo?.mid ?? '',
+    ...(authorName && { author_name: authorName }),
+    text: post.contents?.text ?? '',
+    media: (post.contents?.media ?? [])
+      .filter((m) => m.objectId)
+      .map((m) => ({
+        type: m.type ?? 'PHOTO',
+        object_id: m.objectId as string,
+        service_name: m.serviceName ?? 'privnote',
+        obs_namespace: m.obsNamespace ?? 'post',
+        ...(toOptionalNumber(m.width) && { width: toOptionalNumber(m.width) }),
+        ...(toOptionalNumber(m.height) && { height: toOptionalNumber(m.height) }),
+      })),
+    created_at: toIso(post.postInfo?.createdTime),
+  }
+}
+
+function mapAlbum(album: RawAlbum, chatId: string): LineAlbum {
+  return {
+    album_id: String(album.id ?? ''),
+    chat_id: chatId,
+    title: album.title ?? '',
+    photo_count: Number(album.photoCount ?? 0),
+    owner_id: album.owner?.mid ?? '',
+    created_at: toIso(album.created),
+    updated_at: toIso(album.lastPosted ?? album.created),
+  }
+}
+
+function mapAlbumPhoto(photo: RawAlbumPhoto): LineAlbumPhoto {
+  return {
+    photo_id: String(photo.id ?? ''),
+    object_id: photo.oid ?? '',
+    owner_id: photo.owner?.mid ?? '',
+    ...(toOptionalNumber(photo.width) && { width: toOptionalNumber(photo.width) }),
+    ...(toOptionalNumber(photo.height) && { height: toOptionalNumber(photo.height) }),
+    created_at: toIso(photo.created),
+  }
 }
