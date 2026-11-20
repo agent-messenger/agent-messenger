@@ -290,7 +290,14 @@ agent-line message list <chat-id> --pretty
 # Send a text message
 agent-line message send <chat-id> "Hello world"
 agent-line message send <chat-id> "Hello world" --pretty
+
+# Download images/videos/audio/files sent as messages (Letter Sealing is decrypted)
+agent-line message download <chat-id>                      # every media message in the last 50
+agent-line message download <chat-id> -n 200 -o ./media    # search a larger window
+agent-line message download <chat-id> <message-id> [...]   # specific messages (from message list)
 ```
+
+`message download` prints `files` (`message_id`, `path`, `content_type`, `size`) and `errors` (`message_id`, `error`) for items that could not be fetched; one failure does not abort the rest.
 
 #### Message List Output
 
@@ -302,6 +309,39 @@ Each message includes:
 - `text` - message text content (E2EE messages are decrypted automatically when key material is available; null when undecryptable)
 - `decryption_error` - present only for E2EE messages that couldn't be decrypted (`code`: `missing_e2ee_key` or `decrypt_failed`)
 - `sent_at` - Unix timestamp (milliseconds)
+
+### Note (Post) Commands
+
+Group and room chats have a Notes tab. A message with `content_type: "POSTNOTIFICATION"` means someone created or updated a note; read the note itself with these commands.
+
+```bash
+# List notes in a chat (newest first, paginates automatically)
+agent-line post list <chat-id>
+agent-line post list <chat-id> -n 50
+
+# Get one note with full text and media list
+agent-line post get <chat-id> <post-id>
+
+# Download a note's photos/videos (default dir: ./line-post-<post-id>)
+agent-line post download <chat-id> <post-id> -o ./notes
+```
+
+Each note includes `post_id`, `chat_id`, `author_id`, `author_name`, `text`, `media` (`type`, `object_id`, `service_name`, `obs_namespace`, `width`, `height`) and `created_at` (ISO 8601). Downloads print `files` with `object_id`, `path`, `content_type` and `size`.
+
+### Album Commands
+
+```bash
+# List albums in a chat
+agent-line album list <chat-id>
+
+# List photos in an album
+agent-line album photos <chat-id> <album-id>
+
+# Download every photo of an album (default dir: ./line-album-<album-id>)
+agent-line album download <chat-id> <album-id> -o ./album
+```
+
+Albums include `album_id`, `title`, `photo_count`, `owner_id`, `created_at`, `updated_at`. Downloads print `files` with `object_id`, `path`, `content_type` and `size`.
 
 ## Output Format
 
@@ -392,6 +432,13 @@ Config format:
 }
 ```
 
+### Session Cache
+
+Every command opens a new session. To keep traffic on the real account low, the CLI caches the account's own profile and the channel tokens used by `post`/`album` in `~/.config/agent-messenger/line-storage/<account-id>.json` for one hour. Within that hour a command skips the `getProfile` round trip, skips `getE2EEPublicKeys` once the E2EE key is stored, and reuses channel tokens. A cached token the server rejects is re-issued once automatically. A new `auth login` clears the cache.
+
+- `AGENT_LINE_CACHE_TTL_SECONDS=600` sets a different lifetime
+- `AGENT_LINE_CACHE_TTL_SECONDS=0` disables the cache
+
 ## SDK: Programmatic Usage
 
 `LineClient` is available as a TypeScript SDK for building scripts and automations.
@@ -432,7 +479,7 @@ See the [LINE SDK documentation](https://agent-messenger.dev/docs/sdk/line) for 
 - No auto-extraction of credentials (requires interactive login via QR code or email/password)
 - E2EE (Letter Sealing) messages are decrypted automatically when key material is available (restored from a prior QR/email login); without keys, content may be unreadable
 - Sending to chats that **require** E2EE (Letter Sealing) needs E2EE key material from a prior QR/email login; without it such sends fail with `e2ee_required`
-- No file upload support yet
+- No file upload support yet (message, note and album media can be downloaded, not uploaded)
 - No sticker or rich message sending (text only)
 - No group creation or management
 - No group creation or management commands (list only)
