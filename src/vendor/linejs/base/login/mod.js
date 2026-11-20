@@ -164,7 +164,6 @@ export class Login {
       }
       await this.client.storage.set("refreshToken", tokenInfo[2]);
       await this.client.storage.set("expire", tokenInfo[3] + tokenInfo[6]);
-      console.log(tokenInfo);
       return tokenInfo[1];
     }
     throw new InternalError("TimeoutError", "checkQrCodeVerified timed out");
