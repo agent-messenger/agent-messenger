@@ -303,6 +303,24 @@ Each message includes:
 - `decryption_error` - present only for E2EE messages that couldn't be decrypted (`code`: `missing_e2ee_key` or `decrypt_failed`)
 - `sent_at` - Unix timestamp (milliseconds)
 
+### Note (Post) Commands
+
+Group and room chats have a Notes tab. A message with `content_type: "POSTNOTIFICATION"` means someone created or updated a note; read the note itself with these commands.
+
+```bash
+# List notes in a chat (newest first, paginates automatically)
+agent-line post list <chat-id>
+agent-line post list <chat-id> -n 50
+
+# Get one note with full text and media list
+agent-line post get <chat-id> <post-id>
+
+# Download a note's photos/videos (default dir: ./line-post-<post-id>)
+agent-line post download <chat-id> <post-id> -o ./notes
+```
+
+Each note includes `post_id`, `chat_id`, `author_id`, `author_name`, `text`, `media` (`type`, `object_id`, `service_name`, `obs_namespace`, `width`, `height`) and `created_at` (ISO 8601). Downloads print `files` with `object_id`, `path`, `content_type` and `size`.
+
 ## Output Format
 
 ### JSON (Default)
