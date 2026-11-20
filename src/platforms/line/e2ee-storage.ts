@@ -10,7 +10,7 @@ export interface E2EEKeyData {
   e2eeVersion?: number
 }
 
-export type E2EEPublicKey = { keyId?: number | string } | ReadonlyArray<unknown>
+export type E2EEPublicKey = { keyId?: number | string } | { 2?: unknown } | ReadonlyArray<unknown>
 
 const SELF_KEY_PREFIX = 'e2eeKeys:'
 
@@ -41,12 +41,13 @@ function keyDataMatchesSlot(data: E2EEKeyData, keyId: number | string): boolean 
   return String(data.keyId) === String(keyId)
 }
 
+// getE2EEPublicKeys is requested unparsed, so each key normally arrives as a raw
+// thrift struct keyed by field id ({ 1: version, 2: keyId, ... }), not as a named
+// object. Mirror linejs's own `key.keyId ?? key[2]` so every shape resolves.
 function keyIdOf(key: E2EEPublicKey): number | string | undefined {
-  if (Array.isArray(key)) {
-    const id = key[2]
-    return typeof id === 'number' || typeof id === 'string' ? id : undefined
-  }
-  const id = (key as { keyId?: number | string }).keyId
+  if (!key || typeof key !== 'object') return undefined
+  const named = (key as { keyId?: unknown }).keyId
+  const id = named ?? (key as Record<number, unknown>)[2]
   return typeof id === 'number' || typeof id === 'string' ? id : undefined
 }
 
