@@ -16,6 +16,8 @@ import { LineCredentialManager } from './credential-manager'
 import { ensureSelfKeyForMid, migrateOwnE2EEKeys } from './e2ee-storage'
 import type {
   LineAccountCredentials,
+  LineAlbum,
+  LineAlbumPhoto,
   LineChat,
   LineDevice,
   LineDecryptionError,
@@ -58,7 +60,11 @@ const MAX_MESSAGE_ID = 9223372036854775807n
 // Group/room Notes moved from /mh/api to the note gateway; the vendored
 // timeline.getPost/listPost still call /mh/api/v57 and get a 500 for chat homes.
 const NOTE_API = '/ext/note/nt/api/v57'
+const ALBUM_API = '/ext/album/api/v3'
 const OBS_ORIGIN = 'https://obs.line-apps.com'
+// Album photo downloads need a channel token issued for the album channel,
+// not the timeline channel the vendored client initialises.
+const ALBUM_CHANNEL_ID = '1375220249'
 const POSTS_PAGE_LIMIT = 50
 function wrapError(error: unknown, code: string): LineError {
   if (error instanceof LineError) return error
@@ -116,6 +122,7 @@ function createStorage(accountId?: string): FileStorage {
 
 export class LineClient {
   private client: Client | null = null
+  private albumChannelToken: string | null = null
   private credManager: LineCredentialManager
 
   constructor(credManager?: LineCredentialManager) {
@@ -622,6 +629,46 @@ export class LineClient {
     }
   }
 
+  async getAlbums(chatId: string): Promise<LineAlbum[]> {
+    try {
+      const result = await this.timelineGet<{ items?: RawAlbum[] }>(`${ALBUM_API}/albums`, { homeId: chatId })
+      return (result.items ?? []).map((album) => mapAlbum(album, chatId))
+    } catch (error) {
+      throw wrapError(error, 'get_albums_failed')
+    }
+  }
+
+  async getAlbumPhotos(chatId: string, albumId: string): Promise<LineAlbumPhoto[]> {
+    try {
+      const result = await this.timelineGet<{ items?: RawAlbumPhoto[] }>(
+        `${ALBUM_API}/photos/${encodeURIComponent(albumId)}`,
+        { homeId: chatId },
+      )
+      return (result.items ?? []).map(mapAlbumPhoto)
+    } catch (error) {
+      throw wrapError(error, 'get_album_photos_failed')
+    }
+  }
+
+  async downloadAlbumPhoto(
+    chatId: string,
+    albumId: string,
+    objectId: string,
+  ): Promise<{ data: Uint8Array; contentType: string }> {
+    try {
+      const client = this.ensureClient()
+      const channelToken = await this.getAlbumChannelToken()
+      return await this.obsDownload(`album/a/${objectId}`, {
+        ...client.base.request.getHeader('GET'),
+        'x-line-album': albumId,
+        'x-line-mid': chatId,
+        'x-line-channeltoken': channelToken,
+      })
+    } catch (error) {
+      throw wrapError(error, 'download_failed')
+    }
+  }
+
   async downloadPostMedia(media: LinePostMedia): Promise<{ data: Uint8Array; contentType: string }> {
     try {
       const client = this.ensureClient()
@@ -648,6 +695,16 @@ export class LineClient {
     return body.result
   }
 
+  private async getAlbumChannelToken(): Promise<string> {
+    if (!this.albumChannelToken) {
+      const issued = await this.ensureClient().base.channel.approveChannelAndIssueChannelToken({
+        channelId: ALBUM_CHANNEL_ID,
+      })
+      this.albumChannelToken = issued.channelAccessToken as string
+    }
+    return this.albumChannelToken
+  }
+
   private async obsDownload(
     obsPath: string,
     headers: Record<string, string>,
@@ -664,6 +721,7 @@ export class LineClient {
 
   close(): void {
     this.client = null
+    this.albumChannelToken = null
   }
 
   private ensureClient(): Client {
@@ -735,6 +793,24 @@ interface RawPost {
   }
 }
 
+interface RawAlbum {
+  id?: string | number
+  title?: string
+  photoCount?: string | number
+  owner?: { mid?: string }
+  created?: string | number
+  lastPosted?: string | number
+}
+
+interface RawAlbumPhoto {
+  id?: string | number
+  oid?: string
+  owner?: { mid?: string }
+  width?: string | number
+  height?: string | number
+  created?: string | number
+}
+
 function toIso(epochMs: unknown): string {
   const ms = Number(epochMs)
   return Number.isFinite(ms) && ms > 0 ? new Date(ms).toISOString() : ''
@@ -765,5 +841,28 @@ function mapPost(post: RawPost, chatId: string): LinePost {
         ...(toOptionalNumber(m.height) && { height: toOptionalNumber(m.height) }),
       })),
     created_at: toIso(post.postInfo?.createdTime),
+  }
+}
+
+function mapAlbum(album: RawAlbum, chatId: string): LineAlbum {
+  return {
+    album_id: String(album.id ?? ''),
+    chat_id: chatId,
+    title: album.title ?? '',
+    photo_count: Number(album.photoCount ?? 0),
+    owner_id: album.owner?.mid ?? '',
+    created_at: toIso(album.created),
+    updated_at: toIso(album.lastPosted ?? album.created),
+  }
+}
+
+function mapAlbumPhoto(photo: RawAlbumPhoto): LineAlbumPhoto {
+  return {
+    photo_id: String(photo.id ?? ''),
+    object_id: photo.oid ?? '',
+    owner_id: photo.owner?.mid ?? '',
+    ...(toOptionalNumber(photo.width) && { width: toOptionalNumber(photo.width) }),
+    ...(toOptionalNumber(photo.height) && { height: toOptionalNumber(photo.height) }),
+    created_at: toIso(photo.created),
   }
 }

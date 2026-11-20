@@ -225,6 +225,16 @@ agent-line post download <chat-id> <post-id> [-o ./notes]
 
 Downloads save each photo or video to the output directory (default `./line-post-<post-id>`) and print the saved paths as JSON.
 
+### Album Commands
+
+```bash
+agent-line album list <chat-id>
+agent-line album photos <chat-id> <album-id>
+agent-line album download <chat-id> <album-id> [-o ./album]
+```
+
+Downloads save every photo to the output directory (default `./line-album-<album-id>`) and print the saved paths as JSON.
+
 ## Global Options
 
 | Option     | Description                           |

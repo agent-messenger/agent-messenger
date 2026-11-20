@@ -80,6 +80,25 @@ export interface LinePostMedia {
   height?: number
 }
 
+export interface LineAlbum {
+  album_id: string
+  chat_id: string
+  title: string
+  photo_count: number
+  owner_id: string
+  created_at: string
+  updated_at: string
+}
+
+export interface LineAlbumPhoto {
+  photo_id: string
+  object_id: string
+  owner_id: string
+  width?: number
+  height?: number
+  created_at: string
+}
+
 export interface LineDownloadedFile {
   object_id: string
   path: string

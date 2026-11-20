@@ -1,3 +1,4 @@
+export { albumCommand } from './album'
 export { authCommand } from './auth'
 export { chatCommand } from './chat'
 export { friendCommand } from './friend'

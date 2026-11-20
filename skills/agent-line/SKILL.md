@@ -321,6 +321,21 @@ agent-line post download <chat-id> <post-id> -o ./notes
 
 Each note includes `post_id`, `chat_id`, `author_id`, `author_name`, `text`, `media` (`type`, `object_id`, `service_name`, `obs_namespace`, `width`, `height`) and `created_at` (ISO 8601). Downloads print `files` with `object_id`, `path`, `content_type` and `size`.
 
+### Album Commands
+
+```bash
+# List albums in a chat
+agent-line album list <chat-id>
+
+# List photos in an album
+agent-line album photos <chat-id> <album-id>
+
+# Download every photo of an album (default dir: ./line-album-<album-id>)
+agent-line album download <chat-id> <album-id> -o ./album
+```
+
+Albums include `album_id`, `title`, `photo_count`, `owner_id`, `created_at`, `updated_at`. Downloads print `files` with `object_id`, `path`, `content_type` and `size`.
+
 ## Output Format
 
 ### JSON (Default)
