@@ -118,3 +118,50 @@ it('list: outputs messages with metadata', async () => {
   expect(msg.author_id).toBeDefined()
   expect(msg.sent_at).toBeDefined()
 })
+
+it('download: saves media named by message id and passes errors through', async () => {
+  const { mkdtempSync, readdirSync, rmSync } = await import('node:fs')
+  const { tmpdir } = await import('node:os')
+  const { join } = await import('node:path')
+  const outDir = mkdtempSync(join(tmpdir(), 'line-media-'))
+  const downloadSpy = spyOn(LineClient.prototype, 'downloadMessageMedia').mockResolvedValue({
+    media: [
+      { message_id: 'm1', content_type: 'IMAGE', data: new Uint8Array([1, 2]), mimeType: 'image/jpeg' },
+      {
+        message_id: 'm2',
+        content_type: 'FILE',
+        data: new Uint8Array([3]),
+        mimeType: 'application/octet-stream',
+        fileName: 'scan.HEIC',
+      },
+    ],
+    errors: [{ message_id: 'm3', error: 'NoE2EEKey' }],
+  })
+
+  try {
+    // when
+    await messageCommand.parseAsync([
+      'node',
+      'message',
+      'download',
+      'chat-1',
+      'm1',
+      'm2',
+      'm3',
+      '-n',
+      '80',
+      '-o',
+      outDir,
+    ])
+
+    // then
+    expect(downloadSpy).toHaveBeenCalledWith('chat-1', { messageIds: ['m1', 'm2', 'm3'], count: 80 })
+    expect(readdirSync(outDir).sort()).toEqual(['001-m1.jpg', '002-m2.heic'])
+    const output = JSON.parse(consoleLogSpy.mock.calls[0][0])
+    expect(output.files.map((f: { message_id: string }) => f.message_id)).toEqual(['m1', 'm2'])
+    expect(output.errors).toEqual([{ message_id: 'm3', error: 'NoE2EEKey' }])
+  } finally {
+    downloadSpy.mockRestore()
+    rmSync(outDir, { recursive: true, force: true })
+  }
+})
