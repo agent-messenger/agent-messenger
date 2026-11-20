@@ -253,6 +253,7 @@ Downloads save every photo to the output directory (default `./line-album-<album
 
 - Credentials stored in `~/.config/agent-messenger/line-credentials.json` (0600 permissions)
 - E2EE key storage in `~/.config/agent-messenger/line-storage/`
+- Session cache (own profile, channel tokens) in the same per-account file, valid for one hour. Set `AGENT_LINE_CACHE_TTL_SECONDS` to change it, or `0` to disable it. A cached token the server rejects is re-issued once; a new `auth login` clears the cache.
 
 ## Limitations
 

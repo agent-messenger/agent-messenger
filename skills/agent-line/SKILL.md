@@ -432,6 +432,13 @@ Config format:
 }
 ```
 
+### Session Cache
+
+Every command opens a new session. To keep traffic on the real account low, the CLI caches the account's own profile and the channel tokens used by `post`/`album` in `~/.config/agent-messenger/line-storage/<account-id>.json` for one hour. Within that hour a command skips the `getProfile` round trip, skips `getE2EEPublicKeys` once the E2EE key is stored, and reuses channel tokens. A cached token the server rejects is re-issued once automatically. A new `auth login` clears the cache.
+
+- `AGENT_LINE_CACHE_TTL_SECONDS=600` sets a different lifetime
+- `AGENT_LINE_CACHE_TTL_SECONDS=0` disables the cache
+
 ## SDK: Programmatic Usage
 
 `LineClient` is available as a TypeScript SDK for building scripts and automations.

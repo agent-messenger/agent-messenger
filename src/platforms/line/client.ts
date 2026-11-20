@@ -4,16 +4,18 @@ import { join } from 'node:path'
 import type { Operation as LineOperation } from '@jsr/evex__linejs-types'
 
 import { getConfigDir } from '@/shared/utils/config-dir'
+import { BaseClient } from '@/vendor/linejs/base/mod.js'
 import { FileStorage } from '@/vendor/linejs/base/storage/mod.js'
 import {
+  Client,
   loginWithQR as linejsLoginWithQR,
   loginWithPassword as linejsLoginWithPassword,
   loginWithAuthToken as linejsLoginWithAuthToken,
-  type Client,
 } from '@/vendor/linejs/client/mod.js'
 
 import { LineCredentialManager } from './credential-manager'
-import { ensureSelfKeyForMid, migrateOwnE2EEKeys } from './e2ee-storage'
+import { ensureSelfKeyForMid, hasSelfKeyForMid, migrateOwnE2EEKeys } from './e2ee-storage'
+import { clearSessionCache, readCache, writeCache } from './session-cache'
 import type {
   LineAccountCredentials,
   LineAlbum,
@@ -65,6 +67,73 @@ const OBS_ORIGIN = 'https://obs.line-apps.com'
 // Album photo downloads need a channel token issued for the album channel,
 // not the timeline channel the vendored client initialises.
 const ALBUM_CHANNEL_ID = '1375220249'
+// The timeline/Notes channel the vendored client also uses (timeline.initTimeline).
+const TIMELINE_CHANNEL_ID = '1341209850'
+const PROFILE_CACHE_KEY = 'cache:profile'
+
+interface ChannelTokenState {
+  token: string
+  // true when read from the on-disk cache, i.e. possibly stale on the server side
+  fromCache: boolean
+}
+
+interface CachedProfile {
+  mid: string
+  displayName?: string
+}
+
+// Rebuilds a session without the getProfile round trip when this account's profile was
+// cached within the TTL. linejs only needs authToken + profile.mid to make calls; the
+// token itself is validated by the first real request.
+async function restoreSessionFromCache(
+  storage: FileStorage,
+  creds: LineAccountCredentials,
+  device: LineDevice,
+): Promise<Client | undefined> {
+  const profile = await readCache<CachedProfile>(storage, PROFILE_CACHE_KEY)
+  if (!profile || profile.mid !== creds.account_id) return undefined
+  const base = new BaseClient({ device, storage })
+  base.authToken = creds.auth_token
+  base.profile = profile as never
+  return new Client(base)
+}
+
+async function cacheProfile(storage: FileStorage, profile: unknown): Promise<void> {
+  const p = profile as { mid?: string; displayName?: string } | undefined
+  if (!p?.mid) return
+  await writeCache<CachedProfile>(storage, PROFILE_CACHE_KEY, {
+    mid: p.mid,
+    ...(p.displayName && { displayName: p.displayName }),
+  })
+}
+
+// Same headers the vendored timeline.initTimeline builds, but with a caller-supplied
+// (possibly cached) channel token instead of always issuing a new one.
+function timelineHeaders(client: Client, channelToken: string): Record<string, string> {
+  const base = client.base
+  return {
+    'x-line-bdbtemplateversion': 'v1',
+    'x-lsr': 'JP',
+    'user-agent': base.request.userAgent,
+    'x-line-channeltoken': channelToken,
+    'accept-encoding': 'gzip',
+    'x-line-global-config': 'discover.enable=true; follow.enable=true; reboot.phase=scenario',
+    'x-line-mid': String(base.profile?.mid ?? ''),
+    'x-line-access': String(base.authToken ?? ''),
+    'content-type': 'application/json; charset=UTF-8',
+    'x-line-application': base.request.systemType,
+    'x-lal': 'ja_JP',
+    'x-lpv': '1',
+    'x-lhm': 'GET',
+  }
+}
+
+// ChannelToken.expiration is an epoch value; accept seconds or milliseconds.
+function expirationToMs(expiration: unknown): number | undefined {
+  const n = Number(expiration)
+  if (!Number.isFinite(n) || n <= 0) return undefined
+  return n < 1e12 ? n * 1000 : n
+}
 const POSTS_PAGE_LIMIT = 50
 // History returns contentType as the enum name; numeric codes cover raw/unparsed shapes.
 const MEDIA_CONTENT_TYPES = new Set(['IMAGE', 'VIDEO', 'AUDIO', 'FILE', '1', '2', '3', '14'])
@@ -145,7 +214,7 @@ function createStorage(accountId?: string): FileStorage {
 
 export class LineClient {
   private client: Client | null = null
-  private albumChannelToken: string | null = null
+  private channelTokens = new Map<string, ChannelTokenState>()
   private credManager: LineCredentialManager
 
   constructor(credManager?: LineCredentialManager) {
@@ -255,7 +324,13 @@ export class LineClient {
       const device: LineDevice = creds.device ?? getDefaultDevice()
       const storage = createStorage(creds.account_id)
 
-      this.client = await linejsLoginWithAuthToken(creds.auth_token, { device, storage })
+      const restored = await restoreSessionFromCache(storage, creds, device)
+      if (restored) {
+        this.client = restored
+      } else {
+        this.client = await linejsLoginWithAuthToken(creds.auth_token, { device, storage })
+        await cacheProfile(storage, this.client.base.profile)
+      }
       await this.repairSelfE2EEKey(this.client, creds.account_id)
       return this
     } catch (error) {
@@ -270,6 +345,8 @@ export class LineClient {
     try {
       const advertised = await client.base.talk.getE2EEPublicKeys().catch(() => undefined)
       const target = createStorage(mid)
+      // A new login issues a new auth token; cached channel tokens belong to the old one.
+      await clearSessionCache(target)
       await migrateOwnE2EEKeys(client.base.storage, target, mid, advertised)
     } catch (error) {
       warnDegraded('persist account E2EE keys', error)
@@ -281,6 +358,8 @@ export class LineClient {
   // storage. Promote it to the MID address, trusting only server-advertised keyIds.
   private async repairSelfE2EEKey(client: Client, mid: string): Promise<void> {
     try {
+      // Nothing to repair once the MID-addressed key exists; skip the server round trip.
+      if (await hasSelfKeyForMid(client.base.storage, mid)) return
       const advertised = await client.base.talk.getE2EEPublicKeys().catch(() => undefined)
       await ensureSelfKeyForMid(client.base.storage, mid, advertised)
     } catch (error) {
@@ -571,6 +650,9 @@ export class LineClient {
       }
     }
 
+    const selfName = (client.base.profile as { displayName?: string } | undefined)?.displayName
+    if (selfMid && selfName && authorMids.includes(selfMid)) names.set(selfMid, selfName)
+
     if (selfMid && authorMids.includes(selfMid) && !names.has(selfMid)) {
       try {
         const profile = await client.base.talk.getProfile()
@@ -755,13 +837,20 @@ export class LineClient {
   ): Promise<{ data: Uint8Array; contentType: string }> {
     try {
       const client = this.ensureClient()
-      const channelToken = await this.getAlbumChannelToken()
-      return await this.obsDownload(`album/a/${objectId}`, {
-        ...client.base.request.getHeader('GET'),
-        'x-line-album': albumId,
-        'x-line-mid': chatId,
-        'x-line-channeltoken': channelToken,
-      })
+      const download = async (fresh: boolean) =>
+        this.obsDownload(`album/a/${objectId}`, {
+          ...client.base.request.getHeader('GET'),
+          'x-line-album': albumId,
+          'x-line-mid': chatId,
+          'x-line-channeltoken': (await this.getChannelToken(ALBUM_CHANNEL_ID, { fresh })).token,
+        })
+      try {
+        return await download(false)
+      } catch (error) {
+        // A cached album token may have expired server-side: re-issue once and retry.
+        if (!this.isRejectedCachedToken(ALBUM_CHANNEL_ID, error)) throw error
+        return await download(true)
+      }
     } catch (error) {
       throw wrapError(error, 'download_failed')
     }
@@ -781,26 +870,58 @@ export class LineClient {
 
   private async timelineGet<T>(path: string, params: Record<string, string>): Promise<T> {
     const client = this.ensureClient()
-    await client.base.timeline.initTimeline()
     const query = new URLSearchParams(Object.fromEntries(Object.entries(params).filter(([, v]) => v !== '')))
-    const response = await client.base.fetch(`https://${client.base.request.endpoint}${path}?${query}`, {
-      headers: { ...client.base.timeline.timelineHeaders, 'x-lhm': 'GET' },
-    })
-    const body = (await response.json()) as { code?: number; message?: string; result?: T }
-    if (body.code !== 0 || !body.result) {
-      throw new LineError('timeline_request_failed', `LINE ${path} failed: ${body.code} ${body.message ?? ''}`.trim())
+    const request = async (fresh: boolean) => {
+      const { token } = await this.getChannelToken(TIMELINE_CHANNEL_ID, { fresh })
+      const response = await client.base.fetch(`https://${client.base.request.endpoint}${path}?${query}`, {
+        headers: timelineHeaders(client, token),
+      })
+      const body = (await response.json()) as { code?: number; message?: string; result?: T }
+      if (body.code !== 0 || !body.result) {
+        throw new LineError('timeline_request_failed', `LINE ${path} failed: ${body.code} ${body.message ?? ''}`.trim())
+      }
+      return body.result
     }
-    return body.result
+    try {
+      return await request(false)
+    } catch (error) {
+      // A cached timeline token may have expired server-side: re-issue once and retry.
+      if (!this.isRejectedCachedToken(TIMELINE_CHANNEL_ID, error)) throw error
+      return await request(true)
+    }
   }
 
-  private async getAlbumChannelToken(): Promise<string> {
-    if (!this.albumChannelToken) {
-      const issued = await this.ensureClient().base.channel.approveChannelAndIssueChannelToken({
-        channelId: ALBUM_CHANNEL_ID,
-      })
-      this.albumChannelToken = issued.channelAccessToken as string
+  // Channel tokens are cached in memory for this client and on disk for the cache TTL,
+  // so consecutive CLI commands don't re-issue them. `fresh` forces a new token and
+  // replaces the cached one.
+  private async getChannelToken(channelId: string, options?: { fresh?: boolean }): Promise<ChannelTokenState> {
+    const client = this.ensureClient()
+    const key = `cache:channelToken:${channelId}`
+    if (!options?.fresh) {
+      const inMemory = this.channelTokens.get(channelId)
+      if (inMemory) return inMemory
+      const cached = await readCache<string>(client.base.storage, key)
+      if (cached) {
+        const state = { token: cached, fromCache: true }
+        this.channelTokens.set(channelId, state)
+        return state
+      }
     }
-    return this.albumChannelToken
+    const issued = await client.base.channel.approveChannelAndIssueChannelToken({ channelId })
+    const state = { token: issued.channelAccessToken as string, fromCache: false }
+    this.channelTokens.set(channelId, state)
+    await writeCache(client.base.storage, key, state.token, Date.now(), {
+      expiresAt: expirationToMs((issued as { expiration?: unknown }).expiration),
+    })
+    return state
+  }
+
+  // Only a token that came from the disk cache is worth re-issuing; a token issued in
+  // this session failing means the request itself is wrong.
+  private isRejectedCachedToken(channelId: string, error: unknown): boolean {
+    const state = this.channelTokens.get(channelId)
+    if (!state?.fromCache || !(error instanceof LineError)) return false
+    return error.code === 'timeline_request_failed' || /HTTP (401|403)\b/.test(error.message)
   }
 
   private async obsDownload(
@@ -819,7 +940,7 @@ export class LineClient {
 
   close(): void {
     this.client = null
-    this.albumChannelToken = null
+    this.channelTokens.clear()
   }
 
   private ensureClient(): Client {

@@ -2,14 +2,26 @@ import { describe, expect, it, mock } from 'bun:test'
 
 import { LineClient } from './client'
 
+const memStorage = () => {
+  const data: Record<string, unknown> = {}
+  return { get: async (k: string) => data[k], set: async (k: string, v: unknown) => void (data[k] = v) }
+}
+
 function fakeClient(respond: () => Response) {
   const calls: Array<{ url: string; headers: Record<string, string> }> = []
   const approve = mock(async () => ({ channelAccessToken: 'album-token' }))
   const client = new LineClient()
   ;(client as any).client = {
     base: {
-      request: { endpoint: 'legy.line-apps.com', getHeader: () => ({ 'x-line-access': 'auth' }) },
-      timeline: { initTimeline: mock(async () => {}), timelineHeaders: { 'x-line-channeltoken': 'timeline-token' } },
+      request: {
+        endpoint: 'legy.line-apps.com',
+        userAgent: 'ua',
+        systemType: 'sys',
+        getHeader: () => ({ 'x-line-access': 'auth' }),
+      },
+      storage: memStorage(),
+      authToken: 'auth',
+      profile: { mid: 'uSelf' },
       channel: { approveChannelAndIssueChannelToken: approve },
       fetch: mock(async (url: string, init: { headers: Record<string, string> }) => {
         calls.push({ url, headers: init.headers })
