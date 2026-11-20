@@ -213,6 +213,18 @@ agent-line message list c7a8b9c0d1e2f3a4b5c6d7e8 -n 50
 agent-line message list c7a8b9c0d1e2f3a4b5c6d7e8 -n 200
 ```
 
+### Note (Post) Commands
+
+Group and room chats have a Notes tab. Messages with `content_type: "POSTNOTIFICATION"` point at a note; read it with these commands.
+
+```bash
+agent-line post list <chat-id> [-n 20]
+agent-line post get <chat-id> <post-id>
+agent-line post download <chat-id> <post-id> [-o ./notes]
+```
+
+Downloads save each photo or video to the output directory (default `./line-post-<post-id>`) and print the saved paths as JSON.
+
 ## Global Options
 
 | Option     | Description                           |

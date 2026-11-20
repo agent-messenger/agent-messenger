@@ -22,6 +22,8 @@ import type {
   LineFriend,
   LineLoginResult,
   LineMessage,
+  LinePost,
+  LinePostMedia,
   LineProfile,
   LineSendResult,
 } from './types'
@@ -53,6 +55,11 @@ type VendorMessage = Parameters<Client['base']['e2ee']['decryptE2EEMessage']>[0]
 
 const MAX_MESSAGE_ID = 9223372036854775807n
 
+// Group/room Notes moved from /mh/api to the note gateway; the vendored
+// timeline.getPost/listPost still call /mh/api/v57 and get a 500 for chat homes.
+const NOTE_API = '/ext/note/nt/api/v57'
+const OBS_ORIGIN = 'https://obs.line-apps.com'
+const POSTS_PAGE_LIMIT = 50
 function wrapError(error: unknown, code: string): LineError {
   if (error instanceof LineError) return error
   const message = error instanceof Error ? error.message : String(error)
@@ -571,6 +578,90 @@ export class LineClient {
     }
   }
 
+  async getPosts(chatId: string, options?: { count?: number }): Promise<LinePost[]> {
+    try {
+      const count = options?.count ?? 20
+      const posts: LinePost[] = []
+      let cursor: { postId?: string; updatedTime?: string } = {}
+
+      for (let page = 0; page < POSTS_PAGE_LIMIT && posts.length < count; page++) {
+        const result = await this.timelineGet<{
+          feeds?: Array<{ post?: RawPost }>
+          scrollInfo?: { postId?: string | number; updatedTime?: string | number }
+        }>(`${NOTE_API}/post/list.json`, { homeId: chatId, sourceType: 'TALKROOM', ...cursor })
+
+        const feeds = result.feeds ?? []
+        for (const feed of feeds) {
+          if (feed.post) posts.push(mapPost(feed.post, chatId))
+        }
+
+        const next = result.scrollInfo
+        if (feeds.length === 0 || !next?.postId) break
+        const nextCursor = { postId: String(next.postId), updatedTime: String(next.updatedTime ?? '') }
+        if (nextCursor.postId === cursor.postId) break
+        cursor = nextCursor
+      }
+
+      return posts.slice(0, count)
+    } catch (error) {
+      throw wrapError(error, 'get_posts_failed')
+    }
+  }
+
+  async getPost(chatId: string, postId: string): Promise<LinePost> {
+    try {
+      const result = await this.timelineGet<{ feed?: { post?: RawPost } }>(`${NOTE_API}/post/get.json`, {
+        homeId: chatId,
+        postId,
+        sourceType: 'TALKROOM',
+      })
+      if (!result.feed?.post) throw new LineError('post_not_found', `Post ${postId} not found in ${chatId}`)
+      return mapPost(result.feed.post, chatId)
+    } catch (error) {
+      throw wrapError(error, 'get_post_failed')
+    }
+  }
+
+  async downloadPostMedia(media: LinePostMedia): Promise<{ data: Uint8Array; contentType: string }> {
+    try {
+      const client = this.ensureClient()
+      return await this.obsDownload(
+        `${media.service_name}/${media.obs_namespace}/${media.object_id}`,
+        client.base.request.getHeader('GET'),
+      )
+    } catch (error) {
+      throw wrapError(error, 'download_failed')
+    }
+  }
+
+  private async timelineGet<T>(path: string, params: Record<string, string>): Promise<T> {
+    const client = this.ensureClient()
+    await client.base.timeline.initTimeline()
+    const query = new URLSearchParams(Object.fromEntries(Object.entries(params).filter(([, v]) => v !== '')))
+    const response = await client.base.fetch(`https://${client.base.request.endpoint}${path}?${query}`, {
+      headers: { ...client.base.timeline.timelineHeaders, 'x-lhm': 'GET' },
+    })
+    const body = (await response.json()) as { code?: number; message?: string; result?: T }
+    if (body.code !== 0 || !body.result) {
+      throw new LineError('timeline_request_failed', `LINE ${path} failed: ${body.code} ${body.message ?? ''}`.trim())
+    }
+    return body.result
+  }
+
+  private async obsDownload(
+    obsPath: string,
+    headers: Record<string, string>,
+  ): Promise<{ data: Uint8Array; contentType: string }> {
+    const response = await this.ensureClient().base.fetch(`${OBS_ORIGIN}/r/${obsPath}`, { headers })
+    if (!response.ok) {
+      throw new LineError('download_failed', `LINE media download failed with HTTP ${response.status}`)
+    }
+    return {
+      data: new Uint8Array(await response.arrayBuffer()),
+      contentType: response.headers.get('content-type') ?? 'application/octet-stream',
+    }
+  }
+
   close(): void {
     this.client = null
   }
@@ -626,4 +717,53 @@ function hasE2EEMetadata(raw: unknown): boolean {
   if (!raw || typeof raw !== 'object') return false
   const metadata = raw as { e2eeMark?: unknown; e2eeVersion?: unknown }
   return metadata.e2eeMark !== undefined || metadata.e2eeVersion !== undefined
+}
+
+interface RawPost {
+  postInfo?: { postId?: string | number; createdTime?: string | number }
+  userInfo?: { mid?: string; writerMid?: string; nickname?: string }
+  contents?: {
+    text?: string
+    media?: Array<{
+      type?: string
+      objectId?: string
+      serviceName?: string
+      obsNamespace?: string
+      width?: number
+      height?: number
+    }>
+  }
+}
+
+function toIso(epochMs: unknown): string {
+  const ms = Number(epochMs)
+  return Number.isFinite(ms) && ms > 0 ? new Date(ms).toISOString() : ''
+}
+
+function toOptionalNumber(value: unknown): number | undefined {
+  const n = Number(value)
+  return Number.isFinite(n) && n > 0 ? n : undefined
+}
+
+function mapPost(post: RawPost, chatId: string): LinePost {
+  const authorName = post.userInfo?.nickname
+  return {
+    // postId exceeds Number.MAX_SAFE_INTEGER; only trust it when it arrives as a string.
+    post_id: String(post.postInfo?.postId ?? ''),
+    chat_id: chatId,
+    author_id: post.userInfo?.writerMid ?? post.userInfo?.mid ?? '',
+    ...(authorName && { author_name: authorName }),
+    text: post.contents?.text ?? '',
+    media: (post.contents?.media ?? [])
+      .filter((m) => m.objectId)
+      .map((m) => ({
+        type: m.type ?? 'PHOTO',
+        object_id: m.objectId as string,
+        service_name: m.serviceName ?? 'privnote',
+        obs_namespace: m.obsNamespace ?? 'post',
+        ...(toOptionalNumber(m.width) && { width: toOptionalNumber(m.width) }),
+        ...(toOptionalNumber(m.height) && { height: toOptionalNumber(m.height) }),
+      })),
+    created_at: toIso(post.postInfo?.createdTime),
+  }
 }
