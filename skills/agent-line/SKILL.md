@@ -290,7 +290,14 @@ agent-line message list <chat-id> --pretty
 # Send a text message
 agent-line message send <chat-id> "Hello world"
 agent-line message send <chat-id> "Hello world" --pretty
+
+# Download images/videos/audio/files sent as messages (Letter Sealing is decrypted)
+agent-line message download <chat-id>                      # every media message in the last 50
+agent-line message download <chat-id> -n 200 -o ./media    # search a larger window
+agent-line message download <chat-id> <message-id> [...]   # specific messages (from message list)
 ```
+
+`message download` prints `files` (`message_id`, `path`, `content_type`, `size`) and `errors` (`message_id`, `error`) for items that could not be fetched; one failure does not abort the rest.
 
 #### Message List Output
 
@@ -465,7 +472,7 @@ See the [LINE SDK documentation](https://agent-messenger.dev/docs/sdk/line) for 
 - No auto-extraction of credentials (requires interactive login via QR code or email/password)
 - E2EE (Letter Sealing) messages are decrypted automatically when key material is available (restored from a prior QR/email login); without keys, content may be unreadable
 - Sending to chats that **require** E2EE (Letter Sealing) needs E2EE key material from a prior QR/email login; without it such sends fail with `e2ee_required`
-- No file upload support yet
+- No file upload support yet (message, note and album media can be downloaded, not uploaded)
 - No sticker or rich message sending (text only)
 - No group creation or management
 - No group creation or management commands (list only)

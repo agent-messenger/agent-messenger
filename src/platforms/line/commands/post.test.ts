@@ -85,3 +85,9 @@ it('extensionFor: maps known types and falls back to bin', () => {
   expect(extensionFor('video/mp4; codecs=avc1')).toBe('mp4')
   expect(extensionFor('application/x-unknown')).toBe('bin')
 })
+
+it('extensionFor: falls back to the original file name extension', () => {
+  expect(extensionFor('application/octet-stream', 'scan.HEIC')).toBe('heic')
+  expect(extensionFor('audio/mp4')).toBe('m4a')
+  expect(extensionFor('application/pdf')).toBe('pdf')
+})

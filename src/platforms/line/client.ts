@@ -66,6 +66,29 @@ const OBS_ORIGIN = 'https://obs.line-apps.com'
 // not the timeline channel the vendored client initialises.
 const ALBUM_CHANNEL_ID = '1375220249'
 const POSTS_PAGE_LIMIT = 50
+// History returns contentType as the enum name; numeric codes cover raw/unparsed shapes.
+const MEDIA_CONTENT_TYPES = new Set(['IMAGE', 'VIDEO', 'AUDIO', 'FILE', '1', '2', '3', '14'])
+
+export interface LineMessageMedia {
+  message_id: string
+  content_type: string
+  data: Uint8Array
+  mimeType: string
+  fileName?: string
+}
+
+// Decrypted E2EE media comes back as an untyped File, so infer the type from magic bytes.
+function sniffMimeType(data: Uint8Array, contentType: string): string {
+  const hex = Array.from(data.slice(0, 12), (b) => b.toString(16).padStart(2, '0')).join('')
+  if (hex.startsWith('ffd8ff')) return 'image/jpeg'
+  if (hex.startsWith('89504e47')) return 'image/png'
+  if (hex.startsWith('47494638')) return 'image/gif'
+  if (hex.startsWith('52494646') && hex.slice(16, 24) === '57454250') return 'image/webp'
+  if (hex.startsWith('25504446')) return 'application/pdf'
+  if (hex.slice(8, 16) === '66747970') return contentType === 'AUDIO' || contentType === '3' ? 'audio/mp4' : 'video/mp4'
+  return 'application/octet-stream'
+}
+
 function wrapError(error: unknown, code: string): LineError {
   if (error instanceof LineError) return error
   const message = error instanceof Error ? error.message : String(error)
@@ -388,24 +411,7 @@ export class LineClient {
   async getMessages(chatId: string, options?: { count?: number }): Promise<LineMessage[]> {
     try {
       const client = this.ensureClient()
-      const count = options?.count ?? 20
-
-      // getPreviousMessagesV2WithRequest pages backward from endMessageId. A
-      // messageId:0 sentinel returns nothing; the max int64 id acts as "from the
-      // latest message" and works for any chat regardless of message-box position.
-      const serverTime = await client.base.talk.getServerTime()
-      const rawMessages = await client.base.talk.getPreviousMessagesV2WithRequest({
-        request: {
-          messageBoxId: chatId,
-          endMessageId: {
-            deliveredTime: BigInt(serverTime),
-            messageId: MAX_MESSAGE_ID,
-          },
-          messagesCount: count,
-        },
-      })
-
-      const messages = rawMessages ?? []
+      const messages = await this.fetchRecentMessages(client, chatId, options?.count ?? 20)
       const authorNames = await this.resolveAuthorNames(client, messages)
 
       return await Promise.all(
@@ -428,6 +434,98 @@ export class LineClient {
     } catch (error) {
       throw wrapError(error, 'get_messages_failed')
     }
+  }
+
+  // Downloads image/video/audio/file messages from the last `count` messages, or only
+  // the given message IDs (which must fall inside that window). Letter-Sealing media is
+  // fetched from OBS and decrypted with the per-message key material; plain media is
+  // fetched from talk/m/<messageId>. Per-message failures are returned, not thrown.
+  async downloadMessageMedia(
+    chatId: string,
+    options?: { messageIds?: string[]; count?: number },
+  ): Promise<{ media: LineMessageMedia[]; errors: Array<{ message_id: string; error: string }> }> {
+    const client = this.ensureClient()
+    let messages: VendorMessage[]
+    try {
+      messages = await this.fetchRecentMessages(client, chatId, options?.count ?? 50)
+    } catch (error) {
+      throw wrapError(error, 'get_messages_failed')
+    }
+
+    const wanted = options?.messageIds?.length ? new Set(options.messageIds) : null
+    const targets = messages.filter((msg) =>
+      wanted ? wanted.has(String(msg.id)) : MEDIA_CONTENT_TYPES.has(String(msg.contentType)),
+    )
+    if (wanted) {
+      const found = new Set(targets.map((msg) => String(msg.id)))
+      const missing = [...wanted].filter((id) => !found.has(id))
+      if (missing.length) {
+        throw new LineError(
+          'message_not_found',
+          `Not among the last ${messages.length} messages: ${missing.join(', ')}. Increase --count.`,
+        )
+      }
+    }
+
+    const media: LineMessageMedia[] = []
+    const errors: Array<{ message_id: string; error: string }> = []
+    // Oldest first, so numbered file names follow the chat's order.
+    for (const msg of [...targets].reverse()) {
+      const messageId = String(msg.id)
+      const contentType = String(msg.contentType ?? 'NONE')
+      try {
+        if (!MEDIA_CONTENT_TYPES.has(contentType)) {
+          throw new LineError('not_media', `Message ${messageId} is ${contentType}, not a media message`)
+        }
+        media.push({ message_id: messageId, content_type: contentType, ...(await this.fetchMessageMedia(client, msg)) })
+      } catch (error) {
+        errors.push({ message_id: messageId, error: error instanceof Error ? error.message : String(error) })
+      }
+    }
+    return { media, errors }
+  }
+
+  private async fetchMessageMedia(
+    client: Client,
+    msg: VendorMessage,
+  ): Promise<{ data: Uint8Array; mimeType: string; fileName?: string }> {
+    if (isEncryptedChunkMessage(msg)) {
+      const file = await client.base.obs.downloadMediaByE2EE(normalizeE2EEMetadata(msg) as never)
+      if (!file) throw new LineError('download_failed', `Message ${String(msg.id)} has no encrypted payload`)
+      const data = new Uint8Array(await file.arrayBuffer())
+      const fileName = file.name && file.name !== 'undefined' ? file.name : undefined
+      return { data, mimeType: sniffMimeType(data, String(msg.contentType)), ...(fileName && { fileName }) }
+    }
+    const { data, contentType } = await this.obsDownload(
+      `talk/m/${String(msg.id)}`,
+      client.base.request.getHeader('GET'),
+    )
+    const fileName = (msg.contentMetadata as Record<string, string> | undefined)?.FILE_NAME
+    return {
+      data,
+      mimeType: contentType.startsWith('application/octet')
+        ? sniffMimeType(data, String(msg.contentType))
+        : contentType,
+      ...(fileName && { fileName }),
+    }
+  }
+
+  // getPreviousMessagesV2WithRequest pages backward from endMessageId. A
+  // messageId:0 sentinel returns nothing; the max int64 id acts as "from the
+  // latest message" and works for any chat regardless of message-box position.
+  private async fetchRecentMessages(client: Client, chatId: string, count: number): Promise<VendorMessage[]> {
+    const serverTime = await client.base.talk.getServerTime()
+    const rawMessages = await client.base.talk.getPreviousMessagesV2WithRequest({
+      request: {
+        messageBoxId: chatId,
+        endMessageId: {
+          deliveredTime: BigInt(serverTime),
+          messageId: MAX_MESSAGE_ID,
+        },
+        messagesCount: count,
+      },
+    })
+    return (rawMessages ?? []) as VendorMessage[]
   }
 
   // getPreviousMessagesV2WithRequest returns Letter-Sealing messages as encrypted
