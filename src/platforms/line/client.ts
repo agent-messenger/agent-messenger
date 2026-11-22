@@ -16,12 +16,16 @@ import { LineCredentialManager } from './credential-manager'
 import { ensureSelfKeyForMid, migrateOwnE2EEKeys } from './e2ee-storage'
 import type {
   LineAccountCredentials,
+  LineAlbum,
+  LineAlbumPhoto,
   LineChat,
   LineDevice,
   LineDecryptionError,
   LineFriend,
   LineLoginResult,
   LineMessage,
+  LinePost,
+  LinePostMedia,
   LineProfile,
   LineSendResult,
 } from './types'
@@ -52,6 +56,38 @@ export type LineRawEvent = { kind: 'message'; message: LineRawMessage } | { kind
 type VendorMessage = Parameters<Client['base']['e2ee']['decryptE2EEMessage']>[0]
 
 const MAX_MESSAGE_ID = 9223372036854775807n
+
+// Group/room Notes moved from /mh/api to the note gateway; the vendored
+// timeline.getPost/listPost still call /mh/api/v57 and get a 500 for chat homes.
+const NOTE_API = '/ext/note/nt/api/v57'
+const ALBUM_API = '/ext/album/api/v3'
+const OBS_ORIGIN = 'https://obs.line-apps.com'
+// Album photo downloads need a channel token issued for the album channel,
+// not the timeline channel the vendored client initialises.
+const ALBUM_CHANNEL_ID = '1375220249'
+const POSTS_PAGE_LIMIT = 50
+// History returns contentType as the enum name; numeric codes cover raw/unparsed shapes.
+const MEDIA_CONTENT_TYPES = new Set(['IMAGE', 'VIDEO', 'AUDIO', 'FILE', '1', '2', '3', '14'])
+
+export interface LineMessageMedia {
+  message_id: string
+  content_type: string
+  data: Uint8Array
+  mimeType: string
+  fileName?: string
+}
+
+// Decrypted E2EE media comes back as an untyped File, so infer the type from magic bytes.
+function sniffMimeType(data: Uint8Array, contentType: string): string {
+  const hex = Array.from(data.slice(0, 12), (b) => b.toString(16).padStart(2, '0')).join('')
+  if (hex.startsWith('ffd8ff')) return 'image/jpeg'
+  if (hex.startsWith('89504e47')) return 'image/png'
+  if (hex.startsWith('47494638')) return 'image/gif'
+  if (hex.startsWith('52494646') && hex.slice(16, 24) === '57454250') return 'image/webp'
+  if (hex.startsWith('25504446')) return 'application/pdf'
+  if (hex.slice(8, 16) === '66747970') return contentType === 'AUDIO' || contentType === '3' ? 'audio/mp4' : 'video/mp4'
+  return 'application/octet-stream'
+}
 
 function wrapError(error: unknown, code: string): LineError {
   if (error instanceof LineError) return error
@@ -109,6 +145,7 @@ function createStorage(accountId?: string): FileStorage {
 
 export class LineClient {
   private client: Client | null = null
+  private albumChannelToken: string | null = null
   private credManager: LineCredentialManager
 
   constructor(credManager?: LineCredentialManager) {
@@ -374,24 +411,7 @@ export class LineClient {
   async getMessages(chatId: string, options?: { count?: number }): Promise<LineMessage[]> {
     try {
       const client = this.ensureClient()
-      const count = options?.count ?? 20
-
-      // getPreviousMessagesV2WithRequest pages backward from endMessageId. A
-      // messageId:0 sentinel returns nothing; the max int64 id acts as "from the
-      // latest message" and works for any chat regardless of message-box position.
-      const serverTime = await client.base.talk.getServerTime()
-      const rawMessages = await client.base.talk.getPreviousMessagesV2WithRequest({
-        request: {
-          messageBoxId: chatId,
-          endMessageId: {
-            deliveredTime: BigInt(serverTime),
-            messageId: MAX_MESSAGE_ID,
-          },
-          messagesCount: count,
-        },
-      })
-
-      const messages = rawMessages ?? []
+      const messages = await this.fetchRecentMessages(client, chatId, options?.count ?? 20)
       const authorNames = await this.resolveAuthorNames(client, messages)
 
       return await Promise.all(
@@ -414,6 +434,98 @@ export class LineClient {
     } catch (error) {
       throw wrapError(error, 'get_messages_failed')
     }
+  }
+
+  // Downloads image/video/audio/file messages from the last `count` messages, or only
+  // the given message IDs (which must fall inside that window). Letter-Sealing media is
+  // fetched from OBS and decrypted with the per-message key material; plain media is
+  // fetched from talk/m/<messageId>. Per-message failures are returned, not thrown.
+  async downloadMessageMedia(
+    chatId: string,
+    options?: { messageIds?: string[]; count?: number },
+  ): Promise<{ media: LineMessageMedia[]; errors: Array<{ message_id: string; error: string }> }> {
+    const client = this.ensureClient()
+    let messages: VendorMessage[]
+    try {
+      messages = await this.fetchRecentMessages(client, chatId, options?.count ?? 50)
+    } catch (error) {
+      throw wrapError(error, 'get_messages_failed')
+    }
+
+    const wanted = options?.messageIds?.length ? new Set(options.messageIds) : null
+    const targets = messages.filter((msg) =>
+      wanted ? wanted.has(String(msg.id)) : MEDIA_CONTENT_TYPES.has(String(msg.contentType)),
+    )
+    if (wanted) {
+      const found = new Set(targets.map((msg) => String(msg.id)))
+      const missing = [...wanted].filter((id) => !found.has(id))
+      if (missing.length) {
+        throw new LineError(
+          'message_not_found',
+          `Not among the last ${messages.length} messages: ${missing.join(', ')}. Increase --count.`,
+        )
+      }
+    }
+
+    const media: LineMessageMedia[] = []
+    const errors: Array<{ message_id: string; error: string }> = []
+    // Oldest first, so numbered file names follow the chat's order.
+    for (const msg of [...targets].reverse()) {
+      const messageId = String(msg.id)
+      const contentType = String(msg.contentType ?? 'NONE')
+      try {
+        if (!MEDIA_CONTENT_TYPES.has(contentType)) {
+          throw new LineError('not_media', `Message ${messageId} is ${contentType}, not a media message`)
+        }
+        media.push({ message_id: messageId, content_type: contentType, ...(await this.fetchMessageMedia(client, msg)) })
+      } catch (error) {
+        errors.push({ message_id: messageId, error: error instanceof Error ? error.message : String(error) })
+      }
+    }
+    return { media, errors }
+  }
+
+  private async fetchMessageMedia(
+    client: Client,
+    msg: VendorMessage,
+  ): Promise<{ data: Uint8Array; mimeType: string; fileName?: string }> {
+    if (isEncryptedChunkMessage(msg)) {
+      const file = await client.base.obs.downloadMediaByE2EE(normalizeE2EEMetadata(msg) as never)
+      if (!file) throw new LineError('download_failed', `Message ${String(msg.id)} has no encrypted payload`)
+      const data = new Uint8Array(await file.arrayBuffer())
+      const fileName = file.name && file.name !== 'undefined' ? file.name : undefined
+      return { data, mimeType: sniffMimeType(data, String(msg.contentType)), ...(fileName && { fileName }) }
+    }
+    const { data, contentType } = await this.obsDownload(
+      `talk/m/${String(msg.id)}`,
+      client.base.request.getHeader('GET'),
+    )
+    const fileName = (msg.contentMetadata as Record<string, string> | undefined)?.FILE_NAME
+    return {
+      data,
+      mimeType: contentType.startsWith('application/octet')
+        ? sniffMimeType(data, String(msg.contentType))
+        : contentType,
+      ...(fileName && { fileName }),
+    }
+  }
+
+  // getPreviousMessagesV2WithRequest pages backward from endMessageId. A
+  // messageId:0 sentinel returns nothing; the max int64 id acts as "from the
+  // latest message" and works for any chat regardless of message-box position.
+  private async fetchRecentMessages(client: Client, chatId: string, count: number): Promise<VendorMessage[]> {
+    const serverTime = await client.base.talk.getServerTime()
+    const rawMessages = await client.base.talk.getPreviousMessagesV2WithRequest({
+      request: {
+        messageBoxId: chatId,
+        endMessageId: {
+          deliveredTime: BigInt(serverTime),
+          messageId: MAX_MESSAGE_ID,
+        },
+        messagesCount: count,
+      },
+    })
+    return (rawMessages ?? []) as VendorMessage[]
   }
 
   // getPreviousMessagesV2WithRequest returns Letter-Sealing messages as encrypted
@@ -571,8 +683,143 @@ export class LineClient {
     }
   }
 
+  async getPosts(chatId: string, options?: { count?: number }): Promise<LinePost[]> {
+    try {
+      const count = options?.count ?? 20
+      const posts: LinePost[] = []
+      let cursor: { postId?: string; updatedTime?: string } = {}
+
+      for (let page = 0; page < POSTS_PAGE_LIMIT && posts.length < count; page++) {
+        const result = await this.timelineGet<{
+          feeds?: Array<{ post?: RawPost }>
+          scrollInfo?: { postId?: string | number; updatedTime?: string | number }
+        }>(`${NOTE_API}/post/list.json`, { homeId: chatId, sourceType: 'TALKROOM', ...cursor })
+
+        const feeds = result.feeds ?? []
+        for (const feed of feeds) {
+          if (feed.post) posts.push(mapPost(feed.post, chatId))
+        }
+
+        const next = result.scrollInfo
+        if (feeds.length === 0 || !next?.postId) break
+        const nextCursor = { postId: String(next.postId), updatedTime: String(next.updatedTime ?? '') }
+        if (nextCursor.postId === cursor.postId) break
+        cursor = nextCursor
+      }
+
+      return posts.slice(0, count)
+    } catch (error) {
+      throw wrapError(error, 'get_posts_failed')
+    }
+  }
+
+  async getPost(chatId: string, postId: string): Promise<LinePost> {
+    try {
+      const result = await this.timelineGet<{ feed?: { post?: RawPost } }>(`${NOTE_API}/post/get.json`, {
+        homeId: chatId,
+        postId,
+        sourceType: 'TALKROOM',
+      })
+      if (!result.feed?.post) throw new LineError('post_not_found', `Post ${postId} not found in ${chatId}`)
+      return mapPost(result.feed.post, chatId)
+    } catch (error) {
+      throw wrapError(error, 'get_post_failed')
+    }
+  }
+
+  async getAlbums(chatId: string): Promise<LineAlbum[]> {
+    try {
+      const result = await this.timelineGet<{ items?: RawAlbum[] }>(`${ALBUM_API}/albums`, { homeId: chatId })
+      return (result.items ?? []).map((album) => mapAlbum(album, chatId))
+    } catch (error) {
+      throw wrapError(error, 'get_albums_failed')
+    }
+  }
+
+  async getAlbumPhotos(chatId: string, albumId: string): Promise<LineAlbumPhoto[]> {
+    try {
+      const result = await this.timelineGet<{ items?: RawAlbumPhoto[] }>(
+        `${ALBUM_API}/photos/${encodeURIComponent(albumId)}`,
+        { homeId: chatId },
+      )
+      return (result.items ?? []).map(mapAlbumPhoto)
+    } catch (error) {
+      throw wrapError(error, 'get_album_photos_failed')
+    }
+  }
+
+  async downloadAlbumPhoto(
+    chatId: string,
+    albumId: string,
+    objectId: string,
+  ): Promise<{ data: Uint8Array; contentType: string }> {
+    try {
+      const client = this.ensureClient()
+      const channelToken = await this.getAlbumChannelToken()
+      return await this.obsDownload(`album/a/${objectId}`, {
+        ...client.base.request.getHeader('GET'),
+        'x-line-album': albumId,
+        'x-line-mid': chatId,
+        'x-line-channeltoken': channelToken,
+      })
+    } catch (error) {
+      throw wrapError(error, 'download_failed')
+    }
+  }
+
+  async downloadPostMedia(media: LinePostMedia): Promise<{ data: Uint8Array; contentType: string }> {
+    try {
+      const client = this.ensureClient()
+      return await this.obsDownload(
+        `${media.service_name}/${media.obs_namespace}/${media.object_id}`,
+        client.base.request.getHeader('GET'),
+      )
+    } catch (error) {
+      throw wrapError(error, 'download_failed')
+    }
+  }
+
+  private async timelineGet<T>(path: string, params: Record<string, string>): Promise<T> {
+    const client = this.ensureClient()
+    await client.base.timeline.initTimeline()
+    const query = new URLSearchParams(Object.fromEntries(Object.entries(params).filter(([, v]) => v !== '')))
+    const response = await client.base.fetch(`https://${client.base.request.endpoint}${path}?${query}`, {
+      headers: { ...client.base.timeline.timelineHeaders, 'x-lhm': 'GET' },
+    })
+    const body = (await response.json()) as { code?: number; message?: string; result?: T }
+    if (body.code !== 0 || !body.result) {
+      throw new LineError('timeline_request_failed', `LINE ${path} failed: ${body.code} ${body.message ?? ''}`.trim())
+    }
+    return body.result
+  }
+
+  private async getAlbumChannelToken(): Promise<string> {
+    if (!this.albumChannelToken) {
+      const issued = await this.ensureClient().base.channel.approveChannelAndIssueChannelToken({
+        channelId: ALBUM_CHANNEL_ID,
+      })
+      this.albumChannelToken = issued.channelAccessToken as string
+    }
+    return this.albumChannelToken
+  }
+
+  private async obsDownload(
+    obsPath: string,
+    headers: Record<string, string>,
+  ): Promise<{ data: Uint8Array; contentType: string }> {
+    const response = await this.ensureClient().base.fetch(`${OBS_ORIGIN}/r/${obsPath}`, { headers })
+    if (!response.ok) {
+      throw new LineError('download_failed', `LINE media download failed with HTTP ${response.status}`)
+    }
+    return {
+      data: new Uint8Array(await response.arrayBuffer()),
+      contentType: response.headers.get('content-type') ?? 'application/octet-stream',
+    }
+  }
+
   close(): void {
     this.client = null
+    this.albumChannelToken = null
   }
 
   private ensureClient(): Client {
@@ -626,4 +873,94 @@ function hasE2EEMetadata(raw: unknown): boolean {
   if (!raw || typeof raw !== 'object') return false
   const metadata = raw as { e2eeMark?: unknown; e2eeVersion?: unknown }
   return metadata.e2eeMark !== undefined || metadata.e2eeVersion !== undefined
+}
+
+interface RawPost {
+  postInfo?: { postId?: string | number; createdTime?: string | number }
+  userInfo?: { mid?: string; writerMid?: string; nickname?: string }
+  contents?: {
+    text?: string
+    media?: Array<{
+      type?: string
+      objectId?: string
+      serviceName?: string
+      obsNamespace?: string
+      width?: number
+      height?: number
+    }>
+  }
+}
+
+interface RawAlbum {
+  id?: string | number
+  title?: string
+  photoCount?: string | number
+  owner?: { mid?: string }
+  created?: string | number
+  lastPosted?: string | number
+}
+
+interface RawAlbumPhoto {
+  id?: string | number
+  oid?: string
+  owner?: { mid?: string }
+  width?: string | number
+  height?: string | number
+  created?: string | number
+}
+
+function toIso(epochMs: unknown): string {
+  const ms = Number(epochMs)
+  return Number.isFinite(ms) && ms > 0 ? new Date(ms).toISOString() : ''
+}
+
+function toOptionalNumber(value: unknown): number | undefined {
+  const n = Number(value)
+  return Number.isFinite(n) && n > 0 ? n : undefined
+}
+
+function mapPost(post: RawPost, chatId: string): LinePost {
+  const authorName = post.userInfo?.nickname
+  return {
+    // postId exceeds Number.MAX_SAFE_INTEGER; only trust it when it arrives as a string.
+    post_id: String(post.postInfo?.postId ?? ''),
+    chat_id: chatId,
+    author_id: post.userInfo?.writerMid ?? post.userInfo?.mid ?? '',
+    ...(authorName && { author_name: authorName }),
+    text: post.contents?.text ?? '',
+    media: (post.contents?.media ?? [])
+      .filter((m) => m.objectId)
+      .map((m) => ({
+        type: m.type ?? 'PHOTO',
+        object_id: m.objectId as string,
+        service_name: m.serviceName ?? 'privnote',
+        obs_namespace: m.obsNamespace ?? 'post',
+        ...(toOptionalNumber(m.width) && { width: toOptionalNumber(m.width) }),
+        ...(toOptionalNumber(m.height) && { height: toOptionalNumber(m.height) }),
+      })),
+    created_at: toIso(post.postInfo?.createdTime),
+  }
+}
+
+function mapAlbum(album: RawAlbum, chatId: string): LineAlbum {
+  return {
+    album_id: String(album.id ?? ''),
+    chat_id: chatId,
+    title: album.title ?? '',
+    photo_count: Number(album.photoCount ?? 0),
+    owner_id: album.owner?.mid ?? '',
+    created_at: toIso(album.created),
+    updated_at: toIso(album.lastPosted ?? album.created),
+  }
+}
+
+function mapAlbumPhoto(photo: RawAlbumPhoto): LineAlbumPhoto {
+  return {
+    photo_id: String(photo.id ?? ''),
+    object_id: photo.oid ?? '',
+    owner_id: photo.owner?.mid ?? '',
+    ...(toOptionalNumber(photo.width) && { width: toOptionalNumber(photo.width) }),
+    ...(toOptionalNumber(photo.height) && { height: toOptionalNumber(photo.height) }),
+    created_at: toIso(photo.created),
+  }
 }
