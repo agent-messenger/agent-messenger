@@ -60,6 +60,33 @@ export interface LineSendResult {
   sent_at: string
 }
 
+// A note ("post") in a group/room's Notes tab. POSTNOTIFICATION messages point at these.
+export interface LinePost {
+  post_id: string
+  chat_id: string
+  author_id: string
+  author_name?: string
+  text: string
+  media: LinePostMedia[]
+  created_at: string
+}
+
+export interface LinePostMedia {
+  type: string
+  object_id: string
+  service_name: string
+  obs_namespace: string
+  width?: number
+  height?: number
+}
+
+export interface LineDownloadedFile {
+  object_id: string
+  path: string
+  content_type: string
+  size: number
+}
+
 export interface LineProfile {
   mid: string
   display_name: string
