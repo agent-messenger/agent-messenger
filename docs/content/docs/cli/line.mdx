@@ -185,6 +185,9 @@ agent-line message list <chat-id> --pretty
 # Send a text message
 agent-line message send <chat-id> "Hello world"
 agent-line message send <chat-id> "Hello world" --pretty
+
+# Reply to a message (quoted reply; works in Letter Sealing chats too)
+agent-line message send <chat-id> "Sounds good" --reply-to <message-id>
 ```
 
 Each message includes:
@@ -196,6 +199,7 @@ Each message includes:
 - `text` — message text content (null for non-text or undecryptable messages). Letter Sealing (E2EE) messages are decrypted automatically when key material is available
 - `decryption_error` — present only when an E2EE message couldn't be decrypted; `{ code, message }` where `code` is `missing_e2ee_key` or `decrypt_failed`
 - `content_type` — message type (NONE = text, IMAGE, VIDEO, etc.)
+- `reply_to_message_id` — present only when the message is a quoted reply; the ID of the message it replies to
 - `sent_at` — ISO 8601 timestamp
 
 #### Fetching More Messages

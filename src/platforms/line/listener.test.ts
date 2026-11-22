@@ -203,6 +203,32 @@ describe('LineListener', () => {
       expect(messages[0].content_metadata).toEqual({ STKID: '123', STKPKGID: '456', STKVER: '1' })
     })
 
+    it('forwards reply_to_message_id for quoted replies', async () => {
+      const client = createMockLineClient()
+      listener = new LineListener(client)
+
+      const messages: LinePushMessageEvent[] = []
+      listener.on('message', (event) => messages.push(event))
+
+      await listener.start()
+      mockInternalClientInstance.simulateMessage({
+        isMyMessage: false,
+        from: { type: 'USER', id: 'u456' },
+        to: { type: 'USER', id: 'u123' },
+        text: 'sure',
+        raw: {
+          id: 'msg020',
+          contentType: 'NONE',
+          createdTime: 1700000008000,
+          relatedMessageId: 'msg019',
+          messageRelationType: 'REPLY',
+        },
+      })
+      await flush()
+
+      expect(messages[0].reply_to_message_id).toBe('msg019')
+    })
+
     it('falls back to raw text when text is empty for contentType NONE messages', async () => {
       const client = createMockLineClient()
       listener = new LineListener(client)
