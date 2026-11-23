@@ -213,6 +213,36 @@ agent-line message list c7a8b9c0d1e2f3a4b5c6d7e8 -n 50
 agent-line message list c7a8b9c0d1e2f3a4b5c6d7e8 -n 200
 ```
 
+### Message Media
+
+```bash
+agent-line message download <chat-id> [message-ids...] [-n 50] [-o ./media]
+```
+
+Downloads images, videos, audio and files that were sent as chat messages, decrypting Letter Sealing (E2EE) media. Without message IDs it saves every media message among the last `-n` messages.
+
+### Note (Post) Commands
+
+Group and room chats have a Notes tab. Messages with `content_type: "POSTNOTIFICATION"` point at a note; read it with these commands.
+
+```bash
+agent-line post list <chat-id> [-n 20]
+agent-line post get <chat-id> <post-id>
+agent-line post download <chat-id> <post-id> [-o ./notes]
+```
+
+Downloads save each photo or video to the output directory (default `./line-post-<post-id>`) and print the saved paths as JSON.
+
+### Album Commands
+
+```bash
+agent-line album list <chat-id>
+agent-line album photos <chat-id> <album-id>
+agent-line album download <chat-id> <album-id> [-o ./album]
+```
+
+Downloads save every photo to the output directory (default `./line-album-<album-id>`) and print the saved paths as JSON.
+
 ## Global Options
 
 | Option     | Description                           |
@@ -223,6 +253,7 @@ agent-line message list c7a8b9c0d1e2f3a4b5c6d7e8 -n 200
 
 - Credentials stored in `~/.config/agent-messenger/line-credentials.json` (0600 permissions)
 - E2EE key storage in `~/.config/agent-messenger/line-storage/`
+- Session cache (own profile, channel tokens) in the same per-account file, valid for one hour. Set `AGENT_LINE_CACHE_TTL_SECONDS` to change it, or `0` to disable it. A cached token the server rejects is re-issued once; a new `auth login` clears the cache.
 
 ## Limitations
 

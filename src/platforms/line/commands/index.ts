@@ -1,5 +1,7 @@
+export { albumCommand } from './album'
 export { authCommand } from './auth'
 export { chatCommand } from './chat'
 export { friendCommand } from './friend'
 export { messageCommand } from './message'
+export { postCommand } from './post'
 export { whoamiCommand } from './whoami'

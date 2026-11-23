@@ -61,6 +61,12 @@ function advertisedKeyIds(keys: ReadonlyArray<E2EEPublicKey> | undefined): Array
   return ids
 }
 
+// True when a usable self-key is already stored under the account MID.
+export async function hasSelfKeyForMid(storage: E2EEKeyStore, mid: string): Promise<boolean> {
+  if (!mid) return false
+  return parseKeyData(await storage.get(selfKey(mid))) !== null
+}
+
 // Ensures the account's own self-key is addressable by MID for getE2EESelfKeyData,
 // which checks `e2eeKeys:<mid>` before falling back to a live Thrift channel. The
 // keyId-addressed entry is only trusted when the server advertises that exact keyId
