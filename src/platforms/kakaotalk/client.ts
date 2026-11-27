@@ -968,6 +968,9 @@ export class KakaoTalkClient {
   private pushHandlers = new Set<KakaoPushHandler>()
   private sessionEventHandlers = new Set<KakaoSessionEventHandler>()
   private nameCache = new MemberNameCache()
+  // Typing pulses repeat every few seconds; remember each room's link id (or
+  // null for regular chats) so a LOGINLIST miss costs one CHATINFO, not one per pulse.
+  private typingLinkIds = new Map<string, Long | null>()
 
   constructor(private readonly options: KakaoTalkClientOptions = {}) {}
 
@@ -1770,10 +1773,13 @@ export class KakaoTalkClient {
 
   async sendTyping(chatId: string, opts?: { linkId?: string }): Promise<KakaoTypingResult> {
     const parsedChatId = parseChatId(chatId)
-    const parsedLinkId = opts?.linkId !== undefined ? parseLinkId(opts.linkId) : undefined
+    const explicitLinkId = opts?.linkId !== undefined ? parseLinkId(opts.linkId) : undefined
 
-    return this.executeWithReconnect(async ({ session }) => {
+    return this.executeWithReconnect(async ({ session, loginResult }) => {
       try {
+        // Open chats reject ACTION without the room's link id, which KakaoChat does
+        // not expose, so resolve it here unless the caller supplied one.
+        const parsedLinkId = explicitLinkId ?? (await this.resolveTypingLinkId(session, loginResult, parsedChatId))
         const response = await session.sendTyping(parsedChatId, parsedLinkId)
         // Throw on transport-level failure (incl. synthetic { statusCode: -1 }
         // from LocoConnection.handleClose) so executeWithReconnect retries on
@@ -2170,6 +2176,7 @@ export class KakaoTalkClient {
         const idx = raw.findIndex((c) => longToString(c.c) === normalizedChatId)
         if (idx !== -1) raw.splice(idx, 1)
         this.nameCache.forget(normalizedChatId)
+        this.typingLinkIds.delete(normalizedChatId)
         return {
           success: true,
           status_code: 0,
@@ -2346,6 +2353,19 @@ export class KakaoTalkClient {
     this.pushHandlers.clear()
     this.sessionEventHandlers.clear()
     this.nameCache.clear()
+    this.typingLinkIds.clear()
+  }
+
+  private async resolveTypingLinkId(
+    session: LocoSession,
+    loginResult: LoginListResponse,
+    parsedChatId: Long,
+  ): Promise<Long | undefined> {
+    const chatId = longToString(parsedChatId)
+    if (!this.typingLinkIds.has(chatId)) {
+      this.typingLinkIds.set(chatId, await resolveOpenLinkId(session, loginResult, chatId))
+    }
+    return this.typingLinkIds.get(chatId) ?? undefined
   }
 
   lookupAuthorName(chatId: string, authorId: number): string | null {

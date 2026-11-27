@@ -3620,6 +3620,10 @@ describe('KakaoTalkClient', () => {
 
   describe('sendTyping', () => {
     it('forwards parsed chatId to session.sendTyping and reports success on statusCode 0', async () => {
+      mockLogin.mockResolvedValue({
+        ...DEFAULT_LOGIN_RESULT,
+        chatDatas: [{ c: 12345, t: 'MultiChat', k: [], i: [], a: 1, n: 0, o: 1700000000, l: null }],
+      })
       mockSendTyping.mockResolvedValueOnce({ statusCode: 0, body: {} })
       const client = await new KakaoTalkClient().login({ oauthToken: 'token', userId: 'user1', deviceUuid: 'device1' })
 
@@ -3647,12 +3651,66 @@ describe('KakaoTalkClient', () => {
       client.close()
     })
 
+    it('resolves the open chat link id from LOGINLIST when the caller omits it', async () => {
+      mockLogin.mockResolvedValue({
+        ...DEFAULT_LOGIN_RESULT,
+        chatDatas: [{ c: 500, t: 'OM', li: makeLong(7777), k: [], i: [], a: 1, n: 0, o: 1700000000, l: null }],
+      })
+      mockSendTyping.mockResolvedValueOnce({ statusCode: 0, body: {} })
+      const client = await new KakaoTalkClient().login({ oauthToken: 'token', userId: 'user1', deviceUuid: 'device1' })
+
+      await client.sendTyping('500')
+
+      const [, linkIdArg] = mockSendTyping.mock.calls[0] as [unknown, { toString(): string }]
+      expect(linkIdArg.toString()).toBe('7777')
+      expect(mockGetChannelInfo).not.toHaveBeenCalled()
+
+      client.close()
+    })
+
+    it('resolves the link id via CHATINFO once and reuses it for later pulses', async () => {
+      mockGetChannelInfo.mockResolvedValue({
+        statusCode: 0,
+        body: { chatInfo: { chatId: 500, type: 'OM', li: 8888, chatMetas: [] } },
+      })
+      mockSendTyping.mockResolvedValue({ statusCode: 0, body: {} })
+      const client = await new KakaoTalkClient().login({ oauthToken: 'token', userId: 'user1', deviceUuid: 'device1' })
+
+      await client.sendTyping('500')
+      await client.sendTyping('500')
+
+      expect(mockGetChannelInfo).toHaveBeenCalledTimes(1)
+      expect(mockSendTyping).toHaveBeenCalledTimes(2)
+      for (const call of mockSendTyping.mock.calls) {
+        expect((call as unknown as [unknown, { toString(): string }])[1].toString()).toBe('8888')
+      }
+
+      client.close()
+    })
+
+    it('prefers an explicit linkId without resolving one', async () => {
+      mockLogin.mockResolvedValue({
+        ...DEFAULT_LOGIN_RESULT,
+        chatDatas: [{ c: 500, t: 'OM', li: makeLong(7777), k: [], i: [], a: 1, n: 0, o: 1700000000, l: null }],
+      })
+      mockSendTyping.mockResolvedValueOnce({ statusCode: 0, body: {} })
+      const client = await new KakaoTalkClient().login({ oauthToken: 'token', userId: 'user1', deviceUuid: 'device1' })
+
+      await client.sendTyping('500', { linkId: '4242' })
+
+      const [, linkIdArg] = mockSendTyping.mock.calls[0] as [unknown, { toString(): string }]
+      expect(linkIdArg.toString()).toBe('4242')
+      expect(mockGetChannelInfo).not.toHaveBeenCalled()
+
+      client.close()
+    })
+
     it('throws KakaoTalkError(send_typing_failed) on transport-level failure (non-zero statusCode)', async () => {
       mockSendTyping.mockResolvedValueOnce({ statusCode: -100, body: {} })
       const client = await new KakaoTalkClient().login({ oauthToken: 'token', userId: 'user1', deviceUuid: 'device1' })
 
       try {
-        await client.sendTyping('12345')
+        await client.sendTyping('100')
         throw new Error('expected to throw')
       } catch (e) {
         expect(e).toBeInstanceOf(KakaoTalkError)
@@ -3667,7 +3725,7 @@ describe('KakaoTalkClient', () => {
       const client = await new KakaoTalkClient().login({ oauthToken: 'token', userId: 'user1', deviceUuid: 'device1' })
 
       try {
-        await client.sendTyping('12345')
+        await client.sendTyping('100')
         throw new Error('expected to throw')
       } catch (e) {
         expect(e).toBeInstanceOf(KakaoTalkError)
